@@ -268,6 +268,78 @@ textarea{min-height:64px;resize:vertical}
 }
 .pbadge b{font-size:17px;color:var(--purple)}
 
+/* ── Fokus-Tacho 2.0: Renn-Ring, Upgrade-Leiste, Unteraufgaben ───── */
+.tkern{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:var(--s1)}
+.tkopfreihe{display:flex;align-items:center;gap:12px}
+.tringwrap{position:relative;width:132px;height:132px;flex:none}
+.tringwrap .avgrid{
+  position:absolute;inset:0;margin:auto;width:72px;height:87px;
+  grid-template-columns:repeat(24,3px);grid-auto-rows:3px;
+}
+.tkopfpuls{animation:tpuls 1.4s ease-in-out infinite}
+@keyframes tpuls{0%,100%{opacity:.85}50%{opacity:.15}}
+.tinfos{flex:1;min-width:0}
+.trest{font-family:ui-monospace,SFMono-Regular,monospace;font-size:26px;font-weight:800;line-height:1.1}
+.trest.gruen{color:var(--ok)} .trest.gelb{color:var(--warn)} .trest.rot{color:var(--bad)}
+.trestsub{font-size:10.5px;color:var(--mut);margin-bottom:8px}
+.tuabox{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:6px}
+.tuabox .l{font-size:9px;color:var(--mut2);letter-spacing:.5px}
+.tuabox .n{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tuabox .r{font-size:10px}
+.takku{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ok);font-weight:700}
+.tlevel{margin-top:12px}
+.tlevel .kopf{display:flex;justify-content:space-between;font-size:10px;color:var(--mut);margin-bottom:4px}
+.tlevel .kopf .eta{color:var(--cyan);font-family:ui-monospace,monospace}
+.tlevel .leiste{height:14px;border-radius:7px;background:var(--bg);border:1px solid var(--line);overflow:hidden;display:flex}
+.tlevel .lg{background:var(--ok);transition:width .5s}
+.tlevel .ly{background:var(--warn);transition:width .5s}
+.tlevel .lh{
+  background:repeating-linear-gradient(45deg,var(--line) 0 4px,var(--card2) 4px 8px);
+  border-left:1px solid var(--cyan);transition:width .5s;
+}
+.tlevel .lege{display:flex;justify-content:space-between;font-size:9px;color:var(--mut2);margin-top:3px}
+.taufgabe{display:flex;align-items:center;gap:10px;margin-top:12px}
+.taufgabe .tmain{flex:1;min-width:0}
+.taufgabe .ttitel{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.taufgabe .tsub{font-size:10px;color:var(--mut)}
+.taufgabe .tpp{
+  width:46px;height:46px;border-radius:50%;background:var(--blue);flex:none;
+  display:flex;align-items:center;justify-content:center;font-size:19px;color:#04122e;
+}
+.taufgabe .tcheck{
+  width:38px;height:38px;border-radius:50%;border:1px solid var(--line);flex:none;
+  display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--ok);
+}
+.uareihe{display:flex;align-items:center;gap:8px;padding:5px 0}
+.uareihe .uacheck{
+  width:32px;height:32px;flex:none;display:flex;align-items:center;justify-content:center;
+}
+.uareihe .uacheck .box{
+  width:18px;height:18px;border:2px solid var(--mut2);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--bg);font-weight:900;
+}
+.uareihe.fertig .uacheck .box{background:var(--ok);border-color:var(--ok)}
+.uareihe .uatitel{flex:1;min-width:0;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uareihe.fertig .uatitel{color:var(--mut2);text-decoration:line-through}
+.uareihe .uamin{width:52px;flex:none;font-size:11px;text-align:center;padding:5px 4px}
+.uareihe .uapunkte{width:52px;flex:none;text-align:right;font-size:10px;color:var(--ok);font-weight:700}
+.uareihe .uax{width:28px;flex:none;text-align:center;color:var(--mut2);font-size:13px}
+.uaneu{display:flex;gap:var(--s1);margin-top:6px}
+.uaneu input{flex:1;font-size:13px;padding:8px 10px}
+.uaneu button{
+  width:38px;flex:none;border-radius:8px;background:var(--card2);border:1px solid var(--line);
+  color:var(--txt);font-size:16px;font-weight:800;
+}
+.tacc{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:var(--s1);overflow:hidden}
+.tacc .tacckopf{
+  display:flex;align-items:center;gap:8px;min-height:var(--tap);padding:0 12px;
+  font-size:12px;font-weight:700;color:var(--mut);cursor:pointer;
+}
+.tacc .tacckopf .pfeil{margin-left:auto;transition:transform .2s}
+.tacc.offen .tacckopf .pfeil{transform:rotate(180deg)}
+.tacc .taccinhalt{display:none;padding:2px 12px 12px}
+.tacc.offen .taccinhalt{display:block}
+
 /* Fokus-Tacho Liste (4.2) */
 .tachozeile{display:flex;gap:var(--s1);margin-bottom:var(--s1)}
 .tachozeile input{flex:1}
@@ -405,7 +477,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.8.1';
+const APP_VERSION = '0.9.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -440,7 +512,10 @@ const DEFAULT_SETTINGS = {
   arbeitstagEnde:  '18:00',
   freischaltChanceProzent: 40,                                // 6.3 — tägliche Würfel-Chance
   abschnittMorgenBis: 12,                                     // 3.5 — Morgen bis (Uhr)
-  abschnittTagBis: 17                                         // 3.5 — Tag bis (Uhr), danach Abend
+  abschnittTagBis: 17,                                        // 3.5 — Tag bis (Uhr), danach Abend
+  /* Avatar-Level (Spez-Änderung 20.07.2026): eigene Leiter über die
+     Gesamt-Punkte (Wohlstand live), Level-Up sofort bei Schwelle. */
+  avatarStufen: [0, 400, 1200, 2500, 4500, 7000, 10000, 14000, 19000, 25000, 32000, 40000]
 };
 
 function lokaleUuid() {
@@ -482,7 +557,10 @@ function neuesItem(felder = {}) {
     /* Schema-Ergänzungen zu 2.4 (für Punkteregeln 3.4 nötig): */
     tageGeschoben: 0,                 // Zähler für Schiebe-/Plan-Malus
     rhythmusTage: null,               // Routine: alle X Tage fällig (null = kein Rhythmus)
-    zuletztErledigt: null             // Routine: 'YYYY-MM-DD' der letzten Erledigung
+    zuletztErledigt: null,            // Routine: 'YYYY-MM-DD' der letzten Erledigung
+    /* Unteraufgaben (Tacho 2.0): App-intern, reisen im Export nur als
+       Kommentar-Text an Claude — nie als eigene Airtable-Aufgaben. */
+    unteraufgaben: []                 // [{id, titel, erledigt, geplantMin|null, gebuchtePunkte|null}]
   }, felder);
   if (item.domain !== 'dfm') item.geldImpact = null;   // Geld-Score existiert nur bei DFM (3.3)
   if (item.typ === 'counter') {
@@ -617,6 +695,14 @@ const Store = {
       items: JSON.parse(JSON.stringify(this.items)).map(i => {
         delete i.bereich;
         delete i.heuteRausgezogen;      // rein App-interner Tageszustand
+        // Unteraufgaben reisen als Kommentar-Block an Claude (Entscheidung
+        // 20.07.2026) — nie als Schema-Feld, es entstehen keine Aufgaben.
+        if (i.unteraufgaben && i.unteraufgaben.length) {
+          const zeilen = i.unteraufgaben.map(u => '[' + (u.erledigt ? 'x' : ' ') + '] ' + u.titel);
+          i.kommentarFuerClaude = (i.kommentarFuerClaude ? i.kommentarFuerClaude + '\n\n' : '')
+            + 'Unteraufgaben:\n' + zeilen.join('\n');
+        }
+        delete i.unteraufgaben;
         return i;
       }),
       zeitEintraege: this.items
@@ -711,6 +797,115 @@ function anzeigePunkte(item) {
 }
 
 /* ════════════════════════════════════════════════════════════════════
+   Unteraufgaben-Engine (Tacho 2.0)
+   Zeit-Verteilung: eigene Minuten zählen fix, der Rest der geplanten
+   Zeit verteilt sich gleichmäßig auf Unteraufgaben ohne Angabe.
+   Punkte-Anteile folgen den Zeit-Anteilen; Abhaken einer Unteraufgabe
+   friert ihren Anteil sofort ein, die Hauptaufgabe bucht den Rest.
+   ════════════════════════════════════════════════════════════════════ */
+function zeitVerteilung(item) {
+  const uas = item.unteraufgaben || [];
+  if (!uas.length) return [];
+  const geplant = item.aufwandGeplantMin || 0;
+  const fix = uas.filter(u => u.geplantMin > 0);
+  const fixSumme = fix.reduce((s, u) => s + u.geplantMin, 0);
+  const autoAnzahl = uas.length - fix.length;
+  const autoJe = autoAnzahl > 0 ? Math.max(0, geplant - fixSumme) / autoAnzahl : 0;
+  return uas.map(u => (u.geplantMin > 0 ? u.geplantMin : autoJe));
+}
+
+/* Punkte-Anteil einer Unteraufgabe am aktuellen Live-Gesamtwert. */
+function unteraufgabenAnteil(item, uaIndex) {
+  const zeiten = zeitVerteilung(item);
+  const summe = zeiten.reduce((s, z) => s + z, 0);
+  const gesamt = punkteBeiMinuten(item, Math.max(minutenInklFokus(item), item.aufwandGeplantMin || 0));
+  if (summe <= 0) return gesamt / zeiten.length;          // alles 0 geplant → gleichmäßig
+  return gesamt * zeiten[uaIndex] / summe;
+}
+
+function unteraufgabeToggle(itemId, uaId) {
+  const item = Store.findeItem(itemId);
+  if (!item) return;
+  const idx = (item.unteraufgaben || []).findIndex(u => u.id === uaId);
+  if (idx < 0) return;
+  const ua = item.unteraufgaben[idx];
+  if (ua.erledigt) {
+    // Rückgängig: Gutschrift + Log-Eintrag entfernen
+    ua.erledigt = false;
+    ua.gebuchtePunkte = null;
+    Store.tag.log = Store.tag.log.filter(l => !(l.itemId === itemId && l.uaId === uaId));
+  } else {
+    ua.erledigt = true;
+    ua.gebuchtePunkte = unteraufgabenAnteil(item, idx);   // sofort einfrieren
+    Store.tag.log.push({
+      itemId, uaId, titel: item.titel + ' — ' + ua.titel,
+      domain: item.domain, bereich: item.bereich || null,
+      punkte: ua.gebuchtePunkte, zeit: new Date().toISOString()
+    });
+  }
+  gesamtpunkteAktualisieren();
+  Store.speichereItems();
+  Store.speichereTag();
+  pruefeLevelUp();
+}
+
+function unteraufgabeAnlegen(itemId, titel) {
+  const item = Store.findeItem(itemId);
+  if (!item || !titel.trim()) return null;
+  item.unteraufgaben = item.unteraufgaben || [];
+  const ua = { id: lokaleUuid(), titel: titel.trim(), erledigt: false, geplantMin: null, gebuchtePunkte: null };
+  item.unteraufgaben.push(ua);
+  Store.speichereItems();
+  return ua;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Live-Wohlstand & Avatar-Level (Spez-Änderung 20.07.2026: alles live)
+   Anzeige-Basis = offizieller Wohlstand + heutige Punkte + Live-Zulauf
+   des aktuellen Fokus. Level-Up feuert SOFORT beim Schwellen-Übertritt.
+   Die 6 Belohnungs-Kategorien behalten ihre Würfel-Mechanik (6.3),
+   zeigen aber ebenfalls den Live-Stand an.
+   ════════════════════════════════════════════════════════════════════ */
+function fokusLiveDelta() {
+  const item = fokusItem();
+  if (!item || item.status === 'erledigt' || item.typ === 'counter') return 0;
+  const live = punkteBeiMinuten(item, minutenInklFokus(item));
+  const gebucht = (item.unteraufgaben || []).reduce((s, u) => s + (u.gebuchtePunkte || 0), 0);
+  return Math.max(0, live - gebucht);
+}
+
+function wohlstandLive() {
+  if (Store.tag.abgeschlossen) return Store.tag.wohlstandStand;
+  gesamtpunkteAktualisieren();
+  return Store.tag.wohlstandStand + Store.tag.gesamtpunkteHeute + fokusLiveDelta();
+}
+
+function avatarStufeAus(basis) {
+  const stufen = Store.settings.avatarStufen || DEFAULT_SETTINGS.avatarStufen;
+  let s = 1;
+  stufen.forEach((schwelle, i) => { if (basis >= schwelle) s = i + 1; });
+  return s;
+}
+
+/* Level nie absteigend (Undo nimmt kein Level weg). */
+function pruefeLevelUp() {
+  if (!belohnung) return;
+  if (belohnung.avatarStufe == null) {
+    belohnung.avatarStufe = avatarStufeAus(wohlstandLive());
+    belohnungSpeichern();
+    return;
+  }
+  const neu = avatarStufeAus(wohlstandLive());
+  if (neu > belohnung.avatarStufe) {
+    belohnung.avatarStufe = neu;
+    belohnungSpeichern();
+    konfetti();
+    toastZeigen('⬆️ Level up! Avatar-Stufe ' + neu);
+    if (document.getElementById('view-belohnung').classList.contains('on')) renderBelohnung();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
    Fokus-Engine (4.1/4.2): genau ein Fokus, Play/Pause als Toggle.
    Laufende Zeit fließt beim Pausieren/Stoppen in item.istMinuten.
    ════════════════════════════════════════════════════════════════════ */
@@ -791,10 +986,12 @@ function abhaken(id) {
     // Rhythmus-Routine (3.4, NUR Privat): früher dran = Bonus,
     // überfällig = Malus je Tag; Stichtag = zuletztErledigt + Rhythmus.
     let rhythmusDelta = 0;
+    // Unteraufgaben-Gutschriften sind schon gebucht → Hauptaufgabe = Rest
+    const gebucht = (item.unteraufgaben || []).reduce((s, u) => s + (u.gebuchtePunkte || 0), 0);
     const logEintrag = {
       itemId: id, titel: item.titel, domain: item.domain,
       bereich: item.bereich || null,
-      punkte: punkteBeiMinuten(item, item.istMinuten),
+      punkte: Math.max(0, punkteBeiMinuten(item, item.istMinuten) - gebucht),
       zeit: new Date().toISOString()
     };
     if (item.typ === 'routine' && item.domain === 'privat' && item.rhythmusTage > 0) {
@@ -914,6 +1111,9 @@ function karteHtml(item, imStream) {
   if (item.deadline) {
     const t = tageBisDeadline(item.deadline);
     meta.push('<span class="' + (t < 0 ? 'ueberfaellig' : '') + '">📅 ' + (t === 0 ? 'heute' : (t < 0 ? Math.abs(t) + ' Tage über' : 'in ' + t + ' T')) + '</span>');
+  }
+  if (item.unteraufgaben && item.unteraufgaben.length) {
+    meta.push('<span>☑ ' + item.unteraufgaben.filter(u => u.erledigt).length + '/' + item.unteraufgaben.length + '</span>');
   }
   if (item.tageGeschoben > 0) meta.push('<span style="color:var(--warn);font-weight:700">⏩ ' + item.tageGeschoben + '× geschoben</span>');
   if (item.typ === 'routine' && item.rhythmusTage > 0 && item.zuletztErledigt && item.status !== 'erledigt') {
@@ -1340,33 +1540,355 @@ function detailVerdrahten(item) {
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   Fokus-Tacho (4.2): Filter = begonnen-nicht-fertig ODER Muss;
-   Instant-Timer legt ein echtes Muss-Item an und startet sofort.
+   Fokus-Tacho 2.0 (4.2 + Redesign 20.07.2026):
+   Renn-Ring (Timer vs. Unteraufgaben-Fortschritt) mit Avatar in der
+   Mitte, Ampel-Färbung (<80% grün · 80–110% gelb · danach rot, dreht
+   als neue Runde weiter), Live-Upgrade-Leiste zur nächsten Avatar-
+   Stufe, Unteraufgaben-Checkliste, Bewertungs-Regler, Claude-Kommentar
+   und Task-Switcher. Alles tickt sekündlich live.
    ════════════════════════════════════════════════════════════════════ */
+const RING_C = 2 * Math.PI * 58;    // Umfang Timer-Ring
+const RING_CP = 2 * Math.PI * 48;   // Umfang Fortschritts-Ring
+
+function uaZeileHtml(u, i, zeiten) {
+  return '<div class="uareihe' + (u.erledigt ? ' fertig' : '') + '" data-ua="' + u.id + '">'
+    + '<button class="uacheck" data-uakt="toggle" aria-label="Unteraufgabe abhaken"><span class="box">' + (u.erledigt ? '✓' : '') + '</span></button>'
+    + '<span class="uatitel">' + escapeHtml(u.titel) + '</span>'
+    + (u.erledigt
+      ? '<span class="uapunkte">+' + fmtPunkte(u.gebuchtePunkte || 0) + ' P</span>'
+      : '<input class="uamin" data-uakt="min" type="number" inputmode="numeric" placeholder="' + Math.round(zeiten[i] || 0) + '" value="' + (u.geplantMin || '') + '" title="Eigene Minuten (leer = automatisch)">')
+    + '<button class="uax" data-uakt="loeschen" aria-label="Unteraufgabe löschen">✕</button>'
+    + '</div>';
+}
+
 function sheetTachoOeffnen() {
+  const item = fokusItem();
+  let html = '';
+
+  /* ── Tacho-Kern ── */
+  html += '<div class="tkern"><div class="tkopfreihe">';
+  html += '<div class="tringwrap">'
+    + '<svg viewBox="0 0 132 132" width="132" height="132">'
+    + '<defs>'
+    + '<linearGradient id="gLauf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3ecf8e"/><stop offset="1" stop-color="#6dd3e0"/></linearGradient>'
+    + '<linearGradient id="gGelb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2b84b"/><stop offset="1" stop-color="#f08c4b"/></linearGradient>'
+    + '<linearGradient id="gRot" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f66d6d"/><stop offset="1" stop-color="#c23a3a"/></linearGradient>'
+    + '<linearGradient id="gProg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f8ef7"/><stop offset="1" stop-color="#6dd3e0"/></linearGradient>'
+    + '</defs>'
+    + '<circle cx="66" cy="66" r="58" fill="none" stroke="var(--line)" stroke-width="8"/>'
+    + '<circle cx="66" cy="66" r="48" fill="none" stroke="var(--line)" stroke-width="4" opacity=".45"/>'
+    + '<circle id="tZeitArc" cx="66" cy="66" r="58" fill="none" stroke="url(#gLauf)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 ' + RING_C.toFixed(1) + '" transform="rotate(-90 66 66)"/>'
+    + '<circle id="tRotArc" cx="66" cy="66" r="58" fill="none" stroke="url(#gRot)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 ' + RING_C.toFixed(1) + '" transform="rotate(-90 66 66)"/>'
+    + '<circle id="tProgArc" cx="66" cy="66" r="48" fill="none" stroke="url(#gProg)" stroke-width="4" stroke-linecap="round" stroke-dasharray="0 ' + RING_CP.toFixed(1) + '" transform="rotate(-90 66 66)"/>'
+    + '<g id="tTicks"></g>'
+    + '<circle id="tKopfHalo" class="tkopfpuls" r="7" fill="var(--cyan)" cx="66" cy="8" opacity="0"/>'
+    + '<circle id="tKopfDot" r="3.5" fill="#e8eef7" cx="66" cy="8" opacity="0"/>'
+    + '</svg>'
+    + '<div class="avgrid">' + avatarHtml((belohnung && belohnung.avatarStufe) || 1, vitalitaet()) + '</div>'
+    + '</div>';
+  html += '<div class="tinfos">'
+    + '<div class="trest" id="tRest">–</div>'
+    + '<div class="trestsub" id="tRestSub">Kein Fokus aktiv</div>'
+    + '<div class="tuabox" id="tUaBox" hidden><div class="l">UNTERAUFGABE <span id="tUaNum"></span></div>'
+    + '<div class="n" id="tUaName"></div><div class="r" id="tUaRest"></div></div>'
+    + '<div class="takku">🔋 <span id="tAkku">–%</span></div>'
+    + '</div></div>';
+
+  /* ── Upgrade-Leiste: nächste Avatar-Stufe, live ── */
+  html += '<div class="tlevel">'
+    + '<div class="kopf"><span>Nächste Avatar-Stufe</span><span class="eta" id="tEta"></span></div>'
+    + '<div class="leiste"><div class="lg" id="tBarG" style="width:0"></div>'
+    + '<div class="ly" id="tBarY" style="width:0"></div>'
+    + '<div class="lh" id="tBarH" style="width:0"></div></div>'
+    + '<div class="lege"><span style="color:var(--ok)">erreicht</span>'
+    + '<span style="color:var(--warn)">dieser Fokus (live)</span>'
+    + '<span>möglich</span><span id="tLevelZiel" style="color:var(--txt)"></span></div>'
+    + '</div>';
+
+  if (item) {
+    html += '<div class="taufgabe">'
+      + '<div class="tmain" data-tackt="detail"><div class="ttitel">' + escapeHtml(item.titel) + '</div>'
+      + '<div class="tsub">' + (item.domain === 'dfm' ? 'DFM' : 'Privat')
+      + (item.prioritaet === 'muss' ? ' · <span style="color:var(--bad)">MUSS</span>' : '')
+      + ' · <span id="tGesamtP"></span> P gesamt</div></div>'
+      + '<button class="tpp" id="tPp" aria-label="Play/Pause">⏸</button>'
+      + '<button class="tcheck" id="tCheck" aria-label="Erledigt">✓</button>'
+      + '</div>';
+  } else {
+    html += '<div class="leer" style="margin-top:10px">Kein Fokus aktiv — unten eine Aufgabe wählen oder Instant-Fokus starten.</div>';
+  }
+  html += '</div>';
+
+  /* ── Unteraufgaben ── */
+  if (item && item.typ !== 'counter') {
+    const uas = item.unteraufgaben || [];
+    const zeiten = zeitVerteilung(item);
+    html += '<div class="tacc offen"><div class="tacckopf">☑ Unteraufgaben'
+      + (uas.length ? ' · ' + uas.filter(u => u.erledigt).length + '/' + uas.length : '')
+      + '<span class="pfeil">▾</span></div><div class="taccinhalt">'
+      + '<div id="tUaListe">' + uas.map((u, i) => uaZeileHtml(u, i, zeiten)).join('') + '</div>'
+      + '<div class="uaneu"><input id="tUaNeu" type="text" placeholder="Unteraufgabe hinzufügen …"><button id="tUaAdd" aria-label="Hinzufügen">+</button></div>'
+      + '</div></div>';
+  }
+
+  /* ── Bewertung ── */
+  if (item && item.typ !== 'counter') {
+    html += '<div class="tacc"><div class="tacckopf">⚖️ Bewertung<span class="pfeil">▾</span></div><div class="taccinhalt">'
+      + reglerHtml('komplexitaet', item.komplexitaet)
+      + reglerHtml('energie', item.energie)
+      + reglerHtml('blockade', item.blockade)
+      + '</div></div>';
+  }
+
+  /* ── Kommentar für Claude ── */
+  if (item) {
+    html += '<div class="tacc"><div class="tacckopf">💬 Kommentar für Claude<span class="pfeil">▾</span></div><div class="taccinhalt">'
+      + '<textarea id="tKommentar" placeholder="Wird beim nächsten Sync verarbeitet …">' + escapeHtml(item.kommentarFuerClaude || '') + '</textarea>'
+      + '</div></div>';
+  }
+
+  /* ── Task-Switcher (4.2-Filter) ── */
   const kandidaten = Store.items.filter(i =>
-    i.status !== 'erledigt' && (i.status === 'in_arbeit' || i.prioritaet === 'muss'));
+    i.status !== 'erledigt' && (i.status === 'in_arbeit' || i.prioritaet === 'muss')
+    && (!item || i.id !== item.id));
   kandidaten.sort((a, b) => anzeigePunkte(b) - anzeigePunkte(a));
+  html += '<div class="tacc' + (item ? '' : ' offen') + '"><div class="tacckopf">🔁 Wechseln zu<span class="pfeil">▾</span></div><div class="taccinhalt">'
+    + '<div class="tachozeile"><input id="tInstant" type="text" placeholder="Instant-Fokus: Name eintippen …"><button class="start" id="tStart">▶</button></div>'
+    + '<div class="thinweis">Legt sofort ein echtes Muss-Item an und startet den Fokus.</div>'
+    + (kandidaten.length ? kandidaten.map(i => karteHtml(i, false)).join('') : '<div class="leer">Nichts Begonnenes und keine Muss-Items.</div>')
+    + '</div></div>';
 
-  let html = '<div class="tachozeile">'
-    + '<input id="tInstant" type="text" placeholder="Instant-Fokus: Name eintippen …">'
-    + '<button class="start" id="tStart">▶</button>'
-    + '</div>'
-    + '<div class="thinweis">Legt sofort ein echtes Muss-Item an und startet den Fokus.</div>';
-  html += kandidaten.length
-    ? kandidaten.map(i => karteHtml(i, false)).join('')
-    : '<div class="leer">Nichts Begonnenes und keine Muss-Items — Instant-Fokus nutzen.</div>';
+  sheetOeffnen('Fokus-Tacho', html, 'tacho');
+  tachoVerdrahten(item);
+  tachoTick();
+}
 
-  sheetOeffnen('Fokus wählen', html, 'tacho');
-
+function tachoVerdrahten(item) {
+  document.querySelectorAll('#sheetInhalt .tacc .tacckopf').forEach(kopf => {
+    kopf.addEventListener('click', () => kopf.parentElement.classList.toggle('offen'));
+  });
   $('tStart').addEventListener('click', () => {
     const name = $('tInstant').value.trim();
     if (!name) { $('tInstant').focus(); return; }
-    const { item } = Store.upsertItem({ titel: name, prioritaet: 'muss', status: 'in_arbeit' });
-    sheetSchliessen();
-    fokusStarten(item.id);
+    const { item: neu } = Store.upsertItem({ titel: name, prioritaet: 'muss', status: 'in_arbeit' });
+    fokusStarten(neu.id);
+    sheetTachoOeffnen();
   });
   $('tInstant').addEventListener('keydown', e => { if (e.key === 'Enter') $('tStart').click(); });
+  if (!item) return;
+
+  $('tPp').addEventListener('click', () => { fokusToggle(); tachoTick(); });
+  $('tCheck').addEventListener('click', () => { abhaken(item.id); sheetTachoOeffnen(); });
+  document.querySelector('#sheetInhalt [data-tackt="detail"]')
+    .addEventListener('click', () => sheetDetailOeffnen(item.id));
+
+  const kommentar = $('tKommentar');
+  if (kommentar) kommentar.addEventListener('input', () => {
+    item.kommentarFuerClaude = kommentar.value;
+    Store.speichereItems();
+  });
+
+  document.querySelectorAll('#sheetInhalt .regler').forEach(reg => {
+    const feld = reg.dataset.regler;
+    const range = reg.querySelector('input');
+    range.addEventListener('input', () => {
+      const stufen = REGLER_DEFS[feld].stufen;
+      item[feld] = stufen[Number(range.value)];
+      reg.querySelectorAll('.stufen span').forEach((sp, i) =>
+        sp.classList.toggle('on', i === Number(range.value)));
+      Store.speichereItems();
+      tachoTick();
+    });
+  });
+
+  const uaAdd = $('tUaAdd');
+  if (uaAdd) {
+    const anlegen = () => {
+      if (unteraufgabeAnlegen(item.id, $('tUaNeu').value)) sheetTachoOeffnen();
+    };
+    uaAdd.addEventListener('click', anlegen);
+    $('tUaNeu').addEventListener('keydown', e => { if (e.key === 'Enter') anlegen(); });
+  }
+  const uaListe = $('tUaListe');
+  if (uaListe) {
+    uaListe.addEventListener('click', e => {
+      const reihe = e.target.closest('.uareihe');
+      const akt = e.target.closest('[data-uakt]');
+      if (!reihe || !akt) return;
+      if (akt.dataset.uakt === 'toggle') {
+        unteraufgabeToggle(item.id, reihe.dataset.ua);
+        renderAlles();
+        sheetTachoOeffnen();
+      } else if (akt.dataset.uakt === 'loeschen') {
+        item.unteraufgaben = item.unteraufgaben.filter(u => u.id !== reihe.dataset.ua);
+        Store.tag.log = Store.tag.log.filter(l => !(l.itemId === item.id && l.uaId === reihe.dataset.ua));
+        gesamtpunkteAktualisieren();
+        Store.speichereItems(); Store.speichereTag();
+        renderAlles();
+        sheetTachoOeffnen();
+      }
+    });
+    uaListe.addEventListener('input', e => {
+      const reihe = e.target.closest('.uareihe');
+      if (!reihe || !e.target.matches('[data-uakt="min"]')) return;
+      const ua = item.unteraufgaben.find(u => u.id === reihe.dataset.ua);
+      if (ua) { ua.geplantMin = Number(e.target.value) || null; Store.speichereItems(); tachoTick(); }
+    });
+  }
+}
+
+/* Sekündliches Live-Update des Tachos (Ring, Restzeit, Leiste, ETA). */
+function tachoTick() {
+  if (sheetOffenFuer !== 'tacho') return;
+  const item = fokusItem();
+
+  // Akku
+  const akkuEl = $('tAkku');
+  if (akkuEl) akkuEl.textContent = Store.tag.akkuProzent != null ? Math.round(Store.tag.akkuProzent) + '%' : '–%';
+
+  // Upgrade-Leiste (auch ohne Fokus live)
+  const stufen = Store.settings.avatarStufen || DEFAULT_SETTINGS.avatarStufen;
+  const stufe = (belohnung && belohnung.avatarStufe) || 1;
+  const prev = stufen[stufe - 1] || 0;
+  const next = stufen[stufe];
+  gesamtpunkteAktualisieren();
+  const basis = Store.tag.abgeschlossen
+    ? Store.tag.wohlstandStand
+    : Store.tag.wohlstandStand + Store.tag.gesamtpunkteHeute;
+  const delta = fokusLiveDelta();
+  if ($('tBarG')) {
+    if (next != null) {
+      const spanne = Math.max(1, next - prev);
+      const g = Math.min(1, Math.max(0, (basis - prev) / spanne));
+      const y = Math.min(1 - g, delta / spanne);
+      let h = 0;
+      if (item && item.typ !== 'counter' && item.aufwandGeplantMin > 0) {
+        const potenzial = Math.max(0,
+          punkteBeiMinuten(item, Math.max(item.aufwandGeplantMin, minutenInklFokus(item)))
+          - punkteBeiMinuten(item, minutenInklFokus(item)));
+        h = Math.min(1 - g - y, potenzial / spanne);
+      }
+      $('tBarG').style.width = (g * 100).toFixed(1) + '%';
+      $('tBarY').style.width = (y * 100).toFixed(1) + '%';
+      $('tBarH').style.width = (h * 100).toFixed(1) + '%';
+      $('tLevelZiel').textContent = 'Stufe ' + (stufe + 1);
+      const fehlt = next - (basis + delta);
+      const min = item ? minutenInklFokus(item) : 0;
+      const ppm = (item && min > 0.2) ? punkteBeiMinuten(item, min) / min : 0;
+      $('tEta').textContent = fehlt <= 0 ? 'Level up!' :
+        (ppm > 0 ? '~' + Math.ceil(fehlt / ppm) + ' min bei ' + fmtPunkte(ppm) + ' P/min'
+                 : fmtPunkte(fehlt) + ' P fehlen');
+    } else {
+      $('tBarG').style.width = '100%'; $('tBarY').style.width = '0'; $('tBarH').style.width = '0';
+      $('tLevelZiel').textContent = 'Max.'; $('tEta').textContent = 'Höchste Stufe erreicht';
+    }
+  }
+
+  // Ring
+  const zeitArc = $('tZeitArc');
+  if (!zeitArc) return;
+  const rotArc = $('tRotArc'), progArc = $('tProgArc');
+  const dot = $('tKopfDot'), halo = $('tKopfHalo');
+  if (!item) {
+    zeitArc.setAttribute('stroke-dasharray', '0 ' + RING_C);
+    rotArc.setAttribute('stroke-dasharray', '0 ' + RING_C);
+    progArc.setAttribute('stroke-dasharray', '0 ' + RING_CP);
+    dot.setAttribute('opacity', '0'); halo.setAttribute('opacity', '0');
+    $('tTicks').innerHTML = '';
+    $('tRest').textContent = '–'; $('tRest').className = 'trest';
+    $('tRestSub').textContent = 'Kein Fokus aktiv';
+    $('tUaBox').hidden = true;
+    return;
+  }
+
+  const geplant = item.aufwandGeplantMin || 0;
+  const min = minutenInklFokus(item);
+  let farbeKlasse = 'gruen', kopfFarbe = 'var(--ok)';
+  if (geplant > 0) {
+    const pct = min / geplant;
+    if (pct >= 1.1) { farbeKlasse = 'rot'; kopfFarbe = 'var(--bad)'; }
+    else if (pct >= 0.8) { farbeKlasse = 'gelb'; kopfFarbe = 'var(--warn)'; }
+    zeitArc.setAttribute('stroke', pct >= 0.8 ? 'url(#gGelb)' : 'url(#gLauf)');
+    zeitArc.setAttribute('stroke-dasharray', (Math.min(1, pct) * RING_C).toFixed(1) + ' ' + RING_C);
+    // Überzieh-Runde: dreht weiter und übermalt (gelb bis 110%, dann rot)
+    const ueber = pct > 1 ? Math.min(1, pct - 1) : 0;
+    rotArc.setAttribute('stroke', pct >= 1.1 ? 'url(#gRot)' : 'url(#gGelb)');
+    rotArc.setAttribute('stroke-dasharray', (ueber * RING_C).toFixed(1) + ' ' + RING_C);
+    const rest = geplant - min;
+    $('tRest').textContent = rest >= 0 ? fmtDauer(rest * 60) : '+' + fmtDauer(-rest * 60);
+    $('tRest').className = 'trest ' + farbeKlasse;
+    $('tRestSub').textContent = 'von ' + geplant + ' min · ' + Math.round(pct * 100) + '% verbraucht';
+    setzeKopf(dot, halo, (pct % 1), kopfFarbe);
+  } else {
+    // Stoppuhr-Modus: rotierendes Segment, hochzählend
+    const frac = (min * 60 % 60) / 60;
+    zeitArc.setAttribute('stroke', 'url(#gLauf)');
+    zeitArc.setAttribute('stroke-dasharray', '52 ' + RING_C);
+    zeitArc.setAttribute('stroke-dashoffset', (-frac * RING_C).toFixed(1));
+    rotArc.setAttribute('stroke-dasharray', '0 ' + RING_C);
+    $('tRest').textContent = fmtDauer(min * 60);
+    $('tRest').className = 'trest';
+    $('tRestSub').textContent = 'keine Zeit geplant — Stoppuhr';
+    setzeKopf(dot, halo, frac, 'var(--cyan)');
+  }
+
+  // Rennen: Fortschritts-Ring = abgehakte Zeit-Anteile
+  const uas = item.unteraufgaben || [];
+  const zeiten = zeitVerteilung(item);
+  const summe = zeiten.reduce((s, z) => s + z, 0);
+  let progFrac = 0;
+  if (uas.length) {
+    const fertigZeit = uas.reduce((s, u, i) => s + (u.erledigt ? zeiten[i] : 0), 0);
+    progFrac = summe > 0 ? fertigZeit / summe : uas.filter(u => u.erledigt).length / uas.length;
+  }
+  progArc.setAttribute('stroke-dasharray', (Math.min(1, progFrac) * RING_CP).toFixed(1) + ' ' + RING_CP);
+
+  // Striche = Soll-Übergänge der Unteraufgaben
+  let ticks = '';
+  if (uas.length > 1 && summe > 0) {
+    let cum = 0;
+    uas.slice(0, -1).forEach((u, i) => {
+      cum += zeiten[i];
+      const w = cum / summe * 2 * Math.PI - Math.PI / 2;
+      ticks += '<line x1="' + (66 + 53 * Math.cos(w)).toFixed(1) + '" y1="' + (66 + 53 * Math.sin(w)).toFixed(1)
+        + '" x2="' + (66 + 63 * Math.cos(w)).toFixed(1) + '" y2="' + (66 + 63 * Math.sin(w)).toFixed(1)
+        + '" stroke="var(--bg)" stroke-width="3"/>';
+    });
+  }
+  $('tTicks').innerHTML = ticks;
+
+  // Info-Box: aktuelle Unteraufgabe + ihr Zeitfenster
+  const aktIdx = uas.findIndex(u => !u.erledigt);
+  if (aktIdx >= 0) {
+    $('tUaBox').hidden = false;
+    $('tUaNum').textContent = (aktIdx + 1) + '/' + uas.length;
+    $('tUaName').textContent = uas[aktIdx].titel;
+    if (summe > 0 && geplant > 0) {
+      const cumEnde = zeiten.slice(0, aktIdx + 1).reduce((s, z) => s + z, 0);
+      const segRest = cumEnde - min;
+      $('tUaRest').textContent = segRest >= 0
+        ? 'Abschnitt: noch ' + fmtDauer(segRest * 60)
+        : 'Abschnitt: ' + fmtDauer(-segRest * 60) + ' drüber';
+      $('tUaRest').style.color = segRest >= 0 ? 'var(--mut)' : 'var(--bad)';
+    } else {
+      $('tUaRest').textContent = '';
+    }
+  } else {
+    $('tUaBox').hidden = true;
+  }
+
+  const gesamtEl = $('tGesamtP');
+  if (gesamtEl) gesamtEl.textContent = fmtPunkte(punkteBeiMinuten(item, Math.max(min, geplant)));
+  const pp = $('tPp');
+  if (pp) pp.textContent = (fokus && fokus.laeuft) ? '⏸' : '▶';
+}
+
+function setzeKopf(dot, halo, frac, farbe) {
+  const w = frac * 2 * Math.PI - Math.PI / 2;
+  const x = (66 + 58 * Math.cos(w)).toFixed(1), y = (66 + 58 * Math.sin(w)).toFixed(1);
+  dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('opacity', '1');
+  halo.setAttribute('cx', x); halo.setAttribute('cy', y); halo.setAttribute('opacity', '.5');
+  halo.setAttribute('fill', farbe);
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1482,9 +2004,10 @@ function vitalitaet() {
   return v.reduce((s, e) => s + e.p, 0) / v.length >= 50;
 }
 
+/* Avatar-Stufe = eigenes Level über die Gesamt-Punkte (Änderung 20.07.2026,
+   ersetzt den alten Durchschnitt der Kategorie-Stufen). */
 function gesamtStufe() {
-  const summe = KAT_KEYS.reduce((s, k) => s + (belohnung.stufen[k] || 1), 0);
-  return Math.max(1, Math.round(summe / KAT_KEYS.length));
+  return (belohnung && belohnung.avatarStufe) || 1;
 }
 
 /* Aufschlüsselung (3.5): erledigte Punkte nach Bereich oder Tagesabschnitt. */
@@ -1510,6 +2033,7 @@ function renderBelohnung() {
   const vital = vitalitaet();
   const stufe = gesamtStufe();
   const t = Store.tag;
+  const wl = wohlstandLive();   // Live-Anzeige (Änderung 20.07.2026)
   gesamtpunkteAktualisieren();
 
   // Pace wie in der Leiste (3.6)
@@ -1523,8 +2047,8 @@ function renderBelohnung() {
     + '<div class="avcard">'
     + '<div class="avscene' + (vital ? '' : ' erschoepft') + '"><div class="avground"></div>'
     + '<div class="avgrid">' + avatarHtml(stufe, vital) + '</div></div>'
-    + '<div class="rankline"><div class="rankname">Gesamt-Stufe ' + stufe + '/12</div>'
-    + '<div class="rankpts">Wohlstand ' + fmtPunkte(t.wohlstandStand) + ' P</div></div>'
+    + '<div class="rankline"><div class="rankname">Avatar-Stufe ' + stufe + '/' + (Store.settings.avatarStufen || DEFAULT_SETTINGS.avatarStufen).length + '</div>'
+    + '<div class="rankpts">Wohlstand ' + fmtPunkte(wl) + ' P (live)</div></div>'
     + '<div class="statsgrid">'
     + '<div class="statbox"><div class="v">' + fmtPunkte(t.gesamtpunkteHeute) + '</div><div class="k">Punkte heute</div></div>'
     + '<div class="statbox"><div class="v">' + t.streak + '🔥</div><div class="k">Streak</div></div>'
@@ -1552,8 +2076,8 @@ function renderBelohnung() {
     let barPct = 100, nextText = '🏁 Leiter komplett!', bereit = false;
     if (naechste) {
       const von = aktuell[1], bis = naechste[1];
-      barPct = Math.min(100, Math.max(2, Math.round((t.wohlstandStand - von) / (bis - von) * 100)));
-      const fehlend = bis - t.wohlstandStand;
+      barPct = Math.min(100, Math.max(2, Math.round((wl - von) / (bis - von) * 100)));
+      const fehlend = bis - wl;
       const reqFehlt = naechste[2] && (belohnung.stufen[naechste[2][0]] || 0) < naechste[2][1];
       if (fehlend > 0)      nextText = '??? · noch ' + fmtPunkte(fehlend) + ' P Wohlstand';
       else if (reqFehlt)    nextText = '🔒 ??? · noch an eine andere Kategorie gebunden';
@@ -1999,7 +2523,8 @@ document.addEventListener('click', e => {
     case 'pp':
       if (fokus && fokus.itemId === id) fokusToggle();
       else fokusStarten(id);
-      if (sheetOffenFuer === 'tacho') sheetSchliessen();
+      // im Tacho: Kern auf den neuen Fokus umbauen statt schließen
+      if (sheetOffenFuer === 'tacho') sheetTachoOeffnen();
       break;
     case 'detail': sheetDetailOeffnen(id); break;
     case 'check':  abhaken(id); break;
@@ -2029,6 +2554,8 @@ document.querySelectorAll('#tabbar button').forEach(btn => {
 /* Sekündliche Aktualisierung von Timer/Pace, ohne Listen neu zu bauen. */
 setInterval(() => {
   renderFokusbar();
+  tachoTick();
+  pruefeLevelUp();
   // Punkte/Min in einer offenen Detailansicht live mitlaufen lassen (4.2)
   if (sheetOffenFuer && sheetOffenFuer.startsWith('detail:')) {
     const item = Store.findeItem(sheetOffenFuer.slice(7));
@@ -2043,6 +2570,7 @@ if (fokus && !Store.findeItem(fokus.itemId)) { fokus = null; fokusSpeichern(); }
 belohnungInit();
 rollFreischaltungen(false);   // tägliche Würfel-Chance (6.3)
 gesamtpunkteAktualisieren();
+pruefeLevelUp();              // Avatar-Level initialisieren/nachziehen
 renderAlles();
 
 /* Debug-/Testzugriff in der Konsole; spätere Schritte nutzen Store direkt. */
@@ -2052,7 +2580,9 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   privatDokumentMd, importParsen,
   get belohnung() { return belohnung; }, rollFreischaltungen, stufeEligible,
   renderBelohnung, punkteNachGruppe, vitalitaet, gesamtStufe,
-  dropAnwenden, pushDown };
+  dropAnwenden, pushDown,
+  zeitVerteilung, unteraufgabenAnteil, unteraufgabeToggle, unteraufgabeAnlegen,
+  wohlstandLive, fokusLiveDelta, avatarStufeAus, pruefeLevelUp, tachoTick };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
 if ('serviceWorker' in navigator) {
