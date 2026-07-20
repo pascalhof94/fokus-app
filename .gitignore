@@ -1,0 +1,9 @@
+# Nur die App selbst wird veröffentlicht (GitHub Pages ist öffentlich!).
+# Spezifikation, vertrauliche Belohnungs-Inhalte, Referenzfotos und
+# lokale Arbeitsdateien bleiben ausschließlich lokal.
+spec/
+assets/
+CLAUDE.md
+.claude/
+.DS_Store
+*.rtf
