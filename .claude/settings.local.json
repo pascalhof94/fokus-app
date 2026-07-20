@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import PIL; print\\('PIL ok'\\)\")",
+      "Bash(ICON_OUT=\"/Users/kalle/Desktop/DFM Workflow/🚀 PascalHof🏭DFM/📂Automatisierungen/fokus-app\" python3 \"/private/tmp/claude-501/-Users-kalle-Desktop-DFM-Workflow----PascalHof--DFM---Automatisierungen-fokus-app/fe34a0e9-ad62-4cc2-858e-8f3d688ce8fb/scratchpad/make_icons.py\")",
+      "Bash(gh auth *)"
+    ]
+  }
+}

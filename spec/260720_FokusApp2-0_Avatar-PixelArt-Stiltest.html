@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avatar · Pixel-Art Stiltest</title>
+<style>
+:root{
+  --bg:#0d1420; --card:#141e2e; --card2:#182438; --line:#243349;
+  --ok:#3ecf8e; --warn:#f2b84b; --blue:#4f8ef7; --purple:#b98af7; --cyan:#6dd3e0;
+  --txt:#e8eef7; --mut:#8fa1b8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt);max-width:640px;margin:0 auto;padding:24px 20px 80px;line-height:1.5}
+h1{font-size:19px;font-weight:900}
+h1 span{color:var(--blue)}
+.meta{color:var(--mut);font-size:13px;margin:6px 0 22px}
+.howto{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:24px;font-size:13px;color:var(--mut)}
+.howto b{color:var(--txt)}
+.placeholder-flag{display:inline-block;background:rgba(242,184,75,.15);color:var(--warn);font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;margin-bottom:14px}
+.stagecard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;max-width:340px;margin:0 auto}
+.scene{background:#0a0f1a;border-radius:10px;image-rendering:pixelated;display:flex;align-items:flex-end;justify-content:center;padding:14px 0;position:relative;overflow:hidden}
+.pixelgrid{display:grid;grid-template-columns:repeat(12,7px);grid-template-rows:repeat(15,7px);position:relative;z-index:2}
+.pixelgrid div{width:7px;height:7px}
+.groundrow{position:absolute;left:0;right:0;bottom:0;height:14px;z-index:1}
+.toggles{display:flex;gap:8px;margin-top:14px}
+.toggles button{flex:1;border:1px solid var(--line);background:var(--card2);color:var(--mut);border-radius:9px;padding:9px;font-weight:800;font-size:12.5px;cursor:pointer}
+.toggles button.on{background:var(--blue);color:#04122e;border-color:transparent}
+.needlist{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:28px}
+.needlist h2{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--blue);margin-bottom:10px}
+.needlist ol{margin-left:18px;font-size:13px;color:var(--mut)}
+.needlist li{margin-bottom:8px}
+.needlist b{color:var(--txt)}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:#5d6d88;text-align:center}
+</style>
+</head>
+<body>
+
+<h1>👾 Avatar <span>Pixel-Art Stiltest</span></h1>
+<div class="meta">Nur zur Stil-Bewertung — Figur, Farben und Szene sind Platzhalter, keine echten Rang-Inhalte.</div>
+
+<span class="placeholder-flag">⚠ Platzhalter — nicht deine finalen Ränge</span>
+
+<div class="stagecard">
+  <div class="scene" id="scene">
+    <div class="groundrow" id="ground"></div>
+    <div class="pixelgrid" id="grid"></div>
+  </div>
+  <div class="toggles">
+    <button class="on" onclick="setTier(0)">Tier-Test A</button>
+    <button onclick="setTier(1)">Tier-Test B</button>
+  </div>
+</div>
+
+<div class="howto"><b>Technik:</b> reines Pixel-Raster (jede Zelle = ein „Pixel"), keine fotorealistische Generierung — so lässt sich später jede Deiner Referenzen sauber in denselben Stil übersetzen.</div>
+
+<div class="needlist">
+  <h2>Was ich von dir brauche</h2>
+  <ol>
+    <li><b>Für den Avatar selbst:</b> ein Foto oder eine kurze Beschreibung (Haarfarbe/-stil, Brille ja/nein, Statur, ein „Erkennungsmerkmal") — reicht für eine erkennbare Pixel-Version von dir.</li>
+    <li><b>Kategorien bestätigen:</b> Autos, Gebäude, Kleidung, Boote, Haustiere — passt die Liste, oder fällt dir noch etwas ein (Uhren, Reisen, Technik…)?</li>
+    <li><b>Referenz-Fotos der Objekte</b> — schick sie, wann du willst, kein Zeitdruck. Ich baue daraus die Pixel-Assets, halte die genaue Rang-Zuordnung aber zurück, damit die Freischaltung in der App für dich überraschend bleibt.</li>
+  </ol>
+</div>
+
+<footer>Pixel-Art-Stiltest · Platzhalter · Feedback zur Technik, nicht zum Inhalt</footer>
+
+<script>
+const LEGEND={".":"transparent","H":"#3a2a1a","S":"#f2c9a0","E":"#182438","C0":"#5d6d88","C1":"#4f8ef7","P":"#101827","B":"#0a0f1a","A":"#f2b84b"};
+const BASE=[
+"....HHHH....",
+"...HHHHHH...",
+"...HSSSSH...",
+"...HSESES...",
+"...HSSSSH...",
+"....SSSS....",
+"..C0C0C0C0..",
+".C0C0C0C0C0.",
+".C0C0C0C0C0.",
+".C0C0C0C0C0.",
+"..C0C0C0C0..",
+"....PPPP....",
+"....PPPP....",
+"....PPPP....",
+"...BB..BB...",
+];
+const TIER1=[
+"....HHHH....",
+"...HHHHHH...",
+"...HSSSSH...",
+"...HSESES...",
+"...HSSSSH...",
+"....SSSS....",
+"..C1C1C1C1..",
+".C1AAAAAC1.",
+".C1C1C1C1C1.",
+".C1C1C1C1C1.",
+"..C1C1C1C1..",
+"....PPPP....",
+"....PPPP....",
+"....PPPP....",
+"...BB..BB...",
+];
+function draw(rows){
+  const grid=document.getElementById("grid");
+  grid.innerHTML="";
+  rows.forEach(row=>{
+    for(let i=0;i<row.length;){
+      let code = row[i]==="C"||row[i]==="A" ? row.slice(i,i+2) : row[i];
+      const color = LEGEND[code] || "transparent";
+      const d=document.createElement("div");
+      d.style.background=color;
+      grid.appendChild(d);
+      i += code.length;
+    }
+  });
+}
+function setTier(n){
+  document.querySelectorAll(".toggles button").forEach((b,idx)=>b.classList.toggle("on",idx===n));
+  draw(n===0?BASE:TIER1);
+  document.getElementById("ground").style.background = n===0 ? "#22304a" : "#233252";
+}
+setTier(0);
+</script>
+</body>
+</html>
