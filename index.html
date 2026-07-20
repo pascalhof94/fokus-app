@@ -405,7 +405,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.8.0';
+const APP_VERSION = '0.8.1';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -1206,7 +1206,9 @@ function sheetDetailOeffnen(id) {
   if (!item) return;
   const istCounter = item.typ === 'counter';
   let html = '';
-  html += '<div class="pbadge"><span>Punkte aktuell</span><b id="dPunkte">' + fmtPunkte(anzeigePunkte(item)) + ' P</b></div>';
+  html += '<div class="pbadge"><span>Punkte aktuell</span><span><b id="dPunkte">'
+       + fmtPunkte(anzeigePunkte(item)) + ' P</b>'
+       + '<span id="dPpm" style="color:var(--purple);font-size:12px;margin-left:8px"></span></span></div>';
   html += '<div class="feld"><label>Titel</label><input id="dTitel" type="text" value="' + escapeHtml(item.titel) + '"></div>';
   html += '<div class="zweispaltig">'
        +  '<div class="feld"><label>Domäne</label>' + segHtml('domain', ['dfm', 'privat'], item.domain, ['DFM', 'Privat']) + '</div>'
@@ -1257,14 +1259,25 @@ function sheetDetailOeffnen(id) {
   detailVerdrahten(item);
 }
 
+/* Live-Anzeige Punkte/Min in der editierbaren Karte (4.2). */
+function dPpmAktualisieren(item) {
+  const el = $('dPpm');
+  if (!el) return;
+  if (item.typ === 'counter') { el.textContent = ''; return; }
+  const min = minutenInklFokus(item);
+  el.textContent = min > 0.2 ? '· ' + fmtPunkte(punkteBeiMinuten(item, min) / min) + ' P/min' : '';
+}
+
 function detailVerdrahten(item) {
   const inhalt = $('sheetInhalt');
   const speichernUndAktualisieren = () => {
     Store.speichereItems();
     const el = $('dPunkte');
     if (el) el.textContent = fmtPunkte(anzeigePunkte(item)) + ' P';
+    dPpmAktualisieren(item);
     $('sheetTitel').textContent = item.titel || 'Neues Item';
   };
+  dPpmAktualisieren(item);
 
   const bind = (id, fn) => { const el = $(id); if (el) el.addEventListener('input', () => { fn(el); speichernUndAktualisieren(); }); };
   bind('dTitel',    el => item.titel = el.value);
@@ -1994,13 +2007,12 @@ document.addEventListener('click', e => {
   }
 });
 
-/* Fokus-Leiste: Tap auf die Mitte → Tacho; Play/Pause-Toggle (4.1);
+/* Fokus-Leiste: Tap auf die Mitte öffnet IMMER den Fokus-Tacho (4.2) —
+   auch bei laufendem Fokus (Task-Switcher); das laufende Item steht dort
+   gelistet und ist per Karten-Tap editierbar. Play/Pause-Toggle (4.1);
    Tap auf den Akku → Startwert anpassen (jederzeit überschreibbar, 1.2). */
 $('ppBtn').addEventListener('click', fokusToggle);
-$('fokusMid').addEventListener('click', () => {
-  if (fokus) sheetDetailOeffnen(fokus.itemId);
-  else sheetTachoOeffnen();
-});
+$('fokusMid').addEventListener('click', sheetTachoOeffnen);
 $('akku').addEventListener('click', sheetTagStartOeffnen);
 
 /* Tab-Navigation (7.1) */
@@ -2017,6 +2029,11 @@ document.querySelectorAll('#tabbar button').forEach(btn => {
 /* Sekündliche Aktualisierung von Timer/Pace, ohne Listen neu zu bauen. */
 setInterval(() => {
   renderFokusbar();
+  // Punkte/Min in einer offenen Detailansicht live mitlaufen lassen (4.2)
+  if (sheetOffenFuer && sheetOffenFuer.startsWith('detail:')) {
+    const item = Store.findeItem(sheetOffenFuer.slice(7));
+    if (item && fokus && fokus.itemId === item.id) dPpmAktualisieren(item);
+  }
   if (new Date().getSeconds() === 0) renderPace();
 }, 1000);
 
