@@ -405,7 +405,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.7.0';
+const APP_VERSION = '0.7.1';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -1697,7 +1697,9 @@ function sheetSyncOeffnen() {
     + '<div class="wizinfo" id="syErgebnis"></div>';
   sheetOeffnen('Sync jetzt', html, 'sync');
 
-  $('syKopieren').addEventListener('click', () => inZwischenablage(exportJson, $('syKopieren')));
+  // Als ```json-Block kopieren — bleibt im Claude-Chat sauber formatiert
+  $('syKopieren').addEventListener('click', () =>
+    inZwischenablage('```json\n' + exportJson + '\n```', $('syKopieren')));
   $('syAnwenden').addEventListener('click', () => {
     try {
       const erg = Store.wendeImportAn(importParsen($('syImport').value));
@@ -1788,7 +1790,8 @@ function sheetTagEndeOeffnen() {
       + '<button class="wizbtn sek" id="weDokument">Privat-Dokument herunterladen</button>';
     $('sheetInhalt').innerHTML = ergebnis;
     $('sheetTitel').textContent = 'Tag abgeschlossen';
-    $('weKopieren').addEventListener('click', () => inZwischenablage(exportJson, $('weKopieren')));
+    $('weKopieren').addEventListener('click', () =>
+      inZwischenablage('```json\n' + exportJson + '\n```', $('weKopieren')));
     $('weDokument').addEventListener('click', () => herunterladen(dateinamePrivat(), privatDokumentMd()));
   });
 }
