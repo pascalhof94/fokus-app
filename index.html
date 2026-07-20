@@ -206,6 +206,41 @@ textarea{min-height:64px;resize:vertical}
 .regler .stufen{display:flex;justify-content:space-between;font-size:10.5px;color:var(--mut2);margin-top:-2px}
 .regler .stufen span.on{color:var(--txt);font-weight:800}
 
+/* Tag-Aktionen im Stream (7.1): geführte Screens von hier aus */
+#tagAktionen{display:flex;gap:var(--s1);margin-bottom:var(--s2)}
+.tagbtn{
+  flex:1;min-height:var(--tap);border-radius:12px;
+  background:var(--card2);border:1px solid var(--blue);
+  color:var(--txt);font-size:13px;font-weight:800;
+}
+.tagbtn.sek{border-color:var(--line);color:var(--mut);flex:0 0 auto;padding:0 14px}
+.tagchip{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  min-height:var(--tap);border-radius:12px;font-size:12.5px;font-weight:700;
+  background:var(--card);border:1px solid var(--ok);color:var(--ok);
+}
+
+/* Export-/Import-Felder in den Wizards */
+.copyfeld{
+  width:100%;min-height:120px;font-family:ui-monospace,SFMono-Regular,monospace;
+  font-size:11px;line-height:1.4;white-space:pre;
+}
+.wizbtn{
+  width:100%;min-height:var(--tap);border-radius:12px;margin-top:var(--s1);
+  background:var(--blue);color:#fff;font-size:15px;font-weight:800;
+}
+.wizbtn.sek{background:var(--card);border:1px solid var(--line);color:var(--txt)}
+.wizinfo{font-size:12px;color:var(--mut);margin:var(--s1) 0}
+.wizsumme{
+  background:var(--bg);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;margin-bottom:var(--s1);font-size:13px;
+}
+.wizsumme .zeile{display:flex;justify-content:space-between;padding:2px 0}
+.wizsumme .zeile b{color:var(--purple)}
+.akkuwert{
+  width:76px;text-align:center;font-size:17px;font-weight:800;padding:8px 6px;
+}
+
 /* Einstellungen (7.3): numerische Variante derselben Regler-Komponente */
 .regler .kopfzeile2{display:flex;justify-content:space-between;align-items:baseline}
 .regler .wert{font-family:ui-monospace,SFMono-Regular,monospace;font-size:13px;font-weight:800;color:var(--cyan)}
@@ -271,6 +306,7 @@ textarea{min-height:64px;resize:vertical}
 
 <main>
   <section class="view on" id="view-stream">
+    <div id="tagAktionen"></div>
     <div id="pace"></div>
     <h2 class="sechead">Tagesstream <span class="anz" id="anzStream"></span></h2>
     <div id="streamListe"></div>
@@ -305,7 +341,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.5.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -693,6 +729,7 @@ function gesamtpunkteAktualisieren() {
    ════════════════════════════════════════════════════════════════════ */
 function tagAbschliessen() {
   if (Store.tag.abgeschlossen) return null;
+  fokusZeitEinbuchen();   // laufenden Fokus pausieren, Zeit sichern
   Store.items.forEach(i => {
     if (i.status !== 'erledigt' && (i.streamSlot != null || i.heuteRausgezogen)) {
       i.tageGeschoben = (i.tageGeschoben || 0) + 1;
@@ -860,6 +897,7 @@ function renderFokusbar() {
 }
 
 function renderAlles() {
+  renderTagAktionen();
   renderStream();
   renderPace();
   renderFokusbar();
@@ -1181,6 +1219,205 @@ function sheetTachoOeffnen() {
 }
 
 /* ════════════════════════════════════════════════════════════════════
+   Geführte Screens (1.2 / 7.1): Tag starten · Sync jetzt · Tag abschließen
+   — als Sheets aus dem Stream-Tab. Kein Internet: Export/Import läuft
+   ausschließlich über Copy/Paste bzw. Datei-Download durch Pascal.
+   ════════════════════════════════════════════════════════════════════ */
+function renderTagAktionen() {
+  const t = Store.tag;
+  let html = '';
+  if (t.abgeschlossen) {
+    html += '<div class="tagchip">🌙 Tag abgeschlossen · Wohlstand ' + fmtPunkte(t.wohlstandStand) + ' P</div>';
+  } else if (!t.gestartet) {
+    html += '<button class="tagbtn" data-wiz="start">🌅 Tag starten</button>';
+  } else {
+    html += '<button class="tagbtn" data-wiz="ende">🌙 Tag abschließen</button>';
+  }
+  html += '<button class="tagbtn sek" data-wiz="sync">🔄 Sync</button>';
+  $('tagAktionen').innerHTML = html;
+  $('tagAktionen').querySelectorAll('[data-wiz]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.wiz === 'start') sheetTagStartOeffnen();
+      if (btn.dataset.wiz === 'sync')  sheetSyncOeffnen();
+      if (btn.dataset.wiz === 'ende')  sheetTagEndeOeffnen();
+    });
+  });
+}
+
+/* Tag starten (1.2): Energie + Motivation → Akku-Vorschlag, überschreibbar.
+   Auch nach Tagesstart erreichbar (Tap auf den Akku) zum Anpassen. */
+function sheetTagStartOeffnen() {
+  const t = Store.tag;
+  const e0 = t.energieStart || 7, m0 = t.motivationStart || 7;
+  const akku0 = (t.akkuProzent != null) ? Math.round(t.akkuProzent) : Math.round((e0 + m0) / 2) * 10;
+  let html = ''
+    + '<div class="regler"><div class="kopfzeile2"><label>Energie</label><span class="wert" id="wEnergie">' + e0 + '</span></div>'
+    + '<input type="range" min="1" max="10" step="1" value="' + e0 + '" id="rEnergie"></div>'
+    + '<div class="regler"><div class="kopfzeile2"><label>Motivation</label><span class="wert" id="wMotivation">' + m0 + '</span></div>'
+    + '<input type="range" min="1" max="10" step="1" value="' + m0 + '" id="rMotivation"></div>'
+    + '<div class="pbadge"><span>Akku-Startwert (Vorschlag, überschreibbar)</span>'
+    + '<span><input class="akkuwert" id="wAkku" type="number" inputmode="numeric" min="0" max="100" value="' + akku0 + '"> %</span></div>'
+    + '<button class="wizbtn" id="wStart">' + (t.gestartet ? 'Akku übernehmen' : 'Tag starten') + '</button>';
+  sheetOeffnen(t.gestartet ? 'Akku anpassen' : 'Tag starten', html, 'tagstart');
+
+  let akkuManuell = false;
+  const vorschlag = () => {
+    if (akkuManuell) return;
+    $('wAkku').value = Math.round((Number($('rEnergie').value) + Number($('rMotivation').value)) / 2) * 10;
+  };
+  $('rEnergie').addEventListener('input', () => { $('wEnergie').textContent = $('rEnergie').value; vorschlag(); });
+  $('rMotivation').addEventListener('input', () => { $('wMotivation').textContent = $('rMotivation').value; vorschlag(); });
+  $('wAkku').addEventListener('input', () => { akkuManuell = true; });
+  $('wStart').addEventListener('click', () => {
+    t.energieStart = Number($('rEnergie').value);
+    t.motivationStart = Number($('rMotivation').value);
+    t.akkuProzent = Math.min(100, Math.max(0, Number($('wAkku').value) || 0));
+    t.gestartet = true;
+    Store.speichereTag();
+    sheetSchliessen();
+  });
+}
+
+/* Kopieren mit Fallback (file:// bzw. ältere WebViews) */
+function inZwischenablage(text, btn) {
+  const fertig = () => { const alt = btn.textContent; btn.textContent = '✓ Kopiert'; setTimeout(() => btn.textContent = alt, 1500); };
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    ta.remove(); fertig();
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(fertig, fallback);
+  } else fallback();
+}
+
+/* Import-Paket aus eingefügtem Text lesen (toleriert ```json-Zäune). */
+function importParsen(text) {
+  const m = String(text).match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('Kein JSON-Block gefunden');
+  return JSON.parse(m[0]);
+}
+
+function herunterladen(dateiname, inhalt) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([inhalt], { type: 'text/markdown' }));
+  a.download = dateiname;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* Sync jetzt (1.2): Export-Block erzeugen + Import-Paket einfügen. */
+function sheetSyncOeffnen() {
+  const exportJson = JSON.stringify(Store.baueExport('sync'), null, 2);
+  let html = ''
+    + '<h2 class="sechead">Export → Claude-Chat</h2>'
+    + '<textarea class="copyfeld" id="syExport" readonly>' + escapeHtml(exportJson) + '</textarea>'
+    + '<button class="wizbtn sek" id="syKopieren">Export kopieren</button>'
+    + '<h2 class="sechead">Import ← Claude-Chat</h2>'
+    + '<div class="wizinfo">Import-Paket aus dem Chat hier einfügen — Abgleich läuft über die Record-ID, ohne Duplikate.</div>'
+    + '<textarea class="copyfeld" id="syImport" placeholder=\'{"neu":[…],"aktualisiert":[…],"entfernt":[…]}\'></textarea>'
+    + '<button class="wizbtn" id="syAnwenden">Import anwenden</button>'
+    + '<div class="wizinfo" id="syErgebnis"></div>';
+  sheetOeffnen('Sync jetzt', html, 'sync');
+
+  $('syKopieren').addEventListener('click', () => inZwischenablage(exportJson, $('syKopieren')));
+  $('syAnwenden').addEventListener('click', () => {
+    try {
+      const erg = Store.wendeImportAn(importParsen($('syImport').value));
+      Store.ladeAlles();   // Migration/Normalisierung auf importierte Items anwenden
+      gesamtpunkteAktualisieren();
+      $('syErgebnis').textContent = '✓ Angewendet: ' + erg.angelegt + ' neu · '
+        + erg.aktualisiert + ' aktualisiert · ' + erg.entfernt + ' entfernt';
+      renderAlles();
+    } catch (e) {
+      $('syErgebnis').textContent = '✗ Konnte das Paket nicht lesen: ' + e.message;
+    }
+  });
+}
+
+/* Privat-Dokument (2.3): KPI-Klartext oben, JSON-Rohdaten darunter —
+   NUR Privat-Daten (Domänen-Trennung). Ablage übernimmt Pascal manuell
+   (Zielordner laut Spez. noch offen). */
+function privatDokumentMd() {
+  const t = Store.tag;
+  const privat = Store.items.filter(i => i.domain === 'privat');
+  const erledigt = t.log.filter(l => l.domain === 'privat');
+  const counter = privat.filter(i => i.typ === 'counter');
+  const z = [];
+  z.push('# Privat-Tagesabschluss ' + t.datum);
+  z.push('');
+  z.push('## KPI-Übersicht');
+  z.push('- Gesamtpunkte heute (beide Domänen): ' + fmtPunkte(t.gesamtpunkteHeute) + ' P');
+  z.push('- Davon Privat erledigt: ' + fmtPunkte(erledigt.reduce((s, l) => s + l.punkte, 0)) + ' P (' + erledigt.length + ' Items)');
+  z.push('- Streak: ' + t.streak + ' Tage · Wohlstand-Stand: ' + fmtPunkte(t.wohlstandStand) + ' P');
+  z.push('- Akku-Start: ' + (t.akkuProzent != null ? Math.round(t.akkuProzent) + ' %' : 'nicht gesetzt'));
+  if (erledigt.length) {
+    z.push('');
+    z.push('### Erledigt (Privat)');
+    erledigt.forEach(l => z.push('- ' + l.titel + ' — ' + fmtPunkte(l.punkte) + ' P'));
+  }
+  if (counter.length) {
+    z.push('');
+    z.push('### Counter-Stände');
+    counter.forEach(c => z.push('- ' + c.titel + ': ' + (c.tickStandHeute || 0) + ' Ticks — ' + fmtPunkte(counterPunkte(c)) + ' P'));
+  }
+  z.push('');
+  z.push('## Rohdaten');
+  z.push('```json');
+  z.push(JSON.stringify({ datum: t.datum, tagesstand: t, items: privat }, null, 2));
+  z.push('```');
+  return z.join('\n');
+}
+
+function dateinamePrivat() {
+  return heuteIso().slice(2).replace(/-/g, '') + '_Privat_Tagesabschluss.md';
+}
+
+/* Tag abschließen (1.2): Zusammenfassung → bestätigen → Export + Dokument. */
+function sheetTagEndeOeffnen() {
+  gesamtpunkteAktualisieren();
+  const t = Store.tag;
+  const erledigt = t.log.length;
+  const geschoben = Store.items.filter(i =>
+    i.status !== 'erledigt' && (i.streamSlot != null || i.heuteRausgezogen)).length;
+  const streakWeiter = t.gesamtpunkteHeute > 0;
+  let html = ''
+    + '<div class="wizsumme">'
+    + '<div class="zeile"><span>Erledigte Items</span><b>' + erledigt + '</b></div>'
+    + '<div class="zeile"><span>Punkte heute</span><b>' + fmtPunkte(t.gesamtpunkteHeute) + ' P</b></div>'
+    + '<div class="zeile"><span>Nicht geschafft (→ Schiebe-Malus)</span><b>' + geschoben + '</b></div>'
+    + '<div class="zeile"><span>Streak</span><b>' + (streakWeiter
+        ? t.streak + ' → ' + (t.streak + 1) + ' (+' + Store.settings.streakBonus + ' P)'
+        : t.streak + ' → 0 (Abriss)') + '</b></div>'
+    + '<div class="zeile"><span>Wohlstand danach</span><b>' + fmtPunkte(t.wohlstandStand
+        + t.gesamtpunkteHeute + (streakWeiter ? Store.settings.streakBonus : 0)) + ' P</b></div>'
+    + '</div>'
+    + '<div class="wizinfo">Friert die heutigen Punkte ein, zählt Schiebe-Tage hoch und schreibt den Wohlstand fort. Danach bekommst du den Export-Block und das Privat-Dokument.</div>'
+    + '<button class="wizbtn" id="weAbschliessen">Tag jetzt abschließen</button>';
+  sheetOeffnen('Tag abschließen', html, 'tagende');
+
+  $('weAbschliessen').addEventListener('click', () => {
+    const exp = tagAbschliessen();
+    if (!exp) { sheetSchliessen(); return; }
+    const exportJson = JSON.stringify(exp, null, 2);
+    let ergebnis = ''
+      + '<div class="tagchip" style="margin-bottom:var(--s2)">🌙 Tag abgeschlossen · Wohlstand '
+      + fmtPunkte(Store.tag.wohlstandStand) + ' P</div>'
+      + '<h2 class="sechead">Export → Claude-Chat (DFM-Seite)</h2>'
+      + '<textarea class="copyfeld" id="weExport" readonly>' + escapeHtml(exportJson) + '</textarea>'
+      + '<button class="wizbtn sek" id="weKopieren">Export kopieren</button>'
+      + '<h2 class="sechead">Privat-Dokument</h2>'
+      + '<div class="wizinfo">' + dateinamePrivat() + ' — herunterladen und in deinen Privat-Ordner legen (Zielordner laut Spez. noch offen).</div>'
+      + '<button class="wizbtn sek" id="weDokument">Privat-Dokument herunterladen</button>';
+    $('sheetInhalt').innerHTML = ergebnis;
+    $('sheetTitel').textContent = 'Tag abgeschlossen';
+    $('weKopieren').addEventListener('click', () => inZwischenablage(exportJson, $('weKopieren')));
+    $('weDokument').addEventListener('click', () => herunterladen(dateinamePrivat(), privatDokumentMd()));
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════
    Interaktion verdrahten
    ════════════════════════════════════════════════════════════════════ */
 
@@ -1205,12 +1442,14 @@ document.addEventListener('click', e => {
   }
 });
 
-/* Fokus-Leiste: Tap auf die Mitte → Tacho; Play/Pause-Toggle (4.1). */
+/* Fokus-Leiste: Tap auf die Mitte → Tacho; Play/Pause-Toggle (4.1);
+   Tap auf den Akku → Startwert anpassen (jederzeit überschreibbar, 1.2). */
 $('ppBtn').addEventListener('click', fokusToggle);
 $('fokusMid').addEventListener('click', () => {
   if (fokus) sheetDetailOeffnen(fokus.itemId);
   else sheetTachoOeffnen();
 });
+$('akku').addEventListener('click', sheetTagStartOeffnen);
 
 /* Tab-Navigation (7.1) */
 document.querySelectorAll('#tabbar button').forEach(btn => {
@@ -1237,7 +1476,8 @@ renderAlles();
 /* Debug-/Testzugriff in der Konsole; spätere Schritte nutzen Store direkt. */
 window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   punkteBeiMinuten, counterPunkte, anzeigePunkte, renderAlles,
-  fokusStarten, fokusToggle, fokusBeenden, tagAbschliessen, abhaken };
+  fokusStarten, fokusToggle, fokusBeenden, tagAbschliessen, abhaken,
+  privatDokumentMd, importParsen };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
 if ('serviceWorker' in navigator) {
