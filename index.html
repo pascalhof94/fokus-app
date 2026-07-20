@@ -405,7 +405,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.7.1';
+const APP_VERSION = '0.8.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -560,34 +560,80 @@ const Store = {
     return this.items.length !== n;
   },
 
-  /* Import-Paket aus dem Claude-Chat (2.4): Abgleich über Record-ID —
-     neue ID → anlegen, vorhandene ID → updaten, entfernt-Liste → raus.
-     Keine Duplikate, auch wenn ein Item fälschlich unter „neu" steht. */
+  /* Import-Paket aus dem Claude-Chat (Sync-Vertrag spec/fokus-sync/SKILL.md):
+     neu → anlegen, aktualisiert → per id mergen, entfernt → aus der Ansicht
+     nehmen. Keine Duplikate, auch wenn ein Item fälschlich unter „neu" steht.
+     UUID-Tausch: lokale UUID unter „entfernt" + inhaltsgleiches rec…-Item
+     unter „neu" = ERSETZUNG derselben Karte (neue ID, lokaler Zustand wie
+     streamSlot/Ist-Minuten/Status bleibt erhalten) — keine Neuanlage. */
   wendeImportAn(paket) {
-    const ergebnis = { angelegt: 0, aktualisiert: 0, entfernt: 0 };
-    for (const felder of [...(paket.neu || []), ...(paket.aktualisiert || [])]) {
-      if (!felder || !felder.id) continue;
+    const ergebnis = { angelegt: 0, aktualisiert: 0, entfernt: 0, ersetzt: 0 };
+    const neu = (paket.neu || []).filter(n => n && n.id);
+    const aktualisiert = (paket.aktualisiert || []).filter(n => n && n.id);
+    const entfernt = paket.entfernt || [];
+    const istRec = id => /^rec/i.test(String(id));
+    const alsErsatzVerbraucht = new Set();
+
+    for (const altId of entfernt) {
+      if (istRec(altId)) continue;                    // nur lokale UUIDs tauschen
+      const lokal = this.findeItem(altId);
+      if (!lokal) continue;
+      const kandidat = neu.find(n => istRec(n.id) && !alsErsatzVerbraucht.has(n.id)
+        && (n.domain || 'dfm') === lokal.domain
+        && String(n.titel || '').trim().toLowerCase() === String(lokal.titel || '').trim().toLowerCase());
+      if (!kandidat) continue;
+      alsErsatzVerbraucht.add(kandidat.id);
+      const erhalten = {                              // lokaler Zustand überlebt den Tausch
+        streamSlot: lokal.streamSlot, istMinuten: lokal.istMinuten,
+        status: lokal.status, tageGeschoben: lokal.tageGeschoben,
+        tickStandHeute: lokal.tickStandHeute, zuletztErledigt: lokal.zuletztErledigt
+      };
+      Object.assign(lokal, kandidat, erhalten);
+      idReferenzenUmziehen(altId, lokal.id);
+      ergebnis.ersetzt++;
+    }
+
+    for (const felder of [...neu.filter(n => !alsErsatzVerbraucht.has(n.id)), ...aktualisiert]) {
       const { angelegt } = this.upsertItem(felder);
       ergebnis[angelegt ? 'angelegt' : 'aktualisiert']++;
     }
-    for (const id of (paket.entfernt || [])) {
+    for (const id of entfernt) {
       if (this.entferneItem(id)) ergebnis.entfernt++;
     }
+    this.speichereItems();
     return ergebnis;
   },
 
-  /* Export-Paket (2.4) für „Sync jetzt" bzw. „Tag abschließen". */
+  /* Export-Paket nach dem Sync-Vertrag (spec/fokus-sync/SKILL.md):
+     - bereich ist App-seitig READ-ONLY und wird NIE exportiert
+       (der Chat leitet ihn aus dem Projekt ab)
+     - projekt bleibt Klartext-Name (nie Airtable-ID)
+     - Zeit durchgehend in Minuten; Stunden rechnet nur der Chat
+     - komplexitaet/energie/blockade reisen informativ mit */
   baueExport(typ) {
     return {
       typ,                              // 'sync' | 'tagesabschluss'
       datum: heuteIso(),
-      items: JSON.parse(JSON.stringify(this.items)),
+      items: JSON.parse(JSON.stringify(this.items)).map(i => {
+        delete i.bereich;
+        delete i.heuteRausgezogen;      // rein App-interner Tageszustand
+        return i;
+      }),
       zeitEintraege: this.items
         .filter(i => i.istMinuten > 0 || i.status === 'erledigt')
         .map(i => ({ itemId: i.id, minuten: Math.round(i.istMinuten), erledigt: i.status === 'erledigt' }))
     };
   }
 };
+
+/* Beim UUID→rec-Tausch alle internen Verweise auf die neue ID umziehen. */
+function idReferenzenUmziehen(altId, neuId) {
+  if (fokus && fokus.itemId === altId) { fokus.itemId = neuId; fokusSpeichern(); }
+  (Store.tag.log || []).forEach(l => { if (l.itemId === altId) l.itemId = neuId; });
+  (Store.tag.tickLog || []).forEach(l => { if (l.itemId === altId) l.itemId = neuId; });
+  Store.items.forEach(i => { if (i.ankerBezugId === altId) i.ankerBezugId = neuId; });
+  Store.speichereTag();
+}
 
 function lsLese(key, fallback) {
   try {
@@ -1199,6 +1245,11 @@ function sheetDetailOeffnen(id) {
        +  '<div class="feld"><label>Ist-Minuten</label><input id="dIst" type="number" inputmode="numeric" value="' + Math.round(item.istMinuten || 0) + '"></div>'
        + '</div>';
   html += '<div class="feld"><label>Projekt</label><input id="dProjekt" type="text" value="' + escapeHtml(item.projekt || '') + '"></div>';
+  // bereich: READ-ONLY (Sync-Vertrag) — kommt nur aus dem Import, nie editierbar
+  if (item.bereich) {
+    html += '<div class="feld"><label>Bereich (aus dem letzten Sync)</label>'
+         + '<div class="wizinfo" style="margin:0">' + escapeHtml(item.bereich) + '</div></div>';
+  }
   html += '<div class="feld"><label>Notiz (→ Airtable-Notiz)</label><textarea id="dNotiz">' + escapeHtml(item.notiz || '') + '</textarea></div>';
   html += '<div class="feld"><label>Kommentar für Claude (nächster Sync)</label><textarea id="dKommentar">' + escapeHtml(item.kommentarFuerClaude || '') + '</textarea></div>';
 
@@ -1706,7 +1757,8 @@ function sheetSyncOeffnen() {
       Store.ladeAlles();   // Migration/Normalisierung auf importierte Items anwenden
       gesamtpunkteAktualisieren();
       $('syErgebnis').textContent = '✓ Angewendet: ' + erg.angelegt + ' neu · '
-        + erg.aktualisiert + ' aktualisiert · ' + erg.entfernt + ' entfernt';
+        + erg.aktualisiert + ' aktualisiert · ' + erg.entfernt + ' entfernt'
+        + (erg.ersetzt ? ' · ' + erg.ersetzt + '× ID-Tausch' : '');
       renderAlles();
     } catch (e) {
       $('syErgebnis').textContent = '✗ Konnte das Paket nicht lesen: ' + e.message;
