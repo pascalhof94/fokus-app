@@ -110,12 +110,71 @@ main{
 /* ── Karten (4.4 / 7.2) — Höhe nach Inhalt, Rand nach Domäne ─────── */
 .karte{
   display:flex;align-items:stretch;gap:2px;
-  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  background:var(--card);border:1.5px solid transparent;border-radius:12px;
   margin-bottom:var(--s1);overflow:hidden;
 }
-.karte.dfm{border-left:3px solid var(--blue)}
-.karte.privat{border-left:3px solid var(--warn)}
-.karte.counter{border-left:3px solid var(--mut2)}
+/* Farbcodierung (20.07.2026): Verlaufs-Rand + leichte Tönung je Typ */
+.karte.dfm{background:
+  linear-gradient(135deg,rgba(79,142,247,.10),rgba(109,211,224,.03)) padding-box,
+  linear-gradient(var(--card),var(--card)) padding-box,
+  linear-gradient(135deg,#4f8ef7,#6dd3e0) border-box}
+.karte.privat{background:
+  linear-gradient(135deg,rgba(242,184,75,.10),rgba(240,140,75,.03)) padding-box,
+  linear-gradient(var(--card),var(--card)) padding-box,
+  linear-gradient(135deg,#f2b84b,#f08c4b) border-box}
+.karte.routine{background:
+  linear-gradient(135deg,rgba(185,138,247,.12),rgba(138,108,247,.03)) padding-box,
+  linear-gradient(var(--card),var(--card)) padding-box,
+  linear-gradient(135deg,#b98af7,#8a6cf7) border-box}
+.karte.cgut{background:
+  linear-gradient(135deg,rgba(62,207,142,.10),rgba(109,211,224,.03)) padding-box,
+  linear-gradient(var(--card),var(--card)) padding-box,
+  linear-gradient(135deg,#3ecf8e,#6dd3e0) border-box}
+.karte.cschlecht{background:
+  linear-gradient(135deg,rgba(246,109,109,.12),rgba(194,58,58,.04)) padding-box,
+  linear-gradient(var(--card),var(--card)) padding-box,
+  linear-gradient(135deg,#f66d6d,#c23a3a) border-box}
+/* Routine-Karten in den Abschnitts-Feldern: Spaltenlayout mit Extras */
+.karte.spalte{flex-direction:column;align-items:stretch}
+.karte .krow{display:flex;align-items:stretch;gap:2px}
+.karte.ausgesetzt{opacity:.55}
+.karte .uamini{padding:0 12px 8px 46px}
+.karte .uamini .umzeile{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px}
+.karte .uamini .umbox{
+  width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;
+}
+.karte .uamini .umbox span{
+  width:15px;height:15px;border:2px solid var(--mut2);border-radius:5px;
+  display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--bg);font-weight:900;
+}
+.karte .uamini .umzeile.fertig .umbox span{background:var(--ok);border-color:var(--ok)}
+.karte .uamini .umzeile.fertig .umtitel{color:var(--mut2);text-decoration:line-through}
+.karte .kfooter{display:flex;gap:var(--s1);padding:0 12px 10px 46px}
+.karte .kfooter button{
+  font-size:11px;font-weight:700;color:var(--mut);
+  border:1px solid var(--line);border-radius:8px;padding:6px 10px;
+}
+/* Counter-Chips im Klappfeld */
+.chips{display:flex;flex-wrap:wrap;gap:var(--s1)}
+.cchip{
+  display:flex;align-items:center;gap:8px;min-height:var(--tap);padding:6px 4px 6px 14px;
+  border-radius:12px;border:1.5px solid transparent;
+  font-size:13px;font-weight:800;color:var(--txt);
+}
+.cchip.cgut{background:
+  linear-gradient(135deg,rgba(62,207,142,.14),rgba(109,211,224,.05)) padding-box,
+  linear-gradient(var(--card),var(--card)) padding-box,
+  linear-gradient(135deg,#3ecf8e,#6dd3e0) border-box}
+.cchip.cschlecht{background:
+  linear-gradient(135deg,rgba(246,109,109,.16),rgba(194,58,58,.06)) padding-box,
+  linear-gradient(var(--card),var(--card)) padding-box,
+  linear-gradient(135deg,#f66d6d,#c23a3a) border-box}
+.cchip .cnt{font-family:ui-monospace,monospace;font-size:15px}
+.cchip .cpts{font-size:10.5px;color:var(--mut);font-weight:700}
+.cchip .cedit{width:34px;min-height:34px;display:flex;align-items:center;justify-content:center;color:var(--mut2)}
+/* Klappfelder auf der Stream-Seite nutzen die tacc-Optik */
+#view-stream .tacc{margin-top:var(--s2)}
+#view-stream .tacc .anz{color:var(--mut2);font-weight:600;letter-spacing:0}
 .karte.erledigt{opacity:.45}
 .karte .kpp{
   width:var(--tap);flex:none;display:flex;align-items:center;justify-content:center;
@@ -458,6 +517,8 @@ textarea{min-height:64px;resize:vertical}
     <div id="pace"></div>
     <h2 class="sechead">Tagesstream <span class="anz" id="anzStream"></span></h2>
     <div id="streamListe"></div>
+    <div id="counterFeld"></div>
+    <div id="routinenFelder"></div>
     <h2 class="sechead" id="queueHead">Warteschlange <span class="anz" id="anzQueue"></span></h2>
     <div id="queueListe"></div>
   </section>
@@ -491,7 +552,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.9.1';
+const APP_VERSION = '0.10.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -574,8 +635,14 @@ function neuesItem(felder = {}) {
     zuletztErledigt: null,            // Routine: 'YYYY-MM-DD' der letzten Erledigung
     /* Unteraufgaben (Tacho 2.0): App-intern, reisen im Export nur als
        Kommentar-Text an Claude — nie als eigene Airtable-Aufgaben. */
-    unteraufgaben: []                 // [{id, titel, erledigt, geplantMin|null, gebuchtePunkte|null}]
+    unteraufgaben: [],                // [{id, titel, erledigt, geplantMin|null, gebuchtePunkte|null}]
+    /* Private Tagesstruktur (20.07.2026): */
+    tagesabschnitt: 'tagsueber',      // Routine-Feld: morgen | tagsueber | abend
+    routineStreak: 0,                 // routineneigene Streak-Serie
+    streakGebrochen: false,           // Kennzeichnung nach verpasstem Tag
+    ausgesetztAm: null                // 'YYYY-MM-DD' = heute ausgesetzt (Rhythmus neu)
   }, felder);
+  if (item.typ === 'routine' && item.rhythmusTage == null) item.rhythmusTage = 1;  // Standard: täglich
   if (item.domain !== 'dfm') item.geldImpact = null;   // Geld-Score existiert nur bei DFM (3.3)
   if (item.typ === 'counter') {
     const cd = (Store.settings && Store.settings.counterDefaults) || DEFAULT_SETTINGS.counterDefaults;
@@ -619,7 +686,13 @@ const Store = {
       // (Boni/Mali & Streak-Fortschreibung übernimmt später der
       //  Tagesabschluss-Wizard — hier nur der technische Rollover.)
       this.tag = neuerTagesstand(heuteIso(), tag);
-      this.items.forEach(i => { if (i.typ === 'counter') i.tickStandHeute = 0; });
+      this.items.forEach(i => {
+        if (i.typ === 'counter') i.tickStandHeute = 0;      // Counter starten morgens neu
+        if (i.typ === 'routine') {                          // Routinen sind Tages-Items
+          if (i.status !== 'offen') i.status = 'offen';
+          i.istMinuten = 0;
+        }
+      });
       this.speichereAlles();
     }
   },
@@ -811,6 +884,57 @@ function anzeigePunkte(item) {
 }
 
 /* ════════════════════════════════════════════════════════════════════
+   Routine-Engine (private Tagesstruktur, 20.07.2026)
+   Rhythmus 1–31 Tage; fällig = zuletztErledigt + Rhythmus erreicht
+   (nie erledigte Routinen sind sofort fällig). Aussetzen startet den
+   Rhythmus ab heute neu (wahlweise mit Punkteabzug); Verpasstes zieht
+   beim Tagesabschluss automatisch ab und bricht die Routine-Streak.
+   ════════════════════════════════════════════════════════════════════ */
+function routineUeberfaelligTage(r) {
+  if (!r.zuletztErledigt) return 0;
+  const diff = Math.round((new Date(heuteIso() + 'T00:00:00')
+    - new Date(r.zuletztErledigt + 'T00:00:00')) / 86400000);
+  return diff - (r.rhythmusTage || 1);
+}
+
+function routineFaellig(r) {
+  if (r.typ !== 'routine') return false;
+  if (r.status === 'erledigt') return false;
+  if (r.ausgesetztAm === heuteIso()) return false;
+  if (!r.zuletztErledigt) return true;
+  return routineUeberfaelligTage(r) >= 0;
+}
+
+function routineAussetzen(id, mitAbzug) {
+  const r = Store.findeItem(id);
+  if (!r || r.typ !== 'routine') return;
+  r.ausgesetztAm = heuteIso();
+  r.zuletztErledigt = heuteIso();          // Rhythmus startet ab heute neu
+  if (mitAbzug) {
+    Store.tag.log.push({
+      itemId: id, titel: r.titel + ' — ausgesetzt', domain: r.domain,
+      bereich: r.bereich || null, punkte: Store.settings.rhythmusVerpasstProTag,
+      zeit: new Date().toISOString(), aussetzer: true
+    });
+  }
+  gesamtpunkteAktualisieren();
+  Store.speichereItems(); Store.speichereTag();
+  toastZeigen(mitAbzug
+    ? '⏭ Ausgesetzt (' + fmtPunkte(Store.settings.rhythmusVerpasstProTag) + ' P) — Rhythmus startet heute neu'
+    : '⏭ Ausgesetzt — Rhythmus startet heute neu');
+  renderAlles();
+}
+
+function rhythmusLabel(tage) {
+  const t = tage || 1;
+  if (t === 1) return 'tgl.';
+  if (t === 7) return 'wöchentl.';
+  if (t === 14) return 'alle 2 Wo.';
+  if (t >= 28 && t <= 31) return 'monatl.';
+  return 'alle ' + t + ' T';
+}
+
+/* ════════════════════════════════════════════════════════════════════
    Unteraufgaben-Engine (Tacho 2.0)
    Zeit-Verteilung: eigene Minuten zählen fix, der Rest der geplanten
    Zeit verteilt sich gleichmäßig auf Unteraufgaben ohne Angabe.
@@ -990,10 +1114,11 @@ function abhaken(id) {
   if (!item) return;
   if (item.status === 'erledigt') {
     // Versehen rückgängig: auftauen, Log-Eintrag entfernen, Rhythmus zurück
-    const log = Store.tag.log.find(l => l.itemId === id);
+    const log = Store.tag.log.find(l => l.itemId === id && !l.uaId);
     if (log && log.zuletztErledigtVorher !== undefined) item.zuletztErledigt = log.zuletztErledigtVorher;
+    if (item.typ === 'routine') item.routineStreak = Math.max(0, (item.routineStreak || 0) - 1);
     item.status = item.istMinuten > 0 ? 'in_arbeit' : 'offen';
-    Store.tag.log = Store.tag.log.filter(l => l.itemId !== id);
+    Store.tag.log = Store.tag.log.filter(l => !(l.itemId === id && !l.uaId));
   } else {
     if (fokus && fokus.itemId === id) fokusBeenden();
     item.status = 'erledigt';
@@ -1008,17 +1133,17 @@ function abhaken(id) {
       punkte: Math.max(0, punkteBeiMinuten(item, item.istMinuten) - gebucht),
       zeit: new Date().toISOString()
     };
-    if (item.typ === 'routine' && item.domain === 'privat' && item.rhythmusTage > 0) {
-      if (item.zuletztErledigt) {
-        const faellig = new Date(item.zuletztErledigt + 'T00:00:00');
-        faellig.setDate(faellig.getDate() + item.rhythmusTage);
-        const heute = new Date(heuteIso() + 'T00:00:00');
-        const diffTage = Math.round((heute - faellig) / 86400000);
+    if (item.typ === 'routine') {
+      // Bonus/Malus nach 3.4 gilt NUR Privat; Rhythmus-Neustart + Streak für alle
+      if (item.domain === 'privat' && item.rhythmusTage > 0 && item.zuletztErledigt) {
+        const diffTage = routineUeberfaelligTage(item);
         if (diffTage < 0)      rhythmusDelta = Store.settings.rhythmusFrueherBonus;
         else if (diffTage > 0) rhythmusDelta = Store.settings.rhythmusVerpasstProTag * diffTage;
       }
       logEintrag.zuletztErledigtVorher = item.zuletztErledigt;
       item.zuletztErledigt = heuteIso();
+      item.routineStreak = (item.routineStreak || 0) + 1;   // routineneigene Serie
+      item.streakGebrochen = false;
     }
     logEintrag.rhythmusDelta = rhythmusDelta;
     logEintrag.punkte += rhythmusDelta;
@@ -1065,6 +1190,27 @@ function gesamtpunkteAktualisieren() {
 function tagAbschliessen() {
   if (Store.tag.abgeschlossen) return null;
   fokusZeitEinbuchen();   // laufenden Fokus pausieren, Zeit sichern
+  // Fällige, nicht erledigte Routinen: Auto-Abzug + Streak-Bruch (20.07.2026)
+  Store.items.forEach(i => {
+    if (i.typ !== 'routine' || !routineFaellig(i)) return;
+    Store.tag.log.push({
+      itemId: i.id, titel: i.titel + ' — verpasst', domain: i.domain,
+      bereich: i.bereich || null, punkte: Store.settings.rhythmusVerpasstProTag,
+      zeit: new Date().toISOString(), routineVerpasst: true
+    });
+    i.routineStreak = 0;
+    i.streakGebrochen = true;
+  });
+  // Counter: Tagesstand einfrieren und zurücksetzen (starten morgens neu)
+  Store.items.forEach(i => {
+    if (i.typ !== 'counter' || !(i.tickStandHeute > 0)) return;
+    Store.tag.log.push({
+      itemId: i.id, titel: i.titel + ' (Counter)', domain: i.domain,
+      bereich: i.bereich || null, punkte: counterPunkte(i),
+      zeit: new Date().toISOString(), counterAbschluss: true
+    });
+    i.tickStandHeute = 0;
+  });
   Store.items.forEach(i => {
     if (i.status !== 'erledigt' && (i.streamSlot != null || i.heuteRausgezogen)) {
       i.tageGeschoben = (i.tageGeschoben || 0) + 1;
@@ -1112,7 +1258,14 @@ function fmtDauer(sekGesamt) {
 const TYP_ICON = { aufgabe: '📋', routine: '🔁', counter: '🔢' };
 
 function karteHtml(item, imStream) {
-  const klassen = ['karte', item.typ === 'counter' ? 'counter' : item.domain];
+  // Farbcodierung: Routine lila, Counter grün/rot nach Stand, sonst Domäne
+  let farbe = item.domain;
+  if (item.typ === 'routine') farbe = 'routine';
+  if (item.typ === 'counter') {
+    farbe = ((item.tickStandHeute || 0) > item.tickSchwelle && item.punkteJeTickNachSchwelle < 0)
+      ? 'cschlecht' : 'cgut';
+  }
+  const klassen = ['karte', farbe];
   if (item.status === 'erledigt') klassen.push('erledigt');
   if (fokus && fokus.itemId === item.id) klassen.push('fokussiert');
   const pp = (fokus && fokus.itemId === item.id && fokus.laeuft) ? '⏸' : '▶';
@@ -1163,14 +1316,17 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-/* Stream chronologisch nach Slot, Warteschlange nach Punkten absteigend (5.1). */
+/* Stream chronologisch nach Slot (5.1). Warteschlange = nur Aufgaben —
+   Routinen leben in den Abschnitts-Feldern, Counter im Counter-Feld. */
+let felderOffen = lsLese('fokus2.felder', { counter: true, morgen: true, tagsueber: true, abend: true });
+function felderSpeichern() { lsSchreibe('fokus2.felder', felderOffen); }
+
 function renderStream() {
-  const heuteFertigOderAktiv = i => true; // Schritt 3: alle Items anzeigen; Filterung folgt mit Import-Logik
-  const stream = Store.items.filter(i => i.streamSlot != null && heuteFertigOderAktiv(i))
+  const stream = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter')
     .sort((a, b) => a.streamSlot - b.streamSlot);
-  const queue = Store.items.filter(i => i.streamSlot == null && i.status !== 'erledigt')
+  const queue = Store.items.filter(i => i.typ === 'aufgabe' && i.streamSlot == null && i.status !== 'erledigt')
     .sort((a, b) => anzeigePunkte(b) - anzeigePunkte(a));
-  const queueFertig = Store.items.filter(i => i.streamSlot == null && i.status === 'erledigt');
+  const queueFertig = Store.items.filter(i => i.typ === 'aufgabe' && i.streamSlot == null && i.status === 'erledigt');
 
   $('streamListe').innerHTML = stream.length
     ? stream.map(i => karteHtml(i, true)).join('')
@@ -1180,6 +1336,96 @@ function renderStream() {
     : '<div class="leer">Warteschlange leer. Über die Fokus-Leiste kannst du sofort einen Instant-Fokus starten.</div>';
   $('anzStream').textContent = stream.length ? stream.length + ' Items' : '';
   $('anzQueue').textContent = queue.length ? queue.length + ' Items' : '';
+  renderCounterFeld();
+  renderRoutinenFelder();
+}
+
+/* Counter als Buttons im Klappfeld (nie in Stream/Warteschlange). */
+function renderCounterFeld() {
+  const counter = Store.items.filter(i => i.typ === 'counter');
+  if (!counter.length) { $('counterFeld').innerHTML = ''; return; }
+  $('counterFeld').innerHTML =
+    '<div class="tacc' + (felderOffen.counter ? ' offen' : '') + '" data-feld="counter">'
+    + '<div class="tacckopf">🔢 Counter <span class="anz">' + counter.length + '</span><span class="pfeil">▾</span></div>'
+    + '<div class="taccinhalt"><div class="chips">'
+    + counter.map(c => {
+      const schlecht = (c.tickStandHeute || 0) > c.tickSchwelle && c.punkteJeTickNachSchwelle < 0;
+      return '<button class="cchip ' + (schlecht ? 'cschlecht' : 'cgut') + '" data-cid="' + c.id + '">'
+        + escapeHtml(c.titel)
+        + '<span class="cnt">' + (c.tickStandHeute || 0) + '</span>'
+        + '<span class="cpts">' + fmtPunkte(counterPunkte(c)) + ' P</span>'
+        + '<span class="cedit" data-cedit="1" aria-label="Bearbeiten">✎</span></button>';
+    }).join('')
+    + '</div></div></div>';
+}
+
+/* Routinen in klappbaren Abschnitts-Feldern unter dem Stream. */
+const ABSCHNITTE = [['morgen', '🌅 Morgen'], ['tagsueber', '☀️ Tagsüber'], ['abend', '🌙 Abends']];
+
+function routineKarteHtml(r) {
+  const ausgesetzt = r.ausgesetztAm === heuteIso();
+  const faellig = routineFaellig(r);
+  const ueber = routineUeberfaelligTage(r);
+  const klassen = ['karte', 'routine', 'spalte'];
+  if (r.status === 'erledigt') klassen.push('erledigt');
+  if (ausgesetzt) klassen.push('ausgesetzt');
+  if (fokus && fokus.itemId === r.id) klassen.push('fokussiert');
+  const pp = (fokus && fokus.itemId === r.id && fokus.laeuft) ? '⏸' : '▶';
+
+  const meta = [];
+  meta.push('<span style="color:var(--warn);font-weight:700">🔥 ' + (r.routineStreak || 0) + '</span>');
+  meta.push('<span>' + rhythmusLabel(r.rhythmusTage) + '</span>');
+  meta.push('<span class="pkt">+' + fmtPunkte(anzeigePunkte(r)) + ' P</span>');
+  meta.push('<span style="color:var(--bad)">' + fmtPunkte(Store.settings.rhythmusVerpasstProTag) + ' P verpasst</span>');
+  if (r.status === 'erledigt') meta.push('<span style="color:var(--ok);font-weight:700">✓ heute</span>');
+  else if (ausgesetzt) meta.push('<span>⏭ ausgesetzt</span>');
+  else if (faellig && ueber > 0) meta.push('<span class="ueberfaellig">' + ueber + ' T überfällig</span>');
+  else if (faellig) meta.push('<span style="color:var(--warn);font-weight:700">heute fällig</span>');
+  else meta.push('<span>wieder in ' + (-ueber) + ' T</span>');
+  if (r.streakGebrochen && r.status !== 'erledigt') meta.push('<span class="ueberfaellig">💔 Streak gebrochen</span>');
+
+  const uas = r.unteraufgaben || [];
+  const uamini = uas.length
+    ? '<div class="uamini">' + uas.map(u =>
+        '<div class="umzeile' + (u.erledigt ? ' fertig' : '') + '">'
+        + '<button class="umbox" data-aktion="uatoggle" data-ua="' + u.id + '" aria-label="Unteraufgabe"><span>' + (u.erledigt ? '✓' : '') + '</span></button>'
+        + '<span class="umtitel">' + escapeHtml(u.titel) + '</span>'
+        + '</div>').join('') + '</div>'
+    : '';
+  const footer = (faellig && !ausgesetzt && r.status !== 'erledigt')
+    ? '<div class="kfooter">'
+      + '<button data-aktion="aussetzen" data-abzug="0">⏭ Aussetzen</button>'
+      + '<button data-aktion="aussetzen" data-abzug="1">⏭ Aussetzen (' + fmtPunkte(Store.settings.rhythmusVerpasstProTag) + ' P)</button>'
+      + '</div>'
+    : '';
+
+  return '<article class="' + klassen.join(' ') + '" data-id="' + r.id + '">'
+    + '<div class="krow">'
+    + '<button class="kpp" data-aktion="pp" aria-label="Fokus Play/Pause">' + pp + '</button>'
+    + '<div class="kmain" data-aktion="detail">'
+    + '<div class="ktitel">' + escapeHtml(r.titel || '(ohne Titel)') + '</div>'
+    + '<div class="kmeta">' + meta.join('') + '</div>'
+    + '</div>'
+    + '<button class="kcheck" data-aktion="check" aria-label="Abhaken"><span class="box">' + (r.status === 'erledigt' ? '✓' : '') + '</span></button>'
+    + '<span class="kgriff" style="visibility:hidden">⠿</span>'
+    + '</div>'
+    + uamini + footer
+    + '</article>';
+}
+
+function renderRoutinenFelder() {
+  const routinen = Store.items.filter(i => i.typ === 'routine');
+  if (!routinen.length) { $('routinenFelder').innerHTML = ''; return; }
+  $('routinenFelder').innerHTML = ABSCHNITTE.map(([key, label]) => {
+    const liste = routinen.filter(r => (r.tagesabschnitt || 'tagsueber') === key)
+      .sort((a, b) => (routineFaellig(b) ? 1 : 0) - (routineFaellig(a) ? 1 : 0));
+    if (!liste.length) return '';
+    const offen = liste.filter(r => routineFaellig(r)).length;
+    return '<div class="tacc' + (felderOffen[key] ? ' offen' : '') + '" data-feld="' + key + '">'
+      + '<div class="tacckopf">' + label + ' <span class="anz">'
+      + (offen ? offen + ' fällig' : '✓') + '</span><span class="pfeil">▾</span></div>'
+      + '<div class="taccinhalt">' + liste.map(routineKarteHtml).join('') + '</div></div>';
+  }).join('');
 }
 
 /* Pace-Leiste (4.4/3.6): dünner Zeitstrich + Punkte/Std ist vs. Soll. */
@@ -1447,9 +1693,20 @@ function sheetDetailOeffnen(id) {
          + '</div>';
   }
   if (item.typ === 'routine') {
+    const r = item.rhythmusTage || 1;
+    html += '<div class="feld"><label>Tagesabschnitt</label>'
+         + segHtml('tagesabschnitt', ['morgen', 'tagsueber', 'abend'], item.tagesabschnitt || 'tagsueber', ['🌅 Morgen', '☀️ Tagsüber', '🌙 Abends']) + '</div>';
+    html += '<div class="feld"><label>Rhythmus — Schnellauswahl</label>'
+         + segHtml('rhythmusSchnell', ['1', '2', '3', '7', '14', '30'],
+             ['1', '2', '3', '7', '14', '30'].includes(String(r)) ? String(r) : '',
+             ['Tgl.', '2 T', '3 T', 'Wo.', '2 Wo.', 'Mon.']) + '</div>';
     html += '<div class="zweispaltig">'
-         +  '<div class="feld"><label>Rhythmus: alle X Tage (leer = keiner)</label><input id="dRhythmus" type="number" inputmode="numeric" value="' + (item.rhythmusTage || '') + '"></div>'
-         +  '<div class="feld"><label>Zuletzt erledigt</label><input id="dZuletzt" type="date" value="' + (item.zuletztErledigt || '') + '"></div>'
+         + '<div class="feld"><label>Eigener Rhythmus (Tage, 1–31)</label><input id="dRhythmus" type="number" inputmode="numeric" min="1" max="31" value="' + r + '"></div>'
+         + '<div class="feld"><label>Zuletzt erledigt</label><input id="dZuletzt" type="date" value="' + (item.zuletztErledigt || '') + '"></div>'
+         + '</div>'
+         + '<div class="zweispaltig">'
+         + '<div class="feld"><label>Routine-Streak</label><div class="wizinfo" style="margin:0">🔥 ' + (item.routineStreak || 0) + (item.streakGebrochen ? ' · 💔 zuletzt gebrochen' : '') + '</div></div>'
+         + '<div class="feld"><label>Abzug bei Verpassen</label><div class="wizinfo" style="margin:0">' + fmtPunkte(Store.settings.rhythmusVerpasstProTag) + ' P</div></div>'
          + '</div>';
   }
   html += '<div class="zweispaltig">'
@@ -1504,7 +1761,12 @@ function detailVerdrahten(item) {
     if (item.streamSlot != null && neu == null) item.heuteRausgezogen = true;
     item.streamSlot = neu;
   });
-  bind('dRhythmus', el => item.rhythmusTage = Number(el.value) || null);
+  bind('dRhythmus', el => {
+    item.rhythmusTage = Math.min(31, Math.max(1, Number(el.value) || 1));
+    // Schnellauswahl-Markierung nachziehen
+    document.querySelectorAll('[data-seg="rhythmusSchnell"] button').forEach(b =>
+      b.classList.toggle('on', b.dataset.wert === String(item.rhythmusTage)));
+  });
   bind('dZuletzt',  el => item.zuletztErledigt = el.value || null);
   bind('dProjekt',  el => item.projekt = el.value || null);
   bind('dNotiz',    el => item.notiz = el.value);
@@ -1534,6 +1796,12 @@ function detailVerdrahten(item) {
       btn.addEventListener('click', () => {
         const wert = btn.dataset.wert;
         if (feld === 'geldImpact') item.geldImpact = wert || null;
+        else if (feld === 'rhythmusSchnell') {
+          // Schnellauswahl setzt den Rhythmus und spiegelt ihn ins Eingabefeld
+          item.rhythmusTage = Number(wert) || 1;
+          const inp = $('dRhythmus');
+          if (inp) inp.value = item.rhythmusTage;
+        }
         else if (feld === 'typ') {
           item.typ = wert;
           if (wert === 'counter') Object.assign(item, neuesItem({ ...item }));
@@ -2028,7 +2296,8 @@ function gesamtStufe() {
 function punkteNachGruppe(achse) {
   const gruppen = {};
   const add = (key, p) => { gruppen[key] = (gruppen[key] || 0) + p; };
-  const eintraege = [...Store.tag.log, ...(Store.tag.tickLog || [])];
+  // counterAbschluss-Einträge auslassen — die Ticks stecken schon im tickLog
+  const eintraege = [...Store.tag.log.filter(l => !l.counterAbschluss), ...(Store.tag.tickLog || [])];
   eintraege.forEach(l => {
     if (achse === 'bereich') {
       add(l.bereich || (l.domain === 'dfm' ? 'DFM' : 'Privat'), l.punkte);
@@ -2580,12 +2849,35 @@ function dropAnwenden(id, ziel) {
    egal ob im Stream, in der Warteschlange oder im Tacho-Sheet:
    ▶⏸ = Fokus-Toggle · Kartenfläche = Detail-Sheet · Häkchen = abhaken. */
 document.addEventListener('click', e => {
+  // Klappfelder auf der Stream-Seite (Counter / Morgen / Tagsüber / Abends)
+  const feldKopf = e.target.closest('#view-stream [data-feld] > .tacckopf');
+  if (feldKopf) {
+    const key = feldKopf.parentElement.dataset.feld;
+    felderOffen[key] = !felderOffen[key];
+    felderSpeichern();
+    feldKopf.parentElement.classList.toggle('offen', felderOffen[key]);
+    return;
+  }
+  // Counter-Chips: Tap = Tick, ✎ = Detailansicht
+  const chip = e.target.closest('.cchip');
+  if (chip) {
+    if (e.target.closest('[data-cedit]')) sheetDetailOeffnen(chip.dataset.cid);
+    else counterTick(chip.dataset.cid);
+    return;
+  }
   const karte = e.target.closest('.karte');
   if (!karte) return;
   const id = karte.dataset.id;
   const aktion = e.target.closest('[data-aktion]');
   if (!aktion) return;
   switch (aktion.dataset.aktion) {
+    case 'uatoggle':
+      unteraufgabeToggle(id, aktion.dataset.ua);
+      renderAlles();
+      return;
+    case 'aussetzen':
+      routineAussetzen(id, aktion.dataset.abzug === '1');
+      return;
     case 'pp':
       if (fokus && fokus.itemId === id) fokusToggle();
       else fokusStarten(id);
@@ -2648,7 +2940,8 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   renderBelohnung, punkteNachGruppe, vitalitaet, gesamtStufe,
   dropAnwenden, pushDown,
   zeitVerteilung, unteraufgabenAnteil, unteraufgabeToggle, unteraufgabeAnlegen,
-  wohlstandLive, fokusLiveDelta, avatarStufeAus, pruefeLevelUp, tachoTick };
+  wohlstandLive, fokusLiveDelta, avatarStufeAus, pruefeLevelUp, tachoTick,
+  routineFaellig, routineUeberfaelligTage, routineAussetzen, rhythmusLabel };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
 if ('serviceWorker' in navigator) {
