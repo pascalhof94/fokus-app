@@ -147,9 +147,16 @@ main{
   font-size:12px;font-weight:800;color:var(--txt);
 }
 .karte .kgriff{
-  width:26px;flex:none;display:flex;align-items:center;justify-content:center;
-  color:var(--mut2);font-size:14px;touch-action:none;
+  width:32px;flex:none;display:flex;align-items:center;justify-content:center;
+  color:var(--mut2);font-size:14px;touch-action:none;cursor:grab;
 }
+.karte.dragging{
+  position:relative;z-index:60;opacity:.95;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);border-color:var(--cyan);
+}
+.karte.dropvor{box-shadow:0 -3px 0 var(--cyan)}
+#streamListe.dropende{box-shadow:0 3px 0 var(--cyan)}
+#queueHead.dropziel{color:var(--warn);border-bottom-color:var(--warn)}
 .leer{color:var(--mut2);font-size:12.5px;text-align:center;padding:var(--s2)}
 
 /* ── Sheet von unten (4.3 / 7.2) ─────────────────────────────────── */
@@ -367,7 +374,7 @@ textarea{min-height:64px;resize:vertical}
     <div id="pace"></div>
     <h2 class="sechead">Tagesstream <span class="anz" id="anzStream"></span></h2>
     <div id="streamListe"></div>
-    <h2 class="sechead">Warteschlange <span class="anz" id="anzQueue"></span></h2>
+    <h2 class="sechead" id="queueHead">Warteschlange <span class="anz" id="anzQueue"></span></h2>
     <div id="queueListe"></div>
   </section>
   <section class="view" id="view-belohnung"></section>
@@ -398,7 +405,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.6.0';
+const APP_VERSION = '0.7.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -887,7 +894,8 @@ function karteHtml(item, imStream) {
     +   '<div class="kmeta">' + meta.join('') + '</div>'
     + '</div>'
     + rechts
-    + (imStream && !item.istAnker ? '<span class="kgriff" aria-hidden="true">⠿</span>' : '<span class="kgriff" style="visibility:hidden">⠿</span>')
+    // Griff (7.2): NUR zum Verschieben — Anker-Termine sind fix (5.2)
+    + (!item.istAnker ? '<span class="kgriff" aria-hidden="true">⠿</span>' : '<span class="kgriff" style="visibility:hidden">⠿</span>')
     + '</article>';
 }
 
@@ -1786,6 +1794,127 @@ function sheetTagEndeOeffnen() {
 }
 
 /* ════════════════════════════════════════════════════════════════════
+   Verschieben per ⠿-Griff (5.2/5.3): Drag im Stream = neuer Zeitpunkt,
+   Push-down-Layout (nie überlappen), Rausziehen = Warteschlange +
+   Schiebe-Malus am Tagesende. Anker fix; Vor-/Nachbereitung nur im
+   begrenzten Fenster um ihren Anker.
+   ════════════════════════════════════════════════════════════════════ */
+function jetztRund5() {
+  const d = new Date();
+  return Math.round((d.getHours() * 60 + d.getMinutes()) / 5) * 5;
+}
+
+/* Push-down (5.3): Karten überlappen nie — gleiche/frühere Slots rücken
+   in 5-Minuten-Schritten nach hinten. Anker bleiben unangetastet. */
+function pushDown() {
+  const stream = Store.items.filter(i => i.streamSlot != null)
+    .sort((a, b) => a.streamSlot - b.streamSlot || (a.istAnker ? -1 : 1) - (b.istAnker ? -1 : 1));
+  let letzte = -Infinity;
+  stream.forEach(i => {
+    if (i.istAnker) { letzte = Math.max(letzte, i.streamSlot); return; }
+    if (i.streamSlot <= letzte) i.streamSlot = letzte + 5;
+    letzte = i.streamSlot;
+  });
+}
+
+/* Kern der Drop-Logik — ziel: {zone:'queue'} | {zone:'stream', index}.
+   index = Einfügeposition in der (ohne das Item) sortierten Stream-Liste. */
+function dropAnwenden(id, ziel) {
+  const item = Store.findeItem(id);
+  if (!item || item.istAnker) return;
+  if (ziel.zone === 'queue') {
+    if (item.streamSlot != null) {
+      item.heuteRausgezogen = true;                     // Malus am Tagesende (5.3)
+      item.streamSlot = null;
+      if (item.status !== 'erledigt') {
+        toastZeigen('In Warteschlange — bleibt es unerledigt, gibt es am Tagesende den Schiebe-Malus.');
+      }
+    }
+  } else {
+    const stream = Store.items
+      .filter(i => i.streamSlot != null && i.id !== id)
+      .sort((a, b) => a.streamSlot - b.streamSlot);
+    const prev = stream[ziel.index - 1] || null;
+    const next = stream[ziel.index] || null;
+    let slot;
+    const start = uhrzeitAlsMin(Store.settings.arbeitstagStart);
+    if (!prev && !next) slot = Math.max(start, jetztRund5());
+    else if (!prev)     slot = Math.max(0, next.streamSlot - 15);
+    else if (!next)     slot = prev.streamSlot + 30;
+    else                slot = Math.round((prev.streamSlot + next.streamSlot) / 2 / 5) * 5;
+    // Vor-/Nachbereitung (5.2): Fenster relativ zum Anker-Termin
+    if (item.ankerBezugId) {
+      const anker = Store.findeItem(item.ankerBezugId);
+      if (anker && anker.streamSlot != null) {
+        const warVor = item.streamSlot != null
+          ? item.streamSlot < anker.streamSlot
+          : slot < anker.streamSlot;
+        if (warVor) slot = Math.min(slot, anker.streamSlot - 5);   // bis kurz vor den Termin
+        else        slot = Math.max(slot, anker.streamSlot + 5);   // danach, bis Tagesende
+      }
+    }
+    item.streamSlot = Math.max(0, Math.min(23 * 60 + 55, slot));
+    pushDown();
+  }
+  Store.speichereItems();
+  renderAlles();
+}
+
+/* Pointer-Handling: Drag startet NUR am ⠿-Griff und nur in der
+   Stream-Hauptansicht (nicht in Sheets) — Kontrakt 7.2. */
+(function () {
+  let drag = null;
+  function markierungLoeschen() {
+    document.querySelectorAll('.karte.dropvor').forEach(k => k.classList.remove('dropvor'));
+    $('streamListe').classList.remove('dropende');
+    $('queueHead').classList.remove('dropziel');
+  }
+  function zielBestimmen(y) {
+    const qh = $('queueHead').getBoundingClientRect();
+    if (y >= qh.top) return { zone: 'queue' };
+    const karten = [...$('streamListe').querySelectorAll('.karte')].filter(k => k !== drag.karte);
+    for (let i = 0; i < karten.length; i++) {
+      const r = karten[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) return { zone: 'stream', index: i, el: karten[i] };
+    }
+    return { zone: 'stream', index: karten.length, el: null };
+  }
+  document.addEventListener('pointerdown', e => {
+    const griff = e.target.closest('.kgriff');
+    if (!griff) return;
+    const karte = griff.closest('.karte');
+    if (!karte || !karte.closest('#view-stream')) return;
+    const item = Store.findeItem(karte.dataset.id);
+    if (!item || item.istAnker) return;
+    e.preventDefault();
+    drag = { karte, id: karte.dataset.id, startY: e.clientY, ziel: null };
+    karte.classList.add('dragging');
+    try { griff.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  document.addEventListener('pointermove', e => {
+    if (!drag) return;
+    e.preventDefault();
+    drag.karte.style.transform = 'translateY(' + (e.clientY - drag.startY) + 'px)';
+    markierungLoeschen();
+    drag.ziel = zielBestimmen(e.clientY);
+    if (drag.ziel.zone === 'queue') $('queueHead').classList.add('dropziel');
+    else if (drag.ziel.el) drag.ziel.el.classList.add('dropvor');
+    else $('streamListe').classList.add('dropende');
+  });
+  const dragBeenden = () => {
+    if (!drag) return;
+    markierungLoeschen();
+    drag.karte.classList.remove('dragging');
+    drag.karte.style.transform = '';
+    const { id, ziel } = drag;
+    drag = null;
+    if (ziel) dropAnwenden(id, ziel);   // ohne Bewegung: Griff löst nichts aus (7.2)
+  };
+  document.addEventListener('pointerup', dragBeenden);
+  document.addEventListener('pointercancel', dragBeenden);
+})();
+
+/* ════════════════════════════════════════════════════════════════════
    Interaktion verdrahten
    ════════════════════════════════════════════════════════════════════ */
 
@@ -1850,7 +1979,8 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   fokusStarten, fokusToggle, fokusBeenden, tagAbschliessen, abhaken,
   privatDokumentMd, importParsen,
   get belohnung() { return belohnung; }, rollFreischaltungen, stufeEligible,
-  renderBelohnung, punkteNachGruppe, vitalitaet, gesamtStufe };
+  renderBelohnung, punkteNachGruppe, vitalitaet, gesamtStufe,
+  dropAnwenden, pushDown };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
 if ('serviceWorker' in navigator) {
