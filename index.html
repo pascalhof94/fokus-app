@@ -270,6 +270,63 @@ textarea{min-height:64px;resize:vertical}
 }
 .thinweis{font-size:11px;color:var(--mut2);margin:2px 0 var(--s2)}
 
+/* ── Belohnungsseite (Abschnitt 6) ───────────────────────────────── */
+.avcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:var(--s2)}
+.avscene{
+  position:relative;border-radius:12px;background:linear-gradient(180deg,#0a0f1a 60%,#101a2c);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding:18px 0 0;overflow:hidden;min-height:190px;
+}
+.avground{position:absolute;left:0;right:0;bottom:0;height:16px;background:#22304a}
+.avgrid{
+  position:relative;z-index:2;display:grid;
+  grid-template-columns:repeat(24,5px);grid-auto-rows:5px;
+  image-rendering:pixelated;margin-bottom:16px;
+  animation:avbob 3.2s ease-in-out infinite;
+}
+@keyframes avbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.avscene.erschoepft .avgrid{filter:grayscale(.45) brightness(.85);animation:none;transform:translateY(2px) rotate(2deg)}
+.avgrid .aug{background:#182438;animation:avblink 4.5s infinite}
+@keyframes avblink{0%,93%,100%{background:#182438}95%,98%{background:#f2c9a0}}
+.rankline{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px}
+.rankname{font-size:15px;font-weight:900}
+.rankpts{font-size:12px;color:var(--purple);font-weight:800}
+.statsgrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s1);margin-top:var(--s1)}
+.statbox{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px}
+.statbox .v{font-size:16px;font-weight:900}
+.statbox .k{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+.akkukarte{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.akkukarte .lbl{font-size:11px;color:var(--mut);display:flex;justify-content:space-between;margin-bottom:6px}
+.vtoggle{display:flex;gap:var(--s1);margin-bottom:var(--s1)}
+.vtoggle button{
+  flex:1;border:1px solid var(--line);background:var(--card);color:var(--mut);
+  border-radius:10px;min-height:38px;font-weight:800;font-size:12px;
+}
+.vtoggle button.on{background:var(--blue);color:#04122e;border-color:transparent}
+.aufzeile{display:flex;align-items:center;gap:var(--s1);margin-bottom:6px;font-size:12px}
+.aufzeile .albl{width:84px;flex:none;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aufzeile .abar{flex:1;height:14px;border-radius:7px;background:var(--card2);overflow:hidden}
+.aufzeile .abar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan))}
+.aufzeile .awert{width:54px;flex:none;text-align:right;font-family:ui-monospace,monospace;color:var(--purple);font-weight:700}
+.katcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:var(--s1)}
+.katcard .kzeile{display:flex;align-items:baseline;gap:var(--s1)}
+.katcard .kname{flex:1;font-size:13px;font-weight:800}
+.katcard .kstufe{font-size:11px;color:var(--mut);font-family:ui-monospace,monospace}
+.katcard .kaktuell{font-size:12px;color:var(--cyan);margin-top:2px}
+.katcard .rankbar{height:7px;border-radius:4px;background:var(--card2);margin-top:8px;overflow:hidden}
+.katcard .rankbar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan))}
+.katcard .knext{font-size:11px;color:var(--mut2);margin-top:5px}
+.katcard .knext.bereit{color:var(--warn);font-weight:700}
+#conf{position:fixed;inset:0;pointer-events:none;z-index:300}
+.cpiece{position:absolute;width:8px;height:12px;border-radius:2px}
+.toast{
+  position:fixed;left:50%;bottom:calc(var(--sab) + 76px);transform:translateX(-50%);
+  background:var(--card2);border:1px solid var(--purple);color:var(--txt);
+  padding:10px 16px;border-radius:12px;font-size:13px;font-weight:700;z-index:310;
+  opacity:0;transition:.25s;max-width:86vw;text-align:center;pointer-events:none;
+}
+.toast.show{opacity:1}
+
 /* ── Tab-Bar (7.1): genau 3 Tabs ─────────────────────────────────── */
 #tabbar{
   position:fixed;bottom:0;left:0;right:0;z-index:100;
@@ -313,9 +370,7 @@ textarea{min-height:64px;resize:vertical}
     <h2 class="sechead">Warteschlange <span class="anz" id="anzQueue"></span></h2>
     <div id="queueListe"></div>
   </section>
-  <section class="view" id="view-belohnung">
-    <div class="placeholder"><span class="big">🏆</span>Belohnungsseite folgt (Schritt 6)</div>
-  </section>
+  <section class="view" id="view-belohnung"></section>
   <section class="view" id="view-einstellungen"></section>
 </main>
 
@@ -327,6 +382,8 @@ textarea{min-height:64px;resize:vertical}
 
 <!-- Ein Sheet-Container für Task-Karte (4.3) und Fokus-Tacho (4.2):
      nie verschachtelt (7.2) — ein neues Sheet ersetzt das offene. -->
+<div id="conf"></div>
+<div class="toast" id="toast"></div>
 <div id="overlay"></div>
 <div id="sheet" role="dialog" aria-modal="true">
   <div class="kopf" id="sheetKopf">
@@ -341,7 +398,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.6.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -351,10 +408,11 @@ const APP_VERSION = '0.5.0';
    Sync ausschließlich über Export-/Import-Pakete (2.4 / 1.2).
    ════════════════════════════════════════════════════════════════════ */
 const LS = {
-  ITEMS:    'fokus2.items',
-  TAG:      'fokus2.tag',
-  SETTINGS: 'fokus2.settings',
-  FOKUS:    'fokus2.fokus'
+  ITEMS:     'fokus2.items',
+  TAG:       'fokus2.tag',
+  SETTINGS:  'fokus2.settings',
+  FOKUS:     'fokus2.fokus',
+  BELOHNUNG: 'fokus2.belohnung'
 };
 
 /* Alle Punkte-Faktoren/Sätze sind Settings, keine Code-Konstanten (3.7).
@@ -372,7 +430,10 @@ const DEFAULT_SETTINGS = {
   streakBonus: 3,                                             // 3.4
   counterDefaults: { tickSchwelle: 3, vorSchwelle: 1, nachSchwelle: -2 },  // 2.2
   arbeitstagStart: '08:00',                                   // Pace-Leiste (3.6/4.4)
-  arbeitstagEnde:  '18:00'
+  arbeitstagEnde:  '18:00',
+  freischaltChanceProzent: 40,                                // 6.3 — tägliche Würfel-Chance
+  abschnittMorgenBis: 12,                                     // 3.5 — Morgen bis (Uhr)
+  abschnittTagBis: 17                                         // 3.5 — Tag bis (Uhr), danach Abend
 };
 
 function lokaleUuid() {
@@ -400,6 +461,7 @@ function neuesItem(felder = {}) {
     blockade: 'keine',                // keine | leicht | mittel | stark
     geldImpact: null,                 // hoch | mittel | niedrig — NUR domain=dfm
     projekt: null,
+    bereich: null,                    // Dashboard-Achse 3.5 (Finanzen/Sales/…), Import kann setzen
     deadline: null,                   // 'YYYY-MM-DD'
     aufwandGeplantMin: 0,
     istMinuten: 0,
@@ -435,7 +497,9 @@ function neuerTagesstand(datum, vorheriger) {
     gesamtpunkteHeute: 0,
     wohlstandStand: vorheriger ? vorheriger.wohlstandStand : 0,
     streak: vorheriger ? vorheriger.streak : 0,
-    log: []
+    log: [],
+    akkuVerlauf: [],    // [{min, p}] — Energie-Kurve für die Belohnungsseite (6.1)
+    tickLog: []         // [{itemId, domain, bereich, punkte, zeit}] — Aufschlüsselung 3.5
   };
 }
 
@@ -676,6 +740,7 @@ function abhaken(id) {
     let rhythmusDelta = 0;
     const logEintrag = {
       itemId: id, titel: item.titel, domain: item.domain,
+      bereich: item.bereich || null,
       punkte: punkteBeiMinuten(item, item.istMinuten),
       zeit: new Date().toISOString()
     };
@@ -704,7 +769,13 @@ function abhaken(id) {
 function counterTick(id) {
   const item = Store.findeItem(id);
   if (!item || item.typ !== 'counter') return;
+  const vorher = counterPunkte(item);
   item.tickStandHeute = (item.tickStandHeute || 0) + 1;
+  Store.tag.tickLog = Store.tag.tickLog || [];
+  Store.tag.tickLog.push({
+    itemId: id, domain: item.domain, bereich: item.bereich || null,
+    punkte: counterPunkte(item) - vorher, zeit: new Date().toISOString()
+  });
   gesamtpunkteAktualisieren();
   Store.speichereItems();
   Store.speichereTag();
@@ -747,6 +818,7 @@ function tagAbschliessen() {
   Store.tag.wohlstandStand += Store.tag.gesamtpunkteHeute;     // 6.3: nie zurückgesetzt
   Store.tag.abgeschlossen = true;
   Store.speichereAlles();
+  rollFreischaltungen(true);   // Wohlstand ist gewachsen → heutige Würfel-Chance (6.3)
   renderAlles();
   return Store.baueExport('tagesabschluss');
 }
@@ -943,6 +1015,13 @@ const SETTINGS_DEFS = [
   ]},
   { titel: 'Streak (3.4)', regler: [
     { p: 'streakBonus', l: 'Streak-Bonus je Tag', min: 0, max: 10, step: 1 }
+  ]},
+  { titel: 'Belohnung (6.3)', regler: [
+    { p: 'freischaltChanceProzent', l: 'Freischalt-Chance in %/Tag', min: 5, max: 100, step: 5 }
+  ]},
+  { titel: 'Tagesabschnitte fürs Dashboard (3.5)', regler: [
+    { p: 'abschnittMorgenBis', l: 'Morgen bis (Uhr)', min: 6, max: 14, step: 1 },
+    { p: 'abschnittTagBis',    l: 'Tag bis (Uhr)',    min: 14, max: 20, step: 1 }
   ]},
   { titel: 'Counter-Standardwerte (2.2)', regler: [
     { p: 'counterDefaults.tickSchwelle', l: 'Tick-Schwelle', min: 1, max: 10, step: 1 },
@@ -1219,6 +1298,291 @@ function sheetTachoOeffnen() {
 }
 
 /* ════════════════════════════════════════════════════════════════════
+   Belohnungsseite (Abschnitt 6)
+   Die Stufen-Inhalte sind bewusst Base64-codiert, damit sie beim Blick
+   in den Quellcode nicht spoilern — die App zeigt Gesperrtes nur als ???.
+   ════════════════════════════════════════════════════════════════════ */
+const BELOHNUNG_B64 = 'eyJmYWhyemV1Z2UiOnsiaWNvbiI6IvCfmpciLCJuYW1lIjoiRmFocnpldWdlIiwic3R1ZmVuIjpbWyJGYWhycmFkIChBbGx0YWdzcmFkKSIsMF0sWyJFLUJpa2UiLDgwMF0sWyJHZWJyYXVjaHR3YWdlbiAoS2xlaW53YWdlbikiLDIyMDBdLFsiS29tcGFrdGtsYXNzZSAoZ2VwZmxlZ3QpIiw0NTAwXSxbIkVyc3RlcyBDb3Vww6kgKGdlYnJhdWNodCkiLDc1MDBdLFsiTmV1d2FnZW4gS29tcGFrdC1Db3Vww6kiLDExMDAwXSxbIkJNVyBNNCAoZ2VicmF1Y2h0KSIsMTYwMDAsWyJ3b2huZW4iLDRdXSxbIkJNVyBNNCAobmV1LCBWb2xsYXVzc3RhdHR1bmcpIiwyMjAwMF0sWyJFeG90aXNjaGVzIENvdXDDqSAvIFNhbW1sZXJzdMO8Y2siLDI5MDAwXSxbIlp3ZWl0d2FnZW4gKEFsbHRhZyArIFNwYcOfLUNvdXDDqSkiLDM3MDAwXSxbIktsZWluZSBTYW1tbHVuZyAoMuKAkzMgYmVzb25kZXJlIEZhaHJ6ZXVnZSkiLDQ2MDAwXSxbIlJlZmVyZW56LVNhbW1sZXJzdMO8Y2sgKGdlbGJlcyBDb3Vww6ksIFNob3dyb29tKSIsNTYwMDBdXX0sIndvaG5lbiI6eyJpY29uIjoi8J+Pme+4jyIsIm5hbWUiOiJEYWNodGVycmFzc2UgLyBXb2huZW4iLCJzdHVmZW4iOltbIldHLVppbW1lciIsMF0sWyJFaWdlbmUga2xlaW5lIFdvaG51bmciLDkwMF0sWyJXb2hudW5nIG1pdCBCYWxrb24iLDI0MDBdLFsiV29obnVuZyBtaXQga2xlaW5lciBEYWNodGVycmFzc2UiLDQ4MDAsWyJmYWhyemV1Z2UiLDNdXSxbIkRhY2h0ZXJyYXNzZSBtaXQgU2l0emVja2UiLDc4MDBdLFsiRGFjaHRlcnJhc3NlIG1pdCBHcmlsbCArIExvdW5nZSIsMTE1MDBdLFsiRGFjaHRlcnJhc3NlIG1pdCBXaGlybHBvb2wiLDE2NTAwXSxbIlBlbnRob3VzZS1UZXJyYXNzZSBtaXQgU3RhZHRibGljayIsMjMwMDBdLFsiVGVycmFzc2UgbWl0IEZsdXNzLS9XYXNzZXJibGljayIsMzAwMDBdLFsiV2hpcmxwb29sICsgV2Fzc2VyYmxpY2sgKFRyYXVtLUtvbWJpKSIsMzkwMDBdLFsiWndlaXR3b2huc2l0eiwgbWVkaXRlcnJhbmVzIEtsaW1hIiw0ODAwMF0sWyJTaWduYXR1cmUtUGVudGhvdXNlIChXaGlybHBvb2wgKyBTa3lsaW5lICsgV2Fzc2VyKSIsNTgwMDBdXX0sInJlaXNlbiI6eyJpY29uIjoi8J+MjSIsIm5hbWUiOiJMYW5kc2NoYWZ0ZW4gLyBSZWlzZW4iLCJzdHVmZW4iOltbIldvY2hlbmVuZHRyaXAgbmFoZXMgQXVzbGFuZCIsMF0sWyJTdMOkZHRldHJpcCAoYmVlaW5kcnVja2VuZGUgU3RhZHQpIiwxMDAwXSxbIkVyc3RlIEZlcm5yZWlzZSIsMjgwMF0sWyJCZXJndXJsYXViIiw1MjAwXSxbIkluc2VsLS9NZWVyLVVybGF1YiIsODIwMF0sWyJNZWRpdGVycmFuZXMgWmllbCIsMTIwMDBdLFsiVHJvcGlzY2hlcyBaaWVsIiwxNzAwMF0sWyJEc2NodW5nZWwtVHJpcCIsMjM1MDAsWyJtb2JpbGl0YWV0Iiw2XV0sWyJLb21iaS1SZWlzZSBCZXJnZSArIE1lZXIiLDMwNTAwXSxbIktvbWJpLVJlaXNlIEJlcmdlICsgRHNjaHVuZ2VsICsgTWVlciIsMzk1MDBdLFsiTWVocnfDtmNoaWdlIEt1bHR1cnJlaXNlLCBuZXVlciBLb250aW5lbnQiLDQ5MDAwXSxbIlNpZ25hdHVyZS1UcmlwIChCZXJnZSwgRHNjaHVuZ2VsLCBNZWVyLCBuZXVlIEt1bHR1cikiLDU5MDAwXV19LCJtb2JpbGl0YWV0Ijp7Imljb24iOiLinIjvuI8iLCJuYW1lIjoiTW9iaWxpdMOkdCAoYW5kZXJlIEZvcm1lbikiLCJzdHVmZW4iOltbIlp1IEZ1w58gLyDDllBOViIsMF0sWyJGYWhycmFkLUxhbmdzdHJlY2tlIiw3MDBdLFsiRXJzdGUgTW90b3JyYWQtL1JvbGxlci1GYWhydCIsMjAwMF0sWyJCb290c3RvdXIgKFBhc3NhZ2llcikiLDM4MDBdLFsiS2xlaW5lcyBTZWdlbGJvb3QgLyBBdXNmbHVnc2Jvb3QiLDY1MDBdLFsiTW90b3Jib290LUNoYXJ0ZXIiLDEwMDAwXSxbIkVyc3RlciBSdW5kZmx1ZyAoUGFzc2FnaWVyKSIsMTQ1MDBdLFsiU2VnZWxmbHVnIC8gS2xlaW5mbHVnemV1ZyAoUGFzc2FnaWVyKSIsMjAwMDBdLFsiRmx1Z3N0dW5kZSAoc2VsYnN0IGFtIFN0ZXVlcikiLDI2NTAwXSxbIkJvb3RzY2hhcnRlciDDvGJlciBtZWhyZXJlIFRhZ2UiLDM0MDAwXSxbIktvbWJpbmllcnRlciBXYXNzZXItK0x1ZnQtVHJpcCIsNDMwMDBdLFsiU2lnbmF0dXJlLU1vYmlsaXTDpHRzdGFnIChCb290ICsgRmx1ZyBhbiBlaW5lbSBUYWcpIiw1MzAwMF1dfSwiYmVnbGVpdGVyIjp7Imljb24iOiLwn5C+IiwibmFtZSI6IkJlZ2xlaXRlciIsInN0dWZlbiI6W1siRXJzdGUgZWlnZW5lIEthdHplIiwwXSxbIkthdHplIGd1dCBlaW5nZWxlYnQgKFJvdXRpbmUgc3RlaHQpIiw2MDBdLFsiWndlaXRlIEthdHplIC8gSHVuZCBhbHMgSWRlZSIsMTgwMF0sWyJIdW5kIGRhenUiLDM2MDBdLFsiQmVpZGUgZ3V0IGVpbmdlc3BpZWx0Iiw2MDAwXSxbIkdyw7bDn2VyZXIgV29obnJhdW0gZsO8ciBUaWVyZSIsOTUwMF0sWyJHYXJ0ZW4gLyBBdXNsYXVmIGbDvHIgVGllcmUiLDE0MDAwXSxbIlJlaXNlbiBtaXQgVGllcmVuIG3DtmdsaWNoIiwxOTUwMF0sWyJUaWVycGVuc2lvbiAvIEJldHJldXVuZyBvcmdhbmlzaWVydCIsMjYwMDBdLFsiRHJpdHRlcyBUaWVyIiwzMzUwMF0sWyJUaWVyZnJldW5kbGljaGVzIFp3ZWl0d29obnNpdHotU2V0dXAiLDQyMDAwXSxbIlNpZ25hdHVyZS1TZXR1cCAoYWxsZSBUaWVyZSwgdmllbCBQbGF0eiwgR2FydGVuKSIsNTIwMDBdXX0sInNvemlhbGVzIjp7Imljb24iOiLwn5GlIiwibmFtZSI6IkZyZXVuZGUgLyBTb3ppYWxlcyIsInN0dWZlbiI6W1siU3BpZWxlYWJlbmQgenVoYXVzZSIsMF0sWyJLbGVpbmVyIEF1c2ZsdWcgbWl0IEZyZXVuZGVuIiw1MDBdLFsiVGVubmlzLS9TcG9ydC1NYXRjaCIsMTYwMF0sWyJSb2FkdHJpcCB6dSB6d2VpdC9kcml0dCIsMzIwMF0sWyJHcnVwcGVucmVpc2UgKEZyZXVuZGUpIiw1NTAwXSxbIkV2ZW50IC8gRmVpZXIgYXVzcmljaHRlbiIsODgwMF0sWyJHcsO2w59lcmUgRmVpZXIgKExpbW8sIGJlc29uZGVyZXIgQW5sYXNzKSIsMTMwMDBdLFsiRnJldW5kZSBhdXMgZGVtIEF1c2xhbmQgYmVzdWNoZW4iLDE4MDAwXSxbIlJldW5pb24tVHJpcCAoYWx0ZSBGcmV1bmRlLCBuZXVlcyBaaWVsKSIsMjQ1MDBdLFsiR3Jvw59lcyBHcnVwcGVuZXZlbnQgb3JnYW5pc2llcmVuIiwzMjAwMF0sWyJNZWhydMOkZ2lnZXIgRnJldW5kZXMtVHJpcCBpbnMgQXVzbGFuZCIsNDEwMDBdLFsiU2lnbmF0dXJlLU1vbWVudCAoZ3Jvw59lciBLcmVpcywgYmVzb25kZXJlciBPcnQpIiw1MTAwMF1dfX0=';
+const BELOHNUNG = JSON.parse(decodeURIComponent(escape(atob(BELOHNUNG_B64))));
+const KAT_KEYS = Object.keys(BELOHNUNG);
+
+/* Freischalt-Stand: stufen[kat] = Anzahl freigeschalteter Stufen (1-basiert).
+   Stufe 1 jeder Kategorie (Schwelle 0) ist von Anfang an offen. */
+let belohnung = lsLese(LS.BELOHNUNG, null);
+function belohnungInit() {
+  if (!belohnung) {
+    belohnung = { stufen: {}, neu: [], letzterWurf: null };
+    KAT_KEYS.forEach(k => belohnung.stufen[k] = 1);
+    belohnungSpeichern();
+  }
+}
+function belohnungSpeichern() { lsSchreibe(LS.BELOHNUNG, belohnung); }
+
+/* Nächste Stufe einer Kategorie „eligible"? (Schwelle + Cross-Prerequisite, 6.3) */
+function stufeEligible(kat) {
+  const naechste = BELOHNUNG[kat].stufen[belohnung.stufen[kat]];   // Index = Anzahl offen
+  if (!naechste) return false;                                     // Leiter voll
+  if (Store.tag.wohlstandStand < naechste[1]) return false;
+  const req = naechste[2];
+  if (req && (belohnung.stufen[req[0]] || 0) < req[1]) return false;
+  return true;
+}
+
+/* Zufallsfaktor (6.3): tägliche Chance je eligible Objekt, zufällige
+   Reihenfolge. erzwungen=true nach Tagesabschluss (Wohlstand neu). */
+function rollFreischaltungen(erzwungen) {
+  const heute = heuteIso();
+  if (!erzwungen && belohnung.letzterWurf === heute) return;
+  belohnung.letzterWurf = heute;
+  const chance = (Store.settings.freischaltChanceProzent != null
+    ? Store.settings.freischaltChanceProzent : 40) / 100;
+  [...KAT_KEYS].sort(() => Math.random() - 0.5).forEach(k => {
+    if (stufeEligible(k) && Math.random() < chance) {
+      const idx = belohnung.stufen[k];               // 0-basierter Index der neuen Stufe
+      belohnung.stufen[k] = idx + 1;
+      belohnung.neu.push({ kat: k, stufe: idx + 1, name: BELOHNUNG[k].stufen[idx][0] });
+    }
+  });
+  belohnungSpeichern();
+}
+
+/* ── Pixel-Avatar (6.2): 24×30-Raster, 2x-Dichte ggü. Stiltest.
+     Outfit-Farbe wächst mit der Gesamt-Stufe, Vitalität = Akku-Achse.
+     Feinschliff (Ähnlichkeit zu Pascal) folgt mit Referenzfotos. ── */
+const AV_FARBEN = {
+  H: '#3a2a1a', S: '#f2c9a0', M: '#c9885f', P: '#101827', B: '#0a0f1a',
+  '-': '#4a5a74'
+};
+const AV_TIERFARBE = ['#5d6d88','#5d6d88','#4f8ef7','#4f8ef7','#6dd3e0','#6dd3e0',
+                      '#3ecf8e','#3ecf8e','#b98af7','#b98af7','#f2b84b','#f2b84b'];
+const AV_MAP = [
+  '........HHHHHHHH........',
+  '......HHHHHHHHHHHH......',
+  '......HHHHHHHHHHHH......',
+  '......HHSSSSSSSSHH......',
+  '......HSSSSSSSSSSH......',
+  '......SSSSSSSSSSSS......',
+  '......SSEESSSSEESS......',
+  '......SSSSSSSSSSSS......',
+  '......SSSMMMMMMSSS......',
+  '.......SSSSSSSSSS.......',
+  '........SSSSSSSS........',
+  '......CCCCCCCCCCCC......',
+  '....CCCCCCCCCCCCCCCC....',
+  '...CCCCCCCCCCCCCCCCCC...',
+  '...CCCCCCCCCCCCCCCCCC...',
+  '...CCCCCCAAAACCCCCCCC...',
+  '...CCCCCCCCCCCCCCCCCC...',
+  '...CCCCCCCCCCCCCCCCCC...',
+  '...SSCCCCCCCCCCCCCCSS...',
+  '.....CCCCCCCCCCCCCC.....',
+  '.....CCCCCCCCCCCCCC.....',
+  '.....PPPPPPPPPPPPPP.....',
+  '.....PPPPPP..PPPPPP.....',
+  '.....PPPPPP..PPPPPP.....',
+  '.....PPPPPP..PPPPPP.....',
+  '.....PPPPPP..PPPPPP.....',
+  '.....PPPPPP..PPPPPP.....',
+  '....BBBBBBB..BBBBBBB....',
+  '....BBBBBBB..BBBBBBB....'
+];
+
+function avatarHtml(gesamtStufe, vital) {
+  const cloth = AV_TIERFARBE[Math.max(0, Math.min(11, gesamtStufe - 1))];
+  const accent = vital ? '#f2b84b' : '#5d6d88';
+  let zellen = '';
+  AV_MAP.forEach(zeile => {
+    for (const c of zeile.padEnd(24, '.').slice(0, 24)) {
+      if (c === 'E') zellen += vital ? '<div class="aug"></div>' : '<div style="background:' + AV_FARBEN['-'] + '"></div>';
+      else if (c === 'C') zellen += '<div style="background:' + cloth + '"></div>';
+      else if (c === 'A') zellen += '<div style="background:' + accent + '"></div>';
+      else if (c === '.') zellen += '<div></div>';
+      else zellen += '<div style="background:' + (AV_FARBEN[c] || 'transparent') + '"></div>';
+    }
+  });
+  return zellen;
+}
+
+/* Vitalität (6.2): getrieben vom Akku-Durchschnitt des Tages. */
+function vitalitaet() {
+  const v = Store.tag.akkuVerlauf || [];
+  if (!v.length) return Store.tag.akkuProzent == null ? true : Store.tag.akkuProzent >= 50;
+  return v.reduce((s, e) => s + e.p, 0) / v.length >= 50;
+}
+
+function gesamtStufe() {
+  const summe = KAT_KEYS.reduce((s, k) => s + (belohnung.stufen[k] || 1), 0);
+  return Math.max(1, Math.round(summe / KAT_KEYS.length));
+}
+
+/* Aufschlüsselung (3.5): erledigte Punkte nach Bereich oder Tagesabschnitt. */
+function punkteNachGruppe(achse) {
+  const gruppen = {};
+  const add = (key, p) => { gruppen[key] = (gruppen[key] || 0) + p; };
+  const eintraege = [...Store.tag.log, ...(Store.tag.tickLog || [])];
+  eintraege.forEach(l => {
+    if (achse === 'bereich') {
+      add(l.bereich || (l.domain === 'dfm' ? 'DFM' : 'Privat'), l.punkte);
+    } else {
+      const std = new Date(l.zeit).getHours();
+      const s = Store.settings;
+      add(std < s.abschnittMorgenBis ? 'Morgen' : std < s.abschnittTagBis ? 'Tag' : 'Abend', l.punkte);
+    }
+  });
+  return gruppen;
+}
+
+let aufAchse = 'bereich';
+
+function renderBelohnung() {
+  const vital = vitalitaet();
+  const stufe = gesamtStufe();
+  const t = Store.tag;
+  gesamtpunkteAktualisieren();
+
+  // Pace wie in der Leiste (3.6)
+  const s = Store.settings;
+  const start = uhrzeitAlsMin(s.arbeitstagStart), ende = uhrzeitAlsMin(s.arbeitstagEnde);
+  const jetzt = new Date(); const jetztMin = jetzt.getHours() * 60 + jetzt.getMinutes();
+  const vergangeneStd = Math.max(0.1, (jetztMin - start) / 60);
+  const pace = jetztMin > start ? t.gesamtpunkteHeute / vergangeneStd : 0;
+
+  let html = ''
+    + '<div class="avcard">'
+    + '<div class="avscene' + (vital ? '' : ' erschoepft') + '"><div class="avground"></div>'
+    + '<div class="avgrid">' + avatarHtml(stufe, vital) + '</div></div>'
+    + '<div class="rankline"><div class="rankname">Gesamt-Stufe ' + stufe + '/12</div>'
+    + '<div class="rankpts">Wohlstand ' + fmtPunkte(t.wohlstandStand) + ' P</div></div>'
+    + '<div class="statsgrid">'
+    + '<div class="statbox"><div class="v">' + fmtPunkte(t.gesamtpunkteHeute) + '</div><div class="k">Punkte heute</div></div>'
+    + '<div class="statbox"><div class="v">' + t.streak + '🔥</div><div class="k">Streak</div></div>'
+    + '<div class="statbox"><div class="v">' + (vital ? 'Vital' : 'Erschöpft') + '</div><div class="k">Zustand</div></div>'
+    + '<div class="statbox"><div class="v">' + fmtPunkte(pace) + '/Std</div><div class="k">Pace</div></div>'
+    + '</div></div>';
+
+  // Energie-Kurve (6.1)
+  html += '<h2 class="sechead">Energie heute</h2>' + akkuKurveHtml();
+
+  // Aufschlüsselung (3.5/6.4)
+  html += '<h2 class="sechead">Aufschlüsselung</h2>'
+    + '<div class="vtoggle">'
+    + '<button data-achse="bereich" class="' + (aufAchse === 'bereich' ? 'on' : '') + '">Nach Bereich</button>'
+    + '<button data-achse="abschnitt" class="' + (aufAchse === 'abschnitt' ? 'on' : '') + '">Nach Tagesabschnitt</button>'
+    + '</div><div id="aufListe">' + aufschluesselungHtml() + '</div>';
+
+  // Kategorie-Leitern (6.3)
+  html += '<h2 class="sechead">Freischaltungen</h2>';
+  KAT_KEYS.forEach(k => {
+    const kat = BELOHNUNG[k];
+    const offen = belohnung.stufen[k] || 1;
+    const aktuell = kat.stufen[offen - 1];
+    const naechste = kat.stufen[offen];
+    let barPct = 100, nextText = '🏁 Leiter komplett!', bereit = false;
+    if (naechste) {
+      const von = aktuell[1], bis = naechste[1];
+      barPct = Math.min(100, Math.max(2, Math.round((t.wohlstandStand - von) / (bis - von) * 100)));
+      const fehlend = bis - t.wohlstandStand;
+      const reqFehlt = naechste[2] && (belohnung.stufen[naechste[2][0]] || 0) < naechste[2][1];
+      if (fehlend > 0)      nextText = '??? · noch ' + fmtPunkte(fehlend) + ' P Wohlstand';
+      else if (reqFehlt)    nextText = '🔒 ??? · noch an eine andere Kategorie gebunden';
+      else { nextText = '🎁 Bereit — Freischaltung würfelt täglich!'; bereit = true; }
+    }
+    html += '<div class="katcard">'
+      + '<div class="kzeile"><span>' + kat.icon + '</span><span class="kname">' + kat.name + '</span>'
+      + '<span class="kstufe">Stufe ' + offen + '/' + kat.stufen.length + '</span></div>'
+      + '<div class="kaktuell">' + escapeHtml(aktuell[0]) + '</div>'
+      + '<div class="rankbar"><i style="width:' + barPct + '%"></i></div>'
+      + '<div class="knext' + (bereit ? ' bereit' : '') + '">' + nextText + '</div>'
+      + '</div>';
+  });
+
+  $('view-belohnung').innerHTML = html;
+  $('view-belohnung').querySelectorAll('.vtoggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      aufAchse = btn.dataset.achse;
+      $('view-belohnung').querySelectorAll('.vtoggle button').forEach(b => b.classList.toggle('on', b === btn));
+      $('aufListe').innerHTML = aufschluesselungHtml();
+    });
+  });
+
+  // Frische Freischaltungen feiern (6.2: Konfetti + Hinweis)
+  if (belohnung.neu.length) {
+    const namen = belohnung.neu.map(n => BELOHNUNG[n.kat].icon + ' ' + n.name).join(' · ');
+    belohnung.neu = [];
+    belohnungSpeichern();
+    konfetti();
+    toastZeigen('🎉 Freigeschaltet: ' + namen);
+  }
+}
+
+function akkuKurveHtml() {
+  const s = Store.settings;
+  const start = uhrzeitAlsMin(s.arbeitstagStart), ende = uhrzeitAlsMin(s.arbeitstagEnde);
+  const v = Store.tag.akkuVerlauf || [];
+  let inhalt;
+  if (v.length === 0) {
+    inhalt = '<div class="leer">Noch keine Akku-Daten — Tag starten setzt den ersten Punkt.</div>';
+  } else {
+    const x = m => 6 + Math.min(1, Math.max(0, (m - start) / Math.max(1, ende - start))) * 288;
+    const y = p => 64 - (p / 100) * 56;
+    const punkte = v.map(e => x(e.min).toFixed(1) + ',' + y(e.p).toFixed(1));
+    // Kurve bis „jetzt" mit letztem Wert weiterziehen
+    const jetzt = new Date(); const jm = jetzt.getHours() * 60 + jetzt.getMinutes();
+    if (jm > v[v.length - 1].min) punkte.push(x(jm).toFixed(1) + ',' + y(v[v.length - 1].p).toFixed(1));
+    inhalt = '<svg viewBox="0 0 300 70" width="100%" height="70">'
+      + '<line x1="6" y1="64" x2="294" y2="64" stroke="var(--line)" stroke-width="1"/>'
+      + '<polyline points="' + punkte.join(' ') + '" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linejoin="round"/>'
+      + v.map(e => '<circle cx="' + x(e.min).toFixed(1) + '" cy="' + y(e.p).toFixed(1) + '" r="3" fill="var(--cyan)"/>').join('')
+      + '</svg>';
+  }
+  const avg = v.length ? Math.round(v.reduce((a, e) => a + e.p, 0) / v.length) : null;
+  return '<div class="akkukarte"><div class="lbl"><span>Akku-Verlauf (' + s.arbeitstagStart + '–' + s.arbeitstagEnde + ')</span>'
+    + '<span>' + (avg != null ? 'Ø ' + avg + '%' : '–') + '</span></div>' + inhalt + '</div>';
+}
+
+function aufschluesselungHtml() {
+  const gruppen = punkteNachGruppe(aufAchse);
+  const namen = Object.keys(gruppen);
+  if (!namen.length) return '<div class="leer">Noch keine erledigten Punkte heute.</div>';
+  const reihenfolge = aufAchse === 'abschnitt'
+    ? ['Morgen', 'Tag', 'Abend'].filter(n => namen.includes(n))
+    : namen.sort((a, b) => gruppen[b] - gruppen[a]);
+  const max = Math.max(...namen.map(n => Math.abs(gruppen[n])), 1);
+  return reihenfolge.map(n =>
+    '<div class="aufzeile"><span class="albl">' + escapeHtml(n) + '</span>'
+    + '<div class="abar"><i style="width:' + Math.round(Math.abs(gruppen[n]) / max * 100) + '%'
+    + (gruppen[n] < 0 ? ';background:var(--bad)' : '') + '"></i></div>'
+    + '<span class="awert">' + fmtPunkte(gruppen[n]) + ' P</span></div>').join('');
+}
+
+let toastTimer;
+function toastZeigen(text) {
+  const el = $('toast');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+function konfetti(n = 34) {
+  const box = $('conf');
+  const farben = ['#4f8ef7', '#6dd3e0', '#f2b84b', '#3ecf8e', '#b98af7'];
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('div');
+    p.className = 'cpiece';
+    p.style.background = farben[i % farben.length];
+    p.style.left = Math.random() * 100 + '%';
+    p.style.top = '-20px';
+    box.appendChild(p);
+    p.animate(
+      [{ transform: 'translate(0,0) rotate(0)', opacity: 1 },
+       { transform: 'translate(' + ((Math.random() * 2 - 1) * 160) + 'px,' + (window.innerHeight + 40) + 'px) rotate(' + (Math.random() * 720 - 360) + 'deg)', opacity: .9 }],
+      { duration: 1000 + Math.random() * 800, easing: 'cubic-bezier(.2,.6,.4,1)' }
+    ).onfinish = () => p.remove();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
    Geführte Screens (1.2 / 7.1): Tag starten · Sync jetzt · Tag abschließen
    — als Sheets aus dem Stream-Tab. Kein Internet: Export/Import läuft
    ausschließlich über Copy/Paste bzw. Datei-Download durch Pascal.
@@ -1273,6 +1637,10 @@ function sheetTagStartOeffnen() {
     t.motivationStart = Number($('rMotivation').value);
     t.akkuProzent = Math.min(100, Math.max(0, Number($('wAkku').value) || 0));
     t.gestartet = true;
+    // Energie-Kurve für die Belohnungsseite fortschreiben (6.1)
+    const jetzt = new Date();
+    t.akkuVerlauf = t.akkuVerlauf || [];
+    t.akkuVerlauf.push({ min: jetzt.getHours() * 60 + jetzt.getMinutes(), p: t.akkuProzent });
     Store.speichereTag();
     sheetSchliessen();
   });
@@ -1458,6 +1826,7 @@ document.querySelectorAll('#tabbar button').forEach(btn => {
     document.querySelectorAll('.view').forEach(v =>
       v.classList.toggle('on', v.id === 'view-' + btn.dataset.view));
     if (btn.dataset.view === 'einstellungen') renderEinstellungen();
+    if (btn.dataset.view === 'belohnung') renderBelohnung();
   });
 });
 
@@ -1470,6 +1839,8 @@ setInterval(() => {
 /* ── Start ── */
 Store.ladeAlles();
 if (fokus && !Store.findeItem(fokus.itemId)) { fokus = null; fokusSpeichern(); }
+belohnungInit();
+rollFreischaltungen(false);   // tägliche Würfel-Chance (6.3)
 gesamtpunkteAktualisieren();
 renderAlles();
 
@@ -1477,7 +1848,9 @@ renderAlles();
 window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   punkteBeiMinuten, counterPunkte, anzeigePunkte, renderAlles,
   fokusStarten, fokusToggle, fokusBeenden, tagAbschliessen, abhaken,
-  privatDokumentMd, importParsen };
+  privatDokumentMd, importParsen,
+  get belohnung() { return belohnung; }, rollFreischaltungen, stufeEligible,
+  renderBelohnung, punkteNachGruppe, vitalitaet, gesamtStufe };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
 if ('serviceWorker' in navigator) {
