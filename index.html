@@ -406,6 +406,18 @@ textarea{min-height:64px;resize:vertical}
 }
 .toast.show{opacity:1}
 
+/* ── „+"-Button: Anlegen aus jeder Ansicht (Nachtrag 20.07.2026) ── */
+#fab{
+  position:fixed;right:var(--s2);bottom:calc(var(--sab) + 72px);z-index:90;
+  width:56px;height:56px;border-radius:50%;
+  background:var(--blue);color:#04122e;font-size:28px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 18px rgba(0,0,0,.45);
+}
+#fab:active{transform:scale(.94)}
+.neuknoepfe{display:flex;gap:var(--s1);margin-top:var(--s1)}
+.neuknoepfe .wizbtn{flex:1;margin-top:0}
+
 /* ── Tab-Bar (7.1): genau 3 Tabs ─────────────────────────────────── */
 #tabbar{
   position:fixed;bottom:0;left:0;right:0;z-index:100;
@@ -453,6 +465,8 @@ textarea{min-height:64px;resize:vertical}
   <section class="view" id="view-einstellungen"></section>
 </main>
 
+<button id="fab" aria-label="Neues Item anlegen">+</button>
+
 <nav id="tabbar">
   <button class="on" data-view="stream"><span class="ic">🕐</span>Stream</button>
   <button data-view="belohnung"><span class="ic">🏆</span>Belohnung</button>
@@ -477,7 +491,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.9.0';
+const APP_VERSION = '0.9.1';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -2241,6 +2255,58 @@ function sheetTagStartOeffnen() {
     sheetSchliessen();
   });
 }
+
+/* ── Neues Item anlegen (Nachtrag 20.07.2026): „+"-Button in allen
+      Ansichten — Aufgabe/Routine/Counter, DFM oder Privat. Landet ohne
+      Slot in der Warteschlange; „+ Details" öffnet die volle Karte. ── */
+function sheetNeuOeffnen() {
+  let html = ''
+    + '<div class="feld"><label>Titel</label><input id="nTitel" type="text" placeholder="Was ist zu tun?"></div>'
+    + '<div class="zweispaltig">'
+    + '<div class="feld"><label>Typ</label>' + segHtml('ntyp', ['aufgabe', 'routine', 'counter'], 'aufgabe', ['📋 Aufgabe', '🔁 Routine', '🔢 Counter']) + '</div>'
+    + '</div>'
+    + '<div class="zweispaltig">'
+    + '<div class="feld"><label>Domäne</label>' + segHtml('ndomain', ['dfm', 'privat'], 'dfm', ['DFM', 'Privat']) + '</div>'
+    + '<div class="feld"><label>Priorität</label>' + segHtml('nprio', ['muss', 'soll', 'idee'], 'soll', ['Muss', 'Soll', 'Idee']) + '</div>'
+    + '</div>'
+    + '<div class="neuknoepfe">'
+    + '<button class="wizbtn sek" id="nDetails">Anlegen + Details</button>'
+    + '<button class="wizbtn" id="nAnlegen">Anlegen</button>'
+    + '</div>';
+  sheetOeffnen('Neues Item', html, 'neu');
+
+  const auswahl = { ntyp: 'aufgabe', ndomain: 'dfm', nprio: 'soll' };
+  document.querySelectorAll('#sheetInhalt .seg').forEach(seg => {
+    seg.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        auswahl[seg.dataset.seg] = btn.dataset.wert;
+        seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+      });
+    });
+  });
+  const anlegen = () => {
+    const titel = $('nTitel').value.trim();
+    if (!titel) { $('nTitel').focus(); return null; }
+    const { item } = Store.upsertItem({
+      titel, typ: auswahl.ntyp, domain: auswahl.ndomain, prioritaet: auswahl.nprio
+    });
+    renderAlles();
+    return item;
+  };
+  $('nAnlegen').addEventListener('click', () => {
+    const item = anlegen();
+    if (!item) return;
+    sheetSchliessen();
+    toastZeigen('✓ „' + item.titel + '" in der Warteschlange');
+  });
+  $('nDetails').addEventListener('click', () => {
+    const item = anlegen();
+    if (item) sheetDetailOeffnen(item.id);
+  });
+  $('nTitel').addEventListener('keydown', e => { if (e.key === 'Enter') $('nAnlegen').click(); });
+  $('nTitel').focus();
+}
+$('fab').addEventListener('click', sheetNeuOeffnen);
 
 /* Kopieren mit Fallback (file:// bzw. ältere WebViews) */
 function inZwischenablage(text, btn) {
