@@ -406,9 +406,10 @@ textarea{min-height:64px;resize:vertical}
 .tkern{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:var(--s1)}
 .tkopfreihe{display:flex;align-items:center;gap:12px}
 .tringwrap{position:relative;width:132px;height:132px;flex:none}
-.tringwrap .avfig{
-  position:absolute;inset:0;margin:auto;width:80px;height:96px;
-  margin-bottom:auto;margin-top:16px;
+.tringwrap .avfoto{
+  position:absolute;inset:0;margin:auto;width:86px;height:86px;
+  border-radius:50%;object-fit:cover;object-position:50% 4%;
+  box-shadow:none;animation:none;
 }
 .tkopfpuls{animation:tpuls 1.4s ease-in-out infinite}
 @keyframes tpuls{0%,100%{opacity:.85}50%{opacity:.15}}
@@ -493,15 +494,14 @@ textarea{min-height:64px;resize:vertical}
   padding:18px 0 0;overflow:hidden;min-height:190px;
 }
 .avground{position:absolute;left:0;right:0;bottom:0;height:16px;background:#22304a}
-.avfig{
-  position:relative;z-index:2;width:152px;height:182px;
-  margin-bottom:10px;
-  animation:avbob 3.2s ease-in-out infinite;
+.avfoto{
+  position:relative;z-index:2;height:200px;width:auto;
+  border-radius:12px;margin-bottom:8px;
+  box-shadow:0 8px 22px rgba(0,0,0,.45);
+  animation:avbob 4s ease-in-out infinite;
 }
 @keyframes avbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-.avscene.erschoepft .avfig{filter:grayscale(.4) brightness(.85);animation:none;transform:translateY(2px) rotate(1.5deg)}
-.avfig .avlid{opacity:0;animation:avblink 4.6s infinite}
-@keyframes avblink{0%,93%,100%{opacity:0}95%,98%{opacity:1}}
+.avscene.erschoepft .avfoto{filter:grayscale(.35) brightness(.85);animation:none}
 .rankline{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px}
 .rankname{font-size:15px;font-weight:900}
 .rankpts{font-size:12px;color:var(--purple);font-weight:800}
@@ -663,7 +663,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.17.0';
+const APP_VERSION = '0.18.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -3131,114 +3131,13 @@ function kaufen(kat) {
   return true;
 }
 
-/* ── Comic-Avatar (Stil-Entscheid 22.07.2026): 3D-Toon-Look als SVG
-     nach Pascals Referenzfotos — braune Tolle, kräftige Brauen, großes
-     Lächeln; Outfit wächst mit dem Level bis zum Blazer-Rollkragen-
-     Signature-Look. Vitalität = Akku-Achse (müde Augen, hängende
-     Mundwinkel). Objekte folgen im nächsten Schritt im selben Stil. ── */
+/* ── Render-Avatar (22.07.2026): DALL-E-Renderings nach Pascals
+     Referenzfotos, zugeschnitten aus assets/ nach img/. Outfit wächst
+     mit dem Level; erschöpft = eigene müde Variante. ── */
 function avatarHtml(gesamtStufe, vital) {
   const tier = gesamtStufe >= 10 ? 3 : gesamtStufe >= 7 ? 2 : gesamtStufe >= 4 ? 1 : 0;
-  // Outfit-Farben je Tier: Hoodie → Camel-Rollkragen → Blazer+Rollkragen → Edel-Blazer
-  const O = [
-    { a: '#5d6d88', b: '#44536b', roll: null,      akzent: null },
-    { a: '#c08a56', b: '#96692f', roll: null,      akzent: null },
-    { a: '#31538a', b: '#1e355c', roll: '#c08a56', akzent: null },
-    { a: '#26344e', b: '#161f30', roll: '#22252b', akzent: '#f2b84b' }
-  ][tier];
-  const id = 'av' + tier + (vital ? 'v' : 'm');   // eindeutige Gradient-IDs
-  const defs = '<defs>'
-    + '<radialGradient id="' + id + 'haut" cx="42%" cy="34%" r="75%">'
-    + '<stop offset="0%" stop-color="#ffdcb4"/><stop offset="62%" stop-color="#f2c49a"/><stop offset="100%" stop-color="#d99f6e"/></radialGradient>'
-    + '<linearGradient id="' + id + 'haar" x1="0" y1="0" x2="0.3" y2="1">'
-    + '<stop offset="0%" stop-color="#5a4028"/><stop offset="55%" stop-color="#42301c"/><stop offset="100%" stop-color="#2e2012"/></linearGradient>'
-    + '<linearGradient id="' + id + 'top" x1="0" y1="0" x2="0.25" y2="1">'
-    + '<stop offset="0%" stop-color="' + O.a + '"/><stop offset="100%" stop-color="' + O.b + '"/></linearGradient>'
-    + '<radialGradient id="' + id + 'iris" cx="38%" cy="35%" r="70%">'
-    + '<stop offset="0%" stop-color="#7c5636"/><stop offset="70%" stop-color="#4a2f18"/><stop offset="100%" stop-color="#2c1a0c"/></radialGradient>'
-    + '</defs>';
-
-  // Augen: vital = groß & glänzend, müde = halbe Lider, kleiner Glanz
-  const auge = cx => vital
-    ? '<ellipse cx="' + cx + '" cy="74" rx="12.5" ry="14.5" fill="#fff"/>'
-      + '<ellipse cx="' + cx + '" cy="74" rx="12.5" ry="14.5" fill="none" stroke="#c9987066" stroke-width="1.5"/>'
-      + '<circle cx="' + cx + '" cy="76" r="8" fill="url(#' + id + 'iris)"/>'
-      + '<circle cx="' + cx + '" cy="76" r="3.6" fill="#150c05"/>'
-      + '<circle cx="' + (cx - 3) + '" cy="71.5" r="3" fill="#fff" opacity=".95"/>'
-      + '<circle cx="' + (cx + 4) + '" cy="79" r="1.4" fill="#fff" opacity=".8"/>'
-      + '<ellipse class="avlid" cx="' + cx + '" cy="68" rx="13" ry="8" fill="url(#' + id + 'haut)"/>'
-    : '<ellipse cx="' + cx + '" cy="76" rx="12" ry="10" fill="#fff"/>'
-      + '<circle cx="' + cx + '" cy="79" r="7" fill="url(#' + id + 'iris)"/>'
-      + '<circle cx="' + cx + '" cy="79" r="3" fill="#150c05"/>'
-      + '<circle cx="' + (cx - 2.5) + '" cy="76" r="1.6" fill="#fff" opacity=".8"/>'
-      + '<path d="M' + (cx - 13) + ' 70 Q' + cx + ' 62 ' + (cx + 13) + ' 70 L' + (cx + 13) + ' 73 Q' + cx + ' 68 ' + (cx - 13) + ' 73 Z" fill="url(#' + id + 'haut)"/>'
-      + '<path d="M' + (cx - 12) + ' 71 Q' + cx + ' 65 ' + (cx + 12) + ' 71" stroke="#b07c50" stroke-width="1.6" fill="none"/>';
-
-  // Brauen: vital leicht geschwungen, müde flach-schräg
-  const brauen = vital
-    ? '<path d="M64 59 Q77 51 91 57" stroke="#3a2a18" stroke-width="6" fill="none" stroke-linecap="round"/>'
-      + '<path d="M109 57 Q123 51 136 59" stroke="#3a2a18" stroke-width="6" fill="none" stroke-linecap="round"/>'
-    : '<path d="M66 62 Q78 58 90 62" stroke="#3a2a18" stroke-width="5.5" fill="none" stroke-linecap="round"/>'
-      + '<path d="M110 62 Q122 58 134 62" stroke="#3a2a18" stroke-width="5.5" fill="none" stroke-linecap="round"/>';
-
-  // Mund: großes Zahn-Lächeln (Referenz-Look) vs. müde Linie
-  const mund = vital
-    ? '<path d="M69 103 Q100 134 131 103 Q124 126 100 127 Q76 126 69 103 Z" fill="#7c342a"/>'
-      + '<path d="M73 105 Q100 122 127 105 Q100 116 73 105 Z" fill="#fff"/>'
-      + '<path d="M84 122 Q100 128 116 122 Q108 125 100 125 Q92 125 84 122 Z" fill="#c65f4e"/>'
-      + '<path d="M69 103 Q100 134 131 103" stroke="#5d241c" stroke-width="2" fill="none"/>'
-    : '<path d="M80 112 Q100 106 120 112" stroke="#8a5a3a" stroke-width="4" fill="none" stroke-linecap="round"/>';
-
-  // Outfit je Tier
-  let outfit = '<path d="M52 238 Q50 168 76 156 L100 166 L124 156 Q150 168 148 238 Z" fill="url(#' + id + 'top)"/>';
-  if (tier === 0) {
-    outfit += '<path d="M76 156 Q100 174 124 156 L124 166 Q100 184 76 166 Z" fill="#47566e"/>'
-      + '<line x1="92" y1="170" x2="90" y2="192" stroke="#38445a" stroke-width="3" stroke-linecap="round"/>'
-      + '<line x1="108" y1="170" x2="110" y2="192" stroke="#38445a" stroke-width="3" stroke-linecap="round"/>';
-  } else if (tier === 1) {
-    outfit += '<path d="M84 150 Q100 144 116 150 L116 164 Q100 158 84 164 Z" fill="#a2743a"/>'
-      + '<path d="M60 200 L140 200" stroke="#96692f" stroke-width="1.5" opacity=".6"/>';
-  } else {
-    const roll = O.roll;
-    outfit = '<path d="M52 238 Q50 168 76 156 L100 166 L124 156 Q150 168 148 238 Z" fill="' + roll + '"/>'
-      + '<path d="M84 150 Q100 144 116 150 L116 162 Q100 156 84 162 Z" fill="' + roll + '" stroke="#00000033" stroke-width="1"/>'
-      // Blazer links/rechts mit Revers
-      + '<path d="M76 154 Q54 168 52 238 L88 238 L94 172 L82 186 Z" fill="url(#' + id + 'top)"/>'
-      + '<path d="M124 154 Q146 168 148 238 L112 238 L106 172 L118 186 Z" fill="url(#' + id + 'top)"/>'
-      + '<path d="M76 154 L94 172 L82 186 Z" fill="' + O.b + '"/>'
-      + '<path d="M124 154 L106 172 L118 186 Z" fill="' + O.b + '"/>'
-      + '<circle cx="90" cy="206" r="2.4" fill="' + (O.akzent || '#101b30') + '"/>'
-      + '<circle cx="90" cy="221" r="2.4" fill="' + (O.akzent || '#101b30') + '"/>'
-      + (O.akzent ? '<path d="M60 196 L74 192 L72 202 Z" fill="' + O.akzent + '"/>' : '');
-  }
-
-  return '<svg class="avfig" viewBox="0 0 200 240" aria-label="Avatar">'
-    + defs
-    + '<g' + (vital ? '' : ' opacity=".92"') + '>'
-    // Hals
-    + '<path d="M88 122 L112 122 L112 152 Q100 158 88 152 Z" fill="url(#' + id + 'haut)"/>'
-    + '<path d="M88 122 Q100 132 112 122 L112 132 Q100 140 88 132 Z" fill="#d99f6e"/>'
-    + outfit
-    // Ohren
-    + '<ellipse cx="53" cy="84" rx="8" ry="11" fill="url(#' + id + 'haut)"/>'
-    + '<ellipse cx="147" cy="84" rx="8" ry="11" fill="url(#' + id + 'haut)"/>'
-    + '<path d="M51 82 Q54 84 52 89" stroke="#c98a5c" stroke-width="2" fill="none"/>'
-    + '<path d="M149 82 Q146 84 148 89" stroke="#c98a5c" stroke-width="2" fill="none"/>'
-    // Gesicht (schmales Kinn wie auf den Fotos)
-    + '<path d="M54 78 Q54 26 100 26 Q146 26 146 78 Q146 108 124 122 Q112 130 100 130 Q88 130 76 122 Q54 108 54 78 Z" fill="url(#' + id + 'haut)"/>'
-    // Haar: kurze Seiten, Tolle nach oben (Signature)
-    + '<path d="M53 82 Q48 34 88 22 Q96 8 116 12 Q114 16 112 20 Q134 16 144 34 Q150 48 147 80 Q144 52 128 44 Q132 52 128 56 Q118 38 96 40 Q66 42 58 78 Z" fill="url(#' + id + 'haar)"/>'
-    + '<path d="M92 24 Q100 16 112 16" stroke="#6b4e2e" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/>'
-    + '<path d="M70 40 Q84 30 100 32" stroke="#6b4e2e" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".6"/>'
-    // sanfter Stirn-Glanz
-    + '<ellipse cx="86" cy="52" rx="26" ry="12" fill="#fff" opacity=".07"/>'
-    + brauen + auge(78) + auge(122)
-    // Nase klein
-    + '<path d="M100 84 Q97 94 93 97 Q99 101 106 98" stroke="#d99f6e" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
-    // Wangen
-    + '<ellipse cx="66" cy="94" rx="8" ry="5.5" fill="#ec9d74" opacity="' + (vital ? '.5' : '.25') + '"/>'
-    + '<ellipse cx="134" cy="94" rx="8" ry="5.5" fill="#ec9d74" opacity="' + (vital ? '.5' : '.25') + '"/>'
-    + mund
-    + '</g></svg>';
+  const bild = !vital ? 'muede' : ['hoodie', 'rollkragen', 'blazer', 'anzug'][tier];
+  return '<img class="avfoto" src="img/avatar-' + bild + '.jpg" alt="Avatar">';
 }
 
 /* Vitalität (6.2): getrieben vom Akku-Durchschnitt des Tages. */

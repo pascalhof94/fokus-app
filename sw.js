@@ -4,14 +4,19 @@
    öffnen = Update), offline kommt alles aus dem Cache. */
 'use strict';
 
-const CACHE = 'fokus-v0.17.0';
+const CACHE = 'fokus-v0.18.0';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './apple-touch-icon.png'
+  './apple-touch-icon.png',
+  './img/avatar-hoodie.jpg',
+  './img/avatar-rollkragen.jpg',
+  './img/avatar-blazer.jpg',
+  './img/avatar-anzug.jpg',
+  './img/avatar-muede.jpg'
 ];
 
 self.addEventListener('install', e => {
