@@ -538,14 +538,23 @@ textarea{min-height:64px;resize:vertical}
   background:var(--ok);color:#04342c;font-size:13px;font-weight:800;
 }
 .kaufbtn:active{transform:scale(.98)}
-.avbadges{
-  position:absolute;left:8px;right:8px;bottom:22px;
-  display:flex;flex-wrap:wrap;gap:4px;justify-content:center;
+/* Grit-Heatmap (22.07.2026) */
+.heatmap{
+  display:grid;grid-auto-flow:column;
+  grid-template-rows:repeat(7,1fr);grid-auto-columns:1fr;gap:3px;
 }
-.avbadge{
-  background:rgba(13,20,32,.85);border:1px solid var(--line);border-radius:999px;
-  padding:2px 8px;font-size:10px;font-weight:800;color:var(--txt);
+.heatmap .hz{
+  aspect-ratio:1;border-radius:3px;background:var(--card2);
+  border:1.5px solid transparent;
 }
+.heatmap .hz.leer{background:transparent}
+/* Gekaufte Objekte leben in der Szene (22.07.2026, Aufbauspiel-Stil) */
+.szobj{position:absolute;line-height:1;pointer-events:none}
+.szobj i{font-style:normal;font-size:9px;font-weight:800;color:var(--mut);vertical-align:top;margin-left:1px}
+.szobj.hinten{z-index:1;opacity:.55;filter:saturate(.8)}
+.szobj.vorne{z-index:3}
+.szobj.schwebt{animation:szschweb 5s ease-in-out infinite}
+@keyframes szschweb{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 #conf{position:fixed;inset:0;pointer-events:none;z-index:300}
 .cpiece{position:absolute;width:8px;height:12px;border-radius:2px}
 .toast{
@@ -655,7 +664,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.15.0';
+const APP_VERSION = '0.16.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -1418,8 +1427,8 @@ function fokusZeitEinbuchen() {
       Store.tag.akkuVerlauf = Store.tag.akkuVerlauf || [];
       Store.tag.akkuVerlauf.push({ min: jetzt.getHours() * 60 + jetzt.getMinutes(),
         p: Math.round(Store.tag.akkuProzent) });
-      Store.speichereTag();
     }
+    Store.speichereTag();   // fokusSek IMMER sichern (Fix 22.07.2026)
   }
   fokus.sessionSek += sek;
   fokus.laeuft = false;
@@ -1711,13 +1720,26 @@ function tagAbschliessen() {
 /* ── Tages-Historie (Etappe 2): ein Snapshot je abgeschlossenem Tag ── */
 function historieLaden() { return lsLese(LS.HISTORIE, []); }
 
+/* Fokuszeit heute: Zähler, mit Fallback auf die getrackten Minuten der
+   heute bearbeiteten Items (Fix 22.07.2026 — Zähler kam erst mit v0.15). */
+function fokusMinHeute() {
+  const zaehler = (Store.tag.fokusSek || 0) / 60
+    + (fokus && fokus.laeuft ? laufendeSek() / 60 : 0);
+  const heutigeIds = new Set(Store.tag.log.filter(l => !l.uaId).map(l => l.itemId));
+  let getrackt = 0;
+  Store.items.forEach(i => {
+    if (heutigeIds.has(i.id) || i.status === 'in_arbeit') getrackt += minutenInklFokus(i);
+  });
+  return Math.round(Math.max(zaehler, Math.min(getrackt, 16 * 60)));
+}
+
 function heuteAlsSnapshot() {
   gesamtpunkteAktualisieren();
   const t = Store.tag;
   return {
     datum: t.datum,
     punkte: Math.round(t.gesamtpunkteHeute * 10) / 10,
-    fokusMin: Math.round((t.fokusSek || 0) / 60),
+    fokusMin: fokusMinHeute(),
     erledigt: t.log.filter(l => !l.uaId && !l.counterAbschluss && !l.routineVerpasst
       && !l.aussetzer && !l.nichtErledigt && l.punkte >= 0).length,
     streak: t.streak,
@@ -3200,6 +3222,7 @@ function punkteNachGruppe(achse) {
 
 let aufAchse = 'bereich';
 let statZeitraum = 'heute';
+let statFilter = { punkte: true, energie: true, soll: true };
 
 /* Snapshots des Zeitraums, heute immer live dabei. */
 function statTage(zeitraum) {
@@ -3241,16 +3264,24 @@ function kurveHtml(zeitraum) {
     const X = m => 6 + (m - start) / Math.max(1, ende - start) * 288;
     const Y = p => 96 - (p / maxY) * 86;
     const linie = punkte.map(pt => X(pt[0]).toFixed(1) + ',' + Y(pt[1]).toFixed(1)).join(' ');
-    const oe = (Store.tag.fokusSek || 0) > 300
-      ? fmtPunkte(Store.tag.gesamtpunkteHeute / ((Store.tag.fokusSek / 3600))) + ' P/Std Fokus' : '';
-    return '<div class="akkukarte"><div class="lbl"><span>Gesamtpunkte über den Tag</span><span>' + oe + '</span></div>'
+    const fm = fokusMinHeute();
+    const oe = fm >= 5 ? fmtPunkte(Store.tag.gesamtpunkteHeute / (fm / 60)) + ' P/Std Fokus' : '';
+    // Energie-Serie (rechte Skala 0–100 %) — gemergter Graph (22.07.2026)
+    const YA = p => 96 - (p / 100) * 86;
+    const av = (Store.tag.akkuVerlauf || []).filter(e => e.min >= start && e.min <= ende);
+    let akkuLinie = av.map(e => X(e.min).toFixed(1) + ',' + YA(e.p).toFixed(1)).join(' ');
+    const aJetzt = akkuLive();
+    if (aJetzt != null && jm > start) akkuLinie += (akkuLinie ? ' ' : '') + X(jm).toFixed(1) + ',' + YA(aJetzt).toFixed(1);
+    return '<div class="akkukarte"><div class="lbl"><span>Tagesverlauf</span><span>' + oe + '</span></div>'
       + '<svg viewBox="0 0 300 104" width="100%" height="104">'
       + '<line x1="6" y1="96" x2="294" y2="96" stroke="var(--line)"/>'
-      + '<line x1="' + X(start) + '" y1="' + Y(0) + '" x2="' + X(ende) + '" y2="' + Y(ziel) + '" stroke="var(--mut2)" stroke-width="1.5" stroke-dasharray="4 4"/>'
-      + '<polyline points="' + linie + '" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-linejoin="round"/>'
-      + (punkte.length ? '<circle cx="' + X(punkte[punkte.length - 1][0]).toFixed(1) + '" cy="' + Y(punkte[punkte.length - 1][1]).toFixed(1) + '" r="3.5" fill="var(--purple)"/>' : '')
-      + '<text x="6" y="10" fill="var(--mut)" font-size="9">' + fmtPunkte(kum) + ' P</text>'
-      + '<text x="240" y="' + (Y(ziel) + 12) + '" fill="var(--mut2)" font-size="8">Soll ' + fmtPunkte(ziel) + '</text>'
+      + (statFilter.soll ? '<line x1="' + X(start) + '" y1="' + Y(0) + '" x2="' + X(ende) + '" y2="' + Y(ziel) + '" stroke="var(--mut2)" stroke-width="1.5" stroke-dasharray="4 4"/>'
+        + '<text x="240" y="' + (Y(ziel) + 12) + '" fill="var(--mut2)" font-size="8">Soll ' + fmtPunkte(ziel) + '</text>' : '')
+      + (statFilter.energie && akkuLinie ? '<polyline points="' + akkuLinie + '" fill="none" stroke="var(--ok)" stroke-width="1.8" stroke-linejoin="round" opacity=".85"/>'
+        + '<text x="272" y="' + (YA(aJetzt != null ? aJetzt : 50) - 4).toFixed(1) + '" fill="var(--ok)" font-size="8">' + (aJetzt != null ? Math.round(aJetzt) + '%' : '') + '</text>' : '')
+      + (statFilter.punkte ? '<polyline points="' + linie + '" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-linejoin="round"/>'
+        + (punkte.length ? '<circle cx="' + X(punkte[punkte.length - 1][0]).toFixed(1) + '" cy="' + Y(punkte[punkte.length - 1][1]).toFixed(1) + '" r="3.5" fill="var(--purple)"/>' : '')
+        + '<text x="6" y="10" fill="var(--purple)" font-size="9">' + fmtPunkte(kum) + ' P</text>' : '')
       + '<text x="6" y="104" fill="var(--mut2)" font-size="8">' + s.arbeitstagStart + '</text>'
       + '<text x="272" y="104" fill="var(--mut2)" font-size="8">' + s.arbeitstagEnde + '</text>'
       + '</svg></div>';
@@ -3321,6 +3352,27 @@ function shopHtml() {
   }).join('');
 }
 
+/* Szenen-Objekte: jede gekaufte Kategorie erscheint im Bild und wächst
+   mit der Stufe — Wohnen als Zuhause hinter dem Avatar, der Rest
+   daneben bzw. am Himmel (22.07.2026). */
+function szeneObjekteHtml() {
+  const st = kk => (belohnung.stufen[kk] || 1);
+  const obj = [];
+  if (st('wohnen') > 1) {
+    const w = st('wohnen');
+    obj.push(['hinten', w >= 7 ? '🏙️' : w >= 4 ? '🏠' : '🛖',
+      'left:8%;bottom:10px', 44 + w * 5, w]);
+  }
+  if (st('reisen') > 1) obj.push(['hinten', st('reisen') >= 6 ? '🏝️' : '🌄', 'left:6%;top:8%', 18 + st('reisen') * 2, st('reisen')]);
+  if (st('mobilitaet') > 1) obj.push(['vorne schwebt', st('mobilitaet') >= 7 ? '✈️' : st('mobilitaet') >= 4 ? '🚤' : '🛴', 'right:8%;top:12%', 14 + st('mobilitaet') * 2, st('mobilitaet')]);
+  if (st('fahrzeuge') > 1) obj.push(['vorne', st('fahrzeuge') >= 7 ? '🏎️' : st('fahrzeuge') >= 3 ? '🚗' : '🚲', 'right:5%;bottom:12px', 18 + st('fahrzeuge') * 3, st('fahrzeuge')]);
+  if (st('begleiter') > 1) obj.push(['vorne', st('begleiter') >= 4 ? '🐕' : '🐈', 'left:30%;bottom:12px', 12 + st('begleiter') * 2, st('begleiter')]);
+  if (st('soziales') > 1) obj.push(['vorne', '👥', 'right:26%;bottom:14px', 12 + st('soziales') * 2, st('soziales')]);
+  return obj.map(o =>
+    '<span class="szobj ' + o[0] + '" style="' + o[2] + ';font-size:' + o[3] + 'px">' + o[1] + '<i>' + o[4] + '</i></span>'
+  ).join('');
+}
+
 function renderBelohnung() {
   const vital = vitalitaet();
   const stufe = gesamtStufe();
@@ -3329,21 +3381,17 @@ function renderBelohnung() {
   gesamtpunkteAktualisieren();
   const pw = paceWerte();
 
-  // Ausstattungs-Badges beim Avatar (gekaufte Kategorien)
-  const badges = KAT_KEYS.filter(kk => (belohnung.stufen[kk] || 1) > 1)
-    .map(kk => '<span class="avbadge">' + BELOHNUNG[kk].icon + ' ' + belohnung.stufen[kk] + '</span>').join('');
-
   let html = ''
     + '<div class="avcard">'
     + '<div class="avscene' + (vital ? '' : ' erschoepft') + '"><div class="avground"></div>'
+    + szeneObjekteHtml()
     + '<div class="avgrid">' + avatarHtml(stufe, vital) + '</div>'
-    + (badges ? '<div class="avbadges">' + badges + '</div>' : '')
     + '</div>'
     + '<div class="rankline"><div class="rankname">Level ' + stufe + ' · ' + (vital ? 'Vital' : 'Erschöpft') + '</div>'
     + '<div class="rankpts">Konto ' + fmtPunkte(k) + ' P</div></div>'
     + '<div class="statsgrid">'
     + '<div class="statbox"><div class="v">' + fmtPunkte(t.gesamtpunkteHeute) + '</div><div class="k">Punkte heute</div></div>'
-    + '<div class="statbox"><div class="v">' + (m => Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'))(Math.round((t.fokusSek || 0) / 60)) + ' h</div><div class="k">Fokuszeit heute</div></div>'
+    + '<div class="statbox"><div class="v">' + (m => Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'))(fokusMinHeute()) + ' h</div><div class="k">Fokuszeit heute</div></div>'
     + '<div class="statbox"><div class="v">' + t.streak + '🔥</div><div class="k">Streak</div></div>'
     + '<div class="statbox"><div class="v">' + fmtPunkte(pw.ist) + '/' + fmtPunkte(pw.soll) + '</div><div class="k">Pace Ist/Soll</div></div>'
     + '</div></div>';
@@ -3354,13 +3402,19 @@ function renderBelohnung() {
         '<button data-z="' + z + '" class="' + (statZeitraum === z ? 'on' : '') + '">'
         + (z === 'heute' ? 'Heute' : z === 'woche' ? 'Woche' : 'Monat') + '</button>').join('')
     + '</div>';
+  // Serien-Filter für den gemergten Tagesgraphen (22.07.2026)
+  if (statZeitraum === 'heute') {
+    html += '<div class="vtoggle" id="kurveFilter" style="margin-bottom:var(--s1)">'
+      + [['punkte', '● Punkte'], ['energie', '● Energie'], ['soll', '● Soll']].map(([f, l]) =>
+          '<button data-filter="' + f + '" class="' + (statFilter[f] ? 'on' : '') + '" '
+          + 'style="' + (statFilter[f] ? (f === 'punkte' ? 'background:var(--purple);color:#160a2e;border-color:transparent'
+            : f === 'energie' ? 'background:var(--ok);color:#04342c;border-color:transparent'
+            : 'background:var(--mut2);color:#0d1420;border-color:transparent') : '') + '">'
+          + l + '</button>').join('')
+      + '</div>';
+  }
   html += kurveHtml(statZeitraum);
   html += kennzahlenHtml(statZeitraum);
-
-  // Energie-Kurve (nur Heute sinnvoll)
-  if (statZeitraum === 'heute') {
-    html += '<h2 class="sechead">Energie heute</h2>' + akkuKurveHtml();
-  }
 
   // Aufschlüsselung + Detail-Analyse
   html += '<h2 class="sechead">Aufschlüsselung</h2>'
@@ -3377,6 +3431,13 @@ function renderBelohnung() {
 
   $('statTabs').querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => { statZeitraum = btn.dataset.z; renderBelohnung(); });
+  });
+  const kf = $('kurveFilter');
+  if (kf) kf.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      statFilter[btn.dataset.filter] = !statFilter[btn.dataset.filter];
+      renderBelohnung();
+    });
   });
   $('view-belohnung').querySelectorAll('[data-achse]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -3412,6 +3473,41 @@ function balkenSvgHtml(titel, tage, wertFn, einheit, farbe) {
     + '</svg></div>';
 }
 
+/* Grit-Stil-Heatmap (22.07.2026): 10 Wochen, Zellen-Helligkeit nach
+   Tagespunkten, Rand grün/rot = Tages-Pace über/unter dem Ø. */
+function heatmapHtml() {
+  const alt = historieLaden().filter(d => d.datum !== Store.tag.datum);
+  const tage = [...alt, heuteAlsSnapshot()];
+  const map = {};
+  tage.forEach(d => map[d.datum] = d);
+  const maxP = Math.max(...tage.map(d => d.punkte || 0), 1);
+  const paces = tage.filter(d => (d.fokusMin || 0) >= 30).map(d => d.punkte / (d.fokusMin / 60));
+  const avgPace = paces.length ? paces.reduce((a, b) => a + b, 0) / paces.length : 0;
+  const heute = new Date(heuteIso() + 'T00:00:00');
+  const startTag = new Date(heute);
+  startTag.setDate(heute.getDate() - wochentagMo0(heute) - 63);   // 10 Wochen, montags
+  let zellen = '';
+  for (let i = 0; i < 70; i++) {
+    const dat = new Date(startTag); dat.setDate(startTag.getDate() + i);
+    if (dat > heute) { zellen += '<span class="hz leer"></span>'; continue; }
+    const iso = dat.getFullYear() + '-' + String(dat.getMonth() + 1).padStart(2, '0') + '-' + String(dat.getDate()).padStart(2, '0');
+    const d = map[iso];
+    if (!d || !(d.punkte > 0)) { zellen += '<span class="hz" title="' + iso + '"></span>'; continue; }
+    const t2 = Math.min(1, d.punkte / maxP);
+    const farbe = 'rgba(' + Math.round(185 + 70 * t2) + ',' + Math.round(138 + 80 * t2) + ',247,' + (0.25 + 0.75 * t2).toFixed(2) + ')';
+    let rand = 'transparent';
+    if (avgPace > 0 && (d.fokusMin || 0) >= 30) {
+      rand = (d.punkte / (d.fokusMin / 60)) >= avgPace ? 'var(--ok)' : 'var(--bad)';
+    }
+    zellen += '<span class="hz" title="' + iso + ' · ' + fmtPunkte(d.punkte) + ' P" style="background:' + farbe
+      + (t2 > 0.75 ? ';box-shadow:0 0 6px ' + farbe : '') + ';border-color:' + rand + '"></span>';
+  }
+  return '<div class="akkukarte" style="margin-bottom:var(--s1)">'
+    + '<div class="lbl"><span>10 Wochen — heller = mehr Punkte</span>'
+    + '<span><i style="font-style:normal;color:var(--ok)">▢</i> über Ø-Pace · <i style="font-style:normal;color:var(--bad)">▢</i> darunter</span></div>'
+    + '<div class="heatmap">' + zellen + '</div></div>';
+}
+
 function sheetAnalyseOeffnen() {
   const alt = historieLaden().filter(d => d.datum !== Store.tag.datum);
   const tage = [...alt, heuteAlsSnapshot()].slice(-14);
@@ -3419,6 +3515,7 @@ function sheetAnalyseOeffnen() {
   if (tage.length < 2) {
     html += '<div class="wizinfo">Die Detail-Analyse füllt sich mit jedem Tagesabschluss — ab morgen gibt es hier Trends.</div>';
   }
+  html += heatmapHtml();
   html += balkenSvgHtml('Punkte je Tag (14 T)', tage, d => d.punkte || 0, ' P', 'var(--purple)');
   html += balkenSvgHtml('Fokuszeit je Tag (min)', tage, d => d.fokusMin || 0, ' min', 'var(--cyan)');
   html += balkenSvgHtml('Akku-Ø je Tag (%)', tage, d => d.akkuSchnitt || 0, ' %', 'var(--ok)');
@@ -4022,6 +4119,7 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   privatDokumentMd, importParsen,
   get belohnung() { return belohnung; }, konto, preisFuer, kaufSperre, naechsterKauf, kaufen,
   oePStd7, historieLaden, heuteAlsSnapshot, historieSchreiben,
+  fokusMinHeute, szeneObjekteHtml, heatmapHtml,
   renderBelohnung, punkteNachGruppe, vitalitaet, gesamtStufe,
   dropAnwenden, pushDown,
   zeitVerteilung, unteraufgabenAnteil, unteraufgabeToggle, unteraufgabeAnlegen,
