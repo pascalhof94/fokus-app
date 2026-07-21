@@ -236,6 +236,10 @@ main{
   display:flex;align-items:center;justify-content:center;
   font-size:12px;font-weight:800;color:var(--txt);
 }
+.karte .kstream{
+  width:36px;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:17px;color:var(--blue);
+}
 .karte .kgriff{
   width:32px;flex:none;display:flex;align-items:center;justify-content:center;
   color:var(--mut2);font-size:14px;touch-action:none;cursor:grab;
@@ -338,6 +342,16 @@ textarea{min-height:64px;resize:vertical}
   width:76px;text-align:center;font-size:17px;font-weight:800;padding:8px 6px;
 }
 
+/* Stufenlose Regler: Markierungen (Null/Vorschlag) + Auto-Farbe */
+.sltrack{position:relative}
+.slmark{
+  position:absolute;top:9px;width:2px;height:10px;border-radius:1px;
+  pointer-events:none;
+}
+.slregler .wert.auto{color:var(--cyan)}
+.slinfo{font-size:11px;color:var(--cyan);margin:-8px 0 12px}
+.slinfo .abw{color:var(--warn)}
+
 /* Einstellungen (7.3): numerische Variante derselben Regler-Komponente */
 .regler .kopfzeile2{display:flex;justify-content:space-between;align-items:baseline}
 .regler .wert{font-family:ui-monospace,SFMono-Regular,monospace;font-size:13px;font-weight:800;color:var(--cyan)}
@@ -412,6 +426,8 @@ textarea{min-height:64px;resize:vertical}
 .uareihe .uatitel{flex:1;min-width:0;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .uareihe.fertig .uatitel{color:var(--mut2);text-decoration:line-through}
 .uareihe .uamin{width:52px;flex:none;font-size:11px;text-align:center;padding:5px 4px}
+.uareihe .uamin::placeholder{color:var(--cyan);opacity:.8}
+.uareihe .uabonus{border-color:rgba(185,138,247,.5)}
 .uareihe .uapunkte{width:52px;flex:none;text-align:right;font-size:10px;color:var(--ok);font-weight:700}
 .uareihe .uax{width:28px;flex:none;text-align:center;color:var(--mut2);font-size:13px}
 .uaneu{display:flex;gap:var(--s1);margin-top:6px}
@@ -583,7 +599,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.12.0';
+const APP_VERSION = '0.13.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -1177,13 +1193,43 @@ function zeitVerteilung(item) {
   return uas.map(u => (u.geplantMin > 0 ? u.geplantMin : autoJe));
 }
 
-/* Punkte-Anteil einer Unteraufgabe am aktuellen Live-Gesamtwert. */
+/* Einmal-Punkte-Verteilung (21.07.2026): eigene Werte fix, der Rest
+   des Abhak-Bonus verteilt sich gleichmäßig auf Unteraufgaben ohne. */
+function bonusVerteilung(item) {
+  const uas = item.unteraufgaben || [];
+  if (!uas.length) return [];
+  const gesamt = effektiverBonus(item);
+  const fix = uas.filter(u => u.bonusPunkte != null);
+  const fixSumme = fix.reduce((s, u) => s + u.bonusPunkte, 0);
+  const autoAnzahl = uas.length - fix.length;
+  const autoJe = autoAnzahl > 0 ? (gesamt - fixSumme) / autoAnzahl : 0;
+  return uas.map(u => (u.bonusPunkte != null ? u.bonusPunkte : autoJe));
+}
+
+/* Gesamtzeit/Gesamtbonus = Summe der Unteraufgaben, sobald alle eigene
+   Werte haben; sonst bleibt das Gesamtfeld führend (mind. Summe der fixen). */
+function uaSummenAngleichen(item) {
+  const uas = item.unteraufgaben || [];
+  if (!uas.length) return;
+  const fixMin = uas.filter(u => u.geplantMin > 0);
+  const sMin = fixMin.reduce((s, u) => s + u.geplantMin, 0);
+  if (fixMin.length === uas.length) item.aufwandGeplantMin = sMin;
+  else if (sMin > (item.aufwandGeplantMin || 0)) item.aufwandGeplantMin = sMin;
+  const fixB = uas.filter(u => u.bonusPunkte != null);
+  if (fixB.length === uas.length && fixB.length) {
+    item.abschlussBonus = fixB.reduce((s, u) => s + u.bonusPunkte, 0);
+  }
+}
+
+/* Punkte-Anteil einer Unteraufgabe: Zeit-Anteil + Einmal-Punkte-Anteil. */
 function unteraufgabenAnteil(item, uaIndex) {
   const zeiten = zeitVerteilung(item);
+  const boni = bonusVerteilung(item);
   const summe = zeiten.reduce((s, z) => s + z, 0);
-  const gesamt = punkteBeiMinuten(item, Math.max(minutenInklFokus(item), item.aufwandGeplantMin || 0));
-  if (summe <= 0) return gesamt / zeiten.length;          // alles 0 geplant → gleichmäßig
-  return gesamt * zeiten[uaIndex] / summe;
+  const zeitGesamt = punkteBeiMinuten(item, Math.max(minutenInklFokus(item), item.aufwandGeplantMin || 0))
+    - effektiverBonus(item);
+  const zeitAnteil = summe > 0 ? zeitGesamt * zeiten[uaIndex] / summe : zeitGesamt / zeiten.length;
+  return zeitAnteil + (boni[uaIndex] || 0);
 }
 
 function unteraufgabeToggle(itemId, uaId) {
@@ -1332,6 +1378,12 @@ function fokusStarten(id) {
   fokus.startMs = Date.now();
   const item = Store.findeItem(id);
   if (item && item.status === 'offen') { item.status = 'in_arbeit'; Store.speichereItems(); }
+  // Angefangene Items gehören in den Tagesstream (21.07.2026)
+  if (item && item.typ !== 'counter' && item.streamSlot == null && item.imStreamAnzeigen !== false) {
+    item.streamSlot = jetztRund5();
+    pushDown();
+    Store.speichereItems();
+  }
   fokusSpeichern();
   renderAlles();
 }
@@ -1625,8 +1677,13 @@ function karteHtml(item, imStream) {
     +   '<div class="kmeta">' + meta.join('') + '</div>'
     + '</div>'
     + rechts
-    // Griff (7.2): NUR zum Verschieben — Anker-Termine sind fix (5.2)
-    + (!item.istAnker ? '<span class="kgriff" aria-hidden="true">⠿</span>' : '<span class="kgriff" style="visibility:hidden">⠿</span>')
+    // Ein-Tap: Warteschlange ⇄ Tagesstream (21.07.2026)
+    + (item.typ !== 'counter' && !item.istAnker
+      ? '<button class="kstream" data-aktion="streamtoggle" aria-label="Stream-Wechsel">'
+        + (item.streamSlot != null ? '⤵' : '⤴') + '</button>'
+      : '')
+    // Griff (7.2): NUR zum Verschieben im Stream — Anker fix (5.2)
+    + (imStream && !item.istAnker ? '<span class="kgriff" aria-hidden="true">⠿</span>' : '<span class="kgriff" style="visibility:hidden">⠿</span>')
     + '</article>';
 }
 
@@ -1946,11 +2003,24 @@ $('sheetX').addEventListener('click', sheetSchliessen);
    Task-Karte als Sheet (4.3): Schieberegler, zwei Kommentarfelder,
    alle Änderungen speichern sofort (kein Save-Button).
    ════════════════════════════════════════════════════════════════════ */
-/* Stufenlose Regler mit Live-Wert (Punktesystem 2.0, 21.07.2026). */
-function slReglerHtml(id, label, min, max, step, wert, einheit) {
+/* Stufenlose Regler mit Live-Wert (Punktesystem 2.0, 21.07.2026).
+   opts: { auto (cyan = Vorschlagswert), marken: [{wert, farbe}],
+           links/rechts (Bedeutungs-Beschriftung der Endpunkte) } */
+function slReglerHtml(id, label, min, max, step, wert, einheit, opts) {
+  opts = opts || {};
+  const marken = (opts.marken || []).map(m => {
+    const pct = Math.min(100, Math.max(0, (m.wert - min) / (max - min) * 100)).toFixed(1);
+    return '<span class="slmark" style="left:' + pct + '%;background:' + (m.farbe || 'var(--mut2)') + '"></span>';
+  }).join('');
   return '<div class="feld regler slregler" data-slid="' + id + '" data-einheit="' + (einheit || '') + '">'
-    + '<div class="kopfzeile2"><label>' + label + '</label><span class="wert">' + wert + (einheit || '') + '</span></div>'
+    + '<div class="kopfzeile2"><label>' + label + '</label>'
+    + '<span class="wert' + (opts.auto ? ' auto' : '') + '">' + wert + (einheit || '') + '</span></div>'
+    + '<div class="sltrack">'
     + '<input type="range" min="' + min + '" max="' + max + '" step="' + step + '" value="' + wert + '">'
+    + marken + '</div>'
+    + (opts.links || opts.rechts
+      ? '<div class="stufen"><span>' + (opts.links || '') + '</span><span>' + (opts.rechts || '') + '</span></div>'
+      : '')
     + '</div>';
 }
 function slVerdrahten(id, fn) {
@@ -1992,6 +2062,26 @@ function stufenEditorHtml(item) {
     + '<button class="wizbtn sek" id="dStufeAdd" style="margin-top:6px">+ Stufe hinzufügen</button></div>';
 }
 
+/* Info-Zeilen: Vorschlag sichtbar machen + Abweichung zum manuellen Wert. */
+function rateInfoText(item) {
+  const v = Math.round(vorschlagRate(item));
+  if (item.punkteProStd == null) return 'Auto-Vorschlag aus der Einschätzung: ' + v + ' P/Std';
+  const diff = Math.round(item.punkteProStd - v);
+  return 'Vorschlag: ' + v + ' P/Std · <span class="abw">Abweichung ' + (diff >= 0 ? '+' : '') + diff + '</span>';
+}
+function bonusVorschlag(item) {
+  if (item.domain === 'dfm' && item.geldImpact) {
+    return Store.settings.geldScoreBasis[item.geldImpact] - tageBisDeadline(item.deadline);
+  }
+  return 0;
+}
+function bonusInfoText(item) {
+  const v = Math.round(bonusVorschlag(item));
+  if (item.abschlussBonus == null) return 'Auto: ' + v + ' P (Geld-Impact)';
+  const diff = Math.round(item.abschlussBonus - v);
+  return 'Vorschlag: ' + v + ' P · <span class="abw">' + (diff >= 0 ? '+' : '') + diff + '</span>';
+}
+
 function zufallAnzeige(item) {
   const t = item.rhythmusZufallTage || [];
   if (!t.length) return 'wird gelost';
@@ -2023,18 +2113,33 @@ function sheetDetailOeffnen(id) {
        + '</div>';
   html += '<div class="feld"><label>Priorität</label>' + segHtml('prioritaet', ['muss', 'soll', 'idee'], item.prioritaet, ['Muss', 'Soll', 'Idee']) + '</div>';
   if (!istCounter) {
-    html += slReglerHtml('rate', 'Punkte pro Stunde' + (item.punkteProStd == null ? ' · Auto' : ''),
-      -60, 180, 1, Math.round(effektiveRate(item)), ' P/Std');
+    const vRate = Math.round(vorschlagRate(item));
+    html += slReglerHtml('rate', 'Punkte pro Stunde', -60, 180, 1, Math.round(effektiveRate(item)), ' P/Std', {
+      auto: item.punkteProStd == null,
+      marken: [{ wert: 0, farbe: 'var(--bad)' }, { wert: vRate, farbe: 'var(--cyan)' }],
+      links: 'Abzug', rechts: 'Belohnung'
+    });
+    html += '<div class="slinfo" id="dRateInfo">' + rateInfoText(item) + '</div>';
     html += '<div class="zweispaltig">'
-      + '<div class="feld"><label>Abhak-Bonus ± P (leer = Geld-Impact)</label><input id="dBonus" type="number" value="' + (item.abschlussBonus != null ? item.abschlussBonus : '') + '"></div>'
-      + '<div class="feld"><label>Satz-Modus</label><button class="wizbtn sek" id="dRateAuto" style="margin-top:0;min-height:44px">↺ Auto</button></div>'
+      + '<div class="feld"><label>Einmalige Punkte (bei Abschluss)</label>'
+      + '<input id="dBonus" type="number" placeholder="Auto: ' + Math.round(bonusVorschlag(item)) + '" value="' + (item.abschlussBonus != null ? item.abschlussBonus : '') + '">'
+      + '<div class="slinfo" id="dBonusInfo" style="margin:4px 0 0">' + bonusInfoText(item) + '</div></div>'
+      + '<div class="feld"><label>Gesamtzeit (min, verteilt auf Unteraufgaben)</label>'
+      + '<input id="dGesamt" type="number" inputmode="numeric" value="' + (item.aufwandGeplantMin || 0) + '">'
+      + '<button class="wizbtn sek" id="dRateAuto" style="margin-top:6px;min-height:38px">↺ Alles auf Auto</button></div>'
       + '</div>';
-    html += slReglerHtml('akku', 'Akku pro Stunde' + (item.akkuProStd == null ? ' · Auto' : ''),
-      -30, 30, 1, Math.round(akkuRate(item)), ' %');
-    html += '<div class="feld"><label>Einschätzung (speist den Auto-Satz)</label></div>'
-      + slReglerHtml('fK', 'Komplexität', 0.5, 2.5, 0.05, Number(item.komplexitaet) || 1, '×')
-      + slReglerHtml('fE', 'Energie', 0.5, 1.5, 0.05, Number(item.energie) || 1, '×')
-      + slReglerHtml('fB', 'Blockade', 0.5, 2.5, 0.05, Number(item.blockade) || 1, '×');
+    html += slReglerHtml('akku', 'Akku pro Stunde', -30, 30, 1, Math.round(akkuRate(item)), ' %', {
+      auto: item.akkuProStd == null,
+      marken: [{ wert: 0, farbe: 'var(--mut2)' }],
+      links: 'zieht Akku', rechts: 'lädt Akku'
+    });
+    html += '<div class="feld"><label>Einschätzung — speist den Auto-Vorschlag (Markierung = neutral 1,0)</label></div>'
+      + slReglerHtml('fK', 'Komplexität', 0.5, 2.5, 0.05, Number(item.komplexitaet) || 1, '×',
+          { marken: [{ wert: 1 }], links: 'leicht', rechts: 'schwer' })
+      + slReglerHtml('fE', 'Energie', 0.5, 1.5, 0.05, Number(item.energie) || 1, '×',
+          { marken: [{ wert: 1 }], links: 'gibt Energie', rechts: 'zieht Energie' })
+      + slReglerHtml('fB', 'Blockade', 0.5, 2.5, 0.05, Number(item.blockade) || 1, '×',
+          { marken: [{ wert: 1 }], links: 'keine Blockade', rechts: 'starke Blockade' });
     html += stufenEditorHtml(item);
     html += '<div class="feld"><label>Im Tagesstream anzeigen (bei gesetzter Zeit)</label>'
       + segHtml('imStreamAnzeigen', ['1', '0'], item.imStreamAnzeigen ? '1' : '0', ['Ja', 'Nein']) + '</div>';
@@ -2095,12 +2200,9 @@ function sheetDetailOeffnen(id) {
   }
   html += '<div class="zweispaltig">'
        +  '<div class="feld"><label>Deadline</label><input id="dDeadline" type="date" value="' + (item.deadline || '') + '"></div>'
-       +  '<div class="feld"><label>Geplant (min)</label><input id="dGeplant" type="number" inputmode="numeric" value="' + (item.aufwandGeplantMin || 0) + '"></div>'
-       + '</div>';
-  html += '<div class="zweispaltig">'
-       +  '<div class="feld"><label>Im Stream ab (leer = Warteschlange)</label><input id="dSlot" type="time" value="' + (item.streamSlot != null ? minAlsUhrzeit(item.streamSlot) : '') + '"></div>'
        +  '<div class="feld"><label>Ist-Minuten</label><input id="dIst" type="number" inputmode="numeric" value="' + Math.round(item.istMinuten || 0) + '"></div>'
        + '</div>';
+  html += '<div class="feld"><label>Im Stream ab (leer = Warteschlange)</label><input id="dSlot" type="time" value="' + (item.streamSlot != null ? minAlsUhrzeit(item.streamSlot) : '') + '"></div>';
   html += '<div class="feld"><label>Projekt</label><input id="dProjekt" type="text" value="' + escapeHtml(item.projekt || '') + '"></div>';
   // bereich: READ-ONLY (Sync-Vertrag) — kommt nur aus dem Import, nie editierbar
   if (item.bereich) {
@@ -2137,7 +2239,7 @@ function detailVerdrahten(item) {
   const bind = (id, fn) => { const el = $(id); if (el) el.addEventListener('input', () => { fn(el); speichernUndAktualisieren(); }); };
   bind('dTitel',    el => item.titel = el.value);
   bind('dDeadline', el => item.deadline = el.value || null);
-  bind('dGeplant',  el => item.aufwandGeplantMin = Number(el.value) || 0);
+  bind('dGesamt',   el => item.aufwandGeplantMin = Number(el.value) || 0);
   bind('dIst',      el => item.istMinuten = Number(el.value) || 0);
   bind('dSlot',     el => {
     const neu = uhrzeitAlsMin(el.value);
@@ -2146,7 +2248,11 @@ function detailVerdrahten(item) {
     item.streamSlot = neu;
   });
   bind('dRhythmus', el => item.rhythmusTage = Math.min(31, Math.max(1, Number(el.value) || 1)));
-  bind('dBonus',    el => item.abschlussBonus = el.value === '' ? null : Number(el.value));
+  bind('dBonus',    el => {
+    item.abschlussBonus = el.value === '' ? null : Number(el.value);
+    const info = $('dBonusInfo');
+    if (info) info.innerHTML = bonusInfoText(item);
+  });
   const wtWrap = $('dWtage');
   if (wtWrap) wtWrap.querySelectorAll('.wtag').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2169,11 +2275,23 @@ function detailVerdrahten(item) {
   bind('dVor',      el => item.punkteJeTickVorSchwelle = Number(el.value) || 0);
   bind('dNach',     el => item.punkteJeTickNachSchwelle = Number(el.value) || 0);
 
-  // Stufenlose Regler (Punktesystem 2.0)
-  slVerdrahten('rate', w => { item.punkteProStd = w; speichernUndAktualisieren(); });
-  slVerdrahten('akku', w => { item.akkuProStd = w; Store.speichereItems(); });
+  // Stufenlose Regler (Punktesystem 2.0) — Info-Zeilen laufen live mit
+  const rateUiNach = () => {
+    const info = $('dRateInfo');
+    if (info) info.innerHTML = rateInfoText(item);
+    const ws = document.querySelector('.slregler[data-slid="rate"] .wert');
+    if (ws) ws.classList.toggle('auto', item.punkteProStd == null);
+  };
+  slVerdrahten('rate', w => { item.punkteProStd = w; rateUiNach(); speichernUndAktualisieren(); });
+  slVerdrahten('akku', w => {
+    item.akkuProStd = w;
+    const ws = document.querySelector('.slregler[data-slid="akku"] .wert');
+    if (ws) ws.classList.remove('auto');
+    Store.speichereItems();
+  });
   const faktorNach = () => {
     if (item.punkteProStd == null) slSetzen('rate', Math.round(effektiveRate(item)));
+    rateUiNach();
     speichernUndAktualisieren();
   };
   slVerdrahten('fK', w => { item.komplexitaet = w; faktorNach(); });
@@ -2293,13 +2411,14 @@ function detailVerdrahten(item) {
 const RING_C = 2 * Math.PI * 58;    // Umfang Timer-Ring
 const RING_CP = 2 * Math.PI * 48;   // Umfang Fortschritts-Ring
 
-function uaZeileHtml(u, i, zeiten) {
+function uaZeileHtml(u, i, zeiten, boni) {
   return '<div class="uareihe' + (u.erledigt ? ' fertig' : '') + '" data-ua="' + u.id + '">'
     + '<button class="uacheck" data-uakt="toggle" aria-label="Unteraufgabe abhaken"><span class="box">' + (u.erledigt ? '✓' : '') + '</span></button>'
     + '<span class="uatitel">' + escapeHtml(u.titel) + '</span>'
     + (u.erledigt
       ? '<span class="uapunkte">+' + fmtPunkte(u.gebuchtePunkte || 0) + ' P</span>'
-      : '<input class="uamin" data-uakt="min" type="number" inputmode="numeric" placeholder="' + Math.round(zeiten[i] || 0) + '" value="' + (u.geplantMin || '') + '" title="Eigene Minuten (leer = automatisch)">')
+      : '<input class="uamin" data-uakt="min" type="number" inputmode="numeric" placeholder="' + Math.round(zeiten[i] || 0) + '" value="' + (u.geplantMin || '') + '" title="Minuten (leer = automatisch, cyan = Vorschlag)">'
+        + '<input class="uamin uabonus" data-uakt="bonus" type="number" placeholder="' + Math.round((boni || [])[i] || 0) + '" value="' + (u.bonusPunkte != null ? u.bonusPunkte : '') + '" title="Einmalige Punkte (leer = automatisch)">')
     + '<button class="uax" data-uakt="loeschen" aria-label="Unteraufgabe löschen">✕</button>'
     + '</div>';
 }
@@ -2354,6 +2473,7 @@ function sheetTachoOeffnen() {
       + '<div class="tsub">' + (item.domain === 'dfm' ? 'DFM' : 'Privat')
       + (item.prioritaet === 'muss' ? ' · <span style="color:var(--bad)">MUSS</span>' : '')
       + ' · <span id="tGesamtP"></span> P gesamt</div></div>'
+      + '<button class="tcheck" id="tEdit" aria-label="Einstellungen" style="color:var(--mut)">✎</button>'
       + '<button class="tpp" id="tPp" aria-label="Play/Pause">⏸</button>'
       + '<button class="tcheck" id="tCheck" aria-label="Erledigt">✓</button>'
       + '</div>';
@@ -2366,10 +2486,12 @@ function sheetTachoOeffnen() {
   if (item && item.typ !== 'counter') {
     const uas = item.unteraufgaben || [];
     const zeiten = zeitVerteilung(item);
+    const boni = bonusVerteilung(item);
     html += '<div class="tacc offen"><div class="tacckopf">☑ Unteraufgaben'
       + (uas.length ? ' · ' + uas.filter(u => u.erledigt).length + '/' + uas.length : '')
       + '<span class="pfeil">▾</span></div><div class="taccinhalt">'
-      + '<div id="tUaListe">' + uas.map((u, i) => uaZeileHtml(u, i, zeiten)).join('') + '</div>'
+      + (uas.length ? '<div class="thinweis" style="margin-top:0">Spalten: Minuten · einmalige Punkte — leer = automatisch verteilt</div>' : '')
+      + '<div id="tUaListe">' + uas.map((u, i) => uaZeileHtml(u, i, zeiten, boni)).join('') + '</div>'
       + '<div class="uaneu"><input id="tUaNeu" type="text" placeholder="Unteraufgabe hinzufügen …"><button id="tUaAdd" aria-label="Hinzufügen">+</button></div>'
       + '</div></div>';
   }
@@ -2436,6 +2558,7 @@ function tachoVerdrahten(item) {
   if (!item) return;
 
   $('tPp').addEventListener('click', () => { fokusToggle(); tachoTick(); });
+  $('tEdit').addEventListener('click', () => sheetDetailOeffnen(item.id));
   $('tCheck').addEventListener('click', () => {
     if (item.typ === 'aufgabe') sheetAbschlussOeffnen(item.id);   // ersetzt das Tacho-Sheet
     else { abhaken(item.id); sheetTachoOeffnen(); }
@@ -2480,6 +2603,7 @@ function tachoVerdrahten(item) {
       } else if (akt.dataset.uakt === 'loeschen') {
         item.unteraufgaben = item.unteraufgaben.filter(u => u.id !== reihe.dataset.ua);
         Store.tag.log = Store.tag.log.filter(l => !(l.itemId === item.id && l.uaId === reihe.dataset.ua));
+        uaSummenAngleichen(item);
         gesamtpunkteAktualisieren();
         Store.speichereItems(); Store.speichereTag();
         renderAlles();
@@ -2488,9 +2612,17 @@ function tachoVerdrahten(item) {
     });
     uaListe.addEventListener('input', e => {
       const reihe = e.target.closest('.uareihe');
-      if (!reihe || !e.target.matches('[data-uakt="min"]')) return;
+      if (!reihe) return;
       const ua = item.unteraufgaben.find(u => u.id === reihe.dataset.ua);
-      if (ua) { ua.geplantMin = Number(e.target.value) || null; Store.speichereItems(); tachoTick(); }
+      if (!ua) return;
+      if (e.target.matches('[data-uakt="min"]')) {
+        ua.geplantMin = Number(e.target.value) || null;
+      } else if (e.target.matches('[data-uakt="bonus"]')) {
+        ua.bonusPunkte = e.target.value === '' ? null : Number(e.target.value);
+      } else return;
+      uaSummenAngleichen(item);   // Gesamt folgt der Summe der Unteraufgaben
+      Store.speichereItems();
+      tachoTick();
     });
   }
 }
@@ -3221,6 +3353,26 @@ function pushDown() {
   });
 }
 
+/* Ein-Tap-Wechsel Warteschlange ⇄ Tagesstream (21.07.2026). */
+function streamToggle(id) {
+  const item = Store.findeItem(id);
+  if (!item || item.typ === 'counter' || item.istAnker) return;
+  if (item.streamSlot != null) {
+    item.streamSlot = null;
+    if (item.status !== 'erledigt') {
+      item.heuteRausgezogen = true;   // Schiebe-Malus am Tagesende (5.3)
+      toastZeigen('⤵ In Warteschlange — unerledigt gibt es am Tagesende den Schiebe-Malus.');
+    }
+  } else {
+    item.streamSlot = jetztRund5();
+    item.imStreamAnzeigen = true;
+    delete item.heuteRausgezogen;
+    pushDown();
+  }
+  Store.speichereItems();
+  renderAlles();
+}
+
 /* Kern der Drop-Logik — ziel: {zone:'queue'} | {zone:'stream', index}.
    index = Einfügeposition in der (ohne das Item) sortierten Stream-Liste. */
 function dropAnwenden(id, ziel) {
@@ -3348,6 +3500,9 @@ document.addEventListener('click', e => {
   const aktion = e.target.closest('[data-aktion]');
   if (!aktion) return;
   switch (aktion.dataset.aktion) {
+    case 'streamtoggle':
+      streamToggle(id);
+      return;
     case 'uatoggle':
       unteraufgabeToggle(id, aktion.dataset.ua);
       renderAlles();
@@ -3436,7 +3591,8 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   routineFaellig, routineUeberfaelligTage, routineAussetzen, rhythmusLabel,
   routineNaechsteIn, wochenIndex, wochentagMo0, tageswechselPruefen,
   effektiveRate, effektiverBonus, vorschlagRate, akkuRate, akkuLive,
-  punkteFuerZeit, counterIstSchlecht, abhakenFlow, rhythmusModusVon };
+  punkteFuerZeit, counterIstSchlecht, abhakenFlow, rhythmusModusVon,
+  streamToggle, bonusVerteilung, uaSummenAngleichen, bonusVorschlag };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
 if ('serviceWorker' in navigator) {
