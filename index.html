@@ -40,10 +40,34 @@ input,textarea,select{
 }
 input:focus,textarea:focus{outline:none;border-color:var(--blue)}
 
+/* ── Statusleiste (21.07.2026): Akku · Punkte-Konto · Pace-Pfeil ── */
+#statusbar{
+  position:fixed;top:0;left:0;right:0;z-index:101;
+  padding-top:var(--sat);
+  background:var(--card2);border-bottom:1px solid var(--purple);
+  cursor:pointer;
+}
+#statusbar .inner{
+  display:flex;align-items:center;gap:10px;
+  min-height:36px;padding:4px var(--s2);
+}
+#statusbar .sakku{
+  flex:none;display:flex;align-items:center;gap:4px;
+  font-size:12px;font-weight:800;color:var(--ok);min-height:28px;
+}
+#statusbar .skonto{flex:1;min-width:0}
+#statusbar .skzeile{display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:2px}
+#statusbar .skzeile #sPunkte{color:var(--purple);font-weight:800}
+#statusbar .skzeile #sZiel{color:var(--mut2)}
+#statusbar .skbar{height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+#statusbar .skbar i{display:block;height:100%;background:var(--purple);transition:width .5s}
+#statusbar .space{flex:none;display:flex;align-items:center;gap:5px}
+#statusbar #sPfeil{font-size:17px;font-weight:900;line-height:1}
+#statusbar #sPaceZahl{font-size:10px;color:var(--mut);font-family:ui-monospace,monospace}
+
 /* ── Sticky Fokus-Leiste (4.1) — fixer Layer über allen Tabs ─────── */
 #fokusbar{
-  position:fixed;top:0;left:0;right:0;z-index:100;
-  padding-top:var(--sat);
+  position:fixed;top:calc(var(--sat) + 44px);left:0;right:0;z-index:100;
   background:linear-gradient(180deg,var(--card2),var(--card));
   border-bottom:1px solid var(--blue);
 }
@@ -77,7 +101,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--blue)}
 /* ── Tab-Inhalte ─────────────────────────────────────────────────── */
 main{
   flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:calc(var(--sat) + 64px + var(--s2)) var(--s2) calc(var(--sab) + 64px + var(--s2));
+  padding:calc(var(--sat) + 44px + 60px + var(--s2)) var(--s2) calc(var(--sab) + 64px + var(--s2));
 }
 .view{display:none}
 .view.on{display:block}
@@ -351,6 +375,12 @@ textarea{min-height:64px;resize:vertical}
 .slregler .wert.auto{color:var(--cyan)}
 .slinfo{font-size:11px;color:var(--cyan);margin:-8px 0 12px}
 .slinfo .abw{color:var(--warn)}
+/* Bewertungs-Panel (21.07.2026) */
+.bpanel{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:var(--s1)}
+.bzeile{display:flex;align-items:center;gap:8px;margin-top:8px}
+.bzeile label{flex:1;min-width:0;font-size:12px;color:var(--mut)}
+.bzeile input{width:104px;flex:none;text-align:center;padding:8px 6px}
+.bzeile input::placeholder{color:var(--cyan);opacity:.8}
 
 /* Einstellungen (7.3): numerische Variante derselben Regler-Komponente */
 .regler .kopfzeile2{display:flex;justify-content:space-between;align-items:baseline}
@@ -544,6 +574,19 @@ textarea{min-height:64px;resize:vertical}
 <!-- Fokus-Leiste: kein Tab, fixer Layer über allen drei Tabs (4.1/7.1).
      Play/Pause = EIN Toggle-Button. Ohne aktiven Fokus öffnet jeder Tap
      den Fokus-Tacho (4.2). -->
+<!-- Statusleiste (21.07.2026): immer sichtbar, Tap = Belohnungs-/Statistikseite,
+     Tap auf den Akku = Akku anpassen -->
+<header id="statusbar">
+  <div class="inner">
+    <button class="sakku" id="sAkku" aria-label="Akku anpassen">🔋<span id="sAkkuPct">–%</span></button>
+    <div class="skonto">
+      <div class="skzeile"><span id="sPunkte">0 P</span><span id="sZiel"></span></div>
+      <div class="skbar"><i id="sBar" style="width:0"></i></div>
+    </div>
+    <div class="space"><span id="sPfeil">→</span><span id="sPaceZahl"></span></div>
+  </div>
+</header>
+
 <header id="fokusbar">
   <div class="inner">
     <button class="pp" id="ppBtn" aria-label="Fokus starten/pausieren">▶</button>
@@ -554,7 +597,6 @@ textarea{min-height:64px;resize:vertical}
         <span class="ppm" id="fokusPpm"></span>
       </div>
     </div>
-    <div class="akku" id="akku">🔋<span id="akkuPct">–%</span></div>
   </div>
 </header>
 
@@ -599,7 +641,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.13.0';
+const APP_VERSION = '0.14.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -641,7 +683,11 @@ const DEFAULT_SETTINGS = {
   abschnittTagBis: 17,                                        // 3.5 — Tag bis (Uhr), danach Abend
   /* Avatar-Level (Spez-Änderung 20.07.2026): eigene Leiter über die
      Gesamt-Punkte (Wohlstand live), Level-Up sofort bei Schwelle. */
-  avatarStufen: [0, 400, 1200, 2500, 4500, 7000, 10000, 14000, 19000, 25000, 32000, 40000]
+  avatarStufen: [0, 400, 1200, 2500, 4500, 7000, 10000, 14000, 19000, 25000, 32000, 40000],
+  /* Statusleiste (21.07.2026): Pace-Pfeil-Zonen in % Abweichung vom Soll */
+  pfeilZone1: 5,
+  pfeilZone2: 15,
+  pfeilZone3: 40
 };
 
 function lokaleUuid() {
@@ -706,6 +752,7 @@ function neuesItem(felder = {}) {
     /* Punktesystem 2.0 (21.07.2026): */
     punkteProStd: null,               // null = Auto aus Einschätzung (K×E×B)
     abschlussBonus: null,             // Einmal-Punkte beim Abhaken (null = aus Geld-Impact); darf negativ sein
+    nichtErledigtMalus: null,         // Abzug (positiv eingegeben) beim Tagesabschluss, wenn unerledigt
     akkuProStd: null,                 // Akku-%/Std im Fokus (null = Settings-Standard)
     zeitStufen: null,                 // [{bisMin|null, punkteProStd}] — Stufen-Kurve
     tickStufen: null,                 // Counter: [{bisTick|null, punkteProTick}]
@@ -1425,6 +1472,8 @@ function abhaken(id, override) {
     Store.tag.log = Store.tag.log.filter(l => !(l.itemId === id && !l.uaId));
   } else {
     if (fokus && fokus.itemId === id) fokusBeenden();
+    // Abschluss-Formular: korrigierte Ist-Minuten übernehmen (21.07.2026)
+    if (override && override.minuten != null) item.istMinuten = override.minuten;
     item.status = 'erledigt';
     // Rhythmus-Routine (3.4, NUR Privat): früher dran = Bonus,
     // überfällig = Malus je Tag; Stichtag = zuletztErledigt + Rhythmus.
@@ -1505,6 +1554,9 @@ function sheetAbschlussOeffnen(id) {
     + '<div class="zeile"><span>Berechnete Punkte</span><b>' + fmtPunkte(berechnet) + ' P</b></div>'
     + '<div class="zeile"><span>Akku automatisch</span><b>' + fmtPunkte(autoAkku) + ' %</b></div>'
     + '</div>'
+    + '<div class="regler"><div class="kopfzeile2"><label>Ist-Minuten (korrigierbar)</label>'
+    + '<span class="wert" id="afMWert">' + Math.round(min) + ' min</span></div>'
+    + '<input type="range" id="afM" min="0" max="' + Math.max(180, Math.ceil(min * 1.5)) + '" step="1" value="' + Math.round(min) + '"></div>'
     + '<div class="regler"><div class="kopfzeile2"><label>Punkte (überschreibbar)</label>'
     + '<span class="wert" id="afPWert">' + fmtPunkte(berechnet) + ' P</span></div>'
     + '<input type="range" id="afP" min="' + pMin + '" max="' + pMax + '" step="1" value="' + Math.round(berechnet) + '"></div>'
@@ -1514,14 +1566,32 @@ function sheetAbschlussOeffnen(id) {
     + '<button class="wizbtn" id="afBuchen">✓ Erledigt buchen</button>';
   sheetOeffnen(item.titel || 'Aufgabe abschließen', html, 'abschluss:' + id);
 
-  $('afP').addEventListener('input', () =>
-    $('afPWert').textContent = $('afP').value + ' P');
+  let punkteAngefasst = false;
+  $('afM').addEventListener('input', () => {
+    const m = Number($('afM').value);
+    $('afMWert').textContent = m + ' min';
+    // Punkte-Vorschlag folgt den korrigierten Minuten, solange der
+    // Punkte-Regler nicht selbst angefasst wurde
+    if (!punkteAngefasst) {
+      const neu = Math.max(0, punkteBeiMinuten(item, m) - gebucht);
+      $('afP').value = Math.round(neu);
+      $('afPWert').textContent = fmtPunkte(neu) + ' P';
+    }
+  });
+  $('afP').addEventListener('input', () => {
+    punkteAngefasst = true;
+    $('afPWert').textContent = $('afP').value + ' P';
+  });
   $('afA').addEventListener('input', () =>
     $('afAWert').textContent = ($('afA').value > 0 ? '+' : '') + $('afA').value + ' %');
   $('afBuchen').addEventListener('click', () => {
-    abhaken(id, { punkte: Number($('afP').value), akkuKorrektur: Number($('afA').value) || 0 });
+    abhaken(id, {
+      punkte: Number($('afP').value),
+      akkuKorrektur: Number($('afA').value) || 0,
+      minuten: Number($('afM').value)
+    });
     sheetSchliessen();
-    toastZeigen('✓ Gebucht: ' + $('afP').value + ' P');
+    toastZeigen('✓ Gebucht: ' + $('afP').value + ' P · ' + $('afM').value + ' min');
   });
 }
 
@@ -1560,16 +1630,31 @@ function gesamtpunkteAktualisieren() {
 function tagAbschliessen() {
   if (Store.tag.abgeschlossen) return null;
   fokusZeitEinbuchen();   // laufenden Fokus pausieren, Zeit sichern
-  // Fällige, nicht erledigte Routinen: Auto-Abzug + Streak-Bruch (20.07.2026)
+  // Fällige, nicht erledigte Routinen: Abzug (item-spezifisch möglich)
+  // + Streak-Bruch (20./21.07.2026)
   Store.items.forEach(i => {
     if (i.typ !== 'routine' || !routineFaellig(i)) return;
+    const satz = i.nichtErledigtMalus != null
+      ? -Math.abs(i.nichtErledigtMalus)
+      : Store.settings.rhythmusVerpasstProTag;
     Store.tag.log.push({
       itemId: i.id, titel: i.titel + ' — verpasst', domain: i.domain,
-      bereich: i.bereich || null, punkte: Store.settings.rhythmusVerpasstProTag,
+      bereich: i.bereich || null, punkte: satz,
       zeit: new Date().toISOString(), routineVerpasst: true
     });
     i.routineStreak = 0;
     i.streakGebrochen = true;
+  });
+  // Aufgaben mit definiertem Nicht-Erledigt-Abzug: geplant, aber liegen
+  // geblieben → Abzug buchen (21.07.2026)
+  Store.items.forEach(i => {
+    if (i.typ !== 'aufgabe' || i.status === 'erledigt') return;
+    if (i.nichtErledigtMalus == null || !(i.streamSlot != null || i.heuteRausgezogen)) return;
+    Store.tag.log.push({
+      itemId: i.id, titel: i.titel + ' — nicht erledigt', domain: i.domain,
+      bereich: i.bereich || null, punkte: -Math.abs(i.nichtErledigtMalus),
+      zeit: new Date().toISOString(), nichtErledigt: true
+    });
   });
   // Counter: Tagesstand einfrieren und zurücksetzen (starten morgens neu)
   Store.items.forEach(i => {
@@ -1860,8 +1945,61 @@ function renderFokusbar() {
     sub.hidden = true;
     $('ppBtn').textContent = '▶';
   }
+}
+
+/* ── Statusleiste (21.07.2026) ────────────────────────────────────── */
+function paceWerte() {
+  const s = Store.settings;
+  const start = uhrzeitAlsMin(s.arbeitstagStart), ende = uhrzeitAlsMin(s.arbeitstagEnde);
+  const jetzt = new Date();
+  const jetztMin = jetzt.getHours() * 60 + jetzt.getMinutes();
+  const spanne = Math.max(1, ende - start);
+  const ziel = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter')
+    .reduce((sum, i) => sum + anzeigePunkte(i), 0);
+  gesamtpunkteAktualisieren();
+  const soll = ziel / (spanne / 60);
+  const ist = jetztMin > start
+    ? Store.tag.gesamtpunkteHeute / Math.max(0.1, (jetztMin - start) / 60)
+    : 0;
+  return { ist, soll };
+}
+
+const PACE_PFEILE = ['⇊', '↓', '↘', '→', '↗', '↑', '⇈'];
+
+function renderStatusbar() {
   const p = akkuLive();
-  $('akkuPct').textContent = (p == null) ? '–%' : Math.round(p) + '%';
+  $('sAkkuPct').textContent = p != null ? Math.round(p) + '%' : '–%';
+
+  // Konto (Etappe 1 = Wohlstand live; Shop-Ausgaben folgen in Etappe 2)
+  const konto = wohlstandLive();
+  $('sPunkte').textContent = fmtPunkte(konto) + ' P';
+  const stufen = Store.settings.avatarStufen || DEFAULT_SETTINGS.avatarStufen;
+  const stufe = (belohnung && belohnung.avatarStufe) || 1;
+  const prev = stufen[stufe - 1] || 0;
+  const next = stufen[stufe];
+  if (next != null) {
+    $('sZiel').textContent = 'Stufe ' + (stufe + 1) + ': noch ' + fmtPunkte(Math.max(0, next - konto)) + ' P';
+    $('sBar').style.width = Math.min(100, Math.max(0, (konto - prev) / (next - prev) * 100)).toFixed(1) + '%';
+  } else {
+    $('sZiel').textContent = 'Max. Stufe';
+    $('sBar').style.width = '100%';
+  }
+
+  // Pace-Pfeil: 7 Zonen relativ zum Soll (Grenzen als Settings)
+  const { ist, soll } = paceWerte();
+  const s = Store.settings;
+  const z1 = s.pfeilZone1 || 5, z2 = s.pfeilZone2 || 15, z3 = s.pfeilZone3 || 40;
+  let idx = 3, farbe = 'var(--mut)';
+  if (soll > 0) {
+    const abw = (ist - soll) / soll * 100;
+    if (abw >= z3) idx = 6; else if (abw >= z2) idx = 5; else if (abw >= z1) idx = 4;
+    else if (abw <= -z3) idx = 0; else if (abw <= -z2) idx = 1; else if (abw <= -z1) idx = 2;
+    if (idx > 3) farbe = 'var(--ok)';
+    if (idx < 3) farbe = 'var(--bad)';
+  }
+  $('sPfeil').textContent = PACE_PFEILE[idx];
+  $('sPfeil').style.color = farbe;
+  $('sPaceZahl').textContent = Math.round(ist) + '/' + Math.round(soll);
 }
 
 function renderAlles() {
@@ -1869,6 +2007,7 @@ function renderAlles() {
   renderStream();
   renderPace();
   renderFokusbar();
+  renderStatusbar();
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1896,6 +2035,11 @@ const SETTINGS_DEFS = [
   ]},
   { titel: 'Streak (3.4)', regler: [
     { p: 'streakBonus', l: 'Streak-Bonus je Tag', min: 0, max: 10, step: 1 }
+  ]},
+  { titel: 'Statusleiste — Pace-Pfeil-Zonen (% vom Soll)', regler: [
+    { p: 'pfeilZone1', l: 'Zone 1 (↗/↘ ab)', min: 1, max: 20, step: 1 },
+    { p: 'pfeilZone2', l: 'Zone 2 (↑/↓ ab)', min: 5, max: 50, step: 1 },
+    { p: 'pfeilZone3', l: 'Zone 3 (⇈/⇊ ab)', min: 10, max: 100, step: 5 }
   ]},
   { titel: 'Belohnung (6.3)', regler: [
     { p: 'freischaltChanceProzent', l: 'Freischalt-Chance in %/Tag', min: 5, max: 100, step: 5 }
@@ -2062,6 +2206,12 @@ function stufenEditorHtml(item) {
     + '<button class="wizbtn sek" id="dStufeAdd" style="margin-top:6px">+ Stufe hinzufügen</button></div>';
 }
 
+/* Kompaktes Bewertungs-Panel (21.07.2026): eine Zeile je Wert. */
+function bzeile(id, label, wert, platzhalter) {
+  return '<div class="bzeile"><label>' + label + '</label>'
+    + '<input id="' + id + '" type="number" placeholder="' + platzhalter + '" value="' + wert + '"></div>';
+}
+
 /* Info-Zeilen: Vorschlag sichtbar machen + Abweichung zum manuellen Wert. */
 function rateInfoText(item) {
   const v = Math.round(vorschlagRate(item));
@@ -2114,35 +2264,38 @@ function sheetDetailOeffnen(id) {
   html += '<div class="feld"><label>Priorität</label>' + segHtml('prioritaet', ['muss', 'soll', 'idee'], item.prioritaet, ['Muss', 'Soll', 'Idee']) + '</div>';
   if (!istCounter) {
     const vRate = Math.round(vorschlagRate(item));
-    html += slReglerHtml('rate', 'Punkte pro Stunde', -60, 180, 1, Math.round(effektiveRate(item)), ' P/Std', {
-      auto: item.punkteProStd == null,
-      marken: [{ wert: 0, farbe: 'var(--bad)' }, { wert: vRate, farbe: 'var(--cyan)' }],
-      links: 'Abzug', rechts: 'Belohnung'
-    });
-    html += '<div class="slinfo" id="dRateInfo">' + rateInfoText(item) + '</div>';
-    html += '<div class="zweispaltig">'
-      + '<div class="feld"><label>Einmalige Punkte (bei Abschluss)</label>'
-      + '<input id="dBonus" type="number" placeholder="Auto: ' + Math.round(bonusVorschlag(item)) + '" value="' + (item.abschlussBonus != null ? item.abschlussBonus : '') + '">'
-      + '<div class="slinfo" id="dBonusInfo" style="margin:4px 0 0">' + bonusInfoText(item) + '</div></div>'
-      + '<div class="feld"><label>Gesamtzeit (min, verteilt auf Unteraufgaben)</label>'
-      + '<input id="dGesamt" type="number" inputmode="numeric" value="' + (item.aufwandGeplantMin || 0) + '">'
-      + '<button class="wizbtn sek" id="dRateAuto" style="margin-top:6px;min-height:38px">↺ Alles auf Auto</button></div>'
+    const istSchlecht = effektiveRate(item) < 0;
+    // Kompaktes Bewertungs-Panel: Gut/Schlecht + 4 Werte, Auto = cyan Platzhalter
+    html += '<h2 class="sechead">Bewertung</h2>';
+    html += '<div class="bpanel">'
+      + segHtml('bewertungArt', ['gut', 'schlecht'], istSchlecht ? 'schlecht' : 'gut', ['👍 Belohnt', '👎 Bestraft'])
+      + bzeile('bRate', 'Punkte pro Stunde', item.punkteProStd != null ? Math.round(item.punkteProStd) : '', 'Auto: ' + vRate)
+      + bzeile('bBonus', 'Einmalige Punkte bei Abschluss', item.abschlussBonus != null ? item.abschlussBonus : '', 'Auto: ' + Math.round(bonusVorschlag(item)))
+      + bzeile('bMalus', 'Abzug bei Nicht-Erledigung', item.nichtErledigtMalus != null ? item.nichtErledigtMalus : '', 'Auto: ' + (item.typ === 'routine' ? Math.abs(Store.settings.rhythmusVerpasstProTag) : 0))
+      + bzeile('bAkku', 'Akku pro Stunde (%)', item.akkuProStd != null ? item.akkuProStd : '', 'Auto: ' + Math.round(akkuRate(item)))
+      + '<div class="slinfo" id="dRateInfo" style="margin:10px 0 0">' + rateInfoText(item) + '</div>'
       + '</div>';
-    html += slReglerHtml('akku', 'Akku pro Stunde', -30, 30, 1, Math.round(akkuRate(item)), ' %', {
-      auto: item.akkuProStd == null,
-      marken: [{ wert: 0, farbe: 'var(--mut2)' }],
-      links: 'zieht Akku', rechts: 'lädt Akku'
-    });
-    html += '<div class="feld"><label>Einschätzung — speist den Auto-Vorschlag (Markierung = neutral 1,0)</label></div>'
+    // Erweitert: Regler mit Marken, Einschätzung, Stufen-Kurve
+    html += '<div class="tacc"><div class="tacckopf">⚙ Erweitert — Regler, Einschätzung, Stufen-Kurve<span class="pfeil">▾</span></div><div class="taccinhalt">'
+      + slReglerHtml('rate', 'Punkte pro Stunde', -60, 180, 1, Math.round(effektiveRate(item)), ' P/Std', {
+          auto: item.punkteProStd == null,
+          marken: [{ wert: 0, farbe: 'var(--bad)' }, { wert: vRate, farbe: 'var(--cyan)' }],
+          links: 'Abzug', rechts: 'Belohnung'
+        })
+      + slReglerHtml('akku', 'Akku pro Stunde', -30, 30, 1, Math.round(akkuRate(item)), ' %', {
+          auto: item.akkuProStd == null,
+          marken: [{ wert: 0, farbe: 'var(--mut2)' }],
+          links: 'zieht Akku', rechts: 'lädt Akku'
+        })
       + slReglerHtml('fK', 'Komplexität', 0.5, 2.5, 0.05, Number(item.komplexitaet) || 1, '×',
           { marken: [{ wert: 1 }], links: 'leicht', rechts: 'schwer' })
       + slReglerHtml('fE', 'Energie', 0.5, 1.5, 0.05, Number(item.energie) || 1, '×',
           { marken: [{ wert: 1 }], links: 'gibt Energie', rechts: 'zieht Energie' })
       + slReglerHtml('fB', 'Blockade', 0.5, 2.5, 0.05, Number(item.blockade) || 1, '×',
-          { marken: [{ wert: 1 }], links: 'keine Blockade', rechts: 'starke Blockade' });
-    html += stufenEditorHtml(item);
-    html += '<div class="feld"><label>Im Tagesstream anzeigen (bei gesetzter Zeit)</label>'
-      + segHtml('imStreamAnzeigen', ['1', '0'], item.imStreamAnzeigen ? '1' : '0', ['Ja', 'Nein']) + '</div>';
+          { marken: [{ wert: 1 }], links: 'keine Blockade', rechts: 'starke Blockade' })
+      + '<button class="wizbtn sek" id="dRateAuto">↺ Alles auf Auto</button>'
+      + stufenEditorHtml(item)
+      + '</div></div>';
   }
   if (item.domain === 'dfm') {
     html += '<div class="feld"><label>Geld-Impact (nur DFM)</label>'
@@ -2198,11 +2351,20 @@ function sheetDetailOeffnen(id) {
          + '<div class="feld"><label>Abzug bei Verpassen</label><div class="wizinfo" style="margin:0">' + fmtPunkte(Store.settings.rhythmusVerpasstProTag) + ' P</div></div>'
          + '</div>';
   }
+  html += '<h2 class="sechead">Planung</h2>';
   html += '<div class="zweispaltig">'
+       +  '<div class="feld"><label>Gesamtzeit (min)</label><input id="dGesamt" type="number" inputmode="numeric" value="' + (item.aufwandGeplantMin || 0) + '"></div>'
        +  '<div class="feld"><label>Deadline</label><input id="dDeadline" type="date" value="' + (item.deadline || '') + '"></div>'
+       + '</div>';
+  html += '<div class="zweispaltig">'
+       +  '<div class="feld"><label>Im Stream ab</label><input id="dSlot" type="time" value="' + (item.streamSlot != null ? minAlsUhrzeit(item.streamSlot) : '') + '"></div>'
        +  '<div class="feld"><label>Ist-Minuten</label><input id="dIst" type="number" inputmode="numeric" value="' + Math.round(item.istMinuten || 0) + '"></div>'
        + '</div>';
-  html += '<div class="feld"><label>Im Stream ab (leer = Warteschlange)</label><input id="dSlot" type="time" value="' + (item.streamSlot != null ? minAlsUhrzeit(item.streamSlot) : '') + '"></div>';
+  if (!istCounter) {
+    html += '<div class="feld"><label>Im Tagesstream anzeigen (bei gesetzter Zeit)</label>'
+      + segHtml('imStreamAnzeigen', ['1', '0'], item.imStreamAnzeigen ? '1' : '0', ['Ja', 'Nein']) + '</div>';
+  }
+  html += '<h2 class="sechead">Notizen</h2>';
   html += '<div class="feld"><label>Projekt</label><input id="dProjekt" type="text" value="' + escapeHtml(item.projekt || '') + '"></div>';
   // bereich: READ-ONLY (Sync-Vertrag) — kommt nur aus dem Import, nie editierbar
   if (item.bereich) {
@@ -2248,11 +2410,20 @@ function detailVerdrahten(item) {
     item.streamSlot = neu;
   });
   bind('dRhythmus', el => item.rhythmusTage = Math.min(31, Math.max(1, Number(el.value) || 1)));
-  bind('dBonus',    el => {
-    item.abschlussBonus = el.value === '' ? null : Number(el.value);
-    const info = $('dBonusInfo');
-    if (info) info.innerHTML = bonusInfoText(item);
+  // Bewertungs-Panel (leer = Auto, Platzhalter zeigt den Vorschlag)
+  bind('bRate', el => {
+    item.punkteProStd = el.value === '' ? null : Number(el.value);
+    slSetzen('rate', Math.round(effektiveRate(item)));
   });
+  bind('bBonus', el => item.abschlussBonus = el.value === '' ? null : Number(el.value));
+  bind('bMalus', el => item.nichtErledigtMalus = el.value === '' ? null : Math.abs(Number(el.value)));
+  bind('bAkku', el => {
+    item.akkuProStd = el.value === '' ? null : Number(el.value);
+    slSetzen('akku', Math.round(akkuRate(item)));
+  });
+  // Aufklapp-Bereiche im Sheet (Erweitert)
+  inhalt.querySelectorAll('.tacc .tacckopf').forEach(k =>
+    k.addEventListener('click', () => k.parentElement.classList.toggle('offen')));
   const wtWrap = $('dWtage');
   if (wtWrap) wtWrap.querySelectorAll('.wtag').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2282,7 +2453,11 @@ function detailVerdrahten(item) {
     const ws = document.querySelector('.slregler[data-slid="rate"] .wert');
     if (ws) ws.classList.toggle('auto', item.punkteProStd == null);
   };
-  slVerdrahten('rate', w => { item.punkteProStd = w; rateUiNach(); speichernUndAktualisieren(); });
+  slVerdrahten('rate', w => {
+    item.punkteProStd = w;
+    const bi = $('bRate'); if (bi) bi.value = w;
+    rateUiNach(); speichernUndAktualisieren();
+  });
   slVerdrahten('akku', w => {
     item.akkuProStd = w;
     const ws = document.querySelector('.slregler[data-slid="akku"] .wert');
@@ -2385,11 +2560,17 @@ function detailVerdrahten(item) {
           if (wert === 'counter') Object.assign(item, neuesItem({ ...item }));
         }
         else if (feld === 'imStreamAnzeigen') item.imStreamAnzeigen = wert === '1';
+        else if (feld === 'bewertungArt') {
+          // Gut/Schlecht dreht die Vorzeichen von Satz und Bonus
+          const vz = wert === 'schlecht' ? -1 : 1;
+          item.punkteProStd = vz * Math.abs(item.punkteProStd != null ? item.punkteProStd : vorschlagRate(item));
+          if (item.abschlussBonus != null) item.abschlussBonus = vz * Math.abs(item.abschlussBonus);
+        }
         else item[feld] = wert;
         if (feld === 'domain' && wert !== 'dfm') item.geldImpact = null;
         Store.speichereItems();
         // Struktur kann sich ändern (Geld-Impact/Counter-Felder) → neu aufbauen
-        if (feld === 'domain' || feld === 'typ') sheetDetailOeffnen(item.id);
+        if (feld === 'domain' || feld === 'typ' || feld === 'bewertungArt') sheetDetailOeffnen(item.id);
         else {
           seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
           const el = $('dPunkte');
@@ -3528,7 +3709,11 @@ document.addEventListener('click', e => {
    Tap auf den Akku → Startwert anpassen (jederzeit überschreibbar, 1.2). */
 $('ppBtn').addEventListener('click', fokusToggle);
 $('fokusMid').addEventListener('click', sheetTachoOeffnen);
-$('akku').addEventListener('click', sheetTagStartOeffnen);
+/* Statusleiste: Tap = Statistik-/Belohnungsseite, Akku-Tap = anpassen */
+$('sAkku').addEventListener('click', e => { e.stopPropagation(); sheetTagStartOeffnen(); });
+$('statusbar').addEventListener('click', () => {
+  document.querySelector('#tabbar button[data-view="belohnung"]').click();
+});
 
 /* Tab-Navigation (7.1) */
 document.querySelectorAll('#tabbar button').forEach(btn => {
@@ -3559,6 +3744,7 @@ document.addEventListener('visibilitychange', () => {
 setInterval(() => {
   tageswechselPruefen();
   renderFokusbar();
+  renderStatusbar();
   tachoTick();
   pruefeLevelUp();
   // Punkte/Min in einer offenen Detailansicht live mitlaufen lassen (4.2)
