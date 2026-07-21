@@ -532,6 +532,20 @@ textarea{min-height:64px;resize:vertical}
 .katcard .rankbar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan))}
 .katcard .knext{font-size:11px;color:var(--mut2);margin-top:5px}
 .katcard .knext.bereit{color:var(--warn);font-weight:700}
+/* Shop (Etappe 2) */
+.kaufbtn{
+  width:100%;min-height:var(--tap);margin-top:8px;border-radius:10px;
+  background:var(--ok);color:#04342c;font-size:13px;font-weight:800;
+}
+.kaufbtn:active{transform:scale(.98)}
+.avbadges{
+  position:absolute;left:8px;right:8px;bottom:22px;
+  display:flex;flex-wrap:wrap;gap:4px;justify-content:center;
+}
+.avbadge{
+  background:rgba(13,20,32,.85);border:1px solid var(--line);border-radius:999px;
+  padding:2px 8px;font-size:10px;font-weight:800;color:var(--txt);
+}
 #conf{position:fixed;inset:0;pointer-events:none;z-index:300}
 .cpiece{position:absolute;width:8px;height:12px;border-radius:2px}
 .toast{
@@ -641,7 +655,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.14.0';
+const APP_VERSION = '0.15.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -655,7 +669,8 @@ const LS = {
   TAG:       'fokus2.tag',
   SETTINGS:  'fokus2.settings',
   FOKUS:     'fokus2.fokus',
-  BELOHNUNG: 'fokus2.belohnung'
+  BELOHNUNG: 'fokus2.belohnung',
+  HISTORIE:  'fokus2.historie'
 };
 
 /* Alle Punkte-Faktoren/Sätze sind Settings, keine Code-Konstanten (3.7).
@@ -687,7 +702,9 @@ const DEFAULT_SETTINGS = {
   /* Statusleiste (21.07.2026): Pace-Pfeil-Zonen in % Abweichung vom Soll */
   pfeilZone1: 5,
   pfeilZone2: 15,
-  pfeilZone3: 40
+  pfeilZone3: 40,
+  /* Shop (Etappe 2): Preis = 4 Std × 7-Tage-Ø-P/Std × Faktor × Kategorie */
+  preisFaktor: 1.0
 };
 
 function lokaleUuid() {
@@ -786,7 +803,8 @@ function neuerTagesstand(datum, vorheriger) {
     streak: vorheriger ? vorheriger.streak : 0,
     log: [],
     akkuVerlauf: [],    // [{min, p}] — Energie-Kurve für die Belohnungsseite (6.1)
-    tickLog: []         // [{itemId, domain, bereich, punkte, zeit}] — Aufschlüsselung 3.5
+    tickLog: [],        // [{itemId, domain, bereich, punkte, zeit}] — Aufschlüsselung 3.5
+    fokusSek: 0         // heute fokussierte Sekunden (Statistik/Shop-Preise)
   };
 }
 
@@ -1391,6 +1409,7 @@ function fokusZeitEinbuchen() {
   const sek = laufendeSek();
   if (item) {
     item.istMinuten = (item.istMinuten || 0) + sek / 60;
+    Store.tag.fokusSek = (Store.tag.fokusSek || 0) + sek;
     Store.speichereItems();
     if (Store.tag.akkuProzent != null) {
       Store.tag.akkuProzent = Math.min(100, Math.max(0,
@@ -1682,10 +1701,43 @@ function tagAbschliessen() {
   }
   Store.tag.wohlstandStand += Store.tag.gesamtpunkteHeute;     // 6.3: nie zurückgesetzt
   Store.tag.abgeschlossen = true;
+  // Tages-Snapshot für die Statistikseite (Etappe 2, 21.07.2026)
+  historieSchreiben();
   Store.speichereAlles();
-  rollFreischaltungen(true);   // Wohlstand ist gewachsen → heutige Würfel-Chance (6.3)
   renderAlles();
   return Store.baueExport('tagesabschluss');
+}
+
+/* ── Tages-Historie (Etappe 2): ein Snapshot je abgeschlossenem Tag ── */
+function historieLaden() { return lsLese(LS.HISTORIE, []); }
+
+function heuteAlsSnapshot() {
+  gesamtpunkteAktualisieren();
+  const t = Store.tag;
+  return {
+    datum: t.datum,
+    punkte: Math.round(t.gesamtpunkteHeute * 10) / 10,
+    fokusMin: Math.round((t.fokusSek || 0) / 60),
+    erledigt: t.log.filter(l => !l.uaId && !l.counterAbschluss && !l.routineVerpasst
+      && !l.aussetzer && !l.nichtErledigt && l.punkte >= 0).length,
+    streak: t.streak,
+    wohlstand: Math.round(t.wohlstandStand),
+    akkuSchnitt: (t.akkuVerlauf || []).length
+      ? Math.round(t.akkuVerlauf.reduce((s, e) => s + e.p, 0) / t.akkuVerlauf.length)
+      : null,
+    bereiche: punkteNachGruppe('bereich'),
+    abschnitte: punkteNachGruppe('abschnitt'),
+    verlauf: [...t.log.filter(l => !l.counterAbschluss), ...(t.tickLog || [])]
+      .map(l => ({ z: l.zeit, p: Math.round(l.punkte * 10) / 10 }))
+      .sort((a, b) => a.z < b.z ? -1 : 1)
+  };
+}
+
+function historieSchreiben() {
+  const h = historieLaden().filter(d => d.datum !== Store.tag.datum);
+  h.push(heuteAlsSnapshot());
+  h.sort((a, b) => a.datum < b.datum ? -1 : 1);
+  lsSchreibe(LS.HISTORIE, h.slice(-90));   // 90 Tage reichen für alle Ansichten
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1970,18 +2022,21 @@ function renderStatusbar() {
   const p = akkuLive();
   $('sAkkuPct').textContent = p != null ? Math.round(p) + '%' : '–%';
 
-  // Konto (Etappe 1 = Wohlstand live; Shop-Ausgaben folgen in Etappe 2)
-  const konto = wohlstandLive();
-  $('sPunkte').textContent = fmtPunkte(konto) + ' P';
-  const stufen = Store.settings.avatarStufen || DEFAULT_SETTINGS.avatarStufen;
-  const stufe = (belohnung && belohnung.avatarStufe) || 1;
-  const prev = stufen[stufe - 1] || 0;
-  const next = stufen[stufe];
-  if (next != null) {
-    $('sZiel').textContent = 'Stufe ' + (stufe + 1) + ': noch ' + fmtPunkte(Math.max(0, next - konto)) + ' P';
-    $('sBar').style.width = Math.min(100, Math.max(0, (konto - prev) / (next - prev) * 100)).toFixed(1) + '%';
+  // Punkte-Konto + Fortschritt zum günstigsten nächsten Kauf (Etappe 2)
+  const k = konto();
+  $('sPunkte').textContent = fmtPunkte(k) + ' P';
+  const nk = naechsterKauf();
+  if (nk) {
+    const icon = BELOHNUNG[nk.kat].icon;
+    if (k >= nk.preis) {
+      $('sZiel').textContent = icon + ' Kauf möglich!';
+      $('sBar').style.width = '100%';
+    } else {
+      $('sZiel').textContent = icon + ' noch ' + fmtPunkte(nk.preis - k) + ' P';
+      $('sBar').style.width = Math.max(0, Math.min(100, k / nk.preis * 100)).toFixed(1) + '%';
+    }
   } else {
-    $('sZiel').textContent = 'Max. Stufe';
+    $('sZiel').textContent = 'Alles gekauft';
     $('sBar').style.width = '100%';
   }
 
@@ -2041,8 +2096,8 @@ const SETTINGS_DEFS = [
     { p: 'pfeilZone2', l: 'Zone 2 (↑/↓ ab)', min: 5, max: 50, step: 1 },
     { p: 'pfeilZone3', l: 'Zone 3 (⇈/⇊ ab)', min: 10, max: 100, step: 5 }
   ]},
-  { titel: 'Belohnung (6.3)', regler: [
-    { p: 'freischaltChanceProzent', l: 'Freischalt-Chance in %/Tag', min: 5, max: 100, step: 5 }
+  { titel: 'Shop (Etappe 2)', regler: [
+    { p: 'preisFaktor', l: 'Preis-Faktor (1,0 = ~4 Std je Kauf)', min: 0.2, max: 3, step: 0.1 }
   ]},
   { titel: 'Tagesabschnitte fürs Dashboard (3.5)', regler: [
     { p: 'abschnittMorgenBis', l: 'Morgen bis (Uhr)', min: 6, max: 14, step: 1 },
@@ -2637,9 +2692,9 @@ function sheetTachoOeffnen() {
     + '<div class="takku">🔋 <span id="tAkku">–%</span></div>'
     + '</div></div>';
 
-  /* ── Upgrade-Leiste: nächste Avatar-Stufe, live ── */
+  /* ── Upgrade-Leiste: nächster Kauf, live ── */
   html += '<div class="tlevel">'
-    + '<div class="kopf"><span>Nächste Avatar-Stufe</span><span class="eta" id="tEta"></span></div>'
+    + '<div class="kopf"><span>Nächster Kauf</span><span class="eta" id="tEta"></span></div>'
     + '<div class="leiste"><div class="lg" id="tBarG" style="width:0"></div>'
     + '<div class="ly" id="tBarY" style="width:0"></div>'
     + '<div class="lh" id="tBarH" style="width:0"></div></div>'
@@ -2818,41 +2873,36 @@ function tachoTick() {
   const akkuP = akkuLive();
   if (akkuEl) akkuEl.textContent = akkuP != null ? Math.round(akkuP) + '%' : '–%';
 
-  // Upgrade-Leiste (auch ohne Fokus live)
-  const stufen = Store.settings.avatarStufen || DEFAULT_SETTINGS.avatarStufen;
-  const stufe = (belohnung && belohnung.avatarStufe) || 1;
-  const prev = stufen[stufe - 1] || 0;
-  const next = stufen[stufe];
+  // Upgrade-Leiste: Fortschritt zum günstigsten nächsten Kauf (Etappe 2)
   gesamtpunkteAktualisieren();
-  const basis = Store.tag.abgeschlossen
-    ? Store.tag.wohlstandStand
-    : Store.tag.wohlstandStand + Store.tag.gesamtpunkteHeute;
   const delta = fokusLiveDelta();
   if ($('tBarG')) {
-    if (next != null) {
-      const spanne = Math.max(1, next - prev);
-      const g = Math.min(1, Math.max(0, (basis - prev) / spanne));
-      const y = Math.min(1 - g, delta / spanne);
+    const nk = naechsterKauf();
+    const k = konto();
+    if (nk) {
+      const preis = Math.max(1, nk.preis);
+      const g = Math.min(1, Math.max(0, (k - delta) / preis));
+      const y = Math.min(1 - g, Math.max(0, delta / preis));
       let h = 0;
       if (item && item.typ !== 'counter' && item.aufwandGeplantMin > 0) {
         const potenzial = Math.max(0,
           punkteBeiMinuten(item, Math.max(item.aufwandGeplantMin, minutenInklFokus(item)))
           - punkteBeiMinuten(item, minutenInklFokus(item)));
-        h = Math.min(1 - g - y, potenzial / spanne);
+        h = Math.min(1 - g - y, potenzial / preis);
       }
       $('tBarG').style.width = (g * 100).toFixed(1) + '%';
       $('tBarY').style.width = (y * 100).toFixed(1) + '%';
       $('tBarH').style.width = (h * 100).toFixed(1) + '%';
-      $('tLevelZiel').textContent = 'Stufe ' + (stufe + 1);
-      const fehlt = next - (basis + delta);
+      $('tLevelZiel').textContent = BELOHNUNG[nk.kat].icon + ' ' + fmtPunkte(nk.preis) + ' P';
+      const fehlt = nk.preis - k;
       const min = item ? minutenInklFokus(item) : 0;
       const ppm = (item && min > 0.2) ? punkteBeiMinuten(item, min) / min : 0;
-      $('tEta').textContent = fehlt <= 0 ? 'Level up!' :
+      $('tEta').textContent = fehlt <= 0 ? 'Kauf möglich!' :
         (ppm > 0 ? '~' + Math.ceil(fehlt / ppm) + ' min bei ' + fmtPunkte(ppm) + ' P/min'
                  : fmtPunkte(fehlt) + ' P fehlen');
     } else {
       $('tBarG').style.width = '100%'; $('tBarY').style.width = '0'; $('tBarH').style.width = '0';
-      $('tLevelZiel').textContent = 'Max.'; $('tEta').textContent = 'Höchste Stufe erreicht';
+      $('tLevelZiel').textContent = 'Alles gekauft'; $('tEta').textContent = '';
     }
   }
 
@@ -2979,37 +3029,85 @@ function belohnungInit() {
   if (!belohnung) {
     belohnung = { stufen: {}, neu: [], letzterWurf: null };
     KAT_KEYS.forEach(k => belohnung.stufen[k] = 1);
-    belohnungSpeichern();
   }
+  if (belohnung.ausgegeben == null) belohnung.ausgegeben = 0;   // Shop (Etappe 2)
+  if (!belohnung.kaeufe) belohnung.kaeufe = [];
+  belohnungSpeichern();
 }
 function belohnungSpeichern() { lsSchreibe(LS.BELOHNUNG, belohnung); }
 
-/* Nächste Stufe einer Kategorie „eligible"? (Schwelle + Cross-Prerequisite, 6.3) */
-function stufeEligible(kat) {
-  const naechste = BELOHNUNG[kat].stufen[belohnung.stufen[kat]];   // Index = Anzahl offen
-  if (!naechste) return false;                                     // Leiter voll
-  if (Store.tag.wohlstandStand < naechste[1]) return false;
-  const req = naechste[2];
-  if (req && (belohnung.stufen[req[0]] || 0) < req[1]) return false;
-  return true;
+/* ════════════════════════════════════════════════════════════════════
+   Shop (Etappe 2, 21.07.2026 — ersetzt die Würfel-Mechanik aus 6.3):
+   Punkte-Konto = Wohlstand live − Ausgaben. Preise sichtbar und je
+   Kategorie verschieden, Ziel ~4 Std Fokuszeit je Kauf (gekoppelt an
+   den persönlichen 7-Tage-Ø, Faktor in den Settings). Der Inhalt der
+   nächsten Stufe bleibt „???" bis zum Kauf; Cross-Voraussetzungen
+   bleiben als 🔒 mit Hinweis bestehen.
+   ════════════════════════════════════════════════════════════════════ */
+const KAT_PREISFAKTOR = {
+  fahrzeuge: 1.3, wohnen: 1.2, reisen: 1.1,
+  mobilitaet: 1.0, begleiter: 0.9, soziales: 0.8
+};
+
+function konto() {
+  return wohlstandLive() - ((belohnung && belohnung.ausgegeben) || 0);
 }
 
-/* Zufallsfaktor (6.3): tägliche Chance je eligible Objekt, zufällige
-   Reihenfolge. erzwungen=true nach Tagesabschluss (Wohlstand neu). */
-function rollFreischaltungen(erzwungen) {
-  const heute = heuteIso();
-  if (!erzwungen && belohnung.letzterWurf === heute) return;
-  belohnung.letzterWurf = heute;
-  const chance = (Store.settings.freischaltChanceProzent != null
-    ? Store.settings.freischaltChanceProzent : 40) / 100;
-  [...KAT_KEYS].sort(() => Math.random() - 0.5).forEach(k => {
-    if (stufeEligible(k) && Math.random() < chance) {
-      const idx = belohnung.stufen[k];               // 0-basierter Index der neuen Stufe
-      belohnung.stufen[k] = idx + 1;
-      belohnung.neu.push({ kat: k, stufe: idx + 1, name: BELOHNUNG[k].stufen[idx][0] });
-    }
+/* Persönlicher Ø-Punktesatz der letzten 7 abgeschlossenen Tage. */
+function oePStd7() {
+  const h = historieLaden().slice(-7);
+  const punkte = h.reduce((s, d) => s + (d.punkte || 0), 0);
+  const min = h.reduce((s, d) => s + (d.fokusMin || 0), 0);
+  if (min >= 60) return Math.max(5, punkte / (min / 60));
+  return (Store.settings.basisProStd || 12) * 1.5;   // Startwert, bis Historie da ist
+}
+
+function preisFuer(kat) {
+  const basis = 4 * oePStd7() * (Store.settings.preisFaktor || 1) * (KAT_PREISFAKTOR[kat] || 1);
+  return Math.max(20, Math.round(basis / 5) * 5);
+}
+
+/* Kauf-Voraussetzung (Cross-Kategorie): null = frei, sonst Hinweistext. */
+function kaufSperre(kat) {
+  const naechste = BELOHNUNG[kat].stufen[belohnung.stufen[kat]];
+  if (!naechste) return 'komplett';
+  const req = naechste[2];
+  if (req && (belohnung.stufen[req[0]] || 0) < req[1]) {
+    return 'braucht ' + BELOHNUNG[req[0]].icon + ' ' + BELOHNUNG[req[0]].name + ' Stufe ' + req[1];
+  }
+  return null;
+}
+
+/* Günstigster gerade kaufbarer nächster Schritt (für die Statusleiste). */
+function naechsterKauf() {
+  let bester = null;
+  KAT_KEYS.forEach(k => {
+    if (kaufSperre(k)) return;
+    const preis = preisFuer(k);
+    if (!bester || preis < bester.preis) bester = { kat: k, preis };
   });
+  return bester;
+}
+
+function kaufen(kat) {
+  const idx = belohnung.stufen[kat];
+  const stufe = BELOHNUNG[kat].stufen[idx];
+  if (!stufe || kaufSperre(kat)) return false;
+  const preis = preisFuer(kat);
+  if (konto() < preis) {
+    toastZeigen('Noch ' + fmtPunkte(preis - konto()) + ' P bis zu diesem Kauf');
+    return false;
+  }
+  belohnung.stufen[kat] = idx + 1;
+  belohnung.ausgegeben = (belohnung.ausgegeben || 0) + preis;
+  belohnung.kaeufe = belohnung.kaeufe || [];
+  belohnung.kaeufe.push({ kat, stufe: idx + 1, name: stufe[0], datum: heuteIso(), preis });
   belohnungSpeichern();
+  konfetti();
+  toastZeigen('🎉 Gekauft: ' + BELOHNUNG[kat].icon + ' ' + stufe[0]);
+  renderBelohnung();
+  renderStatusbar();
+  return true;
 }
 
 /* ── Pixel-Avatar (6.2): 24×30-Raster, 2x-Dichte ggü. Stiltest.
@@ -3101,87 +3199,242 @@ function punkteNachGruppe(achse) {
 }
 
 let aufAchse = 'bereich';
+let statZeitraum = 'heute';
+
+/* Snapshots des Zeitraums, heute immer live dabei. */
+function statTage(zeitraum) {
+  const alt = historieLaden().filter(d => d.datum !== Store.tag.datum);
+  const alle = [...alt, heuteAlsSnapshot()];
+  const n = zeitraum === 'woche' ? 7 : zeitraum === 'monat' ? 30 : 1;
+  return alle.slice(-n);
+}
+
+/* Aufschlüsselung über den Zeitraum (heute live, sonst aus Snapshots). */
+function punkteNachGruppeZeitraum(achse, zeitraum) {
+  if (zeitraum === 'heute') return punkteNachGruppe(achse);
+  const gruppen = {};
+  statTage(zeitraum).forEach(tag => {
+    const quelle = achse === 'bereich' ? tag.bereiche : tag.abschnitte;
+    Object.entries(quelle || {}).forEach(([k, v]) => gruppen[k] = (gruppen[k] || 0) + v);
+  });
+  return gruppen;
+}
+
+/* Punktekurve: heute = kumulierte Tageskurve + Soll-Linie,
+   Woche/Monat = Balken je Tag (Sleep-Cycle-Stil). */
+function kurveHtml(zeitraum) {
+  const s = Store.settings;
+  if (zeitraum === 'heute') {
+    const start = uhrzeitAlsMin(s.arbeitstagStart), ende = uhrzeitAlsMin(s.arbeitstagEnde);
+    const events = statTage('heute')[0].verlauf
+      .map(e => ({ min: (d => d.getHours() * 60 + d.getMinutes())(new Date(e.z)), p: e.p }))
+      .sort((a, b) => a.min - b.min);
+    const ziel = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter')
+      .reduce((sum, i) => sum + anzeigePunkte(i), 0);
+    let kum = 0;
+    const punkte = [[start, 0]];
+    events.forEach(e => { kum += e.p; punkte.push([Math.min(ende, Math.max(start, e.min)), kum]); });
+    const jetzt = new Date(); const jm = Math.min(ende, jetzt.getHours() * 60 + jetzt.getMinutes());
+    kum += fokusLiveDelta();
+    if (jm > start) punkte.push([jm, kum]);
+    const maxY = Math.max(ziel, kum, 10);
+    const X = m => 6 + (m - start) / Math.max(1, ende - start) * 288;
+    const Y = p => 96 - (p / maxY) * 86;
+    const linie = punkte.map(pt => X(pt[0]).toFixed(1) + ',' + Y(pt[1]).toFixed(1)).join(' ');
+    const oe = (Store.tag.fokusSek || 0) > 300
+      ? fmtPunkte(Store.tag.gesamtpunkteHeute / ((Store.tag.fokusSek / 3600))) + ' P/Std Fokus' : '';
+    return '<div class="akkukarte"><div class="lbl"><span>Gesamtpunkte über den Tag</span><span>' + oe + '</span></div>'
+      + '<svg viewBox="0 0 300 104" width="100%" height="104">'
+      + '<line x1="6" y1="96" x2="294" y2="96" stroke="var(--line)"/>'
+      + '<line x1="' + X(start) + '" y1="' + Y(0) + '" x2="' + X(ende) + '" y2="' + Y(ziel) + '" stroke="var(--mut2)" stroke-width="1.5" stroke-dasharray="4 4"/>'
+      + '<polyline points="' + linie + '" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-linejoin="round"/>'
+      + (punkte.length ? '<circle cx="' + X(punkte[punkte.length - 1][0]).toFixed(1) + '" cy="' + Y(punkte[punkte.length - 1][1]).toFixed(1) + '" r="3.5" fill="var(--purple)"/>' : '')
+      + '<text x="6" y="10" fill="var(--mut)" font-size="9">' + fmtPunkte(kum) + ' P</text>'
+      + '<text x="240" y="' + (Y(ziel) + 12) + '" fill="var(--mut2)" font-size="8">Soll ' + fmtPunkte(ziel) + '</text>'
+      + '<text x="6" y="104" fill="var(--mut2)" font-size="8">' + s.arbeitstagStart + '</text>'
+      + '<text x="272" y="104" fill="var(--mut2)" font-size="8">' + s.arbeitstagEnde + '</text>'
+      + '</svg></div>';
+  }
+  // Woche/Monat: Balken je Tag
+  const tage = statTage(zeitraum);
+  const maxP = Math.max(...tage.map(d => d.punkte || 0), 10);
+  const n = zeitraum === 'woche' ? 7 : 30;
+  const bw = Math.floor(288 / n) - 2;
+  let balken = '';
+  tage.forEach((d, i) => {
+    const h = Math.max(2, (d.punkte || 0) / maxP * 80);
+    const x = 6 + i * (288 / n);
+    const heute = d.datum === Store.tag.datum;
+    balken += '<rect x="' + x.toFixed(1) + '" y="' + (90 - h).toFixed(1) + '" width="' + bw + '" height="' + h.toFixed(1)
+      + '" rx="2" fill="' + (heute ? 'var(--cyan)' : 'var(--purple)') + '"/>';
+  });
+  const summe = tage.reduce((s2, d) => s2 + (d.punkte || 0), 0);
+  return '<div class="akkukarte"><div class="lbl"><span>Punkte je Tag (' + tage.length + ' Tage)</span><span>Σ ' + fmtPunkte(summe) + ' P</span></div>'
+    + '<svg viewBox="0 0 300 100" width="100%" height="100">'
+    + '<line x1="6" y1="90" x2="294" y2="90" stroke="var(--line)"/>' + balken
+    + '<text x="6" y="99" fill="var(--mut2)" font-size="8">' + (tage[0] ? tage[0].datum.slice(5) : '') + '</text>'
+    + '<text x="266" y="99" fill="var(--mut2)" font-size="8">heute</text>'
+    + '</svg></div>';
+}
+
+function kennzahlenHtml(zeitraum) {
+  const tage = statTage(zeitraum);
+  const p = tage.reduce((s, d) => s + (d.punkte || 0), 0);
+  const min = tage.reduce((s, d) => s + (d.fokusMin || 0), 0);
+  const erl = tage.reduce((s, d) => s + (d.erledigt || 0), 0);
+  const oe = min >= 30 ? fmtPunkte(p / (min / 60)) : '–';
+  const stunden = Math.floor(min / 60) + ':' + String(min % 60).padStart(2, '0');
+  return '<div class="statsgrid">'
+    + '<div class="statbox"><div class="v">' + fmtPunkte(p) + '</div><div class="k">Punkte</div></div>'
+    + '<div class="statbox"><div class="v">' + stunden + ' h</div><div class="k">Fokuszeit</div></div>'
+    + '<div class="statbox"><div class="v">' + erl + '</div><div class="k">Erledigt</div></div>'
+    + '<div class="statbox"><div class="v">' + oe + '</div><div class="k">Ø P/Std Fokus</div></div>'
+    + '</div>';
+}
+
+/* Shop-Karten: Preis sichtbar, Inhalt „???" bis zum Kauf (Etappe 2). */
+function shopHtml() {
+  const k = konto();
+  return KAT_KEYS.map(kk => {
+    const kat = BELOHNUNG[kk];
+    const offen = belohnung.stufen[kk] || 1;
+    const aktuell = kat.stufen[offen - 1];
+    const sperre = kaufSperre(kk);
+    const preis = preisFuer(kk);
+    let unten;
+    if (sperre === 'komplett') {
+      unten = '<div class="knext">🏁 Alles gekauft!</div>';
+    } else if (sperre) {
+      unten = '<div class="knext">🔒 ??? · ' + sperre + '</div>'
+        + '<div class="rankbar"><i style="width:0"></i></div>';
+    } else if (k >= preis) {
+      unten = '<button class="kaufbtn" data-kauf="' + kk + '">🎁 ??? für ' + fmtPunkte(preis) + ' P kaufen</button>';
+    } else {
+      unten = '<div class="knext">??? · noch ' + fmtPunkte(preis - k) + ' P bis zum Kauf (' + fmtPunkte(preis) + ' P)</div>'
+        + '<div class="rankbar"><i style="width:' + Math.min(100, k / preis * 100).toFixed(0) + '%"></i></div>';
+    }
+    return '<div class="katcard">'
+      + '<div class="kzeile"><span>' + kat.icon + '</span><span class="kname">' + kat.name + '</span>'
+      + '<span class="kstufe">Stufe ' + offen + '/' + kat.stufen.length + '</span></div>'
+      + '<div class="kaktuell">' + escapeHtml(aktuell[0]) + '</div>'
+      + unten + '</div>';
+  }).join('');
+}
 
 function renderBelohnung() {
   const vital = vitalitaet();
   const stufe = gesamtStufe();
   const t = Store.tag;
-  const wl = wohlstandLive();   // Live-Anzeige (Änderung 20.07.2026)
+  const k = konto();
   gesamtpunkteAktualisieren();
+  const pw = paceWerte();
 
-  // Pace wie in der Leiste (3.6)
-  const s = Store.settings;
-  const start = uhrzeitAlsMin(s.arbeitstagStart), ende = uhrzeitAlsMin(s.arbeitstagEnde);
-  const jetzt = new Date(); const jetztMin = jetzt.getHours() * 60 + jetzt.getMinutes();
-  const vergangeneStd = Math.max(0.1, (jetztMin - start) / 60);
-  const pace = jetztMin > start ? t.gesamtpunkteHeute / vergangeneStd : 0;
+  // Ausstattungs-Badges beim Avatar (gekaufte Kategorien)
+  const badges = KAT_KEYS.filter(kk => (belohnung.stufen[kk] || 1) > 1)
+    .map(kk => '<span class="avbadge">' + BELOHNUNG[kk].icon + ' ' + belohnung.stufen[kk] + '</span>').join('');
 
   let html = ''
     + '<div class="avcard">'
     + '<div class="avscene' + (vital ? '' : ' erschoepft') + '"><div class="avground"></div>'
-    + '<div class="avgrid">' + avatarHtml(stufe, vital) + '</div></div>'
-    + '<div class="rankline"><div class="rankname">Avatar-Stufe ' + stufe + '/' + (Store.settings.avatarStufen || DEFAULT_SETTINGS.avatarStufen).length + '</div>'
-    + '<div class="rankpts">Wohlstand ' + fmtPunkte(wl) + ' P (live)</div></div>'
+    + '<div class="avgrid">' + avatarHtml(stufe, vital) + '</div>'
+    + (badges ? '<div class="avbadges">' + badges + '</div>' : '')
+    + '</div>'
+    + '<div class="rankline"><div class="rankname">Level ' + stufe + ' · ' + (vital ? 'Vital' : 'Erschöpft') + '</div>'
+    + '<div class="rankpts">Konto ' + fmtPunkte(k) + ' P</div></div>'
     + '<div class="statsgrid">'
     + '<div class="statbox"><div class="v">' + fmtPunkte(t.gesamtpunkteHeute) + '</div><div class="k">Punkte heute</div></div>'
+    + '<div class="statbox"><div class="v">' + (m => Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'))(Math.round((t.fokusSek || 0) / 60)) + ' h</div><div class="k">Fokuszeit heute</div></div>'
     + '<div class="statbox"><div class="v">' + t.streak + '🔥</div><div class="k">Streak</div></div>'
-    + '<div class="statbox"><div class="v">' + (vital ? 'Vital' : 'Erschöpft') + '</div><div class="k">Zustand</div></div>'
-    + '<div class="statbox"><div class="v">' + fmtPunkte(pace) + '/Std</div><div class="k">Pace</div></div>'
+    + '<div class="statbox"><div class="v">' + fmtPunkte(pw.ist) + '/' + fmtPunkte(pw.soll) + '</div><div class="k">Pace Ist/Soll</div></div>'
     + '</div></div>';
 
-  // Energie-Kurve (6.1)
-  html += '<h2 class="sechead">Energie heute</h2>' + akkuKurveHtml();
+  // Zeitraum + Kurve + Kennzahlen (Statistik, Etappe 2)
+  html += '<div class="vtoggle" id="statTabs" style="margin-top:var(--s2)">'
+    + ['heute', 'woche', 'monat'].map(z =>
+        '<button data-z="' + z + '" class="' + (statZeitraum === z ? 'on' : '') + '">'
+        + (z === 'heute' ? 'Heute' : z === 'woche' ? 'Woche' : 'Monat') + '</button>').join('')
+    + '</div>';
+  html += kurveHtml(statZeitraum);
+  html += kennzahlenHtml(statZeitraum);
 
-  // Aufschlüsselung (3.5/6.4)
+  // Energie-Kurve (nur Heute sinnvoll)
+  if (statZeitraum === 'heute') {
+    html += '<h2 class="sechead">Energie heute</h2>' + akkuKurveHtml();
+  }
+
+  // Aufschlüsselung + Detail-Analyse
   html += '<h2 class="sechead">Aufschlüsselung</h2>'
     + '<div class="vtoggle">'
     + '<button data-achse="bereich" class="' + (aufAchse === 'bereich' ? 'on' : '') + '">Nach Bereich</button>'
     + '<button data-achse="abschnitt" class="' + (aufAchse === 'abschnitt' ? 'on' : '') + '">Nach Tagesabschnitt</button>'
-    + '</div><div id="aufListe">' + aufschluesselungHtml() + '</div>';
+    + '</div><div id="aufListe">' + aufschluesselungHtml(punkteNachGruppeZeitraum(aufAchse, statZeitraum)) + '</div>'
+    + '<button class="wizbtn sek" id="analyseBtn" style="margin-top:var(--s1)">📊 Detail-Analyse öffnen</button>';
 
-  // Kategorie-Leitern (6.3)
-  html += '<h2 class="sechead">Freischaltungen</h2>';
-  KAT_KEYS.forEach(k => {
-    const kat = BELOHNUNG[k];
-    const offen = belohnung.stufen[k] || 1;
-    const aktuell = kat.stufen[offen - 1];
-    const naechste = kat.stufen[offen];
-    let barPct = 100, nextText = '🏁 Leiter komplett!', bereit = false;
-    if (naechste) {
-      const von = aktuell[1], bis = naechste[1];
-      barPct = Math.min(100, Math.max(2, Math.round((wl - von) / (bis - von) * 100)));
-      const fehlend = bis - wl;
-      const reqFehlt = naechste[2] && (belohnung.stufen[naechste[2][0]] || 0) < naechste[2][1];
-      if (fehlend > 0)      nextText = '??? · noch ' + fmtPunkte(fehlend) + ' P Wohlstand';
-      else if (reqFehlt)    nextText = '🔒 ??? · noch an eine andere Kategorie gebunden';
-      else { nextText = '🎁 Bereit — Freischaltung würfelt täglich!'; bereit = true; }
-    }
-    html += '<div class="katcard">'
-      + '<div class="kzeile"><span>' + kat.icon + '</span><span class="kname">' + kat.name + '</span>'
-      + '<span class="kstufe">Stufe ' + offen + '/' + kat.stufen.length + '</span></div>'
-      + '<div class="kaktuell">' + escapeHtml(aktuell[0]) + '</div>'
-      + '<div class="rankbar"><i style="width:' + barPct + '%"></i></div>'
-      + '<div class="knext' + (bereit ? ' bereit' : '') + '">' + nextText + '</div>'
-      + '</div>';
-  });
+  // Shop
+  html += '<h2 class="sechead">Shop — nächste Stufen</h2>' + shopHtml();
 
   $('view-belohnung').innerHTML = html;
-  $('view-belohnung').querySelectorAll('.vtoggle button').forEach(btn => {
+
+  $('statTabs').querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => { statZeitraum = btn.dataset.z; renderBelohnung(); });
+  });
+  $('view-belohnung').querySelectorAll('[data-achse]').forEach(btn => {
     btn.addEventListener('click', () => {
       aufAchse = btn.dataset.achse;
-      $('view-belohnung').querySelectorAll('.vtoggle button').forEach(b => b.classList.toggle('on', b === btn));
-      $('aufListe').innerHTML = aufschluesselungHtml();
+      $('view-belohnung').querySelectorAll('[data-achse]').forEach(b => b.classList.toggle('on', b === btn));
+      $('aufListe').innerHTML = aufschluesselungHtml(punkteNachGruppeZeitraum(aufAchse, statZeitraum));
     });
   });
+  $('analyseBtn').addEventListener('click', sheetAnalyseOeffnen);
+  $('view-belohnung').querySelectorAll('[data-kauf]').forEach(btn => {
+    btn.addEventListener('click', () => kaufen(btn.dataset.kauf));
+  });
+}
 
-  // Frische Freischaltungen feiern (6.2: Konfetti + Hinweis)
-  if (belohnung.neu.length) {
-    const namen = belohnung.neu.map(n => BELOHNUNG[n.kat].icon + ' ' + n.name).join(' · ');
-    belohnung.neu = [];
-    belohnungSpeichern();
-    konfetti();
-    toastZeigen('🎉 Freigeschaltet: ' + namen);
+/* Detail-Analyse (Sleep-Cycle-Stil): 14-Tage-Trends im Sheet. */
+function balkenSvgHtml(titel, tage, wertFn, einheit, farbe) {
+  const werte = tage.map(wertFn);
+  const max = Math.max(...werte, 1);
+  const n = tage.length;
+  const bw = Math.max(2, Math.floor(288 / Math.max(n, 1)) - 2);
+  let balken = '';
+  werte.forEach((w, i) => {
+    const h = Math.max(2, w / max * 70);
+    balken += '<rect x="' + (6 + i * (288 / n)).toFixed(1) + '" y="' + (80 - h).toFixed(1)
+      + '" width="' + bw + '" height="' + h.toFixed(1) + '" rx="2" fill="' + farbe + '"/>';
+  });
+  return '<div class="akkukarte" style="margin-bottom:var(--s1)"><div class="lbl"><span>' + titel + '</span>'
+    + '<span>max ' + fmtPunkte(max) + einheit + '</span></div>'
+    + '<svg viewBox="0 0 300 90" width="100%" height="90">'
+    + '<line x1="6" y1="80" x2="294" y2="80" stroke="var(--line)"/>' + balken
+    + '<text x="6" y="89" fill="var(--mut2)" font-size="8">' + (tage[0] ? tage[0].datum.slice(5) : '') + '</text>'
+    + '<text x="266" y="89" fill="var(--mut2)" font-size="8">heute</text>'
+    + '</svg></div>';
+}
+
+function sheetAnalyseOeffnen() {
+  const alt = historieLaden().filter(d => d.datum !== Store.tag.datum);
+  const tage = [...alt, heuteAlsSnapshot()].slice(-14);
+  let html = '';
+  if (tage.length < 2) {
+    html += '<div class="wizinfo">Die Detail-Analyse füllt sich mit jedem Tagesabschluss — ab morgen gibt es hier Trends.</div>';
   }
+  html += balkenSvgHtml('Punkte je Tag (14 T)', tage, d => d.punkte || 0, ' P', 'var(--purple)');
+  html += balkenSvgHtml('Fokuszeit je Tag (min)', tage, d => d.fokusMin || 0, ' min', 'var(--cyan)');
+  html += balkenSvgHtml('Akku-Ø je Tag (%)', tage, d => d.akkuSchnitt || 0, ' %', 'var(--ok)');
+  html += '<h2 class="sechead">Bereiche (7 Tage)</h2>'
+    + aufschluesselungHtml(punkteNachGruppeZeitraum('bereich', 'woche'));
+  html += '<h2 class="sechead">Tagesabschnitte (7 Tage)</h2>'
+    + aufschluesselungHtml(punkteNachGruppeZeitraum('abschnitt', 'woche'));
+  const streaks = Store.items.filter(i => i.typ === 'routine' && (i.routineStreak || 0) > 0)
+    .sort((a, b) => b.routineStreak - a.routineStreak).slice(0, 5);
+  if (streaks.length) {
+    html += '<h2 class="sechead">Top-Routinen-Streaks</h2>'
+      + streaks.map(r => '<div class="aufzeile"><span class="albl">' + escapeHtml(r.titel) + '</span>'
+        + '<div class="abar"><i style="width:' + Math.min(100, r.routineStreak * 10) + '%;background:var(--warn)"></i></div>'
+        + '<span class="awert">🔥 ' + r.routineStreak + '</span></div>').join('');
+  }
+  sheetOeffnen('Detail-Analyse', html, 'analyse');
 }
 
 function akkuKurveHtml() {
@@ -3209,8 +3462,8 @@ function akkuKurveHtml() {
     + '<span>' + (avg != null ? 'Ø ' + avg + '%' : '–') + '</span></div>' + inhalt + '</div>';
 }
 
-function aufschluesselungHtml() {
-  const gruppen = punkteNachGruppe(aufAchse);
+function aufschluesselungHtml(gruppen) {
+  gruppen = gruppen || punkteNachGruppe(aufAchse);
   const namen = Object.keys(gruppen);
   if (!namen.length) return '<div class="leer">Noch keine erledigten Punkte heute.</div>';
   const reihenfolge = aufAchse === 'abschnitt'
@@ -3732,7 +3985,6 @@ document.querySelectorAll('#tabbar button').forEach(btn => {
 function tageswechselPruefen() {
   if (Store.tag.datum === heuteIso()) return;
   Store.ladeAlles();
-  rollFreischaltungen(false);
   gesamtpunkteAktualisieren();
   if (sheetOffenFuer) sheetSchliessen();
   renderAlles();
@@ -3759,7 +4011,6 @@ setInterval(() => {
 Store.ladeAlles();
 if (fokus && !Store.findeItem(fokus.itemId)) { fokus = null; fokusSpeichern(); }
 belohnungInit();
-rollFreischaltungen(false);   // tägliche Würfel-Chance (6.3)
 gesamtpunkteAktualisieren();
 pruefeLevelUp();              // Avatar-Level initialisieren/nachziehen
 renderAlles();
@@ -3769,7 +4020,8 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   punkteBeiMinuten, counterPunkte, anzeigePunkte, renderAlles,
   fokusStarten, fokusToggle, fokusBeenden, tagAbschliessen, abhaken,
   privatDokumentMd, importParsen,
-  get belohnung() { return belohnung; }, rollFreischaltungen, stufeEligible,
+  get belohnung() { return belohnung; }, konto, preisFuer, kaufSperre, naechsterKauf, kaufen,
+  oePStd7, historieLaden, heuteAlsSnapshot, historieSchreiben,
   renderBelohnung, punkteNachGruppe, vitalitaet, gesamtStufe,
   dropAnwenden, pushDown,
   zeitVerteilung, unteraufgabenAnteil, unteraufgabeToggle, unteraufgabeAnlegen,
