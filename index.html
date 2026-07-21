@@ -183,6 +183,26 @@ main{
   background:linear-gradient(135deg,#b98af7,#8a6cf7);
   color:#160a2e;border-color:transparent;
 }
+/* Häufigkeits-Modi (21.07.2026) — Optik nach Pascals Referenz-App */
+.modusliste{background:var(--bg);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.modusrow{border-top:1px solid var(--line)}
+.modusrow:first-child{border-top:none}
+.modusrow .modkopf{
+  display:flex;align-items:center;min-height:var(--tap);padding:0 14px;
+  font-size:13.5px;color:var(--mut);cursor:pointer;
+}
+.modusrow.aktiv .modkopf{color:var(--txt);font-weight:700}
+.modusrow .modcheck{margin-left:auto;color:var(--warn);font-weight:900}
+.modusrow .modinhalt{padding:4px 14px 14px}
+.mtgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.mtag{
+  aspect-ratio:1;border-radius:50%;border:1.5px solid var(--line);
+  background:var(--card);color:var(--mut);font-size:12px;font-weight:700;
+}
+.mtag.on{background:linear-gradient(135deg,#b98af7,#8a6cf7);color:#160a2e;border-color:transparent}
+.stufenzeile{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px;color:var(--mut)}
+.stufenzeile input{width:74px;flex:none;text-align:center;padding:8px 4px}
+.stufenzeile .stloesch{margin-left:auto}
 /* Klappfelder auf der Stream-Seite nutzen die tacc-Optik */
 #view-stream .tacc{margin-top:var(--s2)}
 #view-stream .tacc .anz{color:var(--mut2);font-weight:600;letter-spacing:0}
@@ -563,7 +583,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.11.0';
+const APP_VERSION = '0.12.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -583,8 +603,12 @@ const LS = {
 /* Alle Punkte-Faktoren/Sätze sind Settings, keine Code-Konstanten (3.7).
    Werte hier = Startbelegung laut Spez. 3.1–3.6, über ⚙️ änderbar. */
 const DEFAULT_SETTINGS = {
-  minutenJeEinheit: 5,                                        // Basisformel: Ist-Min ÷ 5 (3.1)
-  komplexitaet: { leicht: 1.0, mittel: 1.5, schwer: 2.0 },    // 3.2
+  /* Punktesystem 2.0 (21.07.2026): Basis = Punkte/Stunde + Abhak-Bonus.
+     basisProStd × K × E × B ergibt den Auto-Vorschlag je Item. */
+  basisProStd: 12,                                            // P/Std bei Faktor 1,0
+  akkuProStdStandard: -8,                                     // Akku-%/Std im Fokus (Standard)
+  minutenJeEinheit: 5,                                        // (Altsystem, nur Migration)
+  komplexitaet: { leicht: 1.0, mittel: 1.5, schwer: 2.0 },    // (Altsystem, nur Migration)
   energie:      { gibt: 0.8, neutral: 1.0, zieht: 1.3 },
   blockade:     { keine: 1.0, leicht: 1.2, mittel: 1.5, stark: 2.0 },
   geldScoreBasis: { hoch: 300, mittel: 200, niedrig: 100 },   // 3.3 — nur DFM
@@ -655,9 +679,28 @@ function neuesItem(felder = {}) {
     /* Wochentage-Rhythmus (21.07.2026): hat Vorrang vor rhythmusTage */
     rhythmusWochentage: [],           // 0=Mo … 6=So; leer = Tages-Rhythmus
     rhythmusWochen: 1,                // jede n-te Woche (1–4)
-    rhythmusAnkerWoche: null          // Wochen-Index als Intervall-Anker
+    rhythmusAnkerWoche: null,         // Wochen-Index als Intervall-Anker
+    /* Häufigkeits-Modi (21.07.2026): wochentage | monatstage |
+       zufallWoche | zufallMonat | alleNTage (null = automatisch) */
+    rhythmusModus: null,
+    rhythmusMonatstage: [],           // z. B. [1, 15]
+    rhythmusZufallAnzahl: 2,          // n Tage pro Woche/Monat
+    rhythmusZufallTage: [],           // gerollte Tage der aktuellen Periode
+    rhythmusZufallPeriode: null,      // 'W123' bzw. 'YYYY-MM'
+    /* Punktesystem 2.0 (21.07.2026): */
+    punkteProStd: null,               // null = Auto aus Einschätzung (K×E×B)
+    abschlussBonus: null,             // Einmal-Punkte beim Abhaken (null = aus Geld-Impact); darf negativ sein
+    akkuProStd: null,                 // Akku-%/Std im Fokus (null = Settings-Standard)
+    zeitStufen: null,                 // [{bisMin|null, punkteProStd}] — Stufen-Kurve
+    tickStufen: null,                 // Counter: [{bisTick|null, punkteProTick}]
+    imStreamAnzeigen: null            // null → Default: Aufgaben ja, Routinen nein
   }, felder);
   if (item.typ === 'routine' && item.rhythmusTage == null) item.rhythmusTage = 1;  // Standard: täglich
+  if (item.imStreamAnzeigen == null) item.imStreamAnzeigen = item.typ !== 'routine';
+  /* Migration Punktesystem 2.0: Kategorie-Strings → stufenlose Faktoren */
+  if (typeof item.komplexitaet === 'string') item.komplexitaet = ({ leicht: 1.0, mittel: 1.5, schwer: 2.0 })[item.komplexitaet] || 1.0;
+  if (typeof item.energie === 'string')      item.energie = ({ gibt: 0.8, neutral: 1.0, zieht: 1.3 })[item.energie] || 1.0;
+  if (typeof item.blockade === 'string')     item.blockade = ({ keine: 1.0, leicht: 1.2, mittel: 1.5, stark: 2.0 })[item.blockade] || 1.0;
   if (item.domain !== 'dfm') item.geldImpact = null;   // Geld-Score existiert nur bei DFM (3.3)
   if (item.typ === 'counter') {
     const cd = (Store.settings && Store.settings.counterDefaults) || DEFAULT_SETTINGS.counterDefaults;
@@ -809,7 +852,16 @@ const Store = {
       }),
       zeitEintraege: this.items
         .filter(i => i.istMinuten > 0 || i.status === 'erledigt')
-        .map(i => ({ itemId: i.id, minuten: Math.round(i.istMinuten), erledigt: i.status === 'erledigt' }))
+        .map(i => {
+          const log = this.tag.log.find(l => l.itemId === i.id && !l.uaId);
+          const e = { itemId: i.id, minuten: Math.round(i.istMinuten), erledigt: i.status === 'erledigt' };
+          // Finale (ggf. manuell überschriebene) Werte als Feedback (21.07.2026)
+          if (log) {
+            e.punkte = Math.round(log.punkte * 10) / 10;
+            e.akkuDelta = Math.round(akkuRate(i) * i.istMinuten / 60 + (log.akkuKorrektur || 0));
+          }
+          return e;
+        })
     };
   }
 };
@@ -855,35 +907,88 @@ function tageBisDeadline(deadline) {
   return Math.round((new Date(deadline + 'T00:00:00') - new Date(heuteIso() + 'T00:00:00')) / 86400000);
 }
 
-/* Punkte für Aufgabe/Routine bei gegebenen Ist-Minuten (3.1–3.3). */
+/* ── Punktesystem 2.0 (21.07.2026): Punkte/Stunde + Abhak-Bonus ───── */
+
+/* Auto-Vorschlag aus der Einschätzung (K × E × B, stufenlos). */
+function vorschlagRate(item) {
+  return (Store.settings.basisProStd || 12)
+    * (Number(item.komplexitaet) || 1)
+    * (Number(item.energie) || 1)
+    * (Number(item.blockade) || 1);
+}
+
+/* Wirksamer Stundensatz: manueller Wert schlägt den Auto-Vorschlag. */
+function effektiveRate(item) {
+  return item.punkteProStd != null ? item.punkteProStd : vorschlagRate(item);
+}
+
+/* Abhak-Bonus: manuell (darf negativ sein) oder aus dem Geld-Impact. */
+function effektiverBonus(item) {
+  if (item.abschlussBonus != null) return item.abschlussBonus;
+  if (item.domain === 'dfm' && item.geldImpact) {
+    return Store.settings.geldScoreBasis[item.geldImpact] - tageBisDeadline(item.deadline);
+  }
+  return 0;
+}
+
+/* Akku-Änderung pro Fokus-Stunde. */
+function akkuRate(item) {
+  return item && item.akkuProStd != null
+    ? item.akkuProStd
+    : (Store.settings.akkuProStdStandard != null ? Store.settings.akkuProStdStandard : -8);
+}
+
+/* Zeit-Anteil, optional über eine Stufen-Kurve (bisMin aufsteigend,
+   letzte Stufe bisMin=null = „danach"). */
+function punkteFuerZeit(item, min) {
+  const stufen = item.zeitStufen;
+  if (stufen && stufen.length) {
+    let punkte = 0, ab = 0;
+    for (const st of stufen) {
+      const bis = st.bisMin == null ? Infinity : st.bisMin;
+      punkte += Math.max(0, Math.min(min, bis) - ab) / 60 * (Number(st.punkteProStd) || 0);
+      ab = bis;
+      if (min <= bis) break;
+    }
+    return punkte;
+  }
+  return min / 60 * effektiveRate(item);
+}
+
 function punkteBeiMinuten(item, minuten) {
-  const s = Store.settings;
   let min = minuten;
-  // Ausnahme „Idee": Ist-Minuten auf geplante Minuten gedeckelt (3.1)
+  // Ausnahme „Idee": Ist-Minuten auf geplante Minuten gedeckelt
   if (item.prioritaet === 'idee' && item.aufwandGeplantMin > 0) {
     min = Math.min(min, item.aufwandGeplantMin);
   }
-  const basis = (min / s.minutenJeEinheit)
-    * s.komplexitaet[item.komplexitaet]
-    * s.energie[item.energie]
-    * s.blockade[item.blockade];
-  // Schiebe-/Plan-Malus (3.4): −X % der BASIS-Punkte je geschobenem Tag
-  // (Geld-Score bleibt unberührt), nie unter 0.
-  const malusSatz = (s.schiebeMalusProzent[item.prioritaet] || 0) / 100;
+  // Schiebe-/Plan-Malus: −X % des Zeit-Anteils je geschobenem Tag
+  const malusSatz = (Store.settings.schiebeMalusProzent[item.prioritaet] || 0) / 100;
   const malusFaktor = Math.max(0, 1 - malusSatz * (item.tageGeschoben || 0));
-  let geld = 0;
-  if (item.domain === 'dfm' && item.geldImpact) {           // Geld-Score NUR DFM (3.3)
-    geld = s.geldScoreBasis[item.geldImpact] - tageBisDeadline(item.deadline);
-  }
-  return basis * malusFaktor + geld;
+  return punkteFuerZeit(item, min) * malusFaktor + effektiverBonus(item);
 }
 
-/* Counter: Tick-Kurve (2.2) — vor Schwelle +, danach ± je Tick. */
+/* Counter: Stufen-Kurve (tickStufen) oder Alt-Modell (eine Schwelle). */
 function counterPunkte(item, ticks) {
   const n = (ticks != null) ? ticks : (item.tickStandHeute || 0);
+  if (item.tickStufen && item.tickStufen.length) {
+    let p = 0, ab = 0;
+    for (const st of item.tickStufen) {
+      const bis = st.bisTick == null ? Infinity : st.bisTick;
+      p += Math.max(0, Math.min(n, bis) - ab) * (Number(st.punkteProTick) || 0);
+      ab = bis;
+      if (n <= bis) break;
+    }
+    return p;
+  }
   const bis = Math.min(n, item.tickSchwelle);
   const ueber = Math.max(0, n - item.tickSchwelle);
   return bis * item.punkteJeTickVorSchwelle + ueber * item.punkteJeTickNachSchwelle;
+}
+
+/* Counter im „schlechten" Bereich? → letzter Tick brachte Minuspunkte. */
+function counterIstSchlecht(item) {
+  const n = item.tickStandHeute || 0;
+  return n > 0 && (counterPunkte(item, n) - counterPunkte(item, n - 1)) < 0;
 }
 
 /* Anzeigewert (3.5): erledigt = eingefroren (aus dem Log), offen = live.
@@ -921,29 +1026,88 @@ function routineUeberfaelligTage(r) {
   return diff - (r.rhythmusTage || 1);
 }
 
+/* Häufigkeits-Modus (21.07.2026): explizit gesetzt oder abgeleitet. */
+function rhythmusModusVon(r) {
+  if (r.rhythmusModus) return r.rhythmusModus;
+  return hatWochentagModell(r) ? 'wochentage' : 'alleNTage';
+}
+
+/* Zufalls-Modi: Tage der aktuellen Periode würfeln (einmal je Periode). */
+function zufallsTageSichern(r) {
+  const modus = rhythmusModusVon(r);
+  const n = Math.max(1, r.rhythmusZufallAnzahl || 1);
+  const ziehe = (aus, anzahl) => {
+    const pool = [...Array(aus).keys()];
+    const wahl = [];
+    while (wahl.length < Math.min(anzahl, aus)) {
+      wahl.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    }
+    return wahl.sort((a, b) => a - b);
+  };
+  if (modus === 'zufallWoche') {
+    const periode = 'W' + wochenIndex();
+    if (r.rhythmusZufallPeriode !== periode) {
+      r.rhythmusZufallPeriode = periode;
+      r.rhythmusZufallTage = ziehe(7, n);                 // 0=Mo … 6=So
+      Store.speichereItems();
+    }
+  } else if (modus === 'zufallMonat') {
+    const periode = heuteIso().slice(0, 7);
+    if (r.rhythmusZufallPeriode !== periode) {
+      r.rhythmusZufallPeriode = periode;
+      r.rhythmusZufallTage = ziehe(28, n).map(x => x + 1); // 1.–28.
+      Store.speichereItems();
+    }
+  }
+}
+
 function routineFaellig(r) {
   if (r.typ !== 'routine') return false;
   if (r.status === 'erledigt') return false;
   if (r.ausgesetztAm === heuteIso()) return false;
-  if (hatWochentagModell(r)) {
-    if (r.zuletztErledigt === heuteIso()) return false;
-    if (!r.rhythmusWochentage.includes(wochentagMo0())) return false;
+  if (r.zuletztErledigt === heuteIso()) return false;
+  const modus = rhythmusModusVon(r);
+  if (modus === 'wochentage') {
+    if (!(r.rhythmusWochentage || []).includes(wochentagMo0())) return false;
     const anker = r.rhythmusAnkerWoche != null ? r.rhythmusAnkerWoche : wochenIndex();
     return (wochenIndex() - anker) % (r.rhythmusWochen || 1) === 0;
+  }
+  if (modus === 'monatstage') {
+    return (r.rhythmusMonatstage || []).includes(new Date().getDate());
+  }
+  if (modus === 'zufallWoche') {
+    zufallsTageSichern(r);
+    return r.rhythmusZufallTage.includes(wochentagMo0());
+  }
+  if (modus === 'zufallMonat') {
+    zufallsTageSichern(r);
+    return r.rhythmusZufallTage.includes(new Date().getDate());
   }
   if (!r.zuletztErledigt) return true;
   return routineUeberfaelligTage(r) >= 0;
 }
 
-/* Tage bis zum nächsten fälligen Termin (fürs „wieder in n T"-Label). */
+/* Tage bis zum nächsten fälligen Termin (fürs „wieder in n T"-Label).
+   Zufalls-Modi kennen nur die aktuelle Periode → sonst null („?"). */
 function routineNaechsteIn(r) {
-  if (!hatWochentagModell(r)) return Math.max(1, -routineUeberfaelligTage(r));
+  const modus = rhythmusModusVon(r);
+  if (modus === 'alleNTage') return Math.max(1, -routineUeberfaelligTage(r));
   const heute = new Date(heuteIso() + 'T00:00:00');
   const anker = r.rhythmusAnkerWoche != null ? r.rhythmusAnkerWoche : wochenIndex(heute);
-  for (let d = 1; d <= 35; d++) {
+  for (let d = 1; d <= 62; d++) {
     const dat = new Date(heute); dat.setDate(dat.getDate() + d);
-    if (!r.rhythmusWochentage.includes(wochentagMo0(dat))) continue;
-    if ((wochenIndex(dat) - anker) % (r.rhythmusWochen || 1) === 0) return d;
+    if (modus === 'wochentage') {
+      if ((r.rhythmusWochentage || []).includes(wochentagMo0(dat))
+        && (wochenIndex(dat) - anker) % (r.rhythmusWochen || 1) === 0) return d;
+    } else if (modus === 'monatstage') {
+      if ((r.rhythmusMonatstage || []).includes(dat.getDate())) return d;
+    } else if (modus === 'zufallWoche') {
+      if (wochenIndex(dat) !== wochenIndex(heute)) return null;
+      if (r.rhythmusZufallTage.includes(wochentagMo0(dat))) return d;
+    } else if (modus === 'zufallMonat') {
+      if (dat.getMonth() !== heute.getMonth()) return null;
+      if (r.rhythmusZufallTage.includes(dat.getDate())) return d;
+    }
   }
   return null;
 }
@@ -971,11 +1135,21 @@ function routineAussetzen(id, mitAbzug) {
 
 const WT_KURZ = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 function rhythmusLabel(r) {
-  if (typeof r === 'object' && hatWochentagModell(r)) {
-    const tage = r.rhythmusWochentage.length === 7
-      ? 'tgl.'
-      : [...r.rhythmusWochentage].sort((a, b) => a - b).map(i => WT_KURZ[i]).join('·');
-    return tage + ((r.rhythmusWochen || 1) > 1 ? ' / jede ' + r.rhythmusWochen + '. Wo.' : '');
+  if (typeof r === 'object') {
+    const modus = rhythmusModusVon(r);
+    if (modus === 'wochentage' && hatWochentagModell(r)) {
+      const tage = r.rhythmusWochentage.length === 7
+        ? 'tgl.'
+        : [...r.rhythmusWochentage].sort((a, b) => a - b).map(i => WT_KURZ[i]).join('·');
+      return tage + ((r.rhythmusWochen || 1) > 1 ? ' / jede ' + r.rhythmusWochen + '. Wo.' : '');
+    }
+    if (modus === 'monatstage') {
+      return (r.rhythmusMonatstage || []).length
+        ? [...r.rhythmusMonatstage].sort((a, b) => a - b).map(t => t + '.').join('·') + ' im Monat'
+        : 'Monatstage wählen';
+    }
+    if (modus === 'zufallWoche') return (r.rhythmusZufallAnzahl || 1) + '×/Wo. (zufällig)';
+    if (modus === 'zufallMonat') return (r.rhythmusZufallAnzahl || 1) + '×/Mon. (zufällig)';
   }
   const t = (typeof r === 'object' ? r.rhythmusTage : r) || 1;
   if (t === 1) return 'tgl.';
@@ -1116,15 +1290,39 @@ function minutenInklFokus(item) {
   return min;
 }
 
-/* Laufende Zeit ins Item übernehmen (bei Pause/Wechsel/Abschluss). */
+/* Laufende Zeit ins Item übernehmen (bei Pause/Wechsel/Abschluss).
+   Zieht dabei auch den Akku gemäß Akku-Rate des Items nach (21.07.2026). */
 function fokusZeitEinbuchen() {
   if (!fokus || !fokus.laeuft) return;
   const item = fokusItem();
   const sek = laufendeSek();
-  if (item) { item.istMinuten = (item.istMinuten || 0) + sek / 60; Store.speichereItems(); }
+  if (item) {
+    item.istMinuten = (item.istMinuten || 0) + sek / 60;
+    Store.speichereItems();
+    if (Store.tag.akkuProzent != null) {
+      Store.tag.akkuProzent = Math.min(100, Math.max(0,
+        Store.tag.akkuProzent + akkuRate(item) * sek / 3600));
+      const jetzt = new Date();
+      Store.tag.akkuVerlauf = Store.tag.akkuVerlauf || [];
+      Store.tag.akkuVerlauf.push({ min: jetzt.getHours() * 60 + jetzt.getMinutes(),
+        p: Math.round(Store.tag.akkuProzent) });
+      Store.speichereTag();
+    }
+  }
   fokus.sessionSek += sek;
   fokus.laeuft = false;
   fokusSpeichern();
+}
+
+/* Akku inkl. laufendem Fokus-Zulauf (für alle Live-Anzeigen). */
+function akkuLive() {
+  let p = Store.tag.akkuProzent;
+  if (p == null) return null;
+  if (fokus && fokus.laeuft) {
+    const item = fokusItem();
+    if (item) p = Math.min(100, Math.max(0, p + akkuRate(item) * laufendeSek() / 3600));
+  }
+  return p;
 }
 
 function fokusStarten(id) {
@@ -1160,13 +1358,16 @@ function fokusBeenden() {
 /* ════════════════════════════════════════════════════════════════════
    Erledigen (7.2: NUR übers Häkchen-Feld) — friert Punkte ein (3.5).
    ════════════════════════════════════════════════════════════════════ */
-function abhaken(id) {
+function abhaken(id, override) {
   const item = Store.findeItem(id);
   if (!item) return;
   if (item.status === 'erledigt') {
     // Versehen rückgängig: auftauen, Log-Eintrag entfernen, Rhythmus zurück
     const log = Store.tag.log.find(l => l.itemId === id && !l.uaId);
     if (log && log.zuletztErledigtVorher !== undefined) item.zuletztErledigt = log.zuletztErledigtVorher;
+    if (log && log.akkuKorrektur && Store.tag.akkuProzent != null) {
+      Store.tag.akkuProzent = Math.min(100, Math.max(0, Store.tag.akkuProzent - log.akkuKorrektur));
+    }
     if (item.typ === 'routine') item.routineStreak = Math.max(0, (item.routineStreak || 0) - 1);
     item.status = item.istMinuten > 0 ? 'in_arbeit' : 'offen';
     Store.tag.log = Store.tag.log.filter(l => !(l.itemId === id && !l.uaId));
@@ -1199,12 +1400,77 @@ function abhaken(id) {
     }
     logEintrag.rhythmusDelta = rhythmusDelta;
     logEintrag.punkte += rhythmusDelta;
+    // Abschluss-Formular (21.07.2026): manuelle Werte überschreiben —
+    // sie gehen auch als Feedback in den Sync (zeitEintraege).
+    if (override && override.punkte != null) {
+      logEintrag.punkte = override.punkte;
+      logEintrag.manuell = true;
+    }
+    if (override && override.akkuKorrektur) {
+      logEintrag.akkuKorrektur = override.akkuKorrektur;
+      if (Store.tag.akkuProzent != null) {
+        Store.tag.akkuProzent = Math.min(100, Math.max(0,
+          Store.tag.akkuProzent + override.akkuKorrektur));
+      }
+    }
     Store.tag.log.push(logEintrag);
   }
   gesamtpunkteAktualisieren();
   Store.speichereItems();
   Store.speichereTag();
   renderAlles();
+}
+
+/* Abhak-Einstieg: Aufgaben bekommen das Abschluss-Formular (Werte
+   prüfen/überschreiben), Routinen und Counter buchen direkt (21.07.2026). */
+function abhakenFlow(id) {
+  const item = Store.findeItem(id);
+  if (!item) return;
+  if (item.typ === 'aufgabe' && item.status !== 'erledigt') sheetAbschlussOeffnen(id);
+  else { abhaken(id); renderAlles(); }
+}
+
+/* Abschluss-Formular: Fokus-Werte übersichtlich + zwei Regler zum
+   Überschreiben von Punkten und Akku — die finalen Werte gehen in
+   Log und Sync (bessere Selbst-Einschätzung über die Zeit). */
+function sheetAbschlussOeffnen(id) {
+  const item = Store.findeItem(id);
+  if (!item) return;
+  if (fokus && fokus.itemId === id) fokusZeitEinbuchen();   // Zeit + Akku sichern
+  const min = item.istMinuten || 0;
+  const gebucht = (item.unteraufgaben || []).reduce((s, u) => s + (u.gebuchtePunkte || 0), 0);
+  const berechnet = Math.max(0, punkteBeiMinuten(item, min) - gebucht);
+  const autoAkku = akkuRate(item) * min / 60;
+  const pMin = Math.floor(Math.min(-20, berechnet - 100));
+  const pMax = Math.ceil(berechnet + 150);
+
+  let html = '<div class="wizsumme">'
+    + '<div class="zeile"><span>Ist-Zeit</span><b>' + Math.round(min) + ' min'
+    + (item.aufwandGeplantMin ? ' / ' + item.aufwandGeplantMin + ' geplant' : '') + '</b></div>'
+    + '<div class="zeile"><span>Satz</span><b>' + fmtPunkte(effektiveRate(item)) + ' P/Std</b></div>'
+    + (effektiverBonus(item) ? '<div class="zeile"><span>Abhak-Bonus</span><b>' + fmtPunkte(effektiverBonus(item)) + ' P</b></div>' : '')
+    + (gebucht ? '<div class="zeile"><span>Bereits über Unteraufgaben</span><b>' + fmtPunkte(gebucht) + ' P</b></div>' : '')
+    + '<div class="zeile"><span>Berechnete Punkte</span><b>' + fmtPunkte(berechnet) + ' P</b></div>'
+    + '<div class="zeile"><span>Akku automatisch</span><b>' + fmtPunkte(autoAkku) + ' %</b></div>'
+    + '</div>'
+    + '<div class="regler"><div class="kopfzeile2"><label>Punkte (überschreibbar)</label>'
+    + '<span class="wert" id="afPWert">' + fmtPunkte(berechnet) + ' P</span></div>'
+    + '<input type="range" id="afP" min="' + pMin + '" max="' + pMax + '" step="1" value="' + Math.round(berechnet) + '"></div>'
+    + '<div class="regler"><div class="kopfzeile2"><label>Akku-Korrektur (zusätzlich)</label>'
+    + '<span class="wert" id="afAWert">±0 %</span></div>'
+    + '<input type="range" id="afA" min="-50" max="50" step="1" value="0"></div>'
+    + '<button class="wizbtn" id="afBuchen">✓ Erledigt buchen</button>';
+  sheetOeffnen(item.titel || 'Aufgabe abschließen', html, 'abschluss:' + id);
+
+  $('afP').addEventListener('input', () =>
+    $('afPWert').textContent = $('afP').value + ' P');
+  $('afA').addEventListener('input', () =>
+    $('afAWert').textContent = ($('afA').value > 0 ? '+' : '') + $('afA').value + ' %');
+  $('afBuchen').addEventListener('click', () => {
+    abhaken(id, { punkte: Number($('afP').value), akkuKorrektur: Number($('afA').value) || 0 });
+    sheetSchliessen();
+    toastZeigen('✓ Gebucht: ' + $('afP').value + ' P');
+  });
 }
 
 function counterTick(id) {
@@ -1313,10 +1579,7 @@ function karteHtml(item, imStream) {
   // Farbcodierung: Routine lila, Counter grün/rot nach Stand, sonst Domäne
   let farbe = item.domain;
   if (item.typ === 'routine') farbe = 'routine';
-  if (item.typ === 'counter') {
-    farbe = ((item.tickStandHeute || 0) > item.tickSchwelle && item.punkteJeTickNachSchwelle < 0)
-      ? 'cschlecht' : 'cgut';
-  }
+  if (item.typ === 'counter') farbe = counterIstSchlecht(item) ? 'cschlecht' : 'cgut';
   const klassen = ['karte', farbe];
   if (item.status === 'erledigt') klassen.push('erledigt');
   if (fokus && fokus.itemId === item.id) klassen.push('fokussiert');
@@ -1382,6 +1645,7 @@ function renderStream() {
     .filter(l => !l.uaId && !l.counterAbschluss && !l.routineVerpasst && !l.aussetzer)
     .map(l => l.itemId));
   const stream = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter'
+      && i.imStreamAnzeigen !== false
       && (i.status !== 'erledigt' || heuteErledigt.has(i.id)))
     .sort((a, b) => a.streamSlot - b.streamSlot);
   const queue = Store.items.filter(i => i.typ === 'aufgabe' && i.streamSlot == null && i.status !== 'erledigt')
@@ -1410,7 +1674,7 @@ function renderCounterFeld() {
     + '<div class="tacckopf">🔢 Counter <span class="anz">' + counter.length + '</span><span class="pfeil">▾</span></div>'
     + '<div class="taccinhalt"><div class="chips">'
     + counter.map(c => {
-      const schlecht = (c.tickStandHeute || 0) > c.tickSchwelle && c.punkteJeTickNachSchwelle < 0;
+      const schlecht = counterIstSchlecht(c);
       return '<button class="cchip ' + (schlecht ? 'cschlecht' : 'cgut') + '" data-cid="' + c.id + '">'
         + escapeHtml(c.titel)
         + '<span class="cnt">' + (c.tickStandHeute || 0) + '</span>'
@@ -1539,7 +1803,7 @@ function renderFokusbar() {
     sub.hidden = true;
     $('ppBtn').textContent = '▶';
   }
-  const p = Store.tag && Store.tag.akkuProzent;
+  const p = akkuLive();
   $('akkuPct').textContent = (p == null) ? '–%' : Math.round(p) + '%';
 }
 
@@ -1555,24 +1819,9 @@ function renderAlles() {
    mit derselben Regler-Komponente wie die Task-Karte — nur numerisch.
    ════════════════════════════════════════════════════════════════════ */
 const SETTINGS_DEFS = [
-  { titel: 'Basisformel (3.1)', regler: [
-    { p: 'minutenJeEinheit', l: 'Minuten je Punkte-Einheit', min: 1, max: 15, step: 1 }
-  ]},
-  { titel: 'Faktor Komplexität (3.2)', regler: [
-    { p: 'komplexitaet.leicht', l: 'leicht', min: 0.5, max: 3, step: 0.1 },
-    { p: 'komplexitaet.mittel', l: 'mittel', min: 0.5, max: 3, step: 0.1 },
-    { p: 'komplexitaet.schwer', l: 'schwer', min: 0.5, max: 3, step: 0.1 }
-  ]},
-  { titel: 'Faktor Energie (3.2)', regler: [
-    { p: 'energie.gibt',    l: 'gibt Energie', min: 0.5, max: 2, step: 0.1 },
-    { p: 'energie.neutral', l: 'neutral',      min: 0.5, max: 2, step: 0.1 },
-    { p: 'energie.zieht',   l: 'zieht Energie', min: 0.5, max: 2, step: 0.1 }
-  ]},
-  { titel: 'Faktor Blockade (3.2)', regler: [
-    { p: 'blockade.keine',  l: 'keine',  min: 0.5, max: 3, step: 0.1 },
-    { p: 'blockade.leicht', l: 'leicht', min: 0.5, max: 3, step: 0.1 },
-    { p: 'blockade.mittel', l: 'mittel', min: 0.5, max: 3, step: 0.1 },
-    { p: 'blockade.stark',  l: 'stark',  min: 0.5, max: 3, step: 0.1 }
+  { titel: 'Punktesystem (Basis)', regler: [
+    { p: 'basisProStd', l: 'Punkte/Std bei Faktor 1,0', min: 1, max: 60, step: 1 },
+    { p: 'akkuProStdStandard', l: 'Akku %/Std im Fokus (Standard)', min: -30, max: 30, step: 1 }
   ]},
   { titel: 'Geld-Score-Basis — nur DFM (3.3)', regler: [
     { p: 'geldScoreBasis.hoch',    l: 'hoch',    min: 0, max: 500, step: 10 },
@@ -1697,21 +1946,58 @@ $('sheetX').addEventListener('click', sheetSchliessen);
    Task-Karte als Sheet (4.3): Schieberegler, zwei Kommentarfelder,
    alle Änderungen speichern sofort (kein Save-Button).
    ════════════════════════════════════════════════════════════════════ */
-const REGLER_DEFS = {
-  komplexitaet: { label: 'Komplexität', stufen: ['leicht', 'mittel', 'schwer'] },
-  energie:      { label: 'Energie',     stufen: ['gibt', 'neutral', 'zieht'] },
-  blockade:     { label: 'Blockade',    stufen: ['keine', 'leicht', 'mittel', 'stark'] }
-};
-
-function reglerHtml(feld, wert) {
-  const def = REGLER_DEFS[feld];
-  const idx = Math.max(0, def.stufen.indexOf(wert));
-  return '<div class="feld regler" data-regler="' + feld + '">'
-    + '<label>' + def.label + '</label>'
-    + '<input type="range" min="0" max="' + (def.stufen.length - 1) + '" step="1" value="' + idx + '">'
-    + '<div class="stufen">' + def.stufen.map((s, i) =>
-        '<span class="' + (i === idx ? 'on' : '') + '">' + s + '</span>').join('') + '</div>'
+/* Stufenlose Regler mit Live-Wert (Punktesystem 2.0, 21.07.2026). */
+function slReglerHtml(id, label, min, max, step, wert, einheit) {
+  return '<div class="feld regler slregler" data-slid="' + id + '" data-einheit="' + (einheit || '') + '">'
+    + '<div class="kopfzeile2"><label>' + label + '</label><span class="wert">' + wert + (einheit || '') + '</span></div>'
+    + '<input type="range" min="' + min + '" max="' + max + '" step="' + step + '" value="' + wert + '">'
     + '</div>';
+}
+function slVerdrahten(id, fn) {
+  const wrap = document.querySelector('.slregler[data-slid="' + id + '"]');
+  if (!wrap) return;
+  const range = wrap.querySelector('input');
+  range.addEventListener('input', () => {
+    wrap.querySelector('.wert').textContent = range.value + wrap.dataset.einheit;
+    fn(Number(range.value));
+  });
+}
+function slSetzen(id, wert) {
+  const wrap = document.querySelector('.slregler[data-slid="' + id + '"]');
+  if (!wrap) return;
+  wrap.querySelector('input').value = wert;
+  wrap.querySelector('.wert').textContent = wert + wrap.dataset.einheit;
+}
+
+/* Stufen-Kurven-Editor: „bis X min → P/Std" bzw. „bis X Ticks → P/Tick";
+   leeres Bis-Feld = „danach" (letzte Stufe). */
+function stufenZeileHtml(istCounter, bis, rate) {
+  return '<div class="stufenzeile">'
+    + '<input type="number" class="stbis" inputmode="numeric" placeholder="danach" value="' + (bis == null ? '' : bis) + '">'
+    + '<span>' + (istCounter ? 'Ticks:' : 'min:') + '</span>'
+    + '<input type="number" class="strate" value="' + (rate == null ? 0 : rate) + '">'
+    + '<span>' + (istCounter ? 'P/Tick' : 'P/Std') + '</span>'
+    + '<button class="uax stloesch" aria-label="Stufe löschen">✕</button>'
+    + '</div>';
+}
+function stufenEditorHtml(item) {
+  const istCounter = item.typ === 'counter';
+  const stufen = (istCounter ? item.tickStufen : item.zeitStufen) || [];
+  return '<div class="feld"><label>Stufen-Kurve (optional — leer = fester Satz)</label>'
+    + '<div id="dStufen">'
+    + stufen.map(st => stufenZeileHtml(istCounter,
+        istCounter ? st.bisTick : st.bisMin,
+        istCounter ? st.punkteProTick : st.punkteProStd)).join('')
+    + '</div>'
+    + '<button class="wizbtn sek" id="dStufeAdd" style="margin-top:6px">+ Stufe hinzufügen</button></div>';
+}
+
+function zufallAnzeige(item) {
+  const t = item.rhythmusZufallTage || [];
+  if (!t.length) return 'wird gelost';
+  return rhythmusModusVon(item) === 'zufallWoche'
+    ? t.map(i => WT_KURZ[i]).join('·')
+    : t.map(x => x + '.').join('·');
 }
 
 function segHtml(feld, optionen, wert, labels) {
@@ -1736,9 +2022,23 @@ function sheetDetailOeffnen(id) {
        +  '<div class="feld"><label>Typ</label>' + segHtml('typ', ['aufgabe', 'routine', 'counter'], item.typ, ['📋', '🔁', '🔢']) + '</div>'
        + '</div>';
   html += '<div class="feld"><label>Priorität</label>' + segHtml('prioritaet', ['muss', 'soll', 'idee'], item.prioritaet, ['Muss', 'Soll', 'Idee']) + '</div>';
-  html += reglerHtml('komplexitaet', item.komplexitaet);
-  html += reglerHtml('energie', item.energie);
-  html += reglerHtml('blockade', item.blockade);
+  if (!istCounter) {
+    html += slReglerHtml('rate', 'Punkte pro Stunde' + (item.punkteProStd == null ? ' · Auto' : ''),
+      -60, 180, 1, Math.round(effektiveRate(item)), ' P/Std');
+    html += '<div class="zweispaltig">'
+      + '<div class="feld"><label>Abhak-Bonus ± P (leer = Geld-Impact)</label><input id="dBonus" type="number" value="' + (item.abschlussBonus != null ? item.abschlussBonus : '') + '"></div>'
+      + '<div class="feld"><label>Satz-Modus</label><button class="wizbtn sek" id="dRateAuto" style="margin-top:0;min-height:44px">↺ Auto</button></div>'
+      + '</div>';
+    html += slReglerHtml('akku', 'Akku pro Stunde' + (item.akkuProStd == null ? ' · Auto' : ''),
+      -30, 30, 1, Math.round(akkuRate(item)), ' %');
+    html += '<div class="feld"><label>Einschätzung (speist den Auto-Satz)</label></div>'
+      + slReglerHtml('fK', 'Komplexität', 0.5, 2.5, 0.05, Number(item.komplexitaet) || 1, '×')
+      + slReglerHtml('fE', 'Energie', 0.5, 1.5, 0.05, Number(item.energie) || 1, '×')
+      + slReglerHtml('fB', 'Blockade', 0.5, 2.5, 0.05, Number(item.blockade) || 1, '×');
+    html += stufenEditorHtml(item);
+    html += '<div class="feld"><label>Im Tagesstream anzeigen (bei gesetzter Zeit)</label>'
+      + segHtml('imStreamAnzeigen', ['1', '0'], item.imStreamAnzeigen ? '1' : '0', ['Ja', 'Nein']) + '</div>';
+  }
   if (item.domain === 'dfm') {
     html += '<div class="feld"><label>Geld-Impact (nur DFM)</label>'
          + segHtml('geldImpact', ['hoch', 'mittel', 'niedrig', ''], item.geldImpact || '', ['Hoch', 'Mittel', 'Niedrig', '—']) + '</div>';
@@ -1751,23 +2051,43 @@ function sheetDetailOeffnen(id) {
          + '<div class="zweispaltig">'
          +  '<div class="feld"><label>P/Tick bis Schwelle</label><input id="dVor" type="number" step="0.5" value="' + item.punkteJeTickVorSchwelle + '"></div>'
          +  '<div class="feld"><label>P/Tick danach</label><input id="dNach" type="number" step="0.5" value="' + item.punkteJeTickNachSchwelle + '"></div>'
-         + '</div>';
+         + '</div>'
+         + '<div class="wizinfo">Mehr Stufen gefällig? Die Stufen-Kurve unten ersetzt die einfache Schwelle.</div>'
+         + stufenEditorHtml(item);
   }
   if (item.typ === 'routine') {
     const r = item.rhythmusTage || 1;
     html += '<div class="feld"><label>Tagesabschnitt</label>'
          + segHtml('tagesabschnitt', ['morgen', 'tagsueber', 'abend'], item.tagesabschnitt || 'tagsueber', ['🌅 Morgen', '☀️ Tagsüber', '🌙 Abends']) + '</div>';
+    const modus = rhythmusModusVon(item);
     const wt = item.rhythmusWochentage || [];
-    html += '<div class="feld"><label>Wochentage</label><div class="wtreihe" id="dWtage">'
-         + WT_KURZ.map((w, i) => '<button class="wtag' + (wt.includes(i) ? ' on' : '') + '" data-wt="' + i + '">' + w + '</button>').join('')
-         + '</div></div>';
-    html += '<div class="feld"><label>Wiederholung</label>'
-         + segHtml('rhythmusWochen', ['1', '2', '3', '4'], String(item.rhythmusWochen || 1),
-             ['Jede Wo.', 'Jede 2.', 'Jede 3.', 'Jede 4.']) + '</div>';
-    html += '<div class="zweispaltig">'
-         + '<div class="feld"><label>Oder: alle X Tage (löscht Wochentage)</label><input id="dRhythmus" type="number" inputmode="numeric" min="1" max="31" value="' + r + '"></div>'
-         + '<div class="feld"><label>Zuletzt erledigt</label><input id="dZuletzt" type="date" value="' + (item.zuletztErledigt || '') + '"></div>'
-         + '</div>'
+    const wtInhalt = '<div class="wtreihe" id="dWtage">'
+      + WT_KURZ.map((w, i) => '<button class="wtag' + (wt.includes(i) ? ' on' : '') + '" data-wt="' + i + '">' + w + '</button>').join('')
+      + '</div><div style="height:8px"></div>'
+      + segHtml('rhythmusWochen', ['1', '2', '3', '4'], String(item.rhythmusWochen || 1),
+          ['Jede Wo.', 'Jede 2.', 'Jede 3.', 'Jede 4.']);
+    const mtInhalt = '<div class="mtgrid" id="dMtage">'
+      + Array.from({ length: 31 }, (_, i) => i + 1).map(t =>
+          '<button class="mtag' + ((item.rhythmusMonatstage || []).includes(t) ? ' on' : '') + '" data-mt="' + t + '">' + t + '</button>').join('')
+      + '</div>';
+    const zufallInhalt = max => '<div class="zweispaltig">'
+      + '<div class="feld"><label>Anzahl Tage</label><input id="dZufallN" type="number" min="1" max="' + max + '" value="' + (item.rhythmusZufallAnzahl || 2) + '"></div>'
+      + '<div class="feld"><label>Aktuell gelost</label><div class="wizinfo" style="margin:0" id="dZufallInfo">' + zufallAnzeige(item) + '</div></div>'
+      + '</div>';
+    const nInhalt = '<div class="feld"><label>Alle wieviele Tage? (1–31)</label><input id="dRhythmus" type="number" inputmode="numeric" min="1" max="31" value="' + r + '"></div>';
+    const modusRow = (key, label, inhalt) =>
+      '<div class="modusrow' + (modus === key ? ' aktiv' : '') + '" data-modus="' + key + '">'
+      + '<div class="modkopf">' + label + '<span class="modcheck">' + (modus === key ? '✓' : '') + '</span></div>'
+      + (modus === key ? '<div class="modinhalt">' + inhalt + '</div>' : '')
+      + '</div>';
+    html += '<div class="feld"><label>Häufigkeit</label><div class="modusliste">'
+      + modusRow('wochentage', 'Bestimmte Tage der Woche', wtInhalt)
+      + modusRow('monatstage', 'Bestimmte Tage im Monat', mtInhalt)
+      + modusRow('zufallWoche', 'Zufällige Tage pro Woche', zufallInhalt(7))
+      + modusRow('zufallMonat', 'Zufällige Tage pro Monat', zufallInhalt(15))
+      + modusRow('alleNTage', 'Alle N Tage', nInhalt)
+      + '</div></div>';
+    html += '<div class="feld"><label>Zuletzt erledigt</label><input id="dZuletzt" type="date" value="' + (item.zuletztErledigt || '') + '"></div>'
          + '<div class="zweispaltig">'
          + '<div class="feld"><label>Routine-Streak</label><div class="wizinfo" style="margin:0">🔥 ' + (item.routineStreak || 0) + (item.streakGebrochen ? ' · 💔 zuletzt gebrochen' : '') + '</div></div>'
          + '<div class="feld"><label>Abzug bei Verpassen</label><div class="wizinfo" style="margin:0">' + fmtPunkte(Store.settings.rhythmusVerpasstProTag) + ' P</div></div>'
@@ -1825,12 +2145,8 @@ function detailVerdrahten(item) {
     if (item.streamSlot != null && neu == null) item.heuteRausgezogen = true;
     item.streamSlot = neu;
   });
-  bind('dRhythmus', el => {
-    // Tages-Rhythmus gewählt → Wochentag-Modell verwerfen
-    item.rhythmusTage = Math.min(31, Math.max(1, Number(el.value) || 1));
-    item.rhythmusWochentage = [];
-    document.querySelectorAll('#dWtage .wtag').forEach(b => b.classList.remove('on'));
-  });
+  bind('dRhythmus', el => item.rhythmusTage = Math.min(31, Math.max(1, Number(el.value) || 1)));
+  bind('dBonus',    el => item.abschlussBonus = el.value === '' ? null : Number(el.value));
   const wtWrap = $('dWtage');
   if (wtWrap) wtWrap.querySelectorAll('.wtag').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1853,17 +2169,86 @@ function detailVerdrahten(item) {
   bind('dVor',      el => item.punkteJeTickVorSchwelle = Number(el.value) || 0);
   bind('dNach',     el => item.punkteJeTickNachSchwelle = Number(el.value) || 0);
 
-  // Schieberegler
-  inhalt.querySelectorAll('.regler').forEach(reg => {
-    const feld = reg.dataset.regler;
-    const range = reg.querySelector('input');
-    range.addEventListener('input', () => {
-      const stufen = REGLER_DEFS[feld].stufen;
-      item[feld] = stufen[Number(range.value)];
-      reg.querySelectorAll('.stufen span').forEach((sp, i) =>
-        sp.classList.toggle('on', i === Number(range.value)));
+  // Stufenlose Regler (Punktesystem 2.0)
+  slVerdrahten('rate', w => { item.punkteProStd = w; speichernUndAktualisieren(); });
+  slVerdrahten('akku', w => { item.akkuProStd = w; Store.speichereItems(); });
+  const faktorNach = () => {
+    if (item.punkteProStd == null) slSetzen('rate', Math.round(effektiveRate(item)));
+    speichernUndAktualisieren();
+  };
+  slVerdrahten('fK', w => { item.komplexitaet = w; faktorNach(); });
+  slVerdrahten('fE', w => { item.energie = w; faktorNach(); });
+  slVerdrahten('fB', w => { item.blockade = w; faktorNach(); });
+  const rateAuto = $('dRateAuto');
+  if (rateAuto) rateAuto.addEventListener('click', () => {
+    item.punkteProStd = null; item.akkuProStd = null;
+    Store.speichereItems();
+    sheetDetailOeffnen(item.id);
+  });
+
+  // Stufen-Kurven-Editor (Zeit bzw. Ticks)
+  const stWrap = $('dStufen');
+  if (stWrap) {
+    const istC = item.typ === 'counter';
+    const lesen = () => {
+      const arr = [...stWrap.querySelectorAll('.stufenzeile')].map(z => {
+        const bis = z.querySelector('.stbis').value;
+        const rate = Number(z.querySelector('.strate').value) || 0;
+        return istC
+          ? { bisTick: bis === '' ? null : Number(bis), punkteProTick: rate }
+          : { bisMin: bis === '' ? null : Number(bis), punkteProStd: rate };
+      });
+      arr.sort((a, b) => {
+        const av = istC ? a.bisTick : a.bisMin, bv = istC ? b.bisTick : b.bisMin;
+        return (av == null ? Infinity : av) - (bv == null ? Infinity : bv);
+      });
+      if (istC) item.tickStufen = arr.length ? arr : null;
+      else item.zeitStufen = arr.length ? arr : null;
+      speichernUndAktualisieren();
+    };
+    stWrap.addEventListener('input', lesen);
+    stWrap.addEventListener('click', e => {
+      const del = e.target.closest('.stloesch');
+      if (del) { del.closest('.stufenzeile').remove(); lesen(); }
+    });
+    $('dStufeAdd').addEventListener('click', () => {
+      stWrap.insertAdjacentHTML('beforeend', stufenZeileHtml(istC, null, 0));
+      lesen();
+    });
+  }
+
+  // Häufigkeits-Modi (Routine): Zeile wählen → Maske neu aufbauen
+  inhalt.querySelectorAll('.modusrow .modkopf').forEach(kopf => {
+    kopf.addEventListener('click', () => {
+      const key = kopf.parentElement.dataset.modus;
+      if (rhythmusModusVon(item) === key) return;
+      item.rhythmusModus = key;
+      item.rhythmusZufallPeriode = null;   // Zufalls-Modi: neu losen
+      item.rhythmusAnkerWoche = wochenIndex();
+      Store.speichereItems();
+      sheetDetailOeffnen(item.id);
+    });
+  });
+  const mtWrap = $('dMtage');
+  if (mtWrap) mtWrap.querySelectorAll('.mtag').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const t = Number(btn.dataset.mt);
+      item.rhythmusMonatstage = item.rhythmusMonatstage || [];
+      const idx = item.rhythmusMonatstage.indexOf(t);
+      if (idx >= 0) item.rhythmusMonatstage.splice(idx, 1);
+      else item.rhythmusMonatstage.push(t);
+      btn.classList.toggle('on', idx < 0);
       speichernUndAktualisieren();
     });
+  });
+  const zufallN = $('dZufallN');
+  if (zufallN) zufallN.addEventListener('input', () => {
+    item.rhythmusZufallAnzahl = Math.max(1, Number(zufallN.value) || 1);
+    item.rhythmusZufallPeriode = null;     // neu losen
+    zufallsTageSichern(item);
+    const info = $('dZufallInfo');
+    if (info) info.textContent = zufallAnzeige(item);
+    speichernUndAktualisieren();
   });
 
   // Segmente
@@ -1881,6 +2266,7 @@ function detailVerdrahten(item) {
           item.typ = wert;
           if (wert === 'counter') Object.assign(item, neuesItem({ ...item }));
         }
+        else if (feld === 'imStreamAnzeigen') item.imStreamAnzeigen = wert === '1';
         else item[feld] = wert;
         if (feld === 'domain' && wert !== 'dfm') item.geldImpact = null;
         Store.speichereItems();
@@ -1991,9 +2377,11 @@ function sheetTachoOeffnen() {
   /* ── Bewertung ── */
   if (item && item.typ !== 'counter') {
     html += '<div class="tacc"><div class="tacckopf">⚖️ Bewertung<span class="pfeil">▾</span></div><div class="taccinhalt">'
-      + reglerHtml('komplexitaet', item.komplexitaet)
-      + reglerHtml('energie', item.energie)
-      + reglerHtml('blockade', item.blockade)
+      + slReglerHtml('trate', 'Punkte pro Stunde' + (item.punkteProStd == null ? ' · Auto' : ''),
+          -60, 180, 1, Math.round(effektiveRate(item)), ' P/Std')
+      + slReglerHtml('tfK', 'Komplexität', 0.5, 2.5, 0.05, Number(item.komplexitaet) || 1, '×')
+      + slReglerHtml('tfE', 'Energie', 0.5, 1.5, 0.05, Number(item.energie) || 1, '×')
+      + slReglerHtml('tfB', 'Blockade', 0.5, 2.5, 0.05, Number(item.blockade) || 1, '×')
       + '</div></div>';
   }
 
@@ -2048,7 +2436,10 @@ function tachoVerdrahten(item) {
   if (!item) return;
 
   $('tPp').addEventListener('click', () => { fokusToggle(); tachoTick(); });
-  $('tCheck').addEventListener('click', () => { abhaken(item.id); sheetTachoOeffnen(); });
+  $('tCheck').addEventListener('click', () => {
+    if (item.typ === 'aufgabe') sheetAbschlussOeffnen(item.id);   // ersetzt das Tacho-Sheet
+    else { abhaken(item.id); sheetTachoOeffnen(); }
+  });
   document.querySelector('#sheetInhalt [data-tackt="detail"]')
     .addEventListener('click', () => sheetDetailOeffnen(item.id));
 
@@ -2058,18 +2449,15 @@ function tachoVerdrahten(item) {
     Store.speichereItems();
   });
 
-  document.querySelectorAll('#sheetInhalt .regler').forEach(reg => {
-    const feld = reg.dataset.regler;
-    const range = reg.querySelector('input');
-    range.addEventListener('input', () => {
-      const stufen = REGLER_DEFS[feld].stufen;
-      item[feld] = stufen[Number(range.value)];
-      reg.querySelectorAll('.stufen span').forEach((sp, i) =>
-        sp.classList.toggle('on', i === Number(range.value)));
-      Store.speichereItems();
-      tachoTick();
-    });
-  });
+  // Stufenlose Bewertungs-Regler (Punktesystem 2.0)
+  slVerdrahten('trate', w => { item.punkteProStd = w; Store.speichereItems(); tachoTick(); });
+  const tFaktor = () => {
+    if (item.punkteProStd == null) slSetzen('trate', Math.round(effektiveRate(item)));
+    Store.speichereItems(); tachoTick();
+  };
+  slVerdrahten('tfK', w => { item.komplexitaet = w; tFaktor(); });
+  slVerdrahten('tfE', w => { item.energie = w; tFaktor(); });
+  slVerdrahten('tfB', w => { item.blockade = w; tFaktor(); });
 
   const uaAdd = $('tUaAdd');
   if (uaAdd) {
@@ -2112,9 +2500,10 @@ function tachoTick() {
   if (sheetOffenFuer !== 'tacho') return;
   const item = fokusItem();
 
-  // Akku
+  // Akku (live inkl. laufendem Fokus)
   const akkuEl = $('tAkku');
-  if (akkuEl) akkuEl.textContent = Store.tag.akkuProzent != null ? Math.round(Store.tag.akkuProzent) + '%' : '–%';
+  const akkuP = akkuLive();
+  if (akkuEl) akkuEl.textContent = akkuP != null ? Math.round(akkuP) + '%' : '–%';
 
   // Upgrade-Leiste (auch ohne Fokus live)
   const stufen = Store.settings.avatarStufen || DEFAULT_SETTINGS.avatarStufen;
@@ -2973,7 +3362,7 @@ document.addEventListener('click', e => {
       if (sheetOffenFuer === 'tacho') sheetTachoOeffnen();
       break;
     case 'detail': sheetDetailOeffnen(id); break;
-    case 'check':  abhaken(id); break;
+    case 'check':  abhakenFlow(id); break;
     case 'tick':   counterTick(id); break;
   }
 });
@@ -3045,7 +3434,9 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   zeitVerteilung, unteraufgabenAnteil, unteraufgabeToggle, unteraufgabeAnlegen,
   wohlstandLive, fokusLiveDelta, avatarStufeAus, pruefeLevelUp, tachoTick,
   routineFaellig, routineUeberfaelligTage, routineAussetzen, rhythmusLabel,
-  routineNaechsteIn, wochenIndex, wochentagMo0, tageswechselPruefen };
+  routineNaechsteIn, wochenIndex, wochentagMo0, tageswechselPruefen,
+  effektiveRate, effektiverBonus, vorschlagRate, akkuRate, akkuLive,
+  punkteFuerZeit, counterIstSchlecht, abhakenFlow, rhythmusModusVon };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
 if ('serviceWorker' in navigator) {
