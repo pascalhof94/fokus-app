@@ -667,7 +667,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.21.0';
+const APP_VERSION = '0.21.1';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -1017,9 +1017,13 @@ function vorschlagRate(item) {
     * (Number(item.blockade) || 1);
 }
 
-/* Wirksamer Stundensatz: manueller Wert schlägt den Auto-Vorschlag. */
+/* Wirksamer Stundensatz: manueller Wert schlägt den Auto-Vorschlag.
+   Ungültig gespeicherte Werte (NaN/Text) fallen auf den Vorschlag zurück. */
 function effektiveRate(item) {
-  return item.punkteProStd != null ? item.punkteProStd : vorschlagRate(item);
+  if (item.punkteProStd != null && Number.isFinite(Number(item.punkteProStd))) {
+    return Number(item.punkteProStd);
+  }
+  return vorschlagRate(item);
 }
 
 /* Abhak-Bonus: manuell (darf negativ sein), sonst Geld-Impact (DFM),
@@ -1028,7 +1032,8 @@ function effektiverBonus(item) {
   if (item.abschlussBonus != null) return item.abschlussBonus;
   if (item.typ === 'counter') return 0;
   if (item.domain === 'dfm' && item.geldImpact) {
-    return Store.settings.geldScoreBasis[item.geldImpact] - tageBisDeadline(item.deadline);
+    // unbekannter Impact-Schlüssel darf kein NaN erzeugen
+    return (Number(Store.settings.geldScoreBasis[item.geldImpact]) || 0) - tageBisDeadline(item.deadline);
   }
   return Store.settings.abschlussBonusStandard != null ? Store.settings.abschlussBonusStandard : 100;
 }
@@ -1066,7 +1071,8 @@ function punkteBeiMinuten(item, minuten) {
   // Schiebe-/Plan-Malus: −X % des Zeit-Anteils je geschobenem Tag
   const malusSatz = (Store.settings.schiebeMalusProzent[item.prioritaet] || 0) / 100;
   const malusFaktor = Math.max(0, 1 - malusSatz * (item.tageGeschoben || 0));
-  return punkteFuerZeit(item, min) * malusFaktor + effektiverBonus(item);
+  const p = punkteFuerZeit(item, min) * malusFaktor + effektiverBonus(item);
+  return Number.isFinite(p) ? p : 0;   // Sicherheitsnetz gegen NaN aus Altdaten
 }
 
 /* Counter: Stufen-Kurve (tickStufen) oder Alt-Modell (eine Schwelle). */
@@ -1096,10 +1102,10 @@ function counterIstSchlecht(item) {
 /* Anzeigewert (3.5): erledigt = eingefroren (aus dem Log), offen = live.
    Offene Aufgaben ohne Ist-Zeit projizieren über die geplanten Minuten. */
 function anzeigePunkte(item) {
-  if (item.typ === 'counter') return counterPunkte(item);
+  if (item.typ === 'counter') return Number(counterPunkte(item)) || 0;
   if (item.status === 'erledigt') {
     const log = Store.tag.log.find(l => l.itemId === item.id);
-    if (log) return log.punkte;
+    if (log) return Number(log.punkte) || 0;   // Log ohne Punktewert (z. B. Import) → 0 statt NaN
   }
   const min = Math.max(minutenInklFokus(item), item.aufwandGeplantMin || 0);
   return punkteBeiMinuten(item, min);
@@ -1656,10 +1662,10 @@ function counterTick(id) {
    Nie unter 0 (Entscheidung 22.07.2026) — Maluse können den Tag
    maximal auf null ziehen, nie ins Minus. */
 function gesamtpunkteAktualisieren() {
-  const log = Store.tag.log.reduce((s, l) => s + l.punkte, 0);
+  const log = Store.tag.log.reduce((s, l) => s + (Number(l.punkte) || 0), 0);
   const counter = Store.items.filter(i => i.typ === 'counter')
-    .reduce((s, i) => s + counterPunkte(i), 0);
-  Store.tag.gesamtpunkteHeute = Math.max(0, log + counter + (Store.tag.streakBonusHeute || 0));
+    .reduce((s, i) => s + (Number(counterPunkte(i)) || 0), 0);
+  Store.tag.gesamtpunkteHeute = Math.max(0, log + counter + (Number(Store.tag.streakBonusHeute) || 0));
 }
 
 /* Abgeschlossener Tag = gesperrt: erst „Tag starten" öffnet wieder. */
@@ -2063,7 +2069,7 @@ function renderPace() {
 
   // Tagesziel = Summe der Punkte aller im Stream platzierten Items (3.6)
   const ziel = Store.items.filter(i => i.streamSlot != null)
-    .reduce((sum, i) => sum + anzeigePunkte(i), 0);
+    .reduce((sum, i) => sum + (Number(anzeigePunkte(i)) || 0), 0);
   const sollProStd = ziel / (spanne / 60);
   const vergangeneStd = Math.max(0.1, (jetztMin - start) / 60);
   gesamtpunkteAktualisieren();
@@ -2112,7 +2118,7 @@ function paceWerte() {
   const jetztMin = jetzt.getHours() * 60 + jetzt.getMinutes();
   const spanne = Math.max(1, ende - start);
   const ziel = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter')
-    .reduce((sum, i) => sum + anzeigePunkte(i), 0);
+    .reduce((sum, i) => sum + (Number(anzeigePunkte(i)) || 0), 0);
   gesamtpunkteAktualisieren();
   const soll = ziel / (spanne / 60);
   const ist = jetztMin > start
@@ -2441,7 +2447,8 @@ function rateInfoText(item) {
 }
 function bonusVorschlag(item) {
   if (item.domain === 'dfm' && item.geldImpact) {
-    return Store.settings.geldScoreBasis[item.geldImpact] - tageBisDeadline(item.deadline);
+    // unbekannter Impact-Schlüssel darf kein NaN erzeugen
+    return (Number(Store.settings.geldScoreBasis[item.geldImpact]) || 0) - tageBisDeadline(item.deadline);
   }
   return Store.settings.abschlussBonusStandard != null ? Store.settings.abschlussBonusStandard : 100;
 }
@@ -3348,14 +3355,17 @@ function kurveHtml(zeitraum) {
       .map(e => ({ min: (d => d.getHours() * 60 + d.getMinutes())(new Date(e.z)), p: e.p }))
       .sort((a, b) => a.min - b.min);
     const ziel = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter')
-      .reduce((sum, i) => sum + anzeigePunkte(i), 0);
+      .reduce((sum, i) => sum + (Number(anzeigePunkte(i)) || 0), 0);
     let kum = 0;
     const punkte = [[start, 0]];
-    events.forEach(e => { kum += e.p; punkte.push([Math.min(ende, Math.max(start, e.min)), kum]); });
+    events.forEach(e => { kum += (Number(e.p) || 0); punkte.push([Math.min(ende, Math.max(start, e.min)), kum]); });
     const jetzt = new Date(); const jm = Math.min(ende, jetzt.getHours() * 60 + jetzt.getMinutes());
-    kum += fokusLiveDelta();
+    kum += (Number(fokusLiveDelta()) || 0);
     if (jm > start) punkte.push([jm, kum]);
-    const maxY = Math.max(ziel, kum, 10);
+    // Dynamische Skala: höchster angezeigter Wert (Kurven-Spitze, ggf. Soll-Linie)
+    // + 15 % Puffer, damit die Linie nie an den oberen Rand läuft (22.07.2026).
+    const spitze = punkte.reduce((m, pt) => Math.max(m, pt[1]), 0);
+    const maxY = Math.max(statFilter.soll ? ziel : 0, spitze, 10) * 1.15;
     const X = m => 6 + (m - start) / Math.max(1, ende - start) * 288;
     const Y = p => 96 - (p / maxY) * 86;
     const linie = punkte.map(pt => X(pt[0]).toFixed(1) + ',' + Y(pt[1]).toFixed(1)).join(' ');
