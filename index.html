@@ -386,6 +386,10 @@ textarea{min-height:64px;resize:vertical}
 .regler .kopfzeile2{display:flex;justify-content:space-between;align-items:baseline}
 .regler .wert{font-family:ui-monospace,SFMono-Regular,monospace;font-size:13px;font-weight:800;color:var(--cyan)}
 #view-einstellungen .regler{margin-bottom:var(--s1)}
+#view-einstellungen .swert{
+  width:88px;flex:none;text-align:center;padding:7px 4px;font-size:13px;
+  font-family:ui-monospace,SFMono-Regular,monospace;color:var(--cyan);font-weight:700;
+}
 .resetbtn{
   width:100%;min-height:var(--tap);margin-top:var(--s3);
   border:1px solid var(--bad);border-radius:12px;color:var(--bad);
@@ -663,7 +667,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.20.0';
+const APP_VERSION = '0.21.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -687,6 +691,7 @@ const DEFAULT_SETTINGS = {
   /* Punktesystem 2.0 (21.07.2026): Basis = Punkte/Stunde + Abhak-Bonus.
      basisProStd × K × E × B ergibt den Auto-Vorschlag je Item. */
   basisProStd: 12,                                            // P/Std bei Faktor 1,0
+  abschlussBonusStandard: 100,                                // Einmal-Punkte beim Abhaken (22.07.2026)
   akkuProStdStandard: -8,                                     // Akku-%/Std im Fokus (Standard)
   minutenJeEinheit: 5,                                        // (Altsystem, nur Migration)
   komplexitaet: { leicht: 1.0, mittel: 1.5, schwer: 2.0 },    // (Altsystem, nur Migration)
@@ -1017,13 +1022,15 @@ function effektiveRate(item) {
   return item.punkteProStd != null ? item.punkteProStd : vorschlagRate(item);
 }
 
-/* Abhak-Bonus: manuell (darf negativ sein) oder aus dem Geld-Impact. */
+/* Abhak-Bonus: manuell (darf negativ sein), sonst Geld-Impact (DFM),
+   sonst der Standard-Bonus aus den Settings (22.07.2026: Default 100). */
 function effektiverBonus(item) {
   if (item.abschlussBonus != null) return item.abschlussBonus;
+  if (item.typ === 'counter') return 0;
   if (item.domain === 'dfm' && item.geldImpact) {
     return Store.settings.geldScoreBasis[item.geldImpact] - tageBisDeadline(item.deadline);
   }
-  return 0;
+  return Store.settings.abschlussBonusStandard != null ? Store.settings.abschlussBonusStandard : 100;
 }
 
 /* Akku-Änderung pro Fokus-Stunde. */
@@ -1929,10 +1936,17 @@ function renderStream() {
   const heuteErledigt = new Set(Store.tag.log
     .filter(l => !l.uaId && !l.counterAbschluss && !l.routineVerpasst && !l.aussetzer)
     .map(l => l.itemId));
+  // Sortierung (22.07.2026): begonnene Aufgaben zuerst, absteigend nach
+  // investierter Zeit — darunter die unangefangenen chronologisch.
+  const investiert = i => (i.status === 'in_arbeit' || minutenInklFokus(i) >= 1) ? minutenInklFokus(i) : -1;
   const stream = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter'
       && i.imStreamAnzeigen !== false
       && (i.status !== 'erledigt' || heuteErledigt.has(i.id)))
-    .sort((a, b) => a.streamSlot - b.streamSlot);
+    .sort((a, b) => {
+      const ia = investiert(a), ib = investiert(b);
+      if (ia >= 0 || ib >= 0) return ib - ia;          // begonnen vor unbegonnen, mehr Zeit zuerst
+      return a.streamSlot - b.streamSlot;
+    });
   const queue = Store.items.filter(i => i.typ === 'aufgabe' && i.streamSlot == null && i.status !== 'erledigt')
     .sort((a, b) => anzeigePunkte(b) - anzeigePunkte(a));
   const queueFertig = Store.items.filter(i => i.typ === 'aufgabe' && i.streamSlot == null
@@ -2163,6 +2177,7 @@ function renderAlles() {
 const SETTINGS_DEFS = [
   { titel: 'Punktesystem (Basis)', regler: [
     { p: 'basisProStd', l: 'Punkte/Std bei Faktor 1,0', min: 1, max: 60, step: 1 },
+    { p: 'abschlussBonusStandard', l: 'Abhak-Bonus Standard (P)', min: 0, max: 300, step: 10 },
     { p: 'akkuProStdStandard', l: 'Akku %/Std im Fokus (Standard)', min: -30, max: 30, step: 1 }
   ]},
   { titel: 'Geld-Score-Basis — nur DFM (3.3)', regler: [
@@ -2213,8 +2228,10 @@ function renderEinstellungen() {
   for (const gruppe of SETTINGS_DEFS) {
     html += '<h2 class="sechead">' + gruppe.titel + '</h2>';
     for (const r of gruppe.regler) {
+      // Wert auch frei eintippbar — darf über das Regler-Maximum hinaus (22.07.2026)
       html += '<div class="regler" data-pfad="' + r.p + '" data-step="' + r.step + '">'
-        + '<div class="kopfzeile2"><label>' + r.l + '</label><span class="wert">' + sGet(r.p) + '</span></div>'
+        + '<div class="kopfzeile2"><label>' + r.l + '</label>'
+        + '<input type="number" class="swert" step="' + r.step + '" value="' + sGet(r.p) + '"></div>'
         + '<input type="range" min="' + r.min + '" max="' + r.max + '" step="' + r.step + '" value="' + sGet(r.p) + '">'
         + '</div>';
     }
@@ -2224,6 +2241,16 @@ function renderEinstellungen() {
     + '<div class="feld"><label>Start</label><input id="sTagStart" type="time" value="' + Store.settings.arbeitstagStart + '"></div>'
     + '<div class="feld"><label>Ende</label><input id="sTagEnde" type="time" value="' + Store.settings.arbeitstagEnde + '"></div>'
     + '</div>';
+  // Vorlagen für neue Items (22.07.2026)
+  html += '<h2 class="sechead">Vorlagen für neue Items</h2>';
+  const vl = vorlagenLaden();
+  html += vl.length
+    ? vl.map(v => '<div class="aufzeile"><span class="albl" style="width:auto;flex:1">'
+        + escapeHtml(v.name) + ' · ' + ((v.unteraufgaben || []).length) + ' Unteraufgaben</span>'
+        + '<button class="wizbtn sek" data-vedit="' + v.id + '" style="width:auto;min-height:38px;margin:0;padding:0 14px">✎</button></div>').join('')
+    : '<div class="leer">Noch keine Vorlagen.</div>';
+  html += '<button class="wizbtn sek" id="sVorlageNeu" style="margin-top:6px">+ Neue Vorlage</button>';
+
   // Abgeschlossene Tage widerrufen (22.07.2026)
   html += '<h2 class="sechead">Tagesabschlüsse — Widerruf</h2>';
   const abschluesse = historieLaden().slice(-14).reverse();
@@ -2237,13 +2264,21 @@ function renderEinstellungen() {
   html += '<div class="versionszeile">Fokus App ' + APP_VERSION + '</div>';
   $('view-einstellungen').innerHTML = html;
 
-  document.querySelectorAll('#view-einstellungen .regler input[type=range]').forEach(range => {
+  document.querySelectorAll('#view-einstellungen .regler').forEach(wrap => {
+    const range = wrap.querySelector('input[type=range]');
+    const feld = wrap.querySelector('.swert');
+    if (!range || !feld) return;
     range.addEventListener('input', () => {
-      const wrap = range.closest('.regler');
-      const wert = Number(range.value);
-      sSet(wrap.dataset.pfad, wert);
-      wrap.querySelector('.wert').textContent = wert;
-      renderStream(); renderPace();      // Punkte reagieren sofort (3.5)
+      sSet(wrap.dataset.pfad, Number(range.value));
+      feld.value = range.value;
+      renderStream(); renderPace(); renderStatusbar();
+    });
+    feld.addEventListener('input', () => {
+      const wert = Number(feld.value);
+      if (feld.value === '' || isNaN(wert)) return;
+      sSet(wrap.dataset.pfad, wert);   // frei — auch jenseits des Regler-Bereichs
+      range.value = Math.min(Number(range.max), Math.max(Number(range.min), wert));
+      renderStream(); renderPace(); renderStatusbar();
     });
   });
   $('sTagStart').addEventListener('input', el => { Store.settings.arbeitstagStart = el.target.value || '08:00'; Store.speichereSettings(); renderPace(); });
@@ -2257,6 +2292,11 @@ function renderEinstellungen() {
   document.querySelectorAll('#view-einstellungen [data-widerruf]').forEach(btn => {
     btn.addEventListener('click', () => snapshotWiderrufen(btn.dataset.widerruf));
   });
+  document.querySelectorAll('#view-einstellungen [data-vedit]').forEach(btn => {
+    btn.addEventListener('click', () => sheetVorlageOeffnen(btn.dataset.vedit));
+  });
+  const vn = $('sVorlageNeu');
+  if (vn) vn.addEventListener('click', () => sheetVorlageOeffnen(null));
 }
 
 /* Abschluss eines Tages aus den Einstellungen widerrufen: heute =
@@ -2403,7 +2443,7 @@ function bonusVorschlag(item) {
   if (item.domain === 'dfm' && item.geldImpact) {
     return Store.settings.geldScoreBasis[item.geldImpact] - tageBisDeadline(item.deadline);
   }
-  return 0;
+  return Store.settings.abschlussBonusStandard != null ? Store.settings.abschlussBonusStandard : 100;
 }
 function bonusInfoText(item) {
   const v = Math.round(bonusVorschlag(item));
@@ -3735,12 +3775,108 @@ function sheetTagStartOeffnen() {
   });
 }
 
+/* ── Vorlagen (22.07.2026): feste Vorlagen mit Werten + Unteraufgaben,
+      gepflegt in den Einstellungen, wählbar beim Anlegen. ── */
+function vorlagenLaden() { return lsLese('fokus2.vorlagen', []); }
+function vorlagenSpeichern(v) { lsSchreibe('fokus2.vorlagen', v); }
+
+function vorlagenUaZeile(u) {
+  return '<div class="stufenzeile vuazeile">'
+    + '<input type="text" class="vut" placeholder="Titel" value="' + escapeHtml(u.titel || '') + '" style="width:auto;flex:1;text-align:left">'
+    + '<input type="number" class="vum" placeholder="min" value="' + (u.geplantMin != null ? u.geplantMin : '') + '">'
+    + '<input type="number" class="vub" placeholder="P" value="' + (u.bonusPunkte != null ? u.bonusPunkte : '') + '">'
+    + '<button class="uax vux" aria-label="Entfernen">✕</button></div>';
+}
+
+function sheetVorlageOeffnen(id) {
+  const vorlagen = vorlagenLaden();
+  const bestehend = vorlagen.find(x => x.id === id);
+  const v = bestehend || {
+    id: lokaleUuid(), name: '',
+    werte: { typ: 'aufgabe', domain: 'dfm', prioritaet: 'soll', aufwandGeplantMin: 30 },
+    unteraufgaben: []
+  };
+  const w = v.werte || {};
+  let html = '<div class="feld"><label>Name der Vorlage</label><input id="vName" type="text" placeholder="z. B. Meeting" value="' + escapeHtml(v.name) + '"></div>'
+    + '<div class="zweispaltig">'
+    + '<div class="feld"><label>Typ</label>' + segHtml('vtyp', ['aufgabe', 'routine', 'counter'], w.typ || 'aufgabe', ['📋', '🔁', '🔢']) + '</div>'
+    + '<div class="feld"><label>Domäne</label>' + segHtml('vdomain', ['dfm', 'privat'], w.domain || 'dfm', ['DFM', 'Privat']) + '</div></div>'
+    + '<div class="feld"><label>Priorität</label>' + segHtml('vprio', ['muss', 'soll', 'idee'], w.prioritaet || 'soll', ['Muss', 'Soll', 'Idee']) + '</div>'
+    + '<div class="zweispaltig">'
+    + '<div class="feld"><label>Gesamtzeit (min)</label><input id="vZeit" type="number" value="' + (w.aufwandGeplantMin || 0) + '"></div>'
+    + '<div class="feld"><label>Punkte/Std (leer = Auto)</label><input id="vRate" type="number" value="' + (w.punkteProStd != null ? w.punkteProStd : '') + '"></div></div>'
+    + '<div class="zweispaltig">'
+    + '<div class="feld"><label>Einmalige Punkte (leer = Auto)</label><input id="vBonus" type="number" value="' + (w.abschlussBonus != null ? w.abschlussBonus : '') + '"></div>'
+    + '<div class="feld"><label>Abzug Nicht-Erledigung</label><input id="vMalus" type="number" value="' + (w.nichtErledigtMalus != null ? w.nichtErledigtMalus : '') + '"></div></div>'
+    + '<div class="feld"><label>Akku %/Std (leer = Auto)</label><input id="vAkku" type="number" value="' + (w.akkuProStd != null ? w.akkuProStd : '') + '"></div>'
+    + '<div class="feld"><label>Unteraufgaben (Titel · min · P)</label><div id="vUas">'
+    + (v.unteraufgaben || []).map(vorlagenUaZeile).join('') + '</div>'
+    + '<button class="wizbtn sek" id="vUaAdd" style="margin-top:6px">+ Unteraufgabe</button></div>'
+    + '<button class="wizbtn" id="vSpeichern">Vorlage speichern</button>'
+    + (bestehend ? '<button class="wizbtn sek" id="vLoeschen" style="border-color:var(--bad);color:var(--bad)">Vorlage löschen</button>' : '');
+  sheetOeffnen(bestehend ? 'Vorlage: ' + v.name : 'Neue Vorlage', html, 'vorlage');
+
+  const seg = { vtyp: w.typ || 'aufgabe', vdomain: w.domain || 'dfm', vprio: w.prioritaet || 'soll' };
+  document.querySelectorAll('#sheetInhalt .seg').forEach(s => {
+    s.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+      seg[s.dataset.seg] = btn.dataset.wert;
+      s.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+    }));
+  });
+  $('vUaAdd').addEventListener('click', () =>
+    $('vUas').insertAdjacentHTML('beforeend', vorlagenUaZeile({})));
+  $('vUas').addEventListener('click', e => {
+    const x = e.target.closest('.vux');
+    if (x) x.closest('.vuazeile').remove();
+  });
+  $('vSpeichern').addEventListener('click', () => {
+    const name = $('vName').value.trim();
+    if (!name) { $('vName').focus(); return; }
+    const zahl = idw => { const el = $(idw); return el.value === '' ? null : Number(el.value); };
+    const neu = {
+      id: v.id, name,
+      werte: {
+        typ: seg.vtyp, domain: seg.vdomain, prioritaet: seg.vprio,
+        aufwandGeplantMin: Number($('vZeit').value) || 0,
+        punkteProStd: zahl('vRate'), abschlussBonus: zahl('vBonus'),
+        nichtErledigtMalus: zahl('vMalus') != null ? Math.abs(zahl('vMalus')) : null,
+        akkuProStd: zahl('vAkku')
+      },
+      unteraufgaben: [...document.querySelectorAll('#vUas .vuazeile')].map(z => ({
+        titel: z.querySelector('.vut').value.trim(),
+        geplantMin: z.querySelector('.vum').value === '' ? null : Number(z.querySelector('.vum').value),
+        bonusPunkte: z.querySelector('.vub').value === '' ? null : Number(z.querySelector('.vub').value)
+      })).filter(u => u.titel)
+    };
+    const liste = vorlagenLaden().filter(x => x.id !== v.id);
+    liste.push(neu);
+    vorlagenSpeichern(liste);
+    sheetSchliessen();
+    toastZeigen('✓ Vorlage „' + name + '" gespeichert');
+    if (document.getElementById('view-einstellungen').classList.contains('on')) renderEinstellungen();
+  });
+  const del = $('vLoeschen');
+  if (del) del.addEventListener('click', () => {
+    if (!confirm('Vorlage „' + v.name + '" löschen?')) return;
+    vorlagenSpeichern(vorlagenLaden().filter(x => x.id !== v.id));
+    sheetSchliessen();
+    if (document.getElementById('view-einstellungen').classList.contains('on')) renderEinstellungen();
+  });
+}
+
 /* ── Neues Item anlegen (Nachtrag 20.07.2026): „+"-Button in allen
       Ansichten — Aufgabe/Routine/Counter, DFM oder Privat. Landet ohne
       Slot in der Warteschlange; „+ Details" öffnet die volle Karte. ── */
 function sheetNeuOeffnen() {
+  const vorlagen = vorlagenLaden();
   let html = ''
     + '<div class="feld"><label>Titel</label><input id="nTitel" type="text" placeholder="Was ist zu tun?"></div>'
+    + (vorlagen.length
+      ? '<div class="feld"><label>Vorlage (übernimmt Werte + Unteraufgaben)</label>'
+        + '<div class="seg" data-seg="nvorlage"><button data-wert="" class="on">Ohne</button>'
+        + vorlagen.map(v => '<button data-wert="' + v.id + '">' + escapeHtml(v.name) + '</button>').join('')
+        + '</div></div>'
+      : '')
     + '<div class="zweispaltig">'
     + '<div class="feld"><label>Typ</label>' + segHtml('ntyp', ['aufgabe', 'routine', 'counter'], 'aufgabe', ['📋 Aufgabe', '🔁 Routine', '🔢 Counter']) + '</div>'
     + '</div>'
@@ -3754,21 +3890,44 @@ function sheetNeuOeffnen() {
     + '</div>';
   sheetOeffnen('Neues Item', html, 'neu');
 
-  const auswahl = { ntyp: 'aufgabe', ndomain: 'dfm', nprio: 'soll' };
+  const auswahl = { ntyp: 'aufgabe', ndomain: 'dfm', nprio: 'soll', vorlage: null };
   document.querySelectorAll('#sheetInhalt .seg').forEach(seg => {
     seg.querySelectorAll('button').forEach(btn => {
       btn.addEventListener('click', () => {
         auswahl[seg.dataset.seg] = btn.dataset.wert;
         seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+        // Vorlage gewählt → Typ/Domäne/Prio sichtbar übernehmen (anpassbar)
+        if (seg.dataset.seg === 'nvorlage') {
+          auswahl.vorlage = vorlagen.find(x => x.id === btn.dataset.wert) || null;
+          const w = (auswahl.vorlage && auswahl.vorlage.werte) || {};
+          [['ntyp', 'typ'], ['ndomain', 'domain'], ['nprio', 'prioritaet']].forEach(([sName, fName]) => {
+            if (w[fName]) {
+              auswahl[sName] = w[fName];
+              document.querySelectorAll('[data-seg="' + sName + '"] button').forEach(b =>
+                b.classList.toggle('on', b.dataset.wert === w[fName]));
+            }
+          });
+          $('nTitel').placeholder = auswahl.vorlage ? auswahl.vorlage.name + ' …' : 'Was ist zu tun?';
+        }
       });
     });
   });
   const anlegen = () => {
-    const titel = $('nTitel').value.trim();
+    const v = auswahl.vorlage;
+    const titel = $('nTitel').value.trim() || (v ? v.name : '');
     if (!titel) { $('nTitel').focus(); return null; }
-    const { item } = Store.upsertItem({
+    const felder = Object.assign({}, v ? v.werte : null, {
       titel, typ: auswahl.ntyp, domain: auswahl.ndomain, prioritaet: auswahl.nprio
     });
+    if (v && v.unteraufgaben && v.unteraufgaben.length) {
+      felder.unteraufgaben = v.unteraufgaben.map(u => ({
+        id: lokaleUuid(), titel: u.titel, erledigt: false,
+        geplantMin: u.geplantMin != null ? u.geplantMin : null,
+        bonusPunkte: u.bonusPunkte != null ? u.bonusPunkte : null,
+        gebuchtePunkte: null
+      }));
+    }
+    const { item } = Store.upsertItem(felder);
     renderAlles();
     return item;
   };
@@ -4255,6 +4414,22 @@ if (!localStorage.getItem('fokus2.init400')) {
   Store.speichereTag();
   localStorage.setItem('fokus2.init400', '1');
 }
+/* Erste Vorlage „Meeting" einmalig anlegen (22.07.2026) — danach
+   verwaltet Pascal die Vorlagen selbst in den Einstellungen. */
+if (!localStorage.getItem('fokus2.vorlagenSeed')) {
+  if (!vorlagenLaden().length) {
+    vorlagenSpeichern([{
+      id: lokaleUuid(), name: 'Meeting',
+      werte: { typ: 'aufgabe', domain: 'dfm', prioritaet: 'soll', aufwandGeplantMin: 60, akkuProStd: -12 },
+      unteraufgaben: [
+        { titel: 'Vorbereiten', geplantMin: 10, bonusPunkte: null },
+        { titel: 'Teilnehmen', geplantMin: 40, bonusPunkte: null },
+        { titel: 'Nachbereiten & Notizen', geplantMin: 10, bonusPunkte: null }
+      ]
+    }]);
+  }
+  localStorage.setItem('fokus2.vorlagenSeed', '1');
+}
 gesamtpunkteAktualisieren();
 pruefeLevelUp();              // Avatar-Level initialisieren/nachziehen
 renderAlles();
@@ -4275,6 +4450,7 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   routineNaechsteIn, wochenIndex, wochentagMo0, tageswechselPruefen,
   effektiveRate, effektiverBonus, vorschlagRate, akkuRate, akkuLive,
   abschlussWiderrufen, snapshotWiderrufen, malusBasis, tagesabschlussKern,
+  vorlagenLaden, vorlagenSpeichern, sheetVorlageOeffnen,
   punkteFuerZeit, counterIstSchlecht, abhakenFlow, rhythmusModusVon,
   streamToggle, bonusVerteilung, uaSummenAngleichen, bonusVorschlag };
 
