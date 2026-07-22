@@ -461,8 +461,10 @@ textarea{min-height:64px;resize:vertical}
   display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--bg);font-weight:900;
 }
 .uareihe.fertig .uacheck .box{background:var(--ok);border-color:var(--ok)}
-.uareihe .uatitel{flex:1;min-width:0;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.uareihe.fertig .uatitel{color:var(--mut2);text-decoration:line-through}
+.uareihe .uatitel{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px}
+.uareihe .uatitel .uat{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uareihe.fertig .uatitel .uat{color:var(--mut2);text-decoration:line-through}
+.uareihe .uabeschr{font-size:10px;color:var(--mut2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .uareihe .uamin{width:52px;flex:none;font-size:11px;text-align:center;padding:5px 4px}
 .uareihe .uamin::placeholder{color:var(--cyan);opacity:.8}
 .uareihe .uabonus{border-color:rgba(185,138,247,.5)}
@@ -677,7 +679,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.25.0';
+const APP_VERSION = '0.26.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -771,10 +773,10 @@ function neuesItem(felder = {}) {
     tageGeschoben: 0,                 // Zähler für Schiebe-/Plan-Malus
     rhythmusTage: null,               // Routine: alle X Tage fällig (null = kein Rhythmus)
     zuletztErledigt: null,            // Routine: 'YYYY-MM-DD' der letzten Erledigung
-    /* Unteraufgaben (Tacho 2.0): reisen strukturiert im Sync (Titel + Status
-       + geplante Minuten) ins Airtable-Feld „Unteraufgabe" (22.07.2026) —
-       nie als eigene Airtable-Aufgaben. */
-    unteraufgaben: [],                // [{id, titel, erledigt, geplantMin|null, bonusPunkte|null, gebuchtePunkte|null}]
+    /* Unteraufgaben (Tacho 2.0): reisen strukturiert im Sync inkl. stabiler id
+       (v0.26.0) — Matching per id, Löschen nur über item.unteraufgabenEntfernt.
+       Nie als eigene Airtable-Aufgaben. */
+    unteraufgaben: [],                // [{id, titel, erledigt, geplantMin|null, bonusPunkte|null, gebuchtePunkte|null, beschreibung|null}]
     /* Private Tagesstruktur (20.07.2026): */
     tagesabschnitt: 'tagsueber',      // Routine-Feld: morgen | tagsueber | abend
     routineStreak: 0,                 // routineneigene Streak-Serie
@@ -928,12 +930,30 @@ const Store = {
      unter „neu" = ERSETZUNG derselben Karte (neue ID, lokaler Zustand wie
      streamSlot/Ist-Minuten/Status bleibt erhalten) — keine Neuanlage. */
   wendeImportAn(paket) {
-    const ergebnis = { angelegt: 0, aktualisiert: 0, entfernt: 0, ersetzt: 0 };
+    const ergebnis = { angelegt: 0, aktualisiert: 0, entfernt: 0, ersetzt: 0, unbekannt: [] };
     const neu = (paket.neu || []).filter(n => n && n.id);
     const aktualisiert = (paket.aktualisiert || []).filter(n => n && n.id);
     const entfernt = paket.entfernt || [];
     const istRec = id => /^rec/i.test(String(id));
     const alsErsatzVerbraucht = new Set();
+
+    // (4) read-only Felder nie aus dem Import übernehmen — verwerfen
+    [...neu, ...aktualisiert].forEach(f => { delete f.bereich; delete f.heuteRausgezogen; });
+
+    // (5c) unbekannte Feldnamen sammeln → Tippfehler sichtbar machen
+    const bekannt = new Set([
+      ...Object.keys(neuesItem()), ...Object.keys(neuesItem({ typ: 'counter' })),
+      'unteraufgaben', 'unteraufgabenEntfernt', 'heuteRausgezogen'
+    ]);
+    const unbekannt = new Set();
+    [...neu, ...aktualisiert].forEach(f => Object.keys(f).forEach(k => { if (!bekannt.has(k)) unbekannt.add(k); }));
+    ergebnis.unbekannt = [...unbekannt];
+
+    // Unteraufgaben-Patch anwenden (Patch + Löschliste); undefined = unberührt
+    const uaAnwenden = (felder, vorhandeneUAs) =>
+      (felder.unteraufgaben === undefined && felder.unteraufgabenEntfernt === undefined)
+        ? undefined
+        : uaMergeFuerImport(vorhandeneUAs, felder.unteraufgaben, felder.unteraufgabenEntfernt);
 
     for (const altId of entfernt) {
       if (istRec(altId)) continue;                    // nur lokale UUIDs tauschen
@@ -944,26 +964,24 @@ const Store = {
         && String(n.titel || '').trim().toLowerCase() === String(lokal.titel || '').trim().toLowerCase());
       if (!kandidat) continue;
       alsErsatzVerbraucht.add(kandidat.id);
+      const uaNeu = uaAnwenden(kandidat, lokal.unteraufgaben);
       const erhalten = {                              // lokaler Zustand überlebt den Tausch
         streamSlot: lokal.streamSlot, istMinuten: lokal.istMinuten,
         status: lokal.status, tageGeschoben: lokal.tageGeschoben,
         tickStandHeute: lokal.tickStandHeute, zuletztErledigt: lokal.zuletztErledigt,
-        // Unteraufgaben: lokal bewahren; bringt das rec-Item welche mit, mergen
-        unteraufgaben: kandidat.unteraufgaben !== undefined
-          ? uaMergeFuerImport(lokal.unteraufgaben, kandidat.unteraufgaben)
-          : lokal.unteraufgaben
+        unteraufgaben: uaNeu !== undefined ? uaNeu : lokal.unteraufgaben
       };
+      delete kandidat.unteraufgabenEntfernt;          // Anweisung, kein Item-Feld
       Object.assign(lokal, kandidat, erhalten);
       idReferenzenUmziehen(altId, lokal.id);
       ergebnis.ersetzt++;
     }
 
     for (const felder of [...neu.filter(n => !alsErsatzVerbraucht.has(n.id)), ...aktualisiert]) {
-      // Unteraufgaben per Titel mergen (nur wenn das Feld im Item mitkommt)
-      if (felder.unteraufgaben !== undefined) {
-        const vorhanden = this.findeItem(felder.id);
-        felder.unteraufgaben = uaMergeFuerImport(vorhanden ? vorhanden.unteraufgaben : [], felder.unteraufgaben);
-      }
+      const vorhanden = this.findeItem(felder.id);
+      const uaNeu = uaAnwenden(felder, vorhanden ? vorhanden.unteraufgaben : []);
+      if (uaNeu !== undefined) felder.unteraufgaben = uaNeu;
+      delete felder.unteraufgabenEntfernt;            // Anweisung, kein Item-Feld
       const { angelegt } = this.upsertItem(felder);
       ergebnis[angelegt ? 'angelegt' : 'aktualisiert']++;
     }
@@ -983,18 +1001,20 @@ const Store = {
   baueExport(typ) {
     return {
       typ,                              // 'sync' | 'tagesabschluss'
+      appVersion: APP_VERSION,          // (3) Datenvertrags-Kennung für die Gegenseite
       datum: heuteIso(),
       items: JSON.parse(JSON.stringify(this.items)).map(i => {
         delete i.bereich;
         delete i.heuteRausgezogen;      // rein App-interner Tageszustand
-        // Unteraufgaben strukturiert exportieren (22.07.2026): Claude spiegelt
-        // sie ins Airtable-Feld „Unteraufgabe" und darf dort welche ergänzen/
-        // entfernen. Nur Titel + Abhak-Status + optional geplante Minuten —
-        // die interne id und Punktedetails bleiben in der App.
+        // Unteraufgaben strukturiert (v0.26.0): id reist mit → stabiles Matching
+        // per id. beschreibung = Freitext (rund). gebuchtePunkte nur lesend
+        // (Import ignoriert es). erledigt bleibt App-Hoheit (Import ignoriert es).
         if (i.unteraufgaben && i.unteraufgaben.length) {
           i.unteraufgaben = i.unteraufgaben.map(u => {
-            const o = { titel: u.titel, erledigt: !!u.erledigt };
-            if (u.geplantMin != null) o.geplantMin = u.geplantMin;
+            const o = { id: u.id, titel: u.titel, erledigt: !!u.erledigt };
+            if (u.geplantMin != null)     o.geplantMin = u.geplantMin;
+            if (u.beschreibung != null)   o.beschreibung = u.beschreibung;
+            if (u.gebuchtePunkte != null) o.gebuchtePunkte = Math.round(u.gebuchtePunkte * 10) / 10;
             return o;
           });
         } else {
@@ -1018,27 +1038,40 @@ const Store = {
   }
 };
 
-/* Unteraufgaben aus einem Import-Paket mit den lokalen zusammenführen
-   (22.07.2026). Matching per Titel (case-insensitiv), wie beim Item-Tausch:
-   - Titel bereits vorhanden → interne id UND lokaler Abhak-Status bleiben,
-     nur geplante Minuten werden ggf. übernommen.
-   - Titel neu → neue Unteraufgabe (frische id, nicht erledigt).
-   - lokale Unteraufgabe, deren Titel im Import fehlt → wird entfernt.
-   importUAs === undefined (Feld gar nicht im Item) → lokale bleiben unberührt. */
-function uaMergeFuerImport(vorhandeneUAs, importUAs) {
-  if (!Array.isArray(importUAs)) return vorhandeneUAs || [];
-  const vorhanden = vorhandeneUAs || [];
-  return importUAs
-    .filter(iu => iu && String(iu.titel || '').trim())
-    .map(iu => {
-      const t = String(iu.titel).trim();
-      const alt = vorhanden.find(u => String(u.titel || '').trim().toLowerCase() === t.toLowerCase());
-      const geplantMin = iu.geplantMin !== undefined
-        ? (iu.geplantMin === null ? null : Number(iu.geplantMin))
-        : (alt ? (alt.geplantMin != null ? alt.geplantMin : null) : null);
-      if (alt) return Object.assign({}, alt, { titel: t, geplantMin });   // id + erledigt bleiben lokal
-      return { id: lokaleUuid(), titel: t, erledigt: false, geplantMin, bonusPunkte: null, gebuchtePunkte: null };
+/* Unteraufgaben-Patch aus einem Import anwenden (v0.26.0 — Pascal):
+   - Matching NUR über die id (kein Titel-Matching mehr).
+   - importUAs ist ein PATCH, kein Vollstand: bekannte id → aktualisieren
+     (Titel/Minuten/Beschreibung), fehlende oder unbekannte id → neu anlegen
+     (id aus dem Import übernehmen, sonst frische vergeben).
+   - Nicht erwähnte Unteraufgaben bleiben UNBERÜHRT ([] tut nichts).
+   - Löschen ausschließlich über entfernteIds (Item-Feld unteraufgabenEntfernt).
+   - erledigt/bonusPunkte/gebuchtePunkte bleiben App-Hoheit (Import ignoriert). */
+function uaMergeFuerImport(vorhandeneUAs, importUAs, entfernteIds) {
+  let liste = (vorhandeneUAs || []).map(u => Object.assign({}, u));
+  if (Array.isArray(entfernteIds) && entfernteIds.length) {
+    const weg = new Set(entfernteIds.map(String));
+    liste = liste.filter(u => !weg.has(String(u.id)));
+  }
+  if (Array.isArray(importUAs)) {
+    importUAs.filter(iu => iu && String(iu.titel || '').trim()).forEach(iu => {
+      const patch = { titel: String(iu.titel).trim() };
+      if (iu.geplantMin !== undefined)   patch.geplantMin   = iu.geplantMin === null ? null : Number(iu.geplantMin);
+      if (iu.beschreibung !== undefined) patch.beschreibung = iu.beschreibung === null ? null : String(iu.beschreibung);
+      const idx = iu.id != null ? liste.findIndex(u => String(u.id) === String(iu.id)) : -1;
+      if (idx >= 0) {
+        liste[idx] = Object.assign({}, liste[idx], patch);   // id/erledigt/gebuchtePunkte bleiben
+      } else {
+        liste.push({
+          id: iu.id != null ? String(iu.id) : lokaleUuid(),
+          titel: patch.titel, erledigt: false,
+          geplantMin: patch.geplantMin !== undefined ? patch.geplantMin : null,
+          beschreibung: patch.beschreibung !== undefined ? patch.beschreibung : null,
+          bonusPunkte: null, gebuchtePunkte: null
+        });
+      }
     });
+  }
+  return liste;
 }
 
 /* Beim UUID→rec-Tausch alle internen Verweise auf die neue ID umziehen. */
@@ -1429,7 +1462,7 @@ function unteraufgabeAnlegen(itemId, titel) {
   const item = Store.findeItem(itemId);
   if (!item || !titel.trim()) return null;
   item.unteraufgaben = item.unteraufgaben || [];
-  const ua = { id: lokaleUuid(), titel: titel.trim(), erledigt: false, geplantMin: null, gebuchtePunkte: null };
+  const ua = { id: lokaleUuid(), titel: titel.trim(), erledigt: false, geplantMin: null, bonusPunkte: null, gebuchtePunkte: null, beschreibung: null };
   item.unteraufgaben.push(ua);
   Store.speichereItems();
   return ua;
@@ -2958,7 +2991,8 @@ const RING_CP = 2 * Math.PI * 48;   // Umfang Fortschritts-Ring
 function uaZeileHtml(u, i, zeiten, boni) {
   return '<div class="uareihe' + (u.erledigt ? ' fertig' : '') + '" data-ua="' + u.id + '">'
     + '<button class="uacheck" data-uakt="toggle" aria-label="Unteraufgabe abhaken"><span class="box">' + (u.erledigt ? '✓' : '') + '</span></button>'
-    + '<span class="uatitel">' + escapeHtml(u.titel) + '</span>'
+    + '<div class="uatitel"><span class="uat">' + escapeHtml(u.titel) + '</span>'
+    + (u.beschreibung ? '<span class="uabeschr">' + escapeHtml(u.beschreibung) + '</span>' : '') + '</div>'
     + (u.erledigt
       ? '<span class="uapunkte">+' + fmtPunkte(u.gebuchtePunkte || 0) + ' P</span>'
       : '<input class="uamin" data-uakt="min" type="number" inputmode="numeric" placeholder="' + Math.round(zeiten[i] || 0) + '" value="' + (u.geplantMin || '') + '" title="Minuten (leer = automatisch, cyan = Vorschlag)">'
@@ -4180,9 +4214,15 @@ function sheetSyncOeffnen() {
       const erg = Store.wendeImportAn(importParsen($('syImport').value));
       Store.ladeAlles();   // Migration/Normalisierung auf importierte Items anwenden
       gesamtpunkteAktualisieren();
-      $('syErgebnis').textContent = '✓ Angewendet: ' + erg.angelegt + ' neu · '
+      let txt = '✓ Angewendet: ' + erg.angelegt + ' neu · '
         + erg.aktualisiert + ' aktualisiert · ' + erg.entfernt + ' entfernt'
         + (erg.ersetzt ? ' · ' + erg.ersetzt + '× ID-Tausch' : '');
+      // (5c) unbekannte Feldnamen als Warnung — sie landen ungeprüft im Item
+      if (erg.unbekannt && erg.unbekannt.length) {
+        txt += '<br><span style="color:var(--warn)">⚠ Unbekannte Felder (landen ungeprüft im Item): '
+          + erg.unbekannt.map(escapeHtml).join(', ') + ' — Tippfehler?</span>';
+      }
+      $('syErgebnis').innerHTML = txt;
       renderAlles();
     } catch (e) {
       $('syErgebnis').textContent = '✗ Konnte das Paket nicht lesen: ' + e.message;
