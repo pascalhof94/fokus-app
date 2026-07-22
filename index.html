@@ -663,7 +663,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.19.0';
+const APP_VERSION = '0.20.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -1313,7 +1313,7 @@ function unteraufgabenAnteil(item, uaIndex) {
 
 function unteraufgabeToggle(itemId, uaId) {
   const item = Store.findeItem(itemId);
-  if (!item) return;
+  if (!item || tagGesperrt()) return;
   const idx = (item.unteraufgaben || []).findIndex(u => u.id === uaId);
   if (idx < 0) return;
   const ua = item.unteraufgaben[idx];
@@ -1452,6 +1452,7 @@ function akkuLive() {
 }
 
 function fokusStarten(id) {
+  if (tagGesperrt()) return;
   if (fokus && fokus.itemId !== id) fokusZeitEinbuchen();   // alten Fokus pausieren
   if (!fokus || fokus.itemId !== id) fokus = { itemId: id, laeuft: false, startMs: 0, sessionSek: 0 };
   fokus.laeuft = true;
@@ -1559,7 +1560,7 @@ function abhaken(id, override) {
    prüfen/überschreiben), Routinen und Counter buchen direkt (21.07.2026). */
 function abhakenFlow(id) {
   const item = Store.findeItem(id);
-  if (!item) return;
+  if (!item || tagGesperrt()) return;
   if (item.typ === 'aufgabe' && item.status !== 'erledigt') sheetAbschlussOeffnen(id);
   else { abhaken(id); renderAlles(); }
 }
@@ -1630,7 +1631,7 @@ function sheetAbschlussOeffnen(id) {
 
 function counterTick(id) {
   const item = Store.findeItem(id);
-  if (!item || item.typ !== 'counter') return;
+  if (!item || item.typ !== 'counter' || tagGesperrt()) return;
   const vorher = counterPunkte(item);
   item.tickStandHeute = (item.tickStandHeute || 0) + 1;
   Store.tag.tickLog = Store.tag.tickLog || [];
@@ -1644,12 +1645,21 @@ function counterTick(id) {
   renderAlles();
 }
 
-/* Gesamtzahl heute (3.5): eingefrorene Log-Punkte + live Counter-Stände. */
+/* Gesamtzahl heute (3.5): eingefrorene Log-Punkte + live Counter-Stände.
+   Nie unter 0 (Entscheidung 22.07.2026) — Maluse können den Tag
+   maximal auf null ziehen, nie ins Minus. */
 function gesamtpunkteAktualisieren() {
   const log = Store.tag.log.reduce((s, l) => s + l.punkte, 0);
   const counter = Store.items.filter(i => i.typ === 'counter')
     .reduce((s, i) => s + counterPunkte(i), 0);
-  Store.tag.gesamtpunkteHeute = log + counter + (Store.tag.streakBonusHeute || 0);
+  Store.tag.gesamtpunkteHeute = Math.max(0, log + counter + (Store.tag.streakBonusHeute || 0));
+}
+
+/* Abgeschlossener Tag = gesperrt: erst „Tag starten" öffnet wieder. */
+function tagGesperrt() {
+  if (!Store.tag.abgeschlossen) return false;
+  toastZeigen('🌙 Tag ist abgeschlossen — erst „Tag starten" (oder Abschluss widerrufen).');
+  return true;
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1669,49 +1679,61 @@ function tagAbschliessen() {
   return Store.baueExport('tagesabschluss');
 }
 
-/* Spielmechanik des Tagesendes — läuft beim Button UND wird beim
-   automatischen Tageswechsel nachgeholt, falls der Button nie gedrückt
-   wurde (Umbau 22.07.2026: Datenfluss läuft ausschließlich über Sync). */
-function tagesabschlussKern() {
-  // Fällige, nicht erledigte Routinen: Abzug (item-spezifisch möglich)
-  // + Streak-Bruch (20./21.07.2026)
-  Store.items.forEach(i => {
-    if (i.typ !== 'routine' || !routineFaellig(i)) return;
-    const satz = i.nichtErledigtMalus != null
-      ? -Math.abs(i.nichtErledigtMalus)
-      : Store.settings.rhythmusVerpasstProTag;
-    Store.tag.log.push({
-      itemId: i.id, titel: i.titel + ' — verpasst', domain: i.domain,
-      bereich: i.bereich || null, punkte: satz,
-      zeit: new Date().toISOString(), routineVerpasst: true
+/* Spielmechanik des Tagesendes — läuft nach dem Review-Wizard (dann
+   ohne Auto-Maluse, die hat Pascal manuell entschieden) und beim
+   automatischen Nachholen am Tageswechsel (dann mit Auto-Malusen).
+   Alles wird in einem Journal protokolliert, damit der Abschluss
+   vollständig widerrufbar ist (22.07.2026). */
+function tagesabschlussKern(autoMalus) {
+  const j = {
+    logMarker: true, geschoben: [], routinen: [], counter: [],
+    streakVorher: Store.tag.streak,
+    streakBonusVorher: Store.tag.streakBonusHeute || 0,
+    wohlstandDelta: 0
+  };
+  if (autoMalus !== false) {
+    // Fällige, nicht erledigte Routinen: Abzug + Streak-Bruch
+    Store.items.forEach(i => {
+      if (i.typ !== 'routine' || !routineFaellig(i)) return;
+      const satz = i.nichtErledigtMalus != null
+        ? -Math.abs(i.nichtErledigtMalus)
+        : Store.settings.rhythmusVerpasstProTag;
+      Store.tag.log.push({
+        itemId: i.id, titel: i.titel + ' — verpasst', domain: i.domain,
+        bereich: i.bereich || null, punkte: satz,
+        zeit: new Date().toISOString(), routineVerpasst: true, abschluss: true
+      });
+      j.routinen.push({ id: i.id, streakVorher: i.routineStreak || 0, gebrochenVorher: !!i.streakGebrochen });
+      i.routineStreak = 0;
+      i.streakGebrochen = true;
     });
-    i.routineStreak = 0;
-    i.streakGebrochen = true;
-  });
-  // Aufgaben mit definiertem Nicht-Erledigt-Abzug: geplant, aber liegen
-  // geblieben → Abzug buchen (21.07.2026)
-  Store.items.forEach(i => {
-    if (i.typ !== 'aufgabe' || i.status === 'erledigt') return;
-    if (i.nichtErledigtMalus == null || !(i.streamSlot != null || i.heuteRausgezogen)) return;
-    Store.tag.log.push({
-      itemId: i.id, titel: i.titel + ' — nicht erledigt', domain: i.domain,
-      bereich: i.bereich || null, punkte: -Math.abs(i.nichtErledigtMalus),
-      zeit: new Date().toISOString(), nichtErledigt: true
+    // Aufgaben mit definiertem Nicht-Erledigt-Abzug
+    Store.items.forEach(i => {
+      if (i.typ !== 'aufgabe' || i.status === 'erledigt') return;
+      if (i.nichtErledigtMalus == null || !(i.streamSlot != null || i.heuteRausgezogen)) return;
+      Store.tag.log.push({
+        itemId: i.id, titel: i.titel + ' — nicht erledigt', domain: i.domain,
+        bereich: i.bereich || null, punkte: -Math.abs(i.nichtErledigtMalus),
+        zeit: new Date().toISOString(), nichtErledigt: true, abschluss: true
+      });
     });
-  });
-  // Counter: Tagesstand einfrieren und zurücksetzen (starten morgens neu)
+  }
+  // Counter: Tagesstand einfrieren und nullen (Journal merkt die Stände)
   Store.items.forEach(i => {
     if (i.typ !== 'counter' || !(i.tickStandHeute > 0)) return;
+    j.counter.push({ id: i.id, stand: i.tickStandHeute });
     Store.tag.log.push({
       itemId: i.id, titel: i.titel + ' (Counter)', domain: i.domain,
       bereich: i.bereich || null, punkte: counterPunkte(i),
-      zeit: new Date().toISOString(), counterAbschluss: true
+      zeit: new Date().toISOString(), counterAbschluss: true, abschluss: true
     });
     i.tickStandHeute = 0;
   });
   Store.items.forEach(i => {
-    if (i.status !== 'erledigt' && (i.streamSlot != null || i.heuteRausgezogen)) {
+    if (i.status !== 'erledigt' && i.typ !== 'counter'
+      && (i.streamSlot != null || i.heuteRausgezogen)) {
       i.tageGeschoben = (i.tageGeschoben || 0) + 1;
+      j.geschoben.push(i.id);
     }
     delete i.heuteRausgezogen;
   });
@@ -1723,18 +1745,45 @@ function tagesabschlussKern() {
   } else {
     Store.tag.streak = 0;
   }
+  j.wohlstandDelta = Store.tag.gesamtpunkteHeute;
   Store.tag.wohlstandStand += Store.tag.gesamtpunkteHeute;     // 6.3: nie zurückgesetzt
   Store.tag.abgeschlossen = true;
+  Store.tag.abschlussJournal = j;
   // Tages-Snapshot für die Statistikseite (Etappe 2, 21.07.2026)
   historieSchreiben();
-  // Routinen sofort zurücksetzen (22.07.2026): erledigte stehen wieder
-  // auf offen — fällig werden sie erst wieder nach ihrem Rhythmus
-  Store.items.forEach(i => {
-    if (i.typ === 'routine') {
-      if (i.status !== 'offen') i.status = 'offen';
-      i.istMinuten = 0;
-    }
-  });
+}
+
+/* Abschluss vollständig widerrufen (22.07.2026): Punkte, Streaks,
+   Maluse, Counter-Stände und Snapshot kommen zurück — abhaken geht wieder. */
+function abschlussWiderrufen() {
+  const t = Store.tag, j = t.abschlussJournal;
+  if (!t.abgeschlossen) return false;
+  if (j) {
+    t.wohlstandStand -= j.wohlstandDelta || 0;
+    t.streak = j.streakVorher || 0;
+    t.streakBonusHeute = j.streakBonusVorher || 0;
+    (j.geschoben || []).forEach(id => {
+      const i = Store.findeItem(id);
+      if (i) i.tageGeschoben = Math.max(0, (i.tageGeschoben || 0) - 1);
+    });
+    (j.routinen || []).forEach(r => {
+      const i = Store.findeItem(r.id);
+      if (i) { i.routineStreak = r.streakVorher; i.streakGebrochen = r.gebrochenVorher; }
+    });
+    (j.counter || []).forEach(c => {
+      const i = Store.findeItem(c.id);
+      if (i) i.tickStandHeute = c.stand;
+    });
+    t.log = t.log.filter(l => !l.abschluss);
+  }
+  lsSchreibe(LS.HISTORIE, historieLaden().filter(d => d.datum !== t.datum));
+  t.abgeschlossen = false;
+  delete t.abschlussJournal;
+  gesamtpunkteAktualisieren();
+  Store.speichereAlles();
+  renderAlles();
+  toastZeigen('↩ Tagesabschluss widerrufen — weiter geht’s.');
+  return true;
 }
 
 /* ── Tages-Historie (Etappe 2): ein Snapshot je abgeschlossenem Tag ── */
@@ -2175,6 +2224,15 @@ function renderEinstellungen() {
     + '<div class="feld"><label>Start</label><input id="sTagStart" type="time" value="' + Store.settings.arbeitstagStart + '"></div>'
     + '<div class="feld"><label>Ende</label><input id="sTagEnde" type="time" value="' + Store.settings.arbeitstagEnde + '"></div>'
     + '</div>';
+  // Abgeschlossene Tage widerrufen (22.07.2026)
+  html += '<h2 class="sechead">Tagesabschlüsse — Widerruf</h2>';
+  const abschluesse = historieLaden().slice(-14).reverse();
+  html += abschluesse.length
+    ? abschluesse.map(d =>
+        '<div class="aufzeile"><span class="albl" style="width:auto;flex:1">' + d.datum
+        + ' · ' + fmtPunkte(d.punkte || 0) + ' P</span>'
+        + '<button class="wizbtn sek" data-widerruf="' + d.datum + '" style="width:auto;min-height:38px;margin:0;padding:0 14px">↩</button></div>').join('')
+    : '<div class="leer">Noch keine abgeschlossenen Tage.</div>';
   html += '<button class="resetbtn" id="sReset">Alle Punkte-Sätze auf Standard zurücksetzen</button>';
   html += '<div class="versionszeile">Fokus App ' + APP_VERSION + '</div>';
   $('view-einstellungen').innerHTML = html;
@@ -2196,6 +2254,31 @@ function renderEinstellungen() {
     Store.settings = settingsZusammenfuehren({});
     renderEinstellungen(); renderAlles();
   });
+  document.querySelectorAll('#view-einstellungen [data-widerruf]').forEach(btn => {
+    btn.addEventListener('click', () => snapshotWiderrufen(btn.dataset.widerruf));
+  });
+}
+
+/* Abschluss eines Tages aus den Einstellungen widerrufen: heute =
+   vollständig (Journal), Vergangenheit = Snapshot + Punkte zurück
+   (Item-Zustände von damals sind nicht wiederherstellbar). */
+function snapshotWiderrufen(datum) {
+  if (datum === Store.tag.datum) {
+    if (Store.tag.abgeschlossen) abschlussWiderrufen();
+    else lsSchreibe(LS.HISTORIE, historieLaden().filter(d => d.datum !== datum));
+    renderEinstellungen();
+    return;
+  }
+  const s = historieLaden().find(d => d.datum === datum);
+  if (!s) return;
+  if (!confirm('Abschluss vom ' + datum + ' widerrufen? Die ' + fmtPunkte(s.punkte || 0)
+    + ' P des Tages werden vom Konto abgezogen. Item-Zustände von damals bleiben unverändert.')) return;
+  Store.tag.wohlstandStand = Math.max(0, Store.tag.wohlstandStand - (s.punkte || 0));
+  lsSchreibe(LS.HISTORIE, historieLaden().filter(d => d.datum !== datum));
+  Store.speichereTag();
+  renderEinstellungen();
+  renderStatusbar();
+  toastZeigen('↩ Abschluss vom ' + datum + ' widerrufen');
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -3092,7 +3175,7 @@ const KAT_PREISFAKTOR = {
 };
 
 function konto() {
-  return wohlstandLive() - ((belohnung && belohnung.ausgegeben) || 0);
+  return Math.max(0, wohlstandLive() - ((belohnung && belohnung.ausgegeben) || 0));
 }
 
 /* Persönlicher Ø-Punktesatz der letzten 7 abgeschlossenen Tage. */
@@ -3582,7 +3665,8 @@ function renderTagAktionen() {
   const t = Store.tag;
   let html = '';
   if (t.abgeschlossen) {
-    html += '<div class="tagchip">🌙 Tag abgeschlossen · Wohlstand ' + fmtPunkte(t.wohlstandStand) + ' P</div>';
+    html += '<button class="tagbtn" data-wiz="start">🌅 Tag starten</button>';
+    html += '<div class="tagchip" style="flex:0 0 auto;padding:0 12px">🌙 Abgeschlossen</div>';
   } else if (!t.gestartet) {
     html += '<button class="tagbtn" data-wiz="start">🌅 Tag starten</button>';
   } else {
@@ -3624,6 +3708,20 @@ function sheetTagStartOeffnen() {
   $('rMotivation').addEventListener('input', () => { $('wMotivation').textContent = $('rMotivation').value; vorschlag(); });
   $('wAkku').addEventListener('input', () => { akkuManuell = true; });
   $('wStart').addEventListener('click', () => {
+    const echterStart = !t.gestartet || t.abgeschlossen;
+    // Neustart am selben Tag nach Abschluss = Abschluss zurücknehmen
+    if (t.abgeschlossen) abschlussWiderrufen();
+    if (echterStart) {
+      // Prozess-Schritt 1 (22.07.2026): Counter + Routinen auf nicht erledigt
+      Store.items.forEach(i => {
+        if (i.typ === 'counter') i.tickStandHeute = 0;
+        if (i.typ === 'routine') {
+          if (i.status !== 'offen') i.status = 'offen';
+          i.istMinuten = 0;
+        }
+      });
+      Store.speichereItems();
+    }
     t.energieStart = Number($('rEnergie').value);
     t.motivationStart = Number($('rMotivation').value);
     t.akkuProzent = Math.min(100, Math.max(0, Number($('wAkku').value) || 0));
@@ -3788,42 +3886,117 @@ function dateinamePrivat() {
   return heuteIso().slice(2).replace(/-/g, '') + '_Privat_Tagesabschluss.md';
 }
 
-/* Tag abschließen (1.2): Zusammenfassung → bestätigen → Export + Dokument. */
+/* Tag abschließen (Review-Flow, 22.07.2026): alle offenen Karten des
+   Tages einzeln durchgehen — Malus per Faktor-Regler buchen oder ohne
+   Abzug überspringen (mit neuer Deadline). Danach bucht der Kern,
+   Statistik + Export, und der Tag ist bis „Tag starten" gesperrt. */
+let reviewListe = [], reviewIdx = 0, reviewRoutinen = [];
+
+function malusBasis(item) {
+  if (item.nichtErledigtMalus != null) return Math.abs(item.nichtErledigtMalus);
+  if (item.typ === 'routine') return Math.abs(Store.settings.rhythmusVerpasstProTag);
+  return Math.max(5, Math.round(Math.abs(anzeigePunkte(item)) * 0.2));
+}
+
 function sheetTagEndeOeffnen() {
-  gesamtpunkteAktualisieren();
-  const t = Store.tag;
-  const erledigt = t.log.length;
-  const geschoben = Store.items.filter(i =>
-    i.status !== 'erledigt' && (i.streamSlot != null || i.heuteRausgezogen)).length;
-  const streakWeiter = t.gesamtpunkteHeute > 0;
-  let html = ''
+  if (Store.tag.abgeschlossen) return;
+  fokusZeitEinbuchen();
+  // Kandidaten: heute geplante offene Aufgaben, Aufgaben mit teilweise
+  // erledigten Unteraufgaben, fällige Routinen
+  reviewListe = Store.items.filter(i =>
+    i.status !== 'erledigt' && i.typ !== 'counter' && (
+      (i.typ === 'aufgabe' && (i.streamSlot != null || i.heuteRausgezogen
+        || (i.unteraufgaben || []).some(u => u.erledigt)))
+      || (i.typ === 'routine' && routineFaellig(i))
+    )).map(i => i.id);
+  reviewIdx = 0;
+  reviewRoutinen = [];
+  reviewSchritt();
+}
+
+function reviewSchritt() {
+  if (reviewIdx >= reviewListe.length) { reviewFertig(); return; }
+  const item = Store.findeItem(reviewListe[reviewIdx]);
+  if (!item || item.status === 'erledigt') { reviewIdx++; reviewSchritt(); return; }
+  const basis = malusBasis(item);
+  const uas = item.unteraufgaben || [];
+  let html = '<div class="wizinfo" style="margin-top:0">Nicht erledigt · Karte '
+    + (reviewIdx + 1) + ' von ' + reviewListe.length + '</div>'
     + '<div class="wizsumme">'
-    + '<div class="zeile"><span>Erledigte Items</span><b>' + erledigt + '</b></div>'
-    + '<div class="zeile"><span>Punkte heute</span><b>' + fmtPunkte(t.gesamtpunkteHeute) + ' P</b></div>'
-    + '<div class="zeile"><span>Nicht geschafft (→ Schiebe-Malus)</span><b>' + geschoben + '</b></div>'
-    + '<div class="zeile"><span>Streak</span><b>' + (streakWeiter
-        ? t.streak + ' → ' + (t.streak + 1) + ' (+' + Store.settings.streakBonus + ' P)'
-        : t.streak + ' → 0 (Abriss)') + '</b></div>'
-    + '<div class="zeile"><span>Wohlstand danach</span><b>' + fmtPunkte(t.wohlstandStand
-        + t.gesamtpunkteHeute + (streakWeiter ? Store.settings.streakBonus : 0)) + ' P</b></div>'
+    + '<div class="zeile"><span style="font-weight:800;color:var(--txt)">' + escapeHtml(item.titel) + '</span><b>' + (item.typ === 'routine' ? '🔁' : '📋') + '</b></div>'
+    + (item.istMinuten >= 1 ? '<div class="zeile"><span>Getrackt</span><b>' + Math.round(item.istMinuten) + ' min</b></div>' : '')
+    + (uas.length ? '<div class="zeile"><span>Unteraufgaben</span><b>' + uas.filter(u => u.erledigt).length + '/' + uas.length + ' erledigt</b></div>' : '')
+    + (item.deadline ? '<div class="zeile"><span>Deadline</span><b>' + item.deadline + '</b></div>' : '')
     + '</div>'
-    + '<div class="wizinfo">Verrechnet Boni und Maluse, schreibt die Tagesstatistik und setzt Routinen und Counter zurück. Der Datenabgleich läuft über 🔄 Sync — vergisst du den Abschluss, holt ihn die App beim Tageswechsel automatisch nach.</div>'
-    + '<button class="wizbtn" id="weAbschliessen">Tag jetzt abschließen</button>';
+    + '<div class="regler"><div class="kopfzeile2"><label>Malus-Faktor</label>'
+    + '<span class="wert" id="rvWert" style="color:var(--bad)">−' + basis + ' P</span></div>'
+    + '<input type="range" id="rvFaktor" min="0" max="3" step="0.1" value="1">'
+    + '<div class="stufen"><span>milde</span><span>Standard</span><span>hart</span></div></div>'
+    + '<button class="wizbtn" id="rvBuchen" style="background:var(--bad)">Malus buchen (−' + basis + ' P)</button>'
+    + '<button class="wizbtn sek" id="rvSkip">⏭ Ohne Abzug überspringen</button>'
+    + '<div id="rvSkipFeld" hidden style="margin-top:var(--s1)">'
+    + '<div class="feld"><label>Neue Deadline</label><input id="rvDeadline" type="date" value="' + (item.deadline || '') + '"></div>'
+    + '<button class="wizbtn sek" id="rvSkipOk">Überspringen bestätigen</button></div>';
   sheetOeffnen('Tag abschließen', html, 'tagende');
 
-  $('weAbschliessen').addEventListener('click', () => {
-    if (!tagAbschliessen()) { sheetSchliessen(); return; }
-    const heutePunkte = fmtPunkte(Store.tag.gesamtpunkteHeute);
-    $('sheetInhalt').innerHTML = ''
-      + '<div class="tagchip" style="margin-bottom:var(--s2)">🌙 Tag abgeschlossen · ' + heutePunkte + ' P heute</div>'
-      + '<div class="wizsumme">'
-      + '<div class="zeile"><span>Streak</span><b>' + Store.tag.streak + ' 🔥</b></div>'
-      + '<div class="zeile"><span>Konto</span><b>' + fmtPunkte(konto()) + ' P</b></div>'
-      + '<div class="zeile"><span>Routinen & Counter</span><b>zurückgesetzt</b></div>'
-      + '</div>'
-      + '<div class="wizinfo">Statistik ist geschrieben — Details auf der Belohnungsseite. Für den Datenabgleich einfach wie gewohnt 🔄 Sync nutzen.</div>';
-    $('sheetTitel').textContent = 'Tag abgeschlossen';
+  const wert = () => Math.round(basis * Number($('rvFaktor').value));
+  $('rvFaktor').addEventListener('input', () => {
+    const p = wert();
+    $('rvWert').textContent = '−' + p + ' P';
+    $('rvBuchen').textContent = p > 0 ? 'Malus buchen (−' + p + ' P)' : 'Ohne Malus bestätigen';
   });
+  $('rvBuchen').addEventListener('click', () => {
+    const p = wert();
+    if (p > 0) {
+      Store.tag.log.push({
+        itemId: item.id, titel: item.titel + ' — nicht erledigt', domain: item.domain,
+        bereich: item.bereich || null, punkte: -p,
+        zeit: new Date().toISOString(), nichtErledigt: true, abschluss: true
+      });
+      item.nichtErledigtMalus = p;   // überschreibt den Item-Abzug fürs nächste Mal
+      if (item.typ === 'routine') {
+        reviewRoutinen.push({ id: item.id, streakVorher: item.routineStreak || 0, gebrochenVorher: !!item.streakGebrochen });
+        item.routineStreak = 0;
+        item.streakGebrochen = true;
+      }
+    }
+    Store.speichereItems(); Store.speichereTag();
+    reviewIdx++; reviewSchritt();
+  });
+  $('rvSkip').addEventListener('click', () => { $('rvSkipFeld').hidden = false; });
+  $('rvSkipOk').addEventListener('click', () => {
+    if ($('rvDeadline').value) item.deadline = $('rvDeadline').value;
+    if (item.typ === 'routine') {                    // Rhythmus startet neu, kein Bruch
+      item.ausgesetztAm = heuteIso();
+      item.zuletztErledigt = heuteIso();
+      item.rhythmusAnkerWoche = wochenIndex();
+    }
+    Store.speichereItems();
+    reviewIdx++; reviewSchritt();
+  });
+}
+
+function reviewFertig() {
+  tagesabschlussKern(false);   // Maluse hat das Review manuell entschieden
+  if (Store.tag.abschlussJournal) Store.tag.abschlussJournal.routinen.push(...reviewRoutinen);
+  Store.speichereAlles();
+  renderAlles();
+  const exportJson = JSON.stringify(Store.baueExport('tagesabschluss'), null, 2);
+  const html = ''
+    + '<div class="tagchip" style="margin-bottom:var(--s2)">🌙 Tag abgeschlossen · ' + fmtPunkte(Store.tag.gesamtpunkteHeute) + ' P</div>'
+    + '<div class="wizsumme">'
+    + '<div class="zeile"><span>Streak</span><b>' + Store.tag.streak + ' 🔥</b></div>'
+    + '<div class="zeile"><span>Konto</span><b>' + fmtPunkte(konto()) + ' P</b></div>'
+    + '</div>'
+    + '<h2 class="sechead">Export → Claude-Chat</h2>'
+    + '<textarea class="copyfeld" id="weExport" readonly>' + escapeHtml(exportJson) + '</textarea>'
+    + '<button class="wizbtn sek" id="weKopieren">Export kopieren</button>'
+    + '<div class="wizinfo">Der Tag ist jetzt gesperrt — Fokus und Abhaken gehen erst wieder nach „🌅 Tag starten".</div>'
+    + '<button class="wizbtn sek" id="weWiderruf" style="border-color:var(--warn);color:var(--warn)">↩ Abschluss widerrufen</button>';
+  sheetOeffnen('Tag abgeschlossen', html, 'tagende');
+  $('weKopieren').addEventListener('click', () =>
+    inZwischenablage('```json\n' + exportJson + '\n```', $('weKopieren')));
+  $('weWiderruf').addEventListener('click', () => { abschlussWiderrufen(); sheetSchliessen(); });
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -4074,6 +4247,14 @@ setInterval(() => {
 Store.ladeAlles();
 if (fokus && !Store.findeItem(fokus.itemId)) { fokus = null; fokusSpeichern(); }
 belohnungInit();
+/* Einmalige Initialisierung (22.07.2026, Pascals Ansage): Konto auf 400 P. */
+if (!localStorage.getItem('fokus2.init400')) {
+  gesamtpunkteAktualisieren();
+  Store.tag.wohlstandStand = Math.max(0,
+    400 + ((belohnung && belohnung.ausgegeben) || 0) - Store.tag.gesamtpunkteHeute);
+  Store.speichereTag();
+  localStorage.setItem('fokus2.init400', '1');
+}
 gesamtpunkteAktualisieren();
 pruefeLevelUp();              // Avatar-Level initialisieren/nachziehen
 renderAlles();
@@ -4093,6 +4274,7 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   routineFaellig, routineUeberfaelligTage, routineAussetzen, rhythmusLabel,
   routineNaechsteIn, wochenIndex, wochentagMo0, tageswechselPruefen,
   effektiveRate, effektiverBonus, vorschlagRate, akkuRate, akkuLive,
+  abschlussWiderrufen, snapshotWiderrufen, malusBasis, tagesabschlussKern,
   punkteFuerZeit, counterIstSchlecht, abhakenFlow, rhythmusModusVon,
   streamToggle, bonusVerteilung, uaSummenAngleichen, bonusVorschlag };
 
