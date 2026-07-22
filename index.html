@@ -532,6 +532,29 @@ textarea{min-height:64px;resize:vertical}
   border-radius:10px;min-height:38px;font-weight:800;font-size:12px;
 }
 .vtoggle button.on{background:var(--blue);color:#04122e;border-color:transparent}
+.statdatum{display:flex;gap:var(--s1);margin-bottom:var(--s1)}
+.statdatum input[type=date]{
+  flex:1;border:1px solid var(--line);background:var(--card);color:var(--txt);
+  border-radius:10px;min-height:38px;font-weight:700;font-size:13px;padding:0 10px;
+}
+.statdatum #statHeute{
+  flex:none;border:1px solid var(--line);background:var(--card);color:var(--mut);
+  border-radius:10px;min-height:38px;font-weight:800;font-size:12px;padding:0 14px;
+}
+.statdatum #statHeute.on{background:var(--blue);color:#04122e;border-color:transparent}
+/* Detail-Analyse: gruppierte Kennzahlen + Trend (v0.28.0) */
+.aGruppe{margin-bottom:var(--s2)}
+.aGruppe .aGkopf{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.aGruppe .aGkopf h3{font-size:13px;font-weight:800;color:var(--cyan);letter-spacing:.3px}
+.aKpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px}
+.aKpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 8px}
+.aKpi .v{font-size:16px;font-weight:800;color:var(--txt);line-height:1.1}
+.aKpi .k{font-size:9.5px;color:var(--mut);margin-top:2px;letter-spacing:.2px}
+.aKpi .d{font-size:10px;font-weight:700;margin-top:1px}
+.aKpi .d.gut{color:var(--ok)} .aKpi .d.bad{color:var(--bad)} .aKpi .d.neutral{color:var(--mut2)}
+.aTrend{display:flex;gap:6px;margin-bottom:6px}
+.aTrend button{flex:1;border:1px solid var(--line);background:var(--card);color:var(--mut);border-radius:8px;min-height:28px;font-size:10.5px;font-weight:700}
+.aTrend button.on{background:var(--blue);color:#04122e;border-color:transparent}
 .aufzeile{display:flex;align-items:center;gap:var(--s1);margin-bottom:6px;font-size:12px}
 .aufzeile .albl{width:84px;flex:none;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .aufzeile .abar{flex:1;height:14px;border-radius:7px;background:var(--card2);overflow:hidden}
@@ -679,7 +702,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.27.1';
+const APP_VERSION = '0.28.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -809,7 +832,8 @@ function neuesItem(felder = {}) {
     zeitStufen: null,                 // [{bisMin|null, punkteProStd}] — Stufen-Kurve
     tickStufen: null,                 // Counter: [{bisTick|null, punkteProTick}]
     imStreamAnzeigen: null,           // null → Default: Aufgaben ja, Routinen nein
-    nachSyncWeg: false                // erledigte Einmal-Aufgabe: ausgeblendet, beim nächsten Sync löschen (v0.27.0)
+    nachSyncWeg: false,               // erledigte Einmal-Aufgabe: ausgeblendet, beim nächsten Sync löschen (v0.27.0)
+    erstelltAm: null                  // App-Tag der Erstellung (Aufgaben-Fluss-Statistik, v0.28.0)
   }, felder);
   if (item.typ === 'routine' && item.rhythmusTage == null) item.rhythmusTage = 1;  // Standard: täglich
   if (item.imStreamAnzeigen == null) item.imStreamAnzeigen = item.typ !== 'routine';
@@ -841,7 +865,8 @@ function neuerTagesstand(datum, vorheriger) {
     akkuVerlauf: [],    // [{min, p}] — Energie-Kurve für die Belohnungsseite (6.1)
     tickLog: [],        // [{itemId, domain, bereich, punkte, zeit}] — Aufschlüsselung 3.5
     fokusSek: 0,        // heute fokussierte Sekunden (Statistik/Shop-Preise)
-    istMinutenStart: {} // Ist-Minuten-Stand je Item zu Tagesbeginn → „heute investiert" = Differenz (22.07.2026)
+    istMinutenStart: {}, // Ist-Minuten-Stand je Item zu Tagesbeginn → „heute investiert" = Differenz (22.07.2026)
+    sessionCount: 0     // gestartete Fokus-Sessions heute (Statistik, v0.28.0)
   };
 }
 
@@ -902,6 +927,7 @@ const Store = {
       return { item: vorhanden, angelegt: false };
     }
     const item = neuesItem(felder);
+    if (!item.erstelltAm) item.erstelltAm = heuteApp();   // Erstellungs-App-Tag (Aufgaben-Fluss)
     this.items.push(item);
     this.speichereItems();
     return { item, angelegt: true };
@@ -997,6 +1023,7 @@ const Store = {
       items: JSON.parse(JSON.stringify(this.items)).map(i => {
         delete i.bereich;
         delete i.heuteRausgezogen;      // rein App-interner Tageszustand
+        delete i.nachSyncWeg; delete i.erstelltAm;   // App-interne Statistik-/Anzeige-Flags
         // Unteraufgaben strukturiert (v0.26.0): id reist mit → stabiles Matching
         // per id. beschreibung = Freitext (rund). gebuchtePunkte nur lesend
         // (Import ignoriert es). erledigt bleibt App-Hoheit (Import ignoriert es).
@@ -1566,7 +1593,11 @@ function akkuLive() {
 function fokusStarten(id) {
   if (tagGesperrt()) return;
   if (fokus && fokus.itemId !== id) fokusZeitEinbuchen();   // alten Fokus pausieren
-  if (!fokus || fokus.itemId !== id) fokus = { itemId: id, laeuft: false, startMs: 0, sessionSek: 0 };
+  if (!fokus || fokus.itemId !== id) {
+    fokus = { itemId: id, laeuft: false, startMs: 0, sessionSek: 0 };
+    Store.tag.sessionCount = (Store.tag.sessionCount || 0) + 1;   // neue Session (Statistik)
+    Store.speichereTag();
+  }
   fokus.laeuft = true;
   fokus.startMs = Date.now();
   const item = Store.findeItem(id);
@@ -1923,10 +1954,33 @@ function istErledigtEintrag(l) {
     && !l.aussetzer && !l.nichtErledigt && l.punkte >= 0;
 }
 
+/* Aufgaben-Fluss + Soll-Werte des laufenden Tages (dom optional, v0.28.0):
+   reingekommen (heute erstellt), offen, abgeschlossen, weitergeschoben,
+   Soll-Punkte und Soll-Minuten (geplanter Aufwand der Stream-Aufgaben). */
+function tagFlussUndSoll(dom) {
+  const heute = heuteApp();
+  const inI = i => !dom || (i.domain || 'dfm') === dom;
+  const inL = l => !dom || (l.domain || 'dfm') === dom;
+  const streamAufg = Store.items.filter(i => i.typ === 'aufgabe' && i.streamSlot != null && !i.nachSyncWeg && inI(i));
+  const reingekommen = Store.items.filter(i => i.typ === 'aufgabe' && i.erstelltAm === heute && inI(i)).length;
+  const offen = streamAufg.filter(i => i.status !== 'erledigt').length;
+  const sollPunkte = Math.round(dom
+    ? streamAufg.reduce((s, i) => s + (Number(anzeigePunkte(i)) || 0), 0)
+    : sollWerte(false).gesamt);
+  const sollMin = Math.round(streamAufg.reduce((s, i) => s + (i.aufwandGeplantMin || 0), 0));
+  let geschoben = 0; const erlIds = new Set();
+  (Store.tag.log || []).forEach(l => {
+    if (!inL(l)) return;
+    if (l.geschoben) geschoben++;
+    else if (istErledigtEintrag(l) && !l.gebucht) erlIds.add(l.itemId);
+  });
+  return { reingekommen, offen, abgeschlossen: erlIds.size, geschoben, sollPunkte, sollMin };
+}
+
 /* Kennzahlen + Aufschlüsselung einer einzelnen Domäne für heute. */
 function domSnapshot(dom) {
   const eintr = logEintraegeHeute(dom);
-  return {
+  return Object.assign({
     punkte: Math.round(eintr.reduce((s, l) => s + (Number(l.punkte) || 0), 0) * 10) / 10,
     fokusMin: Math.round(Store.items.filter(i => (i.domain || 'dfm') === dom)
       .reduce((s, i) => s + heuteInvestiertMin(i), 0)),
@@ -1935,22 +1989,24 @@ function domSnapshot(dom) {
     abschnitte: punkteNachGruppe('abschnitt', dom),
     verlauf: eintr.map(l => ({ z: l.zeit, p: Math.round((Number(l.punkte) || 0) * 10) / 10 }))
       .sort((a, b) => a.z < b.z ? -1 : 1)
-  };
+  }, tagFlussUndSoll(dom));
 }
 
 function heuteAlsSnapshot() {
   gesamtpunkteAktualisieren();
   const t = Store.tag;
-  return {
+  const akkuP = (t.akkuVerlauf || []).map(e => e.p);
+  return Object.assign({
     datum: t.datum,
     punkte: Math.round(t.gesamtpunkteHeute * 10) / 10,
     fokusMin: fokusMinHeute(),
     erledigt: t.log.filter(istErledigtEintrag).length,
     streak: t.streak,
     wohlstand: Math.round(t.wohlstandStand),
-    akkuSchnitt: (t.akkuVerlauf || []).length
-      ? Math.round(t.akkuVerlauf.reduce((s, e) => s + e.p, 0) / t.akkuVerlauf.length)
-      : null,
+    akkuSchnitt: akkuP.length ? Math.round(akkuP.reduce((s, e) => s + e, 0) / akkuP.length) : null,
+    akkuMin: akkuP.length ? Math.min(...akkuP) : null,
+    akkuMax: akkuP.length ? Math.max(...akkuP) : null,
+    sessions: t.sessionCount || 0,
     bereiche: punkteNachGruppe('bereich'),
     abschnitte: punkteNachGruppe('abschnitt'),
     verlauf: [...t.log.filter(l => !l.counterAbschluss), ...(t.tickLog || [])]
@@ -1958,16 +2014,17 @@ function heuteAlsSnapshot() {
       .sort((a, b) => a.z < b.z ? -1 : 1),
     // Domänen-getrennt (22.07.2026) → Statistik-Filter auch für Woche/Monat
     proDomain: { dfm: domSnapshot('dfm'), privat: domSnapshot('privat') }
-  };
+  }, tagFlussUndSoll(null));
 }
 
 /* Kennzahlen eines Snapshots gemäß aktivem Domänenfilter. Alte Snapshots
-   ohne proDomain zeigen die Gesamtwerte (nicht domänengetrennt). */
+   ohne proDomain zeigen die Gesamtwerte (nicht domänengetrennt). Akku/
+   Sessions sind global und bleiben auch im Domänen-Filter sichtbar. */
 function snapNachFilter(snap) {
   if (domFilter === 'alle' || !snap.proDomain || !snap.proDomain[domFilter]) return snap;
   const d = snap.proDomain[domFilter];
-  return { datum: snap.datum, streak: snap.streak, wohlstand: snap.wohlstand,
-    akkuSchnitt: snap.akkuSchnitt, ...d };
+  return Object.assign({ datum: snap.datum, streak: snap.streak, wohlstand: snap.wohlstand,
+    akkuSchnitt: snap.akkuSchnitt, akkuMin: snap.akkuMin, akkuMax: snap.akkuMax, sessions: snap.sessions }, d);
 }
 
 function historieSchreiben() {
@@ -3489,8 +3546,11 @@ function punkteNachGruppe(achse, domain) {
 }
 
 let aufAchse = 'bereich';
-let statZeitraum = 'heute';
+let statZeitraum = 'tag';               // 'tag' | 'woche' | 'monat'
+let statTag = null;                     // gewählter Tag (null = laufender Tag); Datums-Picker
 let statFilter = { punkte: true, energie: true, soll: true };
+let analysePeriode = { leistung: 7, zeit: 7, fluss: 7, energie: 7 };   // Trend-Zeitraum je Detail-Gruppe
+function statTagAktiv() { return statTag || heuteApp(); }
 
 /* Domänen-Umschalter (Pascal 22.07.2026): blendet DFM- oder Privat-Infos
    auf Stream UND Statistik aus. Ein globaler Zustand, beide Seiten teilen ihn.
@@ -3515,12 +3575,22 @@ function domFilterVerdrahten(el) {
   }));
 }
 
-/* Snapshots des Zeitraums, heute immer live dabei. */
+/* Snapshot eines beliebigen Tages: laufender Tag live, sonst aus der Historie. */
+function snapshotFuerTag(datum) {
+  if (datum === heuteApp()) return heuteAlsSnapshot();
+  return historieLaden().find(d => d.datum === datum) || null;
+}
+
+/* Snapshots des Zeitraums, endend am gewählten Tag (statTag). Einzeltag =
+   genau dieser Tag (oder leer, wenn keine Daten); Woche/Monat = die letzten
+   7/30 Tage bis einschließlich statTag. */
 function statTage(zeitraum) {
-  const alt = historieLaden().filter(d => d.datum !== Store.tag.datum);
-  const alle = [...alt, heuteAlsSnapshot()];
-  const n = zeitraum === 'woche' ? 7 : zeitraum === 'monat' ? 30 : 1;
-  return alle.slice(-n);
+  const bis = statTagAktiv();
+  if (zeitraum === 'tag') { const s = snapshotFuerTag(bis); return s ? [s] : []; }
+  const alle = [...historieLaden().filter(d => d.datum !== heuteApp()), heuteAlsSnapshot()]
+    .filter(d => d && d.datum <= bis)
+    .sort((a, b) => a.datum < b.datum ? -1 : 1);
+  return alle.slice(-(zeitraum === 'woche' ? 7 : 30));
 }
 
 /* Aufschlüsselung über den Zeitraum, gemäß Domänenfilter (heute live). */
@@ -3538,22 +3608,27 @@ function punkteNachGruppeZeitraum(achse, zeitraum) {
    Woche/Monat = Balken je Tag (Sleep-Cycle-Stil). */
 function kurveHtml(zeitraum) {
   const s = Store.settings;
-  if (zeitraum === 'heute') {
-    const snap = snapNachFilter(statTage('heute')[0]);   // Domänenfilter
+  if (zeitraum === 'tag') {
+    const roh = statTage('tag')[0];
+    if (!roh) return '<div class="akkukarte"><div class="lbl"><span>Tagesverlauf</span></div>'
+      + '<div class="leer">Keine Daten für diesen Tag.</div></div>';
+    const snap = snapNachFilter(roh);
+    const istHeute = roh.datum === heuteApp();
     const { start, ende } = arbeitstagFenster();
-    const events = snap.verlauf
+    const events = (snap.verlauf || [])
       .map(e => ({ min: (d => d.getHours() * 60 + d.getMinutes())(new Date(e.z)), p: e.p }))
       .sort((a, b) => a.min - b.min);
-    const ziel = sollWerte(true).gesamt;   // manueller Soll-Wert oder geplante Punkte
+    const ziel = snap.sollPunkte || 0;   // Soll aus dem Snapshot (gilt auch für vergangene Tage)
     let kum = 0;
     const punkte = [[start, 0]];
     events.forEach(e => { kum += (Number(e.p) || 0); punkte.push([Math.min(ende, Math.max(start, e.min)), kum]); });
     const jetzt = new Date(); const jm = Math.min(ende, jetzt.getHours() * 60 + jetzt.getMinutes());
-    const fi = fokusItem();
-    if (fi && domSichtbar(fi.domain)) kum += (Number(fokusLiveDelta()) || 0);   // Live nur wenn Domäne sichtbar
-    if (jm > start) punkte.push([jm, kum]);
-    // Dynamische Skala: höchster angezeigter Wert (Kurven-Spitze, ggf. Soll-Linie)
-    // + 15 % Puffer, damit die Linie nie an den oberen Rand läuft (22.07.2026).
+    if (istHeute) {
+      const fi = fokusItem();
+      if (fi && domSichtbar(fi.domain)) kum += (Number(fokusLiveDelta()) || 0);   // Live nur wenn Domäne sichtbar
+      if (jm > start) punkte.push([jm, kum]);
+    }
+    // Dynamische Skala: höchster angezeigter Wert + 15 % Puffer (22.07.2026).
     const spitze = punkte.reduce((m, pt) => Math.max(m, pt[1]), 0);
     const maxY = Math.max(statFilter.soll ? ziel : 0, spitze, 10) * 1.15;
     const X = m => 6 + (m - start) / Math.max(1, ende - start) * 288;
@@ -3561,13 +3636,19 @@ function kurveHtml(zeitraum) {
     const linie = punkte.map(pt => X(pt[0]).toFixed(1) + ',' + Y(pt[1]).toFixed(1)).join(' ');
     const fm = snap.fokusMin;
     const oe = fm >= 5 ? fmtPunkte((snap.punkte || 0) / (fm / 60)) + ' P/Std Fokus' : '';
-    // Energie-Serie (rechte Skala 0–100 %) — gemergter Graph (22.07.2026)
+    // Energie-Serie (rechte Skala 0–100 %): laufender Tag live, vergangener Tag als Ø-Linie
     const YA = p => 96 - (p / 100) * 86;
-    const av = (Store.tag.akkuVerlauf || []).filter(e => e.min >= start && e.min <= ende);
-    let akkuLinie = av.map(e => X(e.min).toFixed(1) + ',' + YA(e.p).toFixed(1)).join(' ');
-    const aJetzt = akkuLive();
-    if (aJetzt != null && jm > start) akkuLinie += (akkuLinie ? ' ' : '') + X(jm).toFixed(1) + ',' + YA(aJetzt).toFixed(1);
-    return '<div class="akkukarte"><div class="lbl"><span>Tagesverlauf</span><span>' + oe + '</span></div>'
+    let akkuLinie = '', aJetzt = null;
+    if (istHeute) {
+      const av = (Store.tag.akkuVerlauf || []).filter(e => e.min >= start && e.min <= ende);
+      akkuLinie = av.map(e => X(e.min).toFixed(1) + ',' + YA(e.p).toFixed(1)).join(' ');
+      aJetzt = akkuLive();
+      if (aJetzt != null && jm > start) akkuLinie += (akkuLinie ? ' ' : '') + X(jm).toFixed(1) + ',' + YA(aJetzt).toFixed(1);
+    } else if (snap.akkuSchnitt != null) {
+      akkuLinie = X(start).toFixed(1) + ',' + YA(snap.akkuSchnitt).toFixed(1) + ' ' + X(ende).toFixed(1) + ',' + YA(snap.akkuSchnitt).toFixed(1);
+      aJetzt = snap.akkuSchnitt;
+    }
+    return '<div class="akkukarte"><div class="lbl"><span>' + (istHeute ? 'Tagesverlauf' : 'Verlauf ' + roh.datum.slice(5)) + '</span><span>' + oe + '</span></div>'
       + '<svg viewBox="0 0 300 104" width="100%" height="104">'
       + '<line x1="6" y1="96" x2="294" y2="96" stroke="var(--line)"/>'
       + (statFilter.soll ? '<line x1="' + X(start) + '" y1="' + Y(0) + '" x2="' + X(ende) + '" y2="' + Y(ziel) + '" stroke="var(--mut2)" stroke-width="1.5" stroke-dasharray="4 4"/>'
@@ -3587,19 +3668,19 @@ function kurveHtml(zeitraum) {
   const n = zeitraum === 'woche' ? 7 : 30;
   const bw = Math.floor(288 / n) - 2;
   let balken = '';
+  const gewaehlt = statTagAktiv();
   tage.forEach((d, i) => {
     const h = Math.max(2, (d.punkte || 0) / maxP * 80);
     const x = 6 + i * (288 / n);
-    const heute = d.datum === Store.tag.datum;
     balken += '<rect x="' + x.toFixed(1) + '" y="' + (90 - h).toFixed(1) + '" width="' + bw + '" height="' + h.toFixed(1)
-      + '" rx="2" fill="' + (heute ? 'var(--cyan)' : 'var(--purple)') + '"/>';
+      + '" rx="2" fill="' + (d.datum === gewaehlt ? 'var(--cyan)' : 'var(--purple)') + '"/>';
   });
   const summe = tage.reduce((s2, d) => s2 + (d.punkte || 0), 0);
   return '<div class="akkukarte"><div class="lbl"><span>Punkte je Tag (' + tage.length + ' Tage)</span><span>Σ ' + fmtPunkte(summe) + ' P</span></div>'
     + '<svg viewBox="0 0 300 100" width="100%" height="100">'
     + '<line x1="6" y1="90" x2="294" y2="90" stroke="var(--line)"/>' + balken
     + '<text x="6" y="99" fill="var(--mut2)" font-size="8">' + (tage[0] ? tage[0].datum.slice(5) : '') + '</text>'
-    + '<text x="266" y="99" fill="var(--mut2)" font-size="8">heute</text>'
+    + '<text x="260" y="99" fill="var(--mut2)" font-size="8">' + (tage.length ? tage[tage.length - 1].datum.slice(5) : '') + '</text>'
     + '</svg></div>';
 }
 
@@ -3701,14 +3782,19 @@ function renderBelohnung() {
   // Avatar/Level/Konto/Shop bleiben domänenübergreifend (Gesamtfortschritt).
   html += '<h2 class="sechead">Statistik</h2>'
     + domFilterHtml('domSegStat');
-  // Zeitraum + Kurve + Kennzahlen (Statistik, Etappe 2)
-  html += '<div class="vtoggle" id="statTabs" style="margin-top:var(--s1)">'
-    + ['heute', 'woche', 'monat'].map(z =>
-        '<button data-z="' + z + '" class="' + (statZeitraum === z ? 'on' : '') + '">'
-        + (z === 'heute' ? 'Heute' : z === 'woche' ? 'Woche' : 'Monat') + '</button>').join('')
+  // Datums-Picker (Pascal 23.07.2026): beliebigen Tag wählen; wirkt auf alle Bereiche
+  html += '<div class="statdatum">'
+    + '<input type="date" id="statDatum" value="' + statTagAktiv() + '" max="' + heuteApp() + '">'
+    + '<button id="statHeute" class="' + (statTag == null ? 'on' : '') + '">Heute</button>'
     + '</div>';
-  // Serien-Filter für den gemergten Tagesgraphen (22.07.2026)
-  if (statZeitraum === 'heute') {
+  // Zeitraum um den gewählten Tag: Tag / Woche / Monat
+  html += '<div class="vtoggle" id="statTabs" style="margin-top:var(--s1)">'
+    + ['tag', 'woche', 'monat'].map(z =>
+        '<button data-z="' + z + '" class="' + (statZeitraum === z ? 'on' : '') + '">'
+        + (z === 'tag' ? 'Tag' : z === 'woche' ? 'Woche' : 'Monat') + '</button>').join('')
+    + '</div>';
+  // Serien-Filter für den Tagesgraphen (22.07.2026)
+  if (statZeitraum === 'tag') {
     html += '<div class="vtoggle" id="kurveFilter" style="margin-bottom:var(--s1)">'
       + [['punkte', '● Punkte'], ['energie', '● Energie'], ['soll', '● Soll']].map(([f, l]) =>
           '<button data-filter="' + f + '" class="' + (statFilter[f] ? 'on' : '') + '" '
@@ -3748,6 +3834,12 @@ function renderBelohnung() {
     renderStatusbar();
   });
   domFilterVerdrahten($('domSegStat'));
+  $('statDatum').addEventListener('change', () => {
+    const v = $('statDatum').value;
+    statTag = (v && v !== heuteApp()) ? v : null;   // heute → null (läuft live mit)
+    renderBelohnung();
+  });
+  $('statHeute').addEventListener('click', () => { statTag = null; renderBelohnung(); });
   $('statTabs').querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => { statZeitraum = btn.dataset.z; renderBelohnung(); });
   });
@@ -3788,7 +3880,7 @@ function balkenSvgHtml(titel, tage, wertFn, einheit, farbe) {
     + '<svg viewBox="0 0 300 90" width="100%" height="90">'
     + '<line x1="6" y1="80" x2="294" y2="80" stroke="var(--line)"/>' + balken
     + '<text x="6" y="89" fill="var(--mut2)" font-size="8">' + (tage[0] ? tage[0].datum.slice(5) : '') + '</text>'
-    + '<text x="266" y="89" fill="var(--mut2)" font-size="8">heute</text>'
+    + '<text x="258" y="89" fill="var(--mut2)" font-size="8">' + (n ? tage[n - 1].datum.slice(5) : '') + '</text>'
     + '</svg></div>';
 }
 
@@ -3827,30 +3919,76 @@ function heatmapHtml() {
     + '<div class="heatmap">' + zellen + '</div></div>';
 }
 
+/* Die letzten n Tage bis einschließlich statTag (domänengefiltert). */
+function analyseTage(n) {
+  const bis = statTagAktiv();
+  const alle = [...historieLaden().filter(d => d.datum !== heuteApp()), heuteAlsSnapshot()]
+    .filter(d => d && d.datum <= bis).sort((a, b) => a.datum < b.datum ? -1 : 1);
+  return alle.slice(-n).map(snapNachFilter);
+}
+function aKpi(v, k, d, kl) {
+  return '<div class="aKpi"><div class="v">' + v + '</div><div class="k">' + k + '</div>'
+    + (d != null ? '<div class="d ' + (kl || 'neutral') + '">' + d + '</div>' : '') + '</div>';
+}
+function aTrendToggle(gruppe, aktiv) {
+  return '<div class="aTrend" data-tg="' + gruppe + '">'
+    + [7, 30, 90].map(p => '<button data-p="' + p + '" class="' + (aktiv === p ? 'on' : '') + '">' + p + ' T</button>').join('')
+    + '</div>';
+}
+function hmm(m) { m = Math.round(m || 0); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); }
+
+/* Detail-Analyse (v0.28.0): vier Gruppen, je gewählter Tag + eigener Trend. */
 function sheetAnalyseOeffnen() {
-  const alt = historieLaden().filter(d => d.datum !== Store.tag.datum);
-  const tage = [...alt, heuteAlsSnapshot()].slice(-14).map(snapNachFilter);
-  let html = '';
-  if (tage.length < 2) {
-    html += '<div class="wizinfo">Die Detail-Analyse füllt sich mit jedem Tagesabschluss — ab morgen gibt es hier Trends.</div>';
-  }
-  html += heatmapHtml();
-  html += balkenSvgHtml('Punkte je Tag (14 T)', tage, d => d.punkte || 0, ' P', 'var(--purple)');
-  html += balkenSvgHtml('Fokuszeit je Tag (min)', tage, d => d.fokusMin || 0, ' min', 'var(--cyan)');
-  html += balkenSvgHtml('Akku-Ø je Tag (%)', tage, d => d.akkuSchnitt || 0, ' %', 'var(--ok)');
-  html += '<h2 class="sechead">Bereiche (7 Tage)</h2>'
-    + aufschluesselungHtml(punkteNachGruppeZeitraum('bereich', 'woche'));
-  html += '<h2 class="sechead">Tagesabschnitte (7 Tage)</h2>'
-    + aufschluesselungHtml(punkteNachGruppeZeitraum('abschnitt', 'woche'));
-  const streaks = Store.items.filter(i => i.typ === 'routine' && (i.routineStreak || 0) > 0)
-    .sort((a, b) => b.routineStreak - a.routineStreak).slice(0, 5);
-  if (streaks.length) {
-    html += '<h2 class="sechead">Top-Routinen-Streaks</h2>'
-      + streaks.map(r => '<div class="aufzeile"><span class="albl">' + escapeHtml(r.titel) + '</span>'
-        + '<div class="abar"><i style="width:' + Math.min(100, r.routineStreak * 10) + '%;background:var(--warn)"></i></div>'
-        + '<span class="awert">🔥 ' + r.routineStreak + '</span></div>').join('');
-  }
+  const tag = snapNachFilter(snapshotFuerTag(statTagAktiv()) || { datum: statTagAktiv() });
+  const istHeute = tag.datum === heuteApp();
+  const keineDaten = !(tag.punkte || tag.fokusMin || tag.reingekommen || tag.abgeschlossen);
+  const gruppe = (key, titel, kpis, trend) =>
+    '<div class="aGruppe"><div class="aGkopf"><h3>' + titel + '</h3></div>'
+    + '<div class="aKpis">' + kpis + '</div>' + aTrendToggle(key, analysePeriode[key]) + trend + '</div>';
+
+  let html = '<div class="wizinfo" style="margin-top:0">📅 <b>' + tag.datum + (istHeute ? ' (heute)' : '') + '</b> · Domäne: '
+    + (domFilter === 'alle' ? 'Alle' : domFilter.toUpperCase()) + ' — der Datums-Picker auf der Statistikseite wählt den Tag.</div>';
+  if (keineDaten) html += '<div class="wizinfo">Für diesen Tag liegen noch keine Kennzahlen vor.</div>';
+
+  // 1 · Leistung / Punkte
+  const p = tag.punkte || 0, sollP = tag.sollPunkte || 0, fm = tag.fokusMin || 0;
+  const oe = fm >= 5 ? Math.round(p / (fm / 60)) : 0, dP = Math.round(p - sollP);
+  html += gruppe('leistung', '🏆 Leistung',
+    aKpi(fmtPunkte(p), 'Punkte', (dP >= 0 ? '+' : '') + dP + ' vs Soll', dP >= 0 ? 'gut' : 'bad')
+    + aKpi(fmtPunkte(sollP), 'Soll-Punkte') + aKpi(oe, 'Ø P/Std'),
+    (t2 => balkenSvgHtml('Punkte je Tag (' + t2.length + ' T)', t2, d => d.punkte || 0, ' P', 'var(--purple)'))(analyseTage(analysePeriode.leistung)));
+
+  // 2 · Zeit / Fokus
+  const sm = tag.sollMin || 0, ses = tag.sessions || 0, dZ = Math.round(fm - sm);
+  html += gruppe('zeit', '⏱ Zeit & Fokus',
+    aKpi(hmm(fm) + ' h', 'Fokuszeit', (dZ >= 0 ? '+' : '') + dZ + ' min vs Soll', dZ >= 0 ? 'gut' : 'bad')
+    + aKpi(hmm(sm) + ' h', 'Soll-Zeit') + aKpi(ses, 'Sessions', ses ? Math.round(fm / ses) + ' min/Sess.' : null),
+    (t2 => balkenSvgHtml('Fokuszeit je Tag (' + t2.length + ' T)', t2, d => d.fokusMin || 0, ' min', 'var(--cyan)'))(analyseTage(analysePeriode.zeit)));
+
+  // 3 · Aufgaben-Fluss
+  const rk = tag.reingekommen || 0, ab = tag.abgeschlossen || 0, of = tag.offen || 0, gs = tag.geschoben || 0;
+  const quote = (ab + of) > 0 ? Math.round(ab / (ab + of) * 100) : 0, netto = ab - rk;
+  html += gruppe('fluss', '📋 Aufgaben-Fluss',
+    aKpi(rk, 'Reingekommen') + aKpi(ab, 'Abgeschlossen') + aKpi(of, 'Noch offen')
+    + aKpi(gs, 'Weitergeschoben') + aKpi(quote + '%', 'Erledigt-Quote')
+    + aKpi((netto >= 0 ? '+' : '') + netto, 'Netto erl−neu', null, netto >= 0 ? 'gut' : 'bad'),
+    (t2 => balkenSvgHtml('Abgeschlossen je Tag (' + t2.length + ' T)', t2, d => d.abgeschlossen || 0, '', 'var(--ok)'))(analyseTage(analysePeriode.fluss)));
+
+  // 4 · Energie & Konsistenz
+  const aS = tag.akkuSchnitt, aMin = tag.akkuMin, aMax = tag.akkuMax, st = tag.streak || 0;
+  html += gruppe('energie', '🔋 Energie & Konsistenz',
+    aKpi(aS != null ? aS + '%' : '–', 'Akku Ø')
+    + aKpi((aMin != null ? aMin : '–') + ' / ' + (aMax != null ? aMax : '–'), 'Akku min / max')
+    + aKpi(st + '🔥', 'Streak'),
+    (t2 => balkenSvgHtml('Akku-Ø je Tag (' + t2.length + ' T)', t2, d => d.akkuSchnitt || 0, ' %', 'var(--ok)'))(analyseTage(analysePeriode.energie)) + heatmapHtml());
+
   sheetOeffnen('Detail-Analyse', html, 'analyse');
+  document.querySelectorAll('#sheetInhalt .aTrend button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      analysePeriode[btn.closest('.aTrend').dataset.tg] = Number(btn.dataset.p);
+      sheetAnalyseOeffnen();
+    });
+  });
 }
 
 function akkuKurveHtml() {
