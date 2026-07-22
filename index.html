@@ -679,7 +679,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.27.0';
+const APP_VERSION = '0.27.1';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -743,6 +743,14 @@ function heuteIso() {
   return d.getFullYear() + '-' +
     String(d.getMonth() + 1).padStart(2, '0') + '-' +
     String(d.getDate()).padStart(2, '0');
+}
+
+/* App-„Heute" (Pascal 23.07.2026): Der Tag wechselt rein manuell über
+   „Neuen Tag starten" — nicht über Mitternacht. „Heute" ist deshalb das
+   Startdatum des laufenden Tages (Store.tag.datum), nicht der Kalendertag.
+   Nur die Tages-ERSTELLUNG nutzt weiter heuteIso() (echtes Kalenderdatum). */
+function heuteApp() {
+  return (Store.tag && Store.tag.datum) ? Store.tag.datum : heuteIso();
 }
 
 /* Item-Fabrik: volles Schema aus 2.4, fehlende Felder mit Defaults.
@@ -865,32 +873,14 @@ const Store = {
     // Migration: neue Schema-Felder aus App-Updates mit Defaults auffüllen
     this.items    = lsLese(LS.ITEMS, []).map(i => neuesItem(i));
     const tag = lsLese(LS.TAG, null);
-    if (tag && tag.datum === heuteIso()) {
+    if (tag) {
+      // Der Tag wechselt nur manuell über „Neuen Tag starten" (Pascal
+      // 23.07.2026) — KEIN Kalender-Rollover mehr, auch über Mitternacht.
       this.tag = tag;
-      // Migration (22.07.2026): fehlt die Tagesbeginn-Referenz, jetzt setzen —
-      // ab hier zählt nur noch die heute investierte Zeit (der Timer-Zähler
-      // fokusSek deckt die bereits heute getrackte Zeit weiterhin ab).
       if (!this.tag.istMinutenStart) tagStartMinutenErfassen();
     } else {
-      // Vortag nie abgeschlossen? Spielmechanik nachholen (Maluse, Streak,
-      // Wohlstand, Statistik-Snapshot) — der Button ist optional (22.07.2026).
-      if (tag && !tag.abgeschlossen) {
-        this.tag = tag;
-        try { tagesabschlussKern(); } catch (e) {}
-      }
-      // Tageswechsel: neuer Stand, Wohlstand/Streak werden mitgenommen.
-      // (Boni/Mali & Streak-Fortschreibung übernimmt später der
-      //  Tagesabschluss-Wizard — hier nur der technische Rollover.)
-      this.tag = neuerTagesstand(heuteIso(), tag);
-      this.items.forEach(i => {
-        if (i.typ === 'counter') i.tickStandHeute = 0;      // Counter starten morgens neu
-        if (i.typ === 'routine') {                          // Routinen sind Tages-Items
-          if (i.status !== 'offen') i.status = 'offen';
-          i.istMinuten = 0;
-        }
-        // Aufgaben laufen weiter: istMinuten bleibt, nur die heutige Referenz
-        // wird unten neu gesetzt (Pascal 22.07.2026).
-      });
+      // Allererster Start: frischer Tag mit heutigem Kalenderdatum.
+      this.tag = neuerTagesstand(heuteIso(), null);
       tagStartMinutenErfassen();
       this.speichereAlles();
     }
@@ -1003,7 +993,7 @@ const Store = {
     return {
       typ,                              // 'sync' | 'tagesabschluss'
       appVersion: APP_VERSION,          // (3) Datenvertrags-Kennung für die Gegenseite
-      datum: heuteIso(),
+      datum: heuteApp(),
       items: JSON.parse(JSON.stringify(this.items)).map(i => {
         delete i.bereich;
         delete i.heuteRausgezogen;      // rein App-interner Tageszustand
@@ -1113,7 +1103,7 @@ function settingsZusammenfuehren(gespeichert) {
    ════════════════════════════════════════════════════════════════════ */
 function tageBisDeadline(deadline) {
   if (!deadline) return 0;
-  return Math.round((new Date(deadline + 'T00:00:00') - new Date(heuteIso() + 'T00:00:00')) / 86400000);
+  return Math.round((new Date(deadline + 'T00:00:00') - new Date(heuteApp() + 'T00:00:00')) / 86400000);
 }
 
 /* ── Punktesystem 2.0 (21.07.2026): Punkte/Stunde + Abhak-Bonus ───── */
@@ -1238,7 +1228,7 @@ function hatWochentagModell(r) { return !!(r.rhythmusWochentage && r.rhythmusWoc
 function routineUeberfaelligTage(r) {
   if (hatWochentagModell(r)) return 0;   // Wochentag-Modell kennt kein „überfällig in Tagen"
   if (!r.zuletztErledigt) return 0;
-  const diff = Math.round((new Date(heuteIso() + 'T00:00:00')
+  const diff = Math.round((new Date(heuteApp() + 'T00:00:00')
     - new Date(r.zuletztErledigt + 'T00:00:00')) / 86400000);
   return diff - (r.rhythmusTage || 1);
 }
@@ -1269,7 +1259,7 @@ function zufallsTageSichern(r) {
       Store.speichereItems();
     }
   } else if (modus === 'zufallMonat') {
-    const periode = heuteIso().slice(0, 7);
+    const periode = heuteApp().slice(0, 7);
     if (r.rhythmusZufallPeriode !== periode) {
       r.rhythmusZufallPeriode = periode;
       r.rhythmusZufallTage = ziehe(28, n).map(x => x + 1); // 1.–28.
@@ -1281,8 +1271,8 @@ function zufallsTageSichern(r) {
 function routineFaellig(r) {
   if (r.typ !== 'routine') return false;
   if (r.status === 'erledigt') return false;
-  if (r.ausgesetztAm === heuteIso()) return false;
-  if (r.zuletztErledigt === heuteIso()) return false;
+  if (r.ausgesetztAm === heuteApp()) return false;
+  if (r.zuletztErledigt === heuteApp()) return false;
   const modus = rhythmusModusVon(r);
   if (modus === 'wochentage') {
     if (!(r.rhythmusWochentage || []).includes(wochentagMo0())) return false;
@@ -1309,7 +1299,7 @@ function routineFaellig(r) {
 function routineNaechsteIn(r) {
   const modus = rhythmusModusVon(r);
   if (modus === 'alleNTage') return Math.max(1, -routineUeberfaelligTage(r));
-  const heute = new Date(heuteIso() + 'T00:00:00');
+  const heute = new Date(heuteApp() + 'T00:00:00');
   const anker = r.rhythmusAnkerWoche != null ? r.rhythmusAnkerWoche : wochenIndex(heute);
   for (let d = 1; d <= 62; d++) {
     const dat = new Date(heute); dat.setDate(dat.getDate() + d);
@@ -1332,8 +1322,8 @@ function routineNaechsteIn(r) {
 function routineAussetzen(id, mitAbzug) {
   const r = Store.findeItem(id);
   if (!r || r.typ !== 'routine') return;
-  r.ausgesetztAm = heuteIso();
-  r.zuletztErledigt = heuteIso();          // Rhythmus startet ab heute neu
+  r.ausgesetztAm = heuteApp();
+  r.zuletztErledigt = heuteApp();          // Rhythmus startet ab heute neu
   r.rhythmusAnkerWoche = wochenIndex();
   if (mitAbzug) {
     Store.tag.log.push({
@@ -1650,7 +1640,7 @@ function abhaken(id, override) {
         else if (diffTage > 0) rhythmusDelta = Store.settings.rhythmusVerpasstProTag * diffTage;
       }
       logEintrag.zuletztErledigtVorher = item.zuletztErledigt;
-      item.zuletztErledigt = heuteIso();
+      item.zuletztErledigt = heuteApp();
       item.rhythmusAnkerWoche = wochenIndex();              // Wochen-Intervall neu verankern
       item.routineStreak = (item.routineStreak || 0) + 1;   // routineneigene Serie
       item.streakGebrochen = false;
@@ -2140,7 +2130,7 @@ function renderCounterFeld() {
 const ABSCHNITTE = [['morgen', '🌅 Morgen'], ['tagsueber', '☀️ Tagsüber'], ['abend', '🌙 Abends']];
 
 function routineKarteHtml(r) {
-  const ausgesetzt = r.ausgesetztAm === heuteIso();
+  const ausgesetzt = r.ausgesetztAm === heuteApp();
   const faellig = routineFaellig(r);
   const ueber = routineUeberfaelligTage(r);
   const klassen = ['karte', 'routine', 'spalte'];
@@ -3444,7 +3434,7 @@ function kaufen(kat) {
   belohnung.stufen[kat] = idx + 1;
   belohnung.ausgegeben = (belohnung.ausgegeben || 0) + preis;
   belohnung.kaeufe = belohnung.kaeufe || [];
-  belohnung.kaeufe.push({ kat, stufe: idx + 1, name: stufe[0], datum: heuteIso(), preis });
+  belohnung.kaeufe.push({ kat, stufe: idx + 1, name: stufe[0], datum: heuteApp(), preis });
   belohnungSpeichern();
   konfetti();
   toastZeigen('🎉 Gekauft: ' + BELOHNUNG[kat].icon + ' ' + stufe[0]);
@@ -3812,7 +3802,7 @@ function heatmapHtml() {
   const maxP = Math.max(...tage.map(d => d.punkte || 0), 1);
   const paces = tage.filter(d => (d.fokusMin || 0) >= 30).map(d => d.punkte / (d.fokusMin / 60));
   const avgPace = paces.length ? paces.reduce((a, b) => a + b, 0) / paces.length : 0;
-  const heute = new Date(heuteIso() + 'T00:00:00');
+  const heute = new Date(heuteApp() + 'T00:00:00');
   const startTag = new Date(heute);
   startTag.setDate(heute.getDate() - wochentagMo0(heute) - 63);   // 10 Wochen, montags
   let zellen = '';
@@ -4285,7 +4275,7 @@ function privatDokumentMd() {
 }
 
 function dateinamePrivat() {
-  return heuteIso().slice(2).replace(/-/g, '') + '_Privat_Tagesabschluss.md';
+  return heuteApp().slice(2).replace(/-/g, '') + '_Privat_Tagesabschluss.md';
 }
 
 /* „Neuen Tag starten" (Review-Flow, 23.07.2026): alle offenen Karten des
@@ -4371,7 +4361,7 @@ function reviewSchritt() {
       bereich: item.bereich || null, punkte: p,
       zeit: new Date().toISOString(), gebucht: true, abschluss: true
     });
-    if (item.typ === 'routine') item.zuletztErledigt = heuteIso();   // heute behandelt, Rhythmus läuft weiter
+    if (item.typ === 'routine') item.zuletztErledigt = heuteApp();   // heute behandelt, Rhythmus läuft weiter
     Store.speichereItems(); Store.speichereTag();
     reviewIdx++; reviewSchritt();
   });
@@ -4383,8 +4373,8 @@ function reviewSchritt() {
       zeit: new Date().toISOString(), geschoben: true, abschluss: true
     });
     if (item.typ === 'routine') {          // Rhythmus ab morgen neu, kein Streak-Bruch
-      item.ausgesetztAm = heuteIso();
-      item.zuletztErledigt = heuteIso();
+      item.ausgesetztAm = heuteApp();
+      item.zuletztErledigt = heuteApp();
       item.rhythmusAnkerWoche = wochenIndex();
     }
     // Aufgabe bleibt offen im Stream für morgen (streamSlot unverändert)
@@ -4664,15 +4654,10 @@ document.querySelectorAll('#tabbar button').forEach(btn => {
 });
 
 /* Sekündliche Aktualisierung von Timer/Pace, ohne Listen neu zu bauen. */
-/* Tageswechsel erkennen, auch wenn die PWA offen bleibt (iOS friert sie
-   nur ein): Rollover nachziehen — Routinen neu starten, Counter auf 0. */
-function tageswechselPruefen() {
-  if (Store.tag.datum === heuteIso()) return;
-  Store.ladeAlles();
-  gesamtpunkteAktualisieren();
-  if (sheetOffenFuer) sheetSchliessen();
-  renderAlles();
-}
+/* Kein Kalender-Tageswechsel mehr (Pascal 23.07.2026): der Tag wechselt
+   ausschließlich manuell über „Neuen Tag starten", auch über Mitternacht.
+   Funktion bleibt als No-op erhalten (wird noch referenziert). */
+function tageswechselPruefen() { /* manueller Tageswechsel — kein Auto-Rollover */ }
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) { tageswechselPruefen(); renderAlles(); }
 });
@@ -4749,6 +4734,7 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   arbeitstagFenster, sollWerte, paceWerte, renderPace, kurveHtml,
   uaMergeFuerImport, unteraufgabeAnlegen,
   sheetNeuerTagOeffnen, heutePunkteOffen, historieLaden,
+  heuteApp, heuteIso, tageswechselPruefen, routineFaellig,
   _setDomFilter: d => { domFilter = d; }, _getDomFilter: () => domFilter };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
