@@ -630,6 +630,7 @@ textarea{min-height:64px;resize:vertical}
   <section class="view on" id="view-stream">
     <div id="tagAktionen"></div>
     <div id="pace"></div>
+    <div id="domFilterStream"></div>
     <h2 class="sechead">Tagesstream <span class="anz" id="anzStream"></span></h2>
     <div id="streamListe"></div>
     <div id="counterFeld"></div>
@@ -667,7 +668,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.22.0';
+const APP_VERSION = '0.23.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -1844,6 +1845,27 @@ function fokusMinHeute() {
   return Math.round(Math.max(zaehler, Math.min(heute, 16 * 60)));
 }
 
+/* Ist ein Log-Eintrag eine echte „erledigt"-Abhakung? (für die Erledigt-Zahl) */
+function istErledigtEintrag(l) {
+  return !l.uaId && !l.counterAbschluss && !l.routineVerpasst
+    && !l.aussetzer && !l.nichtErledigt && l.punkte >= 0;
+}
+
+/* Kennzahlen + Aufschlüsselung einer einzelnen Domäne für heute. */
+function domSnapshot(dom) {
+  const eintr = logEintraegeHeute(dom);
+  return {
+    punkte: Math.round(eintr.reduce((s, l) => s + (Number(l.punkte) || 0), 0) * 10) / 10,
+    fokusMin: Math.round(Store.items.filter(i => (i.domain || 'dfm') === dom)
+      .reduce((s, i) => s + heuteInvestiertMin(i), 0)),
+    erledigt: Store.tag.log.filter(l => (l.domain || 'dfm') === dom && istErledigtEintrag(l)).length,
+    bereiche: punkteNachGruppe('bereich', dom),
+    abschnitte: punkteNachGruppe('abschnitt', dom),
+    verlauf: eintr.map(l => ({ z: l.zeit, p: Math.round((Number(l.punkte) || 0) * 10) / 10 }))
+      .sort((a, b) => a.z < b.z ? -1 : 1)
+  };
+}
+
 function heuteAlsSnapshot() {
   gesamtpunkteAktualisieren();
   const t = Store.tag;
@@ -1851,8 +1873,7 @@ function heuteAlsSnapshot() {
     datum: t.datum,
     punkte: Math.round(t.gesamtpunkteHeute * 10) / 10,
     fokusMin: fokusMinHeute(),
-    erledigt: t.log.filter(l => !l.uaId && !l.counterAbschluss && !l.routineVerpasst
-      && !l.aussetzer && !l.nichtErledigt && l.punkte >= 0).length,
+    erledigt: t.log.filter(istErledigtEintrag).length,
     streak: t.streak,
     wohlstand: Math.round(t.wohlstandStand),
     akkuSchnitt: (t.akkuVerlauf || []).length
@@ -1861,9 +1882,20 @@ function heuteAlsSnapshot() {
     bereiche: punkteNachGruppe('bereich'),
     abschnitte: punkteNachGruppe('abschnitt'),
     verlauf: [...t.log.filter(l => !l.counterAbschluss), ...(t.tickLog || [])]
-      .map(l => ({ z: l.zeit, p: Math.round(l.punkte * 10) / 10 }))
-      .sort((a, b) => a.z < b.z ? -1 : 1)
+      .map(l => ({ z: l.zeit, p: Math.round((Number(l.punkte) || 0) * 10) / 10 }))
+      .sort((a, b) => a.z < b.z ? -1 : 1),
+    // Domänen-getrennt (22.07.2026) → Statistik-Filter auch für Woche/Monat
+    proDomain: { dfm: domSnapshot('dfm'), privat: domSnapshot('privat') }
   };
+}
+
+/* Kennzahlen eines Snapshots gemäß aktivem Domänenfilter. Alte Snapshots
+   ohne proDomain zeigen die Gesamtwerte (nicht domänengetrennt). */
+function snapNachFilter(snap) {
+  if (domFilter === 'alle' || !snap.proDomain || !snap.proDomain[domFilter]) return snap;
+  const d = snap.proDomain[domFilter];
+  return { datum: snap.datum, streak: snap.streak, wohlstand: snap.wohlstand,
+    akkuSchnitt: snap.akkuSchnitt, ...d };
 }
 
 function historieSchreiben() {
@@ -1975,17 +2007,21 @@ function renderStream() {
   // investierter Zeit — darunter die unangefangenen chronologisch.
   const investiert = i => (i.status === 'in_arbeit' || minutenInklFokus(i) >= 1) ? minutenInklFokus(i) : -1;
   const stream = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter'
-      && i.imStreamAnzeigen !== false
+      && i.imStreamAnzeigen !== false && domSichtbar(i.domain)
       && (i.status !== 'erledigt' || heuteErledigt.has(i.id)))
     .sort((a, b) => {
       const ia = investiert(a), ib = investiert(b);
       if (ia >= 0 || ib >= 0) return ib - ia;          // begonnen vor unbegonnen, mehr Zeit zuerst
       return a.streamSlot - b.streamSlot;
     });
-  const queue = Store.items.filter(i => i.typ === 'aufgabe' && i.streamSlot == null && i.status !== 'erledigt')
+  const queue = Store.items.filter(i => i.typ === 'aufgabe' && i.streamSlot == null
+    && i.status !== 'erledigt' && domSichtbar(i.domain))
     .sort((a, b) => anzeigePunkte(b) - anzeigePunkte(a));
   const queueFertig = Store.items.filter(i => i.typ === 'aufgabe' && i.streamSlot == null
-    && i.status === 'erledigt' && heuteErledigt.has(i.id));
+    && i.status === 'erledigt' && heuteErledigt.has(i.id) && domSichtbar(i.domain));
+
+  $('domFilterStream').innerHTML = domFilterHtml('domSegStream');
+  domFilterVerdrahten($('domSegStream'));
 
   $('streamListe').innerHTML = stream.length
     ? stream.map(i => karteHtml(i, true)).join('')
@@ -2001,7 +2037,7 @@ function renderStream() {
 
 /* Counter als Buttons im Klappfeld (nie in Stream/Warteschlange). */
 function renderCounterFeld() {
-  const counter = Store.items.filter(i => i.typ === 'counter');
+  const counter = Store.items.filter(i => i.typ === 'counter' && domSichtbar(i.domain));
   if (!counter.length) { $('counterFeld').innerHTML = ''; return; }
   $('counterFeld').innerHTML =
     '<div class="tacc' + (felderOffen.counter ? ' offen' : '') + '" data-feld="counter">'
@@ -3334,12 +3370,17 @@ function gesamtStufe() {
 }
 
 /* Aufschlüsselung (3.5): erledigte Punkte nach Bereich oder Tagesabschnitt. */
-function punkteNachGruppe(achse) {
+/* Aufschlüsselungs-Basis von heute (Log ohne counterAbschluss-Dopplung +
+   tickLog), optional auf eine Domäne beschränkt. */
+function logEintraegeHeute(domain) {
+  const alle = [...Store.tag.log.filter(l => !l.counterAbschluss), ...(Store.tag.tickLog || [])];
+  return domain ? alle.filter(l => (l.domain || 'dfm') === domain) : alle;
+}
+
+function punkteNachGruppe(achse, domain) {
   const gruppen = {};
-  const add = (key, p) => { gruppen[key] = (gruppen[key] || 0) + p; };
-  // counterAbschluss-Einträge auslassen — die Ticks stecken schon im tickLog
-  const eintraege = [...Store.tag.log.filter(l => !l.counterAbschluss), ...(Store.tag.tickLog || [])];
-  eintraege.forEach(l => {
+  const add = (key, p) => { gruppen[key] = (gruppen[key] || 0) + (Number(p) || 0); };
+  logEintraegeHeute(domain).forEach(l => {
     if (achse === 'bereich') {
       add(l.bereich || (l.domain === 'dfm' ? 'DFM' : 'Privat'), l.punkte);
     } else {
@@ -3355,6 +3396,29 @@ let aufAchse = 'bereich';
 let statZeitraum = 'heute';
 let statFilter = { punkte: true, energie: true, soll: true };
 
+/* Domänen-Umschalter (Pascal 22.07.2026): blendet DFM- oder Privat-Infos
+   auf Stream UND Statistik aus. Ein globaler Zustand, beide Seiten teilen ihn.
+   Routinen sind im Stream immer sichtbar (unabhängig vom Filter). */
+let domFilter = 'alle';   // 'alle' | 'dfm' | 'privat'
+function domSichtbar(domain) {
+  return domFilter === 'alle' || (domain || 'dfm') === domFilter;
+}
+function domFilterHtml(id) {
+  return '<div class="vtoggle domfilter" id="' + id + '">'
+    + [['alle', 'Alle'], ['dfm', 'DFM'], ['privat', 'Privat']].map(([d, l]) =>
+        '<button data-dom="' + d + '" class="' + (domFilter === d ? 'on' : '') + '">' + l + '</button>').join('')
+    + '</div>';
+}
+function domFilterVerdrahten(el) {
+  if (!el) return;
+  el.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+    if (domFilter === btn.dataset.dom) return;
+    domFilter = btn.dataset.dom;
+    renderStream();
+    if ($('view-belohnung').classList.contains('on')) renderBelohnung();
+  }));
+}
+
 /* Snapshots des Zeitraums, heute immer live dabei. */
 function statTage(zeitraum) {
   const alt = historieLaden().filter(d => d.datum !== Store.tag.datum);
@@ -3363,13 +3427,13 @@ function statTage(zeitraum) {
   return alle.slice(-n);
 }
 
-/* Aufschlüsselung über den Zeitraum (heute live, sonst aus Snapshots). */
+/* Aufschlüsselung über den Zeitraum, gemäß Domänenfilter (heute live). */
 function punkteNachGruppeZeitraum(achse, zeitraum) {
-  if (zeitraum === 'heute') return punkteNachGruppe(achse);
   const gruppen = {};
   statTage(zeitraum).forEach(tag => {
-    const quelle = achse === 'bereich' ? tag.bereiche : tag.abschnitte;
-    Object.entries(quelle || {}).forEach(([k, v]) => gruppen[k] = (gruppen[k] || 0) + v);
+    const s = snapNachFilter(tag);
+    const quelle = achse === 'bereich' ? s.bereiche : s.abschnitte;
+    Object.entries(quelle || {}).forEach(([k, v]) => gruppen[k] = (gruppen[k] || 0) + (Number(v) || 0));
   });
   return gruppen;
 }
@@ -3379,17 +3443,19 @@ function punkteNachGruppeZeitraum(achse, zeitraum) {
 function kurveHtml(zeitraum) {
   const s = Store.settings;
   if (zeitraum === 'heute') {
+    const snap = snapNachFilter(statTage('heute')[0]);   // Domänenfilter
     const start = uhrzeitAlsMin(s.arbeitstagStart), ende = uhrzeitAlsMin(s.arbeitstagEnde);
-    const events = statTage('heute')[0].verlauf
+    const events = snap.verlauf
       .map(e => ({ min: (d => d.getHours() * 60 + d.getMinutes())(new Date(e.z)), p: e.p }))
       .sort((a, b) => a.min - b.min);
-    const ziel = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter')
+    const ziel = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter' && domSichtbar(i.domain))
       .reduce((sum, i) => sum + (Number(anzeigePunkte(i)) || 0), 0);
     let kum = 0;
     const punkte = [[start, 0]];
     events.forEach(e => { kum += (Number(e.p) || 0); punkte.push([Math.min(ende, Math.max(start, e.min)), kum]); });
     const jetzt = new Date(); const jm = Math.min(ende, jetzt.getHours() * 60 + jetzt.getMinutes());
-    kum += (Number(fokusLiveDelta()) || 0);
+    const fi = fokusItem();
+    if (fi && domSichtbar(fi.domain)) kum += (Number(fokusLiveDelta()) || 0);   // Live nur wenn Domäne sichtbar
     if (jm > start) punkte.push([jm, kum]);
     // Dynamische Skala: höchster angezeigter Wert (Kurven-Spitze, ggf. Soll-Linie)
     // + 15 % Puffer, damit die Linie nie an den oberen Rand läuft (22.07.2026).
@@ -3398,8 +3464,8 @@ function kurveHtml(zeitraum) {
     const X = m => 6 + (m - start) / Math.max(1, ende - start) * 288;
     const Y = p => 96 - (p / maxY) * 86;
     const linie = punkte.map(pt => X(pt[0]).toFixed(1) + ',' + Y(pt[1]).toFixed(1)).join(' ');
-    const fm = fokusMinHeute();
-    const oe = fm >= 5 ? fmtPunkte(Store.tag.gesamtpunkteHeute / (fm / 60)) + ' P/Std Fokus' : '';
+    const fm = snap.fokusMin;
+    const oe = fm >= 5 ? fmtPunkte((snap.punkte || 0) / (fm / 60)) + ' P/Std Fokus' : '';
     // Energie-Serie (rechte Skala 0–100 %) — gemergter Graph (22.07.2026)
     const YA = p => 96 - (p / 100) * 86;
     const av = (Store.tag.akkuVerlauf || []).filter(e => e.min >= start && e.min <= ende);
@@ -3420,8 +3486,8 @@ function kurveHtml(zeitraum) {
       + '<text x="272" y="104" fill="var(--mut2)" font-size="8">' + s.arbeitstagEnde + '</text>'
       + '</svg></div>';
   }
-  // Woche/Monat: Balken je Tag
-  const tage = statTage(zeitraum);
+  // Woche/Monat: Balken je Tag (Domänenfilter über snapNachFilter)
+  const tage = statTage(zeitraum).map(snapNachFilter);
   const maxP = Math.max(...tage.map(d => d.punkte || 0), 10);
   const n = zeitraum === 'woche' ? 7 : 30;
   const bw = Math.floor(288 / n) - 2;
@@ -3443,7 +3509,7 @@ function kurveHtml(zeitraum) {
 }
 
 function kennzahlenHtml(zeitraum) {
-  const tage = statTage(zeitraum);
+  const tage = statTage(zeitraum).map(snapNachFilter);
   const p = tage.reduce((s, d) => s + (d.punkte || 0), 0);
   const min = tage.reduce((s, d) => s + (d.fokusMin || 0), 0);
   const erl = tage.reduce((s, d) => s + (d.erledigt || 0), 0);
@@ -3530,8 +3596,12 @@ function renderBelohnung() {
     + '<div class="statbox"><div class="v">' + fmtPunkte(pw.ist) + '/' + fmtPunkte(pw.soll) + '</div><div class="k">Pace Ist/Soll</div></div>'
     + '</div></div>';
 
+  // Domänenfilter (22.07.2026) — wirkt auf Kurve, Kennzahlen, Aufschlüsselung.
+  // Avatar/Level/Konto/Shop bleiben domänenübergreifend (Gesamtfortschritt).
+  html += '<h2 class="sechead" style="margin-top:var(--s2)">Statistik</h2>'
+    + domFilterHtml('domSegStat');
   // Zeitraum + Kurve + Kennzahlen (Statistik, Etappe 2)
-  html += '<div class="vtoggle" id="statTabs" style="margin-top:var(--s2)">'
+  html += '<div class="vtoggle" id="statTabs" style="margin-top:var(--s1)">'
     + ['heute', 'woche', 'monat'].map(z =>
         '<button data-z="' + z + '" class="' + (statZeitraum === z ? 'on' : '') + '">'
         + (z === 'heute' ? 'Heute' : z === 'woche' ? 'Woche' : 'Monat') + '</button>').join('')
@@ -3563,6 +3633,7 @@ function renderBelohnung() {
 
   $('view-belohnung').innerHTML = html;
 
+  domFilterVerdrahten($('domSegStat'));
   $('statTabs').querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => { statZeitraum = btn.dataset.z; renderBelohnung(); });
   });
@@ -3611,7 +3682,7 @@ function balkenSvgHtml(titel, tage, wertFn, einheit, farbe) {
    Tagespunkten, Rand grün/rot = Tages-Pace über/unter dem Ø. */
 function heatmapHtml() {
   const alt = historieLaden().filter(d => d.datum !== Store.tag.datum);
-  const tage = [...alt, heuteAlsSnapshot()];
+  const tage = [...alt, heuteAlsSnapshot()].map(snapNachFilter);
   const map = {};
   tage.forEach(d => map[d.datum] = d);
   const maxP = Math.max(...tage.map(d => d.punkte || 0), 1);
@@ -3644,7 +3715,7 @@ function heatmapHtml() {
 
 function sheetAnalyseOeffnen() {
   const alt = historieLaden().filter(d => d.datum !== Store.tag.datum);
-  const tage = [...alt, heuteAlsSnapshot()].slice(-14);
+  const tage = [...alt, heuteAlsSnapshot()].slice(-14).map(snapNachFilter);
   let html = '';
   if (tage.length < 2) {
     html += '<div class="wizinfo">Die Detail-Analyse füllt sich mit jedem Tagesabschluss — ab morgen gibt es hier Trends.</div>';
@@ -4494,7 +4565,10 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   punkteFuerZeit, counterIstSchlecht, abhakenFlow, rhythmusModusVon,
   streamToggle, bonusVerteilung, uaSummenAngleichen, bonusVorschlag,
   heuteInvestiertMin, tagStartMinutenErfassen, gesamtpunkteAktualisieren,
-  minutenInklFokus, sheetTagEndeOeffnen };
+  minutenInklFokus, sheetTagEndeOeffnen,
+  punkteNachGruppeZeitraum, kennzahlenHtml, domSnapshot,
+  snapNachFilter, domSichtbar, renderStream,
+  _setDomFilter: d => { domFilter = d; }, _getDomFilter: () => domFilter };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
 if ('serviceWorker' in navigator) {
