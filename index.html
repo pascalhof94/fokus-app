@@ -467,7 +467,13 @@ textarea{min-height:64px;resize:vertical}
 .uareihe .uamin::placeholder{color:var(--cyan);opacity:.8}
 .uareihe .uabonus{border-color:rgba(185,138,247,.5)}
 .uareihe .uapunkte{width:52px;flex:none;text-align:right;font-size:10px;color:var(--ok);font-weight:700}
-.uareihe .uax{width:28px;flex:none;text-align:center;color:var(--mut2);font-size:13px}
+.uareihe .uax{
+  width:26px;height:26px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--bad);font-size:13px;border-radius:7px;
+  background:rgba(246,109,109,.12);border:1px solid rgba(246,109,109,.28);
+}
+.uareihe .uax:active{background:rgba(246,109,109,.28)}
 .uaneu{display:flex;gap:var(--s1);margin-top:6px}
 .uaneu input{flex:1;font-size:13px;padding:8px 10px}
 .uaneu button{
@@ -671,7 +677,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.24.1';
+const APP_VERSION = '0.25.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -765,9 +771,10 @@ function neuesItem(felder = {}) {
     tageGeschoben: 0,                 // Zähler für Schiebe-/Plan-Malus
     rhythmusTage: null,               // Routine: alle X Tage fällig (null = kein Rhythmus)
     zuletztErledigt: null,            // Routine: 'YYYY-MM-DD' der letzten Erledigung
-    /* Unteraufgaben (Tacho 2.0): App-intern, reisen im Export nur als
-       Kommentar-Text an Claude — nie als eigene Airtable-Aufgaben. */
-    unteraufgaben: [],                // [{id, titel, erledigt, geplantMin|null, gebuchtePunkte|null}]
+    /* Unteraufgaben (Tacho 2.0): reisen strukturiert im Sync (Titel + Status
+       + geplante Minuten) ins Airtable-Feld „Unteraufgabe" (22.07.2026) —
+       nie als eigene Airtable-Aufgaben. */
+    unteraufgaben: [],                // [{id, titel, erledigt, geplantMin|null, bonusPunkte|null, gebuchtePunkte|null}]
     /* Private Tagesstruktur (20.07.2026): */
     tagesabschnitt: 'tagsueber',      // Routine-Feld: morgen | tagsueber | abend
     routineStreak: 0,                 // routineneigene Streak-Serie
@@ -940,7 +947,11 @@ const Store = {
       const erhalten = {                              // lokaler Zustand überlebt den Tausch
         streamSlot: lokal.streamSlot, istMinuten: lokal.istMinuten,
         status: lokal.status, tageGeschoben: lokal.tageGeschoben,
-        tickStandHeute: lokal.tickStandHeute, zuletztErledigt: lokal.zuletztErledigt
+        tickStandHeute: lokal.tickStandHeute, zuletztErledigt: lokal.zuletztErledigt,
+        // Unteraufgaben: lokal bewahren; bringt das rec-Item welche mit, mergen
+        unteraufgaben: kandidat.unteraufgaben !== undefined
+          ? uaMergeFuerImport(lokal.unteraufgaben, kandidat.unteraufgaben)
+          : lokal.unteraufgaben
       };
       Object.assign(lokal, kandidat, erhalten);
       idReferenzenUmziehen(altId, lokal.id);
@@ -948,6 +959,11 @@ const Store = {
     }
 
     for (const felder of [...neu.filter(n => !alsErsatzVerbraucht.has(n.id)), ...aktualisiert]) {
+      // Unteraufgaben per Titel mergen (nur wenn das Feld im Item mitkommt)
+      if (felder.unteraufgaben !== undefined) {
+        const vorhanden = this.findeItem(felder.id);
+        felder.unteraufgaben = uaMergeFuerImport(vorhanden ? vorhanden.unteraufgaben : [], felder.unteraufgaben);
+      }
       const { angelegt } = this.upsertItem(felder);
       ergebnis[angelegt ? 'angelegt' : 'aktualisiert']++;
     }
@@ -971,14 +987,19 @@ const Store = {
       items: JSON.parse(JSON.stringify(this.items)).map(i => {
         delete i.bereich;
         delete i.heuteRausgezogen;      // rein App-interner Tageszustand
-        // Unteraufgaben reisen als Kommentar-Block an Claude (Entscheidung
-        // 20.07.2026) — nie als Schema-Feld, es entstehen keine Aufgaben.
+        // Unteraufgaben strukturiert exportieren (22.07.2026): Claude spiegelt
+        // sie ins Airtable-Feld „Unteraufgabe" und darf dort welche ergänzen/
+        // entfernen. Nur Titel + Abhak-Status + optional geplante Minuten —
+        // die interne id und Punktedetails bleiben in der App.
         if (i.unteraufgaben && i.unteraufgaben.length) {
-          const zeilen = i.unteraufgaben.map(u => '[' + (u.erledigt ? 'x' : ' ') + '] ' + u.titel);
-          i.kommentarFuerClaude = (i.kommentarFuerClaude ? i.kommentarFuerClaude + '\n\n' : '')
-            + 'Unteraufgaben:\n' + zeilen.join('\n');
+          i.unteraufgaben = i.unteraufgaben.map(u => {
+            const o = { titel: u.titel, erledigt: !!u.erledigt };
+            if (u.geplantMin != null) o.geplantMin = u.geplantMin;
+            return o;
+          });
+        } else {
+          delete i.unteraufgaben;       // leeres Array nicht exportieren
         }
-        delete i.unteraufgaben;
         return i;
       }),
       zeitEintraege: this.items
@@ -996,6 +1017,29 @@ const Store = {
     };
   }
 };
+
+/* Unteraufgaben aus einem Import-Paket mit den lokalen zusammenführen
+   (22.07.2026). Matching per Titel (case-insensitiv), wie beim Item-Tausch:
+   - Titel bereits vorhanden → interne id UND lokaler Abhak-Status bleiben,
+     nur geplante Minuten werden ggf. übernommen.
+   - Titel neu → neue Unteraufgabe (frische id, nicht erledigt).
+   - lokale Unteraufgabe, deren Titel im Import fehlt → wird entfernt.
+   importUAs === undefined (Feld gar nicht im Item) → lokale bleiben unberührt. */
+function uaMergeFuerImport(vorhandeneUAs, importUAs) {
+  if (!Array.isArray(importUAs)) return vorhandeneUAs || [];
+  const vorhanden = vorhandeneUAs || [];
+  return importUAs
+    .filter(iu => iu && String(iu.titel || '').trim())
+    .map(iu => {
+      const t = String(iu.titel).trim();
+      const alt = vorhanden.find(u => String(u.titel || '').trim().toLowerCase() === t.toLowerCase());
+      const geplantMin = iu.geplantMin !== undefined
+        ? (iu.geplantMin === null ? null : Number(iu.geplantMin))
+        : (alt ? (alt.geplantMin != null ? alt.geplantMin : null) : null);
+      if (alt) return Object.assign({}, alt, { titel: t, geplantMin });   // id + erledigt bleiben lokal
+      return { id: lokaleUuid(), titel: t, erledigt: false, geplantMin, bonusPunkte: null, gebuchtePunkte: null };
+    });
+}
 
 /* Beim UUID→rec-Tausch alle internen Verweise auf die neue ID umziehen. */
 function idReferenzenUmziehen(altId, neuId) {
@@ -4595,6 +4639,7 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   punkteNachGruppeZeitraum, kennzahlenHtml, domSnapshot,
   snapNachFilter, domSichtbar, renderStream,
   arbeitstagFenster, sollWerte, paceWerte, renderPace, kurveHtml,
+  uaMergeFuerImport, unteraufgabeAnlegen,
   _setDomFilter: d => { domFilter = d; }, _getDomFilter: () => domFilter };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
