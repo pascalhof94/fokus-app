@@ -668,7 +668,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.23.0';
+const APP_VERSION = '0.24.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -693,6 +693,7 @@ const DEFAULT_SETTINGS = {
      basisProStd × K × E × B ergibt den Auto-Vorschlag je Item. */
   basisProStd: 12,                                            // P/Std bei Faktor 1,0
   abschlussBonusStandard: 100,                                // Einmal-Punkte beim Abhaken (22.07.2026)
+  sollPunkteProStd: 0,                                        // 0 = Soll automatisch aus geplanten Aufgaben; >0 überschreibt (22.07.2026)
   akkuProStdStandard: -8,                                     // Akku-%/Std im Fokus (Standard)
   minutenJeEinheit: 5,                                        // (Altsystem, nur Migration)
   komplexitaet: { leicht: 1.0, mittel: 1.5, schwer: 2.0 },    // (Altsystem, nur Migration)
@@ -2123,19 +2124,45 @@ function renderRoutinenFelder() {
   }).join('');
 }
 
+/* Arbeitstag-Fenster in Minuten. Ende ≤ Start gilt als „bis (nach) Mitternacht"
+   → +24 h, damit die Tageslänge nie auf ~0 kollabiert (Fix 22.07.2026 — sonst
+   wird die Soll-Rate um Faktor 60 aufgebläht und die Kurve läuft aus dem Bild). */
+function arbeitstagFenster() {
+  const s = Store.settings;
+  const start = uhrzeitAlsMin(s.arbeitstagStart);
+  const ende = uhrzeitAlsMin(s.arbeitstagEnde);
+  const st = (start == null ? 480 : start);
+  let en = (ende == null ? 1080 : ende);
+  if (en <= st) en += 1440;
+  return { start: st, ende: en, spanne: en - st };
+}
+
+/* Soll für heute (Gesamtpunkte + Rate P/Std). Ein manueller Wert aus den
+   Einstellungen (sollPunkteProStd > 0) überschreibt das aus den geplanten
+   Aufgaben berechnete Soll (Pascal 22.07.2026). `gefiltert` = Domänenfilter
+   berücksichtigen (nur Statistik-Diagramm; die Statusleiste bleibt global). */
+function sollWerte(gefiltert) {
+  const std = arbeitstagFenster().spanne / 60;
+  const manuell = Number(Store.settings.sollPunkteProStd) || 0;
+  const domAktiv = gefiltert && domFilter !== 'alle';
+  if (manuell > 0 && !domAktiv) return { gesamt: manuell * std, proStd: manuell, std };
+  const gesamt = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter'
+      && (!domAktiv || domSichtbar(i.domain)))
+    .reduce((sum, i) => sum + (Number(anzeigePunkte(i)) || 0), 0);
+  return { gesamt, proStd: std > 0 ? gesamt / std : 0, std };
+}
+
 /* Pace-Leiste (4.4/3.6): dünner Zeitstrich + Punkte/Std ist vs. Soll. */
 function renderPace() {
   const s = Store.settings;
-  const start = uhrzeitAlsMin(s.arbeitstagStart), ende = uhrzeitAlsMin(s.arbeitstagEnde);
+  const { start, spanne } = arbeitstagFenster();
   const jetzt = new Date();
   const jetztMin = jetzt.getHours() * 60 + jetzt.getMinutes();
-  const spanne = Math.max(1, ende - start);
   const anteil = Math.min(1, Math.max(0, (jetztMin - start) / spanne));
 
-  // Tagesziel = Summe der Punkte aller im Stream platzierten Items (3.6)
-  const ziel = Store.items.filter(i => i.streamSlot != null)
-    .reduce((sum, i) => sum + (Number(anzeigePunkte(i)) || 0), 0);
-  const sollProStd = ziel / (spanne / 60);
+  // Tagesziel: manueller Soll-Wert oder Summe der geplanten Stream-Punkte (3.6)
+  const soll = sollWerte(false);
+  const ziel = soll.gesamt, sollProStd = soll.proStd;
   const vergangeneStd = Math.max(0.1, (jetztMin - start) / 60);
   gesamtpunkteAktualisieren();
   const istProStd = anteil > 0 ? Store.tag.gesamtpunkteHeute / vergangeneStd : 0;
@@ -2177,15 +2204,11 @@ function renderFokusbar() {
 
 /* ── Statusleiste (21.07.2026) ────────────────────────────────────── */
 function paceWerte() {
-  const s = Store.settings;
-  const start = uhrzeitAlsMin(s.arbeitstagStart), ende = uhrzeitAlsMin(s.arbeitstagEnde);
+  const { start } = arbeitstagFenster();
   const jetzt = new Date();
   const jetztMin = jetzt.getHours() * 60 + jetzt.getMinutes();
-  const spanne = Math.max(1, ende - start);
-  const ziel = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter')
-    .reduce((sum, i) => sum + (Number(anzeigePunkte(i)) || 0), 0);
   gesamtpunkteAktualisieren();
-  const soll = ziel / (spanne / 60);
+  const soll = sollWerte(false).proStd;
   const ist = jetztMin > start
     ? Store.tag.gesamtpunkteHeute / Math.max(0.1, (jetztMin - start) / 60)
     : 0;
@@ -2249,6 +2272,7 @@ const SETTINGS_DEFS = [
   { titel: 'Punktesystem (Basis)', regler: [
     { p: 'basisProStd', l: 'Punkte/Std bei Faktor 1,0', min: 1, max: 60, step: 1 },
     { p: 'abschlussBonusStandard', l: 'Abhak-Bonus Standard (P)', min: 0, max: 300, step: 10 },
+    { p: 'sollPunkteProStd', l: 'Soll-Punkte/Std (0 = automatisch)', min: 0, max: 400, step: 10 },
     { p: 'akkuProStdStandard', l: 'Akku %/Std im Fokus (Standard)', min: -30, max: 30, step: 1 }
   ]},
   { titel: 'Geld-Score-Basis — nur DFM (3.3)', regler: [
@@ -3444,12 +3468,11 @@ function kurveHtml(zeitraum) {
   const s = Store.settings;
   if (zeitraum === 'heute') {
     const snap = snapNachFilter(statTage('heute')[0]);   // Domänenfilter
-    const start = uhrzeitAlsMin(s.arbeitstagStart), ende = uhrzeitAlsMin(s.arbeitstagEnde);
+    const { start, ende } = arbeitstagFenster();
     const events = snap.verlauf
       .map(e => ({ min: (d => d.getHours() * 60 + d.getMinutes())(new Date(e.z)), p: e.p }))
       .sort((a, b) => a.min - b.min);
-    const ziel = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter' && domSichtbar(i.domain))
-      .reduce((sum, i) => sum + (Number(anzeigePunkte(i)) || 0), 0);
+    const ziel = sollWerte(true).gesamt;   // manueller Soll-Wert oder geplante Punkte
     let kum = 0;
     const punkte = [[start, 0]];
     events.forEach(e => { kum += (Number(e.p) || 0); punkte.push([Math.min(ende, Math.max(start, e.min)), kum]); });
@@ -3741,7 +3764,7 @@ function sheetAnalyseOeffnen() {
 
 function akkuKurveHtml() {
   const s = Store.settings;
-  const start = uhrzeitAlsMin(s.arbeitstagStart), ende = uhrzeitAlsMin(s.arbeitstagEnde);
+  const { start, ende } = arbeitstagFenster();
   const v = Store.tag.akkuVerlauf || [];
   let inhalt;
   if (v.length === 0) {
@@ -4568,6 +4591,7 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   minutenInklFokus, sheetTagEndeOeffnen,
   punkteNachGruppeZeitraum, kennzahlenHtml, domSnapshot,
   snapNachFilter, domSichtbar, renderStream,
+  arbeitstagFenster, sollWerte, paceWerte, renderPace, kurveHtml,
   _setDomFilter: d => { domFilter = d; }, _getDomFilter: () => domFilter };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
