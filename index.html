@@ -679,7 +679,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.26.0';
+const APP_VERSION = '0.27.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -800,7 +800,8 @@ function neuesItem(felder = {}) {
     akkuProStd: null,                 // Akku-%/Std im Fokus (null = Settings-Standard)
     zeitStufen: null,                 // [{bisMin|null, punkteProStd}] — Stufen-Kurve
     tickStufen: null,                 // Counter: [{bisTick|null, punkteProTick}]
-    imStreamAnzeigen: null            // null → Default: Aufgaben ja, Routinen nein
+    imStreamAnzeigen: null,           // null → Default: Aufgaben ja, Routinen nein
+    nachSyncWeg: false                // erledigte Einmal-Aufgabe: ausgeblendet, beim nächsten Sync löschen (v0.27.0)
   }, felder);
   if (item.typ === 'routine' && item.rhythmusTage == null) item.rhythmusTage = 1;  // Standard: täglich
   if (item.imStreamAnzeigen == null) item.imStreamAnzeigen = item.typ !== 'routine';
@@ -2088,7 +2089,7 @@ function renderStream() {
   // investierter Zeit — darunter die unangefangenen chronologisch.
   const investiert = i => (i.status === 'in_arbeit' || minutenInklFokus(i) >= 1) ? minutenInklFokus(i) : -1;
   const stream = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter'
-      && i.imStreamAnzeigen !== false && domSichtbar(i.domain)
+      && i.imStreamAnzeigen !== false && domSichtbar(i.domain) && !i.nachSyncWeg
       && (i.status !== 'erledigt' || heuteErledigt.has(i.id)))
     .sort((a, b) => {
       const ia = investiert(a), ib = investiert(b);
@@ -2096,10 +2097,10 @@ function renderStream() {
       return a.streamSlot - b.streamSlot;
     });
   const queue = Store.items.filter(i => i.typ === 'aufgabe' && i.streamSlot == null
-    && i.status !== 'erledigt' && domSichtbar(i.domain))
+    && i.status !== 'erledigt' && domSichtbar(i.domain) && !i.nachSyncWeg)
     .sort((a, b) => anzeigePunkte(b) - anzeigePunkte(a));
   const queueFertig = Store.items.filter(i => i.typ === 'aufgabe' && i.streamSlot == null
-    && i.status === 'erledigt' && heuteErledigt.has(i.id) && domSichtbar(i.domain));
+    && i.status === 'erledigt' && heuteErledigt.has(i.id) && domSichtbar(i.domain) && !i.nachSyncWeg);
 
   $('domFilterStream').innerHTML = domFilterHtml('domSegStream');
   domFilterVerdrahten($('domSegStream'));
@@ -3700,9 +3701,15 @@ function renderBelohnung() {
     + '<div class="statbox"><div class="v">' + fmtPunkte(pw.ist) + '/' + fmtPunkte(pw.soll) + '</div><div class="k">Pace Ist/Soll</div></div>'
     + '</div></div>';
 
+  // Akku jederzeit manuell überschreibbar (Pascal 23.07.2026) — ab dem Wert
+  // läuft er weiter; ersetzt den früheren Tagesstart-Akku-Dialog.
+  const akkuNow = akkuLive();
+  html += '<div class="pbadge" style="margin-top:var(--s2)"><span>🔋 Akku jetzt (überschreibbar)</span>'
+    + '<span><input class="akkuwert" id="belAkku" type="number" inputmode="numeric" min="0" max="100" value="'
+    + (akkuNow != null ? Math.round(akkuNow) : '') + '" placeholder="–"> %</span></div>';
   // Domänenfilter (22.07.2026) — wirkt auf Kurve, Kennzahlen, Aufschlüsselung.
   // Avatar/Level/Konto/Shop bleiben domänenübergreifend (Gesamtfortschritt).
-  html += '<h2 class="sechead" style="margin-top:var(--s2)">Statistik</h2>'
+  html += '<h2 class="sechead">Statistik</h2>'
     + domFilterHtml('domSegStat');
   // Zeitraum + Kurve + Kennzahlen (Statistik, Etappe 2)
   html += '<div class="vtoggle" id="statTabs" style="margin-top:var(--s1)">'
@@ -3737,6 +3744,19 @@ function renderBelohnung() {
 
   $('view-belohnung').innerHTML = html;
 
+  // Akku manuell setzen — der eingegebene Wert wird der neue Startpunkt,
+  // ab dem der Akku im Fokus weiterläuft.
+  $('belAkku').addEventListener('change', () => {
+    const v = Number($('belAkku').value);
+    if ($('belAkku').value === '' || isNaN(v)) return;
+    if (fokus && fokus.laeuft) fokusZeitEinbuchen();   // laufende Zeit sauber verbuchen, dann neu setzen
+    Store.tag.akkuProzent = Math.min(100, Math.max(0, v));
+    const jetzt = new Date();
+    Store.tag.akkuVerlauf = Store.tag.akkuVerlauf || [];
+    Store.tag.akkuVerlauf.push({ min: jetzt.getHours() * 60 + jetzt.getMinutes(), p: Math.round(Store.tag.akkuProzent) });
+    Store.speichereTag();
+    renderStatusbar();
+  });
   domFilterVerdrahten($('domSegStat'));
   $('statTabs').querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => { statZeitraum = btn.dataset.z; renderBelohnung(); });
@@ -3916,23 +3936,16 @@ function konfetti(n = 34) {
    ausschließlich über Copy/Paste bzw. Datei-Download durch Pascal.
    ════════════════════════════════════════════════════════════════════ */
 function renderTagAktionen() {
-  const t = Store.tag;
-  let html = '';
-  if (t.abgeschlossen) {
-    html += '<button class="tagbtn" data-wiz="start">🌅 Tag starten</button>';
-    html += '<div class="tagchip" style="flex:0 0 auto;padding:0 12px">🌙 Abgeschlossen</div>';
-  } else if (!t.gestartet) {
-    html += '<button class="tagbtn" data-wiz="start">🌅 Tag starten</button>';
-  } else {
-    html += '<button class="tagbtn" data-wiz="ende">🌙 Tag abschließen</button>';
-  }
+  // Ein einziger Button (Pascal 23.07.2026): „Neuen Tag starten" geht alle
+  // offenen Karten durch (buchen/weiterschieben), speichert den Tag und
+  // startet frisch. Kein separates Abschließen/Starten, kein Akku-Dialog.
+  let html = '<button class="tagbtn" data-wiz="neu">🌅 Neuen Tag starten</button>';
   html += '<button class="tagbtn sek" data-wiz="sync">🔄 Sync</button>';
   $('tagAktionen').innerHTML = html;
   $('tagAktionen').querySelectorAll('[data-wiz]').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (btn.dataset.wiz === 'start') sheetTagStartOeffnen();
-      if (btn.dataset.wiz === 'sync')  sheetSyncOeffnen();
-      if (btn.dataset.wiz === 'ende')  sheetTagEndeOeffnen();
+      if (btn.dataset.wiz === 'neu')  sheetNeuerTagOeffnen();
+      if (btn.dataset.wiz === 'sync') sheetSyncOeffnen();
     });
   });
 }
@@ -4207,8 +4220,15 @@ function sheetSyncOeffnen() {
   sheetOeffnen('Sync jetzt', html, 'sync');
 
   // Als ```json-Block kopieren — bleibt im Claude-Chat sauber formatiert
-  $('syKopieren').addEventListener('click', () =>
-    inZwischenablage('```json\n' + exportJson + '\n```', $('syKopieren')));
+  $('syKopieren').addEventListener('click', () => {
+    inZwischenablage('```json\n' + exportJson + '\n```', $('syKopieren'));
+    // Ausgeblendete erledigte Aufgaben sind jetzt übertragen → endgültig löschen
+    const weg = Store.items.filter(i => i.nachSyncWeg).map(i => i.id);
+    if (weg.length) {
+      weg.forEach(id => Store.entferneItem(id));
+      renderAlles();
+    }
+  });
   $('syAnwenden').addEventListener('click', () => {
     try {
       const erg = Store.wendeImportAn(importParsen($('syImport').value));
@@ -4268,11 +4288,11 @@ function dateinamePrivat() {
   return heuteIso().slice(2).replace(/-/g, '') + '_Privat_Tagesabschluss.md';
 }
 
-/* Tag abschließen (Review-Flow, 22.07.2026): alle offenen Karten des
-   Tages einzeln durchgehen — Malus per Faktor-Regler buchen oder ohne
-   Abzug überspringen (mit neuer Deadline). Danach bucht der Kern,
-   Statistik + Export, und der Tag ist bis „Tag starten" gesperrt. */
-let reviewListe = [], reviewIdx = 0, reviewRoutinen = [];
+/* „Neuen Tag starten" (Review-Flow, 23.07.2026): alle offenen Karten des
+   Tages einzeln durchgehen — Punkte buchen (Karte läuft weiter) ODER mit
+   +/- Punkten weiterschieben (morgen erneut). Danach Snapshot + frischer
+   Tag; kein separates Abschließen/Starten, kein Akku-Dialog. */
+let reviewListe = [], reviewIdx = 0;
 
 function malusBasis(item) {
   if (item.nichtErledigtMalus != null) return Math.abs(item.nichtErledigtMalus);
@@ -4280,17 +4300,26 @@ function malusBasis(item) {
   return Math.max(5, Math.round(Math.abs(anzeigePunkte(item)) * 0.2));
 }
 
-function sheetTagEndeOeffnen() {
-  if (Store.tag.abgeschlossen) return;
+/* Heute an einer offenen Karte erreichte, noch nicht geloggte Zeit-Punkte. */
+function heutePunkteOffen(item) {
+  const malusSatz = (Store.settings.schiebeMalusProzent[item.prioritaet] || 0) / 100;
+  const malusFaktor = Math.max(0, 1 - malusSatz * (item.tageGeschoben || 0));
+  const zeitP = punkteFuerZeit(item, heuteInvestiertMin(item)) * malusFaktor;
+  const geloggt = Store.tag.log.filter(l => l.itemId === item.id).reduce((s, l) => s + (Number(l.punkte) || 0), 0);
+  return Math.max(0, Math.round(zeitP - geloggt));
+}
+
+function sheetNeuerTagOeffnen() {
   fokusZeitEinbuchen();
-  // Kandidaten (Pascal 22.07.2026): NUR fällige, nicht erledigte Routinen.
-  // Normale Aufgaben laufen weiter bis abgeschlossen — sie werden beim
-  // Tagesabschluss weder bewertet noch abgehakt, ihre Ist-Zeit bleibt erhalten.
+  // Offene Karten: fällige Routinen + Aufgaben im Tagesstream (nicht erledigt,
+  // nicht ausgeblendet). Counter werden separat am Ende zurückgesetzt.
   reviewListe = Store.items.filter(i =>
-    i.status !== 'erledigt' && i.typ === 'routine' && routineFaellig(i)
+    i.status !== 'erledigt' && i.typ !== 'counter' && !i.nachSyncWeg && (
+      (i.typ === 'routine' && routineFaellig(i)) ||
+      (i.typ === 'aufgabe' && (i.streamSlot != null || i.heuteRausgezogen))
+    )
   ).map(i => i.id);
   reviewIdx = 0;
-  reviewRoutinen = [];
   reviewSchritt();
 }
 
@@ -4299,84 +4328,118 @@ function reviewSchritt() {
   const item = Store.findeItem(reviewListe[reviewIdx]);
   if (!item || item.status === 'erledigt') { reviewIdx++; reviewSchritt(); return; }
   const basis = malusBasis(item);
+  const buchDefault = heutePunkteOffen(item);
+  const buchMax = Math.max(10, buchDefault * 2);
   const uas = item.unteraufgaben || [];
-  let html = '<div class="wizinfo" style="margin-top:0">Nicht erledigt · Karte '
+  const heuteMin = Math.round(heuteInvestiertMin(item));
+  const inp = 'style="width:74px;text-align:center;color:var(--cyan);font-weight:700"';
+  let html = '<div class="wizinfo" style="margin-top:0">Offen · Karte '
     + (reviewIdx + 1) + ' von ' + reviewListe.length + '</div>'
     + '<div class="wizsumme">'
     + '<div class="zeile"><span style="font-weight:800;color:var(--txt)">' + escapeHtml(item.titel) + '</span><b>' + (item.typ === 'routine' ? '🔁' : '📋') + '</b></div>'
-    + (item.istMinuten >= 1 ? '<div class="zeile"><span>Getrackt</span><b>' + Math.round(item.istMinuten) + ' min</b></div>' : '')
+    + (heuteMin >= 1 ? '<div class="zeile"><span>Heute getrackt</span><b>' + heuteMin + ' min</b></div>' : '')
     + (uas.length ? '<div class="zeile"><span>Unteraufgaben</span><b>' + uas.filter(u => u.erledigt).length + '/' + uas.length + ' erledigt</b></div>' : '')
     + (item.deadline ? '<div class="zeile"><span>Deadline</span><b>' + item.deadline + '</b></div>' : '')
     + '</div>'
-    + '<div class="regler"><div class="kopfzeile2"><label>Malus-Faktor</label>'
-    + '<span class="wert" id="rvWert" style="color:var(--bad)">−' + basis + ' P</span></div>'
-    + '<input type="range" id="rvFaktor" min="0" max="3" step="0.1" value="1">'
-    + '<div class="stufen"><span>milde</span><span>Standard</span><span>hart</span></div></div>'
-    + '<button class="wizbtn" id="rvBuchen" style="background:var(--bad)">Malus buchen (−' + basis + ' P)</button>'
-    + '<button class="wizbtn sek" id="rvSkip">⏭ Ohne Abzug überspringen</button>'
-    + '<div id="rvSkipFeld" hidden style="margin-top:var(--s1)">'
-    + '<div class="feld"><label>Neue Deadline</label><input id="rvDeadline" type="date" value="' + (item.deadline || '') + '"></div>'
-    + '<button class="wizbtn sek" id="rvSkipOk">Überspringen bestätigen</button></div>';
-  sheetOeffnen('Tag abschließen', html, 'tagende');
+    // Buchen — Punkte festschreiben, Karte läuft weiter
+    + '<div class="regler"><div class="kopfzeile2"><label>Punkte heute buchen</label>'
+    + '<input type="number" id="rvBuchFeld" ' + inp + ' value="' + buchDefault + '"></div>'
+    + '<input type="range" id="rvBuchSlider" min="0" max="' + buchMax + '" step="1" value="' + buchDefault + '"></div>'
+    + '<button class="wizbtn" id="rvBuchen">✓ Buchen — Aufgabe läuft weiter</button>'
+    // Weiterschieben — morgen erneut, +/- Punkte (Default aus der Aufgabe)
+    + '<div class="regler" style="margin-top:var(--s2)"><div class="kopfzeile2"><label>Punkte beim Weiterschieben</label>'
+    + '<input type="number" id="rvSchiebFeld" ' + inp + ' value="' + (-basis) + '"></div>'
+    + '<input type="range" id="rvSchiebSlider" min="' + (-3 * basis) + '" max="' + basis + '" step="1" value="' + (-basis) + '"></div>'
+    + '<button class="wizbtn sek" id="rvSchieben">⏭ Weiterschieben — morgen erneut</button>';
+  sheetOeffnen('Neuen Tag starten', html, 'tagende');
 
-  const wert = () => Math.round(basis * Number($('rvFaktor').value));
-  $('rvFaktor').addEventListener('input', () => {
-    const p = wert();
-    $('rvWert').textContent = '−' + p + ' P';
-    $('rvBuchen').textContent = p > 0 ? 'Malus buchen (−' + p + ' P)' : 'Ohne Malus bestätigen';
-  });
+  // Slider ↔ Freifeld je Paar synchron halten
+  const sync = (slider, feld) => {
+    $(slider).addEventListener('input', () => { $(feld).value = $(slider).value; });
+    $(feld).addEventListener('input', () => {
+      const v = Number($(feld).value);
+      if (!isNaN(v)) $(slider).value = Math.min(Number($(slider).max), Math.max(Number($(slider).min), v));
+    });
+  };
+  sync('rvBuchSlider', 'rvBuchFeld');
+  sync('rvSchiebSlider', 'rvSchiebFeld');
+
   $('rvBuchen').addEventListener('click', () => {
-    const p = wert();
-    if (p > 0) {
-      Store.tag.log.push({
-        itemId: item.id, titel: item.titel + ' — nicht erledigt', domain: item.domain,
-        bereich: item.bereich || null, punkte: -p,
-        zeit: new Date().toISOString(), nichtErledigt: true, abschluss: true
-      });
-      item.nichtErledigtMalus = p;   // überschreibt den Item-Abzug fürs nächste Mal
-      if (item.typ === 'routine') {
-        reviewRoutinen.push({ id: item.id, streakVorher: item.routineStreak || 0, gebrochenVorher: !!item.streakGebrochen });
-        item.routineStreak = 0;
-        item.streakGebrochen = true;
-      }
-    }
+    const p = Math.round(Number($('rvBuchFeld').value) || 0);
+    if (p !== 0) Store.tag.log.push({
+      itemId: item.id, titel: item.titel, domain: item.domain,
+      bereich: item.bereich || null, punkte: p,
+      zeit: new Date().toISOString(), gebucht: true, abschluss: true
+    });
+    if (item.typ === 'routine') item.zuletztErledigt = heuteIso();   // heute behandelt, Rhythmus läuft weiter
     Store.speichereItems(); Store.speichereTag();
     reviewIdx++; reviewSchritt();
   });
-  $('rvSkip').addEventListener('click', () => { $('rvSkipFeld').hidden = false; });
-  $('rvSkipOk').addEventListener('click', () => {
-    if ($('rvDeadline').value) item.deadline = $('rvDeadline').value;
-    if (item.typ === 'routine') {                    // Rhythmus startet neu, kein Bruch
+  $('rvSchieben').addEventListener('click', () => {
+    const p = Math.round(Number($('rvSchiebFeld').value) || 0);
+    if (p !== 0) Store.tag.log.push({
+      itemId: item.id, titel: item.titel + (p < 0 ? ' — geschoben' : ' — Bonus'), domain: item.domain,
+      bereich: item.bereich || null, punkte: p,
+      zeit: new Date().toISOString(), geschoben: true, abschluss: true
+    });
+    if (item.typ === 'routine') {          // Rhythmus ab morgen neu, kein Streak-Bruch
       item.ausgesetztAm = heuteIso();
       item.zuletztErledigt = heuteIso();
       item.rhythmusAnkerWoche = wochenIndex();
     }
-    Store.speichereItems();
+    // Aufgabe bleibt offen im Stream für morgen (streamSlot unverändert)
+    Store.speichereItems(); Store.speichereTag();
     reviewIdx++; reviewSchritt();
   });
 }
 
 function reviewFertig() {
-  tagesabschlussKern(false);   // Maluse hat das Review manuell entschieden
-  if (Store.tag.abschlussJournal) Store.tag.abschlussJournal.routinen.push(...reviewRoutinen);
+  const t = Store.tag;
+  // 1. heutigen Tag buchen (Streak, Wohlstand) und Snapshot + Graphen ablegen
+  gesamtpunkteAktualisieren();
+  if (t.gesamtpunkteHeute > 0) {
+    t.streak = (t.streak || 0) + 1;
+    t.streakBonusHeute = Store.settings.streakBonus;
+    gesamtpunkteAktualisieren();
+  } else {
+    t.streak = 0;
+  }
+  t.wohlstandStand += t.gesamtpunkteHeute;
+  historieSchreiben();
+  const vortagPunkte = t.gesamtpunkteHeute;
+  // 2. erledigte Einmal-Aufgaben ausblenden (beim nächsten Sync löschen)
+  let ausgeblendet = 0;
+  Store.items.forEach(i => {
+    if (i.typ === 'aufgabe' && i.status === 'erledigt' && !i.nachSyncWeg) { i.nachSyncWeg = true; ausgeblendet++; }
+  });
+  // 3. sofort frischen Tag beginnen — Akku läuft ab letztem Wert weiter, kein Dialog
+  const alt = t;
+  Store.tag = neuerTagesstand(heuteIso(), alt);
+  Store.tag.gestartet = true;
+  Store.tag.akkuProzent = alt.akkuProzent;
+  Store.items.forEach(i => {
+    if (i.typ === 'counter') i.tickStandHeute = 0;
+    if (i.typ === 'routine') { if (i.status !== 'offen') i.status = 'offen'; i.istMinuten = 0; }
+  });
+  tagStartMinutenErfassen();
   Store.speichereAlles();
   renderAlles();
+  // 4. Abschluss-Screen mit Export
   const exportJson = JSON.stringify(Store.baueExport('tagesabschluss'), null, 2);
   const html = ''
-    + '<div class="tagchip" style="margin-bottom:var(--s2)">🌙 Tag abgeschlossen · ' + fmtPunkte(Store.tag.gesamtpunkteHeute) + ' P</div>'
+    + '<div class="tagchip" style="margin-bottom:var(--s2)">🌅 Neuer Tag · Vortag ' + fmtPunkte(vortagPunkte) + ' P</div>'
     + '<div class="wizsumme">'
     + '<div class="zeile"><span>Streak</span><b>' + Store.tag.streak + ' 🔥</b></div>'
     + '<div class="zeile"><span>Konto</span><b>' + fmtPunkte(konto()) + ' P</b></div>'
+    + (ausgeblendet ? '<div class="zeile"><span>Erledigte ausgeblendet</span><b>' + ausgeblendet + '</b></div>' : '')
     + '</div>'
     + '<h2 class="sechead">Export → Claude-Chat</h2>'
     + '<textarea class="copyfeld" id="weExport" readonly>' + escapeHtml(exportJson) + '</textarea>'
     + '<button class="wizbtn sek" id="weKopieren">Export kopieren</button>'
-    + '<div class="wizinfo">Der Tag ist jetzt gesperrt — Fokus und Abhaken gehen erst wieder nach „🌅 Tag starten".</div>'
-    + '<button class="wizbtn sek" id="weWiderruf" style="border-color:var(--warn);color:var(--warn)">↩ Abschluss widerrufen</button>';
-  sheetOeffnen('Tag abgeschlossen', html, 'tagende');
+    + '<div class="wizinfo">Ausgeblendete erledigte Aufgaben reisen beim nächsten Sync noch mit und werden danach gelöscht.</div>';
+  sheetOeffnen('Neuer Tag gestartet', html, 'tagende');
   $('weKopieren').addEventListener('click', () =>
     inZwischenablage('```json\n' + exportJson + '\n```', $('weKopieren')));
-  $('weWiderruf').addEventListener('click', () => { abschlussWiderrufen(); sheetSchliessen(); });
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -4578,8 +4641,13 @@ document.addEventListener('click', e => {
    Tap auf den Akku → Startwert anpassen (jederzeit überschreibbar, 1.2). */
 $('ppBtn').addEventListener('click', fokusToggle);
 $('fokusMid').addEventListener('click', sheetTachoOeffnen);
-/* Statusleiste: Tap = Statistik-/Belohnungsseite, Akku-Tap = anpassen */
-$('sAkku').addEventListener('click', e => { e.stopPropagation(); sheetTagStartOeffnen(); });
+/* Statusleiste: Tap = Belohnung; Akku-Tap = zum Akku-Feld in Belohnung */
+$('sAkku').addEventListener('click', e => {
+  e.stopPropagation();
+  document.querySelector('#tabbar button[data-view="belohnung"]').click();
+  const f = $('belAkku');
+  if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); f.select(); }
+});
 $('statusbar').addEventListener('click', () => {
   document.querySelector('#tabbar button[data-view="belohnung"]').click();
 });
@@ -4675,11 +4743,12 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   punkteFuerZeit, counterIstSchlecht, abhakenFlow, rhythmusModusVon,
   streamToggle, bonusVerteilung, uaSummenAngleichen, bonusVorschlag,
   heuteInvestiertMin, tagStartMinutenErfassen, gesamtpunkteAktualisieren,
-  minutenInklFokus, sheetTagEndeOeffnen,
+  minutenInklFokus,
   punkteNachGruppeZeitraum, kennzahlenHtml, domSnapshot,
   snapNachFilter, domSichtbar, renderStream,
   arbeitstagFenster, sollWerte, paceWerte, renderPace, kurveHtml,
   uaMergeFuerImport, unteraufgabeAnlegen,
+  sheetNeuerTagOeffnen, heutePunkteOffen, historieLaden,
   _setDomFilter: d => { domFilter = d; }, _getDomFilter: () => domFilter };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
