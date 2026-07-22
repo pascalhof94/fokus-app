@@ -663,7 +663,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.18.0';
+const APP_VERSION = '0.19.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -829,6 +829,12 @@ const Store = {
     if (tag && tag.datum === heuteIso()) {
       this.tag = tag;
     } else {
+      // Vortag nie abgeschlossen? Spielmechanik nachholen (Maluse, Streak,
+      // Wohlstand, Statistik-Snapshot) — der Button ist optional (22.07.2026).
+      if (tag && !tag.abgeschlossen) {
+        this.tag = tag;
+        try { tagesabschlussKern(); } catch (e) {}
+      }
       // Tageswechsel: neuer Stand, Wohlstand/Streak werden mitgenommen.
       // (Boni/Mali & Streak-Fortschreibung übernimmt später der
       //  Tagesabschluss-Wizard — hier nur der technische Rollover.)
@@ -1657,6 +1663,16 @@ function gesamtpunkteAktualisieren() {
 function tagAbschliessen() {
   if (Store.tag.abgeschlossen) return null;
   fokusZeitEinbuchen();   // laufenden Fokus pausieren, Zeit sichern
+  tagesabschlussKern();
+  Store.speichereAlles();
+  renderAlles();
+  return Store.baueExport('tagesabschluss');
+}
+
+/* Spielmechanik des Tagesendes — läuft beim Button UND wird beim
+   automatischen Tageswechsel nachgeholt, falls der Button nie gedrückt
+   wurde (Umbau 22.07.2026: Datenfluss läuft ausschließlich über Sync). */
+function tagesabschlussKern() {
   // Fällige, nicht erledigte Routinen: Abzug (item-spezifisch möglich)
   // + Streak-Bruch (20./21.07.2026)
   Store.items.forEach(i => {
@@ -1711,9 +1727,14 @@ function tagAbschliessen() {
   Store.tag.abgeschlossen = true;
   // Tages-Snapshot für die Statistikseite (Etappe 2, 21.07.2026)
   historieSchreiben();
-  Store.speichereAlles();
-  renderAlles();
-  return Store.baueExport('tagesabschluss');
+  // Routinen sofort zurücksetzen (22.07.2026): erledigte stehen wieder
+  // auf offen — fällig werden sie erst wieder nach ihrem Rhythmus
+  Store.items.forEach(i => {
+    if (i.typ === 'routine') {
+      if (i.status !== 'offen') i.status = 'offen';
+      i.istMinuten = 0;
+    }
+  });
 }
 
 /* ── Tages-Historie (Etappe 2): ein Snapshot je abgeschlossenem Tag ── */
@@ -3786,28 +3807,22 @@ function sheetTagEndeOeffnen() {
     + '<div class="zeile"><span>Wohlstand danach</span><b>' + fmtPunkte(t.wohlstandStand
         + t.gesamtpunkteHeute + (streakWeiter ? Store.settings.streakBonus : 0)) + ' P</b></div>'
     + '</div>'
-    + '<div class="wizinfo">Friert die heutigen Punkte ein, zählt Schiebe-Tage hoch und schreibt den Wohlstand fort. Danach bekommst du den Export-Block und das Privat-Dokument.</div>'
+    + '<div class="wizinfo">Verrechnet Boni und Maluse, schreibt die Tagesstatistik und setzt Routinen und Counter zurück. Der Datenabgleich läuft über 🔄 Sync — vergisst du den Abschluss, holt ihn die App beim Tageswechsel automatisch nach.</div>'
     + '<button class="wizbtn" id="weAbschliessen">Tag jetzt abschließen</button>';
   sheetOeffnen('Tag abschließen', html, 'tagende');
 
   $('weAbschliessen').addEventListener('click', () => {
-    const exp = tagAbschliessen();
-    if (!exp) { sheetSchliessen(); return; }
-    const exportJson = JSON.stringify(exp, null, 2);
-    let ergebnis = ''
-      + '<div class="tagchip" style="margin-bottom:var(--s2)">🌙 Tag abgeschlossen · Wohlstand '
-      + fmtPunkte(Store.tag.wohlstandStand) + ' P</div>'
-      + '<h2 class="sechead">Export → Claude-Chat (DFM-Seite)</h2>'
-      + '<textarea class="copyfeld" id="weExport" readonly>' + escapeHtml(exportJson) + '</textarea>'
-      + '<button class="wizbtn sek" id="weKopieren">Export kopieren</button>'
-      + '<h2 class="sechead">Privat-Dokument</h2>'
-      + '<div class="wizinfo">' + dateinamePrivat() + ' — herunterladen und in deinen Privat-Ordner legen (Zielordner laut Spez. noch offen).</div>'
-      + '<button class="wizbtn sek" id="weDokument">Privat-Dokument herunterladen</button>';
-    $('sheetInhalt').innerHTML = ergebnis;
+    if (!tagAbschliessen()) { sheetSchliessen(); return; }
+    const heutePunkte = fmtPunkte(Store.tag.gesamtpunkteHeute);
+    $('sheetInhalt').innerHTML = ''
+      + '<div class="tagchip" style="margin-bottom:var(--s2)">🌙 Tag abgeschlossen · ' + heutePunkte + ' P heute</div>'
+      + '<div class="wizsumme">'
+      + '<div class="zeile"><span>Streak</span><b>' + Store.tag.streak + ' 🔥</b></div>'
+      + '<div class="zeile"><span>Konto</span><b>' + fmtPunkte(konto()) + ' P</b></div>'
+      + '<div class="zeile"><span>Routinen & Counter</span><b>zurückgesetzt</b></div>'
+      + '</div>'
+      + '<div class="wizinfo">Statistik ist geschrieben — Details auf der Belohnungsseite. Für den Datenabgleich einfach wie gewohnt 🔄 Sync nutzen.</div>';
     $('sheetTitel').textContent = 'Tag abgeschlossen';
-    $('weKopieren').addEventListener('click', () =>
-      inZwischenablage('```json\n' + exportJson + '\n```', $('weKopieren')));
-    $('weDokument').addEventListener('click', () => herunterladen(dateinamePrivat(), privatDokumentMd()));
   });
 }
 
