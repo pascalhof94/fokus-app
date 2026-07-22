@@ -42,7 +42,10 @@ input:focus,textarea:focus{outline:none;border-color:var(--blue)}
 
 /* ── Statusleiste (21.07.2026): Akku · Punkte-Konto · Pace-Pfeil ── */
 #statusbar{
-  position:fixed;top:0;left:0;right:0;z-index:101;
+  /* z-index über Overlay (200) und Sheet (201): die Statusleiste bleibt
+     immer sichtbar und klickbar, auch wenn der Fokus-Tacho offen ist
+     (Pascal 22.07.2026). conf (300) / toast (310) liegen weiterhin darüber. */
+  position:fixed;top:0;left:0;right:0;z-index:210;
   padding-top:var(--sat);
   background:var(--card2);border-bottom:1px solid var(--purple);
   cursor:pointer;
@@ -668,7 +671,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.24.0';
+const APP_VERSION = '0.24.1';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
