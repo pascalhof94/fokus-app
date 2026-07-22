@@ -667,7 +667,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.21.1';
+const APP_VERSION = '0.22.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -817,8 +817,27 @@ function neuerTagesstand(datum, vorheriger) {
     log: [],
     akkuVerlauf: [],    // [{min, p}] — Energie-Kurve für die Belohnungsseite (6.1)
     tickLog: [],        // [{itemId, domain, bereich, punkte, zeit}] — Aufschlüsselung 3.5
-    fokusSek: 0         // heute fokussierte Sekunden (Statistik/Shop-Preise)
+    fokusSek: 0,        // heute fokussierte Sekunden (Statistik/Shop-Preise)
+    istMinutenStart: {} // Ist-Minuten-Stand je Item zu Tagesbeginn → „heute investiert" = Differenz (22.07.2026)
   };
+}
+
+/* Referenz für „heute investierte Zeit": aktuellen Ist-Minuten-Stand jeder
+   Aufgabe als Tagesbeginn festhalten. Aufgaben laufen über Tage weiter, ihre
+   Gesamt-Ist-Zeit bleibt — nur der heutige Zuwachs zählt in die Tages-Fokuszeit.
+   Aufruf beim Tageswechsel und bei „Tag starten", NACH dem Routinen-Reset. */
+function tagStartMinutenErfassen() {
+  const map = {};
+  Store.items.forEach(i => { if (i.typ !== 'counter') map[i.id] = i.istMinuten || 0; });
+  Store.tag.istMinutenStart = map;
+}
+
+/* Heute in ein Item investierte Minuten = aktueller Stand minus Tagesbeginn. */
+function heuteInvestiertMin(item) {
+  if (item.typ === 'counter') return 0;
+  const start = (Store.tag.istMinutenStart || {});
+  const ref = start[item.id] != null ? start[item.id] : 0;
+  return Math.max(0, minutenInklFokus(item) - ref);
 }
 
 const Store = {
@@ -833,6 +852,10 @@ const Store = {
     const tag = lsLese(LS.TAG, null);
     if (tag && tag.datum === heuteIso()) {
       this.tag = tag;
+      // Migration (22.07.2026): fehlt die Tagesbeginn-Referenz, jetzt setzen —
+      // ab hier zählt nur noch die heute investierte Zeit (der Timer-Zähler
+      // fokusSek deckt die bereits heute getrackte Zeit weiterhin ab).
+      if (!this.tag.istMinutenStart) tagStartMinutenErfassen();
     } else {
       // Vortag nie abgeschlossen? Spielmechanik nachholen (Maluse, Streak,
       // Wohlstand, Statistik-Snapshot) — der Button ist optional (22.07.2026).
@@ -850,7 +873,10 @@ const Store = {
           if (i.status !== 'offen') i.status = 'offen';
           i.istMinuten = 0;
         }
+        // Aufgaben laufen weiter: istMinuten bleibt, nur die heutige Referenz
+        // wird unten neu gesetzt (Pascal 22.07.2026).
       });
+      tagStartMinutenErfassen();
       this.speichereAlles();
     }
   },
@@ -1743,8 +1769,11 @@ function tagesabschlussKern(autoMalus) {
     i.tickStandHeute = 0;
   });
   Store.items.forEach(i => {
+    // Schiebe-Malus nur für wirklich liegengebliebene Aufgaben — an denen HEUTE
+    // gearbeitet wurde, laufen ohne Malus weiter (Pascal 22.07.2026).
     if (i.status !== 'erledigt' && i.typ !== 'counter'
-      && (i.streamSlot != null || i.heuteRausgezogen)) {
+      && (i.streamSlot != null || i.heuteRausgezogen)
+      && heuteInvestiertMin(i) < 1) {
       i.tageGeschoben = (i.tageGeschoben || 0) + 1;
       j.geschoben.push(i.id);
     }
@@ -1802,17 +1831,17 @@ function abschlussWiderrufen() {
 /* ── Tages-Historie (Etappe 2): ein Snapshot je abgeschlossenem Tag ── */
 function historieLaden() { return lsLese(LS.HISTORIE, []); }
 
-/* Fokuszeit heute: Zähler, mit Fallback auf die getrackten Minuten der
-   heute bearbeiteten Items (Fix 22.07.2026 — Zähler kam erst mit v0.15). */
+/* Fokuszeit heute (Vorschlag B, 22.07.2026): nur die HEUTE investierte Zeit.
+   Aufgaben laufen über Tage weiter, darum zählt je Item nur der Zuwachs seit
+   Tagesbeginn (heuteInvestiertMin), nicht die kumulierte Gesamt-Ist-Zeit.
+   Der Timer-Zähler fokusSek bleibt als Untergrenze (deckt gelöschte Items
+   und den Migrationstag ab). */
 function fokusMinHeute() {
   const zaehler = (Store.tag.fokusSek || 0) / 60
     + (fokus && fokus.laeuft ? laufendeSek() / 60 : 0);
-  const heutigeIds = new Set(Store.tag.log.filter(l => !l.uaId).map(l => l.itemId));
-  let getrackt = 0;
-  Store.items.forEach(i => {
-    if (heutigeIds.has(i.id) || i.status === 'in_arbeit') getrackt += minutenInklFokus(i);
-  });
-  return Math.round(Math.max(zaehler, Math.min(getrackt, 16 * 60)));
+  let heute = 0;
+  Store.items.forEach(i => { heute += heuteInvestiertMin(i); });
+  return Math.round(Math.max(zaehler, Math.min(heute, 16 * 60)));
 }
 
 function heuteAlsSnapshot() {
@@ -3762,7 +3791,9 @@ function sheetTagStartOeffnen() {
     // Neustart am selben Tag nach Abschluss = Abschluss zurücknehmen
     if (t.abgeschlossen) abschlussWiderrufen();
     if (echterStart) {
-      // Prozess-Schritt 1 (22.07.2026): Counter + Routinen auf nicht erledigt
+      // Prozess-Schritt 1 (22.07.2026): NUR Counter + Routinen zurücksetzen.
+      // Aufgaben laufen weiter bis abgeschlossen — ihre Ist-Zeit bleibt, nur
+      // die heutige Fokuszeit-Referenz wird neu gesetzt.
       Store.items.forEach(i => {
         if (i.typ === 'counter') i.tickStandHeute = 0;
         if (i.typ === 'routine') {
@@ -3770,6 +3801,7 @@ function sheetTagStartOeffnen() {
           i.istMinuten = 0;
         }
       });
+      tagStartMinutenErfassen();
       Store.speichereItems();
     }
     t.energieStart = Number($('rEnergie').value);
@@ -4070,14 +4102,12 @@ function malusBasis(item) {
 function sheetTagEndeOeffnen() {
   if (Store.tag.abgeschlossen) return;
   fokusZeitEinbuchen();
-  // Kandidaten: heute geplante offene Aufgaben, Aufgaben mit teilweise
-  // erledigten Unteraufgaben, fällige Routinen
+  // Kandidaten (Pascal 22.07.2026): NUR fällige, nicht erledigte Routinen.
+  // Normale Aufgaben laufen weiter bis abgeschlossen — sie werden beim
+  // Tagesabschluss weder bewertet noch abgehakt, ihre Ist-Zeit bleibt erhalten.
   reviewListe = Store.items.filter(i =>
-    i.status !== 'erledigt' && i.typ !== 'counter' && (
-      (i.typ === 'aufgabe' && (i.streamSlot != null || i.heuteRausgezogen
-        || (i.unteraufgaben || []).some(u => u.erledigt)))
-      || (i.typ === 'routine' && routineFaellig(i))
-    )).map(i => i.id);
+    i.status !== 'erledigt' && i.typ === 'routine' && routineFaellig(i)
+  ).map(i => i.id);
   reviewIdx = 0;
   reviewRoutinen = [];
   reviewSchritt();
@@ -4462,7 +4492,9 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   abschlussWiderrufen, snapshotWiderrufen, malusBasis, tagesabschlussKern,
   vorlagenLaden, vorlagenSpeichern, sheetVorlageOeffnen,
   punkteFuerZeit, counterIstSchlecht, abhakenFlow, rhythmusModusVon,
-  streamToggle, bonusVerteilung, uaSummenAngleichen, bonusVorschlag };
+  streamToggle, bonusVerteilung, uaSummenAngleichen, bonusVorschlag,
+  heuteInvestiertMin, tagStartMinutenErfassen, gesamtpunkteAktualisieren,
+  minutenInklFokus, sheetTagEndeOeffnen };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
 if ('serviceWorker' in navigator) {
