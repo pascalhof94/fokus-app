@@ -4,7 +4,7 @@
    öffnen = Update), offline kommt alles aus dem Cache. */
 'use strict';
 
-const CACHE = 'fokus-v0.28.1';
+const CACHE = 'fokus-v0.28.2';
 const ASSETS = [
   './',
   './index.html',

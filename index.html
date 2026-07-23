@@ -702,7 +702,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.28.1';
+const APP_VERSION = '0.28.2';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -2542,10 +2542,21 @@ function renderEinstellungen() {
   const bisD = datenListe.length ? datenListe.reduce((a, b) => a > b ? a : b) : '–';
   const pSumLog = Math.max(0, Math.round(logAlle.reduce((s, l) => s + (Number(l.punkte) || 0), 0)));
   const hat2207 = historieLaden().some(d => d.datum === '2026-07-22');
+  // Read-only Daten-Check (23.07.2026): wie viele Punkte stecken noch in den
+  // getrackten Aufgaben-Zeiten (istMinuten), auch wenn nie gebucht/abgehakt?
+  const mitZeit = Store.items.filter(i => i.typ !== 'counter' && (Number(i.istMinuten) || 0) > 0);
+  const projPunkte = Math.round(Store.items.filter(i => i.typ !== 'counter')
+    .reduce((s, i) => s + (Number(anzeigePunkte(i)) || 0), 0));
+  const trackedMin = Math.round(Store.items.reduce((s, i) => s + (Number(i.istMinuten) || 0), 0));
+  const histSum = Math.round(historieLaden().reduce((s, d) => s + (Number(d.punkte) || 0), 0));
   html += '<h2 class="sechead">Statistik-Reparatur</h2>';
   html += '<div class="wizinfo">Laufender Tag: <b>' + Store.tag.datum + '</b> · ' + logAlle.length
     + ' Log-Einträge (' + vonD + ' bis ' + bisD + ') · ' + fmtPunkte(pSumLog) + ' P<br>'
     + '22.07. in der Statistik: <b>' + (hat2207 ? 'ja' : 'nein') + '</b></div>';
+  html += '<div class="wizinfo" style="border:1px solid var(--warn)">🔎 <b>Daten-Check</b><br>'
+    + 'Getrackte Aufgaben mit Zeit: <b>' + mitZeit.length + '</b> · Σ getrackt: <b>' + trackedMin + ' min</b><br>'
+    + 'Projizierte Punkte über alle Aufgaben: <b>' + fmtPunkte(projPunkte) + ' P</b><br>'
+    + 'Summe aller Statistik-Tage: <b>' + fmtPunkte(histSum) + ' P</b></div>';
   html += '<button class="wizbtn sek" id="sNachtrag2207"' + (hat2207 ? ' style="opacity:.5"' : '')
     + '>🔧 22.07. aus diesen Daten nachtragen</button>';
   html += '<button class="resetbtn" id="sReset">Alle Punkte-Sätze auf Standard zurücksetzen</button>';
