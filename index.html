@@ -702,7 +702,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.28.2';
+const APP_VERSION = '0.28.3';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -2076,6 +2076,68 @@ function snapshotAusLog(datum, bisDatum) {
   };
 }
 
+/* Saubere Wiederherstellung (Pascal 23.07.2026): die über den Tag getrackte,
+   aber nie gebuchte Arbeit als Snapshot für `datum` sichern. Nimmt die
+   projizierten Punkte JEDER Aufgabe (anzeigePunkte, inkl. Bonus), baut daraus
+   den Tages-Snapshot inkl. Domänen/Bereiche/Verlauf, hebt den Wohlstand um die
+   Summe an und setzt die getrackte Zeit der Aufgaben auf 0 (kein Doppelzählen).
+   Die Aufgaben bleiben offen und können weiterlaufen. */
+function wiederherstellungAusTracking(datum) {
+  if (fokus && fokus.laeuft) fokusZeitEinbuchen();   // laufende Fokus-Zeit einfrieren
+  const t = Store.tag, s = Store.settings;
+  const items = Store.items.filter(i => i.typ !== 'counter');
+  const pkt = i => Math.max(0, Number(anzeigePunkte(i)) || 0);
+  const total = Math.round(items.reduce((a, i) => a + pkt(i), 0) * 10) / 10;
+  const mitZeit = items.filter(i => (Number(i.istMinuten) || 0) > 0);
+  const { start, ende } = arbeitstagFenster();
+  const gruppen = (dom, achse) => {
+    const g = {};
+    items.filter(i => !dom || (i.domain || 'dfm') === dom).forEach(i => {
+      const std = Math.floor((i.streamSlot != null ? i.streamSlot : start) / 60);
+      const k = achse === 'bereich' ? (i.bereich || (i.domain === 'dfm' ? 'DFM' : 'Privat'))
+        : (std < s.abschnittMorgenBis ? 'Morgen' : std < s.abschnittTagBis ? 'Tag' : 'Abend');
+      g[k] = (g[k] || 0) + pkt(i);
+    });
+    return g;
+  };
+  const verlaufFor = liste => {
+    const sorted = liste.filter(i => pkt(i) > 0).sort((a, b) => (a.streamSlot || 0) - (b.streamSlot || 0));
+    return sorted.map((i, idx) => {
+      const min = i.streamSlot != null ? Math.min(ende, Math.max(start, i.streamSlot))
+        : start + Math.round((idx + 1) / (sorted.length + 1) * (ende - start));
+      const hh = String(Math.floor(min / 60) % 24).padStart(2, '0'), mm = String(min % 60).padStart(2, '0');
+      return { z: datum + 'T' + hh + ':' + mm + ':00.000Z', p: Math.round(pkt(i) * 10) / 10 };
+    });
+  };
+  const domSnap = dom => {
+    const dl = items.filter(i => (i.domain || 'dfm') === dom);
+    const anz = dl.filter(i => (Number(i.istMinuten) || 0) > 0).length;
+    return { punkte: Math.round(dl.reduce((a, i) => a + pkt(i), 0) * 10) / 10,
+      fokusMin: Math.round(dl.reduce((a, i) => a + (Number(i.istMinuten) || 0), 0)),
+      erledigt: anz, bereiche: gruppen(dom, 'bereich'), abschnitte: gruppen(dom, 'abschnitt'), verlauf: verlaufFor(dl),
+      reingekommen: 0, offen: 0, abgeschlossen: anz, geschoben: 0, sollPunkte: 0, sollMin: 0 };
+  };
+  const akkuP = (t.akkuVerlauf || []).map(e => e.p);
+  t.wohlstandStand = (t.wohlstandStand || 0) + total;   // wiederhergestellte Punkte zählen zum Konto/Level
+  const snap = {
+    datum, punkte: total, fokusMin: Math.round(Store.items.reduce((a, i) => a + (Number(i.istMinuten) || 0), 0)),
+    erledigt: mitZeit.length, streak: t.streak || 0, wohlstand: Math.round(t.wohlstandStand),
+    akkuSchnitt: akkuP.length ? Math.round(akkuP.reduce((a, e) => a + e, 0) / akkuP.length) : null,
+    akkuMin: akkuP.length ? Math.min(...akkuP) : null, akkuMax: akkuP.length ? Math.max(...akkuP) : null,
+    sessions: t.sessionCount || 0,
+    bereiche: gruppen(null, 'bereich'), abschnitte: gruppen(null, 'abschnitt'), verlauf: verlaufFor(items),
+    proDomain: { dfm: domSnap('dfm'), privat: domSnap('privat') },
+    reingekommen: 0, offen: 0, abgeschlossen: mitZeit.length, geschoben: 0, sollPunkte: 0, sollMin: 0, rekonstruiert: true
+  };
+  const h = historieLaden().filter(d => d.datum !== datum);
+  h.push(snap); h.sort((a, b) => a.datum < b.datum ? -1 : 1);
+  lsSchreibe(LS.HISTORIE, h.slice(-90));
+  mitZeit.forEach(i => { i.istMinuten = 0; if (i.status === 'in_arbeit') i.status = 'offen'; });
+  tagStartMinutenErfassen();
+  Store.speichereAlles();
+  return { total, anzahl: mitZeit.length };
+}
+
 /* Rekonstruierten Tag in die Historie eintragen (überschreibt gleiches Datum). */
 function tagNachtragen(datum, bisDatum) {
   const snap = snapshotAusLog(datum, bisDatum);
@@ -2557,8 +2619,10 @@ function renderEinstellungen() {
     + 'Getrackte Aufgaben mit Zeit: <b>' + mitZeit.length + '</b> · Σ getrackt: <b>' + trackedMin + ' min</b><br>'
     + 'Projizierte Punkte über alle Aufgaben: <b>' + fmtPunkte(projPunkte) + ' P</b><br>'
     + 'Summe aller Statistik-Tage: <b>' + fmtPunkte(histSum) + ' P</b></div>';
+  html += '<button class="wizbtn" id="sWiederher2207">🏆 22.07. aus getrackter Arbeit wiederherstellen ('
+    + fmtPunkte(projPunkte) + ' P)</button>';
   html += '<button class="wizbtn sek" id="sNachtrag2207"' + (hat2207 ? ' style="opacity:.5"' : '')
-    + '>🔧 22.07. aus diesen Daten nachtragen</button>';
+    + '>🔧 Nur aus Log nachtragen (' + fmtPunkte(pSumLog) + ' P)</button>';
   html += '<button class="resetbtn" id="sReset">Alle Punkte-Sätze auf Standard zurücksetzen</button>';
   html += '<div class="versionszeile">Fokus App ' + APP_VERSION + '</div>';
   $('view-einstellungen').innerHTML = html;
@@ -2586,6 +2650,25 @@ function renderEinstellungen() {
     if (!confirm('Wirklich alle Punkte-Sätze auf die Standardwerte zurücksetzen?')) return;
     localStorage.removeItem(LS.SETTINGS);
     Store.settings = settingsZusammenfuehren({});
+    renderEinstellungen(); renderAlles();
+  });
+  $('sWiederher2207') && $('sWiederher2207').addEventListener('click', () => {
+    const items = Store.items.filter(i => i.typ !== 'counter');
+    const total = Math.round(items.reduce((a, i) => a + Math.max(0, Number(anzeigePunkte(i)) || 0), 0));
+    const anz = items.filter(i => (Number(i.istMinuten) || 0) > 0).length;
+    const vorhanden = historieLaden().find(d => d.datum === '2026-07-22');
+    const warn = (vorhanden && (vorhanden.punkte || 0) > total + 1)
+      ? '⚠ ACHTUNG: 22.07. hat bereits ' + fmtPunkte(vorhanden.punkte) + ' P (mehr als die jetzt ' + fmtPunkte(total)
+        + ' P). Wurde die Wiederherstellung vielleicht schon ausgeführt? Erneutes Ausführen ÜBERSCHREIBT den höheren Wert.\n\n'
+      : '';
+    const msg = warn + 'Die getrackte Arbeit (' + anz + ' Aufgaben, ' + fmtPunkte(total) + ' P) als Tag 22.07. sichern?\n\n'
+      + '• 22.07. erscheint danach mit ' + fmtPunkte(total) + ' P in der Statistik\n'
+      + '• die Punkte zählen zu Konto/Level (Wohlstand +' + fmtPunkte(total) + ')\n'
+      + '• die getrackte Zeit der Aufgaben wird auf 0 gesetzt (kein Doppelzählen); die Aufgaben bleiben offen\n\n'
+      + 'Fortfahren?';
+    if (!confirm(msg)) return;
+    const erg = wiederherstellungAusTracking('2026-07-22');
+    toastZeigen('✓ 22.07. wiederhergestellt: ' + fmtPunkte(erg.total) + ' P aus ' + erg.anzahl + ' Aufgaben.');
     renderEinstellungen(); renderAlles();
   });
   $('sNachtrag2207') && $('sNachtrag2207').addEventListener('click', () => {
@@ -4961,7 +5044,7 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   uaMergeFuerImport, unteraufgabeAnlegen,
   sheetNeuerTagOeffnen, heutePunkteOffen, historieLaden,
   heuteApp, heuteIso, tageswechselPruefen, routineFaellig,
-  snapshotAusLog, tagNachtragen,
+  snapshotAusLog, tagNachtragen, wiederherstellungAusTracking, anzeigePunkte,
   _setDomFilter: d => { domFilter = d; }, _getDomFilter: () => domFilter };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
