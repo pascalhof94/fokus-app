@@ -702,7 +702,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.28.0';
+const APP_VERSION = '0.28.1';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -2034,6 +2034,58 @@ function historieSchreiben() {
   lsSchreibe(LS.HISTORIE, h.slice(-90));   // 90 Tage reichen für alle Ansichten
 }
 
+/* Einmal-Reparatur (Pascal 23.07.2026): Snapshot eines Tages aus den Log-
+   Einträgen des LAUFENDEN Tages rekonstruieren — alle Punkte mit Datum bis
+   einschließlich bisDatum. Nicht-zerstörerisch: liest nur den laufenden Tag,
+   Punkte/Verlauf/Bereiche exakt aus dem Log, Fokuszeit aus den Log-Minuten
+   (Näherung), Fluss/Soll unbekannt → 0. */
+function snapshotAusLog(datum, bisDatum) {
+  const t = Store.tag, s = Store.settings;
+  const alle = [...(t.log || []).filter(l => !l.counterAbschluss), ...(t.tickLog || [])]
+    .filter(l => l.zeit && l.zeit.slice(0, 10) <= bisDatum);
+  const inDom = (dom, l) => !dom || (l.domain || 'dfm') === dom;
+  const gruppen = (dom, achse) => {
+    const g = {};
+    alle.filter(l => inDom(dom, l)).forEach(l => {
+      const k = achse === 'bereich'
+        ? (l.bereich || (l.domain === 'dfm' ? 'DFM' : 'Privat'))
+        : (h => h < s.abschnittMorgenBis ? 'Morgen' : h < s.abschnittTagBis ? 'Tag' : 'Abend')(new Date(l.zeit).getHours());
+      g[k] = (g[k] || 0) + (Number(l.punkte) || 0);
+    });
+    return g;
+  };
+  const pSum = dom => Math.round(alle.filter(l => inDom(dom, l)).reduce((a, l) => a + (Number(l.punkte) || 0), 0) * 10) / 10;
+  const mSum = dom => Math.round(alle.filter(l => inDom(dom, l) && l.minuten).reduce((a, l) => a + (Number(l.minuten) || 0), 0));
+  const erl = dom => alle.filter(l => inDom(dom, l) && istErledigtEintrag(l)).length;
+  const gesch = dom => alle.filter(l => inDom(dom, l) && l.geschoben).length;
+  const verl = dom => alle.filter(l => inDom(dom, l)).map(l => ({ z: l.zeit, p: Math.round((Number(l.punkte) || 0) * 10) / 10 })).sort((a, b) => a.z < b.z ? -1 : 1);
+  const domSnap = dom => ({ punkte: Math.max(0, pSum(dom)), fokusMin: mSum(dom), erledigt: erl(dom),
+    bereiche: gruppen(dom, 'bereich'), abschnitte: gruppen(dom, 'abschnitt'), verlauf: verl(dom),
+    reingekommen: 0, offen: 0, abgeschlossen: erl(dom), geschoben: gesch(dom), sollPunkte: 0, sollMin: 0 });
+  const akkuP = (t.akkuVerlauf || []).map(e => e.p);
+  return {
+    datum, punkte: Math.max(0, pSum(null)), fokusMin: mSum(null), erledigt: erl(null),
+    streak: t.streak || 0, wohlstand: Math.round(t.wohlstandStand || 0),
+    akkuSchnitt: akkuP.length ? Math.round(akkuP.reduce((a, e) => a + e, 0) / akkuP.length) : null,
+    akkuMin: akkuP.length ? Math.min(...akkuP) : null, akkuMax: akkuP.length ? Math.max(...akkuP) : null,
+    sessions: t.sessionCount || 0,
+    bereiche: gruppen(null, 'bereich'), abschnitte: gruppen(null, 'abschnitt'), verlauf: verl(null),
+    proDomain: { dfm: domSnap('dfm'), privat: domSnap('privat') },
+    reingekommen: 0, offen: 0, abgeschlossen: erl(null), geschoben: gesch(null), sollPunkte: 0, sollMin: 0,
+    rekonstruiert: true
+  };
+}
+
+/* Rekonstruierten Tag in die Historie eintragen (überschreibt gleiches Datum). */
+function tagNachtragen(datum, bisDatum) {
+  const snap = snapshotAusLog(datum, bisDatum);
+  const h = historieLaden().filter(d => d.datum !== datum);
+  h.push(snap);
+  h.sort((a, b) => a.datum < b.datum ? -1 : 1);
+  lsSchreibe(LS.HISTORIE, h.slice(-90));
+  return snap;
+}
+
 /* ════════════════════════════════════════════════════════════════════
    Rendering
    ════════════════════════════════════════════════════════════════════ */
@@ -2483,6 +2535,19 @@ function renderEinstellungen() {
         + ' · ' + fmtPunkte(d.punkte || 0) + ' P</span>'
         + '<button class="wizbtn sek" data-widerruf="' + d.datum + '" style="width:auto;min-height:38px;margin:0;padding:0 14px">↩</button></div>').join('')
     : '<div class="leer">Noch keine abgeschlossenen Tage.</div>';
+  // Statistik-Reparatur (Pascal 23.07.2026): 22.07. aus laufenden Log-Daten nachtragen
+  const logAlle = [...(Store.tag.log || []), ...(Store.tag.tickLog || [])].filter(l => l.zeit);
+  const datenListe = logAlle.map(l => l.zeit.slice(0, 10));
+  const vonD = datenListe.length ? datenListe.reduce((a, b) => a < b ? a : b) : '–';
+  const bisD = datenListe.length ? datenListe.reduce((a, b) => a > b ? a : b) : '–';
+  const pSumLog = Math.max(0, Math.round(logAlle.reduce((s, l) => s + (Number(l.punkte) || 0), 0)));
+  const hat2207 = historieLaden().some(d => d.datum === '2026-07-22');
+  html += '<h2 class="sechead">Statistik-Reparatur</h2>';
+  html += '<div class="wizinfo">Laufender Tag: <b>' + Store.tag.datum + '</b> · ' + logAlle.length
+    + ' Log-Einträge (' + vonD + ' bis ' + bisD + ') · ' + fmtPunkte(pSumLog) + ' P<br>'
+    + '22.07. in der Statistik: <b>' + (hat2207 ? 'ja' : 'nein') + '</b></div>';
+  html += '<button class="wizbtn sek" id="sNachtrag2207"' + (hat2207 ? ' style="opacity:.5"' : '')
+    + '>🔧 22.07. aus diesen Daten nachtragen</button>';
   html += '<button class="resetbtn" id="sReset">Alle Punkte-Sätze auf Standard zurücksetzen</button>';
   html += '<div class="versionszeile">Fokus App ' + APP_VERSION + '</div>';
   $('view-einstellungen').innerHTML = html;
@@ -2511,6 +2576,18 @@ function renderEinstellungen() {
     localStorage.removeItem(LS.SETTINGS);
     Store.settings = settingsZusammenfuehren({});
     renderEinstellungen(); renderAlles();
+  });
+  $('sNachtrag2207') && $('sNachtrag2207').addEventListener('click', () => {
+    const vorschau = snapshotAusLog('2026-07-22', '2026-07-23');
+    const schon = historieLaden().some(d => d.datum === '2026-07-22');
+    const msg = '22.07. mit ' + fmtPunkte(vorschau.punkte) + ' P, ' + hmm(vorschau.fokusMin)
+      + ' h und ' + vorschau.verlauf.length + ' Einträgen in die Statistik eintragen?'
+      + (schon ? '\n\n⚠ Es gibt bereits einen 22.07. — er wird ersetzt.' : '')
+      + '\n\nNicht-zerstörerisch: der laufende Tag bleibt unverändert, nur die Statistik bekommt den 22.07. dazu.';
+    if (!confirm(msg)) return;
+    tagNachtragen('2026-07-22', '2026-07-23');
+    toastZeigen('✓ 22.07. nachgetragen — jetzt in der Statistik sichtbar.');
+    renderEinstellungen();
   });
   document.querySelectorAll('#view-einstellungen [data-widerruf]').forEach(btn => {
     btn.addEventListener('click', () => snapshotWiderrufen(btn.dataset.widerruf));
@@ -4873,6 +4950,7 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   uaMergeFuerImport, unteraufgabeAnlegen,
   sheetNeuerTagOeffnen, heutePunkteOffen, historieLaden,
   heuteApp, heuteIso, tageswechselPruefen, routineFaellig,
+  snapshotAusLog, tagNachtragen,
   _setDomFilter: d => { domFilter = d; }, _getDomFilter: () => domFilter };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
