@@ -717,7 +717,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.30.0';
+const APP_VERSION = '0.31.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -2234,6 +2234,13 @@ function fmtDauer(sekGesamt) {
 
 const TYP_ICON = { aufgabe: '📋', routine: '🔁', counter: '🔢' };
 
+/* „Begonnen" = in Arbeit oder ≥1 min investiert. Begonnene Aufgaben stehen im
+   Stream fix oben (nach Zeit) und sind NICHT per Drag umsortierbar (Pascal 24.07.2026,
+   Variante „Auto oben, Drag darunter"). */
+function istBegonnen(i) {
+  return i.status === 'in_arbeit' || minutenInklFokus(i) >= 1;
+}
+
 function karteHtml(item, imStream) {
   // Farbcodierung: Routine lila, Counter grün/rot nach Stand, sonst Domäne
   let farbe = item.domain;
@@ -2289,8 +2296,9 @@ function karteHtml(item, imStream) {
       ? '<button class="kstream" data-aktion="streamtoggle" aria-label="Stream-Wechsel">'
         + (item.streamSlot != null ? '⤵' : '⤴') + '</button>'
       : '')
-    // Griff (7.2): NUR zum Verschieben im Stream — Anker fix (5.2)
-    + (imStream && !item.istAnker ? '<span class="kgriff" aria-hidden="true">⠿</span>' : '<span class="kgriff" style="visibility:hidden">⠿</span>')
+    // Griff (7.2): NUR zum Verschieben im Stream — Anker fix (5.2); begonnene
+    // Aufgaben stehen fix oben und sind nicht ziehbar (Variante „Auto oben")
+    + (imStream && !item.istAnker && !istBegonnen(item) ? '<span class="kgriff" aria-hidden="true">⠿</span>' : '<span class="kgriff" style="visibility:hidden">⠿</span>')
     + '</article>';
 }
 
@@ -2310,7 +2318,7 @@ function renderStream() {
     .map(l => l.itemId));
   // Sortierung (22.07.2026): begonnene Aufgaben zuerst, absteigend nach
   // investierter Zeit — darunter die unangefangenen chronologisch.
-  const investiert = i => (i.status === 'in_arbeit' || minutenInklFokus(i) >= 1) ? minutenInklFokus(i) : -1;
+  const investiert = i => istBegonnen(i) ? minutenInklFokus(i) : -1;
   const stream = Store.items.filter(i => i.streamSlot != null && i.typ !== 'counter'
       && i.imStreamAnzeigen !== false && domSichtbar(i.domain) && !i.nachSyncWeg
       && (i.status !== 'erledigt' || heuteErledigt.has(i.id)))
@@ -4872,8 +4880,11 @@ function streamToggle(id) {
   renderAlles();
 }
 
-/* Kern der Drop-Logik — ziel: {zone:'queue'} | {zone:'stream', index}.
-   index = Einfügeposition in der (ohne das Item) sortierten Stream-Liste. */
+/* Kern der Drop-Logik — ziel: {zone:'queue'} | {zone:'stream', vorId, nachId}.
+   vorId/nachId = die konkreten (angezeigten, unbegonnenen) Nachbar-Karten an der
+   Ablagestelle. Bewusst per ID statt Index: die Anzeige sortiert begonnene Aufgaben
+   nach oben, deshalb weicht die DOM-Reihenfolge von der reinen streamSlot-Sortierung
+   ab — Index-Mapping würde daneben greifen (Pascal 24.07.2026). */
 function dropAnwenden(id, ziel) {
   const item = Store.findeItem(id);
   if (!item || item.istAnker) return;
@@ -4886,11 +4897,8 @@ function dropAnwenden(id, ziel) {
       }
     }
   } else {
-    const stream = Store.items
-      .filter(i => i.streamSlot != null && i.id !== id)
-      .sort((a, b) => a.streamSlot - b.streamSlot);
-    const prev = stream[ziel.index - 1] || null;
-    const next = stream[ziel.index] || null;
+    const prev = ziel.vorId ? Store.findeItem(ziel.vorId) : null;
+    const next = ziel.nachId ? Store.findeItem(ziel.nachId) : null;
     let slot;
     const start = uhrzeitAlsMin(Store.settings.arbeitstagStart);
     if (!prev && !next) slot = Math.max(start, jetztRund5());
@@ -4924,15 +4932,28 @@ function dropAnwenden(id, ziel) {
     $('streamListe').classList.remove('dropende');
     $('queueHead').classList.remove('dropziel');
   }
+  function istBegonnenKarte(k) {
+    const it = Store.findeItem(k.dataset.id);
+    return it && istBegonnen(it);
+  }
   function zielBestimmen(y) {
     const qh = $('queueHead').getBoundingClientRect();
     if (y >= qh.top) return { zone: 'queue' };
-    const karten = [...$('streamListe').querySelectorAll('.karte')].filter(k => k !== drag.karte);
-    for (let i = 0; i < karten.length; i++) {
-      const r = karten[i].getBoundingClientRect();
-      if (y < r.top + r.height / 2) return { zone: 'stream', index: i, el: karten[i] };
+    // Nur unbegonnene Karten sind umsortierbar; begonnene stehen fix oben. Nachbarn
+    // per ID aus der ANGEZEIGTEN Reihenfolge → Ablage stimmt mit dem Indikator überein.
+    const offene = [...$('streamListe').querySelectorAll('.karte')]
+      .filter(k => k !== drag.karte && !istBegonnenKarte(k));
+    for (let i = 0; i < offene.length; i++) {
+      const r = offene[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) {
+        return { zone: 'stream', el: offene[i],
+                 vorId: i > 0 ? offene[i - 1].dataset.id : null,
+                 nachId: offene[i].dataset.id };
+      }
     }
-    return { zone: 'stream', index: karten.length, el: null };
+    const letzte = offene[offene.length - 1] || null;
+    return { zone: 'stream', el: null,
+             vorId: letzte ? letzte.dataset.id : null, nachId: null };
   }
   document.addEventListener('pointerdown', e => {
     const griff = e.target.closest('.kgriff');
@@ -4940,7 +4961,7 @@ function dropAnwenden(id, ziel) {
     const karte = griff.closest('.karte');
     if (!karte || !karte.closest('#view-stream')) return;
     const item = Store.findeItem(karte.dataset.id);
-    if (!item || item.istAnker) return;
+    if (!item || item.istAnker || istBegonnen(item)) return;   // begonnene sind fix oben
     e.preventDefault();
     drag = { karte, id: karte.dataset.id, startY: e.clientY, ziel: null };
     karte.classList.add('dragging');
