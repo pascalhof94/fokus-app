@@ -577,14 +577,13 @@ textarea{min-height:64px;resize:vertical}
 .kaufbtn:active{transform:scale(.98)}
 /* Grit-Heatmap (22.07.2026) */
 .heatmap{
-  display:grid;grid-auto-flow:column;
-  grid-template-rows:repeat(7,1fr);grid-auto-columns:1fr;gap:3px;
+  display:grid;grid-template-columns:repeat(7,1fr);gap:3px;   /* 7 Spalten Mo–So, Wochen als Zeilen */
 }
 .heatmap .hz{
   aspect-ratio:1;border-radius:3px;background:var(--card2);
-  border:1.5px solid transparent;
 }
 .heatmap .hz.leer{background:transparent}
+.heatmap .hzkopf{font-size:8px;color:var(--mut2);text-align:center;padding-bottom:1px}
 /* Gekaufte Objekte leben in der Szene (22.07.2026, Aufbauspiel-Stil) */
 .szobj{position:absolute;line-height:1;pointer-events:none}
 .szobj i{font-style:normal;font-size:9px;font-weight:800;color:var(--mut);vertical-align:top;margin-left:1px}
@@ -702,7 +701,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.28.3';
+const APP_VERSION = '0.29.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -4057,36 +4056,39 @@ function balkenSvgHtml(titel, tage, wertFn, einheit, farbe) {
 
 /* Grit-Stil-Heatmap (22.07.2026): 10 Wochen, Zellen-Helligkeit nach
    Tagespunkten, Rand grün/rot = Tages-Pace über/unter dem Ø. */
+/* 8-stufige Paletten (dunkel → hell): je größer die Abweichung, desto heller. */
+const HEAT_GRUEN = ['#14532d', '#166534', '#15803d', '#16a34a', '#22c55e', '#4ade80', '#86efac', '#bbf7d0'];
+const HEAT_ROT   = ['#7f1d1d', '#991b1b', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fecaca'];
+
 function heatmapHtml() {
   const alt = historieLaden().filter(d => d.datum !== Store.tag.datum);
-  const tage = [...alt, heuteAlsSnapshot()].map(snapNachFilter);
-  const map = {};
-  tage.forEach(d => map[d.datum] = d);
-  const maxP = Math.max(...tage.map(d => d.punkte || 0), 1);
-  const paces = tage.filter(d => (d.fokusMin || 0) >= 30).map(d => d.punkte / (d.fokusMin / 60));
-  const avgPace = paces.length ? paces.reduce((a, b) => a + b, 0) / paces.length : 0;
+  const tage = [...alt, heuteAlsSnapshot()].map(snapNachFilter).sort((a, b) => a.datum < b.datum ? -1 : 1);
+  // Laufender Tagesschnitt bis EINSCHLIESSLICH jedes Tages — hängt nur von den
+  // Tagen bis dahin ab, ändert sich also nicht durch Folgetage (Pascal 25.07.).
+  const schnittBis = {}; let sum = 0, n = 0;
+  tage.forEach(d => { sum += (d.punkte || 0); n++; schnittBis[d.datum] = sum / n; });
+  const map = {}; tage.forEach(d => map[d.datum] = d);
   const heute = new Date(heuteApp() + 'T00:00:00');
   const startTag = new Date(heute);
-  startTag.setDate(heute.getDate() - wochentagMo0(heute) - 63);   // 10 Wochen, montags
-  let zellen = '';
+  startTag.setDate(heute.getDate() - wochentagMo0(heute) - 63);   // 10 Wochen zurück, montags
+  const iso = dat => dat.getFullYear() + '-' + String(dat.getMonth() + 1).padStart(2, '0') + '-' + String(dat.getDate()).padStart(2, '0');
+  let zellen = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(w => '<span class="hzkopf">' + w + '</span>').join('');
   for (let i = 0; i < 70; i++) {
     const dat = new Date(startTag); dat.setDate(startTag.getDate() + i);
     if (dat > heute) { zellen += '<span class="hz leer"></span>'; continue; }
-    const iso = dat.getFullYear() + '-' + String(dat.getMonth() + 1).padStart(2, '0') + '-' + String(dat.getDate()).padStart(2, '0');
-    const d = map[iso];
-    if (!d || !(d.punkte > 0)) { zellen += '<span class="hz" title="' + iso + '"></span>'; continue; }
-    const t2 = Math.min(1, d.punkte / maxP);
-    const farbe = 'rgba(' + Math.round(185 + 70 * t2) + ',' + Math.round(138 + 80 * t2) + ',247,' + (0.25 + 0.75 * t2).toFixed(2) + ')';
-    let rand = 'transparent';
-    if (avgPace > 0 && (d.fokusMin || 0) >= 30) {
-      rand = (d.punkte / (d.fokusMin / 60)) >= avgPace ? 'var(--ok)' : 'var(--bad)';
-    }
-    zellen += '<span class="hz" title="' + iso + ' · ' + fmtPunkte(d.punkte) + ' P" style="background:' + farbe
-      + (t2 > 0.75 ? ';box-shadow:0 0 6px ' + farbe : '') + ';border-color:' + rand + '"></span>';
+    const d = map[iso(dat)];
+    if (!d) { zellen += '<span class="hz" title="' + iso(dat) + ' · keine Daten"></span>'; continue; }
+    const schnitt = schnittBis[iso(dat)] || 0;
+    const ratio = (d.punkte - schnitt) / Math.max(schnitt, 1);        // relative Abweichung zum Tagesschnitt
+    const stufe = Math.min(7, Math.floor(Math.abs(ratio) / 0.125));   // 8 Stufen (je 12,5 %; ≥ 87,5 % = Stufe 8)
+    const farbe = (ratio >= 0 ? HEAT_GRUEN : HEAT_ROT)[stufe];
+    const titel = iso(dat) + ' · ' + fmtPunkte(d.punkte) + ' P · Ø ' + fmtPunkte(Math.round(schnitt))
+      + ' (' + (ratio >= 0 ? '+' : '') + Math.round(ratio * 100) + '%)';
+    zellen += '<span class="hz" title="' + titel + '" style="background:' + farbe + '"></span>';
   }
   return '<div class="akkukarte" style="margin-bottom:var(--s1)">'
-    + '<div class="lbl"><span>10 Wochen — heller = mehr Punkte</span>'
-    + '<span><i style="font-style:normal;color:var(--ok)">▢</i> über Ø-Pace · <i style="font-style:normal;color:var(--bad)">▢</i> darunter</span></div>'
+    + '<div class="lbl"><span>10 Wochen · Abweichung zum Tagesschnitt</span>'
+    + '<span><i style="font-style:normal;color:var(--ok)">▢</i> über · <i style="font-style:normal;color:var(--bad)">▢</i> unter</span></div>'
     + '<div class="heatmap">' + zellen + '</div></div>';
 }
 
@@ -5044,7 +5046,7 @@ window.Fokus = { APP_VERSION, Store, neuesItem, DEFAULT_SETTINGS,
   uaMergeFuerImport, unteraufgabeAnlegen,
   sheetNeuerTagOeffnen, heutePunkteOffen, historieLaden,
   heuteApp, heuteIso, tageswechselPruefen, routineFaellig,
-  snapshotAusLog, tagNachtragen, wiederherstellungAusTracking, anzeigePunkte,
+  snapshotAusLog, tagNachtragen, wiederherstellungAusTracking, anzeigePunkte, heatmapHtml,
   _setDomFilter: d => { domFilter = d; }, _getDomFilter: () => domFilter };
 
 /* ── Service Worker: network-first Update-Muster (Spez. Abschnitt 8) ── */
