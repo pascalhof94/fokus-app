@@ -51,7 +51,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--blue)}
   cursor:pointer;
 }
 #statusbar .inner{
-  display:flex;align-items:center;gap:10px;
+  display:flex;align-items:center;gap:8px;
   min-height:36px;padding:4px var(--s2);
 }
 #statusbar .sakku{
@@ -67,6 +67,18 @@ input:focus,textarea:focus{outline:none;border-color:var(--blue)}
 #statusbar .space{flex:none;display:flex;align-items:center;gap:5px}
 #statusbar #sPfeil{font-size:17px;font-weight:900;line-height:1}
 #statusbar #sPaceZahl{font-size:10px;color:var(--mut);font-family:ui-monospace,monospace}
+/* Soll-Rest: kleine Batterie (% des Solls) + Rest-Punkte/-Zeit (Pascal 24.07.2026) */
+#statusbar .ssoll{flex:none;display:flex;align-items:center;gap:4px}
+#statusbar .ssbatt{
+  position:relative;width:22px;height:11px;flex:none;
+  border:1px solid var(--mut2);border-radius:2px;padding:1px;
+}
+#statusbar .ssbatt::after{
+  content:'';position:absolute;right:-3px;top:3px;width:2px;height:5px;
+  background:var(--mut2);border-radius:0 1px 1px 0;
+}
+#statusbar .ssbatt i{display:block;height:100%;width:0;background:var(--purple);border-radius:1px;transition:width .5s}
+#statusbar #sSollTxt{font-size:9px;line-height:1.15;color:var(--mut);font-family:ui-monospace,monospace;text-align:right;white-space:nowrap}
 
 /* ── Sticky Fokus-Leiste (4.1) — fixer Layer über allen Tabs ─────── */
 #fokusbar{
@@ -643,6 +655,10 @@ textarea{min-height:64px;resize:vertical}
       <div class="skbar"><i id="sBar" style="width:0"></i></div>
     </div>
     <div class="space"><span id="sPfeil">→</span><span id="sPaceZahl"></span></div>
+    <div class="ssoll" id="sSoll" aria-label="offen bis Soll">
+      <span class="ssbatt"><i id="sSollBar"></i></span>
+      <span id="sSollTxt"></span>
+    </div>
   </div>
 </header>
 
@@ -701,7 +717,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.29.0';
+const APP_VERSION = '0.30.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -2542,6 +2558,27 @@ function renderStatusbar() {
   $('sPfeil').textContent = PACE_PFEILE[idx];
   $('sPfeil').style.color = farbe;
   $('sPaceZahl').textContent = Math.round(ist) + '/' + Math.round(soll);
+
+  // Soll-Rest: kleine Batterie = Fortschritt zum Tages-Soll, Text = noch offene
+  // Zeit (hochgerechnet bei aktueller Rate) + noch offene Punkte (Pascal 24.07.2026)
+  const sollGes = sollWerte(false).gesamt;
+  const istP = Store.tag.gesamtpunkteHeute;
+  const restP = Math.max(0, Math.round(sollGes - istP));
+  const fertig = sollGes > 0 ? Math.min(100, Math.max(0, istP / sollGes * 100)) : 0;
+  const restMin = (restP > 0 && ist > 0) ? Math.round(restP / ist * 60) : null;
+  const zeitTxt = restMin == null ? null
+    : (restMin >= 60 ? Math.floor(restMin / 60) + 'h' + String(restMin % 60).padStart(2, '0')
+                     : restMin + 'm');
+  $('sSollBar').style.width = fertig.toFixed(0) + '%';
+  $('sSollBar').style.background = restP === 0 ? 'var(--ok)' : 'var(--purple)';
+  if (sollGes <= 0) {
+    $('sSollTxt').innerHTML = '–';
+  } else if (restP === 0) {
+    $('sSollTxt').innerHTML = 'Soll ✓<br>100 %';
+  } else {
+    const z1 = (zeitTxt ? zeitTxt + ' · ' : '') + fmtPunkte(restP) + ' P';
+    $('sSollTxt').innerHTML = z1 + '<br>' + Math.round(fertig) + ' %';
+  }
 }
 
 function renderAlles() {
