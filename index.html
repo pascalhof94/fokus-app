@@ -82,8 +82,15 @@ input:focus,textarea:focus{outline:none;border-color:var(--blue)}
 #statusbar .skzeile{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
 #statusbar .skzeile #sPunkte{color:var(--purple);flex:none;white-space:nowrap}
 #statusbar .skzeile #sZiel{color:var(--mut2);flex:1 1 auto;min-width:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#statusbar .skbar{height:5px;border-radius:3px;background:var(--line);overflow:hidden}
-#statusbar .skbar i{display:block;height:100%;background:var(--purple);transition:width .5s}
+/* Tages-Balken (Pascal 25.07.2026): 100% = Soll · lila = heute erreicht ·
+   orange = Soll-Tempo (transparent, wo es das Ist überlappt) · blaue Upgrade-Striche */
+#statusbar .skbar{position:relative;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+#statusbar .skbar i{position:absolute;top:0;bottom:0;left:0;width:0;transition:width .5s,left .5s}
+#statusbar .skb-ist{background:var(--purple)}
+#statusbar .skb-pace-x{background:#f0913f;opacity:.42}
+#statusbar .skb-pace-o{background:#f0913f}
+#statusbar .skb-marks{position:absolute;inset:0;pointer-events:none}
+#statusbar .skb-mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--blue);box-shadow:0 0 3px var(--blue)}
 
 #statusbar .space{flex:none;gap:4px}
 #statusbar #sPfeil{font-size:18px;font-weight:900;line-height:1}   /* Symbol groß */
@@ -688,7 +695,12 @@ body.fabvorn #fab{z-index:202;display:flex}
     <span class="strenner"></span>
     <div class="skonto sfeld">
       <div class="skzeile"><span class="shero" id="sPunkte">0 P</span><span class="ssub" id="sZiel"></span></div>
-      <div class="skbar"><i id="sBar" style="width:0"></i></div>
+      <div class="skbar">
+        <i class="skb-ist" id="sBarIst"></i>
+        <i class="skb-pace-x" id="sBarPaceX"></i>
+        <i class="skb-pace-o" id="sBarPaceO"></i>
+        <div class="skb-marks" id="sBarMarks"></div>
+      </div>
     </div>
     <span class="strenner"></span>
     <div class="space sfeld"><span class="shero" id="sPfeil">→</span><span class="ssub" id="sPaceZahl"></span></div>
@@ -750,7 +762,7 @@ body.fabvorn #fab{z-index:202;display:flex}
 
 <script>
 'use strict';
-const APP_VERSION = '0.35.0';
+const APP_VERSION = '0.36.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -776,6 +788,7 @@ const DEFAULT_SETTINGS = {
   basisProStd: 12,                                            // P/Std bei Faktor 1,0
   abschlussBonusStandard: 100,                                // Einmal-Punkte beim Abhaken (22.07.2026)
   sollPunkteProStd: 0,                                        // 0 = Soll automatisch aus geplanten Aufgaben; >0 überschreibt (22.07.2026)
+  maxZielDiagramm: 0,                                         // 0 = aus; >0 = dunkellila Max-Ziel-Linie im Tagesdiagramm (25.07.2026)
   akkuProStdStandard: -8,                                     // Akku-%/Std im Fokus (Standard)
   minutenJeEinheit: 5,                                        // (Altsystem, nur Migration)
   komplexitaet: { leicht: 1.0, mittel: 1.5, schwer: 2.0 },    // (Altsystem, nur Migration)
@@ -2595,23 +2608,38 @@ function renderStatusbar() {
   $('sAkkuVerplant').style.width = eb.gelb.toFixed(1) + '%';
   $('sAkkuPct').textContent = eb.akku != null ? Math.round(eb.akku) + '%' : '–%';
 
-  // Punkte-Konto + Fortschritt zum günstigsten nächsten Kauf (Etappe 2)
+  // Info-Text bleibt: Konto-Punkte + nächster Kauf (Pascal 25.07.2026)
+  gesamtpunkteAktualisieren();
   const k = konto();
   $('sPunkte').textContent = fmtPunkte(k) + ' P';
   const nk = naechsterKauf();
-  if (nk) {
-    const icon = BELOHNUNG[nk.kat].icon;
-    if (k >= nk.preis) {
-      $('sZiel').textContent = icon + ' Kauf möglich!';
-      $('sBar').style.width = '100%';
-    } else {
-      $('sZiel').textContent = icon + ' noch ' + fmtPunkte(nk.preis - k) + ' P';
-      $('sBar').style.width = Math.max(0, Math.min(100, k / nk.preis * 100)).toFixed(1) + '%';
-    }
-  } else {
-    $('sZiel').textContent = 'Alles gekauft';
-    $('sBar').style.width = '100%';
-  }
+  $('sZiel').textContent = nk
+    ? (k >= nk.preis ? BELOHNUNG[nk.kat].icon + ' Kauf möglich!'
+                     : BELOHNUNG[nk.kat].icon + ' noch ' + fmtPunkte(nk.preis - k) + ' P')
+    : 'Alles gekauft';
+
+  // Tages-Balken: 100% = Soll · lila = heute erreicht · orange = Soll-Tempo (transparent
+  // im Überlappungsbereich) · blaue Striche = kumulative Upgrade-Schwellen
+  const sollGes = Math.max(1, sollWerte(false).gesamt);
+  const istHeute = Math.max(0, Store.tag.gesamtpunkteHeute + fokusLiveDelta());
+  const fenster = arbeitstagFenster();
+  const now = new Date();
+  const anteilTag = Math.min(1, Math.max(0, (now.getHours() * 60 + now.getMinutes() - fenster.start) / fenster.spanne));
+  const istPct = Math.min(100, istHeute / sollGes * 100);
+  const pacePct = anteilTag * 100;
+  const minPct = Math.min(istPct, pacePct);
+  $('sBarIst').style.width = istPct.toFixed(1) + '%';
+  $('sBarPaceX').style.width = minPct.toFixed(1) + '%';                       // Überlappung (transparent)
+  $('sBarPaceO').style.left = minPct.toFixed(1) + '%';                        // Soll-Tempo jenseits vom Ist
+  $('sBarPaceO').style.width = Math.max(0, pacePct - minPct).toFixed(1) + '%';
+  const bankOhneHeute = k - istHeute;
+  let kum = 0, marks = '';
+  KAT_KEYS.filter(kk => !kaufSperre(kk)).map(preisFuer).sort((a, b) => a - b).forEach(pr => {
+    kum += pr;
+    const need = kum - bankOhneHeute;   // heutige Punkte, ab denen das Konto den Kauf deckt
+    if (need > 0 && need <= sollGes) marks += '<span class="skb-mark" style="left:' + (need / sollGes * 100).toFixed(1) + '%"></span>';
+  });
+  $('sBarMarks').innerHTML = marks;
 
   // Pace-Pfeil: 7 Zonen relativ zum Soll (Grenzen als Settings)
   const { ist, soll } = paceWerte();
@@ -2647,6 +2675,7 @@ const SETTINGS_DEFS = [
     { p: 'basisProStd', l: 'Punkte/Std bei Faktor 1,0', min: 1, max: 60, step: 1 },
     { p: 'abschlussBonusStandard', l: 'Abhak-Bonus Standard (P)', min: 0, max: 300, step: 10 },
     { p: 'sollPunkteProStd', l: 'Soll-Punkte/Std (0 = automatisch)', min: 0, max: 400, step: 10 },
+    { p: 'maxZielDiagramm', l: 'Max. Zielpunkte im Diagramm (0 = aus)', min: 0, max: 5000, step: 100 },
     { p: 'akkuProStdStandard', l: 'Akku %/Std im Fokus (Standard)', min: -30, max: 30, step: 1 }
   ]},
   { titel: 'Geld-Score-Basis — nur DFM (3.3)', regler: [
@@ -4029,6 +4058,11 @@ function kurveHtml(zeitraum) {
       .map(e => ({ min: (d => d.getHours() * 60 + d.getMinutes())(new Date(e.z)), p: e.p }))
       .sort((a, b) => a.min - b.min);
     const ziel = snap.sollPunkte || 0;   // Soll aus dem Snapshot (gilt auch für vergangene Tage)
+    // Referenzlinien (25.07.2026): Ø-Punkte der letzten Tage + einstellbares Max-Ziel (nur Diagramm)
+    const maxZiel = Number(s.maxZielDiagramm) || 0;
+    const verg = historieLaden().filter(d => d && d.datum !== heuteApp()).map(snapNachFilter)
+      .filter(d => (d.punkte || 0) > 0).slice(-30);
+    const schnitt = verg.length ? verg.reduce((a, d) => a + (d.punkte || 0), 0) / verg.length : 0;
     let kum = 0;
     const punkte = [[start, 0]];
     events.forEach(e => { kum += (Number(e.p) || 0); punkte.push([Math.min(ende, Math.max(start, e.min)), kum]); });
@@ -4040,7 +4074,7 @@ function kurveHtml(zeitraum) {
     }
     // Dynamische Skala: höchster angezeigter Wert + 15 % Puffer (22.07.2026).
     const spitze = punkte.reduce((m, pt) => Math.max(m, pt[1]), 0);
-    const maxY = Math.max(statFilter.soll ? ziel : 0, spitze, 10) * 1.15;
+    const maxY = Math.max(statFilter.soll ? Math.max(ziel, schnitt, maxZiel) : 0, spitze, 10) * 1.15;
     const X = m => 6 + (m - start) / Math.max(1, ende - start) * 288;
     const Y = p => 96 - (p / maxY) * 86;
     const linie = punkte.map(pt => X(pt[0]).toFixed(1) + ',' + Y(pt[1]).toFixed(1)).join(' ');
@@ -4061,8 +4095,17 @@ function kurveHtml(zeitraum) {
     return '<div class="akkukarte"><div class="lbl"><span>' + (istHeute ? 'Tagesverlauf' : 'Verlauf ' + roh.datum.slice(5)) + '</span><span>' + oe + '</span></div>'
       + '<svg viewBox="0 0 300 104" width="100%" height="104">'
       + '<line x1="6" y1="96" x2="294" y2="96" stroke="var(--line)"/>'
-      + (statFilter.soll ? '<line x1="' + X(start) + '" y1="' + Y(0) + '" x2="' + X(ende) + '" y2="' + Y(ziel) + '" stroke="var(--mut2)" stroke-width="1.5" stroke-dasharray="4 4"/>'
-        + '<text x="240" y="' + (Y(ziel) + 12) + '" fill="var(--mut2)" font-size="8">Soll ' + fmtPunkte(ziel) + '</text>' : '')
+      + (statFilter.soll ? (
+          // dunkelrot: Punkte-Soll (diagonal, wie bisher)
+          (ziel > 0 ? '<line x1="' + X(start) + '" y1="' + Y(0) + '" x2="' + X(ende) + '" y2="' + Y(ziel) + '" stroke="#c23a3a" stroke-width="1.4" stroke-dasharray="4 4"/>'
+            + '<text x="' + (X(ende) - 62) + '" y="' + Math.max(8, Y(ziel) - 3).toFixed(1) + '" fill="#c23a3a" font-size="8">Soll ' + fmtPunkte(ziel) + '</text>' : '')
+          // dunkelgelb: Ø der letzten Tage (diagonal, wächst linear)
+          + (schnitt > 0 ? '<line x1="' + X(start) + '" y1="' + Y(0) + '" x2="' + X(ende) + '" y2="' + Y(schnitt) + '" stroke="#b58a2e" stroke-width="1.4" stroke-dasharray="4 4"/>'
+            + '<text x="' + (X(ende) - 62) + '" y="' + Math.max(8, Y(schnitt) - 3).toFixed(1) + '" fill="#b58a2e" font-size="8">Ø ' + fmtPunkte(schnitt) + '</text>' : '')
+          // dunkellila: Max-Ziel (horizontal, nur Diagramm)
+          + (maxZiel > 0 ? '<line x1="' + X(start) + '" y1="' + Y(maxZiel) + '" x2="' + X(ende) + '" y2="' + Y(maxZiel) + '" stroke="#7a5bc7" stroke-width="1.4" stroke-dasharray="4 4"/>'
+            + '<text x="6" y="' + Math.max(8, Y(maxZiel) - 3).toFixed(1) + '" fill="#7a5bc7" font-size="8">Max ' + fmtPunkte(maxZiel) + '</text>' : '')
+        ) : '')
       + (statFilter.energie && akkuLinie ? '<polyline points="' + akkuLinie + '" fill="none" stroke="var(--ok)" stroke-width="1.8" stroke-linejoin="round" opacity=".85"/>'
         + '<text x="272" y="' + (YA(aJetzt != null ? aJetzt : 50) - 4).toFixed(1) + '" fill="var(--ok)" font-size="8">' + (aJetzt != null ? Math.round(aJetzt) + '%' : '') + '</text>' : '')
       + (statFilter.punkte ? '<polyline points="' + linie + '" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-linejoin="round"/>'
