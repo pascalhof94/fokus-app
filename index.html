@@ -322,6 +322,8 @@ main{
 #sheet .grabber{width:38px;height:4px;border-radius:2px;background:var(--mut2);margin:0 auto 8px}
 #sheet .kopfzeile{display:flex;align-items:center;gap:var(--s1)}
 #sheet .kopfzeile h2{flex:1;font-size:16px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Im Fokus-Tacho steht oben der Aufgabentitel — mehrzeilig statt abgeschnitten */
+#sheet.istTacho .kopfzeile h2{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2}
 #sheet .schliessen{
   width:var(--tap);height:var(--tap);flex:none;margin-right:-8px;
   display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--mut);
@@ -448,20 +450,29 @@ textarea{min-height:64px;resize:vertical}
 .trestsub{font-size:10.5px;color:var(--mut);margin-bottom:8px}
 .tuabox{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:6px}
 .tuabox .l{font-size:9px;color:var(--mut2);letter-spacing:.5px}
-.tuabox .n{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tuabox .n{font-size:12px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
 .tuabox .r{font-size:10px}
 .takku{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ok);font-weight:700}
-.tlevel{margin-top:12px}
-.tlevel .kopf{display:flex;justify-content:space-between;font-size:10px;color:var(--mut);margin-bottom:4px}
-.tlevel .kopf .eta{color:var(--cyan);font-family:ui-monospace,monospace}
-.tlevel .leiste{height:14px;border-radius:7px;background:var(--bg);border:1px solid var(--line);overflow:hidden;display:flex}
-.tlevel .lg{background:var(--ok);transition:width .5s}
-.tlevel .ly{background:var(--warn);transition:width .5s}
-.tlevel .lh{
-  background:repeating-linear-gradient(45deg,var(--line) 0 4px,var(--card2) 4px 8px);
-  border-left:1px solid var(--cyan);transition:width .5s;
-}
-.tlevel .lege{display:flex;justify-content:space-between;font-size:9px;color:var(--mut2);margin-top:3px}
+/* 4 KPI-Kacheln über dem Punkte-Balken (Pascal 24.07.2026) */
+.tkpis{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:12px}
+.tkpis:empty{display:none}
+.tkpi{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 3px;text-align:center;min-width:0}
+.tkpi.gut{background:rgba(62,207,142,.14);border-color:var(--ok)}
+.tkpi.warn{background:rgba(242,184,75,.14);border-color:var(--warn)}
+.tkpi-h{font-size:14px;font-weight:800;color:var(--txt);line-height:1.05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tkpi-l{font-size:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.3px;margin-top:1px}
+.tkpi-s{font-size:8.5px;color:var(--mut2);margin-top:2px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Tages-Punkte-Balken (ersetzt „Nächster Kauf") */
+.tpbar{margin-top:10px}
+.tpb-track{position:relative;height:16px;border-radius:8px;background:var(--bg);border:1px solid var(--line);overflow:hidden;display:flex}
+.tpb-g{background:var(--ok);transition:width .5s}
+.tpb-y{background:var(--warn);transition:width .5s}
+.tpb-r{background:var(--bad);transition:width .5s}
+.tpb-marks{position:absolute;inset:0;pointer-events:none}
+.tpb-mark{position:absolute;top:0;bottom:0;width:2px;background:var(--purple);box-shadow:0 0 4px var(--purple)}
+.tpb-ziel{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--txt);opacity:.65}
+.tpb-info{font-size:9px;color:var(--mut2);margin-top:4px;font-family:ui-monospace,monospace;text-align:center}
 .taufgabe{display:flex;align-items:center;gap:10px;margin-top:12px}
 .taufgabe .tmain{flex:1;min-width:0}
 .taufgabe .ttitel{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -474,7 +485,7 @@ textarea{min-height:64px;resize:vertical}
   width:38px;height:38px;border-radius:50%;border:1px solid var(--line);flex:none;
   display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--ok);
 }
-.uareihe{display:flex;align-items:center;gap:8px;padding:5px 0}
+.uareihe{display:flex;align-items:flex-start;gap:8px;padding:5px 0}
 .uareihe .uacheck{
   width:32px;height:32px;flex:none;display:flex;align-items:center;justify-content:center;
 }
@@ -483,10 +494,10 @@ textarea{min-height:64px;resize:vertical}
   display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--bg);font-weight:900;
 }
 .uareihe.fertig .uacheck .box{background:var(--ok);border-color:var(--ok)}
-.uareihe .uatitel{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px}
-.uareihe .uatitel .uat{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uareihe .uatitel{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px;padding-top:5px}
+.uareihe .uatitel .uat{font-size:12.5px;line-height:1.25;overflow-wrap:anywhere}
 .uareihe.fertig .uatitel .uat{color:var(--mut2);text-decoration:line-through}
-.uareihe .uabeschr{font-size:10px;color:var(--mut2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uareihe .uabeschr{font-size:10px;color:var(--mut2);line-height:1.2;overflow-wrap:anywhere}
 .uareihe .uamin{width:52px;flex:none;font-size:11px;text-align:center;padding:5px 4px}
 .uareihe .uamin::placeholder{color:var(--cyan);opacity:.8}
 .uareihe .uabonus{border-color:rgba(185,138,247,.5)}
@@ -730,7 +741,7 @@ body.fabvorn #fab{z-index:202;display:flex}
 
 <script>
 'use strict';
-const APP_VERSION = '0.33.0';
+const APP_VERSION = '0.34.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -2843,6 +2854,8 @@ function sheetOeffnen(titel, inhaltHtml, key) {
   sheetOffenFuer = key;
   // Erstellen-Button (+) auch über dem Fokus-Tacho verfügbar halten (Pascal 24.07.2026)
   document.body.classList.toggle('fabvorn', key === 'tacho');
+  // Im Tacho darf der Titel (Aufgabenname) mehrzeilig umbrechen
+  $('sheet').classList.toggle('istTacho', key === 'tacho');
 }
 
 function sheetSchliessen() {
@@ -3368,15 +3381,15 @@ function sheetTachoOeffnen() {
     + '<div class="takku">🔋 <span id="tAkku">–%</span></div>'
     + '</div></div>';
 
-  /* ── Upgrade-Leiste: nächster Kauf, live ── */
-  html += '<div class="tlevel">'
-    + '<div class="kopf"><span>Nächster Kauf</span><span class="eta" id="tEta"></span></div>'
-    + '<div class="leiste"><div class="lg" id="tBarG" style="width:0"></div>'
-    + '<div class="ly" id="tBarY" style="width:0"></div>'
-    + '<div class="lh" id="tBarH" style="width:0"></div></div>'
-    + '<div class="lege"><span style="color:var(--ok)">erreicht</span>'
-    + '<span style="color:var(--warn)">dieser Fokus (live)</span>'
-    + '<span>möglich</span><span id="tLevelZiel" style="color:var(--txt)"></span></div>'
+  /* ── 4 KPIs + Tages-Punkte-Balken (Pascal 24.07.2026) ── */
+  html += '<div class="tkpis" id="tKpis"></div>';
+  html += '<div class="tpbar">'
+    + '<div class="tpb-track">'
+    +   '<i class="tpb-g" id="tpbG"></i><i class="tpb-y" id="tpbY"></i><i class="tpb-r" id="tpbR"></i>'
+    +   '<span class="tpb-ziel" id="tpbZiel"></span>'
+    +   '<div class="tpb-marks" id="tpbMarks"></div>'
+    + '</div>'
+    + '<div class="tpb-info" id="tpbInfo"></div>'
     + '</div>';
 
   if (item) {
@@ -3463,7 +3476,7 @@ function sheetTachoOeffnen() {
     + switcher
     + '</div></div>';
 
-  sheetOeffnen('Fokus-Tacho', html, 'tacho');
+  sheetOeffnen(item ? (item.titel || '(ohne Titel)') : 'Fokus-Tacho', html, 'tacho');
   tachoVerdrahten(item);
   tachoTick();
 }
@@ -3552,6 +3565,112 @@ function tachoVerdrahten(item) {
   }
 }
 
+/* Offene Tagespunkte (gelber Balken-Anteil, Pascal 24.07.2026): volle geplante Punkte
+   aller offenen Items — Tagesstream-Aufgaben + alle Counter + fällige Routinen, jeweils
+   Priorität ≠ 'idee', nicht erledigt (inkl. Unteraufgaben- + Soll-Zeit-Punkte via anzeigePunkte). */
+function offenePunkteHeute() {
+  let sum = 0;
+  Store.items.forEach(i => {
+    if (i.prioritaet === 'idee') return;
+    if (i.typ === 'aufgabe') { if (i.streamSlot == null || i.status === 'erledigt') return; }
+    else if (i.typ === 'routine') { if (!routineFaellig(i)) return; }
+    else if (i.typ !== 'counter') return;
+    sum += Number(anzeigePunkte(i)) || 0;
+  });
+  return Math.max(0, sum);
+}
+
+function tZeitKurz(m) {
+  m = Math.round(m);
+  return m >= 60 ? Math.floor(m / 60) + 'h' + String(m % 60).padStart(2, '0') : m + 'm';
+}
+
+function kpiHtml(farbe, hero, label, sub) {
+  return '<div class="tkpi ' + (farbe || '') + '">'
+    + '<div class="tkpi-h">' + hero + '</div>'
+    + '<div class="tkpi-l">' + label + '</div>'
+    + (sub ? '<div class="tkpi-s">' + sub + '</div>' : '')
+    + '</div>';
+}
+
+/* Die 4 KPI-Kacheln über dem Punkte-Balken (Pascal 24.07.2026). */
+function tachoKpis(item) {
+  const box = $('tKpis');
+  if (!box) return;
+  if (!item || item.typ === 'counter') { box.innerHTML = ''; return; }
+  const min = minutenInklFokus(item);
+  const geplant = Number(item.aufwandGeplantMin) || 0;
+  const sollProStd = sollWerte(false).proStd;
+
+  // 1) Punktedurchschnitt dieser Aufgabe vs. Tages-Ziel-Ø
+  const rate = effektiveRate(item);
+  const f1 = rate >= sollProStd && sollProStd > 0 ? 'gut' : 'warn';
+
+  // 2) erreichte Punkte der Aufgabe + % zur geplanten Gesamtpunktzahl
+  const geplantP = Math.max(0, Math.round(anzeigePunkte(item)));
+  const erreichtP = Math.max(0, Math.round(punkteBeiMinuten(item, min) - effektiverBonus(item)));
+  const proz = geplantP > 0 ? Math.min(100, Math.round(erreichtP / geplantP * 100)) : 0;
+
+  // 3) bearbeitete Zeit / Restzeit + Zeit bis nächstes Upgrade
+  const restMin = Math.max(0, geplant - min);
+  const nk = naechsterKauf();
+  const ppm = min > 0.2 ? punkteBeiMinuten(item, min) / min : rate / 60;
+  const upMin = nk ? Math.ceil(Math.max(0, nk.preis - konto()) / Math.max(0.01, ppm)) : null;
+  const sub3 = (geplant > 0 ? 'Rest ' + tZeitKurz(restMin) : 'Stoppuhr')
+    + (upMin != null ? ' · ▲' + tZeitKurz(upMin) : '');
+
+  // 4) erledigte / offene Unteraufgaben
+  const uas = item.unteraufgaben || [];
+  const fertig = uas.filter(u => u.erledigt).length;
+
+  box.innerHTML =
+    kpiHtml(f1, fmtPunkte(rate), 'P/Std ⌀', 'Ziel ' + fmtPunkte(sollProStd))
+    + kpiHtml('', fmtPunkte(erreichtP), 'Punkte', proz + '% v. ' + fmtPunkte(geplantP))
+    + kpiHtml('', tZeitKurz(min), 'bearbeitet', sub3)
+    + kpiHtml('', fertig + '/' + uas.length, 'Unteraufg.', (uas.length - fertig) + ' offen');
+}
+
+/* Tages-Punkte-Balken (ersetzt „Nächster Kauf", Pascal 24.07.2026):
+   grün = heute erreicht · gelb = offene (volle geplante) Punkte bis zum Ziel ·
+   rot = Überzug über das Ziel · lila Marker = Kauf-/Upgrade-Schwellen. */
+function tachoBalkenRender(item) {
+  gesamtpunkteAktualisieren();
+  const live = fokusLiveDelta();
+  const ziel = Math.max(0, sollWerte(false).gesamt);
+  const erreicht = Math.max(0, Store.tag.gesamtpunkteHeute + live);
+  const offen = offenePunkteHeute();
+  const gesamt = erreicht + offen;
+  const max = Math.max(ziel, gesamt, 1);
+  if ($('tpbG')) {
+    $('tpbG').style.width = (erreicht / max * 100).toFixed(1) + '%';
+    $('tpbY').style.width = (Math.max(0, Math.min(offen, ziel - erreicht)) / max * 100).toFixed(1) + '%';
+    $('tpbR').style.width = (Math.max(0, gesamt - Math.max(ziel, erreicht)) / max * 100).toFixed(1) + '%';
+  }
+  // Ziel-Linie (nur sichtbar, wenn der Balken übers Ziel hinausreicht)
+  if ($('tpbZiel')) {
+    $('tpbZiel').style.left = (ziel / max * 100).toFixed(1) + '%';
+    $('tpbZiel').style.display = gesamt > ziel && ziel > 0 ? 'block' : 'none';
+  }
+  // Lila Kauf-Marker: heutige Punkte, ab denen das Konto für einen Kauf reicht
+  const bankOhneHeute = konto() - erreicht;
+  let marks = '';
+  KAT_KEYS.forEach(k => {
+    if (kaufSperre(k)) return;
+    const need = preisFuer(k) - bankOhneHeute;
+    if (need > 0 && need <= max) {
+      marks += '<span class="tpb-mark" style="left:' + (need / max * 100).toFixed(1) + '%"></span>';
+    }
+  });
+  if ($('tpbMarks')) $('tpbMarks').innerHTML = marks;
+  if ($('tpbInfo')) {
+    let info = 'erreicht ' + fmtPunkte(erreicht) + ' · Ziel ' + fmtPunkte(ziel)
+      + ' · offen ' + fmtPunkte(offen) + ' P';
+    if (gesamt > ziel && ziel > 0) info += ' · +' + fmtPunkte(gesamt - ziel) + ' über Ziel';
+    $('tpbInfo').textContent = info;
+  }
+  tachoKpis(item);
+}
+
 /* Sekündliches Live-Update des Tachos (Ring, Restzeit, Leiste, ETA). */
 function tachoTick() {
   if (sheetOffenFuer !== 'tacho') return;
@@ -3562,38 +3681,8 @@ function tachoTick() {
   const akkuP = akkuLive();
   if (akkuEl) akkuEl.textContent = akkuP != null ? Math.round(akkuP) + '%' : '–%';
 
-  // Upgrade-Leiste: Fortschritt zum günstigsten nächsten Kauf (Etappe 2)
-  gesamtpunkteAktualisieren();
-  const delta = fokusLiveDelta();
-  if ($('tBarG')) {
-    const nk = naechsterKauf();
-    const k = konto();
-    if (nk) {
-      const preis = Math.max(1, nk.preis);
-      const g = Math.min(1, Math.max(0, (k - delta) / preis));
-      const y = Math.min(1 - g, Math.max(0, delta / preis));
-      let h = 0;
-      if (item && item.typ !== 'counter' && item.aufwandGeplantMin > 0) {
-        const potenzial = Math.max(0,
-          punkteBeiMinuten(item, Math.max(item.aufwandGeplantMin, minutenInklFokus(item)))
-          - punkteBeiMinuten(item, minutenInklFokus(item)));
-        h = Math.min(1 - g - y, potenzial / preis);
-      }
-      $('tBarG').style.width = (g * 100).toFixed(1) + '%';
-      $('tBarY').style.width = (y * 100).toFixed(1) + '%';
-      $('tBarH').style.width = (h * 100).toFixed(1) + '%';
-      $('tLevelZiel').textContent = BELOHNUNG[nk.kat].icon + ' ' + fmtPunkte(nk.preis) + ' P';
-      const fehlt = nk.preis - k;
-      const min = item ? minutenInklFokus(item) : 0;
-      const ppm = (item && min > 0.2) ? punkteBeiMinuten(item, min) / min : 0;
-      $('tEta').textContent = fehlt <= 0 ? 'Kauf möglich!' :
-        (ppm > 0 ? '~' + Math.ceil(fehlt / ppm) + ' min bei ' + fmtPunkte(ppm) + ' P/min'
-                 : fmtPunkte(fehlt) + ' P fehlen');
-    } else {
-      $('tBarG').style.width = '100%'; $('tBarY').style.width = '0'; $('tBarH').style.width = '0';
-      $('tLevelZiel').textContent = 'Alles gekauft'; $('tEta').textContent = '';
-    }
-  }
+  // Tages-Punkte-Balken + 4 KPIs (Pascal 24.07.2026)
+  tachoBalkenRender(item);
 
   // Ring
   const zeitArc = $('tZeitArc');
