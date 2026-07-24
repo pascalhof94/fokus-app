@@ -622,6 +622,8 @@ textarea{min-height:64px;resize:vertical}
   box-shadow:0 6px 18px rgba(0,0,0,.45);
 }
 #fab:active{transform:scale(.94)}
+/* Über dem Fokus-Tacho (Sheet z201/Overlay z200) bleibt der + sichtbar & klickbar */
+body.fabvorn #fab{z-index:202;display:flex}
 .neuknoepfe{display:flex;gap:var(--s1);margin-top:var(--s1)}
 .neuknoepfe .wizbtn{flex:1;margin-top:0}
 
@@ -717,7 +719,7 @@ textarea{min-height:64px;resize:vertical}
 
 <script>
 'use strict';
-const APP_VERSION = '0.31.0';
+const APP_VERSION = '0.32.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -1618,7 +1620,9 @@ function fokusStarten(id) {
   fokus.laeuft = true;
   fokus.startMs = Date.now();
   const item = Store.findeItem(id);
-  if (item && item.status === 'offen') { item.status = 'in_arbeit'; Store.speichereItems(); }
+  if (item) { item.zuletztFokusMs = Date.now(); }   // Recency-Stempel für „Wechseln zu" (24.07.2026)
+  if (item && item.status === 'offen') item.status = 'in_arbeit';
+  if (item) Store.speichereItems();
   // Angefangene Items gehören in den Tagesstream (21.07.2026)
   if (item && item.typ !== 'counter' && item.streamSlot == null && item.imStreamAnzeigen !== false) {
     item.streamSlot = jetztRund5();
@@ -2348,6 +2352,16 @@ function renderStream() {
   renderRoutinenFelder();
 }
 
+/* Ein Counter-Chip (wiederverwendbar: Stream-Feld + Fokus-Tacho-Switcher). */
+function counterChipHtml(c) {
+  const schlecht = counterIstSchlecht(c);
+  return '<button class="cchip ' + (schlecht ? 'cschlecht' : 'cgut') + '" data-cid="' + c.id + '">'
+    + escapeHtml(c.titel)
+    + '<span class="cnt">' + (c.tickStandHeute || 0) + '</span>'
+    + '<span class="cpts">' + fmtPunkte(counterPunkte(c)) + ' P</span>'
+    + '<span class="cedit" data-cedit="1" aria-label="Bearbeiten">✎</span></button>';
+}
+
 /* Counter als Buttons im Klappfeld (nie in Stream/Warteschlange). */
 function renderCounterFeld() {
   const counter = Store.items.filter(i => i.typ === 'counter' && domSichtbar(i.domain));
@@ -2356,14 +2370,7 @@ function renderCounterFeld() {
     '<div class="tacc' + (felderOffen.counter ? ' offen' : '') + '" data-feld="counter">'
     + '<div class="tacckopf">🔢 Counter <span class="anz">' + counter.length + '</span><span class="pfeil">▾</span></div>'
     + '<div class="taccinhalt"><div class="chips">'
-    + counter.map(c => {
-      const schlecht = counterIstSchlecht(c);
-      return '<button class="cchip ' + (schlecht ? 'cschlecht' : 'cgut') + '" data-cid="' + c.id + '">'
-        + escapeHtml(c.titel)
-        + '<span class="cnt">' + (c.tickStandHeute || 0) + '</span>'
-        + '<span class="cpts">' + fmtPunkte(counterPunkte(c)) + ' P</span>'
-        + '<span class="cedit" data-cedit="1" aria-label="Bearbeiten">✎</span></button>';
-    }).join('')
+    + counter.map(counterChipHtml).join('')
     + '</div></div></div>';
 }
 
@@ -2820,11 +2827,14 @@ function sheetOeffnen(titel, inhaltHtml, key) {
   $('sheet').style.transform = '';
   $('sheetInhalt').scrollTop = 0;
   sheetOffenFuer = key;
+  // Erstellen-Button (+) auch über dem Fokus-Tacho verfügbar halten (Pascal 24.07.2026)
+  document.body.classList.toggle('fabvorn', key === 'tacho');
 }
 
 function sheetSchliessen() {
   $('overlay').classList.remove('on');
   $('sheet').classList.remove('on');
+  document.body.classList.remove('fabvorn');
   sheetOffenFuer = null;
   renderAlles();
 }
@@ -3402,24 +3412,37 @@ function sheetTachoOeffnen() {
       + '</div></div>';
   }
 
-  /* ── Task-Switcher: erst nächste Aufgabe nach Prio, dann nächste
-        fällige Routine, danach der Rest nach Prio (21.07.2026) ── */
-  const prioRang = { muss: 0, soll: 1, idee: 2 };
-  const kandidaten = Store.items.filter(i =>
-    i.typ !== 'counter' && i.status !== 'erledigt' && (!item || i.id !== item.id)
-    && (i.status === 'in_arbeit' || i.prioritaet === 'muss'
-        || (i.typ === 'routine' && routineFaellig(i))));
-  kandidaten.sort((a, b) =>
-    (prioRang[a.prioritaet] ?? 1) - (prioRang[b.prioritaet] ?? 1)
-    || anzeigePunkte(b) - anzeigePunkte(a));
-  const ersteAufgabe = kandidaten.find(i => i.typ !== 'routine') || null;
-  const ersteRoutine = kandidaten.find(i => i.typ === 'routine') || null;
-  const weitere = kandidaten.filter(i => i !== ersteAufgabe && i !== ersteRoutine);
+  /* ── Task-Switcher (24.07.2026): Warteschlange in die Fokusansicht geholt.
+        1) zuletzt bearbeitete Aufgaben (>1 s Bearbeitungszeit), 2) alle Counter,
+        3) fällige Routinen nach Tageszeit — gleiche Kartenansicht wie im Stream. ── */
+  const SEK1_MIN = 1 / 60;   // „mehr als 1 Sekunde", in Minuten
+  const bearbeitet = Store.items.filter(i =>
+    i.typ === 'aufgabe' && i.status !== 'erledigt' && !i.nachSyncWeg
+    && (!item || i.id !== item.id) && domSichtbar(i.domain)
+    && minutenInklFokus(i) > SEK1_MIN)
+    .sort((a, b) => (b.zuletztFokusMs || 0) - (a.zuletztFokusMs || 0)
+        || minutenInklFokus(b) - minutenInklFokus(a));
+  const swCounter = Store.items.filter(i => i.typ === 'counter' && domSichtbar(i.domain));
+  const swRoutinen = Store.items.filter(i => i.typ === 'routine' && i.status !== 'erledigt'
+    && (!item || i.id !== item.id));
+
   let switcher = '';
-  if (ersteAufgabe) switcher += '<div class="thinweis">Nächste Aufgabe</div>' + karteHtml(ersteAufgabe, false);
-  if (ersteRoutine) switcher += '<div class="thinweis">Nächste Routine</div>' + karteHtml(ersteRoutine, false);
-  if (weitere.length) switcher += '<div class="thinweis">Weitere (nach Prio)</div>' + weitere.map(i => karteHtml(i, false)).join('');
-  if (!switcher) switcher = '<div class="leer">Nichts Begonnenes, keine Muss-Items, keine fälligen Routinen.</div>';
+  if (bearbeitet.length) {
+    switcher += '<div class="thinweis">Weiter mit — zuletzt bearbeitet</div>'
+      + bearbeitet.map(i => karteHtml(i, false)).join('');
+  }
+  if (swCounter.length) {
+    switcher += '<div class="thinweis">Counter</div><div class="chips">'
+      + swCounter.map(counterChipHtml).join('') + '</div>';
+  }
+  switcher += ABSCHNITTE.map(([key, label]) => {
+    const liste = swRoutinen
+      .filter(r => (r.tagesabschnitt || 'tagsueber') === key && routineFaellig(r))
+      .sort((a, b) => routineUeberfaelligTage(b) - routineUeberfaelligTage(a));
+    if (!liste.length) return '';
+    return '<div class="thinweis">' + label + ' · fällig</div>' + liste.map(routineKarteHtml).join('');
+  }).join('');
+  if (!switcher) switcher = '<div class="leer">Noch nichts bearbeitet, keine Counter, keine fälligen Routinen.</div>';
   html += '<div class="tacc' + (item ? '' : ' offen') + '"><div class="tacckopf">🔁 Wechseln zu<span class="pfeil">▾</span></div><div class="taccinhalt">'
     + '<div class="tachozeile"><input id="tInstant" type="text" placeholder="Instant-Fokus: Name eintippen …"><button class="start" id="tStart">▶</button></div>'
     + '<div class="thinweis">Legt sofort ein echtes Muss-Item an und startet den Fokus.</div>'
@@ -4557,7 +4580,7 @@ function sheetNeuOeffnen(onAngelegt) {
   $('nAnlegen').addEventListener('click', () => {
     const item = anlegen();
     if (!item) return;
-    if (onAngelegt) { onAngelegt(item); return; }   // z. B. als Folgeaufgabe im Abschluss
+    if (typeof onAngelegt === 'function') { onAngelegt(item); return; }   // z. B. als Folgeaufgabe im Abschluss
     sheetSchliessen();
     toastZeigen('✓ „' + item.titel + '" in der Warteschlange');
   });
@@ -4568,7 +4591,7 @@ function sheetNeuOeffnen(onAngelegt) {
   $('nTitel').addEventListener('keydown', e => { if (e.key === 'Enter') $('nAnlegen').click(); });
   $('nTitel').focus();
 }
-$('fab').addEventListener('click', sheetNeuOeffnen);
+$('fab').addEventListener('click', () => sheetNeuOeffnen());   // ohne Event-Arg (sonst landet es als onAngelegt)
 
 /* Kopieren mit Fallback (file:// bzw. ältere WebViews) */
 function inZwischenablage(text, btn) {
