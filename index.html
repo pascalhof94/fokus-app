@@ -1443,8 +1443,10 @@ function unteraufgabenAnteil(item, uaIndex) {
   const zeiten = zeitVerteilung(item);
   const boni = bonusVerteilung(item);
   const summe = zeiten.reduce((s, z) => s + z, 0);
-  const zeitGesamt = punkteBeiMinuten(item, Math.max(minutenInklFokus(item), item.aufwandGeplantMin || 0))
-    - effektiverBonus(item);
+  // Basis = Punkte aus der TATSÄCHLICH getrackten Zeit (nicht der geplanten),
+  // damit sich Unteraufgaben-Anteile und Endbuchung sauber zur Summe
+  // „getrackte Zeit + Abhak-Bonus" ergänzen (Pascal 25.07.2026, Bug-Fix).
+  const zeitGesamt = punkteBeiMinuten(item, minutenInklFokus(item)) - effektiverBonus(item);
   const zeitAnteil = summe > 0 ? zeitGesamt * zeiten[uaIndex] / summe : zeitGesamt / zeiten.length;
   return zeitAnteil + (boni[uaIndex] || 0);
 }
@@ -1710,64 +1712,109 @@ function abhakenFlow(id) {
 /* Abschluss-Formular: Fokus-Werte übersichtlich + zwei Regler zum
    Überschreiben von Punkten und Akku — die finalen Werte gehen in
    Log und Sync (bessere Selbst-Einschätzung über die Zeit). */
-function sheetAbschlussOeffnen(id) {
+function sheetAbschlussOeffnen(id, folgeId) {
   const item = Store.findeItem(id);
   if (!item) return;
   if (fokus && fokus.itemId === id) fokusZeitEinbuchen();   // Zeit + Akku sichern
-  const min = item.istMinuten || 0;
+  const min = Math.round(item.istMinuten || 0);
   const gebucht = (item.unteraufgaben || []).reduce((s, u) => s + (u.gebuchtePunkte || 0), 0);
-  const berechnet = Math.max(0, punkteBeiMinuten(item, min) - gebucht);
-  const autoAkku = akkuRate(item) * min / 60;
-  const pMin = Math.floor(Math.min(-20, berechnet - 100));
-  const pMax = Math.ceil(berechnet + 150);
+  const gesamt = Math.round(punkteBeiMinuten(item, min));   // getrackte Zeit + Bonus = voller Wert
+  const batAn = Store.tag.akkuProzent != null;
+  const curBat = batAn ? Math.round(akkuLive() != null ? akkuLive() : Store.tag.akkuProzent) : 50;
+  const zMin = Math.max(0, min - 60), zMax = min + 60;
+  const pMin = Math.max(0, gesamt - 300), pMax = gesamt + 300;
+  const folge = folgeId ? Store.findeItem(folgeId) : null;
+  const inp = 'style="width:82px;text-align:center;color:var(--cyan);font-weight:700"';
 
   let html = '<div class="wizsumme">'
-    + '<div class="zeile"><span>Ist-Zeit</span><b>' + Math.round(min) + ' min'
-    + (item.aufwandGeplantMin ? ' / ' + item.aufwandGeplantMin + ' geplant' : '') + '</b></div>'
-    + '<div class="zeile"><span>Satz</span><b>' + fmtPunkte(effektiveRate(item)) + ' P/Std</b></div>'
+    + '<div class="zeile"><span>Getrackt</span><b>' + min + ' min · ' + fmtPunkte(effektiveRate(item)) + ' P/Std</b></div>'
     + (effektiverBonus(item) ? '<div class="zeile"><span>Abhak-Bonus</span><b>' + fmtPunkte(effektiverBonus(item)) + ' P</b></div>' : '')
     + (gebucht ? '<div class="zeile"><span>Bereits über Unteraufgaben</span><b>' + fmtPunkte(gebucht) + ' P</b></div>' : '')
-    + '<div class="zeile"><span>Berechnete Punkte</span><b>' + fmtPunkte(berechnet) + ' P</b></div>'
-    + '<div class="zeile"><span>Akku automatisch</span><b>' + fmtPunkte(autoAkku) + ' %</b></div>'
     + '</div>'
-    + '<div class="regler"><div class="kopfzeile2"><label>Ist-Minuten (korrigierbar)</label>'
-    + '<span class="wert" id="afMWert">' + Math.round(min) + ' min</span></div>'
-    + '<input type="range" id="afM" min="0" max="' + Math.max(180, Math.ceil(min * 1.5)) + '" step="1" value="' + Math.round(min) + '"></div>'
-    + '<div class="regler"><div class="kopfzeile2"><label>Punkte (überschreibbar)</label>'
-    + '<span class="wert" id="afPWert">' + fmtPunkte(berechnet) + ' P</span></div>'
-    + '<input type="range" id="afP" min="' + pMin + '" max="' + pMax + '" step="1" value="' + Math.round(berechnet) + '"></div>'
-    + '<div class="regler"><div class="kopfzeile2"><label>Akku-Korrektur (zusätzlich)</label>'
-    + '<span class="wert" id="afAWert">±0 %</span></div>'
-    + '<input type="range" id="afA" min="-50" max="50" step="1" value="0"></div>'
-    + '<button class="wizbtn" id="afBuchen">✓ Erledigt buchen</button>';
+    // 1 · Zeit (Freifeld + Regler ±60 min)
+    + '<div class="regler"><div class="kopfzeile2"><label>Zeit (min · getrackt, überschreibbar)</label>'
+    + '<input type="number" id="afMFeld" ' + inp + ' value="' + min + '"></div>'
+    + '<input type="range" id="afM" min="' + zMin + '" max="' + zMax + '" step="1" value="' + min + '"></div>'
+    // 2 · Gesamtpunkte (Freifeld + Regler ±300)
+    + '<div class="regler"><div class="kopfzeile2"><label>Gesamtpunkte (überschreibbar)</label>'
+    + '<input type="number" id="afPFeld" ' + inp + ' value="' + gesamt + '"></div>'
+    + '<input type="range" id="afP" min="' + pMin + '" max="' + pMax + '" step="1" value="' + gesamt + '"></div>'
+    // 3 · Batterie (Freifeld zeigt +/- %, Regler 0–100 setzt Zielwert)
+    + '<div class="regler"><div class="kopfzeile2"><label>Batterie → Zielwert (%)</label>'
+    + '<input type="number" id="afBatDelta" ' + inp + ' value="0" title="Prozent, die hinzugefügt/abgezogen werden"></div>'
+    + '<input type="range" id="afBat" min="0" max="100" step="1" value="' + curBat + '">'
+    + '<div class="stufen"><span>0 %</span><span id="afBatZiel">Ziel ' + curBat + ' %</span><span>100 %</span></div></div>'
+    // Folgeaufgabe
+    + '<div class="feld" style="margin-top:var(--s2)"><label id="afFolgeLbl">Folgeaufgabe' + (folge ? ': ' + escapeHtml(folge.titel) : '') + '</label>'
+    + '<input type="hidden" id="afFolge" value="' + (folgeId || '') + '">'
+    + '<div class="zweispaltig"><button class="wizbtn sek" id="afNeu">+ Folgeaufgabe erstellen</button>'
+    + '<button class="wizbtn sek" id="afWahl">Nächste wählen</button></div></div>'
+    + '<div id="afPicker" hidden style="margin-bottom:var(--s2)"></div>'
+    + '<button class="wizbtn" id="afBuchen">✓ ' + (folge ? 'Buchen & Folgeaufgabe starten' : 'Erledigt buchen') + '</button>';
   sheetOeffnen(item.titel || 'Aufgabe abschließen', html, 'abschluss:' + id);
 
+  const koppeln = (slider, feld, onChange) => {
+    $(slider).addEventListener('input', () => { $(feld).value = $(slider).value; onChange && onChange(Number($(slider).value)); });
+    $(feld).addEventListener('input', () => {
+      const v = Number($(feld).value); if (isNaN(v)) return;
+      $(slider).value = Math.min(Number($(slider).max), Math.max(Number($(slider).min), v));
+      onChange && onChange(v);
+    });
+  };
   let punkteAngefasst = false;
-  $('afM').addEventListener('input', () => {
-    const m = Number($('afM').value);
-    $('afMWert').textContent = m + ' min';
-    // Punkte-Vorschlag folgt den korrigierten Minuten, solange der
-    // Punkte-Regler nicht selbst angefasst wurde
-    if (!punkteAngefasst) {
-      const neu = Math.max(0, punkteBeiMinuten(item, m) - gebucht);
-      $('afP').value = Math.round(neu);
-      $('afPWert').textContent = fmtPunkte(neu) + ' P';
-    }
+  koppeln('afM', 'afMFeld', m => {
+    if (!punkteAngefasst) { const neu = Math.round(punkteBeiMinuten(item, m)); $('afP').value = Math.min(Number($('afP').max), Math.max(Number($('afP').min), neu)); $('afPFeld').value = neu; }
   });
-  $('afP').addEventListener('input', () => {
-    punkteAngefasst = true;
-    $('afPWert').textContent = $('afP').value + ' P';
+  koppeln('afP', 'afPFeld', () => { punkteAngefasst = true; });
+  // Batterie: Regler = Zielwert, Freifeld = Differenz (+/-)
+  $('afBat').addEventListener('input', () => {
+    const ziel = Number($('afBat').value);
+    $('afBatDelta').value = ziel - curBat;
+    $('afBatZiel').textContent = 'Ziel ' + ziel + ' %';
   });
-  $('afA').addEventListener('input', () =>
-    $('afAWert').textContent = ($('afA').value > 0 ? '+' : '') + $('afA').value + ' %');
+  $('afBatDelta').addEventListener('input', () => {
+    const d = Number($('afBatDelta').value); if (isNaN(d)) return;
+    const ziel = Math.min(100, Math.max(0, curBat + d));
+    $('afBat').value = ziel; $('afBatZiel').textContent = 'Ziel ' + ziel + ' %';
+  });
+  // Folgeaufgabe erstellen → neue Aufgabe, danach zurück in den Abschluss
+  $('afNeu').addEventListener('click', () => sheetNeuOeffnen(neu => sheetAbschlussOeffnen(id, neu.id)));
+  // Nächste wählen → Stream-Aufgaben in-place listen (Feld-Eingaben bleiben)
+  $('afWahl').addEventListener('click', () => {
+    const pick = $('afPicker');
+    if (!pick.hidden) { pick.hidden = true; return; }
+    const liste = Store.items.filter(i => i.id !== id && i.typ === 'aufgabe' && i.status !== 'erledigt'
+      && i.streamSlot != null && !i.nachSyncWeg).sort((a, b) => a.streamSlot - b.streamSlot);
+    pick.innerHTML = liste.length
+      ? liste.map(i => '<button class="wizbtn sek afpick" data-fid="' + i.id + '" style="text-align:left">'
+        + escapeHtml(i.titel) + '</button>').join('')
+      : '<div class="leer">Keine weiteren Aufgaben im Tagesstream.</div>';
+    pick.hidden = false;
+    pick.querySelectorAll('.afpick').forEach(b => b.addEventListener('click', () => {
+      const f = Store.findeItem(b.dataset.fid);
+      $('afFolge').value = f.id;
+      $('afFolgeLbl').textContent = 'Folgeaufgabe: ' + f.titel;
+      $('afBuchen').textContent = '✓ Buchen & Folgeaufgabe starten';
+      pick.hidden = true;
+    }));
+  });
   $('afBuchen').addEventListener('click', () => {
+    const gp = Math.round(Number($('afPFeld').value) || 0);
+    const mVal = Math.round(Number($('afMFeld').value) || 0);
+    const folgeSel = $('afFolge').value;
+    if (!batAn && Number($('afBatDelta').value)) Store.tag.akkuProzent = curBat;   // Batterie initialisieren
     abhaken(id, {
-      punkte: Number($('afP').value),
-      akkuKorrektur: Number($('afA').value) || 0,
-      minuten: Number($('afM').value)
+      minuten: mVal,
+      punkte: Math.max(0, gp - gebucht),          // Gesamtpunkte minus bereits gebuchte Unteraufgaben
+      akkuKorrektur: Number($('afBatDelta').value) || 0
     });
     sheetSchliessen();
-    toastZeigen('✓ Gebucht: ' + $('afP').value + ' P · ' + $('afM').value + ' min');
+    if (folgeSel && Store.findeItem(folgeSel)) {
+      fokusStarten(folgeSel);   // startet + zieht die Aufgabe automatisch in den Stream
+      toastZeigen('✓ Gebucht: ' + fmtPunkte(gp) + ' P — Folgeaufgabe gestartet');
+    } else {
+      toastZeigen('✓ Gebucht: ' + fmtPunkte(gp) + ' P · ' + mVal + ' min');
+    }
   });
 }
 
@@ -4398,7 +4445,7 @@ function sheetVorlageOeffnen(id) {
 /* ── Neues Item anlegen (Nachtrag 20.07.2026): „+"-Button in allen
       Ansichten — Aufgabe/Routine/Counter, DFM oder Privat. Landet ohne
       Slot in der Warteschlange; „+ Details" öffnet die volle Karte. ── */
-function sheetNeuOeffnen() {
+function sheetNeuOeffnen(onAngelegt) {
   const vorlagen = vorlagenLaden();
   let html = ''
     + '<div class="feld"><label>Titel</label><input id="nTitel" type="text" placeholder="Was ist zu tun?"></div>'
@@ -4465,6 +4512,7 @@ function sheetNeuOeffnen() {
   $('nAnlegen').addEventListener('click', () => {
     const item = anlegen();
     if (!item) return;
+    if (onAngelegt) { onAngelegt(item); return; }   // z. B. als Folgeaufgabe im Abschluss
     sheetSchliessen();
     toastZeigen('✓ „' + item.titel + '" in der Warteschlange');
   });
