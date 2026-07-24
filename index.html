@@ -51,30 +51,40 @@ input:focus,textarea:focus{outline:none;border-color:var(--blue)}
   cursor:pointer;
 }
 #statusbar .inner{
-  display:flex;align-items:center;gap:8px;
-  min-height:36px;padding:4px var(--s2);
+  display:flex;align-items:center;gap:7px;
+  min-height:38px;padding:4px var(--s2);
 }
-#statusbar .sakku{
-  flex:none;display:flex;align-items:center;gap:4px;
-  font-size:12px;font-weight:800;color:var(--ok);min-height:28px;
-}
-#statusbar .skonto{flex:1;min-width:0}
-#statusbar .skzeile{display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:2px}
-#statusbar .skzeile #sPunkte{color:var(--purple);font-weight:800}
-#statusbar .skzeile #sZiel{color:var(--mut2)}
+/* Größen-Hierarchie (Pascal 24.07.2026): Symbol/Hauptwert groß, Zusatztext klein.
+   .shero = großes Symbol/Zahl (wie Pace-Pfeil), .ssub = kleiner Begleittext. */
+#statusbar .sfeld{display:flex;align-items:center}
+#statusbar .shero{font-size:16px;font-weight:800;line-height:1}
+#statusbar .ssub{font-size:9px;line-height:1.1;color:var(--mut)}
+/* Optische Trennung der einzelnen Anzeigen */
+#statusbar .strenner{flex:none;width:1px;align-self:stretch;margin:5px 0;background:var(--line)}
+
+#statusbar .sakku{flex:none;gap:3px;color:var(--ok);min-height:28px}
+#statusbar .sakku .sicon{font-size:12px}
+#statusbar .sakku .shero{color:var(--ok)}
+
+#statusbar .skonto{flex:1;min-width:0;flex-direction:column;align-items:stretch;gap:2px}
+#statusbar .skzeile{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
+#statusbar .skzeile #sPunkte{color:var(--purple);flex:none;white-space:nowrap}
+#statusbar .skzeile #sZiel{color:var(--mut2);flex:1 1 auto;min-width:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #statusbar .skbar{height:5px;border-radius:3px;background:var(--line);overflow:hidden}
 #statusbar .skbar i{display:block;height:100%;background:var(--purple);transition:width .5s}
-#statusbar .space{flex:none;display:flex;align-items:center;gap:5px}
-#statusbar #sPfeil{font-size:17px;font-weight:900;line-height:1}
-#statusbar #sPaceZahl{font-size:10px;color:var(--mut);font-family:ui-monospace,monospace}
-/* Soll-Rest: kleine Batterie (% des Solls) + Rest-Punkte/-Zeit (Pascal 24.07.2026) */
-#statusbar .ssoll{flex:none;display:flex;align-items:center;gap:4px}
+
+#statusbar .space{flex:none;gap:4px}
+#statusbar #sPfeil{font-size:18px;font-weight:900;line-height:1}   /* Symbol groß */
+#statusbar #sPaceZahl{font-size:9px;color:var(--mut);font-family:ui-monospace,monospace}
+
+/* Soll-Rest: Batterie-Anzeige (Symbol) groß, Text klein (Pascal 24.07.2026) */
+#statusbar .ssoll{flex:none;gap:5px}
 #statusbar .ssbatt{
-  position:relative;width:22px;height:11px;flex:none;
-  border:1px solid var(--mut2);border-radius:2px;padding:1px;
+  position:relative;width:28px;height:14px;flex:none;
+  border:1px solid var(--mut2);border-radius:2px;padding:1.5px;
 }
 #statusbar .ssbatt::after{
-  content:'';position:absolute;right:-3px;top:3px;width:2px;height:5px;
+  content:'';position:absolute;right:-3px;top:4px;width:2px;height:6px;
   background:var(--mut2);border-radius:0 1px 1px 0;
 }
 #statusbar .ssbatt i{display:block;height:100%;width:0;background:var(--purple);border-radius:1px;transition:width .5s}
@@ -651,15 +661,20 @@ body.fabvorn #fab{z-index:202;display:flex}
      Tap auf den Akku = Akku anpassen -->
 <header id="statusbar">
   <div class="inner">
-    <button class="sakku" id="sAkku" aria-label="Akku anpassen">🔋<span id="sAkkuPct">–%</span></button>
-    <div class="skonto">
-      <div class="skzeile"><span id="sPunkte">0 P</span><span id="sZiel"></span></div>
+    <button class="sakku sfeld" id="sAkku" aria-label="Akku anpassen">
+      <span class="sicon">🔋</span><span class="shero" id="sAkkuPct">–%</span>
+    </button>
+    <span class="strenner"></span>
+    <div class="skonto sfeld">
+      <div class="skzeile"><span class="shero" id="sPunkte">0 P</span><span class="ssub" id="sZiel"></span></div>
       <div class="skbar"><i id="sBar" style="width:0"></i></div>
     </div>
-    <div class="space"><span id="sPfeil">→</span><span id="sPaceZahl"></span></div>
-    <div class="ssoll" id="sSoll" aria-label="offen bis Soll">
+    <span class="strenner"></span>
+    <div class="space sfeld"><span class="shero" id="sPfeil">→</span><span class="ssub" id="sPaceZahl"></span></div>
+    <span class="strenner"></span>
+    <div class="ssoll sfeld" id="sSoll" aria-label="offen bis Soll">
       <span class="ssbatt"><i id="sSollBar"></i></span>
-      <span id="sSollTxt"></span>
+      <span class="ssub" id="sSollTxt"></span>
     </div>
   </div>
 </header>
@@ -719,7 +734,7 @@ body.fabvorn #fab{z-index:202;display:flex}
 
 <script>
 'use strict';
-const APP_VERSION = '0.32.0';
+const APP_VERSION = '0.32.1';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
