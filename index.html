@@ -87,8 +87,8 @@ input:focus,textarea:focus{outline:none;border-color:var(--blue)}
 #statusbar .skbar{position:relative;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
 #statusbar .skbar i{position:absolute;top:0;bottom:0;left:0;width:0;transition:width .5s,left .5s}
 #statusbar .skb-ist{background:var(--purple)}
-#statusbar .skb-pace-x{background:#f0913f;opacity:.42}
-#statusbar .skb-pace-o{background:#f0913f}
+#statusbar .skb-pace-x{background:var(--cyan);opacity:.4}
+#statusbar .skb-pace-o{background:var(--cyan)}
 #statusbar .skb-marks{position:absolute;inset:0;pointer-events:none}
 #statusbar .skb-mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--blue);box-shadow:0 0 3px var(--blue)}
 /* Live-Diagramm-Dropdown unter der Statusleiste (Pascal 25.07.2026) */
@@ -775,7 +775,7 @@ body.fabvorn #fab{z-index:202;display:flex}
 
 <script>
 'use strict';
-const APP_VERSION = '0.37.0';
+const APP_VERSION = '0.37.1';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -2621,10 +2621,10 @@ function renderStatusbar() {
   $('sAkkuVerplant').style.width = eb.gelb.toFixed(1) + '%';
   $('sAkkuPct').textContent = eb.akku != null ? Math.round(eb.akku) + '%' : '–%';
 
-  // Info-Text bleibt: Konto-Punkte + nächster Kauf (Pascal 25.07.2026)
+  // Info-Text: erreichte Gesamtpunktzahl (nicht Konto/Guthaben) + nächster Kauf (Pascal 25.07.2026)
   gesamtpunkteAktualisieren();
   const k = konto();
-  $('sPunkte').textContent = fmtPunkte(k) + ' P';
+  $('sPunkte').textContent = fmtPunkte(wohlstandLive()) + ' P';
   const nk = naechsterKauf();
   $('sZiel').textContent = nk
     ? (k >= nk.preis ? BELOHNUNG[nk.kat].icon + ' Kauf möglich!'
@@ -2797,6 +2797,7 @@ function renderEinstellungen() {
     + fmtPunkte(projPunkte) + ' P)</button>';
   html += '<button class="wizbtn sek" id="sNachtrag2207"' + (hat2207 ? ' style="opacity:.5"' : '')
     + '>🔧 Nur aus Log nachtragen (' + fmtPunkte(pSumLog) + ' P)</button>';
+  html += '<button class="wizbtn sek" id="sGlaette2207">📊 22.07. in der Statistik auf 7.300 P glätten (einmalig)</button>';
   html += '<button class="resetbtn" id="sReset">Alle Punkte-Sätze auf Standard zurücksetzen</button>';
   html += '<div class="versionszeile">Fokus App ' + APP_VERSION + '</div>';
   $('view-einstellungen').innerHTML = html;
@@ -2855,6 +2856,22 @@ function renderEinstellungen() {
     if (!confirm(msg)) return;
     tagNachtragen('2026-07-22', '2026-07-23');
     toastZeigen('✓ 22.07. nachgetragen — jetzt in der Statistik sichtbar.');
+    renderEinstellungen();
+  });
+  // Einmalige Glättung: 22.07.-Snapshot in der Statistik auf 7.300 P setzen (Pascal 25.07.2026)
+  $('sGlaette2207') && $('sGlaette2207').addEventListener('click', () => {
+    if (Store.tag.datum === '2026-07-22') { toastZeigen('22.07. ist der laufende Tag — nicht als Snapshot glättbar.'); return; }
+    const hist = historieLaden();
+    const snap = hist.find(d => d.datum === '2026-07-22');
+    const alt = snap ? Math.round(snap.punkte || 0) : null;
+    const msg = (snap ? '22.07. in der Statistik von ' + fmtPunkte(alt) + ' P auf 7.300 P setzen?'
+                      : 'Kein 22.07.-Snapshot gefunden — einen mit 7.300 P anlegen?')
+      + '\n\nEinmalige Glättung: nur der Statistik-Wert des 22.07. ändert sich. Konto, Level und alle anderen Tage bleiben unverändert.';
+    if (!confirm(msg)) return;
+    if (snap) { snap.punkte = 7300; if (snap.proDomain) delete snap.proDomain; }   // gilt für alle Filter
+    else hist.push({ datum: '2026-07-22', punkte: 7300, fokusMin: 0, verlauf: [] });
+    lsSchreibe(LS.HISTORIE, hist.sort((a, b) => a.datum < b.datum ? -1 : 1));
+    toastZeigen('✓ 22.07. auf 7.300 P geglättet.');
     renderEinstellungen();
   });
   document.querySelectorAll('#view-einstellungen [data-widerruf]').forEach(btn => {
