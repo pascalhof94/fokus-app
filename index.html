@@ -80,15 +80,15 @@ input:focus,textarea:focus{outline:none;border-color:var(--blue)}
 
 #statusbar .skonto{flex:1;min-width:0;flex-direction:column;align-items:stretch;gap:2px}
 #statusbar .skzeile{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
-#statusbar .skzeile #sPunkte{color:var(--purple);flex:none;white-space:nowrap}
+#statusbar .skzeile #sPunkte{color:var(--ok);flex:none;white-space:nowrap}
 #statusbar .skzeile #sZiel{color:var(--mut2);flex:1 1 auto;min-width:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Tages-Balken (Pascal 25.07.2026): 100% = Soll · lila = heute erreicht ·
    orange = Soll-Tempo (transparent, wo es das Ist überlappt) · blaue Upgrade-Striche */
 #statusbar .skbar{position:relative;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
 #statusbar .skbar i{position:absolute;top:0;bottom:0;left:0;width:0;transition:width .5s,left .5s}
-#statusbar .skb-ist{background:var(--purple)}
-#statusbar .skb-pace-x{background:var(--cyan);opacity:.4}
-#statusbar .skb-pace-o{background:var(--cyan)}
+#statusbar .skb-ist{background:var(--ok)}
+#statusbar .skb-pace-x{background:var(--bad);opacity:.4}
+#statusbar .skb-pace-o{background:var(--bad)}
 #statusbar .skb-marks{position:absolute;inset:0;pointer-events:none}
 #statusbar .skb-mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--blue);box-shadow:0 0 3px var(--blue)}
 /* Live-Diagramm-Dropdown unter der Statusleiste (Pascal 25.07.2026) */
@@ -775,7 +775,7 @@ body.fabvorn #fab{z-index:202;display:flex}
 
 <script>
 'use strict';
-const APP_VERSION = '0.37.1';
+const APP_VERSION = '0.37.2';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -2621,10 +2621,11 @@ function renderStatusbar() {
   $('sAkkuVerplant').style.width = eb.gelb.toFixed(1) + '%';
   $('sAkkuPct').textContent = eb.akku != null ? Math.round(eb.akku) + '%' : '–%';
 
-  // Info-Text: erreichte Gesamtpunktzahl (nicht Konto/Guthaben) + nächster Kauf (Pascal 25.07.2026)
+  // Info-Text: HEUTE erreichte Punkte (nicht Konto, nicht Gesamt) + nächster Kauf (Pascal 25.07.2026)
   gesamtpunkteAktualisieren();
   const k = konto();
-  $('sPunkte').textContent = fmtPunkte(wohlstandLive()) + ' P';
+  const istHeute = Math.max(0, Store.tag.gesamtpunkteHeute + fokusLiveDelta());
+  $('sPunkte').textContent = fmtPunkte(istHeute) + ' P';
   const nk = naechsterKauf();
   $('sZiel').textContent = nk
     ? (k >= nk.preis ? BELOHNUNG[nk.kat].icon + ' Kauf möglich!'
@@ -2634,7 +2635,6 @@ function renderStatusbar() {
   // Tages-Balken: 100% = Soll · lila = heute erreicht · orange = Soll-Tempo (transparent
   // im Überlappungsbereich) · blaue Striche = kumulative Upgrade-Schwellen
   const sollGes = Math.max(1, sollWerte(false).gesamt);
-  const istHeute = Math.max(0, Store.tag.gesamtpunkteHeute + fokusLiveDelta());
   const fenster = arbeitstagFenster();
   const now = new Date();
   const anteilTag = Math.min(1, Math.max(0, (now.getHours() * 60 + now.getMinutes() - fenster.start) / fenster.spanne));
