@@ -454,7 +454,14 @@ textarea{min-height:64px;resize:vertical}
 .tuabox .l{font-size:9px;color:var(--mut2);letter-spacing:.5px}
 .tuabox .n{font-size:12px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
 .tuabox .r{font-size:10px}
-.takku{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ok);font-weight:700}
+/* Drei optisch getrennte Felder unter dem Avatar: Akku · Punkte heute · Zeit heute */
+.tstats{display:flex;gap:8px;margin-top:12px}
+.tstat{flex:1;min-width:0;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:6px 8px;display:flex;flex-direction:column;gap:2px;text-align:left}
+.tstat b{font-size:14px;font-weight:800;color:var(--txt);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tstat .tss{font-size:8.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tstat.akku{border-color:rgba(62,207,142,.45)}
+.tstat.akku b{color:var(--ok)}
+.tstat .tsi{font-size:12px}
 /* 4 KPI-Kacheln über dem Punkte-Balken (Pascal 24.07.2026) */
 .tkpis{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:12px}
 .tkpis:empty{display:none}
@@ -743,7 +750,7 @@ body.fabvorn #fab{z-index:202;display:flex}
 
 <script>
 'use strict';
-const APP_VERSION = '0.34.1';
+const APP_VERSION = '0.35.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -3380,8 +3387,13 @@ function sheetTachoOeffnen() {
     + '<div class="trestsub" id="tRestSub">Kein Fokus aktiv</div>'
     + '<div class="tuabox" id="tUaBox" hidden><div class="l">UNTERAUFGABE <span id="tUaNum"></span></div>'
     + '<div class="n" id="tUaName"></div><div class="r" id="tUaRest"></div></div>'
-    + '<div class="takku">🔋 <span id="tAkku">–%</span></div>'
     + '</div></div>';
+  // Drei getrennte Felder (Akku · Punkte heute · Zeit heute) — volle Breite, gut lesbar
+  html += '<div class="tstats">'
+    + '<div class="tstat akku"><b><span class="tsi">🔋</span> <span id="tAkku">–%</span></b><span class="tss">Akku</span></div>'
+    + '<div class="tstat"><b id="tPktW">–</b><span class="tss" id="tPktSub">erreicht/geplant</span></div>'
+    + '<div class="tstat"><b id="tZeitW">–</b><span class="tss" id="tZeitSub">Zeit heute</span></div>'
+    + '</div>';
 
   /* ── 4 KPIs + Tages-Punkte-Balken (Pascal 24.07.2026) ── */
   html += '<div class="tkpis" id="tKpis"></div>';
@@ -3554,21 +3566,6 @@ function tachoVerdrahten(item) {
   }
 }
 
-/* Offene Tagespunkte (gelber Balken-Anteil, Pascal 24.07.2026): volle geplante Punkte
-   aller offenen Items — Tagesstream-Aufgaben + alle Counter + fällige Routinen, jeweils
-   Priorität ≠ 'idee', nicht erledigt (inkl. Unteraufgaben- + Soll-Zeit-Punkte via anzeigePunkte). */
-function offenePunkteHeute() {
-  let sum = 0;
-  Store.items.forEach(i => {
-    if (i.prioritaet === 'idee') return;
-    if (i.typ === 'aufgabe') { if (i.streamSlot == null || i.status === 'erledigt') return; }
-    else if (i.typ === 'routine') { if (!routineFaellig(i)) return; }
-    else if (i.typ !== 'counter') return;
-    sum += Number(anzeigePunkte(i)) || 0;
-  });
-  return Math.max(0, sum);
-}
-
 function tZeitKurz(m) {
   m = Math.round(m);
   return m >= 60 ? Math.floor(m / 60) + 'h' + String(m % 60).padStart(2, '0') : m + 'm';
@@ -3619,42 +3616,78 @@ function tachoKpis(item) {
     + kpiHtml('', fertig + '/' + uas.length, 'Unteraufg.', (uas.length - fertig) + ' offen');
 }
 
-/* Tages-Punkte-Balken (ersetzt „Nächster Kauf", Pascal 24.07.2026):
-   grün = heute erreicht · gelb = offene (volle geplante) Punkte bis zum Ziel ·
-   rot = Überzug über das Ziel · lila Marker = Kauf-/Upgrade-Schwellen. */
+function hhmm(min) {
+  min = Math.max(0, Math.round(min));
+  return Math.floor(min / 60) + ':' + String(min % 60).padStart(2, '0');
+}
+
+/* Tages-Anzeigen neben dem Akku + AUFGABENBEZOGENER Punkte-Balken (Pascal 25.07.2026):
+   • Punkte-Feld = heute erreicht / Tagesziel + %  · Zeit-Feld = heute erreicht / geplant
+     (HH:MM) + Anteil der aktuellen Aufgabe · Balken bezieht sich nur auf die Aufgabe:
+     grün = erhaltene Punkte, gelb = offene Punkte, rot = Überzug über die geplante Punktzahl. */
 function tachoBalkenRender(item) {
   gesamtpunkteAktualisieren();
   const live = fokusLiveDelta();
-  const ziel = Math.max(0, sollWerte(false).gesamt);
-  const erreicht = Math.max(0, Store.tag.gesamtpunkteHeute + live);
-  const offen = offenePunkteHeute();
-  const gesamt = erreicht + offen;
-  const max = Math.max(ziel, gesamt, 1);
-  if ($('tpbG')) {
-    $('tpbG').style.width = (erreicht / max * 100).toFixed(1) + '%';
-    $('tpbY').style.width = (Math.max(0, Math.min(offen, ziel - erreicht)) / max * 100).toFixed(1) + '%';
-    $('tpbR').style.width = (Math.max(0, gesamt - Math.max(ziel, erreicht)) / max * 100).toFixed(1) + '%';
+
+  // ── Zwei Tages-Anzeigen neben dem Akku ──
+  const tagErreicht = Math.max(0, Store.tag.gesamtpunkteHeute + live);
+  const tagZiel = Math.max(0, sollWerte(false).gesamt);
+  if ($('tPktW')) {
+    $('tPktW').textContent = fmtPunkte(tagErreicht) + '/' + fmtPunkte(tagZiel);
+    $('tPktSub').textContent = (tagZiel > 0 ? Math.round(tagErreicht / tagZiel * 100) : 0) + '% · Pkt';
   }
-  // Ziel-Linie (nur sichtbar, wenn der Balken übers Ziel hinausreicht)
+  let zeitIst = 0, zeitPlan = 0;
+  Store.items.forEach(i => {
+    if (i.typ !== 'aufgabe' || i.streamSlot == null) return;
+    zeitIst += heuteInvestiertMin(i);
+    zeitPlan += Number(i.aufwandGeplantMin) || 0;
+  });
+  if ($('tZeitW')) {
+    $('tZeitW').textContent = hhmm(zeitIst) + '/' + hhmm(zeitPlan);
+    const anteil = (item && zeitPlan > 0) ? Math.round((Number(item.aufwandGeplantMin) || 0) / zeitPlan * 100) : 0;
+    $('tZeitSub').textContent = 'Aufg ' + anteil + '%';
+  }
+
+  // ── Aufgabenbezogener Punkte-Balken ──
+  if (!$('tpbG')) { tachoKpis(item); return; }
+  if (!item || item.typ === 'counter') {
+    $('tpbG').style.width = '0'; $('tpbY').style.width = '0'; $('tpbR').style.width = '0';
+    if ($('tpbMarks')) $('tpbMarks').innerHTML = '';
+    if ($('tpbZiel')) $('tpbZiel').style.display = 'none';
+    if ($('tpbInfo')) $('tpbInfo').textContent = item ? 'Counter – kein Aufgaben-Ziel' : 'Kein Fokus aktiv';
+    tachoKpis(item);
+    return;
+  }
+  const min = minutenInklFokus(item);
+  const geplantMin = Number(item.aufwandGeplantMin) || 0;
+  const planP = Math.max(0, geplantMin > 0 ? punkteBeiMinuten(item, geplantMin) : anzeigePunkte(item));
+  const earnedP = Math.max(0, punkteBeiMinuten(item, min));
+  const maxP = Math.max(planP, earnedP, 1);
+  const gruen = Math.min(earnedP, planP);            // erhaltene Punkte (bis Plan)
+  const gelb = Math.max(0, planP - earnedP);         // offene Punkte bis Plan
+  const rot = Math.max(0, earnedP - planP);          // Überzug über den Plan
+  $('tpbG').style.width = (gruen / maxP * 100).toFixed(1) + '%';
+  $('tpbY').style.width = (gelb / maxP * 100).toFixed(1) + '%';
+  $('tpbR').style.width = (rot / maxP * 100).toFixed(1) + '%';
   if ($('tpbZiel')) {
-    $('tpbZiel').style.left = (ziel / max * 100).toFixed(1) + '%';
-    $('tpbZiel').style.display = gesamt > ziel && ziel > 0 ? 'block' : 'none';
+    $('tpbZiel').style.left = (planP / maxP * 100).toFixed(1) + '%';
+    $('tpbZiel').style.display = rot > 0 ? 'block' : 'none';   // Plan-Linie nur bei Überzug
   }
-  // Lila Kauf-Marker: heutige Punkte, ab denen das Konto für einen Kauf reicht
-  const bankOhneHeute = konto() - erreicht;
+  // Lila Kauf-Marker: Aufgaben-Punkte, ab denen das Konto für einen Kauf reicht
+  const bank = konto() - earnedP;
   let marks = '';
   KAT_KEYS.forEach(k => {
     if (kaufSperre(k)) return;
-    const need = preisFuer(k) - bankOhneHeute;
-    if (need > 0 && need <= max) {
-      marks += '<span class="tpb-mark" style="left:' + (need / max * 100).toFixed(1) + '%"></span>';
+    const need = preisFuer(k) - bank;
+    if (need > 0 && need <= maxP) {
+      marks += '<span class="tpb-mark" style="left:' + (need / maxP * 100).toFixed(1) + '%"></span>';
     }
   });
   if ($('tpbMarks')) $('tpbMarks').innerHTML = marks;
   if ($('tpbInfo')) {
-    let info = 'erreicht ' + fmtPunkte(erreicht) + ' · Ziel ' + fmtPunkte(ziel)
-      + ' · offen ' + fmtPunkte(offen) + ' P';
-    if (gesamt > ziel && ziel > 0) info += ' · +' + fmtPunkte(gesamt - ziel) + ' über Ziel';
+    let info = 'erhalten ' + fmtPunkte(gruen) + ' · geplant ' + fmtPunkte(planP)
+      + ' · offen ' + fmtPunkte(gelb) + ' P';
+    if (rot > 0) info += ' · +' + fmtPunkte(rot) + ' über Plan';
     $('tpbInfo').textContent = info;
   }
   tachoKpis(item);
@@ -4622,6 +4655,11 @@ function sheetNeuOeffnen(onAngelegt) {
     + '<div class="feld"><label>Domäne</label>' + segHtml('ndomain', ['dfm', 'privat'], 'dfm', ['DFM', 'Privat']) + '</div>'
     + '<div class="feld"><label>Priorität</label>' + segHtml('nprio', ['muss', 'soll', 'idee'], 'soll', ['Muss', 'Soll', 'Idee']) + '</div>'
     + '</div>'
+    // Unteraufgaben direkt beim Anlegen hinzufügen/einstellen (Pascal 25.07.2026)
+    + '<div class="feld" id="nUaWrap"><label>Unteraufgaben <span class="thinweis" style="text-transform:none;font-weight:400">Min · Bonuspunkte (leer = automatisch)</span></label>'
+    +   '<div id="nUaListe"></div>'
+    +   '<div class="uaneu"><input id="nUaNeu" type="text" placeholder="Unteraufgabe hinzufügen …"><button id="nUaAdd" aria-label="Hinzufügen">+</button></div>'
+    + '</div>'
     + '<div class="neuknoepfe">'
     + '<button class="wizbtn sek" id="nDetails">Anlegen + Details</button>'
     + '<button class="wizbtn" id="nAnlegen">Anlegen</button>'
@@ -4629,6 +4667,17 @@ function sheetNeuOeffnen(onAngelegt) {
   sheetOeffnen('Neues Item', html, 'neu');
 
   const auswahl = { ntyp: 'aufgabe', ndomain: 'dfm', nprio: 'soll', vorlage: null };
+
+  // Unteraufgaben-Editor (lokal, bis „Anlegen") — wie im Fokus, aber ohne Häkchen
+  let neueUAs = [];
+  const nUaRowHtml = u => '<div class="uareihe" data-ua="' + u.id + '">'
+    + '<div class="uatitel"><span class="uat">' + escapeHtml(u.titel) + '</span></div>'
+    + '<input class="uamin" data-uakt="min" type="number" inputmode="numeric" placeholder="Min" value="' + (u.geplantMin != null ? u.geplantMin : '') + '">'
+    + '<input class="uamin uabonus" data-uakt="bonus" type="number" inputmode="numeric" placeholder="Bonus" value="' + (u.bonusPunkte != null ? u.bonusPunkte : '') + '">'
+    + '<button class="uax" data-uakt="loeschen" aria-label="Unteraufgabe löschen">✕</button>'
+    + '</div>';
+  const nUaRender = () => { if ($('nUaListe')) $('nUaListe').innerHTML = neueUAs.map(nUaRowHtml).join(''); };
+
   document.querySelectorAll('#sheetInhalt .seg').forEach(seg => {
     seg.querySelectorAll('button').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -4646,9 +4695,39 @@ function sheetNeuOeffnen(onAngelegt) {
             }
           });
           $('nTitel').placeholder = auswahl.vorlage ? auswahl.vorlage.name + ' …' : 'Was ist zu tun?';
+          // Unteraufgaben der Vorlage in den Editor übernehmen (editierbar)
+          neueUAs = ((auswahl.vorlage && auswahl.vorlage.unteraufgaben) || []).map(u => ({
+            id: lokaleUuid(), titel: u.titel,
+            geplantMin: u.geplantMin != null ? u.geplantMin : null,
+            bonusPunkte: u.bonusPunkte != null ? u.bonusPunkte : null
+          }));
+          nUaRender();
         }
+        // Counter haben keine Unteraufgaben → Feld ausblenden
+        if ($('nUaWrap')) $('nUaWrap').style.display = auswahl.ntyp === 'counter' ? 'none' : '';
       });
     });
+  });
+
+  // Unteraufgaben hinzufügen / bearbeiten / löschen
+  $('nUaAdd').addEventListener('click', () => {
+    const t = $('nUaNeu').value.trim();
+    if (!t) { $('nUaNeu').focus(); return; }
+    neueUAs.push({ id: lokaleUuid(), titel: t, geplantMin: null, bonusPunkte: null });
+    $('nUaNeu').value = ''; nUaRender(); $('nUaNeu').focus();
+  });
+  $('nUaNeu').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('nUaAdd').click(); } });
+  $('nUaListe').addEventListener('click', e => {
+    const reihe = e.target.closest('.uareihe');
+    if (!reihe || !e.target.closest('[data-uakt="loeschen"]')) return;
+    neueUAs = neueUAs.filter(u => u.id !== reihe.dataset.ua);
+    nUaRender();
+  });
+  $('nUaListe').addEventListener('input', e => {
+    const reihe = e.target.closest('.uareihe'); if (!reihe) return;
+    const u = neueUAs.find(x => x.id === reihe.dataset.ua); if (!u) return;
+    if (e.target.matches('[data-uakt="min"]')) u.geplantMin = e.target.value === '' ? null : Number(e.target.value);
+    else if (e.target.matches('[data-uakt="bonus"]')) u.bonusPunkte = e.target.value === '' ? null : Number(e.target.value);
   });
   const anlegen = () => {
     const v = auswahl.vorlage;
@@ -4657,9 +4736,9 @@ function sheetNeuOeffnen(onAngelegt) {
     const felder = Object.assign({}, v ? v.werte : null, {
       titel, typ: auswahl.ntyp, domain: auswahl.ndomain, prioritaet: auswahl.nprio
     });
-    if (v && v.unteraufgaben && v.unteraufgaben.length) {
-      felder.unteraufgaben = v.unteraufgaben.map(u => ({
-        id: lokaleUuid(), titel: u.titel, erledigt: false,
+    if (auswahl.ntyp !== 'counter' && neueUAs.length) {
+      felder.unteraufgaben = neueUAs.map(u => ({
+        id: u.id, titel: u.titel, erledigt: false,
         geplantMin: u.geplantMin != null ? u.geplantMin : null,
         bonusPunkte: u.bonusPunkte != null ? u.bonusPunkte : null,
         gebuchtePunkte: null
