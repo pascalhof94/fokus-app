@@ -324,6 +324,8 @@ main{
 #sheet .kopfzeile h2{flex:1;font-size:16px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Im Fokus-Tacho steht oben der Aufgabentitel — mehrzeilig statt abgeschnitten */
 #sheet.istTacho .kopfzeile h2{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2}
+/* Unten Platz lassen, damit der schwebende + die letzten Buttons nicht überdeckt */
+#sheet.istTacho .inhalt{padding-bottom:calc(var(--s3) + 78px)}
 #sheet .schliessen{
   width:var(--tap);height:var(--tap);flex:none;margin-right:-8px;
   display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--mut);
@@ -741,7 +743,7 @@ body.fabvorn #fab{z-index:202;display:flex}
 
 <script>
 'use strict';
-const APP_VERSION = '0.34.0';
+const APP_VERSION = '0.34.1';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -3439,41 +3441,16 @@ function sheetTachoOeffnen() {
       + '</div></div>';
   }
 
-  /* ── Task-Switcher (24.07.2026): Warteschlange in die Fokusansicht geholt.
-        1) zuletzt bearbeitete Aufgaben (>1 s Bearbeitungszeit), 2) alle Counter,
-        3) fällige Routinen nach Tageszeit — gleiche Kartenansicht wie im Stream. ── */
-  const SEK1_MIN = 1 / 60;   // „mehr als 1 Sekunde", in Minuten
-  const bearbeitet = Store.items.filter(i =>
-    i.typ === 'aufgabe' && i.status !== 'erledigt' && !i.nachSyncWeg
-    && (!item || i.id !== item.id) && domSichtbar(i.domain)
-    && minutenInklFokus(i) > SEK1_MIN)
-    .sort((a, b) => (b.zuletztFokusMs || 0) - (a.zuletztFokusMs || 0)
-        || minutenInklFokus(b) - minutenInklFokus(a));
-  const swCounter = Store.items.filter(i => i.typ === 'counter' && domSichtbar(i.domain));
-  const swRoutinen = Store.items.filter(i => i.typ === 'routine' && i.status !== 'erledigt'
-    && (!item || i.id !== item.id));
-
-  let switcher = '';
-  if (bearbeitet.length) {
-    switcher += '<div class="thinweis">Weiter mit — zuletzt bearbeitet</div>'
-      + bearbeitet.map(i => karteHtml(i, false)).join('');
-  }
-  if (swCounter.length) {
-    switcher += '<div class="thinweis">Counter</div><div class="chips">'
-      + swCounter.map(counterChipHtml).join('') + '</div>';
-  }
-  switcher += ABSCHNITTE.map(([key, label]) => {
-    const liste = swRoutinen
-      .filter(r => (r.tagesabschnitt || 'tagsueber') === key && routineFaellig(r))
-      .sort((a, b) => routineUeberfaelligTage(b) - routineUeberfaelligTage(a));
-    if (!liste.length) return '';
-    return '<div class="thinweis">' + label + ' · fällig</div>' + liste.map(routineKarteHtml).join('');
-  }).join('');
-  if (!switcher) switcher = '<div class="leer">Noch nichts bearbeitet, keine Counter, keine fälligen Routinen.</div>';
+  /* ── Wechseln zu (Pascal 24.07.2026): das Folgeaufgabe-Feld aus dem Abschluss,
+        hier 1:1 als direkter Task-Switch — die aktuelle Aufgabe wird pausiert, die
+        neu erstellte/gewählte läuft weiter (kein Buchen, sofortiger Wechsel). ── */
   html += '<div class="tacc' + (item ? '' : ' offen') + '"><div class="tacckopf">🔁 Wechseln zu<span class="pfeil">▾</span></div><div class="taccinhalt">'
-    + '<div class="tachozeile"><input id="tInstant" type="text" placeholder="Instant-Fokus: Name eintippen …"><button class="start" id="tStart">▶</button></div>'
-    + '<div class="thinweis">Legt sofort ein echtes Muss-Item an und startet den Fokus.</div>'
-    + switcher
+    + '<div class="zweispaltig">'
+    +   '<button class="wizbtn sek" id="tzNeu">+ Folgeaufgabe erstellen</button>'
+    +   '<button class="wizbtn sek" id="tzWahl">Nächste wählen</button>'
+    + '</div>'
+    + '<div id="tzPicker" hidden style="margin-top:var(--s2)"></div>'
+    + '<div class="thinweis">Wechsel pausiert die aktuelle Aufgabe und startet die gewählte.</div>'
     + '</div></div>';
 
   sheetOeffnen(item ? (item.titel || '(ohne Titel)') : 'Fokus-Tacho', html, 'tacho');
@@ -3485,14 +3462,26 @@ function tachoVerdrahten(item) {
   document.querySelectorAll('#sheetInhalt .tacc .tacckopf').forEach(kopf => {
     kopf.addEventListener('click', () => kopf.parentElement.classList.toggle('offen'));
   });
-  $('tStart').addEventListener('click', () => {
-    const name = $('tInstant').value.trim();
-    if (!name) { $('tInstant').focus(); return; }
-    const { item: neu } = Store.upsertItem({ titel: name, prioritaet: 'muss', status: 'in_arbeit' });
-    fokusStarten(neu.id);
-    sheetTachoOeffnen();
+  // Wechseln zu (Pascal 24.07.2026): Folgeaufgabe erstellen / nächste wählen →
+  // sofortiger Switch. fokusStarten() bucht die alte Aufgabe ein (pausiert) und
+  // startet den Timer der neuen/gewählten Aufgabe.
+  $('tzNeu').addEventListener('click', () => sheetNeuOeffnen(neu => { fokusStarten(neu.id); sheetTachoOeffnen(); }));
+  $('tzWahl').addEventListener('click', () => {
+    const pick = $('tzPicker');
+    if (!pick.hidden) { pick.hidden = true; return; }
+    const liste = Store.items.filter(i => (!item || i.id !== item.id) && i.typ === 'aufgabe'
+      && i.status !== 'erledigt' && i.streamSlot != null && !i.nachSyncWeg)
+      .sort((a, b) => a.streamSlot - b.streamSlot);
+    pick.innerHTML = liste.length
+      ? liste.map(i => '<button class="wizbtn sek afpick" data-fid="' + i.id + '" style="text-align:left">'
+        + escapeHtml(i.titel) + '</button>').join('')
+      : '<div class="leer">Keine weiteren Aufgaben im Tagesstream.</div>';
+    pick.hidden = false;
+    pick.querySelectorAll('.afpick').forEach(b => b.addEventListener('click', () => {
+      fokusStarten(b.dataset.fid);
+      sheetTachoOeffnen();
+    }));
   });
-  $('tInstant').addEventListener('keydown', e => { if (e.key === 'Enter') $('tStart').click(); });
   if (!item) return;
 
   $('tPp').addEventListener('click', () => { fokusToggle(); tachoTick(); });
