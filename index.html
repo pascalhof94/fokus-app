@@ -91,6 +91,16 @@ input:focus,textarea:focus{outline:none;border-color:var(--blue)}
 #statusbar .skb-pace-o{background:#f0913f}
 #statusbar .skb-marks{position:absolute;inset:0;pointer-events:none}
 #statusbar .skb-mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--blue);box-shadow:0 0 3px var(--blue)}
+/* Live-Diagramm-Dropdown unter der Statusleiste (Pascal 25.07.2026) */
+#statDropdown{
+  position:fixed;top:0;left:0;right:0;z-index:205;
+  background:var(--card2);border-bottom:1px solid var(--purple);
+  max-height:0;overflow:hidden;transition:max-height .28s ease;
+  box-shadow:0 10px 26px rgba(0,0,0,.5);
+}
+#statDropdown.on{max-height:82vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#statDropdown .sdinner{padding:calc(var(--sat) + 48px) var(--s2) var(--s3)}
+#statDropdown .vtoggle{margin-bottom:var(--s1)}
 
 #statusbar .space{flex:none;gap:4px}
 #statusbar #sPfeil{font-size:18px;font-weight:900;line-height:1}   /* Symbol groß */
@@ -707,6 +717,9 @@ body.fabvorn #fab{z-index:202;display:flex}
   </div>
 </header>
 
+<!-- Live-Diagramm: klappt beim Tap auf die Statusleiste nach unten aus (Pascal 25.07.2026) -->
+<div id="statDropdown"></div>
+
 <header id="fokusbar">
   <div class="inner">
     <button class="pp" id="ppBtn" aria-label="Fokus starten/pausieren">▶</button>
@@ -762,7 +775,7 @@ body.fabvorn #fab{z-index:202;display:flex}
 
 <script>
 'use strict';
-const APP_VERSION = '0.36.0';
+const APP_VERSION = '0.37.0';
 
 /* ════════════════════════════════════════════════════════════════════
    Datenschicht (Spez. Abschnitt 2)
@@ -5292,9 +5305,57 @@ $('sAkku').addEventListener('click', e => {
   const f = $('belAkku');
   if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); f.select(); }
 });
-$('statusbar').addEventListener('click', () => {
-  document.querySelector('#tabbar button[data-view="belohnung"]').click();
-});
+/* Live-Diagramm-Dropdown (Pascal 25.07.2026): Tap auf die Statusleiste klappt das
+   Diagramm inkl. Filter nach unten aus; Tap außerhalb schließt es. */
+let statDropdownOffen = false;
+function renderStatDropdown() {
+  const d = $('statDropdown');
+  if (!d) return;
+  let html = '<div class="sdinner">';
+  html += domFilterHtml('sdDomSeg');
+  html += '<div class="vtoggle" id="sdTabs">'
+    + ['tag', 'woche', 'monat'].map(z => '<button data-z="' + z + '" class="' + (statZeitraum === z ? 'on' : '') + '">'
+        + (z === 'tag' ? 'Tag' : z === 'woche' ? 'Woche' : 'Monat') + '</button>').join('')
+    + '</div>';
+  if (statZeitraum === 'tag') {
+    html += '<div class="vtoggle" id="sdFilter">'
+      + [['punkte', '● Punkte'], ['energie', '● Energie'], ['soll', '● Soll']].map(([f, l]) =>
+          '<button data-filter="' + f + '" class="' + (statFilter[f] ? 'on' : '') + '" style="'
+          + (statFilter[f] ? (f === 'punkte' ? 'background:var(--purple);color:#160a2e;border-color:transparent'
+            : f === 'energie' ? 'background:var(--ok);color:#04342c;border-color:transparent'
+            : 'background:var(--mut2);color:#0d1420;border-color:transparent') : '') + '">' + l + '</button>').join('')
+      + '</div>';
+  }
+  html += kurveHtml(statZeitraum);
+  html += '</div>';
+  d.innerHTML = html;
+  const syncBel = () => { if ($('view-belohnung').classList.contains('on')) renderBelohnung(); };
+  $('sdDomSeg').querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+    domFilter = btn.dataset.dom; renderStream(); syncBel(); renderStatDropdown();
+  }));
+  $('sdTabs').querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+    statZeitraum = btn.dataset.z; syncBel(); renderStatDropdown();
+  }));
+  const fil = $('sdFilter');
+  if (fil) fil.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+    statFilter[btn.dataset.filter] = !statFilter[btn.dataset.filter]; syncBel(); renderStatDropdown();
+  }));
+}
+function statDropdownToggle() {
+  statDropdownOffen = !statDropdownOffen;
+  if (statDropdownOffen) renderStatDropdown();
+  $('statDropdown').classList.toggle('on', statDropdownOffen);
+}
+function statDropdownSchliessen() {
+  if (!statDropdownOffen) return;
+  statDropdownOffen = false;
+  $('statDropdown').classList.remove('on');
+}
+$('statusbar').addEventListener('click', e => { e.stopPropagation(); statDropdownToggle(); });
+// Klicks INNERHALB des Dropdowns nie nach außen reichen (sonst schließt der Re-Render
+// beim Filter-Tap das Panel, weil e.target danach aus dem DOM ist)
+$('statDropdown').addEventListener('click', e => e.stopPropagation());
+document.addEventListener('click', () => statDropdownSchliessen());
 
 /* Tab-Navigation (7.1) */
 document.querySelectorAll('#tabbar button').forEach(btn => {
