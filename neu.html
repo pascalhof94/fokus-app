@@ -110,6 +110,17 @@ main{
 .stapelbody .leer{color:var(--mut2);font-size:12px;text-align:center;padding:12px 0}
 .stapel .st-edit{flex:none;color:var(--mut2);font-size:15px;padding:2px 4px}
 
+/* Karten-Gruppe als einklappbarer Block (§3.3) */
+.kgruppe{border:1px dashed var(--line);border-radius:11px;margin-bottom:6px;overflow:hidden;background:rgba(255,255,255,.02)}
+.kgkopf{display:flex;align-items:center;gap:7px;padding:7px 10px;cursor:pointer;font-size:12.5px;font-weight:800;color:var(--mut)}
+.kgkopf .caret{font-size:10px;color:var(--mut2);transition:transform .2s}
+.kgruppe.zu .kgkopf .caret{transform:rotate(-90deg)}
+.kgkopf .ganz{background:var(--bg);border-radius:9px;padding:1px 7px;font-size:11px;color:var(--mut2)}
+.kgkopf .sp{flex:1}
+.kgkopf .kg-edit{color:var(--mut2);font-size:14px}
+.kgbody{padding:0 7px 7px}
+.kgruppe.zu .kgbody{display:none}
+
 /* ── Kartenreihe (universeller Karten-Kontrakt §7 D3) ────────────── */
 .krow{display:flex;align-items:stretch;gap:2px;background:var(--card2);border-radius:11px;margin-bottom:6px;overflow:hidden;border-left:4px solid var(--mut2)}
 .krow:last-child{margin-bottom:0}
@@ -185,6 +196,40 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .abcard.tap .tapnum{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--mut2);font-family:ui-monospace,monospace}
 .abcard.tap.num{border-left-color:var(--blue)}
 .abcard.tap.num .tapnum{border-color:var(--blue);background:var(--blue);color:#0a0f1a}
+
+/* ── D7 Belohnung + Statistiken (§9) ─────────────────────────────── */
+.beloh{border-radius:16px;padding:16px;margin-bottom:var(--s2);display:flex;align-items:center;gap:14px;color:#fff}
+.beloh .av-face{font-size:52px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+.beloh .av-info{flex:1;min-width:0}
+.beloh .av-lvl{font-size:16px;font-weight:900}
+.beloh .av-woh{font-size:12px;opacity:.9;font-family:ui-monospace,monospace}
+.beloh .av-bar{height:6px;border-radius:3px;background:rgba(0,0,0,.3);margin-top:8px;overflow:hidden}
+.beloh .av-bar i{display:block;height:100%;background:#fff;opacity:.9}
+.statring{display:flex;align-items:center;gap:16px}
+.statring svg{flex:none}
+.statpace .pl{font-size:18px;font-weight:900}
+.statpace .pl.gut{color:var(--ok)} .statpace .pl.schlecht{color:var(--warn)}
+.statpace .ps{font-size:12px;color:var(--mut);font-family:ui-monospace,monospace}
+.segmini{font-weight:400;font-size:11px;margin-left:8px}
+.segmini button{border:1px solid var(--line);border-radius:8px;padding:2px 9px;color:var(--mut);font-weight:700;margin-left:4px}
+.segmini button.on{background:var(--blue);color:#0a0f1a;border-color:var(--blue)}
+.barchart{display:flex;align-items:flex-end;gap:3px;height:90px;margin:6px 0}
+.barchart .bcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.barchart .bwrap{width:100%;height:76px;display:flex;align-items:flex-end;justify-content:center}
+.barchart .bwrap i{width:70%;max-width:16px;border-radius:3px 3px 0 0;background:var(--ok);transition:height .3s}
+.barchart .bwrap i.live{background:var(--blue)}
+.barchart .bwrap i.luecke{background:var(--line)}
+.barchart .bcol span{font-size:8px;color:var(--mut2);font-family:ui-monospace,monospace}
+.stathint{font-size:11px;color:var(--mut2);text-align:center;margin-top:4px}
+.split{display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:5px}
+.split .dfm{color:var(--warn)} .split .priv{color:var(--ok)}
+.splitbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line);margin-bottom:10px}
+.splitbar i.dfm{background:var(--warn)} .splitbar i.priv{background:var(--ok)}
+.projrow{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:5px}
+.projrow>span:first-child{flex:none;width:32%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut)}
+.projrow .bwrap2{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.projrow .bwrap2 i{display:block;height:100%;background:var(--cyan)}
+.projrow b{flex:none;font-family:ui-monospace,monospace;font-size:11px}
 
 /* ── Sheet (Detail D3 / Stapel-Editor D4) ────────────────────────── */
 #backdrop{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -310,13 +355,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
     <div id="stapelListe"></div>
   </section>
 
-  <!-- D7 Belohnung (M5) -->
+  <!-- D7 Belohnung + Statistiken -->
   <section class="view" id="v-belohnung">
-    <div class="placeholder">
-      <span class="big">🏆</span>
-      Belohnung &amp; Avatar
-      <span class="ms">kommt in Meilenstein M5</span>
-    </div>
+    <div class="headbar"><h2>Belohnung &amp; Statistik</h2></div>
+    <div id="belohnungBody"></div>
   </section>
 
   <!-- D6 Einstellungen -->
@@ -496,7 +538,7 @@ const S = {
   settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
   tag:null, fokus:null, historie:[],
   meta:{ wohlstand:0, seeded:false },
-  ui:{ tab:'stapel', stapelOffen:{}, ordnerZu:{}, aktivStapel:'sys-heute', fokusIdx:0 }
+  ui:{ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7 }
 };
 function settingsMerge(gespeichert){
   const s=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
@@ -517,7 +559,7 @@ function ladeAlles(){
   S.fokus    = DB.get('fokus', null);
   S.historie = DB.get('historie', []);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
-  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, aktivStapel:'sys-heute', fokusIdx:0 }, DB.get('ui', {}));
+  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7 }, DB.get('ui', {}));
   // Karten gegen Schema-Drift härten (neue Felder erscheinen automatisch)
   S.karten = S.karten.map(k=>neueKarte(k));
 }
@@ -831,11 +873,31 @@ function kartenreiheHtml(k, stapelId){
     '<div class="kcheck" data-check="'+k.id+'"><div class="box">✓</div></div>'+
   '</div>';
 }
+/* Karten eines Stapels rendern — Gruppen-Mitglieder als einklappbaren Block
+   an der Position ihrer besten (erstsortierten) Karte (§3.3). */
+function stapelRowsHtml(st, ks){
+  if(!ks.length) return '<div class="leer">keine Karten</div>';
+  let rows=''; const gezeigt=new Set();
+  ks.forEach(k=>{
+    if(gezeigt.has(k.id)) return;
+    if(k.gruppeId && S.gruppen.some(g=>g.id===k.gruppeId)){
+      const mit=ks.filter(x=>x.gruppeId===k.gruppeId);
+      mit.forEach(x=>gezeigt.add(x.id));
+      const key=st.id+':'+k.gruppeId, zu=S.ui.gruppeZu[key];
+      rows+='<div class="kgruppe '+(zu?'zu':'')+'">'+
+        '<div class="kgkopf" data-gtoggle="'+key+'"><span class="caret">▾</span>📦 '+esc(gruppeName(k.gruppeId))+
+          ' <span class="ganz">'+mit.length+'</span><span class="sp"></span>'+
+          '<button class="kg-edit" data-gruppeaktion="'+k.gruppeId+'">⚙︎</button></div>'+
+        '<div class="kgbody">'+mit.map(x=>kartenreiheHtml(x, st.id)).join('')+'</div></div>';
+    } else { gezeigt.add(k.id); rows+=kartenreiheHtml(k, st.id); }
+  });
+  return rows;
+}
 function stapelHtml(st){
   const ks=stapelKarten(st);
   const kpi=stapelKpi(ks);
   const offen = S.ui.stapelOffen[st.id];
-  const rows = ks.length ? ks.map(k=>kartenreiheHtml(k, st.id)).join('') : '<div class="leer">keine Karten</div>';
+  const rows = stapelRowsHtml(st, ks);
   return '<div class="stapel '+(offen?'':'zu')+'" data-sid="'+st.id+'" style="border-left-color:'+esc(st.farbe||'#5d6d88')+'">'+
     '<div class="stapelkopf" data-toggle="'+st.id+'">'+
       '<span class="caret">▾</span>'+
@@ -1001,6 +1063,20 @@ function tagesPunkteLive(){
 }
 /* Wohlstand live = eingefrorener Stand + heutiger (noch offener) Tag. */
 function wohlstandLive(){ return num(S.meta.wohlstand) + (tagOffen() ? tagesPunkteLive() : 0); }
+/* Zeit-Aggregat (§9 Stat 3): Ist-Sekunden je Domäne + Projekt für einen Tag.
+   Unteraufgaben-Anteile stecken bereits in der Parent-Ist-Zeit. */
+function tagesZeitAggregat(tid){
+  const agg={ dfm:0, privat:0, projekte:{} };
+  S.karten.forEach(k=>{
+    const zaehlt = (k.status==='erledigt' && k.tagId===tid) || (S.fokus && S.fokus.karteId===k.id && k.status==='offen');
+    if(!zaehlt) return;
+    const sek=istSekLive(k);
+    agg[k.domain==='dfm'?'dfm':'privat'] += sek;
+    const p = k.domain==='dfm' ? (k.projekt||'(ohne Projekt)') : 'Privat';
+    agg.projekte[p]=(agg.projekte[p]||0)+sek;
+  });
+  return agg;
+}
 function renderAlles(){
   rangCacheBauen();
   renderFokusleiste();
@@ -1102,7 +1178,7 @@ function tagAbschlussFinalisieren(){
     tagId:S.tag.tagId, datum:S.tag.datum, laufindex:S.tag.laufindex,
     startTs:S.tag.startTs, endeTs:S.tag.endeTs, akku:S.tag.akku,
     punkteBilanz:S.tag.punkteBilanz, abzuege:num(S.tag.abzuegeBilanz),
-    routinenBilanz:S.tag.routinenBilanz||[], luecke:false
+    routinenBilanz:S.tag.routinenBilanz||[], zeit:tagesZeitAggregat(S.tag.tagId), luecke:false
   });
   saveTag(); saveHistorie(); saveMeta(); saveKarten();
 }
@@ -1299,6 +1375,11 @@ function renderDetail(){
   const subs=entwurfSubs;
   const subSum=subs.reduce((a,u)=>a+num(u.sollMin),0);
   let h='';
+  // Aus Vorlage (nur bei neuer Karte, wenn Vorlagen existieren)
+  if(entwurfNeu && S.vorlagen.length){
+    h+='<div class="field"><label>Aus Vorlage</label><div class="chips">'+
+      S.vorlagen.map(v=>'<button class="chip" data-ausvorlage="'+v.id+'">📄 '+esc(v.name)+'</button>').join('')+'</div></div>';
+  }
   h+='<div class="field"><label>Titel</label><input data-bind="titel" value="'+esc(k.titel)+'" placeholder="Was ist zu tun?"></div>';
 
   h+='<div class="grid2">'+
@@ -1366,9 +1447,17 @@ function renderDetail(){
   if(subs.length) h+='<div class="subsum'+(subSum!==num(k.sollMin)?' warn':'')+'">Σ '+subSum+'′ = Parent '+num(k.sollMin)+'′</div>';
   h+='</div>';
 
+  // Gruppe (§3.3)
+  h+='<div class="field"><label>Karten-Gruppe</label><div class="chips">'+
+    '<button class="chip '+(!k.gruppeId?'on':'')+'" data-gruppe="">keine</button>'+
+    S.gruppen.map(g=>'<button class="chip '+(k.gruppeId===g.id?'on':'')+'" data-gruppe="'+g.id+'">'+esc(g.name)+'</button>').join('')+
+    '<button class="chip" data-gruppeneu="1">＋ neue</button></div></div>';
+
   // Notizen
   h+='<div class="field"><label>Notiz</label><textarea data-bind="notiz" placeholder="Notiz">'+esc(k.notiz)+'</textarea></div>';
   h+='<div class="field"><label>Kommentar für Claude</label><textarea data-bind="kommentarFuerClaude" placeholder="geht in den Sync-Export">'+esc(k.kommentarFuerClaude)+'</textarea></div>';
+
+  h+='<button class="minibtn" data-alsvorlage="1" style="margin-bottom:10px">☆ Als Vorlage speichern</button>';
 
   // Status/Meta
   h+='<div class="kv"><span>Art</span><b>'+kartenArt(k)+'</b></div>';
@@ -1732,6 +1821,45 @@ function oeffneSync(){
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   13c · Vorlagen (§3.4) & Karten-Gruppen (§3.3)
+   ══════════════════════════════════════════════════════════════════════ */
+/* Vorlage = komplette Karten-Config inkl. Unteraufgaben-Soll, OHNE
+   Fälligkeit/Uhrzeit/Ist/Status/Instanz-Felder (§3.4). */
+const VORLAGE_WEG = ['id','airtableId','herkunftId','faelligkeit','uhrzeit','istSek','ticksHeute','status','tagId','streak','zuletztRoutine','sortIndex','gruppeId','erstelltTs'];
+function vorlageAusEntwurf(){
+  const cfg = JSON.parse(JSON.stringify(entwurf));
+  VORLAGE_WEG.forEach(f=>delete cfg[f]);
+  const name = (prompt('Name der Vorlage:', entwurf.titel||'Vorlage')||'').trim();
+  if(!name) return;
+  S.vorlagen.push({ id:uuid(), name, karte:cfg,
+    unteraufgaben: entwurfSubs.map(u=>({ titel:u.titel, sollMin:num(u.sollMin) })) });
+  saveVorlagen(); toast('Vorlage „'+name+'" gespeichert');
+}
+function detailAusVorlage(vid){
+  const v=S.vorlagen.find(x=>x.id===vid); if(!v) return;
+  entwurfNeu=true;
+  entwurf = neueKarte(Object.assign({}, v.karte, { faelligkeit: heuteApp() }));
+  entwurfSubs = (v.unteraufgaben||[]).map(u=>neueUnteraufgabe(entwurf.id, { titel:u.titel, sollMin:num(u.sollMin) }));
+  renderDetail();
+}
+function vorlageLoeschen(vid){ S.vorlagen=S.vorlagen.filter(v=>v.id!==vid); saveVorlagen(); }
+
+/* Karten-Gruppe (§3.3): {id,name}. Bulk-Fälligkeit; für Punkte unsichtbar. */
+function neueGruppe(f={}){ return Object.assign({ id:uuid(), name:'Gruppe' }, f); }
+function gruppeMitglieder(gid){ return S.karten.filter(k=>k.gruppeId===gid && k.status!=='archiviert'); }
+function gruppeVerschieben(gid, datum){ gruppeMitglieder(gid).forEach(k=>{ k.faelligkeit=datum||null; }); saveKarten(); }
+function gruppeLoeschen(gid){ S.karten.forEach(k=>{ if(k.gruppeId===gid) k.gruppeId=null; }); S.gruppen=S.gruppen.filter(g=>g.id!==gid); saveKarten(); saveGruppen(); }
+function gruppeName(gid){ const g=S.gruppen.find(x=>x.id===gid); return g?g.name:''; }
+function oeffneGruppeAktion(gid){
+  const mit=gruppeMitglieder(gid);
+  let h='<p class="d">Gruppe „<b>'+esc(gruppeName(gid))+'</b>" · '+mit.length+' Karten. Verschieben setzt die Fälligkeit aller Mitglieder (§3.3).</p>';
+  h+='<div class="field"><label>Alle verschieben auf</label><input type="date" id="grpDatum" value="'+heuteApp()+'"><div class="btnrow"><button class="btn sm" data-grpheute="'+gid+'">Heute</button><button class="btn sm" data-grpmorgen="'+gid+'">Morgen</button><button class="btn sm" data-grpwarte="'+gid+'">Warteschlange</button></div></div>';
+  h+='<div class="btnrow"><button class="btn sm" data-grprename="'+gid+'">✎ Umbenennen</button><button class="btn sm" data-grpdatego="'+gid+'">→ Auf Datum</button></div>';
+  const foot='<button class="btn ghost sm" data-close="1">Schließen</button><button class="btn warn sm" data-grpdissolve="'+gid+'">Gruppe auflösen</button>';
+  openSheet('Karten-Gruppe', h, foot);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    14 · D6 Einstellungen (Regler · Migration · Sync · Backup)
    ══════════════════════════════════════════════════════════════════════ */
 function renderEinst(){
@@ -1758,6 +1886,12 @@ function renderEinst(){
   });
   h+='</div>';
 
+  // Vorlagen-Verwaltung (§3.4)
+  h+='<div class="card"><h3>Vorlagen</h3><p class="d">Aus jeder Karten-Detailansicht mit „☆ Als Vorlage speichern" anlegen; beim Anlegen neuer Karten wählbar.</p>';
+  if(!S.vorlagen.length) h+='<p class="d" style="color:var(--mut2)">Noch keine Vorlagen.</p>';
+  S.vorlagen.forEach(v=>{ h+='<div class="kv"><span>📄 '+esc(v.name)+' <span style="color:var(--mut2)">· '+(v.unteraufgaben?v.unteraufgaben.length:0)+' Teilschritte</span></span><button class="minibtn" data-vorlagedel="'+v.id+'" style="padding:3px 9px">✕</button></div>'; });
+  h+='</div>';
+
   h+='<div class="card"><h3>Info</h3>'+
     '<div class="kv"><span>Version</span><b>v'+VERSION+' · M2</b></div>'+
     '<div class="kv"><span>Karten</span><b>'+S.karten.length+'</b></div>'+
@@ -1773,10 +1907,94 @@ function renderEinst(){
 function backupHtml(){
   const paket={ typ:'backup-v1', appVersion:VERSION, exportZeit:jetztIso(),
     karten:S.karten, unteraufgaben:S.unteraufgaben, stapel:S.stapel, ordner:S.ordner,
-    gruppen:S.gruppen, vorlagen:S.vorlagen, settings:S.settings, tag:S.tag, meta:S.meta };
-  const href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(paket,null,2));
-  const a=document.createElement('a'); a.href=href; a.download='fokus-v1-backup-'+heuteApp()+'.json';
-  document.body.appendChild(a); a.click(); a.remove();
+    gruppen:S.gruppen, vorlagen:S.vorlagen, settings:S.settings, tag:S.tag, historie:S.historie, meta:S.meta };
+  backupDownload(paket, 'fokus-v1-backup-'+heuteApp()+'.json');
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   14b · D7 Belohnung — Statistiken-Basisset (§9) + Avatar-Small-Fix (§7 D7)
+   ══════════════════════════════════════════════════════════════════════ */
+function fmtMin(sek){ const m=Math.round(sek/60); return m>=60 ? (Math.floor(m/60)+'h'+String(m%60).padStart(2,'0')) : m+'′'; }
+/* Avatar-Stufe aus Wohlstand (Level-Schwellen §3.8). */
+function avatarStufe(){
+  const sw=S.settings.levelSchwellen||DEFAULT_SETTINGS.levelSchwellen; let lvl=1;
+  sw.forEach((s,i)=>{ if(wohlstandLive()>=s) lvl=i+1; }); return lvl;
+}
+function renderBelohnung(){
+  rangCacheBauen();
+  let h='';
+  // ── Avatar-Small-Fix §7 D7: Hintergrund-Verlauf Orange→Gelb→Grün,
+  //    erster leichter Grünton = Mittelwert (Level-Mitte). Avatar nach Vitalität.
+  const lvl=avatarStufe(), maxLvl=(S.settings.levelSchwellen||[]).length;
+  const vit=Math.max(0,Math.min(1,(lvl-1)/Math.max(1,maxLvl-1)));   // 0..1
+  const akku=(tagOffen()&&S.tag.akku!=null)?S.tag.akku:70;
+  const gesicht = akku>=66?'😃':akku>=33?'🙂':'😴';
+  h+='<div class="beloh" style="background:linear-gradient(135deg,hsl('+(30+90*vit)+',70%,'+(30+18*vit)+'%),hsl('+(90+50*vit)+',55%,'+(22+14*vit)+'%))">'+
+    '<div class="av-face">'+gesicht+'</div>'+
+    '<div class="av-info"><div class="av-lvl">Level '+lvl+' / '+maxLvl+'</div>'+
+      '<div class="av-woh">'+Math.round(wohlstandLive())+' Wohlstand</div>'+
+      '<div class="av-bar"><i style="width:'+Math.round(vit*100)+'%"></i></div></div></div>';
+
+  // ── Stat 1: Tages-Score-Ring + Pace ──────────────────────────────
+  const heuteP=Math.round(tagesPunkteLive());
+  const stundenLief = tagOffen()? Math.max(0.1,(Date.now()-new Date(S.tag.startTs).getTime())/3600000) : 0;
+  const pace = stundenLief? heuteP/stundenLief : 0;
+  const ziel = num(S.settings.tageszielPunkteProStd,100);
+  const zielTag = ziel*8;                          // Tagesziel ≈ Ziel-P/Std × 8h
+  const ringPct = Math.max(0,Math.min(1, zielTag? heuteP/zielTag : 0));
+  const R=52, U=2*Math.PI*R, off=U*(1-ringPct);
+  const paceGut = pace>=ziel;
+  h+='<div class="card"><h3>Heute</h3><div class="statring">'+
+    '<svg viewBox="0 0 130 130" width="120" height="120"><circle cx="65" cy="65" r="'+R+'" fill="none" stroke="var(--line)" stroke-width="11"/>'+
+      '<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="'+(paceGut?'var(--ok)':'var(--warn)')+'" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+U.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 65 65)"/>'+
+      '<text x="65" y="60" text-anchor="middle" fill="var(--txt)" font-size="24" font-weight="800">'+heuteP+'</text>'+
+      '<text x="65" y="82" text-anchor="middle" fill="var(--mut)" font-size="11">von '+zielTag+' P</text></svg>'+
+    '<div class="statpace"><div class="pl '+(paceGut?'gut':'schlecht')+'">'+(paceGut?'▲':'▼')+' '+pace.toFixed(0)+' P/Std</div>'+
+      '<div class="ps">Ziel '+ziel+' P/Std</div>'+
+      '<div class="ps">'+(tagOffen()?('Tag läuft · '+stundenLief.toFixed(1)+' h'):'kein Tag offen')+'</div></div></div></div>';
+
+  // ── Stat 2: Punkteverlauf 7/30 Tage (Balken je tagId, Lücken ausgegraut) ──
+  const tage=S.ui.statTage||7;
+  h+='<div class="card"><h3>Punkteverlauf <span class="segmini">'+
+    '<button class="'+(tage===7?'on':'')+'" data-stattage="7">7</button><button class="'+(tage===30?'on':'')+'" data-stattage="30">30</button></span></h3>';
+  const heuteIsoD=heuteIso(); const reihe=[];
+  for(let i=tage-1;i>=0;i--){ const d=new Date(heuteIsoD+'T12:00:00'); d.setDate(d.getDate()-i); const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const snaps=S.historie.filter(x=>x.datum===iso); const p=snaps.reduce((a,x)=>a+num(x.punkteBilanz),0);
+    reihe.push({iso, p, luecke: snaps.length===0 && !(tagOffen()&&S.tag.datum===iso)}); }
+  if(tagOffen()){ const heutR=reihe.find(x=>x.iso===S.tag.datum); if(heutR){ heutR.p=heuteP; heutR.luecke=false; heutR.live=true; } }
+  const maxP=Math.max(10,...reihe.map(x=>x.p));
+  h+='<div class="barchart">'+reihe.map(x=>'<div class="bcol"><div class="bwrap"><i class="'+(x.luecke?'luecke':x.live?'live':'')+'" style="height:'+Math.round(Math.max(x.luecke?3:2,(x.p/maxP)*100))+'%"></i></div><span>'+x.iso.slice(8)+'</span></div>').join('')+'</div>';
+  h+='<div class="stathint">Ø '+Math.round(reihe.filter(x=>!x.luecke).reduce((a,x)=>a+x.p,0)/Math.max(1,reihe.filter(x=>!x.luecke).length))+' P · Lücken ausgegraut</div></div>';
+
+  // ── Stat 3: Zeitverteilung je Domäne + Projekt (heute) ───────────
+  const zh=tagesZeitAggregat(aktuelleTagId()); const gesZ=zh.dfm+zh.privat;
+  h+='<div class="card"><h3>Zeit heute</h3>';
+  if(gesZ<60){ h+='<p class="d" style="color:var(--mut2)">Noch keine nennenswerte Zeit gebucht.</p>'; }
+  else {
+    h+='<div class="split"><span class="dfm">DFM '+fmtMin(zh.dfm)+'</span><span class="priv">Privat '+fmtMin(zh.privat)+'</span></div>'+
+      '<div class="splitbar"><i class="dfm" style="width:'+Math.round(zh.dfm/gesZ*100)+'%"></i><i class="priv" style="width:'+Math.round(zh.privat/gesZ*100)+'%"></i></div>';
+    const projekte=Object.entries(zh.projekte).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    projekte.forEach(([p,sek])=>{ h+='<div class="projrow"><span>'+esc(p)+'</span><span class="bwrap2"><i style="width:'+Math.round(sek/gesZ*100)+'%"></i></span><b>'+fmtMin(sek)+'</b></div>'; });
+  }
+  h+='</div>';
+
+  // ── Stat 4: Routinen-Erfüllungsquote + Streaks ───────────────────
+  let erf=0, verp=0; S.historie.forEach(x=>(x.routinenBilanz||[]).forEach(r=>{ if(r.entschuldigt) return; if(r.verpasst) verp++; else erf++; }));
+  // erfüllte = in Historie als nicht-verpasst gebucht; zusätzlich heute erledigte Routinen
+  const routKarten=S.karten.filter(k=>k.rhythmus && k.status!=='archiviert');
+  const quote = (erf+verp)>0 ? Math.round(erf/(erf+verp)*100) : null;
+  h+='<div class="card"><h3>Routinen</h3>';
+  h+='<div class="kv"><span>Erfüllungsquote (entschuldigte Tage raus)</span><b>'+(quote==null?'—':quote+'%')+'</b></div>';
+  if(!routKarten.length) h+='<p class="d" style="color:var(--mut2)">Keine Routinen angelegt.</p>';
+  routKarten.sort((a,b)=>num(b.streak)-num(a.streak)).slice(0,8).forEach(k=>{ h+='<div class="kv"><span>'+esc(k.titel)+'</span><b>🔥 '+num(k.streak)+'</b></div>'; });
+  h+='</div>';
+
+  // ── Stat 5: Stapel-KPI ───────────────────────────────────────────
+  h+='<div class="card"><h3>Stapel-KPI</h3>';
+  S.stapel.forEach(st=>{ const kpi=stapelKpi(stapelKarten(st)); h+='<div class="kv"><span>'+esc(st.name)+'</span><b>'+kpi.offen+'/'+kpi.alle+' · '+kpi.punkte+' P'+(kpi.avgMin?' · Ø'+kpi.avgMin+'′':'')+'</b></div>'; });
+  h+='</div>';
+
+  el('belohnungBody').innerHTML=h;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1792,6 +2010,7 @@ function setTab(tab){
   if(tab==='einst') renderEinst();
   else if(tab==='stapel') renderStapel();
   else if(tab==='fokus') renderFokus();
+  else if(tab==='belohnung') renderBelohnung();
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1888,6 +2107,8 @@ el('stapelListe').addEventListener('click', e=>{
   const tog=t.closest('[data-toggle]'); if(tog && !t.closest('[data-editstapel]')){ const id=tog.dataset.toggle; S.ui.stapelOffen[id]=!S.ui.stapelOffen[id]; saveUi(); renderStapel(); return; }
   const ed=t.closest('[data-editstapel]'); if(ed){ e.stopPropagation(); oeffneStapelEditor(ed.dataset.editstapel); return; }
   const ord=t.closest('[data-ordner]'); if(ord){ const id=ord.dataset.ordner; S.ui.ordnerZu[id]=!S.ui.ordnerZu[id]; saveUi(); renderStapel(); return; }
+  const gae=t.closest('[data-gruppeaktion]'); if(gae){ e.stopPropagation(); oeffneGruppeAktion(gae.dataset.gruppeaktion); return; }
+  const gt=t.closest('[data-gtoggle]'); if(gt){ const key=gt.dataset.gtoggle; S.ui.gruppeZu[key]=!S.ui.gruppeZu[key]; saveUi(); renderStapel(); return; }
   const det=t.closest('[data-detail]'); if(det){ oeffneDetail(det.dataset.detail); return; }
   const chk=t.closest('[data-check]'); if(chk){ karteAbhaken(chk.dataset.check, false); return; }
 });
@@ -1907,6 +2128,14 @@ el('sheet').addEventListener('click', e=>{
     if(res.fehler){ if(box) box.innerHTML='<div class="card" style="border-color:var(--bad)"><p class="d" style="color:var(--bad)">'+esc(res.fehler)+'</p></div>'; }
     else { renderAlles(); const exta=el('syncEx'); if(exta) exta.value=syncExportText('sync'); if(box) box.innerHTML='<div class="card" style="border-color:var(--ok)"><p class="d">Import: <b>'+res.neu+'</b> neu · <b>'+res.upd+'</b> aktualisiert · <b>'+res.arch+'</b> archiviert.</p></div>'; toast('Sync importiert'); haptik(15); }
     return; }
+
+  // ── Gruppen-Aktionen (§3.3)
+  const grh=t.closest('[data-grpheute]'); if(grh){ gruppeVerschieben(grh.dataset.grpheute, heuteApp()); closeSheet(); renderAlles(); toast('Gruppe auf heute'); return; }
+  const grm=t.closest('[data-grpmorgen]'); if(grm){ gruppeVerschieben(grm.dataset.grpmorgen, morgenIso()); closeSheet(); renderAlles(); toast('Gruppe auf morgen'); return; }
+  const grw=t.closest('[data-grpwarte]'); if(grw){ gruppeVerschieben(grw.dataset.grpwarte, null); closeSheet(); renderAlles(); toast('Gruppe in Warteschlange'); return; }
+  const grd=t.closest('[data-grpdatego]'); if(grd){ const dt=el('grpDatum'); gruppeVerschieben(grd.dataset.grpdatego, dt&&dt.value?dt.value:null); closeSheet(); renderAlles(); toast('Gruppe verschoben'); return; }
+  const grr=t.closest('[data-grprename]'); if(grr){ const g=S.gruppen.find(x=>x.id===grr.dataset.grprename); const n=(prompt('Neuer Name:', g?g.name:'')||'').trim(); if(g&&n){ g.name=n; saveGruppen(); renderAlles(); } oeffneGruppeAktion(grr.dataset.grprename); return; }
+  const grx=t.closest('[data-grpdissolve]'); if(grx){ if(confirm('Gruppe auflösen? (Karten bleiben, nur Zuordnung weg)')){ gruppeLoeschen(grx.dataset.grpdissolve); closeSheet(); renderAlles(); toast('Gruppe aufgelöst'); } return; }
 
   // ── Tag-Start-Wizard
   if(t.closest('[data-tagstartgo]')){ const a=tagStartTmp.akku; closeSheet(); tagStarten(a); toast('Tag gestartet · Akku '+a+'%'); return; }
@@ -1940,6 +2169,12 @@ el('sheet').addEventListener('click', e=>{
   }
   const wt=t.closest('[data-wtag]');
   if(wt){ const d=num(wt.dataset.wtag); const arr=(entwurf.rhythmus.tage||[]); entwurf.rhythmus.tage = arr.includes(d)?arr.filter(x=>x!==d):arr.concat([d]).sort(); renderDetail(); return; }
+
+  // Vorlagen / Gruppen (§3.4 / §3.3)
+  const av=t.closest('[data-ausvorlage]'); if(av){ detailAusVorlage(av.dataset.ausvorlage); return; }
+  if(t.closest('[data-alsvorlage]')){ detailLies(); vorlageAusEntwurf(); return; }
+  const gr=t.closest('[data-gruppe]'); if(gr){ entwurf.gruppeId = gr.dataset.gruppe || null; renderDetail(); return; }
+  if(t.closest('[data-gruppeneu]')){ const n=(prompt('Name der Gruppe:')||'').trim(); if(n){ const g=neueGruppe({name:n}); S.gruppen.push(g); saveGruppen(); entwurf.gruppeId=g.id; } renderDetail(); return; }
 
   // Tick-Kurve
   if(t.closest('[data-tickadd]')){ entwurf.tickKurve.push(0); renderDetail(); return; }
@@ -2037,11 +2272,17 @@ function stapelLiesEditor(){
   });
 }
 
+// Belohnung/Statistik: 7/30-Tage-Umschalter
+el('belohnungBody').addEventListener('click', e=>{
+  const st=e.target.closest('[data-stattage]'); if(st){ S.ui.statTage=num(st.dataset.stattage); saveUi(); renderBelohnung(); }
+});
+
 // Einstellungen (Sync / Migration / Backup / Regler)
 el('einstBody').addEventListener('click', e=>{
   if(e.target.closest('#btnSync')) oeffneSync();
   else if(e.target.closest('#btnMig')) oeffneMigration();
   else if(e.target.closest('#btnBackup')) backupHtml();
+  const vd=e.target.closest('[data-vorlagedel]'); if(vd){ if(confirm('Vorlage löschen?')){ vorlageLoeschen(vd.dataset.vorlagedel); renderEinst(); } }
 });
 el('einstBody').addEventListener('change', e=>{
   const t=e.target; if(t.dataset.setting){ S.settings[t.dataset.setting]=num(t.value); saveSettings(); }
