@@ -68,6 +68,31 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #topbar .right{flex:none;text-align:right;font-family:ui-monospace,monospace}
 #topbar .right .pt{font-size:14px;font-weight:800;color:var(--ok);line-height:1}
 #topbar .right .lbl{font-size:9px;color:var(--mut2)}
+/* Statusleiste (v1.1, v0.38-Port): Energie-Batterie · Tages-Fortschritt · Pace-Pfeil · Streak */
+#statusbar{display:flex;align-items:center;gap:8px;padding:3px var(--s2) 5px;border-top:1px solid var(--line);
+  font-family:ui-monospace,monospace;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#statusbar[hidden]{display:none}
+#statusbar .sb-batt{flex:none;display:flex;align-items:center;gap:5px}
+#statusbar .batt{position:relative;width:46px;height:15px;border:1.5px solid var(--mut2);border-radius:3px;overflow:hidden;background:#0a0f1a;display:flex}
+#statusbar .batt::after{content:"";position:absolute;right:-4px;top:4px;width:2.5px;height:7px;background:var(--mut2);border-radius:0 2px 2px 0}
+#statusbar .batt .seg{height:100%}
+#statusbar .batt .frei{background:var(--ok)}
+#statusbar .batt .verpl{background:var(--warn,#f2b84b)}
+#statusbar .sb-akku{font-size:11px;font-weight:800;color:var(--ok);min-width:30px}
+#statusbar .sb-mid{flex:1;min-width:0}
+#statusbar .sb-bar{position:relative;height:9px;border-radius:5px;background:#0a0f1a;overflow:hidden}
+#statusbar .sb-bar .ist{position:absolute;left:0;top:0;bottom:0;background:var(--purple);border-radius:5px}
+#statusbar .sb-bar .paceo{position:absolute;top:0;bottom:0;background:rgba(242,184,75,.55)}
+#statusbar .sb-bar .mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--blue);opacity:.8}
+#statusbar .sb-info{display:flex;gap:8px;font-size:9.5px;color:var(--mut);margin-top:1px;white-space:nowrap;overflow:hidden}
+#statusbar .sb-info b{color:var(--ok)}
+#statusbar .sb-info .wohl{color:var(--warn,#f2b84b)}
+#statusbar .sb-pace{flex:none;text-align:center;line-height:1}
+#statusbar .sb-pace .pf{font-size:16px;font-weight:800}
+#statusbar .sb-pace .z{font-size:8px;color:var(--mut2)}
+#statusbar .sb-streak{flex:none;font-size:12px;font-weight:800;color:#f2b84b}
+#statChart{padding:0 var(--s2) 6px}
+#statChart[hidden]{display:none}
 
 /* ── Views / Content ─────────────────────────────────────────────── */
 main{
@@ -148,6 +173,15 @@ main{
 #fokusAktiv .fk-meta{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--mut);margin-top:8px;font-family:ui-monospace,monospace}
 #fokusAktiv .fk-meta b{color:var(--txt)}
 #fokusAktiv .fk-meta .pt{color:var(--ok);font-weight:800}
+/* Fokus-KPIs + Fortschrittsbalken (v1.1, v0.38-Port) */
+#fokusAktiv .fk-kpi{display:flex;gap:16px;margin-top:12px;font-family:ui-monospace,monospace}
+#fokusAktiv .fk-kpi>div{display:flex;flex-direction:column;line-height:1.15}
+#fokusAktiv .fk-kpi .v{font-size:17px;font-weight:800}
+#fokusAktiv .fk-kpi .v#fkSess{color:var(--cyan)}
+#fokusAktiv .fk-kpi .l{font-size:9px;color:var(--mut2);letter-spacing:.3px}
+#fokusAktiv .fk-prog{margin-top:10px;height:8px;border-radius:5px;background:#0a0f1a;overflow:hidden}
+#fokusAktiv .fk-prog>span{display:block;height:100%;background:var(--ok);border-radius:5px;transition:width .3s}
+#fokusAktiv .fk-prog.over>span{background:var(--warn)}
 #fokusAktiv .fk-ctrl{display:flex;gap:8px;margin-top:12px}
 #fokusAktiv .fk-play{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:12px;font-size:15px;font-weight:800;background:var(--blue);color:#0a0f1a}
 #fokusAktiv.laeuft .fk-play{background:var(--warn)}
@@ -359,7 +393,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
     <div class="sub" id="fkSub" hidden><span class="timer" id="fkTimer">0:00</span><span class="ppm" id="fkPts"></span></div>
   </div>
   <div class="right" id="fkRight"></div>
-</div></div>
+</div>
+<div id="statusbar" hidden>
+  <div class="sb-batt"><span class="batt"><span class="seg frei" id="sAkkuFrei"></span><span class="seg verpl" id="sAkkuVerplant"></span></span><span class="sb-akku" id="sAkkuPct">–%</span></div>
+  <div class="sb-mid">
+    <div class="sb-bar"><span class="ist" id="sBarIst"></span><span class="paceo" id="sBarPaceO"></span><span id="sBarMarks"></span></div>
+    <div class="sb-info"><span><b id="sPunkte">0 P</b> heute</span><span class="wohl" id="sWohl"></span><span id="sZiel"></span></div>
+  </div>
+  <div class="sb-pace"><div class="pf" id="sPfeil">→</div><div class="z" id="sPaceZahl">0/0</div></div>
+  <div class="sb-streak" id="sStreak">🔥0</div>
+</div>
+<div id="statChart" hidden></div>
+</div>
 
 <main>
   <!-- D1 Fokus -->
@@ -490,6 +535,7 @@ const DEFAULT_SETTINGS = {
   geldDeckel: 1.5,            // Faktor-Obergrenze (~1,5)
   geldScoreRef: 200,           // Referenz für geldScoreNorm = geldScore / Ref  (siehe Rückfrage)
   tageszielPunkteProStd: 100,  // Tagesziel (Pace) — M3
+  pfeilZone1: 5, pfeilZone2: 15, pfeilZone3: 40,  // v1.1: Pace-Pfeil-Zonen (% Abw. vom Soll) — v0.38-Port
   preisFaktor: 1.0,            // Shop-Preis-Faktor (§7 D7)
   levelSchwellen: [0,400,1200,2500,4500,7000,10000,14000,19000,25000,32000,40000],
   akkuProStd: -8,              // Akku-%/Std im Fokus — M3
@@ -550,11 +596,14 @@ function neuerStapel(f={}){
 }
 /* §3.6 Stapel-Ordner (rein visuell) */
 function neuerOrdner(f={}){ return Object.assign({ id:uuid(), name:'Ordner', stapelIds:[] }, f); }
-/* §3.7 Tag */
+/* §3.7 Tag. v1.1: log (Punkt-Ereignisse mit Zeit, für Verlauf/Kennzahlen),
+   akkuVerlauf (Energie-Stichproben), istMinutenStart (Tagesbasis je Karte für
+   „heute investiert"), streak (Tages-Streak wie v0.38). Alles additiv. */
 function neuerTag(datum, laufindex){
   return { tagId: datum+'-'+(laufindex||1), datum, laufindex:(laufindex||1),
            startTs:jetztIso(), endeTs:null, akku:null,
-           punkteBilanz:0, abzuegeBilanz:0, routinenBilanz:[], letzteAktivitaetTs:jetztIso() };
+           punkteBilanz:0, abzuegeBilanz:0, routinenBilanz:[], letzteAktivitaetTs:jetztIso(),
+           log:[], akkuVerlauf:[], istMinutenStart:{}, streak:0, erledigtHeute:0 };
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -590,6 +639,11 @@ function ladeAlles(){
   S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7 }, DB.get('ui', {}));
   // Karten gegen Schema-Drift härten (neue Felder erscheinen automatisch)
   S.karten = S.karten.map(k=>neueKarte(k));
+  // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
+  if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
+             if(!S.tag.istMinutenStart) S.tag.istMinutenStart={};
+             if(S.tag.streak==null) S.tag.streak=0; if(S.tag.erledigtHeute==null) S.tag.erledigtHeute=0; }
+  if(S.fokus && S.fokus.sessionSek==null) S.fokus.sessionSek=0;
 }
 const saveKarten  = ()=>{ rangInvalidieren(); return DB.set('karten', S.karten); };
 const saveStapel  = ()=>DB.set('stapel', S.stapel);
@@ -680,17 +734,21 @@ function kartenArt(k){
    S.fokus = { karteId, laeuft, startMs } — bei Pause/Wechsel/Abschluss
    fließt die laufende Zeit in karte.istSek. Reload läuft weiter (persistiert). */
 function fokusKarte(){ return S.fokus ? S.karten.find(k=>k.id===S.fokus.karteId) : null; }
+/* Laufende Sekunden der aktuellen (nicht eingebuchten) Session. */
+function laufendeSek(){ return (S.fokus && S.fokus.laeuft) ? (Date.now()-S.fokus.startMs)/1000 : 0; }
 function fokusZeitEinbuchen(){
   if(!S.fokus || !S.fokus.laeuft) return;
   const k=fokusKarte();
   const sek=(Date.now()-S.fokus.startMs)/1000;
-  if(k){ k.istSek=num(k.istSek)+sek; }
+  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); }   // v1.1: Akku-Drift beim Buchen
+  S.fokus.sessionSek=num(S.fokus.sessionSek)+sek;               // v1.1: Session-Summe (v0.38-Port)
   S.fokus.laeuft=false; S.fokus.startMs=0;
-  saveKarten(); saveFokus();
+  akkuSampleSchreiben();                                        // v1.1: Energie-Stichprobe
+  saveKarten(); saveFokus(); saveTag();
 }
 function fokusStarten(kid){
   if(S.fokus && S.fokus.karteId!==kid) fokusZeitEinbuchen();  // alten Fokus pausieren+buchen
-  if(!S.fokus || S.fokus.karteId!==kid) S.fokus={ karteId:kid, laeuft:false, startMs:0 };
+  if(!S.fokus || S.fokus.karteId!==kid) S.fokus={ karteId:kid, laeuft:false, startMs:0, sessionSek:0 };
   S.fokus.laeuft=true; S.fokus.startMs=Date.now();
   // Karussell auf die gestartete Karte stellen
   const i=fokusKandidaten().findIndex(k=>k.id===kid); if(i>=0) S.ui.fokusIdx=i;
@@ -704,6 +762,31 @@ function fokusToggle(){
 }
 function fokusBeenden(){ fokusZeitEinbuchen(); S.fokus=null; saveFokus(); }
 function saveFokus(){ DB.set('fokus', S.fokus); }
+/* ── Energie/Akku live (v1.1, v0.38-Port) ────────────────────────────
+   Der Tag trägt einen einzigen Akku-Stand (%); Fokuszeit driftet ihn über
+   akkuRate(karte). akkuLive() = gebuchter Stand + laufende (noch nicht
+   eingebuchte) Drift der aktiven Karte. akkuBuchen() schreibt die Drift beim
+   Einbuchen fest und deckelt auf 0..100. */
+function akkuBuchen(k, min){
+  if(!S.tag || S.tag.akku==null || !min) return;
+  S.tag.akku = Math.max(0, Math.min(100, num(S.tag.akku) + akkuRate(k)*min/60));
+}
+function akkuLive(){
+  if(!S.tag || S.tag.akku==null) return null;
+  let a=num(S.tag.akku);
+  if(S.fokus && S.fokus.laeuft){ const k=fokusKarte(); if(k) a += akkuRate(k)*(laufendeSek()/60)/60; }
+  return Math.max(0, Math.min(100, a));
+}
+/* Energie-Stichprobe (für die Belohnungs-Kurve): Zeit + Akku-Stand. */
+function akkuSampleSchreiben(){
+  if(!S.tag || S.tag.akku==null) return;
+  (S.tag.akkuVerlauf=S.tag.akkuVerlauf||[]).push({ ts:jetztIso(), akku:Math.round(num(S.tag.akku)*10)/10 });
+}
+/* Heute in eine Karte investierte Minuten (ab Tagesbasis, gedeckelt 16 h). */
+function heuteInvestiertMin(k){
+  const basis = (S.tag && S.tag.istMinutenStart && S.tag.istMinutenStart[k.id]!=null) ? num(S.tag.istMinutenStart[k.id]) : 0;
+  return Math.max(0, Math.min(16*60, istSekLive(k)/60 - basis));
+}
 
 /* ── Farbsystem §5 (berechnet, nie gespeichert) ──────────────────────
    Treiber = Rangposition rank/(n−1) unter offenen Karten derselben Farbgruppe
@@ -1028,10 +1111,23 @@ function renderFokus(){
   meta.push('<span>'+esc(kartenArt(k))+'</span>');
   if(k.faelligkeit) meta.push('<span>'+esc(fmtDatum(k.faelligkeit))+'</span>');
   if(k.uhrzeit) meta.push('<span>🕐 '+esc(k.uhrzeit)+'</span>');
-  meta.push('<span>▶ <b id="fkLiveTimer">'+mmss(istSekLive(k))+'</b> / '+num(k.sollMin)+'′</span>');
+  meta.push('<span>Σ <b id="fkLiveTimer">'+mmss(istSekLive(k))+'</b></span>');
   meta.push('<span class="pt" id="fkLivePts">'+Math.round(kartePunkte(k))+' P</span>');
   if(k.domain==='dfm' && k.projekt) meta.push('<span>'+esc(k.projekt)+'</span>');
   if(k.rhythmus && num(k.streak)>0) meta.push('<span>🔥'+num(k.streak)+'</span>');
+  // KPIs (v0.38-Port): Session-Stoppuhr · heute investiert · Soll · P/min
+  const invMin=heuteInvestiertMin(k), soll=num(k.sollMin);
+  const prog= soll>0 ? Math.min(100, invMin/soll*100) : 0, ueber= soll>0 && invMin>soll;
+  const zg=(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
+  const ppm= invMin>0.2 ? (punkteFuerZeit(k, invMin)*zg)/invMin : (rate(k)*zg)/60;
+  const sess= (S.fokus && S.fokus.karteId===k.id) ? num(S.fokus.sessionSek)+laufendeSek() : 0;
+  const kpi='<div class="fk-kpi">'
+    + '<div><span class="v" id="fkSess">'+mmss(sess)+'</span><span class="l">STOPPUHR</span></div>'
+    + '<div><span class="v"><span id="fkInv">'+Math.round(invMin)+'</span>′</span><span class="l">HEUTE</span></div>'
+    + '<div><span class="v">'+num(soll)+'′</span><span class="l">SOLL</span></div>'
+    + '<div><span class="v" id="fkPpm">'+ppm.toFixed(1)+'</span><span class="l">P/MIN</span></div>'
+    + '</div>'
+    + (soll>0?'<div class="fk-prog'+(ueber?' over':'')+'"><span id="fkProg" style="width:'+prog.toFixed(0)+'%"></span></div>':'');
 
   const subs=untermenge(k.id);
   let subHtml='';
@@ -1050,6 +1146,7 @@ function renderFokus(){
       '<div class="fk-top"><div class="fk-titel">'+esc(k.titel||'(ohne Titel)')+'</div>'+
         '<div class="fk-check" data-fkcheck="'+k.id+'">✓</div></div>'+
       '<div class="fk-meta">'+meta.join('')+'</div>'+
+      kpi+
       subHtml+
       '<div class="fk-ctrl">'+
         '<button class="fk-play" data-fktoggle="'+k.id+'">'+(laeuft?'⏸ Pause':'▶ Start')+'</button>'+
@@ -1103,6 +1200,89 @@ function renderFokusleiste(){
   }
   const tages=Math.round(tagesPunkteLive());
   el('fkRight').innerHTML='<div class="pt">'+tages+'</div><div class="lbl">heute · P</div>';
+  renderStatusbar();
+}
+const PACE_PFEILE=['⇊','↓','↘','→','↗','↑','⇈'];
+/* Nächster möglicher/naher Kauf (nur Kategorie-Icon + Restpunkte — verrät
+   KEINE Stufen-Inhalte): günstigste nicht gesperrte Kategorie. */
+function naechsterKaufHint(){
+  if(!S.belohnung) return null;
+  let best=null;
+  KAT_KEYS.forEach(kk=>{ if(kaufSperre(kk)) return; const pr=preisFuer(kk);
+    if(pr!=null && (best==null || pr<best.preis)) best={ kat:kk, preis:pr }; });
+  return best;
+}
+/* Statusleiste (v1.1, v0.38-Port): 3-teilige Energie-Batterie · Tages-
+   Fortschrittsbalken (lila Ist / orange Soll-Tempo / blaue Kauf-Schwellen) ·
+   Pace-Pfeil (7 Zonen) · Tages-Streak. Punkte heute nie negativ. */
+function renderStatusbar(){
+  const bar=el('statusbar'); if(!bar) return;
+  if(!tagOffen()){ bar.hidden=true; const c=el('statChart'); if(c){ c.hidden=true; } return; }
+  bar.hidden=false;
+  // Energie-Batterie
+  const eb=energieBatterie();
+  el('sAkkuFrei').style.width=eb.gruen.toFixed(1)+'%';
+  el('sAkkuVerplant').style.width=eb.gelb.toFixed(1)+'%';
+  el('sAkkuPct').textContent = eb.akku!=null ? Math.round(eb.akku)+'%' : '–%';
+  // Punkte heute + Wohlstand + Kauf-Hinweis
+  const istHeute=punkteHeuteAnzeige();
+  el('sPunkte').textContent=Math.round(istHeute)+' P';
+  el('sWohl').textContent='💰 '+Math.round(wohlstandLive());
+  const nk=naechsterKaufHint(), k=(S.belohnung?konto():0);
+  el('sZiel').textContent = nk
+    ? (k>=nk.preis ? BELOHNUNG[nk.kat].icon+' Kauf frei!' : BELOHNUNG[nk.kat].icon+' noch '+Math.round(nk.preis-k))
+    : '';
+  // Tages-Fortschrittsbalken: 100% = Tagesziel (Punkte über den Tag), lila = Ist,
+  // orange = Soll-Tempo (Anteil verstrichener Zeit × Ziel), blau = Kauf-Schwellen.
+  const std=Math.max(0.1, tagStundenVergangen());
+  const sollGes=Math.max(1, num(S.settings.tageszielPunkteProStd,100)*std);   // Ziel bis jetzt
+  const istPct=Math.min(100, istHeute/sollGes*100);
+  const pacePct=100;   // Soll-Tempo = 100% des „bis jetzt"-Ziels
+  el('sBarIst').style.width=istPct.toFixed(1)+'%';
+  const o=el('sBarPaceO'); const minPct=Math.min(istPct,pacePct);
+  o.style.left=minPct.toFixed(1)+'%'; o.style.width=Math.max(0,pacePct-minPct).toFixed(1)+'%';
+  // Kauf-Schwellen als Marken (kumulativ, relativ zum „bis jetzt"-Ziel)
+  let marks='';
+  if(S.belohnung){
+    const bankOhneHeute=k-istHeute; let kum=0;
+    KAT_KEYS.filter(kk=>!kaufSperre(kk)).map(preisFuer).filter(p=>p!=null).sort((a,b)=>a-b).forEach(pr=>{
+      kum+=pr; const need=kum-bankOhneHeute;
+      if(need>0 && need<=sollGes) marks+='<span class="mark" style="left:'+(need/sollGes*100).toFixed(1)+'%"></span>';
+    });
+  }
+  el('sBarMarks').innerHTML=marks;
+  // Pace-Pfeil (7 Zonen relativ zum Soll)
+  const {ist,soll}=paceWerte();
+  const z1=num(S.settings.pfeilZone1,5), z2=num(S.settings.pfeilZone2,15), z3=num(S.settings.pfeilZone3,40);
+  let idx=3, farbe='var(--mut)';
+  if(soll>0){ const abw=(ist-soll)/soll*100;
+    if(abw>=z3) idx=6; else if(abw>=z2) idx=5; else if(abw>=z1) idx=4;
+    else if(abw<=-z3) idx=0; else if(abw<=-z2) idx=1; else if(abw<=-z1) idx=2;
+    if(idx>3) farbe='var(--ok)'; if(idx<3) farbe='var(--bad)'; }
+  const pf=el('sPfeil'); pf.textContent=PACE_PFEILE[idx]; pf.style.color=farbe;
+  el('sPaceZahl').textContent=Math.round(ist)+'/'+Math.round(soll);
+  // Streak
+  el('sStreak').textContent='🔥'+tagesStreakStand(true);
+  // ausgeklappte Live-Kurve mitziehen
+  if(!el('statChart').hidden && typeof renderStatChart==='function') renderStatChart();
+  layoutTopbar();
+}
+/* Tap auf die Statusleiste: bis die Live-Kurve (Punkt 2) da ist, in den
+   Belohnungs-/Statistik-Tab springen (dort liegen die Diagramme). */
+function toggleStatChart(){
+  if(typeof renderStatChart==='function'){
+    const c=el('statChart'); c.hidden=!c.hidden; if(!c.hidden) renderStatChart();
+    layoutTopbar();
+  } else setTab('belohnung');
+}
+/* Der fixe Topbar wächst/schrumpft mit Statusleiste + Live-Kurve; main-Abstand
+   dynamisch nachziehen (statt fixer 44px), damit nichts verdeckt wird. */
+let _tbH=0;
+function layoutTopbar(){
+  const tb=el('topbar'); if(!tb) return;
+  const h=tb.offsetHeight; if(h===_tbH) return; _tbH=h;
+  const gap=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--s1'))||8;
+  document.querySelector('main').style.paddingTop=(h+gap)+'px';
 }
 /* Tag-Bezug (§3.7): aktuelle Tag-ID + „Tag offen?". */
 function aktuelleTagId(){ return S.tag ? S.tag.tagId : heuteApp(); }
@@ -1132,6 +1312,50 @@ function tagesZeitAggregat(tid){
   });
   return agg;
 }
+/* ── Statusleiste-/Fokus-Kennzahlen (v1.1, v0.38-Port) ───────────────
+   Heute erreichte Punkte für die Anzeige: nie negativ, keine Obergrenze
+   (Schiebe-Abzüge mindern, können aber nicht unter 0 drücken). */
+function punkteHeuteAnzeige(){ return Math.max(0, tagesPunkteLive()); }
+/* Verstrichene Stunden seit Tagesbeginn (manueller Tag, uhrzeitunabhängig). */
+function tagStundenVergangen(){
+  if(!S.tag || !S.tag.startTs) return 0;
+  return Math.max(0, (Date.now()-new Date(S.tag.startTs).getTime())/3600000);
+}
+/* Pace: erreichte Punkte/Std (ist) vs. Tagesziel-Punkte/Std (soll). */
+function paceWerte(){
+  const std=tagStundenVergangen();
+  const ist = std>0.02 ? punkteHeuteAnzeige()/std : 0;
+  const soll = num(S.settings.tageszielPunkteProStd,100);
+  return { ist, soll };
+}
+/* Karte gehört in den heutigen Energie-/Pace-Horizont: offen + heute fällig
+   oder überfällig, oder die aktuell laufende Fokus-Karte. */
+function imTagesstrom(k){
+  if(k.status!=='offen') return false;
+  if(S.fokus && S.fokus.karteId===k.id) return true;
+  if(!k.faelligkeit) return false;
+  return k.faelligkeit <= heuteApp();
+}
+/* 3-teilige Energie-Batterie (v0.38-Port): dunkel = verbraucht (100−Akku),
+   gelb = im Tagesstrom verplante Energie (Verbrauch offener Karten über ihre
+   Rest-Zeit, ladende Karten verkleinern es), grün = frei. */
+function energieBatterie(){
+  const akku=akkuLive();
+  let verplant=0, laden=0;
+  S.karten.forEach(k=>{
+    if(!imTagesstrom(k)) return;
+    const restMin=Math.max(0, num(k.sollMin) - heuteInvestiertMin(k));
+    if(restMin<=0) return;
+    const delta=akkuRate(k)*restMin/60;       // % über die Rest-Zeit (negativ = Verbrauch)
+    if(delta<0) verplant += -delta; else laden += delta;
+  });
+  const p = akku==null ? 0 : akku;
+  const dunkel=Math.max(0, 100-p);
+  const netto=Math.max(0, verplant-laden);
+  const gelb=Math.max(0, Math.min(p, netto));
+  const gruen=Math.max(0, p-gelb);
+  return { akku, gruen, gelb, dunkel };
+}
 function renderAlles(){
   rangCacheBauen();
   renderFokusleiste();
@@ -1151,6 +1375,13 @@ function starteTicker(){
     if(k && S.ui.tab==='fokus'){
       const t=el('fkLiveTimer'); if(t) t.textContent=mmss(istSekLive(k));
       const p=el('fkLivePts');   if(p) p.textContent=Math.round(kartePunkte(k))+' P';
+      // KPIs live mitziehen (Stoppuhr · heute · P/min · Fortschritt)
+      const se=el('fkSess'); if(se) se.textContent=mmss(num(S.fokus.sessionSek)+laufendeSek());
+      const invMin=heuteInvestiertMin(k), soll=num(k.sollMin);
+      const iv=el('fkInv'); if(iv) iv.textContent=Math.round(invMin);
+      const zg=(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
+      const pp=el('fkPpm'); if(pp) pp.textContent=(invMin>0.2?(punkteFuerZeit(k,invMin)*zg)/invMin:(rate(k)*zg)/60).toFixed(1);
+      const pr=el('fkProg'); if(pr && soll>0) pr.style.width=Math.min(100, invMin/soll*100).toFixed(0)+'%';
     }
   }, 1000);
 }
@@ -1194,8 +1425,23 @@ function tagStarten(akkuProzent){
       untermenge(k.id).forEach(u=>u.done=false);
     }
   });
+  // v1.1: Tagesbasis der Ist-Minuten je Karte (heute-investiert startet bei 0,
+  // mehrtägige Aufgaben behalten ihre bisherige Zeit) + erste Akku-Stichprobe.
+  S.tag.istMinutenStart={}; S.karten.forEach(k=>{ S.tag.istMinutenStart[k.id]=istSekLive(k)/60; });
+  S.tag.streak = tagesStreakStand(false);   // Stand VOR heute (heute wird beim Abschluss gebucht)
+  akkuSampleSchreiben();
   saveTag(); saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   renderAlles();
+}
+/* Tages-Streak (v0.38-Art, additiv): Anzahl unmittelbar zusammenhängender
+   abgeschlossener Tage mit positiver Bilanz. inklHeute=true zählt den offenen
+   Tag mit, wenn seine Live-Bilanz > 0 ist (für die Live-Anzeige). */
+function tagesStreakStand(inklHeute){
+  const tage=(S.historie||[]).filter(h=>!h.luecke).slice().sort((a,b)=> (a.datum<b.datum?1:a.datum>b.datum?-1:(num(b.laufindex)-num(a.laufindex))) );
+  let s=0;
+  for(const h of tage){ if(num(h.punkteBilanz)>0) s++; else break; }
+  if(inklHeute && tagOffen() && tagesPunkteLive()>0) s++;
+  return s;
 }
 /* Streak-Buchung bei Routinen-Erledigung (aus karteAbhaken). */
 function routineErledigtBuchen(k){
@@ -1227,13 +1473,16 @@ function tagAbschlussFinalisieren(){
   const bilanz = tagesPunkteLive();                      // erledigte heute − Abzüge (+ nichts Laufendes mehr)
   S.tag.punkteBilanz = Math.round(bilanz);
   S.tag.endeTs = jetztIso();
+  S.tag.streak = bilanz>0 ? tagesStreakStand(false)+1 : 0;   // v1.1: Tages-Streak einfrieren
   S.meta.wohlstand = num(S.meta.wohlstand) + bilanz;     // §4: kumulativ, nie Reset
-  // Snapshot für Statistiken (§9)
+  // Snapshot für Statistiken (§9) + Belohnungs-Diagramme (v1.1: log/akkuVerlauf/streak)
   S.historie.push({
     tagId:S.tag.tagId, datum:S.tag.datum, laufindex:S.tag.laufindex,
     startTs:S.tag.startTs, endeTs:S.tag.endeTs, akku:S.tag.akku,
     punkteBilanz:S.tag.punkteBilanz, abzuege:num(S.tag.abzuegeBilanz),
-    routinenBilanz:S.tag.routinenBilanz||[], zeit:tagesZeitAggregat(S.tag.tagId), luecke:false
+    routinenBilanz:S.tag.routinenBilanz||[], zeit:tagesZeitAggregat(S.tag.tagId), luecke:false,
+    log:(S.tag.log||[]).slice(), akkuVerlauf:(S.tag.akkuVerlauf||[]).slice(),
+    streak:S.tag.streak, erledigtHeute:num(S.tag.erledigtHeute)
   });
   saveTag(); saveHistorie(); saveMeta(); saveKarten();
 }
@@ -1573,6 +1822,7 @@ function karteAbhaken(kid, fromDetail){
     k.status='offen'; k.tagId=null;
     if(k.rhythmus && k.zuletztRoutine===heuteApp()){ k.streak=Math.max(0,num(k.streak)-1); k.zuletztRoutine=null; }
     if(k.tickKurve && k.tickKurve.length===1) k.ticksHeute=0;
+    logPunktEntfernen(k);                                 // v1.1: Punkt-Ereignis zurücknehmen
   } else {
     // Läuft der Timer auf dieser Karte → erst Zeit einbuchen, Fokus beenden (§6 Kante).
     if(!fromDetail && S.fokus && S.fokus.karteId===k.id) fokusBeenden();
@@ -1580,9 +1830,24 @@ function karteAbhaken(kid, fromDetail){
     if(k.tickKurve && k.tickKurve.length===1) k.ticksHeute=1;
     if(k.rhythmus) routineErledigtBuchen(k);              // Streak + zuletztRoutine
     if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
+    logPunktSchreiben(k);                                 // v1.1: Punkt-Ereignis (Verlauf/Kennzahlen)
     konfetti(); haptik(20);
   }
-  if(!fromDetail){ saveKarten(); renderAlles(); }
+  if(!fromDetail){ saveKarten(); saveTag(); renderAlles(); }
+}
+/* v1.1: Punkt-Ereignisse des Tages (für Intraday-Kurve & Kennzahlen). Ein
+   Eintrag je Abschluss mit Zeitstempel + Punktwert; Rücknahme entfernt den
+   letzten passenden Eintrag. Rein additiv, nicht im §8-Sync-Export. */
+function logPunktSchreiben(k){
+  if(!S.tag) return;
+  (S.tag.log=S.tag.log||[]).push({ itemId:k.id, titel:k.titel||'', domain:k.domain, art:kartenArt(k),
+                                    punkte:Math.round(kartePunkte(k)), ts:jetztIso() });
+  S.tag.erledigtHeute=num(S.tag.erledigtHeute)+1;
+}
+function logPunktEntfernen(k){
+  if(!S.tag || !S.tag.log) return;
+  for(let i=S.tag.log.length-1;i>=0;i--){ if(S.tag.log[i].itemId===k.id){ S.tag.log.splice(i,1); break; } }
+  S.tag.erledigtHeute=Math.max(0, num(S.tag.erledigtHeute)-1);
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2250,6 +2515,7 @@ el('btnStapelNeu').addEventListener('click', ()=>oeffneStapelEditor(null));
 // Fokus-Leiste: Play/Pause-Toggle + Mitte tippen → Fokus-Tab
 el('fkPP').addEventListener('click', ()=>{ if(S.fokus) fokusToggle(); else setTab('fokus'); });
 el('fkMid').addEventListener('click', ()=>setTab('fokus'));
+el('statusbar').addEventListener('click', ()=>toggleStatChart());
 
 // Fokus-View: Toggle / Häkchen / Karussell / Farbstreifen / Unteraufgaben / Stapelwahl
 el('fokusView').addEventListener('click', e=>{
@@ -2521,6 +2787,11 @@ function init(){
   if(S.fokus && S.fokus.laeuft) starteTicker();
   setTab(S.ui.tab||'stapel');
   renderFokusleiste();
+  layoutTopbar();
+  // Statusleiste driftet mit der Zeit (Pace/Akku/Kauf-Hinweis) — auch ohne
+  // laufenden Timer alle 20 s auffrischen, solange ein Tag offen ist.
+  setInterval(()=>{ if(tagOffen() && !(S.fokus&&S.fokus.laeuft)) renderStatusbar(); }, 20000);
+  window.addEventListener('resize', layoutTopbar);
 }
 init();
 
