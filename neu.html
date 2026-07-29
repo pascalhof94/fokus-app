@@ -158,6 +158,8 @@ main{
 .krow .kmeta .b{color:var(--txt)}
 .krow .kmeta .tag{color:var(--blue)}
 .krow .kmeta .pri-muss{color:var(--bad)}
+.krow .kstart{flex:none;width:40px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:15px;color:var(--blue);background:transparent}
+.krow .kstart.laeuft{color:#0a0f1a;background:var(--warn)}
 .krow .kcheck{flex:none;width:46px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line)}
 .krow .kcheck .box{width:24px;height:24px;border-radius:7px;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:15px;color:transparent;transition:all .15s}
 .krow.erledigt .kcheck .box{background:var(--ok);border-color:var(--ok);color:#0a0f1a}
@@ -1107,12 +1109,16 @@ function kartenreiheHtml(k, stapelId){
   if(k.rhythmus && num(k.streak)>0) meta.push('<span>🔥'+num(k.streak)+'</span>');
   const subCount = untermenge(k.id).length;
   if(subCount) meta.push('<span>☰ '+subCount+'</span>');
+  const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
+  const startBtn = k.status==='erledigt' ? '' :
+    '<button class="kstart'+(laeuft?' laeuft':'')+'" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="In den Fokus starten">'+(laeuft?'⏸':'▶')+'</button>';
   return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+'" data-kid="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
     '<div class="kgriff" data-griff="1">⠿</div>'+
     '<div class="kmain" data-detail="'+k.id+'">'+
       '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
       '<div class="kmeta">'+meta.join('')+'</div>'+
     '</div>'+
+    startBtn+
     '<div class="kcheck" data-check="'+k.id+'"><div class="box">✓</div></div>'+
   '</div>';
 }
@@ -1182,15 +1188,12 @@ function renderStapel(){
    9b · D1 Fokus-View + Fokus-Leiste + Farbstreifen (§7 D1)
    ══════════════════════════════════════════════════════════════════════ */
 /* Durchwechsel-Set: begonnene offene Karten PLUS alle Muss-Karten (offen). */
+/* Fokus-Karussell = ausschließlich die offenen Karten des GEWÄHLTEN Stapels
+   (in Stapel-Reihenfolge). Keine karten aus anderen Stapeln. */
 function fokusKandidaten(){
-  const ks=S.karten.filter(k=>k.status==='offen' && (istSekLive(k)>0 || k.prioritaet==='muss'));
-  const st=S.stapel.find(s=>s.id===S.ui.aktivStapel);
-  const reihenfolge = st ? stapelKarten(st).map(k=>k.id) : [];
-  ks.sort((a,b)=>{
-    const ia=reihenfolge.indexOf(a.id), ib=reihenfolge.indexOf(b.id);
-    return (ia<0?9e9:ia)-(ib<0?9e9:ib);
-  });
-  return ks;
+  const st=S.stapel.find(s=>s.id===S.ui.aktivStapel) || S.stapel[0];
+  if(!st) return [];
+  return stapelKarten(st).filter(k=>k.status==='offen');
 }
 function aktiveFokusKarte(){
   // Angezeigte Karte = fokusIdx-Kandidat (der Timer läuft unabhängig weiter,
@@ -1207,7 +1210,8 @@ function renderFokus(){
   const k=aktiveFokusKarte();
   const kand=fokusKandidaten();
   if(!k){
-    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine begonnene oder Muss-Karte.<br>Starte eine Karte über ▶ oder im Stapel.</div>'+streifenHtml();
+    const stn=(S.stapel.find(s=>s.id===S.ui.aktivStapel)||{}).name||'Stapel';
+    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine offene Karte im Stapel „'+esc(stn)+'".<br>Stapel unten wechseln oder eine Karte im Stapel starten.</div>'+streifenHtml();
     return;
   }
   const idx=Math.max(0, kand.findIndex(x=>x.id===k.id));
@@ -1249,8 +1253,9 @@ function renderFokus(){
     '<button class="tedit" data-detail="'+k.id+'" aria-label="Bearbeiten">✎</button>'+
     '<button class="tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause">'+(laeuft?'⏸':'▶')+'</button>'+
     '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button></div>';
+  const stName=(S.stapel.find(s=>s.id===S.ui.aktivStapel)||{}).name||'Stapel';
   const carousel = kand.length>1
-    ? '<div class="fk-carousel"><button class="arw" data-fkprev="1">‹</button><div class="pos">'+(idx+1)+' / '+kand.length+' · begonnene + Muss</div><button class="arw" data-fknext="1">›</button></div>'
+    ? '<div class="fk-carousel"><button class="arw" data-fkprev="1">‹</button><div class="pos">'+(idx+1)+' / '+kand.length+' · '+esc(stName)+'</div><button class="arw" data-fknext="1">›</button></div>'
     : '';
   host.innerHTML =
     carousel +
@@ -1724,7 +1729,7 @@ function pruefeTagKante(){
    ══════════════════════════════════════════════════════════════════════ */
 function tagBannerHtml(){
   if(tagOffen()){
-    const akku = S.tag.akku!=null ? S.tag.akku+'%' : '—';
+    const akku = S.tag.akku!=null ? Math.round(S.tag.akku)+'%' : '—';
     return '<div class="tagbanner offen">'+
       '<div class="tb-info"><div class="tb-h">Tag läuft · '+esc(S.tag.tagId)+'</div>'+
         '<div class="tb-sub">🔋 Akku '+akku+' · Bilanz <b>'+Math.round(tagesPunkteLive())+'</b> P · Wohlstand '+Math.round(wohlstandLive())+'</div></div>'+
@@ -2981,6 +2986,13 @@ el('stapelListe').addEventListener('click', e=>{
   const ord=t.closest('[data-ordner]'); if(ord){ const id=ord.dataset.ordner; S.ui.ordnerZu[id]=!S.ui.ordnerZu[id]; saveUi(); renderStapel(); return; }
   const gae=t.closest('[data-gruppeaktion]'); if(gae){ e.stopPropagation(); oeffneGruppeAktion(gae.dataset.gruppeaktion); return; }
   const gt=t.closest('[data-gtoggle]'); if(gt){ const key=gt.dataset.gtoggle; S.ui.gruppeZu[key]=!S.ui.gruppeZu[key]; saveUi(); renderStapel(); return; }
+  // Direkt aus dem Stapel in den Fokus starten: Stapel als aktiven übernehmen,
+  // Timer starten (oder toggeln, wenn schon diese Karte läuft) → Fokus-Tab.
+  const fst=t.closest('[data-fokusstart]'); if(fst){ e.stopPropagation();
+    const sid=fst.dataset.stapel, kid=fst.dataset.fokusstart;
+    if(sid){ S.ui.aktivStapel=sid; saveUi(); }
+    if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid);
+    setTab('fokus'); return; }
   const det=t.closest('[data-detail]'); if(det){ oeffneDetail(det.dataset.detail); return; }
   const chk=t.closest('[data-check]'); if(chk){ karteAbhaken(chk.dataset.check, false); return; }
 });
@@ -3056,12 +3068,15 @@ el('sheet').addEventListener('click', e=>{
   const gr=t.closest('[data-gruppe]'); if(gr){ entwurf.gruppeId = gr.dataset.gruppe || null; renderDetail(); return; }
   if(t.closest('[data-gruppeneu]')){ const n=(prompt('Name der Gruppe:')||'').trim(); if(n){ const g=neueGruppe({name:n}); S.gruppen.push(g); saveGruppen(); entwurf.gruppeId=g.id; } renderDetail(); return; }
 
-  // Tick-Kurve
-  if(t.closest('[data-tickadd]')){ entwurf.tickKurve.push(0); renderDetail(); return; }
+  // Tick-Kurve: erstes „Erstellen" springt auf 3 Schritte (Vorauswahl), jeder
+  // weitere Klick fügt einen an; der ＋-Button bleibt immer.
+  if(t.closest('[data-tickadd]')){ if(entwurf.tickKurve.length<3){ while(entwurf.tickKurve.length<3) entwurf.tickKurve.push(0); } else entwurf.tickKurve.push(0); renderDetail(); return; }
   if(t.closest('[data-tickdel]')){ if(entwurf.tickKurve.length>1) entwurf.tickKurve.pop(); renderDetail(); return; }
 
-  // Zeitstaffel (§4)
-  if(t.closest('[data-zsadd]')){ zeitStufenLies(); entwurf.zeitStufen=(entwurf.zeitStufen||[]).concat([{bisMin:null,punkteProStd:0}]); renderDetail(); return; }
+  // Zeitstaffel (§4): erste Anlage seedet 3 Stufen, danach je +1; Button bleibt.
+  if(t.closest('[data-zsadd]')){ zeitStufenLies(); const cur=entwurf.zeitStufen||[];
+    entwurf.zeitStufen = cur.length===0 ? [{bisMin:null,punkteProStd:0},{bisMin:null,punkteProStd:0},{bisMin:null,punkteProStd:0}] : cur.concat([{bisMin:null,punkteProStd:0}]);
+    renderDetail(); return; }
   const zsd=t.closest('[data-zsdel]'); if(zsd){ zeitStufenLies(); (entwurf.zeitStufen||[]).splice(num(zsd.dataset.zsdel),1); if(!entwurf.zeitStufen.length) entwurf.zeitStufen=null; renderDetail(); return; }
 
   // Unteraufgaben
