@@ -1,7 +1,8 @@
 {
-  "name": "Fokus App v1.0",
+  "id": "/neu.html",
+  "name": "Fokus App v1.0 Debug",
   "short_name": "Fokus v1",
-  "description": "Fokus App v1.0 „Debug" — neu.html, eigenständig neben der v0.38 (index.html).",
+  "description": "Fokus App v1.0 (Debug) - neu.html, eigenstaendig neben der v0.38 (index.html).",
   "lang": "de",
   "start_url": "./neu.html",
   "scope": "./",

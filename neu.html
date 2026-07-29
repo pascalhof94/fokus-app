@@ -1642,10 +1642,18 @@ function altGeldScore(impact){
   const map={hoch:300, mittel:200, niedrig:100};
   return map[impact]!=null ? map[impact] : 0;
 }
+/* v0.38-Rhythmus → v1.0 (taeglich | alleNTage | wochentage). Die v1.0-Modelle
+   sind bewusst schlanker (§2): Monats-/Zufalls-Rhythmen gibt es nicht, sie
+   werden auf „alle N Tage" angenähert (Näherung wird im Import gezählt). */
+function altRhythmusApprox(it){ return ['monatstage','zufallWoche','zufallMonat'].includes(it.rhythmusModus); }
 function altRhythmus(it){
   if(it.typ!=='routine') return null;
-  const wt=it.rhythmusWochentage;
-  if(Array.isArray(wt) && wt.length) return {typ:'wochentage', tage: wt.map(d=>num(d)+1).filter(n=>n>=1&&n<=7)};
+  const modus=it.rhythmusModus, wt=it.rhythmusWochentage;
+  if((modus==='wochentage'||!modus) && Array.isArray(wt) && wt.length)
+    return {typ:'wochentage', tage: wt.map(d=>num(d)+1).filter(n=>n>=1&&n<=7)};
+  if(modus==='monatstage'){ const c=(it.rhythmusMonatstage||[]).length; return {typ:'alleNTage', n: c>0?Math.max(1,Math.round(30/c)):30}; }
+  if(modus==='zufallWoche'){ const c=num(it.rhythmusZufallAnzahl,2); return {typ:'alleNTage', n: Math.max(1,Math.round(7/Math.max(1,c)))}; }
+  if(modus==='zufallMonat'){ const c=num(it.rhythmusZufallAnzahl,2); return {typ:'alleNTage', n: Math.max(1,Math.round(30/Math.max(1,c)))}; }
   const n=num(it.rhythmusTage, 1);
   if(n<=1) return {typ:'taeglich'};
   return {typ:'alleNTage', n};
@@ -1708,62 +1716,86 @@ function migrationBackupHref(){
     tag:altLese(ALT.TAG,null), historie:altLese(ALT.HISTORIE,[]) };
   return 'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(paket,null,2));
 }
-function migrationAusfuehren(){
-  const v=migrationVorschau();
-  if(!v.items.length){ toast('Keine Alt-Daten gefunden'); return; }
-  let neu=0, upd=0;
-  v.items.forEach(it=>{
-    // §10: nur offene Karten + Routinen/Counter-Definitionen; Alt-Historie NICHT.
-    // Erledigte Einmal-Aufgaben ohne Rhythmus überspringen (reine Historie).
-    if(it.status==='erledigt' && it.typ==='aufgabe') return;
+/* Gemeinsamer Kern: mappt alte Items (aus localStorage ODER aus einem
+   v0.38-Export) auf v1.0-Karten. Idempotent über herkunftId/id. */
+function importItems(items, opts){
+  opts=opts||{};
+  let neu=0, upd=0, erl=0, approx=0, subs=0;
+  items.forEach(it=>{
+    // Ohne mitErledigte: erledigte Einmal-Aufgaben überspringen (§10 = nur offen).
+    if(!opts.mitErledigte && it.status==='erledigt' && it.typ==='aufgabe') return;
+    if(altRhythmusApprox(it)) approx++;
     const k=mapAltKarte(it);
+    if(k.status==='erledigt') k.tagId = opts.datum || heuteApp();
     const exist = S.karten.find(x=> (k.herkunftId && x.herkunftId===k.herkunftId) || x.id===k.id );
+    let ziel;
     if(exist){
-      // idempotent: nur Definition/offene Felder auffrischen, App-Hoheit lassen
-      Object.assign(exist, {
-        titel:k.titel, projekt:k.projekt, geldScore:k.geldScore, notiz:k.notiz,
+      // idempotent: nur Definition auffrischen, App-Hoheit (Status/Ist) lassen
+      Object.assign(exist, { titel:k.titel, projekt:k.projekt, geldScore:k.geldScore, notiz:k.notiz,
         rhythmus:k.rhythmus, tickKurve:k.tickKurve, streak:k.streak,
-        komplex:k.komplex, energie:k.energie, blockade:k.blockade, prioritaet:k.prioritaet
-      });
-      upd++;
-    } else { S.karten.push(k); neu++; }
-    // Unteraufgaben (Match über App-id)
+        komplex:k.komplex, energie:k.energie, blockade:k.blockade, prioritaet:k.prioritaet });
+      ziel=exist; upd++;
+    } else { S.karten.push(k); ziel=k; neu++; if(k.status==='erledigt') erl++; }
+    // Unteraufgaben — Match ausschließlich über App-id
     if(Array.isArray(it.unteraufgaben)){
-      const pid=(S.karten.find(x=>x.herkunftId===k.herkunftId)||k).id;
       it.unteraufgaben.forEach(u=>{
         const uid=u.id||uuid();
         if(S.unteraufgaben.find(x=>x.id===uid)) return;
-        S.unteraufgaben.push(neueUnteraufgabe(pid, {id:uid, titel:u.titel||'', sollMin:num(u.geplantMin), done:!!u.erledigt}));
+        S.unteraufgaben.push(neueUnteraufgabe(ziel.id, {id:uid, titel:u.titel||'', sollMin:num(u.geplantMin), done:!!u.erledigt}));
+        subs++;
       });
     }
   });
-  // Wohlstand + Streaks (Wohlstand nie kleiner setzen)
-  if(v.wohlstand>num(S.meta.wohlstand)) S.meta.wohlstand=v.wohlstand;
+  return {neu, upd, erledigt:erl, approx, subs};
+}
+/* Weg 1 (§10): aus der v0.38-App im SELBEN Browser (localStorage, nur offen). */
+function migrationAusfuehren(){
+  const v=migrationVorschau();
+  if(!v.items.length){ toast('Keine Alt-Daten gefunden'); return; }
+  const r=importItems(v.items, {mitErledigte:false});
+  if(v.wohlstand>num(S.meta.wohlstand)) S.meta.wohlstand=v.wohlstand;   // Wohlstand aus lokaler App
   S.meta.migriertAm=jetztIso();
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
   closeSheet(); renderStapel(); renderEinst();
-  toast('Migriert: '+neu+' neu, '+upd+' aktualisiert'); haptik(20);
+  toast('Migriert: '+r.neu+' neu, '+r.upd+' aktualisiert'); haptik(20);
+}
+/* Weg 2: gepasteter v0.38-Export {typ,appVersion,datum,items,zeitEintraege}
+   — inkl. erledigter Aufgaben. Wohlstand nur, falls im Paket enthalten. */
+function v038ImportAusText(text){
+  let paket; try{ paket=JSON.parse(text); }catch(e){ return {fehler:'Ungültiges JSON'}; }
+  const items = Array.isArray(paket) ? paket : (paket && paket.items);
+  if(!Array.isArray(items) || !items.length) return {fehler:'Kein v0.38-Export erkannt (kein items-Array).'};
+  const r=importItems(items, {mitErledigte:true, datum: paket && paket.datum});
+  if(paket && paket.wohlstand!=null && num(paket.wohlstand)>num(S.meta.wohlstand)) S.meta.wohlstand=num(paket.wohlstand);
+  S.meta.migriertAm=jetztIso();
+  saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
+  renderStapel(); renderEinst();
+  return r;
 }
 function oeffneMigration(){
   const v=migrationVorschau();
   let h='';
-  h+='<p class="d">Liest die alte App (<code>fokus2.*</code>) <b>read-only</b>. Alt-Daten bleiben unangetastet, index.html funktioniert weiter.</p>';
-  if(!v.items.length){
-    h+='<div class="card"><p class="d">Es wurden keine Alt-Daten in diesem Browser gefunden. (Migration funktioniert dort, wo die alte App gespeichert hat — gleiche Domain.)</p></div>';
-    openSheet('Migration', h, '<button class="btn ghost" data-close="1">Schließen</button>');
-    return;
+  h+='<p class="d"><b>Zwei Wege</b>, deine v0.38-Daten zu übernehmen — bringt Karten, Definitionen, Streaks und Unteraufgaben.</p>';
+  // Weg 1: selber Browser (localStorage §10)
+  h+='<div class="card"><h3>1 · App im selben Browser</h3>';
+  if(v.items.length){
+    h+='<div class="kv"><span>Aufgaben / offen</span><b>'+v.items.length+' / '+v.offen+'</b></div>'+
+       '<div class="kv"><span>Routinen / Counter</span><b>'+v.routinen+' / '+v.counter+'</b></div>'+
+       '<div class="kv"><span>Wohlstand (kumulativ)</span><b>'+Math.round(v.wohlstand)+'</b></div>'+
+       '<a class="btn sm" style="display:block;text-decoration:none;margin:8px 0" href="'+migrationBackupHref()+'" download="fokus-alt-backup.json">⬇︎ Alt-Historie sichern</a>'+
+       '<button class="btn sm prim" data-migstart="1">Offene übernehmen (§10)</button>';
+  } else {
+    h+='<p class="d" style="color:var(--mut2)">Keine Alt-Daten in diesem Browser (nur dort, wo v0.38 gespeichert hat).</p>';
   }
-  h+='<div class="card">'+
-    '<div class="kv"><span>Aufgaben gesamt</span><b>'+v.items.length+'</b></div>'+
-    '<div class="kv"><span>davon offen</span><b>'+v.offen+'</b></div>'+
-    '<div class="kv"><span>Routinen</span><b>'+v.routinen+'</b></div>'+
-    '<div class="kv"><span>Counter</span><b>'+v.counter+'</b></div>'+
-    '<div class="kv"><span>Wohlstand (kumulativ)</span><b>'+Math.round(v.wohlstand)+'</b></div>'+
-  '</div>';
-  h+='<p class="d">Übernommen werden offene Karten, Routinen-/Counter-Definitionen, Wohlstand und Streaks. Die alte <b>Tages-Historie wird nicht</b> übernommen — sichere sie vorher als Backup:</p>';
-  h+='<a class="btn" style="display:block;text-decoration:none;margin-bottom:8px" href="'+migrationBackupHref()+'" download="fokus-alt-backup.json">⬇︎ Alt-Historie als JSON sichern</a>';
-  const foot='<button class="btn ghost sm" data-close="1">Abbrechen</button><button class="btn prim" data-migstart="1">Jetzt migrieren</button>';
-  openSheet('Migration', h, foot);
+  h+='</div>';
+  // Weg 2: v0.38-Export einfügen
+  h+='<div class="card"><h3>2 · v0.38-Export einfügen</h3><p class="d">Den Export der v0.38 (Feld <code>items</code>) hier einfügen — inkl. erledigter Aufgaben. Wohlstand ist im Sync-Export nicht enthalten (kommt über Weg 1 oder bleibt).</p>'+
+    '<textarea id="v038In" placeholder=\'{ "appVersion":"0.38.0", "items":[ … ] }\' style="min-height:110px;font-family:ui-monospace,monospace;font-size:11px"></textarea>'+
+    '<div id="v038Ergebnis"></div>'+
+    '<button class="btn sm prim" data-v038import="1" style="margin-top:8px">Aus Export importieren</button></div>';
+  // Was ankommt / was vereinfacht wird
+  h+='<div class="card"><h3>Was kommt an?</h3><p class="d">✅ Titel · Domäne · Projekt · Geld-Score · Soll/Ist-Zeit · Priorität · Rate-Treiber · Notiz · Fälligkeit · Status · <b>Streaks</b> · Unteraufgaben (Titel/Soll/erledigt) · Rhythmus · Counter-Tickkurve.<br>➖ Vom v1.0-Modell (§2) vereinfacht: Monats-/Zufalls-Rhythmus → „alle N Tage"; Zeit-Stufen-Kurven → einheitliche Rate; Unteraufgaben-Einzelpunkte & das Zeit-Log werden nicht als Einzelposten übernommen (Punkte rechnet v1.0 neu, Wohlstand bleibt die Summe).</p></div>';
+  openSheet('Migration & v0.38-Import', h, '<button class="btn ghost" data-close="1">Schließen</button>');
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2235,6 +2267,10 @@ el('sheet').addEventListener('click', e=>{
   if(t.id==='sheetX') return;   // eigener Close-Handler
   if(t.closest('[data-close]')){ closeSheet(); return; }
   if(t.closest('[data-migstart]')){ migrationAusfuehren(); return; }
+  if(t.closest('[data-v038import]')){ const ta=el('v038In'); const box=el('v038Ergebnis'); const r=v038ImportAusText(ta?ta.value:'');
+    if(r.fehler){ if(box) box.innerHTML='<div class="card" style="border-color:var(--bad);margin-top:8px"><p class="d" style="color:var(--bad)">'+esc(r.fehler)+'</p></div>'; }
+    else { if(box) box.innerHTML='<div class="card" style="border-color:var(--ok);margin-top:8px"><p class="d"><b>'+r.neu+'</b> neu · <b>'+r.upd+'</b> aktualisiert · <b>'+r.erledigt+'</b> erledigt · <b>'+r.subs+'</b> Unteraufgaben'+(r.approx?' · <b>'+r.approx+'</b> Rhythmen genähert':'')+'.</p></div>'; toast('v0.38-Export importiert'); haptik(20); }
+    return; }
 
   // ── Sync (§8)
   if(t.closest('[data-synccopy]')){ const ta=el('syncEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){} if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
