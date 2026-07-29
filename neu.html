@@ -2419,6 +2419,31 @@ function init(){
   renderFokusleiste();
 }
 init();
+
+/* ── Offline-PWA (§12) ────────────────────────────────────────────────
+   neu.html teilt sich den bestehenden network-first Service Worker (sw.js):
+   dieselbe scriptURL + Scope wie index.html ⇒ idempotent, index.html und
+   dessen SW bleiben komplett unangetastet. Online lädt der SW immer frisch,
+   offline aus dem Cache. Nach dem ersten Online-Öffnen sind neu.html +
+   manifest-neu.json gecacht (Avatar-Bilder pre-cacht sw.js bereits) ⇒
+   neu.html läuft offline als eigenes Homescreen-Icon (manifest-neu.json).
+   Zweites root-scoped SW wäre falsch (würde mit index.html um die Kontrolle
+   konkurrieren) — daher bewusst geteilt statt separat. */
+if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
+  addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    // Beim ersten Besuch kontrolliert der SW die Erst-Anfrage noch nicht →
+    // neu.html + manifest-neu.json explizit in den SW-Cache legen, sobald er
+    // bereit ist. Damit läuft neu.html schon nach dem ersten Online-Öffnen
+    // offline (Avatar-Bilder/Icons pre-cacht sw.js ohnehin).
+    navigator.serviceWorker.ready.then(async ()=>{
+      try{
+        const name=(await caches.keys()).find(k=>k.indexOf('fokus-')===0);
+        if(name){ await (await caches.open(name)).addAll(['neu.html','manifest-neu.json']); }
+      }catch(e){}
+    });
+  });
+}
 </script>
 </body>
 </html>
