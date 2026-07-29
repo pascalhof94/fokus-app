@@ -232,6 +232,29 @@ main{
 #fokusAktiv.laeuft .taufgabe .tpp{background:var(--warn)}
 .taufgabe .tcheck{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ok);background:transparent}
 .taufgabe .tedit{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--mut);background:transparent}
+/* Unteraufgaben-Block unter dem Tacho (v0.38-Port) */
+.tacc{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:var(--s1);overflow:hidden}
+.tacc .tacckopf{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;font-size:12px;font-weight:700;color:var(--mut);cursor:pointer}
+.tacc .tacckopf .pfeil{margin-left:auto;transition:transform .2s}
+.tacc.zu .tacckopf .pfeil{transform:rotate(-90deg)}
+.tacc .taccinhalt{display:block;padding:2px 12px 12px}
+.tacc.zu .taccinhalt{display:none}
+.thinweis{font-size:11px;color:var(--mut2);margin:2px 0 8px}
+.uareihe{display:flex;align-items:flex-start;gap:8px;padding:5px 0}
+.uareihe .uacheck{width:32px;height:32px;flex:none;display:flex;align-items:center;justify-content:center}
+.uareihe .uacheck .box{width:18px;height:18px;border:2px solid var(--mut2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--bg);font-weight:900}
+.uareihe.fertig .uacheck .box{background:var(--ok);border-color:var(--ok)}
+.uareihe .uatitel{flex:1;min-width:0;display:flex;align-items:center;padding-top:5px}
+.uareihe .uatitel .uat{font-size:12.5px;line-height:1.25;overflow-wrap:anywhere}
+.uareihe.fertig .uatitel .uat{color:var(--mut2);text-decoration:line-through}
+.uareihe .uamin{width:52px;flex:none;font-size:11px;text-align:center;padding:5px 4px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt)}
+.uareihe .uamin::placeholder{color:var(--cyan);opacity:.85}
+.uareihe .uapunkte{width:48px;flex:none;text-align:center;font-size:11px;color:var(--cyan);font-weight:700;padding-top:6px}
+.uareihe.fertig .uapunkte{color:var(--ok)}
+.uareihe .uax{width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--bad);font-size:13px;border-radius:7px;background:rgba(246,109,109,.12);border:1px solid rgba(246,109,109,.28)}
+.uaneu{display:flex;gap:var(--s1);margin-top:6px}
+.uaneu input{flex:1;font-size:13px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt)}
+.uaneu button{width:38px;flex:none;border-radius:8px;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:16px;font-weight:800}
 
 /* Karussell begonnene+Muss */
 .fk-carousel{display:flex;align-items:center;gap:8px;margin-bottom:var(--s2)}
@@ -1227,6 +1250,7 @@ function renderFokus(){
     carousel +
     '<div id="fokusAktiv" class="tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
       kopf+stats+kpis+planbar+aufgabe+'</div>'+
+    fokusSubsHtml(k)+
     streifenHtml();
   fokusTacho(k);   // Ring, Timer, Kennzahlen, Balken befüllen
 }
@@ -1328,6 +1352,39 @@ function fokusPlanbar(k){
   let info='erhalten '+Math.round(gruen)+' · geplant '+Math.round(planP)+' · offen '+Math.round(gelb)+' P';
   if(rot>0) info+=' · +'+Math.round(rot)+' über Plan';
   if(el('tpbInfo')) el('tpbInfo').textContent=info;
+}
+/* Unteraufgaben-Verteilung wie v0.38: feste Sollzeiten zählen, der Rest der
+   geplanten Karten-Minuten wird gleichmäßig auf die „leeren" verteilt. */
+function subZeitVerteilung(k){
+  const subs=untermenge(k.id), geplant=num(k.sollMin);
+  const fixSum=subs.filter(u=>num(u.sollMin)>0).reduce((s,u)=>s+num(u.sollMin),0);
+  const autoN=subs.filter(u=>!(num(u.sollMin)>0)).length, autoJe=autoN>0?Math.max(0,geplant-fixSum)/autoN:0;
+  return subs.map(u=>num(u.sollMin)>0?num(u.sollMin):autoJe);
+}
+/* Punkte-Anteil je Unteraufgabe = Karten-Prognose × Zeitanteil (nur Anzeige). */
+function subPunkteVerteilung(k){
+  const zeiten=subZeitVerteilung(k), summe=zeiten.reduce((s,z)=>s+z,0), geplant=num(k.sollMin);
+  const planP=Math.max(0, geplant>0?kartePunkteBei(k,geplant):kartePunkte(k));
+  return zeiten.map(z=> summe>0 ? planP*(z/summe) : (zeiten.length?planP/zeiten.length:0));
+}
+/* Unteraufgaben-Block unter dem Tacho (v0.38-Look): Häkchen · Titel · Minuten
+   (editierbar, leer = Auto) · Punkte-Anteil (cyan, aus der Zeit) · Löschen. */
+function fokusSubsHtml(k){
+  const subs=untermenge(k.id), zeiten=subZeitVerteilung(k), boni=subPunkteVerteilung(k);
+  const zu=!!S.ui.fokusSubsZu, fertig=subs.filter(u=>u.done).length;
+  const rows=subs.map((u,i)=>'<div class="uareihe'+(u.done?' fertig':'')+'" data-uaid="'+u.id+'">'+
+    '<button class="uacheck" data-uatoggle="'+u.id+'"><span class="box">'+(u.done?'✓':'')+'</span></button>'+
+    '<div class="uatitel"><span class="uat">'+esc(u.titel||'Teilschritt')+'</span></div>'+
+    '<input class="uamin" type="number" inputmode="numeric" data-uamin="'+u.id+'" placeholder="'+Math.round(zeiten[i]||0)+'" value="'+(num(u.sollMin)>0?num(u.sollMin):'')+'">'+
+    '<span class="uapunkte">'+(u.done?'+':'')+Math.round(boni[i]||0)+'</span>'+
+    '<button class="uax" data-uadel="'+u.id+'">✕</button></div>').join('');
+  return '<div class="tacc'+(zu?' zu':'')+'"><div class="tacckopf" data-tacctoggle="1">☑ Unteraufgaben'+
+    (subs.length?' · '+fertig+'/'+subs.length:'')+'<span class="pfeil">▾</span></div>'+
+    '<div class="taccinhalt">'+
+    (subs.length?'<div class="thinweis">Spalten: Minuten · Punkte-Anteil (aus der Zeit) — leer = automatisch</div>':'<div class="thinweis">Noch keine Unteraufgaben.</div>')+
+    rows+
+    '<div class="uaneu"><input id="fkUaNeu" type="text" placeholder="Unteraufgabe hinzufügen …"><button data-uaadd="'+k.id+'">+</button></div>'+
+    '</div></div>';
 }
 /* Farbstreifen: nächste 10 Karten des aktiven Stapels als Farbrechtecke. */
 function streifenHtml(){
@@ -2873,9 +2930,18 @@ el('fokusView').addEventListener('click', e=>{
   if(t.closest('[data-fknext]')){ S.ui.fokusIdx=(S.ui.fokusIdx||0)+1; saveUi(); renderFokus(); return; }
   const sr=t.closest('[data-streif]'); if(sr){ const k=S.karten.find(x=>x.id===sr.dataset.streif); if(k){ const kand=fokusKandidaten(); const i=kand.findIndex(x=>x.id===k.id); if(i>=0){ S.ui.fokusIdx=i; saveUi(); renderFokus(); } else oeffneDetail(k.id); } return; }
   const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
+  // Unteraufgaben-Block (v0.38-Look)
+  if(t.closest('[data-tacctoggle]')){ const acc=t.closest('.tacc'); const zu=acc.classList.toggle('zu'); S.ui.fokusSubsZu=zu; saveUi(); return; }
+  const ut=t.closest('[data-uatoggle]'); if(ut){ const u=S.unteraufgaben.find(x=>x.id===ut.dataset.uatoggle); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
+  const ux=t.closest('[data-uadel]'); if(ux){ S.unteraufgaben=S.unteraufgaben.filter(x=>x.id!==ux.dataset.uadel); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); return; }
+  const ua=t.closest('[data-uaadd]'); if(ua){ const inp=el('fkUaNeu'); const tt=(inp&&inp.value||'').trim(); if(tt){ S.unteraufgaben.push(neueUnteraufgabe(ua.dataset.uaadd,{titel:tt})); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
 });
 el('fokusView').addEventListener('change', e=>{
-  if(e.target.id==='streifStapel'){ S.ui.aktivStapel=e.target.value; saveUi(); renderFokus(); }
+  if(e.target.id==='streifStapel'){ S.ui.aktivStapel=e.target.value; saveUi(); renderFokus(); return; }
+  const um=e.target.closest('[data-uamin]'); if(um){ const u=S.unteraufgaben.find(x=>x.id===um.dataset.uamin); if(u){ u.sollMin=num(e.target.value); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
+});
+el('fokusView').addEventListener('keydown', e=>{
+  if(e.target.id==='fkUaNeu' && e.key==='Enter'){ const k=aktiveFokusKarte(); const tt=e.target.value.trim(); if(k&&tt){ S.unteraufgaben.push(neueUnteraufgabe(k.id,{titel:tt})); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } }
 });
 // Swipe ←/→ blättert durch das Fokus-Karussell
 (function(){
