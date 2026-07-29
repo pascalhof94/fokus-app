@@ -302,6 +302,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .aufl .arow .bwrap2{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
 .aufl .arow .bwrap2 i{display:block;height:100%;background:var(--purple)}
 .aufl .arow b{flex:none;font-family:ui-monospace,monospace;font-size:11px}
+/* Gruppen-Bulk-Zuordnung (Punkt 5g) */
+.gzlist{max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px;padding:4px 8px;margin-top:6px}
+.gzrow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:14px}
+.gzrow:last-child{border-bottom:0}
+.gzrow input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--blue)}
+.gzrow .dot{width:12px;height:12px;border-radius:3px;flex:none}
+.gzrow .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── Sheet (Detail D3 / Stapel-Editor D4) ────────────────────────── */
 #backdrop{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -2246,6 +2253,47 @@ function oeffneGruppeAktion(gid){
   const foot='<button class="btn ghost sm" data-close="1">Schließen</button><button class="btn warn sm" data-grpdissolve="'+gid+'">Gruppe auflösen</button>';
   openSheet('Karten-Gruppe', h, foot);
 }
+/* §3.3 Gruppen-Verwaltung + Bulk-Mehrfachzuordnung (Punkt 5g): zentrale Liste
+   in den Einstellungen; „Zuordnen" öffnet eine gefilterte Checkbox-Liste ALLER
+   Karten (v. a. der 61 privaten), Häkchen = Mitglied. Anwenden setzt/entfernt
+   gruppeId im Bulk. Eine Karte gehört zu genau einer Gruppe (letzte Zuordnung
+   gewinnt). */
+function gruppenVerwaltungHtml(){
+  let h='<div class="card"><h3>Karten-Gruppen</h3><p class="d">Karten (v. a. private) in Gruppen bündeln — Sammel-Zuordnung + gemeinsames Verschieben der Fälligkeit (§3.3).</p>';
+  if(!S.gruppen.length) h+='<p class="d" style="color:var(--mut2)">Noch keine Gruppen.</p>';
+  S.gruppen.forEach(g=>{ const n=gruppeMitglieder(g.id).length;
+    h+='<div class="kv"><span>🗃 '+esc(g.name)+' <span style="color:var(--mut2)">· '+n+' Karten</span></span>'+
+       '<span class="btnrow" style="margin:0;gap:6px"><button class="minibtn" data-grpassign="'+g.id+'">Zuordnen</button>'+
+       '<button class="minibtn" data-grpakt="'+g.id+'">⚙︎</button></span></div>'; });
+  h+='<div class="btnrow"><button class="btn sm" id="btnGruppeNeu">＋ Gruppe</button></div></div>';
+  return h;
+}
+let gruppeZuTmp=null;
+function oeffneGruppeZuordnen(gid){
+  gruppeZuTmp={ gid, dom:'privat', checked:new Set(gruppeMitglieder(gid).map(k=>k.id)) };
+  renderGruppeZuordnen();
+}
+function renderGruppeZuordnen(){
+  const t=gruppeZuTmp, g=S.gruppen.find(x=>x.id===t.gid); if(!g){ closeSheet(); return; }
+  const dseg=(v,l)=>'<button class="'+(t.dom===v?'on':'')+'" data-gzdom="'+v+'">'+l+'</button>';
+  let liste=S.karten.filter(k=>k.status!=='archiviert');
+  if(t.dom!=='alle') liste=liste.filter(k=>k.domain===t.dom);
+  liste.sort((a,b)=>String(a.titel||'').localeCompare(String(b.titel||'')));
+  let h='<p class="d">Karten für „<b>'+esc(g.name)+'</b>" wählen — Häkchen = in der Gruppe. <b id="gzCount">'+t.checked.size+'</b> gewählt.</p>';
+  h+='<div class="statfilter"><span class="segmini">'+dseg('alle','Alle')+dseg('dfm','DFM')+dseg('privat','Privat')+'</span></div>';
+  h+='<div class="gzlist">'+(liste.map(k=>{ const on=t.checked.has(k.id), inAnd=k.gruppeId&&k.gruppeId!==t.gid;
+    return '<label class="gzrow"><input type="checkbox" data-gztoggle="'+k.id+'"'+(on?' checked':'')+'>'+
+      '<span class="dot" style="background:'+karteFarbe(k)+'"></span>'+
+      '<span class="tx">'+esc(k.titel||'(ohne Titel)')+(inAnd?' <small style="color:var(--mut2)">· '+esc(gruppeName(k.gruppeId))+'</small>':'')+'</span></label>';
+  }).join('')||'<p class="d" style="color:var(--mut2)">Keine Karten in dieser Domäne.</p>')+'</div>';
+  const foot='<button class="btn ghost sm" data-close="1">Abbrechen</button><button class="btn prim sm" data-gzapply="1">Zuordnen ('+t.checked.size+')</button>';
+  openSheet('Zu Gruppe zuordnen', h, foot);
+}
+function gruppeZuordnenAnwenden(){
+  const t=gruppeZuTmp; if(!t) return;
+  S.karten.forEach(k=>{ if(t.checked.has(k.id)) k.gruppeId=t.gid; else if(k.gruppeId===t.gid) k.gruppeId=null; });
+  saveKarten(); gruppeZuTmp=null; closeSheet(); renderEinst(); toast('Gruppe aktualisiert');
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    14 · D6 Einstellungen (Regler · Migration · Sync · Backup)
@@ -2280,6 +2328,9 @@ function renderEinst(){
   if(!S.vorlagen.length) h+='<p class="d" style="color:var(--mut2)">Noch keine Vorlagen.</p>';
   S.vorlagen.forEach(v=>{ h+='<div class="kv"><span>📄 '+esc(v.name)+' <span style="color:var(--mut2)">· '+(v.unteraufgaben?v.unteraufgaben.length:0)+' Teilschritte</span></span><button class="minibtn" data-vorlagedel="'+v.id+'" style="padding:3px 9px">✕</button></div>'; });
   h+='</div>';
+
+  // Karten-Gruppen (§3.3, Bulk-Zuordnung Punkt 5g)
+  h+=gruppenVerwaltungHtml();
 
   h+='<div class="card"><h3>Info</h3>'+
     '<div class="kv"><span>Version</span><b>'+UI_VERSION+' · M1–M5 + Rückbau</b></div>'+
@@ -2750,6 +2801,10 @@ el('sheet').addEventListener('click', e=>{
     else { renderAlles(); const exta=el('syncEx'); if(exta) exta.value=syncExportText('sync'); if(box) box.innerHTML='<div class="card" style="border-color:var(--ok)"><p class="d">Import: <b>'+res.neu+'</b> neu · <b>'+res.upd+'</b> aktualisiert · <b>'+res.arch+'</b> archiviert.</p></div>'; toast('Sync importiert'); haptik(15); }
     return; }
 
+  // ── Gruppen-Bulk-Zuordnung (§3.3 / Punkt 5g)
+  const gzd=t.closest('[data-gzdom]'); if(gzd){ if(gruppeZuTmp){ gruppeZuTmp.dom=gzd.dataset.gzdom; renderGruppeZuordnen(); } return; }
+  if(t.closest('[data-gzapply]')){ gruppeZuordnenAnwenden(); return; }
+
   // ── Gruppen-Aktionen (§3.3)
   const grh=t.closest('[data-grpheute]'); if(grh){ gruppeVerschieben(grh.dataset.grpheute, heuteApp()); closeSheet(); renderAlles(); toast('Gruppe auf heute'); return; }
   const grm=t.closest('[data-grpmorgen]'); if(grm){ gruppeVerschieben(grm.dataset.grpmorgen, morgenIso()); closeSheet(); renderAlles(); toast('Gruppe auf morgen'); return; }
@@ -2859,6 +2914,13 @@ el('sheetBody').addEventListener('input', e=>{
 });
 el('sheetBody').addEventListener('change', e=>{
   const t=e.target;
+  // Gruppen-Bulk-Zuordnung: Häkchen live in die Auswahl-Menge (ohne Neurender → Scroll bleibt)
+  if(t.dataset.gztoggle!=null && gruppeZuTmp){
+    if(t.checked) gruppeZuTmp.checked.add(t.dataset.gztoggle); else gruppeZuTmp.checked.delete(t.dataset.gztoggle);
+    const c=el('gzCount'); if(c) c.textContent=gruppeZuTmp.checked.size;
+    const ap=document.querySelector('[data-gzapply]'); if(ap) ap.textContent='Zuordnen ('+gruppeZuTmp.checked.size+')';
+    return;
+  }
   if(t.dataset.fbfeld!=null){ stapelLiesEditor(); const i=num(t.dataset.fbfeld); const f=stapelEntwurf.filter[i]; f.feld=t.value; f.op=null; f.werte=[]; f.wert=null; // Feldwechsel → Operator/Wert zurücksetzen
     const typ=feldTyp(f.feld); f.op = typ==='select'?'ist':typ==='zahl'?'gte':typ==='datum'?'heute':'enthaelt'; renderStapelEditor(); return; }
   if(t.dataset.fbop!=null){ stapelLiesEditor(); renderStapelEditor(); return; }
@@ -2926,7 +2988,11 @@ el('einstBody').addEventListener('click', e=>{
   if(e.target.closest('#btnSync')) oeffneSync();
   else if(e.target.closest('#btnMig')) oeffneMigration();
   else if(e.target.closest('#btnBackup')) backupHtml();
-  const vd=e.target.closest('[data-vorlagedel]'); if(vd){ if(confirm('Vorlage löschen?')){ vorlageLoeschen(vd.dataset.vorlagedel); renderEinst(); } }
+  const vd=e.target.closest('[data-vorlagedel]'); if(vd){ if(confirm('Vorlage löschen?')){ vorlageLoeschen(vd.dataset.vorlagedel); renderEinst(); } return; }
+  // Karten-Gruppen (§3.3 / Punkt 5g)
+  if(e.target.closest('#btnGruppeNeu')){ const n=(prompt('Name der Gruppe:')||'').trim(); if(n){ const g=neueGruppe({name:n}); S.gruppen.push(g); saveGruppen(); renderEinst(); oeffneGruppeZuordnen(g.id); } return; }
+  const ga=e.target.closest('[data-grpassign]'); if(ga){ oeffneGruppeZuordnen(ga.dataset.grpassign); return; }
+  const gk=e.target.closest('[data-grpakt]'); if(gk){ oeffneGruppeAktion(gk.dataset.grpakt); return; }
 });
 el('einstBody').addEventListener('change', e=>{
   const t=e.target; if(t.dataset.setting){ S.settings[t.dataset.setting]=num(t.value); saveSettings(); }
