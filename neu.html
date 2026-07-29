@@ -415,7 +415,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.0.0';
+const VERSION = '1.0.0';                    // Datenvertrag/Sync-appVersion — bleibt 1.0.0 (Airtable /Fokus Sync, §D)
+const UI_VERSION = 'v1.1';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -640,9 +641,12 @@ function kartePunkte(k){
   return zeitTerm + tickTerm;
 }
 /* Abgeleitetes „Art"-Etikett (§2.1) — nur Anzeige. */
+/* Kartenart REIN ABGELEITET (v1.0 hat kein typ-Feld; die 74 Bestandskarten
+   tragen keins). Regel wie v0.38-Bestand verifiziert (34/9/31):
+   Routine = rhythmus gesetzt · Counter = mehrgliedrige Tick-Kurve · sonst Aufgabe.
+   timerFlag/Stoppuhr ist ORTHOGONAL (§4: eine Karte kann Zeit UND Ticks tragen). */
 function kartenArt(k){
   if(k.rhythmus) return 'Routine';
-  if(k.timerFlag) return 'Timer';
   if(Array.isArray(k.tickKurve) && k.tickKurve.length>1) return 'Counter';
   return 'Aufgabe';
 }
@@ -724,9 +728,10 @@ function karteFarbe(k){
    ══════════════════════════════════════════════════════════════════════ */
 const FELDER = {
   domain:     {label:'Domäne',    typ:'select', opt:()=>[['dfm','DFM'],['privat','Privat']]},
+  kartenArt:  {label:'Kartenart', typ:'select', wert:k=>kartenArt(k), opt:()=>[['Routine','Routine'],['Counter','Counter'],['Aufgabe','Aufgabe']]},
   titel:      {label:'Titel',     typ:'text'},
   notiz:      {label:'Notiz',     typ:'text'},
-  projekt:    {label:'Projekt',   typ:'select', opt:()=>distinct('projekt').map(v=>[v,v])},
+  projekt:    {label:'Projekt',   typ:'select', wert:k=>k.projekt||'', opt:()=>[['','(kein Projekt)']].concat(distinct('projekt').map(v=>[v,v]))},
   geldScore:  {label:'Geld-Score',typ:'zahl'},
   faelligkeit:{label:'Fälligkeit',typ:'datum'},
   uhrzeit:    {label:'Termin',    typ:'select', wert:k=>k.uhrzeit?'ja':'nein', opt:()=>[['ja','hat Uhrzeit'],['nein','ohne']]},
@@ -742,7 +747,7 @@ const FELDER = {
   status:     {label:'Status',    typ:'select', opt:()=>[['offen','offen'],['erledigt','erledigt'],['archiviert','archiviert']]},
   streak:     {label:'Streak',    typ:'zahl'},
   tagId:      {label:'Buchungstag',typ:'datum', wert:k=>k.tagId?String(k.tagId).slice(0,10):null},
-  gruppeId:   {label:'Gruppe',    typ:'select', wert:k=>k.gruppeId||'', opt:()=>S.gruppen.map(g=>[g.id,g.name])}
+  gruppeId:   {label:'Gruppe',    typ:'select', wert:k=>k.gruppeId||'', opt:()=>[['','(keine Gruppe)']].concat(S.gruppen.map(g=>[g.id,g.name]))}
 };
 /* Auto-Discovery: jedes weitere primitive Kartenfeld wird automatisch filterbar. */
 function feldKatalog(){
@@ -1954,7 +1959,8 @@ function renderEinst(){
   h+='</div>';
 
   h+='<div class="card"><h3>Info</h3>'+
-    '<div class="kv"><span>Version</span><b>v'+VERSION+' · M2</b></div>'+
+    '<div class="kv"><span>Version</span><b>'+UI_VERSION+' · M1–M5 + Rückbau</b></div>'+
+    '<div class="kv"><span>Sync-Vertrag (appVersion)</span><b>'+VERSION+'</b></div>'+
     '<div class="kv"><span>Karten</span><b>'+S.karten.length+'</b></div>'+
     '<div class="kv"><span>Stapel</span><b>'+S.stapel.length+'</b></div>'+
     '<div class="kv"><span>Wohlstand (live)</span><b>'+Math.round(wohlstandLive())+'</b></div>'+
@@ -1962,7 +1968,7 @@ function renderEinst(){
     '<div class="kv"><span>Abgeschlossene Tage</span><b>'+(S.historie?S.historie.length:0)+'</b></div>'+
     (S.meta.migriertAm?'<div class="kv"><span>migriert</span><b>'+esc(S.meta.migriertAm.slice(0,10))+'</b></div>':'')+
   '</div>';
-  h+='<div style="text-align:center;color:var(--mut2);font-size:11px;margin-top:6px">Fokus App v1.0 „Debug" · neu.html · index.html bleibt Fallback</div>';
+  h+='<div style="text-align:center;color:var(--mut2);font-size:11px;margin-top:6px">Fokus App '+UI_VERSION+' · neu.html · index.html bleibt Fallback</div>';
   el('einstBody').innerHTML=h;
 }
 function backupHtml(){
