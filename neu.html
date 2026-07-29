@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0d1420">
 <title>Fokus v1.0</title>
 <link rel="manifest" href="manifest-neu.json">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon-neu.png">
 <style>
 /* ══════════════════════════════════════════════════════════════════════
    Fokus App v1.0 „Debug" — neu.html (Single-File, Vanilla JS)
@@ -2475,7 +2475,7 @@ if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
     navigator.serviceWorker.ready.then(async ()=>{
       try{
         const name=(await caches.keys()).find(k=>k.indexOf('fokus-')===0);
-        if(name){ await (await caches.open(name)).addAll(['neu.html','manifest-neu.json']); }
+        if(name){ await (await caches.open(name)).addAll(['neu.html','manifest-neu.json','icon-neu-192.png','icon-neu-512.png','apple-touch-icon-neu.png']); }
       }catch(e){}
     });
   });
