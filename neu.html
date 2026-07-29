@@ -1726,7 +1726,10 @@ function importItems(items, opts){
     if(!opts.mitErledigte && it.status==='erledigt' && it.typ==='aufgabe') return;
     if(altRhythmusApprox(it)) approx++;
     const k=mapAltKarte(it);
-    if(k.status==='erledigt') k.tagId = opts.datum || heuteApp();
+    // Erledigt-Import: NICHT auf den Import-/Export-Tag umdatieren (sonst zählt
+    // eine alte Erledigung als „heute" und flutet Erledigt-heute/Tagesbilanz).
+    // Nur den echten v0.38-Erledigungstag übernehmen, sonst undatiert lassen.
+    if(k.status==='erledigt') k.tagId = it.zuletztErledigt || null;
     const exist = S.karten.find(x=> (k.herkunftId && x.herkunftId===k.herkunftId) || x.id===k.id );
     let ziel;
     if(exist){
