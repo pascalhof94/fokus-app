@@ -188,6 +188,50 @@ main{
 #fokusAktiv .fk-edit{flex:none;padding:12px 16px;border-radius:12px;border:1px solid var(--line);font-weight:700;color:var(--mut)}
 #fokusLeer{margin-top:16vh;text-align:center;color:var(--mut2);font-size:13px}
 #fokusLeer .big{font-size:44px;display:block;margin-bottom:var(--s1)}
+/* Fokus-Tacho (v1.1, v0.38-Port): Avatar im Ring + Zeit + umrandete Kennzahlen */
+#fokusAktiv.tkern{border-left:4px solid var(--line);padding:12px}
+#fokusAktiv.tkern.laeuft{box-shadow:0 0 0 1px var(--blue) inset}
+.tkopfreihe{display:flex;align-items:center;gap:12px}
+.tringwrap{position:relative;width:132px;height:132px;flex:none}
+.tringwrap .avfoto{position:absolute;inset:0;margin:auto;width:86px;height:86px;border-radius:50%;object-fit:cover;object-position:50% 4%}
+.tringwrap .avfallback{position:absolute;inset:0;margin:auto;width:86px;height:86px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--card2)}
+.tkopfpuls{animation:tpuls 1.4s ease-in-out infinite}
+@keyframes tpuls{0%,100%{opacity:.85}50%{opacity:.15}}
+.tinfos{flex:1;min-width:0}
+.trest{font-family:ui-monospace,SFMono-Regular,monospace;font-size:26px;font-weight:800;line-height:1.1}
+.trest.gruen{color:var(--ok)} .trest.gelb{color:var(--warn)} .trest.rot{color:var(--bad)}
+.trestsub{font-size:10.5px;color:var(--mut);margin-bottom:8px}
+.tuabox{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.tuabox .l{font-size:9px;color:var(--mut2);letter-spacing:.5px}
+.tuabox .n{font-size:12px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.tuabox .r{font-size:10px;color:var(--mut)}
+.tstats{display:flex;gap:8px;margin-top:12px}
+.tstat{flex:1;min-width:0;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:6px 8px;display:flex;flex-direction:column;gap:2px}
+.tstat b{font-size:14px;font-weight:800;color:var(--txt);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tstat .tss{font-size:8.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tstat.akku{border-color:rgba(62,207,142,.45)} .tstat.akku b{color:var(--ok)}
+.tstat .tsi{font-size:12px}
+.tkpis{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:10px}
+.tkpi{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 3px;text-align:center;min-width:0}
+.tkpi.gut{background:rgba(62,207,142,.14);border-color:var(--ok)}
+.tkpi.warn{background:rgba(242,184,75,.14);border-color:var(--warn)}
+.tkpi-h{font-size:14px;font-weight:800;color:var(--txt);line-height:1.05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tkpi-l{font-size:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.3px;margin-top:1px}
+.tkpi-s{font-size:8.5px;color:var(--mut2);margin-top:2px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpbar{margin-top:10px}
+.tpb-track{position:relative;height:16px;border-radius:8px;background:var(--bg);border:1px solid var(--line);overflow:hidden;display:flex}
+.tpb-g{background:var(--ok);transition:width .5s} .tpb-y{background:var(--warn);transition:width .5s} .tpb-r{background:var(--bad);transition:width .5s}
+.tpb-marks{position:absolute;inset:0;pointer-events:none}
+.tpb-mark{position:absolute;top:0;bottom:0;width:2px;background:var(--purple);box-shadow:0 0 4px var(--purple)}
+.tpb-info{font-size:9px;color:var(--mut2);margin-top:4px;font-family:ui-monospace,monospace;text-align:center}
+.taufgabe{display:flex;align-items:center;gap:10px;margin-top:12px}
+.taufgabe .tmain{flex:1;min-width:0}
+.taufgabe .ttitel{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.taufgabe .tsub{font-size:10px;color:var(--mut)}
+.taufgabe .tpp{width:52px;height:52px;border-radius:50%;background:var(--blue);flex:none;display:flex;align-items:center;justify-content:center;font-size:21px;color:#04122e}
+#fokusAktiv.laeuft .taufgabe .tpp{background:var(--warn)}
+.taufgabe .tcheck{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ok);background:transparent}
+.taufgabe .tedit{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--mut);background:transparent}
 
 /* Karussell begonnene+Muss */
 .fk-carousel{display:flex;align-items:center;gap:8px;margin-bottom:var(--s2)}
@@ -1005,6 +1049,15 @@ function seedStapel(){
    9 · Rendering — D2 Stapelübersicht
    ══════════════════════════════════════════════════════════════════════ */
 function mmss(sek){ sek=Math.max(0,Math.round(sek)); const m=Math.floor(sek/60), s=sek%60; return m+':'+String(s).padStart(2,'0'); }
+/* H:MM:SS für den großen Fokus-Timer (v0.38-Tacho). */
+function hms(sek){ sek=Math.max(0,Math.round(sek)); const h=Math.floor(sek/3600), m=Math.floor(sek%3600/60), s=sek%60;
+  return h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
+/* Kompakte Dauer „3h00" / „45m" für KPI-Subtexte. */
+function tZeitKurz(min){ min=Math.max(0,Math.round(min)); return min>=60 ? Math.floor(min/60)+'h'+String(min%60).padStart(2,'0') : min+'m'; }
+/* Punkte-Prognose der Karte bei genau `min` investierten Minuten (Engine 1:1). */
+function kartePunkteBei(k, min){ return kartePunkte(Object.assign({}, k, { istSek: Math.max(0,min)*60 })); }
+const RING_C = 2*Math.PI*58;    // Umfang Timer-Ring
+const RING_CP = 2*Math.PI*48;   // Umfang Fortschritts-Ring
 function istBadge(k){
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
   const min = istSekLive(k)/60;
@@ -1130,53 +1183,151 @@ function renderFokus(){
   }
   const idx=Math.max(0, kand.findIndex(x=>x.id===k.id));
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
-  const meta=[];
-  meta.push('<span>'+esc(kartenArt(k))+'</span>');
-  if(k.faelligkeit) meta.push('<span>'+esc(fmtDatum(k.faelligkeit))+'</span>');
-  if(k.uhrzeit) meta.push('<span>🕐 '+esc(k.uhrzeit)+'</span>');
-  meta.push('<span>Σ <b id="fkLiveTimer">'+mmss(istSekLive(k))+'</b></span>');
-  meta.push('<span class="pt" id="fkLivePts">'+Math.round(kartePunkte(k))+' P</span>');
-  if(k.domain==='dfm' && k.projekt) meta.push('<span>'+esc(k.projekt)+'</span>');
-  if(k.rhythmus && num(k.streak)>0) meta.push('<span>🔥'+num(k.streak)+'</span>');
-  // KPIs (v0.38-Port): Session-Stoppuhr · heute investiert · Soll · P/min
-  const invMin=heuteInvestiertMin(k), soll=num(k.sollMin);
-  const prog= soll>0 ? Math.min(100, invMin/soll*100) : 0, ueber= soll>0 && invMin>soll;
-  const zg=(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
-  const ppm= invMin>0.2 ? (punkteFuerZeit(k, invMin)*zg)/invMin : (rate(k)*zg)/60;
-  const sess= (S.fokus && S.fokus.karteId===k.id) ? num(S.fokus.sessionSek)+laufendeSek() : 0;
-  const kpi='<div class="fk-kpi">'
-    + '<div><span class="v" id="fkSess">'+mmss(sess)+'</span><span class="l">STOPPUHR</span></div>'
-    + '<div><span class="v"><span id="fkInv">'+Math.round(invMin)+'</span>′</span><span class="l">HEUTE</span></div>'
-    + '<div><span class="v">'+num(soll)+'′</span><span class="l">SOLL</span></div>'
-    + '<div><span class="v" id="fkPpm">'+ppm.toFixed(1)+'</span><span class="l">P/MIN</span></div>'
-    + '</div>'
-    + (soll>0?'<div class="fk-prog'+(ueber?' over':'')+'"><span id="fkProg" style="width:'+prog.toFixed(0)+'%"></span></div>':'');
-
-  const subs=untermenge(k.id);
-  let subHtml='';
-  if(subs.length){
-    subHtml='<div class="fk-meta" style="flex-direction:column;align-items:stretch;gap:4px;margin-top:10px">'+
-      subs.map(u=>'<div style="display:flex;gap:8px;align-items:center"><span class="cb-mini" data-fksub="'+u.id+'" style="width:18px;height:18px;border-radius:5px;border:2px solid '+(u.done?'var(--ok)':'var(--mut2)')+';background:'+(u.done?'var(--ok)':'transparent')+';display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#0a0f1a">'+(u.done?'✓':'')+'</span><span style="'+(u.done?'text-decoration:line-through;color:var(--mut)':'')+'">'+esc(u.titel||'Teilschritt')+'</span><span style="margin-left:auto;color:var(--mut2)">'+num(u.sollMin)+'′</span></div>').join('')+'</div>';
-  }
-
+  const lvl=(typeof avatarStufe==='function')?avatarStufe():1, vital=(typeof vitalitaet==='function')?vitalitaet():true;
+  const av = '<img class="avfoto" src="'+avatarBild(lvl,vital)+'" alt="Avatar" onerror="this.style.display=\'none\';var f=this.nextElementSibling;if(f)f.style.display=\'flex\'">'+
+             '<span class="avfallback" style="display:none">🧑</span>';
+  // Tacho-Ring (SVG): äußerer Zeit-Ring + Überzug + innerer Fortschritts-Ring + Kopf-Punkt.
+  const ring='<div class="tringwrap"><svg viewBox="0 0 132 132" width="132" height="132">'+
+    '<defs>'+
+    '<linearGradient id="gLauf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3ecf8e"/><stop offset="1" stop-color="#6dd3e0"/></linearGradient>'+
+    '<linearGradient id="gGelb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2b84b"/><stop offset="1" stop-color="#f08c4b"/></linearGradient>'+
+    '<linearGradient id="gRot" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f66d6d"/><stop offset="1" stop-color="#c23a3a"/></linearGradient>'+
+    '<linearGradient id="gProg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f8ef7"/><stop offset="1" stop-color="#6dd3e0"/></linearGradient>'+
+    '</defs>'+
+    '<circle cx="66" cy="66" r="58" fill="none" stroke="var(--line)" stroke-width="8"/>'+
+    '<circle cx="66" cy="66" r="48" fill="none" stroke="var(--line)" stroke-width="4" opacity=".45"/>'+
+    '<circle id="tZeitArc" cx="66" cy="66" r="58" fill="none" stroke="url(#gLauf)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 '+RING_C.toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
+    '<circle id="tRotArc" cx="66" cy="66" r="58" fill="none" stroke="url(#gRot)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 '+RING_C.toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
+    '<circle id="tProgArc" cx="66" cy="66" r="48" fill="none" stroke="url(#gProg)" stroke-width="4" stroke-linecap="round" stroke-dasharray="0 '+RING_CP.toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
+    '<g id="tTicks"></g>'+
+    '<circle id="tKopfHalo" class="tkopfpuls" r="7" fill="var(--ok)" cx="66" cy="8" opacity="0"/>'+
+    '<circle id="tKopfDot" r="3.5" fill="#e8eef7" cx="66" cy="8" opacity="0"/>'+
+    '</svg>'+av+'</div>';
+  const kopf='<div class="tkopfreihe">'+ring+
+    '<div class="tinfos"><div class="trest" id="tRest">–</div><div class="trestsub" id="tRestSub"></div>'+
+      '<div class="tuabox" id="tUaBox" hidden><div class="l">UNTERAUFGABE <span id="tUaNum"></span></div>'+
+      '<div class="n" id="tUaName"></div><div class="r" id="tUaRest"></div></div></div></div>';
+  const stats='<div class="tstats">'+
+    '<div class="tstat akku"><b><span class="tsi">🔋</span> <span id="tAkku">–%</span></b><span class="tss">Akku</span></div>'+
+    '<div class="tstat"><b id="tPktW">–</b><span class="tss" id="tPktSub">Pkt heute</span></div>'+
+    '<div class="tstat"><b id="tZeitW">–</b><span class="tss" id="tZeitSub">Zeit heute</span></div></div>';
+  const kpis='<div class="tkpis" id="tKpis"></div>';
+  const planbar='<div class="tpbar"><div class="tpb-track"><i class="tpb-g" id="tpbG"></i><i class="tpb-y" id="tpbY"></i><i class="tpb-r" id="tpbR"></i>'+
+    '<div class="tpb-marks" id="tpbMarks"></div></div><div class="tpb-info" id="tpbInfo"></div></div>';
+  const aufgabe='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'"><div class="ttitel">'+esc(k.titel||'(ohne Titel)')+'</div>'+
+    '<div class="tsub">'+(k.domain==='dfm'?'DFM':'Privat')+(k.prioritaet==='muss'?' · <span style="color:var(--bad)">MUSS</span>':'')+
+    ' · <span id="tGesamtP">'+Math.round(kartePunkteBei(k, num(k.sollMin)||istSekLive(k)/60))+'</span> P gesamt</div></div>'+
+    '<button class="tedit" data-detail="'+k.id+'" aria-label="Bearbeiten">✎</button>'+
+    '<button class="tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause">'+(laeuft?'⏸':'▶')+'</button>'+
+    '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button></div>';
   const carousel = kand.length>1
     ? '<div class="fk-carousel"><button class="arw" data-fkprev="1">‹</button><div class="pos">'+(idx+1)+' / '+kand.length+' · begonnene + Muss</div><button class="arw" data-fknext="1">›</button></div>'
     : '';
-
   host.innerHTML =
     carousel +
-    '<div id="fokusAktiv" class="'+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
-      '<div class="fk-top"><div class="fk-titel">'+esc(k.titel||'(ohne Titel)')+'</div>'+
-        '<div class="fk-check" data-fkcheck="'+k.id+'">✓</div></div>'+
-      '<div class="fk-meta">'+meta.join('')+'</div>'+
-      kpi+
-      subHtml+
-      '<div class="fk-ctrl">'+
-        '<button class="fk-play" data-fktoggle="'+k.id+'">'+(laeuft?'⏸ Pause':'▶ Start')+'</button>'+
-        '<button class="fk-edit" data-detail="'+k.id+'">✎</button>'+
-      '</div>'+
-    '</div>'+
+    '<div id="fokusAktiv" class="tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
+      kopf+stats+kpis+planbar+aufgabe+'</div>'+
     streifenHtml();
+  fokusTacho(k);   // Ring, Timer, Kennzahlen, Balken befüllen
+}
+/* Live-Aktualisierung des Fokus-Tachos (v0.38-Port): Ring-Bögen, Restzeit,
+   Unteraufgaben-Panel, Akku/Punkte/Zeit-Kacheln, 4 KPIs, Plan-Balken. */
+function setzeKopf(dot, halo, frac, farbe){
+  const w=frac*2*Math.PI-Math.PI/2, x=(66+58*Math.cos(w)).toFixed(1), y=(66+58*Math.sin(w)).toFixed(1);
+  dot.setAttribute('cx',x); dot.setAttribute('cy',y); dot.setAttribute('opacity','1');
+  halo.setAttribute('cx',x); halo.setAttribute('cy',y); halo.setAttribute('opacity','.5'); halo.setAttribute('fill',farbe);
+}
+function fokusTacho(k){
+  if(S.ui.tab!=='fokus') return;
+  if(!k) k=aktiveFokusKarte();
+  const zeitArc=el('tZeitArc'); if(!zeitArc || !k) return;
+  const rotArc=el('tRotArc'), progArc=el('tProgArc'), dot=el('tKopfDot'), halo=el('tKopfHalo');
+  const geplant=num(k.sollMin), min=istSekLive(k)/60;
+  let farbeKlasse='gruen', kopf='var(--ok)';
+  if(geplant>0){
+    const pct=min/geplant;
+    if(pct>=1.1){ farbeKlasse='rot'; kopf='var(--bad)'; } else if(pct>=0.8){ farbeKlasse='gelb'; kopf='var(--warn)'; }
+    zeitArc.setAttribute('stroke', pct>=0.8?'url(#gGelb)':'url(#gLauf)');
+    zeitArc.setAttribute('stroke-dashoffset','0');
+    zeitArc.setAttribute('stroke-dasharray',(Math.min(1,pct)*RING_C).toFixed(1)+' '+RING_C);
+    const ueber=pct>1?Math.min(1,pct-1):0;
+    rotArc.setAttribute('stroke', pct>=1.1?'url(#gRot)':'url(#gGelb)');
+    rotArc.setAttribute('stroke-dasharray',(ueber*RING_C).toFixed(1)+' '+RING_C);
+    const rest=geplant-min;
+    el('tRest').textContent = rest>=0 ? hms(rest*60) : '+'+hms(-rest*60);
+    el('tRest').className='trest '+farbeKlasse;
+    el('tRestSub').textContent='von '+geplant+' min · '+Math.round(pct*100)+'% verbraucht';
+    setzeKopf(dot,halo,(pct%1),kopf);
+  } else {
+    const frac=(min*60%60)/60;
+    zeitArc.setAttribute('stroke','url(#gLauf)');
+    zeitArc.setAttribute('stroke-dasharray','52 '+RING_C);
+    zeitArc.setAttribute('stroke-dashoffset',(-frac*RING_C).toFixed(1));
+    rotArc.setAttribute('stroke-dasharray','0 '+RING_C);
+    el('tRest').textContent=hms(min*60); el('tRest').className='trest';
+    el('tRestSub').textContent='keine Zeit geplant — Stoppuhr';
+    setzeKopf(dot,halo,frac,'var(--cyan)');
+  }
+  // Fortschritts-Ring + Ticks aus Unteraufgaben-Sollzeiten
+  const subs=untermenge(k.id);
+  const zeiten=subs.map(u=>num(u.sollMin)); const summe=zeiten.reduce((s,z)=>s+z,0);
+  let progFrac=0;
+  if(subs.length){ const fz=subs.reduce((s,u,i)=>s+(u.done?zeiten[i]:0),0);
+    progFrac = summe>0 ? fz/summe : subs.filter(u=>u.done).length/subs.length; }
+  progArc.setAttribute('stroke-dasharray',(Math.min(1,progFrac)*RING_CP).toFixed(1)+' '+RING_CP);
+  let ticks='';
+  if(subs.length>1 && summe>0){ let cum=0; subs.slice(0,-1).forEach((u,i)=>{ cum+=zeiten[i]; const w=cum/summe*2*Math.PI-Math.PI/2;
+    ticks+='<line x1="'+(66+53*Math.cos(w)).toFixed(1)+'" y1="'+(66+53*Math.sin(w)).toFixed(1)+'" x2="'+(66+63*Math.cos(w)).toFixed(1)+'" y2="'+(66+63*Math.sin(w)).toFixed(1)+'" stroke="var(--bg)" stroke-width="3"/>'; }); }
+  el('tTicks').innerHTML=ticks;
+  // aktuelle (erste offene) Unteraufgabe + ihr Zeitfenster
+  const aktIdx=subs.findIndex(u=>!u.done);
+  const uaBox=el('tUaBox');
+  if(aktIdx>=0){ uaBox.hidden=false; el('tUaNum').textContent=(aktIdx+1)+'/'+subs.length; el('tUaName').textContent=subs[aktIdx].titel||'Teilschritt';
+    if(summe>0 && geplant>0){ const cumEnde=zeiten.slice(0,aktIdx+1).reduce((s,z)=>s+z,0); const segRest=cumEnde-min;
+      el('tUaRest').textContent = segRest>=0 ? 'Abschnitt: noch '+hms(segRest*60) : 'Abschnitt: '+hms(-segRest*60)+' drüber';
+      el('tUaRest').style.color = segRest>=0?'var(--mut)':'var(--bad)'; } else el('tUaRest').textContent='';
+  } else uaBox.hidden=true;
+  // Kacheln + Balken
+  fokusStats(k); fokusKpis(k); fokusPlanbar(k);
+}
+/* 3 Tages-Kacheln: Akku · Punkte heute/Ziel · Zeit heute/geplant. */
+function fokusStats(k){
+  const a=akkuLive(); if(el('tAkku')) el('tAkku').textContent = a!=null?Math.round(a)+'%':'–%';
+  const istHeute=punkteHeuteAnzeige(), ziel=Math.max(1, num(S.settings.tageszielPunkteProStd,100)*8);
+  if(el('tPktW')){ el('tPktW').textContent=Math.round(istHeute)+'/'+Math.round(ziel); el('tPktSub').textContent=Math.round(istHeute/ziel*100)+'% · Pkt'; }
+  let zeitIst=0, zeitPlan=0; S.karten.forEach(x=>{ if(!imTagesstrom(x)) return; zeitIst+=heuteInvestiertMin(x); zeitPlan+=num(x.sollMin); });
+  if(el('tZeitW')){ el('tZeitW').textContent=tZeitKurz(zeitIst)+'/'+tZeitKurz(zeitPlan); el('tZeitSub').textContent='Aufg '+(zeitPlan>0?Math.round(num(k.sollMin)/zeitPlan*100):0)+'%'; }
+}
+/* 4 aufgabenbezogene KPIs (P/Std ø · Punkte · bearbeitet · Unteraufgaben). */
+function fokusKpis(k){
+  const box=el('tKpis'); if(!box) return;
+  const min=istSekLive(k)/60, geplant=num(k.sollMin), ziel=num(S.settings.tageszielPunkteProStd,100);
+  const r=rate(k)*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
+  const f1 = (r>=ziel && ziel>0) ? 'gut' : 'warn';
+  const planP=Math.max(0, geplant>0?kartePunkteBei(k,geplant):kartePunkte(k)), earnedP=Math.max(0,kartePunkte(k));
+  const proz = planP>0?Math.min(100,Math.round(earnedP/planP*100)):0;
+  const restMin=Math.max(0,geplant-min);
+  const subs=untermenge(k.id), fertig=subs.filter(u=>u.done).length;
+  const kp=(cls,h,l,s)=>'<div class="tkpi'+(cls?' '+cls:'')+'"><div class="tkpi-h">'+h+'</div><div class="tkpi-l">'+l+'</div><div class="tkpi-s">'+s+'</div></div>';
+  box.innerHTML = kp(f1, Math.round(r), 'P/Std ⌀', 'Ziel '+Math.round(ziel))
+    + kp('', Math.round(earnedP), 'Punkte', proz+'% v. '+Math.round(planP))
+    + kp('', tZeitKurz(min), 'bearbeitet', geplant>0?'Rest '+tZeitKurz(restMin):'Stoppuhr')
+    + kp('', fertig+'/'+subs.length, 'Unteraufg.', (subs.length-fertig)+' offen');
+}
+/* Aufgabenbezogener Punkte-Balken: grün erhalten · gelb offen · rot Überzug. */
+function fokusPlanbar(k){
+  if(!el('tpbG')) return;
+  const min=istSekLive(k)/60, geplant=num(k.sollMin);
+  const planP=Math.max(0, geplant>0?kartePunkteBei(k,geplant):kartePunkte(k)), earnedP=Math.max(0,kartePunkte(k));
+  const maxP=Math.max(planP,earnedP,1), gruen=Math.min(earnedP,planP), gelb=Math.max(0,planP-earnedP), rot=Math.max(0,earnedP-planP);
+  el('tpbG').style.width=(gruen/maxP*100).toFixed(1)+'%'; el('tpbY').style.width=(gelb/maxP*100).toFixed(1)+'%'; el('tpbR').style.width=(rot/maxP*100).toFixed(1)+'%';
+  let marks='';
+  if(S.belohnung){ const bank=konto()-earnedP; KAT_KEYS.forEach(kk=>{ if(kaufSperre(kk)) return; const need=preisFuer(kk)-bank;
+    if(need>0 && need<=maxP) marks+='<span class="tpb-mark" style="left:'+(need/maxP*100).toFixed(1)+'%"></span>'; }); }
+  if(el('tpbMarks')) el('tpbMarks').innerHTML=marks;
+  let info='erhalten '+Math.round(gruen)+' · geplant '+Math.round(planP)+' · offen '+Math.round(gelb)+' P';
+  if(rot>0) info+=' · +'+Math.round(rot)+' über Plan';
+  if(el('tpbInfo')) el('tpbInfo').textContent=info;
 }
 /* Farbstreifen: nächste 10 Karten des aktiven Stapels als Farbrechtecke. */
 function streifenHtml(){
@@ -1394,18 +1545,8 @@ function starteTicker(){
     if(!(S.fokus && S.fokus.laeuft)){ clearInterval(tickerId); tickerId=null; return; }
     if(S.tag){ S.tag.letzteAktivitaetTs=jetztIso(); }   // Aktivitäts-Stempel (Kanten §6)
     renderFokusleiste();
-    const k=fokusKarte();
-    if(k && S.ui.tab==='fokus'){
-      const t=el('fkLiveTimer'); if(t) t.textContent=mmss(istSekLive(k));
-      const p=el('fkLivePts');   if(p) p.textContent=Math.round(kartePunkte(k))+' P';
-      // KPIs live mitziehen (Stoppuhr · heute · P/min · Fortschritt)
-      const se=el('fkSess'); if(se) se.textContent=mmss(num(S.fokus.sessionSek)+laufendeSek());
-      const invMin=heuteInvestiertMin(k), soll=num(k.sollMin);
-      const iv=el('fkInv'); if(iv) iv.textContent=Math.round(invMin);
-      const zg=(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
-      const pp=el('fkPpm'); if(pp) pp.textContent=(invMin>0.2?(punkteFuerZeit(k,invMin)*zg)/invMin:(rate(k)*zg)/60).toFixed(1);
-      const pr=el('fkProg'); if(pr && soll>0) pr.style.width=Math.min(100, invMin/soll*100).toFixed(0)+'%';
-    }
+    // Fokus-Tacho live nachziehen (Ring/Timer/Kennzahlen/Balken der angezeigten Karte)
+    if(S.ui.tab==='fokus') fokusTacho(aktiveFokusKarte());
   }, 1000);
 }
 
