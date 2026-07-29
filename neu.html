@@ -198,13 +198,35 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .abcard.tap.num .tapnum{border-color:var(--blue);background:var(--blue);color:#0a0f1a}
 
 /* ── D7 Belohnung + Statistiken (§9) ─────────────────────────────── */
-.beloh{border-radius:16px;padding:16px;margin-bottom:var(--s2);display:flex;align-items:center;gap:14px;color:#fff}
-.beloh .av-face{font-size:52px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
-.beloh .av-info{flex:1;min-width:0}
-.beloh .av-lvl{font-size:16px;font-weight:900}
-.beloh .av-woh{font-size:12px;opacity:.9;font-family:ui-monospace,monospace}
-.beloh .av-bar{height:6px;border-radius:3px;background:rgba(0,0,0,.3);margin-top:8px;overflow:hidden}
-.beloh .av-bar i{display:block;height:100%;background:#fff;opacity:.9}
+/* Avatar-Szene (voller Port §7 D7 / §6.1) */
+.avcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:var(--s2);margin-bottom:var(--s2)}
+.avscene{position:relative;border-radius:12px;background:linear-gradient(180deg,#0a0f1a 55%,#101a2c);display:flex;align-items:flex-end;justify-content:center;padding:18px 0 0;overflow:hidden;min-height:190px}
+.avground{position:absolute;left:0;right:0;bottom:0;height:16px;background:#22304a}
+.avfoto{position:relative;z-index:2;height:200px;width:auto;border-radius:12px;margin-bottom:8px;box-shadow:0 8px 22px rgba(0,0,0,.45);animation:avbob 4s ease-in-out infinite}
+@keyframes avbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.avscene.erschoepft .avfoto{filter:grayscale(.35) brightness(.85);animation:none}
+.szobj{position:absolute;line-height:1;pointer-events:none}
+.szobj i{font-style:normal;font-size:9px;font-weight:800;color:var(--mut);vertical-align:top;margin-left:1px}
+.szobj.hinten{z-index:1;opacity:.55;filter:saturate(.8)}
+.szobj.vorne{z-index:3}
+.szobj.schwebt{animation:szschweb 5s ease-in-out infinite}
+@keyframes szschweb{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.rankline{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px}
+.rankname{font-size:15px;font-weight:900}
+.rankpts{font-size:12px;color:var(--purple);font-weight:800}
+.avcard .av-bar{height:6px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
+.avcard .av-bar i{display:block;height:100%;background:var(--purple)}
+/* Shop-Karten (Etappe 2) */
+.katcard{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+.katcard .kzeile{display:flex;align-items:baseline;gap:8px}
+.katcard .kname{flex:1;font-size:13px;font-weight:800}
+.katcard .kstufe{font-size:11px;color:var(--mut);font-family:ui-monospace,monospace}
+.katcard .kaktuell{font-size:12px;color:var(--cyan);margin-top:2px}
+.katcard .rankbar{height:7px;border-radius:4px;background:var(--bg);margin-top:8px;overflow:hidden}
+.katcard .rankbar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan))}
+.katcard .knext{font-size:11px;color:var(--mut2);margin-top:5px}
+.kaufbtn{width:100%;min-height:var(--tap);margin-top:8px;border-radius:10px;background:var(--ok);color:#04342c;font-size:13px;font-weight:800}
+.kaufbtn:active{transform:scale(.98)}
 .statring{display:flex;align-items:center;gap:16px}
 .statring svg{flex:none}
 .statpace .pl{font-size:18px;font-weight:900}
@@ -467,6 +489,7 @@ const DEFAULT_SETTINGS = {
   geldDeckel: 1.5,            // Faktor-Obergrenze (~1,5)
   geldScoreRef: 200,           // Referenz für geldScoreNorm = geldScore / Ref  (siehe Rückfrage)
   tageszielPunkteProStd: 100,  // Tagesziel (Pace) — M3
+  preisFaktor: 1.0,            // Shop-Preis-Faktor (§7 D7)
   levelSchwellen: [0,400,1200,2500,4500,7000,10000,14000,19000,25000,32000,40000],
   akkuProStd: -8,              // Akku-%/Std im Fokus — M3
   farbEndpunkte: {             // §5 (M2 nutzt das voll aus)
@@ -536,7 +559,7 @@ function neuerTag(datum, laufindex){
 const S = {
   karten:[], stapel:[], ordner:[], gruppen:[], vorlagen:[],
   settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
-  tag:null, fokus:null, historie:[],
+  tag:null, fokus:null, historie:[], belohnung:null,
   meta:{ wohlstand:0, seeded:false },
   ui:{ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7 }
 };
@@ -558,6 +581,7 @@ function ladeAlles(){
   S.tag      = DB.get('tag', null);
   S.fokus    = DB.get('fokus', null);
   S.historie = DB.get('historie', []);
+  S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
   S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7 }, DB.get('ui', {}));
   // Karten gegen Schema-Drift härten (neue Felder erscheinen automatisch)
@@ -573,6 +597,7 @@ const saveTag     = ()=>DB.set('tag', S.tag);
 const saveMeta    = ()=>DB.set('meta', S.meta);
 const saveUi      = ()=>DB.set('ui', S.ui);
 const saveHistorie= ()=>DB.set('historie', S.historie);
+const saveBelohnung=()=>DB.set('belohnung', S.belohnung);
 
 /* ══════════════════════════════════════════════════════════════════════
    5 · Punkte-Engine (§4) + Timer + Farbsystem (§5) — alles live berechnet.
@@ -1878,7 +1903,8 @@ function renderEinst(){
     ['geldGewicht','Geld-Gewicht','nur DFM',0.1],
     ['geldDeckel','Geld-Deckel','Faktor max',0.1],
     ['geldScoreRef','Geld-Score-Referenz','norm = Score / Ref',10],
-    ['tageszielPunkteProStd','Tagesziel P/Std','Pace (M3)',5]
+    ['tageszielPunkteProStd','Tagesziel P/Std','Pace (M3)',5],
+    ['preisFaktor','Shop-Preis-Faktor','Belohnung §7',0.1]
   ];
   regler.forEach(([k,lab,sub,step])=>{
     h+='<div class="slider"><label>'+lab+(sub?'<small>'+sub+'</small>':'')+'</label>'+
@@ -1914,6 +1940,91 @@ function backupHtml(){
 /* ══════════════════════════════════════════════════════════════════════
    14b · D7 Belohnung — Statistiken-Basisset (§9) + Avatar-Small-Fix (§7 D7)
    ══════════════════════════════════════════════════════════════════════ */
+/* ── Belohnung/Shop (§7 D7) — voller Port aus v0.38. Kategorien + Stufen
+   sind base64-kodiert; der Inhalt der nächsten Stufe bleibt „???" bis zum
+   Freischalten (Überraschung erst live in der App). ── */
+const BELOHNUNG_B64 = 'eyJmYWhyemV1Z2UiOnsiaWNvbiI6IvCfmpciLCJuYW1lIjoiRmFocnpldWdlIiwic3R1ZmVuIjpbWyJGYWhycmFkIChBbGx0YWdzcmFkKSIsMF0sWyJFLUJpa2UiLDgwMF0sWyJHZWJyYXVjaHR3YWdlbiAoS2xlaW53YWdlbikiLDIyMDBdLFsiS29tcGFrdGtsYXNzZSAoZ2VwZmxlZ3QpIiw0NTAwXSxbIkVyc3RlcyBDb3Vww6kgKGdlYnJhdWNodCkiLDc1MDBdLFsiTmV1d2FnZW4gS29tcGFrdC1Db3Vww6kiLDExMDAwXSxbIkJNVyBNNCAoZ2VicmF1Y2h0KSIsMTYwMDAsWyJ3b2huZW4iLDRdXSxbIkJNVyBNNCAobmV1LCBWb2xsYXVzc3RhdHR1bmcpIiwyMjAwMF0sWyJFeG90aXNjaGVzIENvdXDDqSAvIFNhbW1sZXJzdMO8Y2siLDI5MDAwXSxbIlp3ZWl0d2FnZW4gKEFsbHRhZyArIFNwYcOfLUNvdXDDqSkiLDM3MDAwXSxbIktsZWluZSBTYW1tbHVuZyAoMuKAkzMgYmVzb25kZXJlIEZhaHJ6ZXVnZSkiLDQ2MDAwXSxbIlJlZmVyZW56LVNhbW1sZXJzdMO8Y2sgKGdlbGJlcyBDb3Vww6ksIFNob3dyb29tKSIsNTYwMDBdXX0sIndvaG5lbiI6eyJpY29uIjoi8J+Pme+4jyIsIm5hbWUiOiJEYWNodGVycmFzc2UgLyBXb2huZW4iLCJzdHVmZW4iOltbIldHLVppbW1lciIsMF0sWyJFaWdlbmUga2xlaW5lIFdvaG51bmciLDkwMF0sWyJXb2hudW5nIG1pdCBCYWxrb24iLDI0MDBdLFsiV29obnVuZyBtaXQga2xlaW5lciBEYWNodGVycmFzc2UiLDQ4MDAsWyJmYWhyemV1Z2UiLDNdXSxbIkRhY2h0ZXJyYXNzZSBtaXQgU2l0emVja2UiLDc4MDBdLFsiRGFjaHRlcnJhc3NlIG1pdCBHcmlsbCArIExvdW5nZSIsMTE1MDBdLFsiRGFjaHRlcnJhc3NlIG1pdCBXaGlybHBvb2wiLDE2NTAwXSxbIlBlbnRob3VzZS1UZXJyYXNzZSBtaXQgU3RhZHRibGljayIsMjMwMDBdLFsiVGVycmFzc2UgbWl0IEZsdXNzLS9XYXNzZXJibGljayIsMzAwMDBdLFsiV2hpcmxwb29sICsgV2Fzc2VyYmxpY2sgKFRyYXVtLUtvbWJpKSIsMzkwMDBdLFsiWndlaXR3b2huc2l0eiwgbWVkaXRlcnJhbmVzIEtsaW1hIiw0ODAwMF0sWyJTaWduYXR1cmUtUGVudGhvdXNlIChXaGlybHBvb2wgKyBTa3lsaW5lICsgV2Fzc2VyKSIsNTgwMDBdXX0sInJlaXNlbiI6eyJpY29uIjoi8J+MjSIsIm5hbWUiOiJMYW5kc2NoYWZ0ZW4gLyBSZWlzZW4iLCJzdHVmZW4iOltbIldvY2hlbmVuZHRyaXAgbmFoZXMgQXVzbGFuZCIsMF0sWyJTdMOkZHRldHJpcCAoYmVlaW5kcnVja2VuZGUgU3RhZHQpIiwxMDAwXSxbIkVyc3RlIEZlcm5yZWlzZSIsMjgwMF0sWyJCZXJndXJsYXViIiw1MjAwXSxbIkluc2VsLS9NZWVyLVVybGF1YiIsODIwMF0sWyJNZWRpdGVycmFuZXMgWmllbCIsMTIwMDBdLFsiVHJvcGlzY2hlcyBaaWVsIiwxNzAwMF0sWyJEc2NodW5nZWwtVHJpcCIsMjM1MDAsWyJtb2JpbGl0YWV0Iiw2XV0sWyJLb21iaS1SZWlzZSBCZXJnZSArIE1lZXIiLDMwNTAwXSxbIktvbWJpLVJlaXNlIEJlcmdlICsgRHNjaHVuZ2VsICsgTWVlciIsMzk1MDBdLFsiTWVocnfDtmNoaWdlIEt1bHR1cnJlaXNlLCBuZXVlciBLb250aW5lbnQiLDQ5MDAwXSxbIlNpZ25hdHVyZS1UcmlwIChCZXJnZSwgRHNjaHVuZ2VsLCBNZWVyLCBuZXVlIEt1bHR1cikiLDU5MDAwXV19LCJtb2JpbGl0YWV0Ijp7Imljb24iOiLinIjvuI8iLCJuYW1lIjoiTW9iaWxpdMOkdCAoYW5kZXJlIEZvcm1lbikiLCJzdHVmZW4iOltbIlp1IEZ1w58gLyDDllBOViIsMF0sWyJGYWhycmFkLUxhbmdzdHJlY2tlIiw3MDBdLFsiRXJzdGUgTW90b3JyYWQtL1JvbGxlci1GYWhydCIsMjAwMF0sWyJCb290c3RvdXIgKFBhc3NhZ2llcikiLDM4MDBdLFsiS2xlaW5lcyBTZWdlbGJvb3QgLyBBdXNmbHVnc2Jvb3QiLDY1MDBdLFsiTW90b3Jib290LUNoYXJ0ZXIiLDEwMDAwXSxbIkVyc3RlciBSdW5kZmx1ZyAoUGFzc2FnaWVyKSIsMTQ1MDBdLFsiU2VnZWxmbHVnIC8gS2xlaW5mbHVnemV1ZyAoUGFzc2FnaWVyKSIsMjAwMDBdLFsiRmx1Z3N0dW5kZSAoc2VsYnN0IGFtIFN0ZXVlcikiLDI2NTAwXSxbIkJvb3RzY2hhcnRlciDDvGJlciBtZWhyZXJlIFRhZ2UiLDM0MDAwXSxbIktvbWJpbmllcnRlciBXYXNzZXItK0x1ZnQtVHJpcCIsNDMwMDBdLFsiU2lnbmF0dXJlLU1vYmlsaXTDpHRzdGFnIChCb290ICsgRmx1ZyBhbiBlaW5lbSBUYWcpIiw1MzAwMF1dfSwiYmVnbGVpdGVyIjp7Imljb24iOiLwn5C+IiwibmFtZSI6IkJlZ2xlaXRlciIsInN0dWZlbiI6W1siRXJzdGUgZWlnZW5lIEthdHplIiwwXSxbIkthdHplIGd1dCBlaW5nZWxlYnQgKFJvdXRpbmUgc3RlaHQpIiw2MDBdLFsiWndlaXRlIEthdHplIC8gSHVuZCBhbHMgSWRlZSIsMTgwMF0sWyJIdW5kIGRhenUiLDM2MDBdLFsiQmVpZGUgZ3V0IGVpbmdlc3BpZWx0Iiw2MDAwXSxbIkdyw7bDn2VyZXIgV29obnJhdW0gZsO8ciBUaWVyZSIsOTUwMF0sWyJHYXJ0ZW4gLyBBdXNsYXVmIGbDvHIgVGllcmUiLDE0MDAwXSxbIlJlaXNlbiBtaXQgVGllcmVuIG3DtmdsaWNoIiwxOTUwMF0sWyJUaWVycGVuc2lvbiAvIEJldHJldXVuZyBvcmdhbmlzaWVydCIsMjYwMDBdLFsiRHJpdHRlcyBUaWVyIiwzMzUwMF0sWyJUaWVyZnJldW5kbGljaGVzIFp3ZWl0d29obnNpdHotU2V0dXAiLDQyMDAwXSxbIlNpZ25hdHVyZS1TZXR1cCAoYWxsZSBUaWVyZSwgdmllbCBQbGF0eiwgR2FydGVuKSIsNTIwMDBdXX0sInNvemlhbGVzIjp7Imljb24iOiLwn5GlIiwibmFtZSI6IkZyZXVuZGUgLyBTb3ppYWxlcyIsInN0dWZlbiI6W1siU3BpZWxlYWJlbmQgenVoYXVzZSIsMF0sWyJLbGVpbmVyIEF1c2ZsdWcgbWl0IEZyZXVuZGVuIiw1MDBdLFsiVGVubmlzLS9TcG9ydC1NYXRjaCIsMTYwMF0sWyJSb2FkdHJpcCB6dSB6d2VpdC9kcml0dCIsMzIwMF0sWyJHcnVwcGVucmVpc2UgKEZyZXVuZGUpIiw1NTAwXSxbIkV2ZW50IC8gRmVpZXIgYXVzcmljaHRlbiIsODgwMF0sWyJHcsO2w59lcmUgRmVpZXIgKExpbW8sIGJlc29uZGVyZXIgQW5sYXNzKSIsMTMwMDBdLFsiRnJldW5kZSBhdXMgZGVtIEF1c2xhbmQgYmVzdWNoZW4iLDE4MDAwXSxbIlJldW5pb24tVHJpcCAoYWx0ZSBGcmV1bmRlLCBuZXVlcyBaaWVsKSIsMjQ1MDBdLFsiR3Jvw59lcyBHcnVwcGVuZXZlbnQgb3JnYW5pc2llcmVuIiwzMjAwMF0sWyJNZWhydMOkZ2lnZXIgRnJldW5kZXMtVHJpcCBpbnMgQXVzbGFuZCIsNDEwMDBdLFsiU2lnbmF0dXJlLU1vbWVudCAoZ3Jvw59lciBLcmVpcywgYmVzb25kZXJlciBPcnQpIiw1MTAwMF1dfX0=';
+const BELOHNUNG = JSON.parse(decodeURIComponent(escape(atob(BELOHNUNG_B64))));
+const KAT_KEYS = Object.keys(BELOHNUNG);
+const KAT_PREISFAKTOR = { fahrzeuge:1.3, wohnen:1.2, reisen:1.1, mobilitaet:1.0, begleiter:0.9, soziales:0.8 };
+function belohnungInit(){
+  if(!S.belohnung){ S.belohnung={ stufen:{}, ausgegeben:0, kaeufe:[] }; }
+  if(S.belohnung.ausgegeben==null) S.belohnung.ausgegeben=0;
+  if(!S.belohnung.kaeufe) S.belohnung.kaeufe=[];
+  S.belohnung.stufen = S.belohnung.stufen || {};
+  KAT_KEYS.forEach(k=>{ if(!S.belohnung.stufen[k]) S.belohnung.stufen[k]=1; });  // Stufe 1 (Schwelle 0) immer offen
+  saveBelohnung();
+}
+/* Punkte-Konto = Wohlstand live − bereits im Shop ausgegebene Punkte. */
+function konto(){ return Math.max(0, wohlstandLive() - ((S.belohnung&&S.belohnung.ausgegeben)||0)); }
+/* Persönlicher Ø-Punktesatz der letzten 7 abgeschlossenen Tage (aus Historie). */
+function oePStd7(){
+  const h=(S.historie||[]).slice(-7);
+  const punkte=h.reduce((s,d)=>s+num(d.punkteBilanz),0);
+  const sek=h.reduce((s,d)=>s+(d.zeit?(num(d.zeit.dfm)+num(d.zeit.privat)):0),0);
+  if(sek>=3600) return Math.max(5, punkte/(sek/3600));
+  return (S.settings.basisProStd||12)*1.5;   // Startwert, bis Historie da ist
+}
+/* Preis ≈ 4 Std Fokuszeit × 7-Tage-Ø × Settings-Faktor × Kategorie-Faktor. */
+function preisFuer(kat){
+  const basis = 4 * oePStd7() * (S.settings.preisFaktor||1) * (KAT_PREISFAKTOR[kat]||1);
+  return Math.max(20, Math.round(basis/5)*5);
+}
+/* Cross-Kategorie-Voraussetzung: null = frei, sonst Hinweistext. */
+function kaufSperre(kat){
+  const naechste = BELOHNUNG[kat].stufen[S.belohnung.stufen[kat]];
+  if(!naechste) return 'komplett';
+  const req=naechste[2];
+  if(req && (S.belohnung.stufen[req[0]]||0) < req[1]) return 'braucht '+BELOHNUNG[req[0]].icon+' '+BELOHNUNG[req[0]].name+' Stufe '+req[1];
+  return null;
+}
+function kaufen(kat){
+  const idx=S.belohnung.stufen[kat];
+  const stufe=BELOHNUNG[kat].stufen[idx];
+  if(!stufe || kaufSperre(kat)) return false;
+  const preis=preisFuer(kat);
+  if(konto()<preis){ toast('Noch '+Math.round(preis-konto())+' P bis zum Freischalten'); return false; }
+  S.belohnung.stufen[kat]=idx+1;
+  S.belohnung.ausgegeben=(S.belohnung.ausgegeben||0)+preis;
+  S.belohnung.kaeufe.push({ kat, stufe:idx+1, name:stufe[0], datum:heuteApp(), preis });
+  saveBelohnung(); konfetti(); haptik(25);
+  toast('🎉 Freigeschaltet: '+BELOHNUNG[kat].icon+' '+stufe[0]);
+  renderBelohnung();
+  return true;
+}
+/* Vitalität (§6.2): getrieben vom Tages-Akku. */
+function vitalitaet(){ if(tagOffen()&&S.tag.akku!=null) return S.tag.akku>=50; return true; }
+function avatarBild(lvl, vital){
+  const tier = lvl>=10?3 : lvl>=7?2 : lvl>=4?1 : 0;
+  const bild = !vital ? 'muede' : ['hoodie','rollkragen','blazer','anzug'][tier];
+  return 'img/avatar-'+bild+'.jpg';
+}
+/* Gekaufte Kategorien wachsen als Objekte in der Szene (Aufbauspiel-Stil §6.1). */
+function szeneObjekteHtml(){
+  const st=kk=>(S.belohnung.stufen[kk]||1); const obj=[];
+  if(st('wohnen')>1){ const w=st('wohnen'); obj.push(['hinten', w>=7?'🏙️':w>=4?'🏠':'🛖','left:8%;bottom:14px',44+w*5,w]); }
+  if(st('reisen')>1) obj.push(['hinten', st('reisen')>=6?'🏝️':'🌄','left:6%;top:8%',18+st('reisen')*2,st('reisen')]);
+  if(st('mobilitaet')>1) obj.push(['vorne schwebt', st('mobilitaet')>=7?'✈️':st('mobilitaet')>=4?'🚤':'🛴','right:8%;top:12%',14+st('mobilitaet')*2,st('mobilitaet')]);
+  if(st('fahrzeuge')>1) obj.push(['vorne', st('fahrzeuge')>=7?'🏎️':st('fahrzeuge')>=3?'🚗':'🚲','right:5%;bottom:14px',18+st('fahrzeuge')*3,st('fahrzeuge')]);
+  if(st('begleiter')>1) obj.push(['vorne', st('begleiter')>=4?'🐕':'🐈','left:30%;bottom:14px',12+st('begleiter')*2,st('begleiter')]);
+  if(st('soziales')>1) obj.push(['vorne', '👥','right:26%;bottom:16px',12+st('soziales')*2,st('soziales')]);
+  return obj.map(o=>'<span class="szobj '+o[0]+'" style="'+o[2]+';font-size:'+o[3]+'px">'+o[1]+'<i>'+o[4]+'</i></span>').join('');
+}
+/* Shop-Karten: aktuelle (freigeschaltete) Stufe sichtbar, nächste „???". */
+function shopHtml(){
+  const k=konto();
+  return KAT_KEYS.map(kk=>{
+    const kat=BELOHNUNG[kk], offen=S.belohnung.stufen[kk]||1, aktuell=kat.stufen[offen-1];
+    const sperre=kaufSperre(kk), preis=preisFuer(kk); let unten;
+    if(sperre==='komplett'){ unten='<div class="knext">🏁 Alles freigeschaltet!</div>'; }
+    else if(sperre){ unten='<div class="knext">🔒 ??? · '+esc(sperre)+'</div><div class="rankbar"><i style="width:0"></i></div>'; }
+    else if(k>=preis){ unten='<button class="kaufbtn" data-kauf="'+kk+'">🎁 ??? für '+Math.round(preis)+' P freischalten</button>'; }
+    else { unten='<div class="knext">??? · noch '+Math.round(preis-k)+' P (Preis '+Math.round(preis)+' P)</div><div class="rankbar"><i style="width:'+Math.min(100,k/preis*100).toFixed(0)+'%"></i></div>'; }
+    return '<div class="katcard"><div class="kzeile"><span>'+kat.icon+'</span><span class="kname">'+esc(kat.name)+'</span><span class="kstufe">Stufe '+offen+'/'+kat.stufen.length+'</span></div>'+
+      '<div class="kaktuell">'+esc(aktuell[0])+'</div>'+unten+'</div>';
+  }).join('');
+}
+
 function fmtMin(sek){ const m=Math.round(sek/60); return m>=60 ? (Math.floor(m/60)+'h'+String(m%60).padStart(2,'0')) : m+'′'; }
 /* Avatar-Stufe aus Wohlstand (Level-Schwellen §3.8). */
 function avatarStufe(){
@@ -1923,17 +2034,18 @@ function avatarStufe(){
 function renderBelohnung(){
   rangCacheBauen();
   let h='';
-  // ── Avatar-Small-Fix §7 D7: Hintergrund-Verlauf Orange→Gelb→Grün,
-  //    erster leichter Grünton = Mittelwert (Level-Mitte). Avatar nach Vitalität.
+  // ── Avatar-Szene (§7 D7 + §6.1): Foto nach Level/Vitalität, gekaufte
+  //    Kategorien wachsen als Objekte in der Szene. Hintergrund-Verlauf.
+  belohnungInit();
   const lvl=avatarStufe(), maxLvl=(S.settings.levelSchwellen||[]).length;
-  const vit=Math.max(0,Math.min(1,(lvl-1)/Math.max(1,maxLvl-1)));   // 0..1
-  const akku=(tagOffen()&&S.tag.akku!=null)?S.tag.akku:70;
-  const gesicht = akku>=66?'😃':akku>=33?'🙂':'😴';
-  h+='<div class="beloh" style="background:linear-gradient(135deg,hsl('+(30+90*vit)+',70%,'+(30+18*vit)+'%),hsl('+(90+50*vit)+',55%,'+(22+14*vit)+'%))">'+
-    '<div class="av-face">'+gesicht+'</div>'+
-    '<div class="av-info"><div class="av-lvl">Level '+lvl+' / '+maxLvl+'</div>'+
-      '<div class="av-woh">'+Math.round(wohlstandLive())+' Wohlstand</div>'+
-      '<div class="av-bar"><i style="width:'+Math.round(vit*100)+'%"></i></div></div></div>';
+  const vital=vitalitaet(), kontoP=konto();
+  h+='<div class="avcard"><div class="avscene'+(vital?'':' erschoepft')+'">'+
+    '<div class="avground"></div>'+szeneObjekteHtml()+
+    '<img class="avfoto" src="'+avatarBild(lvl,vital)+'" alt="Avatar" onerror="this.style.display=\'none\'">'+
+    '</div>'+
+    '<div class="rankline"><div class="rankname">Level '+lvl+' / '+maxLvl+' · '+(vital?'Vital':'Erschöpft')+'</div>'+
+      '<div class="rankpts">Konto '+Math.round(kontoP)+' P</div></div>'+
+    '<div class="av-bar"><i style="width:'+Math.round(Math.max(0,Math.min(1,(lvl-1)/Math.max(1,maxLvl-1)))*100)+'%"></i></div></div>';
 
   // ── Stat 1: Tages-Score-Ring + Pace ──────────────────────────────
   const heuteP=Math.round(tagesPunkteLive());
@@ -1993,6 +2105,9 @@ function renderBelohnung(){
   h+='<div class="card"><h3>Stapel-KPI</h3>';
   S.stapel.forEach(st=>{ const kpi=stapelKpi(stapelKarten(st)); h+='<div class="kv"><span>'+esc(st.name)+'</span><b>'+kpi.offen+'/'+kpi.alle+' · '+kpi.punkte+' P'+(kpi.avgMin?' · Ø'+kpi.avgMin+'′':'')+'</b></div>'; });
   h+='</div>';
+
+  // ── Shop — nächste Stufen (§7 D7, voller Port) ───────────────────
+  h+='<div class="card"><h3>Shop — nächste Stufen</h3><p class="d">Konto '+Math.round(konto())+' P (Wohlstand − Ausgaben). Der Inhalt der nächsten Stufe bleibt „???" bis zum Freischalten.</p>'+shopHtml()+'</div>';
 
   el('belohnungBody').innerHTML=h;
 }
@@ -2272,9 +2387,10 @@ function stapelLiesEditor(){
   });
 }
 
-// Belohnung/Statistik: 7/30-Tage-Umschalter
+// Belohnung/Statistik: 7/30-Tage-Umschalter + Shop-Kauf
 el('belohnungBody').addEventListener('click', e=>{
-  const st=e.target.closest('[data-stattage]'); if(st){ S.ui.statTage=num(st.dataset.stattage); saveUi(); renderBelohnung(); }
+  const st=e.target.closest('[data-stattage]'); if(st){ S.ui.statTage=num(st.dataset.stattage); saveUi(); renderBelohnung(); return; }
+  const kf=e.target.closest('[data-kauf]'); if(kf){ kaufen(kf.dataset.kauf); return; }
 });
 
 // Einstellungen (Sync / Migration / Backup / Regler)
