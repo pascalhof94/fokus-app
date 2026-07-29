@@ -1,0 +1,2067 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fokus v1">
+<meta name="theme-color" content="#0d1420">
+<title>Fokus v1.0</title>
+<link rel="manifest" href="manifest-neu.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   Fokus App v1.0 „Debug" — neu.html (Single-File, Vanilla JS)
+   Eigenständig neben index.html (v0.38). index.html + deren fokus2.*-Keys
+   bleiben unangetastet. Neuer Speicher-Präfix: fokus2_ (Unterstrich).
+   DFM-CI-Dark wie die alte App (Spez. §12 / §8-Farben der alten App).
+   ══════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#0d1420; --card:#141e2e; --card2:#182438; --line:#243349;
+  --ok:#3ecf8e; --warn:#f2b84b; --bad:#f66d6d;
+  --blue:#4f8ef7; --purple:#b98af7; --pink:#f78ad0; --cyan:#6dd3e0;
+  --txt:#e8eef7; --mut:#8fa1b8; --mut2:#5d6d88;
+  --sat:env(safe-area-inset-top,0px);
+  --sab:env(safe-area-inset-bottom,0px);
+  --s1:8px; --s2:16px; --s3:24px; --s4:32px;
+  --tap:44px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg);color:var(--txt);line-height:1.5;
+  user-select:none;-webkit-user-select:none;
+  display:flex;flex-direction:column;
+}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,textarea,select{
+  font-family:inherit;font-size:15px;color:var(--txt);
+  background:var(--bg);border:1px solid var(--line);border-radius:10px;
+  padding:9px 11px;width:100%;
+  user-select:text;-webkit-user-select:text;
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--blue)}
+textarea{resize:vertical;min-height:64px}
+select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%238fa1b8' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+::placeholder{color:var(--mut2)}
+
+/* ── Fokus-Leiste (fixer Layer über allen Tabs, §7 D1 / Nav-Mockup) ── */
+#topbar{
+  position:fixed;top:0;left:0;right:0;z-index:60;
+  padding-top:var(--sat);
+  background:linear-gradient(180deg,var(--card2),var(--card));
+  border-bottom:1px solid var(--line);
+}
+#topbar.laeuft{border-bottom-color:var(--blue)}
+#topbar .inner{display:flex;align-items:center;gap:var(--s1);min-height:44px;padding:4px var(--s2)}
+#topbar .pp{width:38px;height:38px;flex:none;display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--blue);border:1px solid var(--line);border-radius:11px;background:var(--bg)}
+#topbar.laeuft .pp{color:#0a0f1a;background:var(--blue);border-color:var(--blue)}
+#topbar .mid{flex:1;min-width:0}
+#topbar .title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:800}
+#topbar .title.idle{color:var(--mut2);font-weight:600}
+#topbar .sub{display:flex;gap:10px;font-size:11px;color:var(--mut);font-family:ui-monospace,monospace}
+#topbar .sub[hidden]{display:none}
+#topbar .sub .timer{color:var(--cyan);font-weight:700}
+#topbar .sub .ppm{color:var(--purple)}
+#topbar .right{flex:none;text-align:right;font-family:ui-monospace,monospace}
+#topbar .right .pt{font-size:14px;font-weight:800;color:var(--ok);line-height:1}
+#topbar .right .lbl{font-size:9px;color:var(--mut2)}
+
+/* ── Views / Content ─────────────────────────────────────────────── */
+main{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:calc(var(--sat) + 44px + var(--s1)) var(--s2) calc(var(--sab) + 64px + var(--s2));
+}
+.view{display:none}
+.view.on{display:block}
+.placeholder{margin-top:22vh;text-align:center;color:var(--mut2);font-size:13px}
+.placeholder .big{font-size:44px;display:block;margin-bottom:var(--s1)}
+.placeholder .ms{display:inline-block;margin-top:var(--s2);font-size:11px;color:var(--blue);border:1px solid var(--line);border-radius:20px;padding:4px 12px}
+
+/* ── Kopfzeile Übersicht ─────────────────────────────────────────── */
+.headbar{display:flex;align-items:center;gap:var(--s1);margin:2px 0 var(--s2)}
+.headbar h2{font-size:17px;font-weight:900}
+.headbar .sp{flex:1}
+.minibtn{font-size:12px;font-weight:700;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:6px 12px;display:inline-flex;align-items:center;gap:5px}
+.minibtn.acc{color:var(--blue);border-color:var(--blue)}
+
+/* ── Ordner ──────────────────────────────────────────────────────── */
+.ordner{margin-bottom:var(--s2)}
+.ordnerkopf{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:800;padding:4px 2px;cursor:pointer}
+.ordnerkopf .caret{transition:transform .2s;font-size:10px;color:var(--mut2)}
+.ordner.zu .ordnerkopf .caret{transform:rotate(-90deg)}
+.ordner.zu .ordnerbody{display:none}
+
+/* ── Stapel ──────────────────────────────────────────────────────── */
+.stapel{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:var(--s1);overflow:hidden;border-left:4px solid var(--mut2)}
+.stapelkopf{display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer}
+.stapelkopf .st-name{font-weight:800;font-size:15px;flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stapelkopf .st-groesse{font-size:11px;color:var(--mut2);font-weight:700;background:var(--bg);border-radius:10px;padding:1px 7px;flex:none}
+.stapelkopf .sp{flex:1}
+.stapelkopf .st-kpi{display:flex;gap:9px;font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace;flex:none;text-align:right}
+.stapelkopf .st-kpi b{color:var(--txt);font-weight:700}
+.stapelkopf .st-kpi .p{color:var(--ok)}
+.stapelkopf .caret{font-size:11px;color:var(--mut2);transition:transform .2s;flex:none;width:12px;text-align:center}
+.stapel.zu .caret{transform:rotate(-90deg)}
+.stapel.zu .stapelbody{display:none}
+.stapelbody{border-top:1px solid var(--line);padding:8px}
+.stapelbody .leer{color:var(--mut2);font-size:12px;text-align:center;padding:12px 0}
+.stapel .st-edit{flex:none;color:var(--mut2);font-size:15px;padding:2px 4px}
+
+/* ── Kartenreihe (universeller Karten-Kontrakt §7 D3) ────────────── */
+.krow{display:flex;align-items:stretch;gap:2px;background:var(--card2);border-radius:11px;margin-bottom:6px;overflow:hidden;border-left:4px solid var(--mut2)}
+.krow:last-child{margin-bottom:0}
+.krow.erledigt{opacity:.55}
+.krow .kgriff{flex:none;width:26px;display:flex;align-items:center;justify-content:center;color:var(--mut2);font-size:15px;cursor:grab;touch-action:none}
+.krow .kmain{flex:1;min-width:0;padding:9px 4px 9px 2px;cursor:pointer}
+.krow .ktitle{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.krow.erledigt .ktitle{text-decoration:line-through;color:var(--mut)}
+.krow .kmeta{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:10.5px;color:var(--mut);margin-top:3px;font-family:ui-monospace,monospace}
+.krow .kmeta .b{color:var(--txt)}
+.krow .kmeta .tag{color:var(--blue)}
+.krow .kmeta .pri-muss{color:var(--bad)}
+.krow .kcheck{flex:none;width:46px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line)}
+.krow .kcheck .box{width:24px;height:24px;border-radius:7px;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:15px;color:transparent;transition:all .15s}
+.krow.erledigt .kcheck .box{background:var(--ok);border-color:var(--ok);color:#0a0f1a}
+
+/* Karten-Randfarbe kommt inline aus karteFarbe() (§5, berechnet, nie gespeichert) */
+
+/* ── D1 Fokus-View ───────────────────────────────────────────────── */
+#fokusAktiv{background:var(--card);border:1px solid var(--line);border-radius:16px;border-left:5px solid var(--mut2);padding:14px;margin-bottom:var(--s2)}
+#fokusAktiv .fk-top{display:flex;align-items:flex-start;gap:10px}
+#fokusAktiv .fk-titel{flex:1;min-width:0;font-size:18px;font-weight:900;line-height:1.25}
+#fokusAktiv .fk-check{flex:none;width:34px;height:34px;border-radius:9px;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:19px;color:transparent}
+#fokusAktiv.erledigt .fk-check{background:var(--ok);border-color:var(--ok);color:#0a0f1a}
+#fokusAktiv .fk-meta{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--mut);margin-top:8px;font-family:ui-monospace,monospace}
+#fokusAktiv .fk-meta b{color:var(--txt)}
+#fokusAktiv .fk-meta .pt{color:var(--ok);font-weight:800}
+#fokusAktiv .fk-ctrl{display:flex;gap:8px;margin-top:12px}
+#fokusAktiv .fk-play{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:12px;font-size:15px;font-weight:800;background:var(--blue);color:#0a0f1a}
+#fokusAktiv.laeuft .fk-play{background:var(--warn)}
+#fokusAktiv .fk-edit{flex:none;padding:12px 16px;border-radius:12px;border:1px solid var(--line);font-weight:700;color:var(--mut)}
+#fokusLeer{margin-top:16vh;text-align:center;color:var(--mut2);font-size:13px}
+#fokusLeer .big{font-size:44px;display:block;margin-bottom:var(--s1)}
+
+/* Karussell begonnene+Muss */
+.fk-carousel{display:flex;align-items:center;gap:8px;margin-bottom:var(--s2)}
+.fk-carousel .arw{flex:none;width:34px;height:34px;border:1px solid var(--line);border-radius:10px;color:var(--mut);display:flex;align-items:center;justify-content:center;font-size:16px}
+.fk-carousel .pos{flex:1;text-align:center;font-size:11px;color:var(--mut2);font-family:ui-monospace,monospace}
+
+/* Farbstreifen: nächste 10 des aktiven Stapels als Farbrechtecke ohne Titel */
+.streifsec{margin-top:var(--s2)}
+.streifsec .lab{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);font-weight:800;margin-bottom:8px;display:flex;align-items:baseline;gap:8px}
+.streifsec .lab .stapelwahl{color:var(--blue);font-weight:700;letter-spacing:0;text-transform:none}
+.farbstreifen{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.farbstreifen .strk{flex:none;width:38px;height:56px;border-radius:9px;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.farbstreifen .strk.aktiv{outline:2px solid var(--txt);outline-offset:1px}
+.farbstreifen .strk .rest{position:absolute;left:0;right:0;bottom:0;font-size:8.5px;text-align:center;color:#0a0f1a;background:rgba(255,255,255,.7);font-family:ui-monospace,monospace;padding:1px 0;font-weight:700}
+.farbstreifen .strk.check::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(10,15,26,.75);font-weight:900;font-size:18px}
+
+/* ── Tag-Banner (D2) + Tagesabschluss (D5) ───────────────────────── */
+.tagbanner{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:10px 13px;margin-bottom:var(--s2)}
+.tagbanner.offen{border-color:var(--blue)}
+.tagbanner .tb-info{flex:1;min-width:0}
+.tagbanner .tb-h{font-size:13px;font-weight:800}
+.tagbanner .tb-sub{font-size:11px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:2px}
+.tagbanner .tb-sub b{color:var(--ok)}
+.tagbanner .tb-btn{flex:none;font-size:13px;font-weight:800;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:8px 14px}
+.tagbanner .tb-btn.prim{color:#0a0f1a;background:var(--blue);border-color:var(--blue)}
+.akkubox label b{color:var(--ok)}
+input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;background:var(--line);padding:0;margin:6px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--blue);border:2px solid var(--bg)}
+.abcard{background:var(--card2);border:1px solid var(--line);border-left:4px solid var(--mut2);border-radius:11px;padding:10px 12px;margin-bottom:8px}
+.abcard .abtitel{font-size:14px;font-weight:800}
+.abcard .abmeta{font-size:11px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:2px}
+.abbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.abbtn{font-size:12px;font-weight:700;color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 10px;background:var(--bg)}
+.abbtn.ok{color:var(--ok);border-color:var(--ok)}
+.abbtn.warn{color:var(--bad);border-color:var(--bad)}
+.schiebe{margin-top:9px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px}
+.schiebe .row2{display:flex;gap:8px;margin-bottom:8px}
+.abzugsel{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--mut);margin-bottom:8px}
+.abcard.tap{display:flex;align-items:center;gap:12px;cursor:pointer}
+.abcard.tap .tapnum{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--mut2);font-family:ui-monospace,monospace}
+.abcard.tap.num{border-left-color:var(--blue)}
+.abcard.tap.num .tapnum{border-color:var(--blue);background:var(--blue);color:#0a0f1a}
+
+/* ── Sheet (Detail D3 / Stapel-Editor D4) ────────────────────────── */
+#backdrop{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+#backdrop.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:201;
+  background:var(--card);border-top:1px solid var(--line);
+  border-radius:20px 20px 0 0;
+  max-height:92vh;display:flex;flex-direction:column;
+  transform:translateY(102%);transition:transform .28s cubic-bezier(.22,.9,.3,1);
+  padding-bottom:var(--sab);
+}
+.sheet.on{transform:translateY(0)}
+.sheetgriff{padding:8px 0 2px;display:flex;justify-content:center;flex:none}
+.sheetgriff i{width:38px;height:4px;border-radius:2px;background:var(--line);display:block}
+.sheetkopf{display:flex;align-items:center;gap:10px;padding:4px var(--s2) 10px;border-bottom:1px solid var(--line);flex:none}
+.sheetkopf h3{font-size:16px;font-weight:900;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheetkopf .x{width:34px;height:34px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--mut);border-radius:9px;background:var(--bg)}
+.sheetbody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--s2);flex:1}
+.sheetfoot{flex:none;display:flex;gap:var(--s1);padding:10px var(--s2) calc(10px + var(--sab));border-top:1px solid var(--line)}
+
+/* Formular-Bausteine */
+.field{margin-bottom:14px}
+.field>label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);font-weight:800;margin-bottom:5px}
+.field .hint{font-size:11px;color:var(--mut2);margin-top:4px;text-transform:none;letter-spacing:0;font-weight:400}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12.5px;font-weight:700;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:6px 12px;background:var(--bg)}
+.chip.on{color:#0a0f1a;background:var(--blue);border-color:var(--blue)}
+.chip.on.gruen{background:var(--ok);border-color:var(--ok)}
+.chip.on.lila{background:var(--purple);border-color:var(--purple)}
+.chip.on.rot{background:var(--bad);border-color:var(--bad)}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{flex:1;padding:8px 4px;font-size:12.5px;font-weight:700;color:var(--mut);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--blue);color:#0a0f1a}
+
+/* Unteraufgaben */
+.sub{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 8px;margin-bottom:6px}
+.sub .cb{width:22px;height:22px;flex:none;border-radius:6px;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent}
+.sub .cb.on{background:var(--ok);border-color:var(--ok);color:#0a0f1a}
+.sub input.t{flex:1;border:none;background:none;padding:4px 2px;border-radius:0}
+.sub input.m{width:56px;flex:none;text-align:right;padding:5px 6px}
+.sub .mlab{font-size:10px;color:var(--mut2);flex:none}
+.sub .del{flex:none;color:var(--mut2);font-size:17px;padding:0 3px}
+.subsum{font-size:11px;color:var(--mut2);margin-top:2px}
+.subsum.warn{color:var(--warn)}
+
+/* Tick-Kurve */
+.ticks{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ticks input{width:52px;text-align:center;padding:6px 4px}
+.ticks .op{width:30px;height:34px;border:1px solid var(--line);border-radius:9px;color:var(--mut);font-size:17px;display:flex;align-items:center;justify-content:center}
+
+/* Filter-Builder (D4) */
+.fbrow{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:9px;margin-bottom:8px}
+.fbrow .top{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.fbrow .top select{flex:1}
+.fbrow .del{flex:none;color:var(--mut2);font-size:18px;width:30px;text-align:center}
+.fbrow .val{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.fbrow .val .chip{padding:5px 10px;font-size:12px}
+.fbnote{font-size:11px;color:var(--mut2);margin:2px 0 10px}
+
+/* Buttons */
+.btn{flex:1;text-align:center;padding:13px;border-radius:12px;font-size:15px;font-weight:800;background:var(--bg);border:1px solid var(--line);color:var(--txt)}
+.btn.prim{background:var(--blue);border-color:var(--blue);color:#0a0f1a}
+.btn.warn{background:var(--bad);border-color:var(--bad);color:#0a0f1a}
+.btn.ghost{background:none}
+.btn.sm{padding:9px;font-size:13px;flex:none}
+.btnrow{display:flex;gap:8px;margin-top:10px}
+
+/* Einstellungen */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:var(--s2)}
+.card h3{font-size:13px;font-weight:800;margin-bottom:4px}
+.card p.d{font-size:12px;color:var(--mut);margin-bottom:10px}
+.slider{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.slider label{flex:1;font-size:13px}
+.slider label small{display:block;color:var(--mut2);font-size:11px}
+.slider input{width:96px;text-align:right}
+.kv{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line)}
+.kv b{color:var(--txt)}
+.kv span{color:var(--mut)}
+
+/* Nav */
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:var(--sab)}
+#nav button{flex:1;padding:8px 4px 7px;font-size:10px;color:var(--mut2);font-weight:700}
+#nav button .ic{font-size:19px;display:block;margin-bottom:2px;line-height:1}
+#nav button.on{color:var(--blue)}
+
+/* FAB */
+#fab{position:fixed;right:16px;bottom:calc(64px + var(--sab) + 10px);z-index:70;width:54px;height:54px;border-radius:50%;background:var(--blue);color:#0a0f1a;font-size:28px;font-weight:400;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.45)}
+
+/* Toast */
+#toast{position:fixed;left:50%;bottom:calc(84px + var(--sab));transform:translateX(-50%) translateY(20px);z-index:320;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:all .25s;max-width:88vw;text-align:center}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#konfetti{position:fixed;inset:0;z-index:310;pointer-events:none}
+</style>
+</head>
+<body>
+
+<div id="topbar"><div class="inner">
+  <button class="pp" id="fkPP">▶</button>
+  <div class="mid" id="fkMid">
+    <div class="title idle" id="fkTitle">Kein Fokus aktiv</div>
+    <div class="sub" id="fkSub" hidden><span class="timer" id="fkTimer">0:00</span><span class="ppm" id="fkPts"></span></div>
+  </div>
+  <div class="right" id="fkRight"></div>
+</div></div>
+
+<main>
+  <!-- D1 Fokus -->
+  <section class="view" id="v-fokus">
+    <div id="fokusView"></div>
+  </section>
+
+  <!-- D2 Stapelübersicht -->
+  <section class="view on" id="v-stapel">
+    <div class="headbar">
+      <h2>Stapel</h2>
+      <span class="sp"></span>
+      <button class="minibtn" id="btnStapelNeu">＋ Stapel</button>
+    </div>
+    <div id="stapelListe"></div>
+  </section>
+
+  <!-- D7 Belohnung (M5) -->
+  <section class="view" id="v-belohnung">
+    <div class="placeholder">
+      <span class="big">🏆</span>
+      Belohnung &amp; Avatar
+      <span class="ms">kommt in Meilenstein M5</span>
+    </div>
+  </section>
+
+  <!-- D6 Einstellungen -->
+  <section class="view" id="v-einst">
+    <div class="headbar"><h2>Einstellungen</h2></div>
+    <div id="einstBody"></div>
+  </section>
+</main>
+
+<button id="fab">＋</button>
+
+<nav id="nav">
+  <button data-tab="fokus"><span class="ic">🎯</span>Fokus</button>
+  <button data-tab="stapel" class="on"><span class="ic">🗂</span>Stapel</button>
+  <button data-tab="belohnung"><span class="ic">🏆</span>Belohnung</button>
+  <button data-tab="einst"><span class="ic">⚙️</span>Mehr</button>
+</nav>
+
+<div id="backdrop"></div>
+<div class="sheet" id="sheet">
+  <div class="sheetgriff"><i></i></div>
+  <div class="sheetkopf"><h3 id="sheetTitel">Detail</h3><button class="x" id="sheetX">✕</button></div>
+  <div class="sheetbody" id="sheetBody"></div>
+  <div class="sheetfoot" id="sheetFoot"></div>
+</div>
+
+<div id="toast"></div>
+<canvas id="konfetti"></canvas>
+
+<script>
+'use strict';
+/* ══════════════════════════════════════════════════════════════════════
+   0 · Konstanten
+   ══════════════════════════════════════════════════════════════════════ */
+const VERSION = '1.0.0';
+const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
+const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
+  ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
+  HISTORIE:'fokus2.historie', VORLAGEN:'fokus2.vorlagen'
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+   1 · Speicher-Wrapper (§1: dünner get/set/list, DB später austauschbar)
+   ══════════════════════════════════════════════════════════════════════ */
+const DB = {
+  get(key, fallback){
+    try{ const r = localStorage.getItem(PREFIX+key); return r ? JSON.parse(r) : fallback; }
+    catch(e){ console.warn('DB.get', key, e); return fallback; }
+  },
+  set(key, wert){
+    try{ localStorage.setItem(PREFIX+key, JSON.stringify(wert)); return true; }
+    catch(e){ console.warn('DB.set', key, e); toast('⚠️ Speicher voll?'); return false; }
+  },
+  list(){
+    const out=[];
+    try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf(PREFIX)===0) out.push(k.slice(PREFIX.length)); } }
+    catch(e){}
+    return out;
+  },
+  del(key){ try{ localStorage.removeItem(PREFIX+key); }catch(e){} }
+};
+/* Alt-Speicher: strikt read-only (§10 „Alt-Keys bleiben unangetastet") */
+function altLese(key, fallback){
+  try{ const r = localStorage.getItem(key); return r ? JSON.parse(r) : fallback; }
+  catch(e){ return fallback; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   2 · Helfer
+   ══════════════════════════════════════════════════════════════════════ */
+function uuid(){
+  return (crypto.randomUUID && crypto.randomUUID()) ||
+    'loc-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10);
+}
+function heuteIso(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+/* App-„Heute" = Datum des laufenden logischen Tages (§4 Tag-ID). Ohne
+   gestarteten Tag (Tageslogik = M3) fällt es auf den Kalendertag zurück. */
+function heuteApp(){ return (S.tag && S.tag.datum) ? S.tag.datum : heuteIso(); }
+function jetztIso(){ return new Date().toISOString(); }
+function num(x, def){ const n=Number(x); return Number.isFinite(n)?n:(def===undefined?0:def); }
+function fmtDatum(iso){
+  if(!iso) return '';
+  const h=heuteApp();
+  if(iso===h) return 'heute';
+  const d=new Date(iso+'T00:00:00'), t=new Date(h+'T00:00:00');
+  const diff=Math.round((d-t)/86400000);
+  if(diff===1) return 'morgen'; if(diff===-1) return 'gestern';
+  return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.';
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function el(id){ return document.getElementById(id); }
+function haptik(ms){ try{ navigator.vibrate && navigator.vibrate(ms||10); }catch(e){} }
+
+/* ══════════════════════════════════════════════════════════════════════
+   3 · Datenmodell (§3) — Fabriken
+   ══════════════════════════════════════════════════════════════════════ */
+/* §3.8 Settings (alle live einstellbar). Werte = sinnvolle Startbelegung. */
+const DEFAULT_SETTINGS = {
+  basisProStd: 12,             // Punkte/Std bei Faktor 1,0
+  zeitGewicht: 1,              // Gewicht des Zeit-Terms
+  tickGewicht: 1,              // Gewicht des Tick-Terms
+  geldGewicht: 0.5,            // geldFaktor = 1 + geldScoreNorm × geldGewicht (nur dfm)
+  geldDeckel: 1.5,            // Faktor-Obergrenze (~1,5)
+  geldScoreRef: 200,           // Referenz für geldScoreNorm = geldScore / Ref  (siehe Rückfrage)
+  tageszielPunkteProStd: 100,  // Tagesziel (Pace) — M3
+  levelSchwellen: [0,400,1200,2500,4500,7000,10000,14000,19000,25000,32000,40000],
+  akkuProStd: -8,              // Akku-%/Std im Fokus — M3
+  farbEndpunkte: {             // §5 (M2 nutzt das voll aus)
+    dfm:{hVon:50,hBis:0}, privat:{h:140}, wdh:{hVon:270,hBis:320}
+  }
+};
+
+/* §3.1 Karte — vollständiges Schema, fehlende Felder mit Defaults. */
+function neueKarte(f={}){
+  const k = Object.assign({
+    id: uuid(),
+    airtableId: null,
+    domain: 'privat',                 // "dfm" | "privat"
+    titel: '',
+    notiz: '',
+    kommentarFuerClaude: '',
+    projekt: null,                    // nur dfm
+    geldScore: 0,                     // nur dfm
+    faelligkeit: null,                // "YYYY-MM-DD" | null (null = Warteschlange)
+    uhrzeit: null,                    // "HH:MM" | null — Startzeitpunkt ⇒ Termin
+    tageszeit: 'beliebig',            // morgens | mittags | abends | beliebig
+    sollMin: 0,
+    istSek: 0,                        // getrackte Zeit (nur am Parent)
+    komplex: 1, energie: 1, blockade: 1,   // Rate-Treiber (stufenlose Faktoren)
+    prioritaet: 'soll',               // muss | soll | idee
+    tickKurve: [0],                   // Punkte je Tick; Länge 1 = einfaches Abhak-Tick
+    ticksHeute: 0,
+    timerFlag: false,
+    rhythmus: null,                   // null | {typ:"taeglich"} | {typ:"alleNTage",n} | {typ:"wochentage",tage:[1..7]}
+    gruppeId: null,
+    status: 'offen',                  // offen | erledigt | archiviert
+    tagId: null,                      // Buchungstag bei Erledigung/Zeitbuchung
+    streak: 0,
+    zuletztRoutine: null,             // "YYYY-MM-DD" letzte Routinen-Erledigung (alleNTage / Streak)
+    sortIndex: {},                    // { stapelId: n } — manuelle Tap-Reihenfolge
+    herkunftId: null,                 // Migration: alte App-ID (Idempotenz §10)
+    erstelltTs: jetztIso()
+  }, f);
+  if(!Array.isArray(k.tickKurve) || !k.tickKurve.length) k.tickKurve=[0];
+  if(k.domain!=='dfm'){ k.projekt=null; k.geldScore=0; }
+  return k;
+}
+/* §3.2 Unteraufgabe — kein eigener Geld-Score, keine eigene Uhr. */
+function neueUnteraufgabe(parentId, f={}){
+  return Object.assign({ id:uuid(), parentId, titel:'', sollMin:0, done:false }, f);
+}
+/* §3.5 Stapel */
+function neuerStapel(f={}){
+  return Object.assign({
+    id:uuid(), name:'Neuer Stapel', farbe:'#4f8ef7',
+    filter:[], sortierung:{feld:'auto', richtung:'asc'},
+    ordnerIds:[], schnellzugriffTimer:false, vorangelegt:false
+  }, f);
+}
+/* §3.6 Stapel-Ordner (rein visuell) */
+function neuerOrdner(f={}){ return Object.assign({ id:uuid(), name:'Ordner', stapelIds:[] }, f); }
+/* §3.7 Tag */
+function neuerTag(datum, laufindex){
+  return { tagId: datum+'-'+(laufindex||1), datum, laufindex:(laufindex||1),
+           startTs:jetztIso(), endeTs:null, akku:null,
+           punkteBilanz:0, abzuegeBilanz:0, routinenBilanz:[], letzteAktivitaetTs:jetztIso() };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   4 · State + Persistenz
+   ══════════════════════════════════════════════════════════════════════ */
+const S = {
+  karten:[], stapel:[], ordner:[], gruppen:[], vorlagen:[],
+  settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
+  tag:null, fokus:null, historie:[],
+  meta:{ wohlstand:0, seeded:false },
+  ui:{ tab:'stapel', stapelOffen:{}, ordnerZu:{}, aktivStapel:'sys-heute', fokusIdx:0 }
+};
+function settingsMerge(gespeichert){
+  const s=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  for(const [k,v] of Object.entries(gespeichert||{})){
+    if(v && typeof v==='object' && !Array.isArray(v) && typeof s[k]==='object') Object.assign(s[k], v);
+    else s[k]=v;
+  }
+  return s;
+}
+function ladeAlles(){
+  S.karten   = DB.get('karten', []);
+  S.stapel   = DB.get('stapel', []);
+  S.ordner   = DB.get('ordner', []);
+  S.gruppen  = DB.get('gruppen', []);
+  S.vorlagen = DB.get('vorlagen', []);
+  S.settings = settingsMerge(DB.get('settings', {}));
+  S.tag      = DB.get('tag', null);
+  S.fokus    = DB.get('fokus', null);
+  S.historie = DB.get('historie', []);
+  S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
+  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, aktivStapel:'sys-heute', fokusIdx:0 }, DB.get('ui', {}));
+  // Karten gegen Schema-Drift härten (neue Felder erscheinen automatisch)
+  S.karten = S.karten.map(k=>neueKarte(k));
+}
+const saveKarten  = ()=>{ rangInvalidieren(); return DB.set('karten', S.karten); };
+const saveStapel  = ()=>DB.set('stapel', S.stapel);
+const saveOrdner  = ()=>DB.set('ordner', S.ordner);
+const saveGruppen = ()=>DB.set('gruppen', S.gruppen);
+const saveVorlagen= ()=>DB.set('vorlagen', S.vorlagen);
+const saveSettings= ()=>DB.set('settings', S.settings);
+const saveTag     = ()=>DB.set('tag', S.tag);
+const saveMeta    = ()=>DB.set('meta', S.meta);
+const saveUi      = ()=>DB.set('ui', S.ui);
+const saveHistorie= ()=>DB.set('historie', S.historie);
+
+/* ══════════════════════════════════════════════════════════════════════
+   5 · Punkte-Engine (§4) + Timer + Farbsystem (§5) — alles live berechnet.
+   ══════════════════════════════════════════════════════════════════════ */
+/* geldFaktor: nur dfm, gedeckelt; privat = 1.
+   geldScoreNorm = geldScore / geldScoreRef (Referenz in Settings; Rückfrage
+   an Pascal offen, siehe Zusammenfassung). */
+function geldFaktor(k){
+  if(k.domain!=='dfm') return 1;
+  const norm = num(k.geldScore)/ (S.settings.geldScoreRef||200);
+  const f = 1 + norm*(S.settings.geldGewicht||0);
+  return Math.min(S.settings.geldDeckel||1.5, Math.max(1, f));
+}
+function rate(k){
+  return (S.settings.basisProStd||12)
+    * num(k.komplex,1) * num(k.energie,1) * num(k.blockade,1) * geldFaktor(k);
+}
+/* Ist-Sekunden inkl. gerade laufendem Timer (nur für die fokussierte Karte). */
+function istSekLive(k){
+  let s = num(k.istSek);
+  if(S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft) s += (Date.now()-S.fokus.startMs)/1000;
+  return s;
+}
+/* Zeitquelle: Ist (inkl. Live-Timer) wenn Uhr lief, sonst Soll;
+   Ausnahme idee → Ist gedeckelt auf Soll. */
+function zeitquelleMin(k){
+  const ist = istSekLive(k);
+  let z = (ist>0) ? ist/60 : num(k.sollMin);
+  if(k.prioritaet==='idee') z = Math.min(z, num(k.sollMin));
+  return z;
+}
+function tickSumme(k, bis){
+  const kurve = Array.isArray(k.tickKurve)?k.tickKurve:[];
+  let s=0; for(let i=0;i<bis && i<kurve.length;i++) s += num(kurve[i]);
+  return s;
+}
+function kartePunkte(k){
+  const zeitTerm = zeitquelleMin(k)/60 * rate(k) * (S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
+  const tickTerm = tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k);
+  return zeitTerm + tickTerm;
+}
+/* Abgeleitetes „Art"-Etikett (§2.1) — nur Anzeige. */
+function kartenArt(k){
+  if(k.rhythmus) return 'Routine';
+  if(k.timerFlag) return 'Timer';
+  if(Array.isArray(k.tickKurve) && k.tickKurve.length>1) return 'Counter';
+  return 'Aufgabe';
+}
+
+/* ── Timer-Engine (§7 D1: EIN Play/Pause-Toggle) ──────────────────────
+   S.fokus = { karteId, laeuft, startMs } — bei Pause/Wechsel/Abschluss
+   fließt die laufende Zeit in karte.istSek. Reload läuft weiter (persistiert). */
+function fokusKarte(){ return S.fokus ? S.karten.find(k=>k.id===S.fokus.karteId) : null; }
+function fokusZeitEinbuchen(){
+  if(!S.fokus || !S.fokus.laeuft) return;
+  const k=fokusKarte();
+  const sek=(Date.now()-S.fokus.startMs)/1000;
+  if(k){ k.istSek=num(k.istSek)+sek; }
+  S.fokus.laeuft=false; S.fokus.startMs=0;
+  saveKarten(); saveFokus();
+}
+function fokusStarten(kid){
+  if(S.fokus && S.fokus.karteId!==kid) fokusZeitEinbuchen();  // alten Fokus pausieren+buchen
+  if(!S.fokus || S.fokus.karteId!==kid) S.fokus={ karteId:kid, laeuft:false, startMs:0 };
+  S.fokus.laeuft=true; S.fokus.startMs=Date.now();
+  // Karussell auf die gestartete Karte stellen
+  const i=fokusKandidaten().findIndex(k=>k.id===kid); if(i>=0) S.ui.fokusIdx=i;
+  saveFokus(); saveUi(); starteTicker(); renderAlles();
+}
+function fokusToggle(){
+  if(!S.fokus){ return; }
+  if(S.fokus.laeuft){ fokusZeitEinbuchen(); }
+  else { S.fokus.laeuft=true; S.fokus.startMs=Date.now(); saveFokus(); starteTicker(); }
+  renderAlles();
+}
+function fokusBeenden(){ fokusZeitEinbuchen(); S.fokus=null; saveFokus(); }
+function saveFokus(){ DB.set('fokus', S.fokus); }
+
+/* ── Farbsystem §5 (berechnet, nie gespeichert) ──────────────────────
+   Treiber = Rangposition rank/(n−1) unter offenen Karten derselben Farbgruppe
+   → stufenloses Spektrum (≥36 Töne bei genug Karten). */
+function farbGruppe(k){
+  if(k.uhrzeit) return 'termin';                                   // schlägt alle Regeln
+  if(k.rhythmus || (Array.isArray(k.tickKurve)&&k.tickKurve.length>1)) return 'wdh';
+  return k.domain==='dfm' ? 'dfm' : 'privat';
+}
+function farbTreiber(k){
+  const g=farbGruppe(k);
+  if(g==='dfm')    return num(k.geldScore);       // Geld-Score
+  if(g==='privat') return kartePunkte(k);         // Punkte-Prognose
+  if(g==='wdh')    return num(k.streak);          // Streak
+  return 0;
+}
+let _rangCache=null;
+function rangInvalidieren(){ _rangCache=null; }
+function rangCacheBauen(){
+  _rangCache={};
+  const grp={};
+  S.karten.forEach(k=>{ if(k.status!=='offen') return; const g=farbGruppe(k); if(g==='termin') return; (grp[g]=grp[g]||[]).push(k); });
+  Object.values(grp).forEach(ks=>{
+    const w=ks.map(k=>({id:k.id, v:farbTreiber(k)})).sort((a,b)=>a.v-b.v);
+    const n=w.length;
+    w.forEach((x,i)=> _rangCache[x.id] = n>1 ? i/(n-1) : 0.5);
+  });
+}
+function karteNorm(k){
+  if(!_rangCache) rangCacheBauen();
+  return _rangCache[k.id]!=null ? _rangCache[k.id] : 0.5;
+}
+function hsl(h,s,l){ return 'hsl('+Math.round(h)+','+Math.round(s)+'%,'+Math.round(l)+'%)'; }
+function karteFarbe(k){
+  const g=farbGruppe(k);
+  if(g==='termin') return hsl(215,80,62);                  // blau
+  const t=karteNorm(k);                                    // 0..1 rang-normiert
+  if(g==='dfm')    return hsl(50-50*t, 88, 56);            // gelb(50)→orange→rot(0)
+  if(g==='privat') return hsl(140, 28+52*t, 64-16*t);      // grün hell→satt
+  if(g==='wdh')    return hsl(270+50*t, 72, 64);           // lila(270)→pink(320)
+  return hsl(215,10,50);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   6 · Feld-Katalog (§3.5: „JEDES Kartenfeld nach Typ filterbar",
+       neue Felder erscheinen automatisch)
+   ══════════════════════════════════════════════════════════════════════ */
+const FELDER = {
+  domain:     {label:'Domäne',    typ:'select', opt:()=>[['dfm','DFM'],['privat','Privat']]},
+  titel:      {label:'Titel',     typ:'text'},
+  notiz:      {label:'Notiz',     typ:'text'},
+  projekt:    {label:'Projekt',   typ:'select', opt:()=>distinct('projekt').map(v=>[v,v])},
+  geldScore:  {label:'Geld-Score',typ:'zahl'},
+  faelligkeit:{label:'Fälligkeit',typ:'datum'},
+  uhrzeit:    {label:'Termin',    typ:'select', wert:k=>k.uhrzeit?'ja':'nein', opt:()=>[['ja','hat Uhrzeit'],['nein','ohne']]},
+  tageszeit:  {label:'Tageszeit', typ:'select', opt:()=>[['morgens','morgens'],['mittags','mittags'],['abends','abends'],['beliebig','beliebig']]},
+  sollMin:    {label:'Soll-Min',  typ:'zahl'},
+  istSek:     {label:'Ist-Min',   typ:'zahl', wert:k=>Math.round(num(k.istSek)/60)},
+  komplex:    {label:'Komplexität',typ:'zahl'},
+  energie:    {label:'Energie',   typ:'zahl'},
+  blockade:   {label:'Blockade',  typ:'zahl'},
+  prioritaet: {label:'Priorität', typ:'select', opt:()=>[['muss','muss'],['soll','soll'],['idee','idee']]},
+  timerFlag:  {label:'Timer',     typ:'select', wert:k=>k.timerFlag?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
+  rhythmus:   {label:'Wiederholung',typ:'select', wert:k=>k.rhythmus?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
+  status:     {label:'Status',    typ:'select', opt:()=>[['offen','offen'],['erledigt','erledigt'],['archiviert','archiviert']]},
+  streak:     {label:'Streak',    typ:'zahl'},
+  tagId:      {label:'Buchungstag',typ:'datum', wert:k=>k.tagId?String(k.tagId).slice(0,10):null},
+  gruppeId:   {label:'Gruppe',    typ:'select', wert:k=>k.gruppeId||'', opt:()=>S.gruppen.map(g=>[g.id,g.name])}
+};
+/* Auto-Discovery: jedes weitere primitive Kartenfeld wird automatisch filterbar. */
+function feldKatalog(){
+  const muster = neueKarte();
+  Object.keys(muster).forEach(key=>{
+    if(FELDER[key]) return;
+    if(['id','airtableId','herkunftId','sortIndex','tickKurve','erstelltTs','ticksHeute'].includes(key)) return;
+    const v = muster[key];
+    if(typeof v==='boolean') FELDER[key]={label:key, typ:'select', wert:k=>k[key]?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]};
+    else if(typeof v==='number') FELDER[key]={label:key, typ:'zahl'};
+    else if(typeof v==='string' || v==null) FELDER[key]={label:key, typ:'text'};
+  });
+  return FELDER;
+}
+function feldTyp(f){ return (FELDER[f]&&FELDER[f].typ)||'text'; }
+function feldLabel(f){ return (FELDER[f]&&FELDER[f].label)||f; }
+function feldWert(k, f){ const m=FELDER[f]; return (m&&m.wert)?m.wert(k):k[f]; }
+function distinct(f){ const s=new Set(); S.karten.forEach(k=>{ if(k[f]!=null && k[f]!=='') s.add(k[f]); }); return [...s].sort(); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   7 · Filter- & Sortier-Engine (§3.5)
+   Mehrere Filter = UND über Felder, ODER innerhalb eines Feldes.
+   ══════════════════════════════════════════════════════════════════════ */
+function datumMatch(v, f){
+  const dv = v ? String(v).slice(0,10) : null, h=heuteApp();
+  switch(f.op){
+    case 'heute':       return dv===h;
+    case 'ueberfaellig':return !!dv && dv<h;
+    case 'zukunft':     return !!dv && dv>h;
+    case 'keine':       return !dv;
+    case 'zeitraum':    return !!dv && (!f.von||dv>=f.von) && (!f.bis||dv<=f.bis);
+    default: return true;
+  }
+}
+function filterEinzel(k, f){
+  const typ=feldTyp(f.feld), v=feldWert(k, f.feld);
+  if(typ==='select'){
+    const set=(f.werte||[]).map(String), cur=String(v==null?'':v);
+    return f.op==='istNicht' ? !set.includes(cur) : set.includes(cur);
+  }
+  if(typ==='zahl'){
+    const n=num(v), w=num(f.wert);
+    return f.op==='lte' ? n<=w : n>=w;   // Default: gte
+  }
+  if(typ==='datum') return datumMatch(v, f);
+  // text
+  return String(v==null?'':v).toLowerCase().includes(String(f.wert||'').toLowerCase());
+}
+function stapelKarten(st){
+  const byFeld={};
+  (st.filter||[]).forEach(f=>{ (byFeld[f.feld]=byFeld[f.feld]||[]).push(f); });
+  const gruppen=Object.values(byFeld);
+  let ks=S.karten.filter(k=>{
+    if(k.status==='archiviert' && !filterNenntArchiv(st)) return false;
+    return gruppen.every(g=> g.some(f=>filterEinzel(k,f)));
+  });
+  return sortiereStapel(ks, st);
+}
+function filterNenntArchiv(st){
+  return (st.filter||[]).some(f=>f.feld==='status' && (f.werte||[]).includes('archiviert'));
+}
+const PRI_RANK={muss:0, soll:1, idee:2};
+function sortiereStapel(ks, st){
+  const so=st.sortierung||{feld:'auto',richtung:'asc'};
+  const dir=(so.richtung==='desc')?-1:1;
+  const erl=k=>k.status==='erledigt'?1:0;   // Abgehakte ans Ende (§3.5)
+  ks.sort((a,b)=>{
+    if(erl(a)!==erl(b)) return erl(a)-erl(b);
+    if(so.feld==='manuell'){
+      const sa=num(a.sortIndex&&a.sortIndex[st.id], 9e9), sb=num(b.sortIndex&&b.sortIndex[st.id], 9e9);
+      if(sa!==sb) return sa-sb;
+    } else if(so.feld && so.feld!=='auto'){
+      let va=feldWert(a,so.feld), vb=feldWert(b,so.feld);
+      if(feldTyp(so.feld)==='zahl'){ va=num(va); vb=num(vb); }
+      else { va=String(va==null?'':va); vb=String(vb==null?'':vb); }
+      if(va<vb) return -1*dir; if(va>vb) return 1*dir;
+    } else {
+      // auto: Fälligkeit (null zuletzt) → Priorität → Titel
+      const fa=a.faelligkeit||'9999', fb=b.faelligkeit||'9999';
+      if(fa!==fb) return fa<fb?-1:1;
+      const pa=PRI_RANK[a.prioritaet]??1, pb=PRI_RANK[b.prioritaet]??1;
+      if(pa!==pb) return pa-pb;
+    }
+    return String(a.titel).localeCompare(String(b.titel));
+  });
+  return ks;
+}
+/* §3.5 KPI: offen/alle · Punktesumme (offen=Prognose/Soll, erledigt=Ist) · Ø-Dauer */
+function stapelKpi(ks){
+  const alle=ks.length, offen=ks.filter(k=>k.status==='offen').length;
+  let punkte=0, dauerSum=0, dauerN=0;
+  ks.forEach(k=>{
+    punkte += kartePunkte(k);
+    const min = (num(k.istSek)>0)?num(k.istSek)/60:num(k.sollMin);
+    if(min>0){ dauerSum+=min; dauerN++; }
+  });
+  return { alle, offen, punkte:Math.round(punkte), avgMin: dauerN?Math.round(dauerSum/dauerN):0 };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   8 · Seeds — 3 vorangelegte Stapel (§3.5). Nur beim ersten Start,
+       danach normal editier-/löschbar (keine Systemlogik).
+   ══════════════════════════════════════════════════════════════════════ */
+function seedStapel(){
+  if(S.meta.seeded) return;
+  if(!S.stapel.length){
+    S.stapel = [
+      neuerStapel({ id:'sys-heute', name:'Heute', farbe:'#4f8ef7', vorangelegt:true,
+        filter:[ {feld:'faelligkeit',op:'heute'}, {feld:'faelligkeit',op:'ueberfaellig'}, {feld:'status',op:'ist',werte:['offen']} ],
+        sortierung:{feld:'auto',richtung:'asc'} }),
+      neuerStapel({ id:'sys-warteschlange', name:'Warteschlange', farbe:'#8fa1b8', vorangelegt:true,
+        filter:[ {feld:'faelligkeit',op:'keine'}, {feld:'status',op:'ist',werte:['offen']} ],
+        sortierung:{feld:'auto',richtung:'asc'} }),
+      neuerStapel({ id:'sys-erledigt', name:'Erledigt heute', farbe:'#3ecf8e', vorangelegt:true,
+        filter:[ {feld:'status',op:'ist',werte:['erledigt']}, {feld:'tagId',op:'heute'} ],
+        sortierung:{feld:'auto',richtung:'asc'} })
+    ];
+    saveStapel();
+  }
+  S.meta.seeded=true; saveMeta();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   9 · Rendering — D2 Stapelübersicht
+   ══════════════════════════════════════════════════════════════════════ */
+function mmss(sek){ sek=Math.max(0,Math.round(sek)); const m=Math.floor(sek/60), s=sek%60; return m+':'+String(s).padStart(2,'0'); }
+function istBadge(k){
+  const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
+  const min = istSekLive(k)/60;
+  if(laeuft) return '<span class="tag">▶ '+mmss(istSekLive(k))+'</span>';
+  if(min>0.05) return '<span><b>'+Math.round(min)+'</b>′ ist</span>';
+  return '';
+}
+function kartenreiheHtml(k, stapelId){
+  const meta=[];
+  meta.push('<span class="art">'+esc(kartenArt(k))+'</span>');
+  if(k.faelligkeit) meta.push('<span class="tag">'+esc(fmtDatum(k.faelligkeit))+'</span>');
+  if(k.uhrzeit) meta.push('<span class="tag">🕐 '+esc(k.uhrzeit)+'</span>');
+  const ib=istBadge(k); if(ib) meta.push(ib);
+  else if(num(k.sollMin)>0) meta.push('<span><b>'+num(k.sollMin)+'</b>′</span>');
+  meta.push('<span>'+Math.round(kartePunkte(k))+' P</span>');
+  if(k.prioritaet==='muss') meta.push('<span class="pri-muss">muss</span>');
+  if(k.domain==='dfm' && k.projekt) meta.push('<span>'+esc(k.projekt)+'</span>');
+  if(k.rhythmus && num(k.streak)>0) meta.push('<span>🔥'+num(k.streak)+'</span>');
+  const subCount = untermenge(k.id).length;
+  if(subCount) meta.push('<span>☰ '+subCount+'</span>');
+  return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+'" data-kid="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
+    '<div class="kgriff" data-griff="1">⠿</div>'+
+    '<div class="kmain" data-detail="'+k.id+'">'+
+      '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
+      '<div class="kmeta">'+meta.join('')+'</div>'+
+    '</div>'+
+    '<div class="kcheck" data-check="'+k.id+'"><div class="box">✓</div></div>'+
+  '</div>';
+}
+function stapelHtml(st){
+  const ks=stapelKarten(st);
+  const kpi=stapelKpi(ks);
+  const offen = S.ui.stapelOffen[st.id];
+  const rows = ks.length ? ks.map(k=>kartenreiheHtml(k, st.id)).join('') : '<div class="leer">keine Karten</div>';
+  return '<div class="stapel '+(offen?'':'zu')+'" data-sid="'+st.id+'" style="border-left-color:'+esc(st.farbe||'#5d6d88')+'">'+
+    '<div class="stapelkopf" data-toggle="'+st.id+'">'+
+      '<span class="caret">▾</span>'+
+      '<span class="st-name">'+esc(st.name)+'</span>'+
+      '<span class="st-groesse">'+kpi.alle+'</span>'+
+      '<span class="sp"></span>'+
+      '<span class="st-kpi"><span><b>'+kpi.offen+'</b>/'+kpi.alle+'</span>'+
+        '<span class="p"><b>'+kpi.punkte+'</b>P</span>'+
+        (kpi.avgMin?'<span>Ø<b>'+kpi.avgMin+'</b>′</span>':'')+'</span>'+
+      '<button class="st-edit" data-editstapel="'+st.id+'">⚙︎</button>'+
+    '</div>'+
+    '<div class="stapelbody">'+rows+'</div>'+
+  '</div>';
+}
+function renderStapel(){
+  rangCacheBauen();
+  const host=el('stapelListe');
+  // Ordner-Zuordnung: jeder Stapel kann in mehreren Ordnern liegen (§3.6).
+  const zugeordnet=new Set();
+  let html=tagBannerHtml();
+  S.ordner.forEach(o=>{
+    const drin=(o.stapelIds||[]).map(id=>S.stapel.find(s=>s.id===id)).filter(Boolean);
+    if(!drin.length) return;
+    drin.forEach(s=>zugeordnet.add(s.id));
+    const zu=S.ui.ordnerZu[o.id];
+    html+='<div class="ordner '+(zu?'zu':'')+'" data-oid="'+o.id+'">'+
+      '<div class="ordnerkopf" data-ordner="'+o.id+'"><span class="caret">▾</span>'+esc(o.name)+
+        ' <span style="color:var(--mut2);font-weight:600">· '+drin.length+'</span></div>'+
+      '<div class="ordnerbody">'+drin.map(stapelHtml).join('')+'</div>'+
+    '</div>';
+  });
+  const rest=S.stapel.filter(s=>!zugeordnet.has(s.id));
+  html += rest.map(stapelHtml).join('');
+  if(!S.stapel.length) html='<div class="placeholder" style="margin-top:14vh"><span class="big">🗂</span>Noch keine Stapel</div>';
+  host.innerHTML=html;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   9b · D1 Fokus-View + Fokus-Leiste + Farbstreifen (§7 D1)
+   ══════════════════════════════════════════════════════════════════════ */
+/* Durchwechsel-Set: begonnene offene Karten PLUS alle Muss-Karten (offen). */
+function fokusKandidaten(){
+  const ks=S.karten.filter(k=>k.status==='offen' && (istSekLive(k)>0 || k.prioritaet==='muss'));
+  const st=S.stapel.find(s=>s.id===S.ui.aktivStapel);
+  const reihenfolge = st ? stapelKarten(st).map(k=>k.id) : [];
+  ks.sort((a,b)=>{
+    const ia=reihenfolge.indexOf(a.id), ib=reihenfolge.indexOf(b.id);
+    return (ia<0?9e9:ia)-(ib<0?9e9:ib);
+  });
+  return ks;
+}
+function aktiveFokusKarte(){
+  // Angezeigte Karte = fokusIdx-Kandidat (der Timer läuft unabhängig weiter,
+  // die Fokus-Leiste zeigt ihn). fokusStarten setzt fokusIdx auf seine Karte.
+  const kand=fokusKandidaten();
+  if(!kand.length) return null;
+  let i=S.ui.fokusIdx||0; if(i<0) i=0; if(i>=kand.length) i=kand.length-1;
+  S.ui.fokusIdx=i;
+  return kand[i];
+}
+function renderFokus(){
+  rangCacheBauen();
+  const host=el('fokusView');
+  const k=aktiveFokusKarte();
+  const kand=fokusKandidaten();
+  if(!k){
+    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine begonnene oder Muss-Karte.<br>Starte eine Karte über ▶ oder im Stapel.</div>'+streifenHtml();
+    return;
+  }
+  const idx=Math.max(0, kand.findIndex(x=>x.id===k.id));
+  const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
+  const meta=[];
+  meta.push('<span>'+esc(kartenArt(k))+'</span>');
+  if(k.faelligkeit) meta.push('<span>'+esc(fmtDatum(k.faelligkeit))+'</span>');
+  if(k.uhrzeit) meta.push('<span>🕐 '+esc(k.uhrzeit)+'</span>');
+  meta.push('<span>▶ <b id="fkLiveTimer">'+mmss(istSekLive(k))+'</b> / '+num(k.sollMin)+'′</span>');
+  meta.push('<span class="pt" id="fkLivePts">'+Math.round(kartePunkte(k))+' P</span>');
+  if(k.domain==='dfm' && k.projekt) meta.push('<span>'+esc(k.projekt)+'</span>');
+  if(k.rhythmus && num(k.streak)>0) meta.push('<span>🔥'+num(k.streak)+'</span>');
+
+  const subs=untermenge(k.id);
+  let subHtml='';
+  if(subs.length){
+    subHtml='<div class="fk-meta" style="flex-direction:column;align-items:stretch;gap:4px;margin-top:10px">'+
+      subs.map(u=>'<div style="display:flex;gap:8px;align-items:center"><span class="cb-mini" data-fksub="'+u.id+'" style="width:18px;height:18px;border-radius:5px;border:2px solid '+(u.done?'var(--ok)':'var(--mut2)')+';background:'+(u.done?'var(--ok)':'transparent')+';display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#0a0f1a">'+(u.done?'✓':'')+'</span><span style="'+(u.done?'text-decoration:line-through;color:var(--mut)':'')+'">'+esc(u.titel||'Teilschritt')+'</span><span style="margin-left:auto;color:var(--mut2)">'+num(u.sollMin)+'′</span></div>').join('')+'</div>';
+  }
+
+  const carousel = kand.length>1
+    ? '<div class="fk-carousel"><button class="arw" data-fkprev="1">‹</button><div class="pos">'+(idx+1)+' / '+kand.length+' · begonnene + Muss</div><button class="arw" data-fknext="1">›</button></div>'
+    : '';
+
+  host.innerHTML =
+    carousel +
+    '<div id="fokusAktiv" class="'+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
+      '<div class="fk-top"><div class="fk-titel">'+esc(k.titel||'(ohne Titel)')+'</div>'+
+        '<div class="fk-check" data-fkcheck="'+k.id+'">✓</div></div>'+
+      '<div class="fk-meta">'+meta.join('')+'</div>'+
+      subHtml+
+      '<div class="fk-ctrl">'+
+        '<button class="fk-play" data-fktoggle="'+k.id+'">'+(laeuft?'⏸ Pause':'▶ Start')+'</button>'+
+        '<button class="fk-edit" data-detail="'+k.id+'">✎</button>'+
+      '</div>'+
+    '</div>'+
+    streifenHtml();
+}
+/* Farbstreifen: nächste 10 Karten des aktiven Stapels als Farbrechtecke. */
+function streifenHtml(){
+  const st=S.stapel.find(s=>s.id===S.ui.aktivStapel) || S.stapel[0];
+  if(!st) return '';
+  const ks=stapelKarten(st).slice(0,10);
+  const aktivId = (aktiveFokusKarte()||{}).id;
+  const rects = ks.map(k=>{
+    let rest='';
+    if(k.uhrzeit){ const r=restBisTermin(k); if(r!=null) rest='<span class="rest">'+r+'</span>'; }
+    return '<div class="strk '+(k.id===aktivId?'aktiv ':'')+(k.status==='erledigt'?'check ':'')+'" data-streif="'+k.id+'" style="background:'+karteFarbe(k)+'">'+rest+'</div>';
+  }).join('');
+  const wahl = S.stapel.map(s=>'<option value="'+s.id+'"'+(s.id===st.id?' selected':'')+'>'+esc(s.name)+'</option>').join('');
+  return '<div class="streifsec"><div class="lab">Nächste im Stapel <select class="stapelwahl" id="streifStapel">'+wahl+'</select></div>'+
+    '<div class="farbstreifen">'+(rects||'<div style="color:var(--mut2);font-size:12px">leer</div>')+'</div></div>';
+}
+/* Rest-Timer bis zum Startzeitpunkt einer Uhrzeit-Karte (Minuten, kompakt). */
+function restBisTermin(k){
+  if(!k.uhrzeit) return null;
+  const now=new Date();
+  const [hh,mm]=String(k.uhrzeit).split(':').map(Number);
+  const ziel=new Date(); ziel.setHours(hh||0, mm||0, 0, 0);
+  let diffMin=Math.round((ziel-now)/60000);
+  if(diffMin<0) return '–';
+  if(diffMin>=60) return Math.floor(diffMin/60)+'h';
+  return diffMin+'m';
+}
+/* Fokus-Leiste (fixer Layer über allen Tabs). */
+function renderFokusleiste(){
+  const bar=el('topbar'), k=fokusKarte();
+  const laeuft = S.fokus && S.fokus.laeuft;
+  bar.classList.toggle('laeuft', !!laeuft);
+  el('fkPP').textContent = laeuft ? '⏸' : '▶';
+  if(k){
+    el('fkTitle').textContent=k.titel||'(ohne Titel)';
+    el('fkTitle').classList.remove('idle');
+    el('fkSub').hidden=false;
+    el('fkTimer').textContent=mmss(istSekLive(k));
+    el('fkPts').textContent=Math.round(kartePunkte(k))+' P';
+  } else {
+    el('fkTitle').textContent='Kein Fokus aktiv';
+    el('fkTitle').classList.add('idle');
+    el('fkSub').hidden=true;
+  }
+  const tages=Math.round(tagesPunkteLive());
+  el('fkRight').innerHTML='<div class="pt">'+tages+'</div><div class="lbl">heute · P</div>';
+}
+/* Tag-Bezug (§3.7): aktuelle Tag-ID + „Tag offen?". */
+function aktuelleTagId(){ return S.tag ? S.tag.tagId : heuteApp(); }
+function tagOffen(){ return !!(S.tag && !S.tag.endeTs); }
+/* Heute erreichte Punkte (live, inkl. laufendem Timer) minus Schiebe-Abzüge. */
+function tagesPunkteLive(){
+  const tid=aktuelleTagId();
+  let p=0;
+  S.karten.forEach(k=>{ if(k.status==='erledigt' && k.tagId===tid) p+=kartePunkte(k); });
+  if(S.fokus){ const fk=fokusKarte(); if(fk && fk.status==='offen') p+=kartePunkte(fk); } // laufend
+  if(S.tag) p -= num(S.tag.abzuegeBilanz);   // Schiebe-Abzüge mindern die Tagesbilanz
+  return p;
+}
+/* Wohlstand live = eingefrorener Stand + heutiger (noch offener) Tag. */
+function wohlstandLive(){ return num(S.meta.wohlstand) + (tagOffen() ? tagesPunkteLive() : 0); }
+function renderAlles(){
+  rangCacheBauen();
+  renderFokusleiste();
+  if(S.ui.tab==='stapel') renderStapel();
+  else if(S.ui.tab==='fokus') renderFokus();
+  else if(S.ui.tab==='einst') renderEinst();
+}
+/* 1-Sekunden-Ticker nur solange der Timer läuft — aktualisiert Text in-place. */
+let tickerId=null;
+function starteTicker(){
+  if(tickerId) return;
+  tickerId=setInterval(()=>{
+    if(!(S.fokus && S.fokus.laeuft)){ clearInterval(tickerId); tickerId=null; return; }
+    if(S.tag){ S.tag.letzteAktivitaetTs=jetztIso(); }   // Aktivitäts-Stempel (Kanten §6)
+    renderFokusleiste();
+    const k=fokusKarte();
+    if(k && S.ui.tab==='fokus'){
+      const t=el('fkLiveTimer'); if(t) t.textContent=mmss(istSekLive(k));
+      const p=el('fkLivePts');   if(p) p.textContent=Math.round(kartePunkte(k))+' P';
+    }
+  }, 1000);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   5c · Tageslogik (§6) — Tag-Start · Routinen-Reset · Tagesabschluss ·
+        Streaks · Punkteabzug · Kanten. Tag rein manuell (uhrzeitunabhängig).
+   ══════════════════════════════════════════════════════════════════════ */
+/* Ist eine Routine am Kalenderdatum fällig? (v1.0-Rhythmustypen §3.1) */
+function routineFaellig(k, datum){
+  if(!k.rhythmus) return false;
+  const d=new Date(datum+'T12:00:00'), typ=k.rhythmus.typ;
+  if(typ==='taeglich') return true;
+  if(typ==='wochentage'){ const wt=((d.getDay()+6)%7)+1; return (k.rhythmus.tage||[]).includes(wt); } // Mo=1..So=7
+  if(typ==='alleNTage'){
+    const n=Math.max(1, num(k.rhythmus.n));
+    if(!k.zuletztRoutine) return true;
+    const diff=Math.round((d-new Date(k.zuletztRoutine+'T12:00:00'))/86400000);
+    return diff>=n;
+  }
+  return false;
+}
+function naechsterLaufindex(datum){
+  // Jeder abgeschlossene Tag steht in der Historie (Finalisieren pusht dorthin),
+  // ein noch offener Tag desselben Datums ebenfalls berücksichtigen, falls (Kante)
+  // ausnahmsweise nicht in der Historie.
+  let n=0; (S.historie||[]).forEach(h=>{ if(h.datum===datum) n++; });
+  if(S.tag && S.tag.datum===datum && !(S.historie||[]).some(h=>h.tagId===S.tag.tagId)) n++;
+  return n+1;
+}
+/* Tag-Start (§6): neue tagId, Akku, fällige Routinen zurücksetzen. */
+function tagStarten(akkuProzent){
+  if(tagOffen()) tagAbschlussAuto('Start-Tap');   // Kante: neuer Start beendet alten Tag
+  const datum=heuteIso();
+  S.tag = neuerTag(datum, naechsterLaufindex(datum));
+  S.tag.akku = (akkuProzent==null?null:Math.round(akkuProzent));
+  S.karten.forEach(k=>{
+    if(k.rhythmus && routineFaellig(k, datum)){
+      k.faelligkeit=datum; k.status='offen';
+      k.ticksHeute=0; k.istSek=0; k.tagId=null;                 // Tages-Ist 0, Historie bleibt
+      untermenge(k.id).forEach(u=>u.done=false);
+    }
+  });
+  saveTag(); saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
+  renderAlles();
+}
+/* Streak-Buchung bei Routinen-Erledigung (aus karteAbhaken). */
+function routineErledigtBuchen(k){
+  if(!k.rhythmus) return;
+  if(k.zuletztRoutine!==aktuelleTagId().slice(0,10)){ k.streak=num(k.streak)+1; }
+  k.zuletztRoutine = heuteApp();
+}
+/* Generierter Abzug-Vorschlag beim Schieben (§4): grob nach Priorität/Punkten. */
+function abzugVorschlag(k){
+  const basis = Math.round(kartePunkte(Object.assign({},k,{istSek:0,ticksHeute:0})));
+  const faktor = k.prioritaet==='muss' ? 1 : k.prioritaet==='soll' ? 0.5 : 0;
+  return Math.round(Math.min(100, basis*faktor) / 10) * 10;   // auf 10 gerundet, max 100
+}
+/* Karte im Abschluss schieben — mit sofort gebuchtem Punkteabzug. */
+function karteSchieben(k, datum, uhrzeit, abzug){
+  k.faelligkeit = datum || null;
+  k.uhrzeit = uhrzeit || null;
+  if(num(abzug)>0 && S.tag){ S.tag.abzuegeBilanz = num(S.tag.abzuegeBilanz) + num(abzug); }
+}
+/* Routinen-Bilanz im Abschluss: „Verpasst" (Streak bricht) / „Heute nicht nötig". */
+function routineBilanz(k, verpasst){
+  if(verpasst){ k.streak=0; }
+  (S.tag.routinenBilanz=S.tag.routinenBilanz||[]).push({ id:k.id, titel:k.titel, verpasst:!!verpasst, entschuldigt:!verpasst });
+}
+/* Tagesabschluss finalisieren: Timer stoppen, Bilanz einfrieren, Wohlstand
+   buchen, Snapshot in Historie. */
+function tagAbschlussFinalisieren(){
+  if(S.fokus && S.fokus.laeuft) fokusZeitEinbuchen();   // laufenden Timer stoppen+buchen
+  const bilanz = tagesPunkteLive();                      // erledigte heute − Abzüge (+ nichts Laufendes mehr)
+  S.tag.punkteBilanz = Math.round(bilanz);
+  S.tag.endeTs = jetztIso();
+  S.meta.wohlstand = num(S.meta.wohlstand) + bilanz;     // §4: kumulativ, nie Reset
+  // Snapshot für Statistiken (§9)
+  S.historie.push({
+    tagId:S.tag.tagId, datum:S.tag.datum, laufindex:S.tag.laufindex,
+    startTs:S.tag.startTs, endeTs:S.tag.endeTs, akku:S.tag.akku,
+    punkteBilanz:S.tag.punkteBilanz, abzuege:num(S.tag.abzuegeBilanz),
+    routinenBilanz:S.tag.routinenBilanz||[], luecke:false
+  });
+  saveTag(); saveHistorie(); saveMeta(); saveKarten();
+}
+/* Automatischer Abschluss (Kante §6: vergessen / Start-Tap / Lücke). */
+function tagAbschlussAuto(grund){
+  if(!tagOffen()) return;
+  // offene fällige Routinen = „Verpasst"
+  const datum=S.tag.datum;
+  S.karten.forEach(k=>{ if(k.rhythmus && k.status==='offen' && routineFaellig(k, datum)) routineBilanz(k, true); });
+  tagAbschlussFinalisieren();
+}
+/* Beim Öffnen: vergessenen Abschluss / Lücke erkennen (§6 Kanten). */
+function pruefeTagKante(){
+  if(!S.tag) return;
+  if(!tagOffen()) return;                       // schon abgeschlossen
+  if(S.tag.datum===heuteIso()) return;          // Tag über Mitternacht ok, gleicher Start-Tag
+  // Offener Tag + neues Kalenderdatum → Abschluss nachholen (Ende = letzte Aktivität).
+  tagAbschlussAuto('vergessen');
+  toast('Vergessener Tagesabschluss nachgeholt');
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   9c · Tag-UI — Banner (D2) · Tag-Start-Wizard · Tagesabschluss (D5)
+   ══════════════════════════════════════════════════════════════════════ */
+function tagBannerHtml(){
+  if(tagOffen()){
+    const akku = S.tag.akku!=null ? S.tag.akku+'%' : '—';
+    return '<div class="tagbanner offen">'+
+      '<div class="tb-info"><div class="tb-h">Tag läuft · '+esc(S.tag.tagId)+'</div>'+
+        '<div class="tb-sub">🔋 Akku '+akku+' · Bilanz <b>'+Math.round(tagesPunkteLive())+'</b> P · Wohlstand '+Math.round(wohlstandLive())+'</div></div>'+
+      '<button class="tb-btn" data-tagclose="1">Abschließen</button></div>';
+  }
+  return '<div class="tagbanner">'+
+    '<div class="tb-info"><div class="tb-h">Kein Tag gestartet</div>'+
+      '<div class="tb-sub">Wohlstand '+Math.round(wohlstandLive())+' P</div></div>'+
+    '<button class="tb-btn prim" data-tagstart="1">▶ Tag starten</button></div>';
+}
+
+/* ── Tag-Start-Wizard ─────────────────────────────────────────────── */
+let tagStartTmp=null;
+function oeffneTagStart(){
+  tagStartTmp={ energie:70, motivation:70, akku:70, manuell:false };
+  renderTagStart();
+}
+function renderTagStart(){
+  const t=tagStartTmp;
+  if(!t.manuell) t.akku=Math.round((t.energie+t.motivation)/2);
+  let h='<p class="d">Wie startest du in den Tag? Der Akku ist ein Vorschlag aus Energie und Motivation — frei anpassbar.</p>';
+  h+='<div class="field"><label>Energie <span id="ts-energie-v">'+t.energie+'%</span></label><input type="range" min="0" max="100" data-ts="energie" value="'+t.energie+'"></div>';
+  h+='<div class="field"><label>Motivation <span id="ts-motivation-v">'+t.motivation+'%</span></label><input type="range" min="0" max="100" data-ts="motivation" value="'+t.motivation+'"></div>';
+  h+='<div class="field akkubox"><label>Akku-Start <b id="ts-akku-v">'+t.akku+'%</b></label><input type="range" min="0" max="100" data-ts="akku" value="'+t.akku+'"></div>';
+  const foot='<button class="btn ghost sm" data-close="1">Abbrechen</button><button class="btn prim" data-tagstartgo="1">Tag starten</button>';
+  openSheet('Neuen Tag starten', h, foot);
+}
+
+/* ── Tagesabschluss (2 Durchgänge) ────────────────────────────────── */
+let abschlussTmp=null;
+function abraeumKarten(){
+  const h=heuteApp();
+  return S.karten.filter(k=>k.status==='offen' && k.faelligkeit && (k.faelligkeit===h || k.faelligkeit<h));
+}
+function morgenIso(){ const d=new Date(heuteApp()+'T12:00:00'); d.setDate(d.getDate()+1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function oeffneTagAbschluss(){
+  if(!tagOffen()){ toast('Kein offener Tag'); return; }
+  abschlussTmp={ step:1, schiebenFor:null, abzug:0, sortOrder:[] };
+  renderAbschluss();
+}
+function renderAbschluss(){ abschlussTmp.step===1 ? renderAbschlussAbraeumen() : renderAbschlussSortieren(); }
+function renderAbschlussAbraeumen(){
+  rangCacheBauen();
+  const karten=abraeumKarten();
+  let h='<p class="d"><b>Durchgang 1 — Abräumen.</b> Fällige/überfällige Karten abhaken, schieben, archivieren. Routinen: verpasst oder heute nicht nötig.</p>';
+  if(!karten.length){ h+='<div class="card"><p class="d" style="text-align:center">Alles abgeräumt 🎉</p></div>'; }
+  karten.forEach(k=>{
+    const istRoutine=!!k.rhythmus, ueberf=k.faelligkeit<heuteApp();
+    h+='<div class="abcard" style="border-left-color:'+karteFarbe(k)+'">'+
+      '<div class="abtitel">'+esc(k.titel)+'</div>'+
+      '<div class="abmeta">'+(ueberf?'<span class="pri-muss">überfällig</span>':'heute')+' · '+num(k.sollMin)+'′ · '+Math.round(kartePunkte(k))+'P'+(istRoutine?' · 🔥'+num(k.streak):'')+'</div>';
+    if(abschlussTmp.schiebenFor===k.id){
+      const vor=abzugVorschlag(k);
+      h+='<div class="schiebe">'+
+        '<div class="row2"><input type="date" id="ab-date" value="'+morgenIso()+'"><input type="time" id="ab-time" value="'+esc(k.uhrzeit||'')+'"></div>'+
+        '<div class="abzugsel">Abzug: '+
+          [['0','ohne'],['50','−50'],['100','−100'],[String(vor),'Vorschlag −'+vor]].map(([v,t])=>'<button class="chip '+(num(abschlussTmp.abzug)===num(v)?'on rot':'')+'" data-abzug="'+v+'">'+t+'</button>').join('')+
+        '</div>'+
+        '<div class="abbtns"><button class="abbtn" data-abschiebenab="1">✕</button><button class="abbtn ok" data-abschiebengo="'+k.id+'">→ Schieben</button></div>'+
+      '</div>';
+    } else {
+      h+='<div class="abbtns">'+
+        '<button class="abbtn ok" data-abfertig="'+k.id+'">✓ Fertig</button>'+
+        '<button class="abbtn" data-abschieben="'+k.id+'">→ Schieben</button>'+
+        '<button class="abbtn" data-abarchiv="'+k.id+'">🗄</button>'+
+        '<button class="abbtn" data-abedit="'+k.id+'">✎</button>'+
+        (istRoutine?'<button class="abbtn warn" data-abverpasst="'+k.id+'">😴 Verpasst</button><button class="abbtn" data-abnicht="'+k.id+'">🆗 nicht nötig</button>':'')+
+      '</div>';
+    }
+    h+='</div>';
+  });
+  const foot='<button class="btn ghost sm" data-close="1">Später</button><button class="btn prim" data-abweiter="1">Weiter →</button>';
+  openSheet('Tagesabschluss (1/2)', h, foot);
+}
+function renderAbschlussSortieren(){
+  rangCacheBauen();
+  const morgen=morgenIso(), h0=heuteApp();
+  // Morgen-Stapel = offene Karten, die morgen fällig/übrig sind
+  const ks=S.karten.filter(k=>k.status==='offen' && k.faelligkeit && k.faelligkeit<=morgen);
+  let h='<p class="d"><b>Durchgang 2 — Morgen sortieren.</b> Tippe die Karten in der Reihenfolge an, in der du sie morgen angehen willst.</p>';
+  if(!ks.length){ h+='<div class="card"><p class="d" style="text-align:center">Nichts für morgen.</p></div>'; }
+  // nach aktueller Tap-Reihenfolge sortieren (getappte oben)
+  const order=abschlussTmp.sortOrder;
+  ks.sort((a,b)=>{ const ia=order.indexOf(a.id), ib=order.indexOf(b.id); return (ia<0?9e9:ia)-(ib<0?9e9:ib); });
+  ks.forEach(k=>{
+    const pos=order.indexOf(k.id);
+    h+='<div class="abcard tap '+(pos>=0?'num':'')+'" data-sorttap="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
+      '<div class="tapnum">'+(pos>=0?(pos+1):'·')+'</div>'+
+      '<div><div class="abtitel">'+esc(k.titel)+'</div><div class="abmeta">'+esc(fmtDatum(k.faelligkeit))+' · '+num(k.sollMin)+'′</div></div>'+
+    '</div>';
+  });
+  const foot='<button class="btn ghost sm" data-absortreset="1">Reset</button><button class="btn prim" data-abfinish="1">Abschließen + Backup</button>';
+  openSheet('Tagesabschluss (2/2)', h, foot);
+}
+function abschlussFinish(){
+  const order=abschlussTmp.sortOrder;
+  if(order.length){
+    order.forEach((id,i)=>{ const k=S.karten.find(x=>x.id===id); if(k){ k.sortIndex=k.sortIndex||{}; k.sortIndex['sys-heute']=i+1; } });
+    const st=S.stapel.find(s=>s.id==='sys-heute'); if(st) st.sortierung={feld:'manuell',richtung:'asc'};
+    saveKarten(); saveStapel();
+  }
+  tagAbschlussFinalisieren();
+  const paket=tagBackupPaket();
+  closeSheet(); renderAlles();
+  toast('Tag abgeschlossen · '+S.tag.punkteBilanz+' P');
+  backupDownload(paket, 'fokus-tagesabschluss-'+S.tag.tagId+'.json');
+}
+function tagBackupPaket(){
+  return { typ:'tagesabschluss', appVersion:VERSION, exportZeit:jetztIso(),
+    tag:S.tag, wohlstand:S.meta.wohlstand,
+    karten:S.karten, unteraufgaben:S.unteraufgaben };
+}
+function backupDownload(paket, name){
+  const href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(paket,null,2));
+  const a=document.createElement('a'); a.href=href; a.download=name||'fokus-backup.json';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   10 · Unteraufgaben — als eigene Liste im State, Match über parentId.
+   Invariante §3.2: Σ Unteraufgaben-sollMin = Parent-sollMin.
+   ══════════════════════════════════════════════════════════════════════ */
+S.unteraufgaben = [];  // wird in ladeAlles gefüllt
+function untermenge(parentId){ return S.unteraufgaben.filter(u=>u.parentId===parentId); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   11 · Sheet-Infrastruktur (Detail D3 / Stapel-Editor D4)
+   Öffnet als Sheet von unten, schließt per ✕ / Backdrop / Wisch-nach-unten.
+   ══════════════════════════════════════════════════════════════════════ */
+let sheetSaveFn=null;
+function openSheet(titel, bodyHtml, footHtml, saveFn){
+  el('sheetTitel').textContent=titel;
+  el('sheetBody').innerHTML=bodyHtml;
+  el('sheetFoot').innerHTML=footHtml||'';
+  sheetSaveFn=saveFn||null;
+  el('backdrop').classList.add('on');
+  el('sheet').classList.add('on');
+}
+function closeSheet(){
+  el('sheet').classList.remove('on');
+  el('backdrop').classList.remove('on');
+  sheetSaveFn=null; entwurf=null; stapelEntwurf=null;
+}
+
+/* ── D3 Karten-Detail ────────────────────────────────────────────── */
+let entwurf=null;     // Arbeitskopie der Karte im offenen Sheet
+let entwurfSubs=null; // Arbeitskopie der Unteraufgaben
+let entwurfNeu=false;
+
+function oeffneDetail(kid){
+  // Läuft der Timer auf dieser Karte, erst die Zeit einbuchen (pausieren),
+  // damit die Bearbeitung nicht die laufende Ist-Zeit überschreibt.
+  if(kid && S.fokus && S.fokus.karteId===kid && S.fokus.laeuft){ fokusZeitEinbuchen(); renderFokusleiste(); }
+  const orig = kid ? S.karten.find(k=>k.id===kid) : neueKarte({faelligkeit:heuteApp()});
+  entwurfNeu = !kid;
+  entwurf = JSON.parse(JSON.stringify(orig));
+  entwurfSubs = kid ? JSON.parse(JSON.stringify(untermenge(kid))) : [];
+  renderDetail();
+}
+function chipGroup(feld, aktuell, opts, klasse){
+  return '<div class="chips">'+opts.map(([v,t])=>
+    '<button class="chip '+(String(aktuell)===String(v)?('on '+(klasse||'')):'')+'" data-chip="'+feld+'" data-val="'+esc(v)+'">'+esc(t)+'</button>'
+  ).join('')+'</div>';
+}
+function renderDetail(){
+  const k=entwurf, istDfm=k.domain==='dfm';
+  const subs=entwurfSubs;
+  const subSum=subs.reduce((a,u)=>a+num(u.sollMin),0);
+  let h='';
+  h+='<div class="field"><label>Titel</label><input data-bind="titel" value="'+esc(k.titel)+'" placeholder="Was ist zu tun?"></div>';
+
+  h+='<div class="grid2">'+
+    '<div class="field"><label>Domäne</label>'+chipGroup('domain',k.domain,[['privat','Privat'],['dfm','DFM']], k.domain==='privat'?'gruen':'')+'</div>'+
+    '<div class="field"><label>Priorität</label>'+chipGroup('prioritaet',k.prioritaet,[['muss','muss'],['soll','soll'],['idee','idee']], k.prioritaet==='muss'?'rot':'')+'</div>'+
+  '</div>';
+
+  if(istDfm){
+    h+='<div class="grid2">'+
+      '<div class="field"><label>Projekt</label><input data-bind="projekt" value="'+esc(k.projekt||'')+'" placeholder="aus Airtable"></div>'+
+      '<div class="field"><label>Geld-Score</label><input type="number" inputmode="numeric" data-bind="geldScore" value="'+num(k.geldScore)+'"></div>'+
+    '</div>';
+  }
+
+  h+='<div class="grid2">'+
+    '<div class="field"><label>Fälligkeit</label><input type="date" data-bind="faelligkeit" value="'+esc(k.faelligkeit||'')+'"><div class="hint">leer = Warteschlange</div></div>'+
+    '<div class="field"><label>Uhrzeit (Termin)</label><input type="time" data-bind="uhrzeit" value="'+esc(k.uhrzeit||'')+'"><div class="hint">gesetzt ⇒ Termin (blau)</div></div>'+
+  '</div>';
+
+  h+='<div class="field"><label>Tageszeit</label>'+chipGroup('tageszeit',k.tageszeit,[['morgens','morgens'],['mittags','mittags'],['abends','abends'],['beliebig','beliebig']])+'</div>';
+
+  h+='<div class="field"><label>Soll-Zeit (Minuten)</label><input type="number" inputmode="numeric" data-bind="sollMin" value="'+num(k.sollMin)+'" '+(subs.length?'readonly style="opacity:.6"':'')+'>'+
+     (subs.length?'<div class="hint">= Summe der Unteraufgaben ('+subSum+'′)</div>':'')+'</div>';
+
+  // Rate-Treiber
+  h+='<div class="field"><label>Rate-Treiber (Komplexität · Energie · Blockade)</label><div class="grid3">'+
+    '<div>'+chipGroup('komplex',k.komplex,[[1,'1,0'],[1.5,'1,5'],[2,'2,0']])+'</div>'+
+    '<div>'+chipGroup('energie',k.energie,[[0.8,'0,8'],[1,'1,0'],[1.3,'1,3']])+'</div>'+
+    '<div>'+chipGroup('blockade',k.blockade,[[1,'1,0'],[1.5,'1,5'],[2,'2,0']])+'</div>'+
+  '</div><div class="hint">Rate ≈ '+Math.round(rate(k))+' P/Std · Prognose '+Math.round(kartePunkte(Object.assign({},k,{ticksHeute:0})))+' P</div></div>';
+
+  // Wiederholung
+  const rTyp = k.rhythmus ? k.rhythmus.typ : 'keine';
+  h+='<div class="field"><label>Wiederholung</label>'+chipGroup('rhythmus',rTyp,[['keine','keine'],['taeglich','täglich'],['alleNTage','alle N Tage'],['wochentage','Wochentage']], rTyp!=='keine'?'lila':'')+'';
+  if(rTyp==='alleNTage'){
+    h+='<div style="margin-top:8px;display:flex;align-items:center;gap:8px"><span class="mlab" style="font-size:13px">alle</span><input type="number" inputmode="numeric" style="width:70px" data-bind="rhythmusN" value="'+num(k.rhythmus.n||2)+'"><span class="mlab" style="font-size:13px">Tage</span></div>';
+  } else if(rTyp==='wochentage'){
+    const tage=(k.rhythmus.tage||[]);
+    const namen=[['1','Mo'],['2','Di'],['3','Mi'],['4','Do'],['5','Fr'],['6','Sa'],['7','So']];
+    h+='<div class="chips" style="margin-top:8px">'+namen.map(([v,t])=>
+      '<button class="chip '+(tage.includes(num(v))?'on lila':'')+'" data-wtag="'+v+'">'+t+'</button>').join('')+'</div>';
+  }
+  h+='</div>';
+
+  // Tick-Kurve
+  h+='<div class="field"><label>Tick-Kurve (Punkte je Tick · Länge 1 = Abhaken)</label><div class="ticks" id="tickWrap">'+
+    k.tickKurve.map((v,i)=>'<input type="number" inputmode="numeric" data-tick="'+i+'" value="'+num(v)+'">').join('')+
+    '<button class="op" data-tickadd="1">＋</button>'+(k.tickKurve.length>1?'<button class="op" data-tickdel="1">－</button>':'')+
+  '</div></div>';
+
+  // Timer-Flag
+  h+='<div class="field"><label>Schnellzugriff Timer</label>'+chipGroup('timerFlag',k.timerFlag?'ja':'nein',[['ja','ja'],['nein','nein']])+'</div>';
+
+  // Unteraufgaben
+  h+='<div class="field"><label>Unteraufgaben</label><div id="subWrap">';
+  subs.forEach(u=>{
+    h+='<div class="sub" data-sub="'+u.id+'">'+
+      '<div class="cb '+(u.done?'on':'')+'" data-subdone="'+u.id+'">✓</div>'+
+      '<input class="t" data-subtitel="'+u.id+'" value="'+esc(u.titel)+'" placeholder="Teilschritt">'+
+      '<input class="m" type="number" inputmode="numeric" data-submin="'+u.id+'" value="'+num(u.sollMin)+'"><span class="mlab">′</span>'+
+      '<button class="del" data-subdel="'+u.id+'">✕</button>'+
+    '</div>';
+  });
+  h+='</div><button class="minibtn" data-subadd="1" style="margin-top:4px">＋ Unteraufgabe</button>';
+  if(subs.length) h+='<div class="subsum'+(subSum!==num(k.sollMin)?' warn':'')+'">Σ '+subSum+'′ = Parent '+num(k.sollMin)+'′</div>';
+  h+='</div>';
+
+  // Notizen
+  h+='<div class="field"><label>Notiz</label><textarea data-bind="notiz" placeholder="Notiz">'+esc(k.notiz)+'</textarea></div>';
+  h+='<div class="field"><label>Kommentar für Claude</label><textarea data-bind="kommentarFuerClaude" placeholder="geht in den Sync-Export">'+esc(k.kommentarFuerClaude)+'</textarea></div>';
+
+  // Status/Meta
+  h+='<div class="kv"><span>Art</span><b>'+kartenArt(k)+'</b></div>';
+  h+='<div class="kv"><span>Status</span><b>'+esc(k.status)+'</b></div>';
+  if(k.tagId) h+='<div class="kv"><span>Buchungstag</span><b>'+esc(k.tagId)+'</b></div>';
+
+  let foot='';
+  foot+='<button class="btn ghost sm" data-detailaktion="abhaken">'+(k.status==='erledigt'?'↩︎ offen':'✓ fertig')+'</button>';
+  if(!entwurfNeu) foot+='<button class="btn ghost sm" data-detailaktion="archiv">🗄</button>';
+  foot+='<button class="btn prim" data-detailaktion="speichern">Speichern</button>';
+  openSheet(entwurfNeu?'Neue Karte':'Karte', h, foot, null);
+}
+/* Unteraufgaben-Balance (§3.2) */
+function subBalanceNachAdd(){
+  // Neue Unteraufgabe: Parent-Gesamtzeit gleichmäßig auf alle aufteilen.
+  const n=entwurfSubs.length; if(!n) return;
+  const total=num(entwurf.sollMin);
+  const je=Math.round(total/n);
+  entwurfSubs.forEach((u,i)=> u.sollMin = (i===n-1) ? (total-je*(n-1)) : je );
+}
+function subParentAngleichen(){
+  // Parent-Soll = Σ Unteraufgaben (Differenz wird mit dem Parent verrechnet).
+  if(entwurfSubs.length) entwurf.sollMin = entwurfSubs.reduce((a,u)=>a+num(u.sollMin),0);
+}
+function detailSpeichern(){
+  entwurf.titel = (entwurf.titel||'').trim();
+  if(!entwurf.titel){ toast('Titel fehlt'); return; }
+  if(entwurf.domain!=='dfm'){ entwurf.projekt=null; entwurf.geldScore=0; }
+  if(!Array.isArray(entwurf.tickKurve)||!entwurf.tickKurve.length) entwurf.tickKurve=[0];
+  subParentAngleichen();
+  const idx=S.karten.findIndex(k=>k.id===entwurf.id);
+  if(idx>=0) S.karten[idx]=entwurf; else S.karten.push(entwurf);
+  // Unteraufgaben ersetzen
+  S.unteraufgaben = S.unteraufgaben.filter(u=>u.parentId!==entwurf.id).concat(
+    entwurfSubs.map(u=>Object.assign(neueUnteraufgabe(entwurf.id), u, {parentId:entwurf.id}))
+  );
+  // Erledigt/archiviert + war im Fokus → Fokus beenden.
+  if((entwurf.status==='erledigt'||entwurf.status==='archiviert') && S.fokus && S.fokus.karteId===entwurf.id){ S.fokus=null; saveFokus(); }
+  saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
+  closeSheet(); renderAlles();
+  toast(entwurfNeu?'Karte angelegt':'Gespeichert'); haptik(12);
+}
+function karteAbhaken(kid, fromDetail){
+  const k = kid ? S.karten.find(x=>x.id===kid) : entwurf;
+  if(!k) return;
+  if(k.status==='erledigt'){
+    k.status='offen'; k.tagId=null;
+    if(k.rhythmus && k.zuletztRoutine===heuteApp()){ k.streak=Math.max(0,num(k.streak)-1); k.zuletztRoutine=null; }
+    if(k.tickKurve && k.tickKurve.length===1) k.ticksHeute=0;
+  } else {
+    // Läuft der Timer auf dieser Karte → erst Zeit einbuchen, Fokus beenden (§6 Kante).
+    if(!fromDetail && S.fokus && S.fokus.karteId===k.id) fokusBeenden();
+    k.status='erledigt'; k.tagId=aktuelleTagId();
+    if(k.tickKurve && k.tickKurve.length===1) k.ticksHeute=1;
+    if(k.rhythmus) routineErledigtBuchen(k);              // Streak + zuletztRoutine
+    if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
+    konfetti(); haptik(20);
+  }
+  if(!fromDetail){ saveKarten(); renderAlles(); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   12 · D4 Stapel-Editor (Anlage & Bearbeitung, identisch §7 D4)
+   ══════════════════════════════════════════════════════════════════════ */
+let stapelEntwurf=null, stapelNeu=false;
+const FARBEN=['#4f8ef7','#3ecf8e','#f2b84b','#f66d6d','#b98af7','#6dd3e0','#f78ad0','#8fa1b8'];
+function oeffneStapelEditor(sid){
+  stapelNeu=!sid;
+  const orig = sid ? S.stapel.find(s=>s.id===sid) : neuerStapel();
+  stapelEntwurf = JSON.parse(JSON.stringify(orig));
+  renderStapelEditor();
+}
+function renderStapelEditor(){
+  feldKatalog();
+  const st=stapelEntwurf;
+  let h='';
+  h+='<div class="field"><label>Name</label><input data-sbind="name" value="'+esc(st.name)+'"></div>';
+  h+='<div class="field"><label>Farbe</label><div class="chips">'+FARBEN.map(c=>
+    '<button class="chip" data-sfarbe="'+c+'" style="background:'+c+';color:#0a0f1a;border-color:'+c+';'+(st.farbe===c?'outline:2px solid #fff;outline-offset:1px':'opacity:.55')+'">●</button>').join('')+'</div></div>';
+
+  // Filter
+  h+='<div class="field"><label>Filter</label><div class="fbnote">Mehrere Filter: UND über Felder, ODER innerhalb eines Feldes.</div><div id="fbWrap">';
+  (st.filter||[]).forEach((f,i)=> h+=fbRowHtml(f,i));
+  h+='</div><button class="minibtn" data-fbadd="1">＋ Filter</button></div>';
+
+  // Sortierung
+  const so=st.sortierung||{feld:'auto',richtung:'asc'};
+  const felder=Object.keys(FELDER);
+  h+='<div class="field"><label>Sortierung</label><div class="grid2">'+
+    '<select data-sbind="sortFeld"><option value="auto"'+(so.feld==='auto'?' selected':'')+'>automatisch</option>'+
+      '<option value="manuell"'+(so.feld==='manuell'?' selected':'')+'>manuell (Tap)</option>'+
+      felder.map(f=>'<option value="'+f+'"'+(so.feld===f?' selected':'')+'>'+esc(feldLabel(f))+'</option>').join('')+'</select>'+
+    '<select data-sbind="sortRichtung"><option value="asc"'+(so.richtung==='asc'?' selected':'')+'>aufsteigend</option><option value="desc"'+(so.richtung==='desc'?' selected':'')+'>absteigend</option></select>'+
+  '</div></div>';
+
+  // Ordner
+  h+='<div class="field"><label>Ordner (Mehrfach möglich)</label><div class="chips">'+
+    S.ordner.map(o=>'<button class="chip '+((st.ordnerIds||[]).includes(o.id)?'on':'')+'" data-sordner="'+o.id+'">'+esc(o.name)+'</button>').join('')+
+    '<button class="chip" data-ordnerneu="1">＋ neuer Ordner</button></div></div>';
+
+  h+='<div class="field"><label>Schnellzugriff Timer</label>'+
+    '<div class="chips"><button class="chip '+(st.schnellzugriffTimer?'on':'')+'" data-sflag="schnellzugriffTimer">Timer/Tick direkt</button></div></div>';
+
+  let foot='';
+  if(!stapelNeu) foot+='<button class="btn warn sm" data-saktion="loeschen">Löschen</button>';
+  foot+='<button class="btn prim" data-saktion="speichern">Speichern</button>';
+  openSheet(stapelNeu?'Neuer Stapel':'Stapel bearbeiten', h, foot, null);
+}
+function fbRowHtml(f, i){
+  feldKatalog();
+  const felder=Object.keys(FELDER);
+  const typ=feldTyp(f.feld);
+  let valHtml='';
+  if(typ==='select'){
+    const opts=(FELDER[f.feld].opt?FELDER[f.feld].opt():[]);
+    valHtml='<select data-fbop="'+i+'"><option value="ist"'+(f.op!=='istNicht'?' selected':'')+'>ist</option><option value="istNicht"'+(f.op==='istNicht'?' selected':'')+'>ist nicht</option></select>'+
+      '<div class="chips">'+opts.map(([v,t])=>'<button class="chip '+((f.werte||[]).map(String).includes(String(v))?'on':'')+'" data-fbwert="'+i+'" data-v="'+esc(v)+'">'+esc(t)+'</button>').join('')+'</div>';
+  } else if(typ==='zahl'){
+    valHtml='<select data-fbop="'+i+'"><option value="gte"'+(f.op!=='lte'?' selected':'')+'>≥</option><option value="lte"'+(f.op==='lte'?' selected':'')+'>≤</option></select>'+
+      '<input type="number" inputmode="numeric" style="width:90px" data-fbnum="'+i+'" value="'+num(f.wert)+'">';
+  } else if(typ==='datum'){
+    const ops=[['heute','heute'],['ueberfaellig','überfällig'],['zukunft','Zukunft'],['keine','keine'],['zeitraum','Zeitraum']];
+    valHtml='<select data-fbop="'+i+'">'+ops.map(([v,t])=>'<option value="'+v+'"'+(f.op===v?' selected':'')+'>'+t+'</option>').join('')+'</select>';
+    if(f.op==='zeitraum') valHtml+='<input type="date" style="width:130px" data-fbvon="'+i+'" value="'+esc(f.von||'')+'"><input type="date" style="width:130px" data-fbbis="'+i+'" value="'+esc(f.bis||'')+'">';
+  } else {
+    valHtml='<span class="mlab">enthält</span><input style="flex:1" data-fbtext="'+i+'" value="'+esc(f.wert||'')+'">';
+  }
+  return '<div class="fbrow" data-fbi="'+i+'">'+
+    '<div class="top"><select data-fbfeld="'+i+'">'+felder.map(fd=>'<option value="'+fd+'"'+(f.feld===fd?' selected':'')+'>'+esc(feldLabel(fd))+'</option>').join('')+'</select>'+
+    '<button class="del" data-fbdel="'+i+'">✕</button></div>'+
+    '<div class="val">'+valHtml+'</div>'+
+  '</div>';
+}
+function stapelSpeichern(){
+  stapelEntwurf.name=(stapelEntwurf.name||'').trim()||'Stapel';
+  const idx=S.stapel.findIndex(s=>s.id===stapelEntwurf.id);
+  if(idx>=0) S.stapel[idx]=stapelEntwurf; else S.stapel.push(stapelEntwurf);
+  // Ordner-Zuordnung spiegeln (Ordner hält stapelIds)
+  S.ordner.forEach(o=>{
+    const soll=(stapelEntwurf.ordnerIds||[]).includes(o.id);
+    const drin=(o.stapelIds||[]).includes(stapelEntwurf.id);
+    if(soll && !drin) o.stapelIds.push(stapelEntwurf.id);
+    if(!soll && drin) o.stapelIds=o.stapelIds.filter(id=>id!==stapelEntwurf.id);
+  });
+  saveStapel(); saveOrdner(); closeSheet(); renderStapel(); toast('Stapel gespeichert');
+}
+function stapelLoeschen(){
+  S.stapel=S.stapel.filter(s=>s.id!==stapelEntwurf.id);
+  S.ordner.forEach(o=>{ o.stapelIds=(o.stapelIds||[]).filter(id=>id!==stapelEntwurf.id); });
+  saveStapel(); saveOrdner(); closeSheet(); renderStapel(); toast('Stapel gelöscht');
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   13 · Migration §10 (aus alten fokus2.* Keys, read-only, idempotent)
+   ══════════════════════════════════════════════════════════════════════ */
+function altGeldScore(impact){
+  const map={hoch:300, mittel:200, niedrig:100};
+  return map[impact]!=null ? map[impact] : 0;
+}
+function altRhythmus(it){
+  if(it.typ!=='routine') return null;
+  const wt=it.rhythmusWochentage;
+  if(Array.isArray(wt) && wt.length) return {typ:'wochentage', tage: wt.map(d=>num(d)+1).filter(n=>n>=1&&n<=7)};
+  const n=num(it.rhythmusTage, 1);
+  if(n<=1) return {typ:'taeglich'};
+  return {typ:'alleNTage', n};
+}
+function altTickKurve(it){
+  if(it.typ!=='counter') return [0];
+  if(Array.isArray(it.tickStufen) && it.tickStufen.length){
+    // grobe Übernahme: je Stufe ihr punkteProTick
+    return it.tickStufen.map(s=>num(s.punkteProTick)).slice(0,12) || [0];
+  }
+  const schwelle=num(it.tickSchwelle,3), vor=num(it.punkteJeTickVorSchwelle,1), nach=num(it.punkteJeTickNachSchwelle,-2);
+  return Array(Math.max(1,schwelle)).fill(vor).concat([nach]);
+}
+function mapAltKarte(it){
+  const domain = it.domain==='dfm' ? 'dfm' : 'privat';
+  // §10: ort/streamSlot → Fälligkeit (heute→heute, Warteschlange→null).
+  // Vorhandene Deadline bleibt als Fälligkeit erhalten (Fälligkeit ist die
+  // einzige Wahrheit §2) — sonst würden Termine verloren gehen.
+  let faelligkeit = (it.streamSlot!=null) ? heuteApp() : (it.deadline || null);
+  const k = neueKarte({
+    id: it.id || uuid(),
+    herkunftId: it.id || null,
+    airtableId: (domain==='dfm' && it.id && /^rec/i.test(it.id)) ? it.id : null,
+    domain,
+    titel: it.titel || '',
+    notiz: it.notiz || '',
+    kommentarFuerClaude: it.kommentarFuerClaude || '',
+    projekt: domain==='dfm' ? (it.projekt||null) : null,
+    geldScore: domain==='dfm' ? altGeldScore(it.geldImpact) : 0,
+    faelligkeit,
+    uhrzeit: null,
+    tageszeit: 'beliebig',
+    sollMin: num(it.aufwandGeplantMin),
+    istSek: Math.round(num(it.istMinuten)*60),
+    komplex: num(it.komplexitaet,1), energie: num(it.energie,1), blockade: num(it.blockade,1),
+    prioritaet: ['muss','soll','idee'].includes(it.prioritaet)?it.prioritaet:'soll',
+    tickKurve: altTickKurve(it),
+    ticksHeute: num(it.tickStandHeute),
+    timerFlag: it.typ==='counter' && !!it.timerFlag,
+    rhythmus: altRhythmus(it),
+    status: (it.status==='erledigt') ? 'erledigt' : 'offen',
+    streak: num(it.routineStreak || it.streak),
+  });
+  return k;
+}
+function migrationVorschau(){
+  const items=altLese(ALT.ITEMS, []);
+  if(!Array.isArray(items)) return {items:[], offen:0, routinen:0, counter:0, wohlstand:0};
+  const offen=items.filter(i=>i.status!=='erledigt').length;
+  const routinen=items.filter(i=>i.typ==='routine').length;
+  const counter=items.filter(i=>i.typ==='counter').length;
+  const tag=altLese(ALT.TAG, null);
+  const hist=altLese(ALT.HISTORIE, []);
+  let wohlstand = tag && tag.wohlstandStand!=null ? tag.wohlstandStand : 0;
+  if(Array.isArray(hist)) hist.forEach(h=>{ if(h && h.wohlstandStand>wohlstand) wohlstand=h.wohlstandStand; });
+  return {items, offen, routinen, counter, wohlstand};
+}
+function migrationBackupHref(){
+  const paket={ typ:'alt-backup', exportZeit:jetztIso(),
+    tag:altLese(ALT.TAG,null), historie:altLese(ALT.HISTORIE,[]) };
+  return 'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(paket,null,2));
+}
+function migrationAusfuehren(){
+  const v=migrationVorschau();
+  if(!v.items.length){ toast('Keine Alt-Daten gefunden'); return; }
+  let neu=0, upd=0;
+  v.items.forEach(it=>{
+    // §10: nur offene Karten + Routinen/Counter-Definitionen; Alt-Historie NICHT.
+    // Erledigte Einmal-Aufgaben ohne Rhythmus überspringen (reine Historie).
+    if(it.status==='erledigt' && it.typ==='aufgabe') return;
+    const k=mapAltKarte(it);
+    const exist = S.karten.find(x=> (k.herkunftId && x.herkunftId===k.herkunftId) || x.id===k.id );
+    if(exist){
+      // idempotent: nur Definition/offene Felder auffrischen, App-Hoheit lassen
+      Object.assign(exist, {
+        titel:k.titel, projekt:k.projekt, geldScore:k.geldScore, notiz:k.notiz,
+        rhythmus:k.rhythmus, tickKurve:k.tickKurve, streak:k.streak,
+        komplex:k.komplex, energie:k.energie, blockade:k.blockade, prioritaet:k.prioritaet
+      });
+      upd++;
+    } else { S.karten.push(k); neu++; }
+    // Unteraufgaben (Match über App-id)
+    if(Array.isArray(it.unteraufgaben)){
+      const pid=(S.karten.find(x=>x.herkunftId===k.herkunftId)||k).id;
+      it.unteraufgaben.forEach(u=>{
+        const uid=u.id||uuid();
+        if(S.unteraufgaben.find(x=>x.id===uid)) return;
+        S.unteraufgaben.push(neueUnteraufgabe(pid, {id:uid, titel:u.titel||'', sollMin:num(u.geplantMin), done:!!u.erledigt}));
+      });
+    }
+  });
+  // Wohlstand + Streaks (Wohlstand nie kleiner setzen)
+  if(v.wohlstand>num(S.meta.wohlstand)) S.meta.wohlstand=v.wohlstand;
+  S.meta.migriertAm=jetztIso();
+  saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
+  closeSheet(); renderStapel(); renderEinst();
+  toast('Migriert: '+neu+' neu, '+upd+' aktualisiert'); haptik(20);
+}
+function oeffneMigration(){
+  const v=migrationVorschau();
+  let h='';
+  h+='<p class="d">Liest die alte App (<code>fokus2.*</code>) <b>read-only</b>. Alt-Daten bleiben unangetastet, index.html funktioniert weiter.</p>';
+  if(!v.items.length){
+    h+='<div class="card"><p class="d">Es wurden keine Alt-Daten in diesem Browser gefunden. (Migration funktioniert dort, wo die alte App gespeichert hat — gleiche Domain.)</p></div>';
+    openSheet('Migration', h, '<button class="btn ghost" data-close="1">Schließen</button>');
+    return;
+  }
+  h+='<div class="card">'+
+    '<div class="kv"><span>Aufgaben gesamt</span><b>'+v.items.length+'</b></div>'+
+    '<div class="kv"><span>davon offen</span><b>'+v.offen+'</b></div>'+
+    '<div class="kv"><span>Routinen</span><b>'+v.routinen+'</b></div>'+
+    '<div class="kv"><span>Counter</span><b>'+v.counter+'</b></div>'+
+    '<div class="kv"><span>Wohlstand (kumulativ)</span><b>'+Math.round(v.wohlstand)+'</b></div>'+
+  '</div>';
+  h+='<p class="d">Übernommen werden offene Karten, Routinen-/Counter-Definitionen, Wohlstand und Streaks. Die alte <b>Tages-Historie wird nicht</b> übernommen — sichere sie vorher als Backup:</p>';
+  h+='<a class="btn" style="display:block;text-decoration:none;margin-bottom:8px" href="'+migrationBackupHref()+'" download="fokus-alt-backup.json">⬇︎ Alt-Historie als JSON sichern</a>';
+  const foot='<button class="btn ghost sm" data-close="1">Abbrechen</button><button class="btn prim" data-migstart="1">Jetzt migrieren</button>';
+  openSheet('Migration', h, foot);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   13b · Sync Stufe 1 (§8, Copy-Paste) — EIN Button in D6.
+        Export: nur domain=dfm. Import: Hoheitsregeln, Unteraufgaben nur per id.
+   ══════════════════════════════════════════════════════════════════════ */
+function syncExport(typ){
+  const dfm=S.karten.filter(k=>k.domain==='dfm' && k.status!=='archiviert');
+  return {
+    typ: typ||'sync', appVersion:VERSION, tagId: aktuelleTagId(), exportZeit:jetztIso(),
+    karten: dfm.map(k=>({
+      id:k.id, airtableId:k.airtableId||null, titel:k.titel, projekt:k.projekt||null, geldScore:num(k.geldScore),
+      faelligkeit:k.faelligkeit||null, uhrzeit:k.uhrzeit||null, sollMin:num(k.sollMin), istMin:Math.round(num(k.istSek)/60),
+      komplex:num(k.komplex,1), energie:num(k.energie,1), blockade:num(k.blockade,1),
+      prioritaet:k.prioritaet, status:k.status, punkteIst:Math.round(kartePunkte(k)),
+      notiz:k.notiz||'', kommentarFuerClaude:k.kommentarFuerClaude||'',
+      unteraufgaben: untermenge(k.id).map(u=>({ id:u.id, titel:u.titel, sollMin:num(u.sollMin), done:!!u.done }))
+    }))
+  };
+}
+function syncExportText(typ){ return JSON.stringify(syncExport(typ), null, 2); }
+
+/* Import eines Pakets aus dem Claude-Chat (§8-Hoheitsregeln). */
+function syncImport(text){
+  let paket; try{ paket=JSON.parse(text); }catch(e){ return {fehler:'Ungültiges JSON'}; }
+  const arr = Array.isArray(paket) ? paket : (paket && paket.karten) || null;
+  if(!Array.isArray(arr) || !arr.length) return {fehler:'Keine Karten im Paket'};
+  let neu=0, upd=0, arch=0;
+  arr.forEach(inc=>{
+    // Anker: App-id; sekundär airtableId (§8: airtableId→id-Match)
+    let lok = (inc.id && S.karten.find(k=>k.id===inc.id)) ||
+              (inc.airtableId && S.karten.find(k=>k.airtableId===inc.airtableId)) || null;
+    if(!lok){ lok=neueKarte({ id: inc.id||uuid(), domain:'dfm', airtableId: inc.airtableId||null }); S.karten.push(lok); neu++; }
+    else upd++;
+    // Airtable-Hoheit → übernehmen
+    if(inc.airtableId!=null) lok.airtableId=inc.airtableId;
+    if(inc.titel!=null) lok.titel=inc.titel;
+    if(inc.projekt!==undefined) lok.projekt=inc.projekt;
+    if(inc.geldScore!=null) lok.geldScore=num(inc.geldScore);
+    if(inc.notiz!=null) lok.notiz=inc.notiz;
+    if(inc.kommentarFuerClaude!=null) lok.kommentarFuerClaude=inc.kommentarFuerClaude;
+    // Archivierung ist Airtable-Hoheit (Teil des Status); No-delete: nur archivieren, nie löschen
+    if(inc.status==='archiviert' && lok.status!=='archiviert'){ lok.status='archiviert'; arch++; }
+    // Beidseitige Felder → letzter Stand (Import bringt den abgestimmten Stand)
+    if(inc.sollMin!=null) lok.sollMin=num(inc.sollMin);
+    if(inc.prioritaet!=null) lok.prioritaet=inc.prioritaet;
+    if(inc.komplex!=null) lok.komplex=num(inc.komplex);
+    if(inc.energie!=null) lok.energie=num(inc.energie);
+    if(inc.blockade!=null) lok.blockade=num(inc.blockade);
+    if(inc.faelligkeit!==undefined) lok.faelligkeit=inc.faelligkeit;   // Deadline↔Fälligkeit
+    if(inc.uhrzeit!==undefined) lok.uhrzeit=inc.uhrzeit;               // Uhrzeit↔Airtable-Deadline
+    // App-Hoheit (Status offen/erledigt, Ist, Punkte) wird NIE vom Import überschrieben.
+    // Unteraufgaben — Match ausschließlich über App-id, nie über Titel.
+    if(Array.isArray(inc.unteraufgaben)){
+      inc.unteraufgaben.forEach(iu=>{
+        let lu = S.unteraufgaben.find(u=>u.parentId===lok.id && u.id===iu.id);
+        if(!lu){ lu=neueUnteraufgabe(lok.id, { id: iu.id||uuid() }); S.unteraufgaben.push(lu); }
+        if(iu.titel!=null) lu.titel=iu.titel;        // Definition beidseitig
+        if(iu.sollMin!=null) lu.sollMin=num(iu.sollMin);
+        // done = App-Hoheit → nicht überschreiben
+      });
+    }
+  });
+  saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
+  return {neu, upd, arch};
+}
+
+/* Sync-Sheet (EIN Button in D6). */
+function oeffneSync(){
+  const anzahl=S.karten.filter(k=>k.domain==='dfm' && k.status!=='archiviert').length;
+  const ex=esc(syncExportText('sync'));
+  let h='';
+  h+='<p class="d">Sync Stufe 1 (Copy-Paste, §8). <b>Export</b> nur DFM-Karten ('+anzahl+') — kopiere ihn in den Claude-Chat. <b>Import</b> das Paket, das der Chat zurückgibt.</p>';
+  h+='<div class="field"><label>Export (nur DFM)</label><textarea id="syncEx" readonly style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px">'+ex+'</textarea>'+
+     '<div class="btnrow"><button class="btn sm" data-synccopy="1">📋 Kopieren</button><button class="btn sm" data-syncdownload="1">⬇︎ Datei</button></div></div>';
+  h+='<div class="field"><label>Import (Paket aus dem Chat)</label><textarea id="syncIn" placeholder="{ &quot;karten&quot;: [ … ] }" style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px"></textarea></div>';
+  h+='<div id="syncErgebnis"></div>';
+  const foot='<button class="btn ghost sm" data-close="1">Schließen</button><button class="btn prim" data-syncimport="1">Importieren</button>';
+  openSheet('Sync (DFM ↔ Claude)', h, foot);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   14 · D6 Einstellungen (Regler · Migration · Sync · Backup)
+   ══════════════════════════════════════════════════════════════════════ */
+function renderEinst(){
+  const s=S.settings;
+  let h='';
+  h+='<div class="card"><h3>Daten &amp; Sync</h3><p class="d">Sync mit dem Claude-Chat (nur DFM, Copy-Paste), Migration aus der alten App, lokales Backup.</p>'+
+    '<div class="btnrow"><button class="btn sm prim" id="btnSync">⇄ Sync (DFM)</button></div>'+
+    '<div class="btnrow"><button class="btn sm" id="btnMig">⇪ Migration (v0.38)</button>'+
+    '<button class="btn sm" id="btnBackup">⬇︎ Backup</button></div></div>';
+
+  h+='<div class="card"><h3>Punktesystem</h3><p class="d">Alle Sätze live (§3.8). Farbe/Timer/Fokus (M2), Tageslogik (M3) und Sync (M4) laufen.</p>';
+  const regler=[
+    ['basisProStd','Basis P/Std','',1],
+    ['zeitGewicht','Zeit-Gewicht','',0.1],
+    ['tickGewicht','Tick-Gewicht','',0.1],
+    ['geldGewicht','Geld-Gewicht','nur DFM',0.1],
+    ['geldDeckel','Geld-Deckel','Faktor max',0.1],
+    ['geldScoreRef','Geld-Score-Referenz','norm = Score / Ref',10],
+    ['tageszielPunkteProStd','Tagesziel P/Std','Pace (M3)',5]
+  ];
+  regler.forEach(([k,lab,sub,step])=>{
+    h+='<div class="slider"><label>'+lab+(sub?'<small>'+sub+'</small>':'')+'</label>'+
+      '<input type="number" inputmode="decimal" step="'+step+'" data-setting="'+k+'" value="'+num(s[k])+'"></div>';
+  });
+  h+='</div>';
+
+  h+='<div class="card"><h3>Info</h3>'+
+    '<div class="kv"><span>Version</span><b>v'+VERSION+' · M2</b></div>'+
+    '<div class="kv"><span>Karten</span><b>'+S.karten.length+'</b></div>'+
+    '<div class="kv"><span>Stapel</span><b>'+S.stapel.length+'</b></div>'+
+    '<div class="kv"><span>Wohlstand (live)</span><b>'+Math.round(wohlstandLive())+'</b></div>'+
+    '<div class="kv"><span>Tag</span><b>'+(tagOffen()?('läuft · '+esc(S.tag.tagId)):(S.tag?'abgeschlossen':'nicht gestartet'))+'</b></div>'+
+    '<div class="kv"><span>Abgeschlossene Tage</span><b>'+(S.historie?S.historie.length:0)+'</b></div>'+
+    (S.meta.migriertAm?'<div class="kv"><span>migriert</span><b>'+esc(S.meta.migriertAm.slice(0,10))+'</b></div>':'')+
+  '</div>';
+  h+='<div style="text-align:center;color:var(--mut2);font-size:11px;margin-top:6px">Fokus App v1.0 „Debug" · neu.html · index.html bleibt Fallback</div>';
+  el('einstBody').innerHTML=h;
+}
+function backupHtml(){
+  const paket={ typ:'backup-v1', appVersion:VERSION, exportZeit:jetztIso(),
+    karten:S.karten, unteraufgaben:S.unteraufgaben, stapel:S.stapel, ordner:S.ordner,
+    gruppen:S.gruppen, vorlagen:S.vorlagen, settings:S.settings, tag:S.tag, meta:S.meta };
+  const href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(paket,null,2));
+  const a=document.createElement('a'); a.href=href; a.download='fokus-v1-backup-'+heuteApp()+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   15 · Navigation
+   ══════════════════════════════════════════════════════════════════════ */
+function setTab(tab){
+  S.ui.tab=tab; saveUi();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  el('v-'+tab).classList.add('on');
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
+  el('fab').style.display = (tab==='stapel'||tab==='fokus') ? 'flex' : 'none';
+  renderFokusleiste();
+  if(tab==='einst') renderEinst();
+  else if(tab==='stapel') renderStapel();
+  else if(tab==='fokus') renderFokus();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   16 · Toast / Konfetti
+   ══════════════════════════════════════════════════════════════════════ */
+let toastTimer=null;
+function toast(msg){
+  const t=el('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'), 1900);
+}
+function konfetti(){
+  const cv=el('konfetti'), ctx=cv.getContext('2d');
+  cv.width=innerWidth; cv.height=innerHeight;
+  const farben=['#4f8ef7','#3ecf8e','#f2b84b','#f66d6d','#b98af7','#6dd3e0'];
+  const parts=Array.from({length:70},()=>({
+    x:innerWidth/2+(Math.random()-.5)*120, y:innerHeight*0.5,
+    vx:(Math.random()-.5)*9, vy:-(Math.random()*10+5),
+    g:.32+Math.random()*.15, s:5+Math.random()*5,
+    c:farben[(Math.random()*farben.length)|0], r:Math.random()*6, vr:(Math.random()-.5)*.4
+  }));
+  let f=0;
+  (function anim(){
+    ctx.clearRect(0,0,cv.width,cv.height); f++;
+    parts.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.fillStyle=p.c;
+      ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6); ctx.restore(); });
+    if(f<70) requestAnimationFrame(anim); else ctx.clearRect(0,0,cv.width,cv.height);
+  })();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   17 · Event-Delegation
+   ══════════════════════════════════════════════════════════════════════ */
+// Nav
+el('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-tab]'); if(b) setTab(b.dataset.tab); });
+el('fab').addEventListener('click', ()=>oeffneDetail(null));
+el('btnStapelNeu').addEventListener('click', ()=>oeffneStapelEditor(null));
+
+// Fokus-Leiste: Play/Pause-Toggle + Mitte tippen → Fokus-Tab
+el('fkPP').addEventListener('click', ()=>{ if(S.fokus) fokusToggle(); else setTab('fokus'); });
+el('fkMid').addEventListener('click', ()=>setTab('fokus'));
+
+// Fokus-View: Toggle / Häkchen / Karussell / Farbstreifen / Unteraufgaben / Stapelwahl
+el('fokusView').addEventListener('click', e=>{
+  const t=e.target;
+  const tg=t.closest('[data-fktoggle]'); if(tg){ const kid=tg.dataset.fktoggle;
+    if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid); return; }
+  const ck=t.closest('[data-fkcheck]'); if(ck){ karteAbhaken(ck.dataset.fkcheck, false); return; }
+  const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
+  if(t.closest('[data-fkprev]')){ S.ui.fokusIdx=Math.max(0,(S.ui.fokusIdx||0)-1); saveUi(); renderFokus(); return; }
+  if(t.closest('[data-fknext]')){ S.ui.fokusIdx=(S.ui.fokusIdx||0)+1; saveUi(); renderFokus(); return; }
+  const sr=t.closest('[data-streif]'); if(sr){ const k=S.karten.find(x=>x.id===sr.dataset.streif); if(k){ const kand=fokusKandidaten(); const i=kand.findIndex(x=>x.id===k.id); if(i>=0){ S.ui.fokusIdx=i; saveUi(); renderFokus(); } else oeffneDetail(k.id); } return; }
+  const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
+});
+el('fokusView').addEventListener('change', e=>{
+  if(e.target.id==='streifStapel'){ S.ui.aktivStapel=e.target.value; saveUi(); renderFokus(); }
+});
+// Swipe ←/→ blättert durch das Fokus-Karussell
+(function(){
+  let x0=null, y0=null; const fv=el('v-fokus');
+  fv.addEventListener('touchstart', e=>{ x0=e.touches[0].clientX; y0=e.touches[0].clientY; }, {passive:true});
+  fv.addEventListener('touchend', e=>{
+    if(x0==null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
+      const kand=fokusKandidaten(); if(kand.length>1){
+        S.ui.fokusIdx=Math.max(0,Math.min(kand.length-1,(S.ui.fokusIdx||0)+(dx<0?1:-1))); saveUi(); renderFokus(); }
+    }
+    x0=null;
+  });
+})();
+
+// Sheet schließen
+el('sheetX').addEventListener('click', closeSheet);
+el('backdrop').addEventListener('click', closeSheet);
+// Wisch-nach-unten am Sheet-Griff
+(function(){
+  let y0=null; const sh=el('sheet');
+  sh.querySelector('.sheetgriff').addEventListener('touchstart', e=>{ y0=e.touches[0].clientY; }, {passive:true});
+  sh.querySelector('.sheetgriff').addEventListener('touchmove', e=>{
+    if(y0==null) return; const dy=e.touches[0].clientY-y0;
+    if(dy>0) sh.style.transform='translateY('+dy+'px)';
+  }, {passive:true});
+  sh.querySelector('.sheetgriff').addEventListener('touchend', e=>{
+    const dy=(e.changedTouches[0].clientY-(y0||0)); sh.style.transform='';
+    if(dy>90) closeSheet(); y0=null;
+  });
+})();
+
+// Stapelliste (Tag-Banner / Toggle / Detail / Check / Edit / Ordner)
+el('stapelListe').addEventListener('click', e=>{
+  const t=e.target;
+  if(t.closest('[data-tagstart]')){ oeffneTagStart(); return; }
+  if(t.closest('[data-tagclose]')){ oeffneTagAbschluss(); return; }
+  const tog=t.closest('[data-toggle]'); if(tog && !t.closest('[data-editstapel]')){ const id=tog.dataset.toggle; S.ui.stapelOffen[id]=!S.ui.stapelOffen[id]; saveUi(); renderStapel(); return; }
+  const ed=t.closest('[data-editstapel]'); if(ed){ e.stopPropagation(); oeffneStapelEditor(ed.dataset.editstapel); return; }
+  const ord=t.closest('[data-ordner]'); if(ord){ const id=ord.dataset.ordner; S.ui.ordnerZu[id]=!S.ui.ordnerZu[id]; saveUi(); renderStapel(); return; }
+  const det=t.closest('[data-detail]'); if(det){ oeffneDetail(det.dataset.detail); return; }
+  const chk=t.closest('[data-check]'); if(chk){ karteAbhaken(chk.dataset.check, false); return; }
+});
+
+// Sheet-Interaktionen (Detail + Stapel-Editor + Filter + Migration).
+// Delegation am ganzen #sheet, damit auch die Buttons im #sheetFoot greifen.
+el('sheet').addEventListener('click', e=>{
+  const t=e.target;
+  if(t.id==='sheetX') return;   // eigener Close-Handler
+  if(t.closest('[data-close]')){ closeSheet(); return; }
+  if(t.closest('[data-migstart]')){ migrationAusfuehren(); return; }
+
+  // ── Sync (§8)
+  if(t.closest('[data-synccopy]')){ const ta=el('syncEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){} if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
+  if(t.closest('[data-syncdownload]')){ backupDownload(syncExport('sync'), 'fokus-sync-'+aktuelleTagId()+'.json'); return; }
+  if(t.closest('[data-syncimport]')){ const ta=el('syncIn'); const res=syncImport(ta?ta.value:''); const box=el('syncErgebnis');
+    if(res.fehler){ if(box) box.innerHTML='<div class="card" style="border-color:var(--bad)"><p class="d" style="color:var(--bad)">'+esc(res.fehler)+'</p></div>'; }
+    else { renderAlles(); const exta=el('syncEx'); if(exta) exta.value=syncExportText('sync'); if(box) box.innerHTML='<div class="card" style="border-color:var(--ok)"><p class="d">Import: <b>'+res.neu+'</b> neu · <b>'+res.upd+'</b> aktualisiert · <b>'+res.arch+'</b> archiviert.</p></div>'; toast('Sync importiert'); haptik(15); }
+    return; }
+
+  // ── Tag-Start-Wizard
+  if(t.closest('[data-tagstartgo]')){ const a=tagStartTmp.akku; closeSheet(); tagStarten(a); toast('Tag gestartet · Akku '+a+'%'); return; }
+  // ── Tagesabschluss
+  const abf=t.closest('[data-abfertig]'); if(abf){ karteAbhaken(abf.dataset.abfertig, false); renderAbschluss(); return; }
+  const abs=t.closest('[data-abschieben]'); if(abs){ abschlussTmp.schiebenFor=abs.dataset.abschieben; const k=S.karten.find(x=>x.id===abs.dataset.abschieben); abschlussTmp.abzug=abzugVorschlag(k); renderAbschluss(); return; }
+  if(t.closest('[data-abschiebenab]')){ abschlussTmp.schiebenFor=null; renderAbschluss(); return; }
+  const abz=t.closest('[data-abzug]'); if(abz){ abschlussTmp.abzug=num(abz.dataset.abzug); renderAbschluss(); return; }
+  const abg=t.closest('[data-abschiebengo]'); if(abg){ const k=S.karten.find(x=>x.id===abg.dataset.abschiebengo); const dt=el('ab-date'), tm=el('ab-time'); karteSchieben(k, dt?dt.value:null, tm&&tm.value?tm.value:null, abschlussTmp.abzug); abschlussTmp.schiebenFor=null; saveKarten(); saveTag(); renderAbschluss(); return; }
+  const aba=t.closest('[data-abarchiv]'); if(aba){ const k=S.karten.find(x=>x.id===aba.dataset.abarchiv); if(k){ k.status='archiviert'; saveKarten(); } renderAbschluss(); return; }
+  const abe=t.closest('[data-abedit]'); if(abe){ oeffneDetail(abe.dataset.abedit); return; }
+  const abv=t.closest('[data-abverpasst]'); if(abv){ const k=S.karten.find(x=>x.id===abv.dataset.abverpasst); if(k){ routineBilanz(k,true); k.faelligkeit=null; saveKarten(); saveTag(); } renderAbschluss(); return; }
+  const abn=t.closest('[data-abnicht]'); if(abn){ const k=S.karten.find(x=>x.id===abn.dataset.abnicht); if(k){ routineBilanz(k,false); k.faelligkeit=null; saveKarten(); saveTag(); } renderAbschluss(); return; }
+  if(t.closest('[data-abweiter]')){ abschlussTmp.step=2; renderAbschluss(); return; }
+  const stp=t.closest('[data-sorttap]'); if(stp){ const id=stp.dataset.sorttap; const o=abschlussTmp.sortOrder; const i=o.indexOf(id); if(i>=0) o.splice(i,1); else o.push(id); renderAbschluss(); return; }
+  if(t.closest('[data-absortreset]')){ abschlussTmp.sortOrder=[]; renderAbschluss(); return; }
+  if(t.closest('[data-abfinish]')){ abschlussFinish(); return; }
+
+  // ── Detail-Chips
+  const chip=t.closest('[data-chip]');
+  if(chip){
+    const feld=chip.dataset.chip; let val=chip.dataset.val;
+    if(feld==='domain'){ entwurf.domain=val; }
+    else if(feld==='rhythmus'){
+      entwurf.rhythmus = val==='keine'?null : val==='taeglich'?{typ:'taeglich'} : val==='alleNTage'?{typ:'alleNTage',n:num(entwurf.rhythmus&&entwurf.rhythmus.n,2)} : {typ:'wochentage',tage:(entwurf.rhythmus&&entwurf.rhythmus.tage)||[]};
+    }
+    else if(feld==='timerFlag'){ entwurf.timerFlag = (val==='ja'); }
+    else if(['komplex','energie','blockade'].includes(feld)){ entwurf[feld]=num(val); }
+    else { entwurf[feld]=val; }
+    renderDetail(); return;
+  }
+  const wt=t.closest('[data-wtag]');
+  if(wt){ const d=num(wt.dataset.wtag); const arr=(entwurf.rhythmus.tage||[]); entwurf.rhythmus.tage = arr.includes(d)?arr.filter(x=>x!==d):arr.concat([d]).sort(); renderDetail(); return; }
+
+  // Tick-Kurve
+  if(t.closest('[data-tickadd]')){ entwurf.tickKurve.push(0); renderDetail(); return; }
+  if(t.closest('[data-tickdel]')){ if(entwurf.tickKurve.length>1) entwurf.tickKurve.pop(); renderDetail(); return; }
+
+  // Unteraufgaben
+  if(t.closest('[data-subadd]')){ entwurfSubs.push(neueUnteraufgabe(entwurf.id,{titel:''})); subBalanceNachAdd(); subParentAngleichen(); renderDetail(); return; }
+  const sdel=t.closest('[data-subdel]'); if(sdel){ entwurfSubs=entwurfSubs.filter(u=>u.id!==sdel.dataset.subdel); subParentAngleichen(); renderDetail(); return; }
+  const sdone=t.closest('[data-subdone]'); if(sdone){ const u=entwurfSubs.find(x=>x.id===sdone.dataset.subdone); if(u) u.done=!u.done; renderDetail(); return; }
+
+  // Detail-Aktionen
+  const da=t.closest('[data-detailaktion]');
+  if(da){
+    const a=da.dataset.detailaktion;
+    if(a==='speichern'){ detailLies(); detailSpeichern(); }
+    else if(a==='abhaken'){ detailLies(); karteAbhaken(null,true); detailSpeichern(); }
+    else if(a==='archiv'){ detailLies(); entwurf.status='archiviert'; detailSpeichern(); }
+    return;
+  }
+
+  // ── Stapel-Editor
+  const sf=t.closest('[data-sfarbe]'); if(sf){ stapelEntwurf.farbe=sf.dataset.sfarbe; renderStapelEditor(); return; }
+  const so=t.closest('[data-sordner]'); if(so){ const id=so.dataset.sordner; const arr=stapelEntwurf.ordnerIds||[]; stapelEntwurf.ordnerIds = arr.includes(id)?arr.filter(x=>x!==id):arr.concat([id]); renderStapelEditor(); return; }
+  if(t.closest('[data-ordnerneu]')){ const name=prompt('Ordnername'); if(name){ const o=neuerOrdner({name:name.trim()}); S.ordner.push(o); saveOrdner(); (stapelEntwurf.ordnerIds=stapelEntwurf.ordnerIds||[]).push(o.id); renderStapelEditor(); } return; }
+  const sfl=t.closest('[data-sflag]'); if(sfl){ stapelEntwurf.schnellzugriffTimer=!stapelEntwurf.schnellzugriffTimer; renderStapelEditor(); return; }
+  if(t.closest('[data-fbadd]')){ stapelLiesEditor(); (stapelEntwurf.filter=stapelEntwurf.filter||[]).push({feld:'domain',op:'ist',werte:[]}); renderStapelEditor(); return; }
+  const fbdel=t.closest('[data-fbdel]'); if(fbdel){ stapelLiesEditor(); stapelEntwurf.filter.splice(num(fbdel.dataset.fbdel),1); renderStapelEditor(); return; }
+  const fbw=t.closest('[data-fbwert]'); if(fbw){ const i=num(fbw.dataset.fbwert), v=fbw.dataset.v; const f=stapelEntwurf.filter[i]; f.werte=f.werte||[]; f.werte = f.werte.map(String).includes(String(v))?f.werte.filter(x=>String(x)!==String(v)):f.werte.concat([v]); renderStapelEditor(); return; }
+  const sak=t.closest('[data-saktion]'); if(sak){ if(sak.dataset.saktion==='speichern'){ stapelLiesEditor(); stapelSpeichern(); } else if(sak.dataset.saktion==='loeschen'){ if(confirm('Stapel „'+stapelEntwurf.name+'" löschen?')) stapelLoeschen(); } return; }
+});
+// Sheet-Body: Änderungen an Text/Zahl/Datum-Feldern live in den Entwurf
+el('sheetBody').addEventListener('input', e=>{
+  const t=e.target;
+  // Tag-Start-Slider: live in tagStartTmp, Akku folgt dem Vorschlag bis manuell angefasst
+  if(t.dataset.ts!=null && tagStartTmp){
+    const feld=t.dataset.ts; tagStartTmp[feld]=num(t.value);
+    if(feld==='akku') tagStartTmp.manuell=true;
+    if(!tagStartTmp.manuell) tagStartTmp.akku=Math.round((tagStartTmp.energie+tagStartTmp.motivation)/2);
+    const ev=el('ts-energie-v'), mv=el('ts-motivation-v'), av=el('ts-akku-v'), ar=document.querySelector('[data-ts="akku"]');
+    if(ev) ev.textContent=tagStartTmp.energie+'%'; if(mv) mv.textContent=tagStartTmp.motivation+'%';
+    if(av) av.textContent=tagStartTmp.akku+'%'; if(ar && feld!=='akku') ar.value=tagStartTmp.akku;
+    return;
+  }
+  if(t.dataset.bind!=null && entwurf){ detailFeld(t.dataset.bind, t); return; }
+  if(t.dataset.tick!=null && entwurf){ entwurf.tickKurve[num(t.dataset.tick)]=num(t.value); return; }
+  if(t.dataset.subtitel!=null){ const u=entwurfSubs.find(x=>x.id===t.dataset.subtitel); if(u) u.titel=t.value; return; }
+  if(t.dataset.submin!=null){ const u=entwurfSubs.find(x=>x.id===t.dataset.submin); if(u){ u.sollMin=num(t.value); subParentAngleichen(); } return; }
+  if(t.dataset.sbind!=null && stapelEntwurf){ stapelFeld(t.dataset.sbind, t.value); return; }
+  // Filter-Werte live in den Entwurf binden, damit Re-Renders (Farbe/Ordner/Chips) nichts verlieren
+  if(stapelEntwurf && stapelEntwurf.filter){
+    if(t.dataset.fbnum!=null){ stapelEntwurf.filter[num(t.dataset.fbnum)].wert=num(t.value); return; }
+    if(t.dataset.fbtext!=null){ stapelEntwurf.filter[num(t.dataset.fbtext)].wert=t.value; return; }
+    if(t.dataset.fbvon!=null){ stapelEntwurf.filter[num(t.dataset.fbvon)].von=t.value||null; return; }
+    if(t.dataset.fbbis!=null){ stapelEntwurf.filter[num(t.dataset.fbbis)].bis=t.value||null; return; }
+  }
+});
+el('sheetBody').addEventListener('change', e=>{
+  const t=e.target;
+  if(t.dataset.fbfeld!=null){ stapelLiesEditor(); const i=num(t.dataset.fbfeld); const f=stapelEntwurf.filter[i]; f.feld=t.value; f.op=null; f.werte=[]; f.wert=null; // Feldwechsel → Operator/Wert zurücksetzen
+    const typ=feldTyp(f.feld); f.op = typ==='select'?'ist':typ==='zahl'?'gte':typ==='datum'?'heute':'enthaelt'; renderStapelEditor(); return; }
+  if(t.dataset.fbop!=null){ stapelLiesEditor(); renderStapelEditor(); return; }
+});
+
+/* Detail: einzelnes gebundenes Feld in den Entwurf schreiben */
+function detailFeld(bind, input){
+  const v=input.value;
+  if(bind==='geldScore'||bind==='sollMin'){ entwurf[bind]=num(v); }
+  else if(bind==='rhythmusN'){ if(entwurf.rhythmus) entwurf.rhythmus.n=Math.max(1,num(v)); }
+  else { entwurf[bind]= (v===''&&(bind==='faelligkeit'||bind==='uhrzeit'||bind==='projekt')) ? null : v; }
+}
+/* Detail: gesamten Formularstand aus dem DOM in den Entwurf lesen (vor Save/Aktion) */
+function detailLies(){
+  document.querySelectorAll('#sheetBody [data-bind]').forEach(inp=>detailFeld(inp.dataset.bind, inp));
+  document.querySelectorAll('#sheetBody [data-tick]').forEach(inp=>{ entwurf.tickKurve[num(inp.dataset.tick)]=num(inp.value); });
+  document.querySelectorAll('#sheetBody [data-subtitel]').forEach(inp=>{ const u=entwurfSubs.find(x=>x.id===inp.dataset.subtitel); if(u) u.titel=inp.value; });
+  document.querySelectorAll('#sheetBody [data-submin]').forEach(inp=>{ const u=entwurfSubs.find(x=>x.id===inp.dataset.submin); if(u) u.sollMin=num(inp.value); });
+  subParentAngleichen();
+}
+function stapelFeld(bind, val){
+  if(bind==='name') stapelEntwurf.name=val;
+  else if(bind==='sortFeld'){ stapelEntwurf.sortierung=stapelEntwurf.sortierung||{}; stapelEntwurf.sortierung.feld=val; }
+  else if(bind==='sortRichtung'){ stapelEntwurf.sortierung=stapelEntwurf.sortierung||{}; stapelEntwurf.sortierung.richtung=val; }
+}
+/* Stapel-Editor: Filterzeilen aus dem DOM in den Entwurf lesen */
+function stapelLiesEditor(){
+  const st=stapelEntwurf; if(!st.filter) return;
+  document.querySelectorAll('#fbWrap .fbrow').forEach(row=>{
+    const i=num(row.dataset.fbi); const f=st.filter[i]; if(!f) return;
+    const fs=row.querySelector('[data-fbfeld]'); if(fs) f.feld=fs.value;
+    const op=row.querySelector('[data-fbop]'); if(op) f.op=op.value;
+    const nu=row.querySelector('[data-fbnum]'); if(nu) f.wert=num(nu.value);
+    const tx=row.querySelector('[data-fbtext]'); if(tx) f.wert=tx.value;
+    const vo=row.querySelector('[data-fbvon]'); if(vo) f.von=vo.value||null;
+    const bi=row.querySelector('[data-fbbis]'); if(bi) f.bis=bi.value||null;
+  });
+}
+
+// Einstellungen (Sync / Migration / Backup / Regler)
+el('einstBody').addEventListener('click', e=>{
+  if(e.target.closest('#btnSync')) oeffneSync();
+  else if(e.target.closest('#btnMig')) oeffneMigration();
+  else if(e.target.closest('#btnBackup')) backupHtml();
+});
+el('einstBody').addEventListener('change', e=>{
+  const t=e.target; if(t.dataset.setting){ S.settings[t.dataset.setting]=num(t.value); saveSettings(); }
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   18 · Init
+   ══════════════════════════════════════════════════════════════════════ */
+function init(){
+  ladeAlles();
+  S.unteraufgaben = DB.get('unteraufgaben', []);
+  seedStapel();
+  pruefeTagKante();   // §6: vergessenen Abschluss beim Öffnen nachholen
+  // Der Timer läuft über Reloads weiter (§7 D1): war er beim Verlassen aktiv,
+  // rechnet startMs die verstrichene Zeit korrekt nach.
+  if(S.fokus && S.fokus.laeuft) starteTicker();
+  setTab(S.ui.tab||'stapel');
+  renderFokusleiste();
+}
+init();
+</script>
+</body>
+</html>
