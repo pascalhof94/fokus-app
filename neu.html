@@ -674,7 +674,7 @@ function neueKarte(f={}){
 }
 /* §3.2 Unteraufgabe — kein eigener Geld-Score, keine eigene Uhr. */
 function neueUnteraufgabe(parentId, f={}){
-  return Object.assign({ id:uuid(), parentId, titel:'', sollMin:0, done:false }, f);
+  return Object.assign({ id:uuid(), parentId, titel:'', sollMin:0, done:false, bonusPunkte:null }, f);
 }
 /* §3.5 Stapel */
 function neuerStapel(f={}){
@@ -804,11 +804,17 @@ function tickSumme(k, bis){
 }
 /* Zeit- und Tick-Punkte sind orthogonal (§4): eine Karte kann beides tragen
    (z. B. Counter mit laufender Stoppuhr). */
+/* v1.1: einmalige Zusatzpunkte je Unteraufgabe (Spalte „Punkte", nur wenn
+   explizit gesetzt; leer = 0). Erreicht = erledigte, Offen = noch offene. */
+function subBonusErreicht(k){ return untermenge(k.id).reduce((s,u)=>s+(u.done?num(u.bonusPunkte):0),0); }
+function subBonusOffen(k){ return untermenge(k.id).reduce((s,u)=>s+(!u.done?num(u.bonusPunkte):0),0); }
 function kartePunkte(k){
   const zeitTerm = punkteFuerZeit(k, zeitquelleMin(k)) * (S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   const tickTerm = tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k);
-  return zeitTerm + tickTerm;
+  return zeitTerm + tickTerm + subBonusErreicht(k);   // + gebuchte Unteraufgaben-Boni
 }
+/* Prognose inkl. ALLER Unteraufgaben-Boni (erledigt + offen) — für „geplant". */
+function kartePunkteGeplant(k){ return kartePunkteBei(k, num(k.sollMin)||istSekLive(k)/60) + subBonusOffen(k); }
 /* Abgeleitetes „Art"-Etikett (§2.1) — nur Anzeige. */
 /* Kartenart REIN ABGELEITET (v1.0 hat kein typ-Feld; die 74 Bestandskarten
    tragen keins). Regel wie v0.38-Bestand verifiziert (34/9/31):
@@ -1239,7 +1245,7 @@ function renderFokus(){
     '<div class="tpb-marks" id="tpbMarks"></div></div><div class="tpb-info" id="tpbInfo"></div></div>';
   const aufgabe='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'"><div class="ttitel">'+esc(k.titel||'(ohne Titel)')+'</div>'+
     '<div class="tsub">'+(k.domain==='dfm'?'DFM':'Privat')+(k.prioritaet==='muss'?' · <span style="color:var(--bad)">MUSS</span>':'')+
-    ' · <span id="tGesamtP">'+Math.round(kartePunkteBei(k, num(k.sollMin)||istSekLive(k)/60))+'</span> P gesamt</div></div>'+
+    ' · <span id="tGesamtP">'+Math.round(kartePunkteGeplant(k))+'</span> P gesamt</div></div>'+
     '<button class="tedit" data-detail="'+k.id+'" aria-label="Bearbeiten">✎</button>'+
     '<button class="tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause">'+(laeuft?'⏸':'▶')+'</button>'+
     '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button></div>';
@@ -1328,7 +1334,7 @@ function fokusKpis(k){
   const min=istSekLive(k)/60, geplant=num(k.sollMin), ziel=num(S.settings.tageszielPunkteProStd,100);
   const r=rate(k)*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   const f1 = (r>=ziel && ziel>0) ? 'gut' : 'warn';
-  const planP=Math.max(0, geplant>0?kartePunkteBei(k,geplant):kartePunkte(k)), earnedP=Math.max(0,kartePunkte(k));
+  const planP=Math.max(0, kartePunkteGeplant(k)), earnedP=Math.max(0,kartePunkte(k));
   const proz = planP>0?Math.min(100,Math.round(earnedP/planP*100)):0;
   const restMin=Math.max(0,geplant-min);
   const subs=untermenge(k.id), fertig=subs.filter(u=>u.done).length;
@@ -1342,7 +1348,7 @@ function fokusKpis(k){
 function fokusPlanbar(k){
   if(!el('tpbG')) return;
   const min=istSekLive(k)/60, geplant=num(k.sollMin);
-  const planP=Math.max(0, geplant>0?kartePunkteBei(k,geplant):kartePunkte(k)), earnedP=Math.max(0,kartePunkte(k));
+  const planP=Math.max(0, kartePunkteGeplant(k)), earnedP=Math.max(0,kartePunkte(k));
   const maxP=Math.max(planP,earnedP,1), gruen=Math.min(earnedP,planP), gelb=Math.max(0,planP-earnedP), rot=Math.max(0,earnedP-planP);
   el('tpbG').style.width=(gruen/maxP*100).toFixed(1)+'%'; el('tpbY').style.width=(gelb/maxP*100).toFixed(1)+'%'; el('tpbR').style.width=(rot/maxP*100).toFixed(1)+'%';
   let marks='';
@@ -1353,35 +1359,23 @@ function fokusPlanbar(k){
   if(rot>0) info+=' · +'+Math.round(rot)+' über Plan';
   if(el('tpbInfo')) el('tpbInfo').textContent=info;
 }
-/* Unteraufgaben-Verteilung wie v0.38: feste Sollzeiten zählen, der Rest der
-   geplanten Karten-Minuten wird gleichmäßig auf die „leeren" verteilt. */
-function subZeitVerteilung(k){
-  const subs=untermenge(k.id), geplant=num(k.sollMin);
-  const fixSum=subs.filter(u=>num(u.sollMin)>0).reduce((s,u)=>s+num(u.sollMin),0);
-  const autoN=subs.filter(u=>!(num(u.sollMin)>0)).length, autoJe=autoN>0?Math.max(0,geplant-fixSum)/autoN:0;
-  return subs.map(u=>num(u.sollMin)>0?num(u.sollMin):autoJe);
-}
-/* Punkte-Anteil je Unteraufgabe = Karten-Prognose × Zeitanteil (nur Anzeige). */
-function subPunkteVerteilung(k){
-  const zeiten=subZeitVerteilung(k), summe=zeiten.reduce((s,z)=>s+z,0), geplant=num(k.sollMin);
-  const planP=Math.max(0, geplant>0?kartePunkteBei(k,geplant):kartePunkte(k));
-  return zeiten.map(z=> summe>0 ? planP*(z/summe) : (zeiten.length?planP/zeiten.length:0));
-}
 /* Unteraufgaben-Block unter dem Tacho (v0.38-Look): Häkchen · Titel · Minuten
    (editierbar, leer = Auto) · Punkte-Anteil (cyan, aus der Zeit) · Löschen. */
 function fokusSubsHtml(k){
-  const subs=untermenge(k.id), zeiten=subZeitVerteilung(k), boni=subPunkteVerteilung(k);
+  const subs=untermenge(k.id);
   const zu=!!S.ui.fokusSubsZu, fertig=subs.filter(u=>u.done).length;
-  const rows=subs.map((u,i)=>'<div class="uareihe'+(u.done?' fertig':'')+'" data-uaid="'+u.id+'">'+
+  const rows=subs.map(u=>'<div class="uareihe'+(u.done?' fertig':'')+'" data-uaid="'+u.id+'">'+
     '<button class="uacheck" data-uatoggle="'+u.id+'"><span class="box">'+(u.done?'✓':'')+'</span></button>'+
     '<div class="uatitel"><span class="uat">'+esc(u.titel||'Teilschritt')+'</span></div>'+
-    '<input class="uamin" type="number" inputmode="numeric" data-uamin="'+u.id+'" placeholder="'+Math.round(zeiten[i]||0)+'" value="'+(num(u.sollMin)>0?num(u.sollMin):'')+'">'+
-    '<span class="uapunkte">'+(u.done?'+':'')+Math.round(boni[i]||0)+'</span>'+
+    '<input class="uamin" type="number" inputmode="numeric" data-uamin="'+u.id+'" placeholder="0" value="'+(num(u.sollMin)>0?num(u.sollMin):'')+'" title="Minuten (zählen zur Kartenzeit)">'+
+    (u.done
+      ? '<span class="uapunkte">+'+Math.round(num(u.bonusPunkte))+'</span>'
+      : '<input class="uamin uabonus" type="number" inputmode="numeric" data-uabonus="'+u.id+'" placeholder="0" value="'+(u.bonusPunkte!=null?num(u.bonusPunkte):'')+'" title="Einmalige Zusatzpunkte (zählen zu den Kartenpunkten)">')+
     '<button class="uax" data-uadel="'+u.id+'">✕</button></div>').join('');
   return '<div class="tacc'+(zu?' zu':'')+'"><div class="tacckopf" data-tacctoggle="1">☑ Unteraufgaben'+
     (subs.length?' · '+fertig+'/'+subs.length:'')+'<span class="pfeil">▾</span></div>'+
     '<div class="taccinhalt">'+
-    (subs.length?'<div class="thinweis">Spalten: Minuten · Punkte-Anteil (aus der Zeit) — leer = automatisch</div>':'<div class="thinweis">Noch keine Unteraufgaben.</div>')+
+    (subs.length?'<div class="thinweis">Spalten: Minuten (→ Kartenzeit) · Punkte (einmalige Zusatzpunkte, leer = 0)</div>':'<div class="thinweis">Noch keine Unteraufgaben.</div>')+
     rows+
     '<div class="uaneu"><input id="fkUaNeu" type="text" placeholder="Unteraufgabe hinzufügen …"><button data-uaadd="'+k.id+'">+</button></div>'+
     '</div></div>';
@@ -2277,7 +2271,7 @@ function importItems(items, opts){
       it.unteraufgaben.forEach(u=>{
         const uid=u.id||uuid();
         if(S.unteraufgaben.find(x=>x.id===uid)) return;
-        S.unteraufgaben.push(neueUnteraufgabe(ziel.id, {id:uid, titel:u.titel||'', sollMin:num(u.geplantMin), done:!!u.erledigt}));
+        S.unteraufgaben.push(neueUnteraufgabe(ziel.id, {id:uid, titel:u.titel||'', sollMin:num(u.geplantMin), done:!!u.erledigt, bonusPunkte:(u.bonusPunkte!=null?num(u.bonusPunkte):null)}));
         subs++;
       });
     }
@@ -2938,7 +2932,10 @@ el('fokusView').addEventListener('click', e=>{
 });
 el('fokusView').addEventListener('change', e=>{
   if(e.target.id==='streifStapel'){ S.ui.aktivStapel=e.target.value; saveUi(); renderFokus(); return; }
-  const um=e.target.closest('[data-uamin]'); if(um){ const u=S.unteraufgaben.find(x=>x.id===um.dataset.uamin); if(u){ u.sollMin=num(e.target.value); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
+  const um=e.target.closest('[data-uamin]'); if(um){ const u=S.unteraufgaben.find(x=>x.id===um.dataset.uamin); if(u){ u.sollMin=num(e.target.value);
+    const k=S.karten.find(x=>x.id===u.parentId); if(k){ k.sollMin=untermenge(k.id).reduce((s,x)=>s+num(x.sollMin),0); saveKarten(); }   // Karten-Sollzeit = Σ Unteraufgaben
+    DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
+  const ub=e.target.closest('[data-uabonus]'); if(ub){ const u=S.unteraufgaben.find(x=>x.id===ub.dataset.uabonus); if(u){ u.bonusPunkte = e.target.value===''?null:num(e.target.value); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
 });
 el('fokusView').addEventListener('keydown', e=>{
   if(e.target.id==='fkUaNeu' && e.key==='Enter'){ const k=aktiveFokusKarte(); const tt=e.target.value.trim(); if(k&&tt){ S.unteraufgaben.push(neueUnteraufgabe(k.id,{titel:tt})); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } }
