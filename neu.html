@@ -286,6 +286,22 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .projrow .bwrap2{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
 .projrow .bwrap2 i{display:block;height:100%;background:var(--cyan)}
 .projrow b{flex:none;font-family:ui-monospace,monospace;font-size:11px}
+/* Diagramme (Punkt 2, v0.38-Port) */
+.akkukarte{margin:8px 0 4px}
+.akkukarte .lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-bottom:2px;font-family:ui-monospace,monospace}
+.akkukarte .leer{color:var(--mut2);font-size:12px;text-align:center;padding:24px 0}
+.statfilter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 4px}
+.statfilter input[type=date]{background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:12px;padding:3px 8px;font-family:ui-monospace,monospace}
+.kennz{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.kennz>div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 4px;text-align:center}
+.kennz b{display:block;font-size:16px;font-weight:800;font-family:ui-monospace,monospace}
+.kennz span{font-size:9px;color:var(--mut2);letter-spacing:.3px}
+.auflh{font-size:12px;color:var(--mut);margin:10px 0 4px;font-weight:700}
+.aufl .arow{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:5px}
+.aufl .arow>span:first-child{flex:none;width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut)}
+.aufl .arow .bwrap2{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.aufl .arow .bwrap2 i{display:block;height:100%;background:var(--purple)}
+.aufl .arow b{flex:none;font-family:ui-monospace,monospace;font-size:11px}
 
 /* ── Sheet (Detail D3 / Stapel-Editor D4) ────────────────────────── */
 #backdrop{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -636,7 +652,7 @@ function ladeAlles(){
   S.historie = DB.get('historie', []);
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
-  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7 }, DB.get('ui', {}));
+  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null }, DB.get('ui', {}));
   // Karten gegen Schema-Drift härten (neue Felder erscheinen automatisch)
   S.karten = S.karten.map(k=>neueKarte(k));
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
@@ -2379,6 +2395,153 @@ function avatarStufe(){
   const sw=S.settings.levelSchwellen||DEFAULT_SETTINGS.levelSchwellen; let lvl=1;
   sw.forEach((s,i)=>{ if(wohlstandLive()>=s) lvl=i+1; }); return lvl;
 }
+/* ══════════════════════════════════════════════════════════════════════
+   D7 Diagramme (Punkt 2, v0.38-Port) — Tagesverlauf (kumulative Punkte-Kurve
+   + geglättete Energie-Linie + Soll-/Ø-Referenzdiagonale), Woche/Monat-Balken,
+   Domänenfilter, Datums-Picker, Kennzahlen, Aufschlüsselung. Quelle: tag.log /
+   tag.akkuVerlauf (heute live) bzw. angereicherte Historie-Snapshots. Alle
+   Diagramme sind handgeschriebenes SVG (kein CDN, offline-fest).
+   ══════════════════════════════════════════════════════════════════════ */
+function statDatum(){ return S.ui.statDatum || heuteApp(); }
+function isoMinus(iso, tage){ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()-tage);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+/* Normierter Tages-Snapshot (heute live, sonst Historie; mehrere Läufe je Datum
+   werden zusammengefasst). */
+function tagSnapshot(iso){
+  if(tagOffen() && S.tag.datum===iso){
+    return { datum:iso, istHeute:true, startTs:S.tag.startTs, endeTs:null, punkteBilanz:tagesPunkteLive(),
+      akku:S.tag.akku, log:(S.tag.log||[]).slice(), akkuVerlauf:(S.tag.akkuVerlauf||[]).slice(),
+      zeit:tagesZeitAggregat(S.tag.tagId), erledigtHeute:num(S.tag.erledigtHeute) };
+  }
+  const snaps=(S.historie||[]).filter(h=>h.datum===iso && !h.luecke);
+  if(!snaps.length) return null;
+  const log=[], av=[]; let p=0, akkuSum=0, akkuN=0, erl=0, startTs=null, endeTs=null;
+  const zeit={dfm:0,privat:0,projekte:{}};
+  snaps.forEach(s=>{ p+=num(s.punkteBilanz); (s.log||[]).forEach(e=>log.push(e)); (s.akkuVerlauf||[]).forEach(e=>av.push(e));
+    if(s.akku!=null){ akkuSum+=num(s.akku); akkuN++; } erl+=num(s.erledigtHeute);
+    if(!startTs || (s.startTs && s.startTs<startTs)) startTs=s.startTs;
+    if(!endeTs || (s.endeTs && s.endeTs>endeTs)) endeTs=s.endeTs;
+    if(s.zeit){ zeit.dfm+=num(s.zeit.dfm); zeit.privat+=num(s.zeit.privat);
+      Object.entries(s.zeit.projekte||{}).forEach(([k,v])=>zeit.projekte[k]=(zeit.projekte[k]||0)+num(v)); } });
+  return { datum:iso, istHeute:false, startTs, endeTs, punkteBilanz:p, akku:akkuN?akkuSum/akkuN:null,
+    log, akkuVerlauf:av, zeit, erledigtHeute:erl };
+}
+/* Punkte eines Snapshots unter Domänenfilter (aus log, sonst Bilanz für „alle"). */
+function snapPunkte(snap, dom){
+  if(!snap) return 0;
+  if(dom==='alle') return snap.punkteBilanz;
+  if(snap.log && snap.log.length) return snap.log.filter(e=>e.domain===dom).reduce((a,e)=>a+num(e.punkte),0);
+  return 0;
+}
+/* Ø-Punkte pro Stunde über die vergangenen Tage (domänengefiltert). */
+function avgProStdVergangen(dom){
+  let sumP=0, sumH=0;
+  (S.historie||[]).filter(h=>h.datum!==heuteApp() && !h.luecke).map(h=>h.datum)
+    .filter((v,i,a)=>a.indexOf(v)===i).forEach(iso=>{ const sn=tagSnapshot(iso); if(!sn) return;
+      const hrs=(sn.startTs&&sn.endeTs)?Math.max(0.2,(new Date(sn.endeTs)-new Date(sn.startTs))/3600000):0;
+      if(hrs>0){ sumP+=snapPunkte(sn,dom); sumH+=hrs; } });
+  return sumH>0 ? sumP/sumH : 0;
+}
+/* Intraday-Kurve für einen Tages-Snapshot. */
+function diagrammKurveTag(snap, dom){
+  if(!snap || !snap.startTs) return '<div class="akkukarte"><div class="leer">Keine Daten für diesen Tag.</div></div>';
+  const startMs=new Date(snap.startTs).getTime();
+  const endMs=snap.istHeute ? Date.now() : (snap.endeTs?new Date(snap.endeTs).getTime():Date.now());
+  const xEndMin=Math.max(1,(endMs-startMs)/60000);
+  const evAll=(snap.log||[]).map(e=>({min:(new Date(e.ts).getTime()-startMs)/60000, p:num(e.punkte), domain:e.domain}))
+    .filter(e=>e.min>=0).sort((a,b)=>a.min-b.min);
+  const ev=dom==='alle'?evAll:evAll.filter(e=>e.domain===dom);
+  let kum=0; const pts=[[0,0]];
+  ev.forEach(e=>{ kum+=e.p; pts.push([Math.min(xEndMin,Math.max(0,e.min)),kum]); });
+  if(snap.istHeute){ const ges=snapPunkte(snap,dom); if(ges>kum) kum=ges; pts.push([xEndMin,kum]); }  // Live-Endpunkt inkl. laufendem Fokus
+  const sollEnd=num(S.settings.tageszielPunkteProStd,100)*(xEndMin/60);
+  const avgEnd=avgProStdVergangen(dom)*(xEndMin/60);
+  const peak=pts.reduce((m,p)=>Math.max(m,p[1]),0);
+  const maxY=Math.max(peak, sollEnd, avgEnd, 10)*1.15;
+  const X=m=>6+(m/xEndMin)*288, Y=p=>98-(p/maxY)*88;
+  const linie=pts.map(p=>X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' ');
+  const yTop=Y(Math.max(peak,sollEnd,avgEnd,1)); const YA=p=>98-(p/100)*(98-yTop);
+  const glaetten=arr=>arr.map((e,i)=>{ let s=0,n=0; for(let j=Math.max(0,i-2);j<=Math.min(arr.length-1,i+2);j++){ s+=arr[j].p; n++; } return {min:e.min,p:s/n}; });
+  let akkuLinie='', aJetzt=null;
+  const av=(snap.akkuVerlauf||[]).map(e=>({min:(new Date(e.ts).getTime()-startMs)/60000,p:num(e.akku)})).filter(e=>e.min>=0&&e.min<=xEndMin);
+  if(av.length){ const g=glaetten(av); akkuLinie=g.map(e=>X(e.min).toFixed(1)+','+YA(e.p).toFixed(1)).join(' ');
+    if(snap.istHeute){ aJetzt=akkuLive(); if(aJetzt!=null) akkuLinie+=(akkuLinie?' ':'')+X(xEndMin).toFixed(1)+','+YA(aJetzt).toFixed(1); } else aJetzt=snap.akku; }
+  else if(snap.akku!=null){ aJetzt=snap.akku; akkuLinie=X(0).toFixed(1)+','+YA(snap.akku).toFixed(1)+' '+X(xEndMin).toFixed(1)+','+YA(snap.akku).toFixed(1); }
+  const uhr=m=>{ const t=new Date(startMs+m*60000); return String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0'); };
+  return '<div class="akkukarte"><div class="lbl"><span>'+(snap.istHeute?'Tagesverlauf':'Verlauf '+snap.datum.slice(5))+'</span><span>'+Math.round(kum)+' P</span></div>'+
+    '<svg viewBox="0 0 300 108" width="100%" height="108">'+
+    '<line x1="6" y1="98" x2="294" y2="98" stroke="var(--line)"/>'+
+    (sollEnd>0?'<line x1="'+X(0)+'" y1="'+Y(0)+'" x2="'+X(xEndMin).toFixed(1)+'" y2="'+Y(sollEnd).toFixed(1)+'" stroke="#c23a3a" stroke-width="1.3" stroke-dasharray="4 4"/><text x="'+(X(xEndMin)-54).toFixed(1)+'" y="'+Math.max(9,Y(sollEnd)-3).toFixed(1)+'" fill="#c23a3a" font-size="8">Soll '+Math.round(sollEnd)+'</text>':'')+
+    (avgEnd>0?'<line x1="'+X(0)+'" y1="'+Y(0)+'" x2="'+X(xEndMin).toFixed(1)+'" y2="'+Y(avgEnd).toFixed(1)+'" stroke="#b58a2e" stroke-width="1.3" stroke-dasharray="4 4"/><text x="'+(X(xEndMin)-54).toFixed(1)+'" y="'+Math.max(9,Y(avgEnd)-3).toFixed(1)+'" fill="#b58a2e" font-size="8">Ø '+Math.round(avgEnd)+'</text>':'')+
+    (akkuLinie?'<polyline points="'+akkuLinie+'" fill="none" stroke="var(--ok)" stroke-width="1.6" stroke-linejoin="round" opacity=".8"/><text x="273" y="'+(YA(aJetzt!=null?aJetzt:50)-4).toFixed(1)+'" fill="var(--ok)" font-size="8">'+(aJetzt!=null?Math.round(aJetzt)+'%':'')+'</text>':'')+
+    '<polyline points="'+linie+'" fill="none" stroke="var(--purple)" stroke-width="2.4" stroke-linejoin="round"/>'+
+    (pts.length?'<circle cx="'+X(pts[pts.length-1][0]).toFixed(1)+'" cy="'+Y(pts[pts.length-1][1]).toFixed(1)+'" r="3.2" fill="var(--purple)"/>':'')+
+    '<text x="6" y="107" fill="var(--mut2)" font-size="8">'+uhr(0)+'</text>'+
+    '<text x="268" y="107" fill="var(--mut2)" font-size="8">'+uhr(xEndMin)+'</text>'+
+    '</svg></div>';
+}
+/* Woche/Monat: Balken je Tag (antippbar → Tageswahl). */
+function diagrammBalken(zeitraum, dom){
+  const n=zeitraum==='woche'?7:30, heute=heuteApp(), sel=statDatum(), reihe=[];
+  for(let i=n-1;i>=0;i--){ const iso=isoMinus(heute,i); const sn=tagSnapshot(iso);
+    reihe.push({iso, p: sn?snapPunkte(sn,dom):0, luecke:!sn && !(tagOffen()&&S.tag.datum===iso)}); }
+  const maxP=Math.max(10,...reihe.map(x=>x.p)), bw=Math.max(3,Math.floor(288/n)-2);
+  let balken='';
+  reihe.forEach((d,i)=>{ const hgt=Math.max(2,(d.p/maxP)*80), x=6+i*(288/n);
+    balken+='<rect x="'+x.toFixed(1)+'" y="'+(90-hgt).toFixed(1)+'" width="'+bw+'" height="'+hgt.toFixed(1)+'" rx="2" fill="'+(d.iso===sel?'var(--cyan)':d.luecke?'var(--line)':'var(--purple)')+'" data-statpick="'+d.iso+'"/>'; });
+  const summe=reihe.reduce((a,d)=>a+d.p,0);
+  return '<div class="akkukarte"><div class="lbl"><span>Punkte je Tag ('+n+')</span><span>Σ '+Math.round(summe)+' P</span></div>'+
+    '<svg viewBox="0 0 300 100" width="100%" height="100">'+'<line x1="6" y1="90" x2="294" y2="90" stroke="var(--line)"/>'+balken+
+    '<text x="6" y="99" fill="var(--mut2)" font-size="8">'+reihe[0].iso.slice(5)+'</text>'+
+    '<text x="256" y="99" fill="var(--mut2)" font-size="8">'+reihe[reihe.length-1].iso.slice(5)+'</text></svg></div>';
+}
+/* Kennzahlen zum gewählten Tag (domänengefiltert). */
+function kennzahlenHtml(snap, dom){
+  if(!snap) return '<p class="d" style="color:var(--mut2)">Kein Tag für dieses Datum.</p>';
+  const p=snapPunkte(snap,dom);
+  const hrs=snap.startTs?((snap.istHeute?Date.now():new Date(snap.endeTs||snap.startTs).getTime())-new Date(snap.startTs).getTime())/3600000:0;
+  const zeitSek=dom==='alle'?(snap.zeit.dfm+snap.zeit.privat):(dom==='dfm'?snap.zeit.dfm:snap.zeit.privat);
+  const anzahl=(snap.log&&snap.log.length)?(dom==='alle'?snap.log.length:snap.log.filter(e=>e.domain===dom).length):snap.erledigtHeute;
+  return '<div class="kennz">'+
+    '<div><b>'+Math.round(p)+'</b><span>Punkte</span></div>'+
+    '<div><b>'+(hrs>0.05?(p/hrs).toFixed(0):'0')+'</b><span>P/Std</span></div>'+
+    '<div><b>'+(zeitSek>60?(p/(zeitSek/60)).toFixed(1):'0')+'</b><span>P/min</span></div>'+
+    '<div><b>'+fmtMin(zeitSek)+'</b><span>Zeit</span></div>'+
+    '<div><b>'+anzahl+'</b><span>erledigt</span></div>'+
+    '<div><b>'+(snap.akku!=null?Math.round(snap.akku)+'%':'–')+'</b><span>Ø Akku</span></div></div>';
+}
+/* Aufschlüsselung: nach Kartenart + Top-Karten (aus dem Punkt-Log). */
+function aufschluesselungHtml(snap, dom){
+  if(!snap || !snap.log || !snap.log.length) return '<p class="d" style="color:var(--mut2)">Keine Aufschlüsselung (Tag ohne Punkt-Log).</p>';
+  const log=dom==='alle'?snap.log:snap.log.filter(e=>e.domain===dom);
+  if(!log.length) return '<p class="d" style="color:var(--mut2)">Keine Punkte in dieser Domäne.</p>';
+  const ges=log.reduce((a,e)=>a+num(e.punkte),0)||1;
+  const artAgg={}; log.forEach(e=>{ artAgg[e.art||'?']=(artAgg[e.art||'?']||0)+num(e.punkte); });
+  let h='<div class="aufl">';
+  Object.entries(artAgg).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>h+='<div class="arow"><span>'+esc(k)+'</span><span class="bwrap2"><i style="width:'+Math.round(v/ges*100)+'%"></i></span><b>'+Math.round(v)+'</b></div>');
+  h+='</div>';
+  const kAgg={}; log.forEach(e=>{ const t=e.titel||'(ohne Titel)'; kAgg[t]=(kAgg[t]||0)+num(e.punkte); });
+  h+='<div class="aufl" style="margin-top:8px">';
+  Object.entries(kAgg).sort((a,b)=>b[1]-a[1]).slice(0,6).forEach(([t,v])=>h+='<div class="arow"><span>'+esc(t)+'</span><span class="bwrap2"><i style="width:'+Math.round(v/ges*100)+'%"></i></span><b>'+Math.round(v)+'</b></div>');
+  return h+'</div>';
+}
+/* Diagramm-Karte: Zeitraum-/Domänen-Umschalter + Picker + Chart + Kennzahlen. */
+function diagrammHtml(){
+  const zr=S.ui.statZeitraum||'tag', dom=S.ui.statDomain||'alle', sel=statDatum();
+  const seg=(v,l)=>'<button class="'+(zr===v?'on':'')+'" data-statzr="'+v+'">'+l+'</button>';
+  const dseg=(v,l)=>'<button class="'+(dom===v?'on':'')+'" data-statdom="'+v+'">'+l+'</button>';
+  let h='<div class="card"><h3>Diagramme <span class="segmini">'+seg('tag','Tag')+seg('woche','Woche')+seg('monat','Monat')+'</span></h3>';
+  h+='<div class="statfilter"><span class="segmini">'+dseg('alle','Alle')+dseg('dfm','DFM')+dseg('privat','Privat')+'</span>';
+  if(zr==='tag') h+='<input type="date" id="statDatum" value="'+sel+'" max="'+heuteIso()+'">';
+  h+='</div>';
+  const snap=tagSnapshot(sel);
+  if(zr==='tag'){ h+=diagrammKurveTag(snap,dom)+kennzahlenHtml(snap,dom)+'<h4 class="auflh">Aufschlüsselung</h4>'+aufschluesselungHtml(snap,dom); }
+  else { h+=diagrammBalken(zr,dom)+'<p class="stathint">Balken antippen wählt den Tag.</p>'+kennzahlenHtml(snap,dom); }
+  return h+'</div>';
+}
+/* Inline-Live-Kurve unter der Statusleiste (heute). */
+function renderStatChart(){ const c=el('statChart'); if(!c) return;
+  c.innerHTML='<div class="card" style="margin:0">'+diagrammKurveTag(tagSnapshot(heuteApp()), S.ui.statDomain||'alle')+'</div>'; }
 function renderBelohnung(){
   rangCacheBauen();
   let h='';
@@ -2413,18 +2576,8 @@ function renderBelohnung(){
       '<div class="ps">Ziel '+ziel+' P/Std</div>'+
       '<div class="ps">'+(tagOffen()?('Tag läuft · '+stundenLief.toFixed(1)+' h'):'kein Tag offen')+'</div></div></div></div>';
 
-  // ── Stat 2: Punkteverlauf 7/30 Tage (Balken je tagId, Lücken ausgegraut) ──
-  const tage=S.ui.statTage||7;
-  h+='<div class="card"><h3>Punkteverlauf <span class="segmini">'+
-    '<button class="'+(tage===7?'on':'')+'" data-stattage="7">7</button><button class="'+(tage===30?'on':'')+'" data-stattage="30">30</button></span></h3>';
-  const heuteIsoD=heuteIso(); const reihe=[];
-  for(let i=tage-1;i>=0;i--){ const d=new Date(heuteIsoD+'T12:00:00'); d.setDate(d.getDate()-i); const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    const snaps=S.historie.filter(x=>x.datum===iso); const p=snaps.reduce((a,x)=>a+num(x.punkteBilanz),0);
-    reihe.push({iso, p, luecke: snaps.length===0 && !(tagOffen()&&S.tag.datum===iso)}); }
-  if(tagOffen()){ const heutR=reihe.find(x=>x.iso===S.tag.datum); if(heutR){ heutR.p=heuteP; heutR.luecke=false; heutR.live=true; } }
-  const maxP=Math.max(10,...reihe.map(x=>x.p));
-  h+='<div class="barchart">'+reihe.map(x=>'<div class="bcol"><div class="bwrap"><i class="'+(x.luecke?'luecke':x.live?'live':'')+'" style="height:'+Math.round(Math.max(x.luecke?3:2,(x.p/maxP)*100))+'%"></i></div><span>'+x.iso.slice(8)+'</span></div>').join('')+'</div>';
-  h+='<div class="stathint">Ø '+Math.round(reihe.filter(x=>!x.luecke).reduce((a,x)=>a+x.p,0)/Math.max(1,reihe.filter(x=>!x.luecke).length))+' P · Lücken ausgegraut</div></div>';
+  // ── Diagramme (Punkt 2): Tagesverlauf/Woche/Monat + Kennzahlen + Aufschlüsselung ──
+  h+=diagrammHtml();
 
   // ── Stat 3: Zeitverteilung je Domäne + Projekt (heute) ───────────
   const zh=tagesZeitAggregat(aktuelleTagId()); const gesZ=zh.dfm+zh.privat;
@@ -2757,10 +2910,15 @@ function stapelLiesEditor(){
   });
 }
 
-// Belohnung/Statistik: 7/30-Tage-Umschalter + Shop-Kauf
+// Belohnung/Statistik: Diagramm-Umschalter (Zeitraum/Domäne/Tageswahl) + Shop-Kauf
 el('belohnungBody').addEventListener('click', e=>{
-  const st=e.target.closest('[data-stattage]'); if(st){ S.ui.statTage=num(st.dataset.stattage); saveUi(); renderBelohnung(); return; }
+  const zr=e.target.closest('[data-statzr]'); if(zr){ S.ui.statZeitraum=zr.dataset.statzr; saveUi(); renderBelohnung(); return; }
+  const dm=e.target.closest('[data-statdom]'); if(dm){ S.ui.statDomain=dm.dataset.statdom; saveUi(); renderBelohnung(); if(!el('statChart').hidden) renderStatChart(); return; }
+  const pk=e.target.closest('[data-statpick]'); if(pk){ S.ui.statDatum=pk.dataset.statpick; S.ui.statZeitraum='tag'; saveUi(); renderBelohnung(); return; }
   const kf=e.target.closest('[data-kauf]'); if(kf){ kaufen(kf.dataset.kauf); return; }
+});
+el('belohnungBody').addEventListener('change', e=>{
+  if(e.target.id==='statDatum'){ S.ui.statDatum=e.target.value||null; saveUi(); renderBelohnung(); }
 });
 
 // Einstellungen (Sync / Migration / Backup / Regler)
