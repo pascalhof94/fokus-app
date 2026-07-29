@@ -515,6 +515,9 @@ function neueKarte(f={}){
     sollMin: 0,
     istSek: 0,                        // getrackte Zeit (nur am Parent)
     komplex: 1, energie: 1, blockade: 1,   // Rate-Treiber (stufenlose Faktoren)
+    punkteProStd: null,               // v1.1: Raten-Override P/Std (null = aus Treibern) — v0.38-Port §4
+    akkuProStd: null,                 // v1.1: Akku %/Std dieser Karte (null = Settings-Standard) — v0.38-Port
+    zeitStufen: null,                 // v1.1: [{bisMin|null, punkteProStd}] zeitgestaffelte Rate (null = flach) — v0.38-Port §4
     prioritaet: 'soll',               // muss | soll | idee
     tickKurve: [0],                   // Punkte je Tick; Länge 1 = einfaches Abhak-Tick
     ticksHeute: 0,
@@ -612,9 +615,29 @@ function geldFaktor(k){
   const f = 1 + norm*(S.settings.geldGewicht||0);
   return Math.min(S.settings.geldDeckel||1.5, Math.max(1, f));
 }
+/* Wirksamer Stundensatz: Karten-Override punkteProStd schlägt die Treiber-Rate
+   (v0.38 effektiveRate); geldFaktor bleibt v1.0-Zusatz (dfm gedeckelt, privat 1). */
 function rate(k){
-  return (S.settings.basisProStd||12)
-    * num(k.komplex,1) * num(k.energie,1) * num(k.blockade,1) * geldFaktor(k);
+  const base = (k.punkteProStd!=null && Number.isFinite(Number(k.punkteProStd)))
+    ? Number(k.punkteProStd)
+    : (S.settings.basisProStd||12) * num(k.komplex,1) * num(k.energie,1) * num(k.blockade,1);
+  return base * geldFaktor(k);
+}
+/* Akku %/Std dieser Karte (v0.38 akkuRate): Karten-Override sonst Settings. */
+function akkuRate(k){
+  return (k && k.akkuProStd!=null && Number.isFinite(Number(k.akkuProStd)))
+    ? Number(k.akkuProStd) : (S.settings.akkuProStd!=null?S.settings.akkuProStd:-8);
+}
+/* Zeit-Punkte, optional zeitgestaffelt (§4-Port punkteFuerZeit): bisMin aufsteigend,
+   letzte Stufe bisMin=null = „danach". Ohne Staffel: flache Rate. */
+function punkteFuerZeit(k, min){
+  const st=k.zeitStufen;
+  if(Array.isArray(st) && st.length){
+    let p=0, ab=0;
+    for(const s of st){ const bis=(s.bisMin==null?Infinity:num(s.bisMin)); p += Math.max(0, Math.min(min,bis)-ab)/60 * num(s.punkteProStd); ab=bis; if(min<=bis) break; }
+    return p * geldFaktor(k);
+  }
+  return min/60 * rate(k);
 }
 /* Ist-Sekunden inkl. gerade laufendem Timer (nur für die fokussierte Karte). */
 function istSekLive(k){
@@ -635,8 +658,10 @@ function tickSumme(k, bis){
   let s=0; for(let i=0;i<bis && i<kurve.length;i++) s += num(kurve[i]);
   return s;
 }
+/* Zeit- und Tick-Punkte sind orthogonal (§4): eine Karte kann beides tragen
+   (z. B. Counter mit laufender Stoppuhr). */
 function kartePunkte(k){
-  const zeitTerm = zeitquelleMin(k)/60 * rate(k) * (S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
+  const zeitTerm = punkteFuerZeit(k, zeitquelleMin(k)) * (S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   const tickTerm = tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k);
   return zeitTerm + tickTerm;
 }
@@ -1441,6 +1466,17 @@ function renderDetail(){
     '<div>'+chipGroup('blockade',k.blockade,[[1,'1,0'],[1.5,'1,5'],[2,'2,0']])+'</div>'+
   '</div><div class="hint">Rate ≈ '+Math.round(rate(k))+' P/Std · Prognose '+Math.round(kartePunkte(Object.assign({},k,{ticksHeute:0})))+' P</div></div>';
 
+  // v1.1 §4: Raten-/Akku-Override + zeitgestaffelte Rate (v0.38-Port)
+  h+='<div class="field"><label>Override: Rate &amp; Akku (v1.1)</label><div class="grid2">'+
+    '<div><input type="number" inputmode="decimal" data-bind="punkteProStd" value="'+(k.punkteProStd==null?'':num(k.punkteProStd))+'" placeholder="P/Std"><div class="hint">leer = aus Treibern</div></div>'+
+    '<div><input type="number" inputmode="decimal" data-bind="akkuProStd" value="'+(k.akkuProStd==null?'':num(k.akkuProStd))+'" placeholder="Akku %/Std"><div class="hint">leer = Standard '+(S.settings.akkuProStd||-8)+'</div></div>'+
+  '</div></div>';
+  const zs = Array.isArray(k.zeitStufen)?k.zeitStufen:[];
+  h+='<div class="field"><label>Zeitgestaffelte Rate (wirkt auf die Stoppuhr)</label><div id="zsWrap">';
+  zs.forEach((s,i)=>{ h+='<div class="sub" data-zs="'+i+'"><span class="mlab">bis</span><input class="m" type="number" inputmode="numeric" data-zsbis="'+i+'" value="'+(s.bisMin==null?'':num(s.bisMin))+'" placeholder="∞"><span class="mlab">min →</span><input class="m" type="number" inputmode="decimal" data-zspkt="'+i+'" value="'+num(s.punkteProStd)+'"><span class="mlab">P/Std</span><button class="del" data-zsdel="'+i+'">✕</button></div>'; });
+  h+='</div><button class="minibtn" data-zsadd="1" style="margin-top:4px">＋ Zeitstufe</button>'+
+     '<div class="hint">bis-Minute → Rate; leere bis-Minute = „danach". Beispiel Pausentimer: 60→−5, 90→−10, 120→−20.</div></div>';
+
   // Wiederholung
   const rTyp = k.rhythmus ? k.rhythmus.typ : 'keine';
   h+='<div class="field"><label>Wiederholung</label>'+chipGroup('rhythmus',rTyp,[['keine','keine'],['taeglich','täglich'],['alleNTage','alle N Tage'],['wochentage','Wochentage']], rTyp!=='keine'?'lila':'')+'';
@@ -1694,10 +1730,15 @@ function mapAltKarte(it){
     sollMin: num(it.aufwandGeplantMin),
     istSek: Math.round(num(it.istMinuten)*60),
     komplex: num(it.komplexitaet,1), energie: num(it.energie,1), blockade: num(it.blockade,1),
+    // v1.1 §4-Port: Raten-Override, Akku-Rate und zeitgestaffelte Rate mitnehmen
+    // (in v0.38 pro Item vorhanden). Re-Import stellt so Pausen-/Meeting-Timer wieder her.
+    punkteProStd: (it.punkteProStd!=null && Number.isFinite(Number(it.punkteProStd))) ? Number(it.punkteProStd) : null,
+    akkuProStd:   (it.akkuProStd!=null && Number.isFinite(Number(it.akkuProStd))) ? Number(it.akkuProStd) : null,
+    zeitStufen:   (Array.isArray(it.zeitStufen) && it.zeitStufen.length) ? it.zeitStufen.map(s=>({bisMin:s.bisMin==null?null:num(s.bisMin), punkteProStd:num(s.punkteProStd)})) : null,
     prioritaet: ['muss','soll','idee'].includes(it.prioritaet)?it.prioritaet:'soll',
     tickKurve: altTickKurve(it),
     ticksHeute: num(it.tickStandHeute),
-    timerFlag: it.typ==='counter' && !!it.timerFlag,
+    timerFlag: !!it.timerFlag,
     rhythmus: altRhythmus(it),
     status: (it.status==='erledigt') ? 'erledigt' : 'offen',
     streak: num(it.routineStreak || it.streak),
@@ -1741,7 +1782,8 @@ function importItems(items, opts){
       // idempotent: nur Definition auffrischen, App-Hoheit (Status/Ist) lassen
       Object.assign(exist, { titel:k.titel, projekt:k.projekt, geldScore:k.geldScore, notiz:k.notiz,
         rhythmus:k.rhythmus, tickKurve:k.tickKurve, streak:k.streak,
-        komplex:k.komplex, energie:k.energie, blockade:k.blockade, prioritaet:k.prioritaet });
+        komplex:k.komplex, energie:k.energie, blockade:k.blockade, prioritaet:k.prioritaet,
+        punkteProStd:k.punkteProStd, akkuProStd:k.akkuProStd, zeitStufen:k.zeitStufen });
       ziel=exist; upd++;
     } else { S.karten.push(k); ziel=k; neu++; if(k.status==='erledigt') erl++; }
     // Unteraufgaben — Match ausschließlich über App-id
@@ -2340,6 +2382,10 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-tickadd]')){ entwurf.tickKurve.push(0); renderDetail(); return; }
   if(t.closest('[data-tickdel]')){ if(entwurf.tickKurve.length>1) entwurf.tickKurve.pop(); renderDetail(); return; }
 
+  // Zeitstaffel (§4)
+  if(t.closest('[data-zsadd]')){ zeitStufenLies(); entwurf.zeitStufen=(entwurf.zeitStufen||[]).concat([{bisMin:null,punkteProStd:0}]); renderDetail(); return; }
+  const zsd=t.closest('[data-zsdel]'); if(zsd){ zeitStufenLies(); (entwurf.zeitStufen||[]).splice(num(zsd.dataset.zsdel),1); if(!entwurf.zeitStufen.length) entwurf.zeitStufen=null; renderDetail(); return; }
+
   // Unteraufgaben
   if(t.closest('[data-subadd]')){ entwurfSubs.push(neueUnteraufgabe(entwurf.id,{titel:''})); subBalanceNachAdd(); subParentAngleichen(); renderDetail(); return; }
   const sdel=t.closest('[data-subdel]'); if(sdel){ entwurfSubs=entwurfSubs.filter(u=>u.id!==sdel.dataset.subdel); subParentAngleichen(); renderDetail(); return; }
@@ -2382,6 +2428,7 @@ el('sheetBody').addEventListener('input', e=>{
   if(t.dataset.tick!=null && entwurf){ entwurf.tickKurve[num(t.dataset.tick)]=num(t.value); return; }
   if(t.dataset.subtitel!=null){ const u=entwurfSubs.find(x=>x.id===t.dataset.subtitel); if(u) u.titel=t.value; return; }
   if(t.dataset.submin!=null){ const u=entwurfSubs.find(x=>x.id===t.dataset.submin); if(u){ u.sollMin=num(t.value); subParentAngleichen(); } return; }
+  if((t.dataset.zsbis!=null||t.dataset.zspkt!=null) && entwurf){ zeitStufenLies(); return; }   // Zeitstaffel live binden
   if(t.dataset.sbind!=null && stapelEntwurf){ stapelFeld(t.dataset.sbind, t.value); return; }
   // Filter-Werte live in den Entwurf binden, damit Re-Renders (Farbe/Ordner/Chips) nichts verlieren
   if(stapelEntwurf && stapelEntwurf.filter){
@@ -2402,8 +2449,19 @@ el('sheetBody').addEventListener('change', e=>{
 function detailFeld(bind, input){
   const v=input.value;
   if(bind==='geldScore'||bind==='sollMin'){ entwurf[bind]=num(v); }
+  else if(bind==='punkteProStd'||bind==='akkuProStd'){ entwurf[bind]= v===''?null:num(v); }  // leer = null (Fallback)
   else if(bind==='rhythmusN'){ if(entwurf.rhythmus) entwurf.rhythmus.n=Math.max(1,num(v)); }
   else { entwurf[bind]= (v===''&&(bind==='faelligkeit'||bind==='uhrzeit'||bind==='projekt')) ? null : v; }
+}
+/* Zeitstaffel aus dem DOM in den Entwurf lesen (leere bis-Minute = null „danach"). */
+function zeitStufenLies(){
+  if(!entwurf) return;
+  const rows=document.querySelectorAll('#zsWrap .sub');
+  if(!rows.length){ return; }
+  const arr=[];
+  rows.forEach(r=>{ const bisEl=r.querySelector('[data-zsbis]'), pktEl=r.querySelector('[data-zspkt]');
+    arr.push({ bisMin: (bisEl && bisEl.value!=='')?num(bisEl.value):null, punkteProStd: pktEl?num(pktEl.value):0 }); });
+  entwurf.zeitStufen = arr.length ? arr : null;
 }
 /* Detail: gesamten Formularstand aus dem DOM in den Entwurf lesen (vor Save/Aktion) */
 function detailLies(){
@@ -2411,6 +2469,7 @@ function detailLies(){
   document.querySelectorAll('#sheetBody [data-tick]').forEach(inp=>{ entwurf.tickKurve[num(inp.dataset.tick)]=num(inp.value); });
   document.querySelectorAll('#sheetBody [data-subtitel]').forEach(inp=>{ const u=entwurfSubs.find(x=>x.id===inp.dataset.subtitel); if(u) u.titel=inp.value; });
   document.querySelectorAll('#sheetBody [data-submin]').forEach(inp=>{ const u=entwurfSubs.find(x=>x.id===inp.dataset.submin); if(u) u.sollMin=num(inp.value); });
+  zeitStufenLies();
   subParentAngleichen();
 }
 function stapelFeld(bind, val){
