@@ -151,8 +151,12 @@ main{
 .krow:last-child{margin-bottom:0}
 .krow.erledigt{opacity:.55}
 .krow .kgriff{flex:none;width:26px;display:flex;align-items:center;justify-content:center;color:var(--mut2);font-size:15px;cursor:grab;touch-action:none}
+.krow .ksort{flex:none;width:30px;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 3px}  /* A5 Sortier-Pfeile */
+.krow .ksort .sar{height:22px;border:1px solid var(--line);border-radius:6px;color:var(--mut);font-size:11px;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.krow .ksort .sar:active{background:var(--card2);color:var(--txt)}
+.krow .kcheck.ktick{font-size:22px;font-weight:800;color:var(--blue);background:transparent}  /* A3 Tick-Plus */
 .krow .kmain{flex:1;min-width:0;padding:9px 4px 9px 2px;cursor:pointer}
-.krow .ktitle{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.krow .ktitle{font-size:14px;font-weight:700;overflow-wrap:anywhere;line-height:1.25}  /* A2: voller Titel, mehrzeilig */
 .krow.erledigt .ktitle{text-decoration:line-through;color:var(--mut)}
 .krow .kmeta{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:10.5px;color:var(--mut);margin-top:3px;font-family:ui-monospace,monospace}
 .krow .kmeta .b{color:var(--txt)}
@@ -228,11 +232,12 @@ main{
 .tpb-info{font-size:9px;color:var(--mut2);margin-top:4px;font-family:ui-monospace,monospace;text-align:center}
 .taufgabe{display:flex;align-items:center;gap:10px;margin-top:12px}
 .taufgabe .tmain{flex:1;min-width:0}
-.taufgabe .ttitel{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.taufgabe .ttitel{font-size:14px;font-weight:800;overflow-wrap:anywhere;line-height:1.3}  /* A2: kein Zeilenlimit auf der aktiven Karte */
 .taufgabe .tsub{font-size:10px;color:var(--mut)}
 .taufgabe .tpp{width:52px;height:52px;border-radius:50%;background:var(--blue);flex:none;display:flex;align-items:center;justify-content:center;font-size:21px;color:#04122e}
 #fokusAktiv.laeuft .taufgabe .tpp{background:var(--warn)}
 .taufgabe .tcheck{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ok);background:transparent}
+.taufgabe .tcheck.ttick{color:var(--blue);font-size:22px;font-weight:800}  /* A3 Tick-Plus im Fokus */
 .taufgabe .tedit{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--mut);background:transparent}
 /* Unteraufgaben-Block unter dem Tacho (v0.38-Port) */
 .tacc{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:var(--s1);overflow:hidden}
@@ -267,11 +272,15 @@ main{
 .streifsec{margin-top:var(--s2)}
 .streifsec .lab{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);font-weight:800;margin-bottom:8px;display:flex;align-items:baseline;gap:8px}
 .streifsec .lab .stapelwahl{color:var(--blue);font-weight:700;letter-spacing:0;text-transform:none}
-.farbstreifen{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
-.farbstreifen .strk{flex:none;width:38px;height:56px;border-radius:9px;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
-.farbstreifen .strk.aktiv{outline:2px solid var(--txt);outline-offset:1px}
-.farbstreifen .strk .rest{position:absolute;left:0;right:0;bottom:0;font-size:8.5px;text-align:center;color:#0a0f1a;background:rgba(255,255,255,.7);font-family:ui-monospace,monospace;padding:1px 0;font-weight:700}
-.farbstreifen .strk.check::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(10,15,26,.75);font-weight:900;font-size:18px}
+/* A6: große Hochkant-Detailkarten, ~2,5 sichtbar, Snap */
+.fk-cards{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.fk-cards .fcard{flex:none;width:42%;min-height:150px;border-radius:14px;overflow:hidden;background:var(--card2);border:1px solid var(--line);scroll-snap-align:center;display:flex;flex-direction:column}
+.fk-cards .fcard.aktiv{outline:2px solid var(--blue);outline-offset:1px}
+.fk-cards .fcard .fc-col{height:52px;flex:none}
+.fk-cards .fcard .fc-body{flex:1;padding:8px 9px;display:flex;flex-direction:column;gap:4px}
+.fk-cards .fcard .fc-titel{font-size:13px;font-weight:800;line-height:1.2;overflow-wrap:anywhere}
+.fk-cards .fcard .fc-meta{font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:auto}
+.fk-cards .fcard.check .fc-titel{color:var(--mut2);text-decoration:line-through}
 
 /* ── Tag-Banner (D2) + Tagesabschluss (D5) ───────────────────────── */
 .tagbanner{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:10px 13px;margin-bottom:var(--s2)}
@@ -332,6 +341,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .kaufbtn:active{transform:scale(.98)}
 .statring{display:flex;align-items:center;gap:16px}
 .statring svg{flex:none}
+/* A1: zwei getrennte Domänen-Score-Ringe */
+.statring2{display:flex;gap:10px;justify-content:space-around;align-items:flex-start}
+.statring-dom{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:0}
+.statring-dom svg{flex:none}
+.srd-lab{font-size:12.5px;font-weight:800}
+.srd-lab .gut{color:var(--ok)} .srd-lab .schlecht{color:var(--bad)}
+.srd-sub{font-size:10px;color:var(--mut2);font-family:ui-monospace,monospace}
 .statpace .pl{font-size:18px;font-weight:900}
 .statpace .pl.gut{color:var(--ok)} .statpace .pl.schlecht{color:var(--warn)}
 .statpace .ps{font-size:12px;color:var(--mut);font-family:ui-monospace,monospace}
@@ -554,7 +570,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.0.0';                    // Datenvertrag/Sync-appVersion — bleibt 1.0.0 (Airtable /Fokus Sync, §D)
 const UI_VERSION = 'v1.1';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-07-30-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-07-31-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -621,13 +637,15 @@ function haptik(ms){ try{ navigator.vibrate && navigator.vibrate(ms||10); }catch
    ══════════════════════════════════════════════════════════════════════ */
 /* §3.8 Settings (alle live einstellbar). Werte = sinnvolle Startbelegung. */
 const DEFAULT_SETTINGS = {
-  basisProStd: 12,             // Punkte/Std bei Faktor 1,0
-  zeitGewicht: 1,              // Gewicht des Zeit-Terms
+  basisProStd: 120,            // Punkte/Std bei Faktor 1,0 (Kalibrierung 30.07.: 12→120)
+  zeitGewicht: 1.15,           // Gewicht des Zeit-Terms (Kalibrierung 30.07.: 1→1,15)
   tickGewicht: 1,              // Gewicht des Tick-Terms
   geldGewicht: 0.5,            // geldFaktor = 1 + geldScoreNorm × geldGewicht (nur dfm)
   geldDeckel: 1.5,            // Faktor-Obergrenze (~1,5)
   geldScoreRef: 200,           // Referenz für geldScoreNorm = geldScore / Ref  (siehe Rückfrage)
-  tageszielPunkteProStd: 100,  // Tagesziel (Pace) — M3
+  tagesZielDfm: 5000,          // A1: getrenntes Tagesziel DFM (Punkte)
+  tagesZielPrivat: 3000,       // A1: getrenntes Tagesziel Privat (Punkte)
+  tageszielPunkteProStd: 100,  // ALT (M3-Pace) — durch tagesZielDfm/Privat ersetzt, intern belassen
   pfeilZone1: 5, pfeilZone2: 15, pfeilZone3: 40,  // v1.1: Pace-Pfeil-Zonen (% Abw. vom Soll) — v0.38-Port
   preisFaktor: 1.0,            // Shop-Preis-Faktor (§7 D7)
   levelSchwellen: [0,6000,18000,37500,67500,105000,150000,210000,285000,375000,480000,600000],  // Punkte-Neukalibrierung 30.07. (×15)
@@ -715,9 +733,11 @@ function settingsMerge(gespeichert){
     if(v && typeof v==='object' && !Array.isArray(v) && typeof s[k]==='object') Object.assign(s[k], v);
     else s[k]=v;
   }
-  // Einmalige Migration (Punkte-Neukalibrierung 30.07.): alte Level-Kurve
-  // (…,40000) → neue ×15-Kurve. Nur diese eine Konstante, sonst nichts.
+  // Einmalige Migrationen (Punkte-Neukalibrierung 30.07.) — je nur, wenn der
+  // ALTE Default noch gesetzt ist (nie einen bewusst geänderten Wert überschreiben):
   if(Array.isArray(s.levelSchwellen) && s.levelSchwellen[11]===40000) s.levelSchwellen = DEFAULT_SETTINGS.levelSchwellen.slice();
+  if(s.basisProStd===12)  s.basisProStd = 120;   // A8: Basis 12→120
+  if(s.zeitGewicht===1)   s.zeitGewicht = 1.15;  // A8: Zeit-Gewicht 1→1,15
   return s;
 }
 function ladeAlles(){
@@ -821,6 +841,9 @@ function kartePunkte(k){
 }
 /* Prognose inkl. ALLER Unteraufgaben-Boni (erledigt + offen) — für „geplant". */
 function kartePunkteGeplant(k){ return kartePunkteBei(k, num(k.sollMin)||istSekLive(k)/60) + subBonusOffen(k); }
+/* A3: nur der Tick-Anteil (gebuchte Ticks) — für Counter/Timer, die heute
+   getickt, aber weder erledigt noch als Fokus laufend sind. */
+function tickPunkte(k){ return tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k); }
 /* Abgeleitetes „Art"-Etikett (§2.1) — nur Anzeige. */
 /* Kartenart REIN ABGELEITET (v1.0 hat kein typ-Feld; die 74 Bestandskarten
    tragen keins). Regel wie v0.38-Bestand verifiziert (34/9/31):
@@ -831,6 +854,9 @@ function kartenArt(k){
   if(Array.isArray(k.tickKurve) && k.tickKurve.length>1) return 'Counter';
   return 'Aufgabe';
 }
+/* A3: „Tick-Karte" = wird über „+" getickt statt abgehakt (Timer-Karten +
+   Counter). Solche Karten bekommen nie ein Erledigt-Feld. */
+function istTickKarte(k){ return !!k.timerFlag || kartenArt(k)==='Counter'; }
 
 /* ── Timer-Engine (§7 D1: EIN Play/Pause-Toggle) ──────────────────────
    S.fokus = { karteId, laeuft, startMs } — bei Pause/Wechsel/Abschluss
@@ -1045,6 +1071,18 @@ function sortiereStapel(ks, st){
   });
   return ks;
 }
+/* A5: Karte im Stapel eine Position hoch/runter. Überführt den Stapel in den
+   manuellen Modus und schreibt die aktuelle Anzeige-Reihenfolge als sortIndex
+   fest, dann Tausch mit dem Nachbarn. */
+function karteSortieren(kid, dir, stapelId){
+  const st=S.stapel.find(s=>s.id===stapelId); if(!st) return;
+  const ks=stapelKarten(st); const i=ks.findIndex(k=>k.id===kid); if(i<0) return;
+  const j=i+dir; if(j<0 || j>=ks.length) return;
+  st.sortierung={feld:'manuell', richtung:'asc'};
+  ks.forEach((k,idx)=>{ k.sortIndex=Object.assign({}, k.sortIndex); k.sortIndex[st.id]=idx+1; });
+  const a=ks[i], b=ks[j], t=a.sortIndex[st.id]; a.sortIndex[st.id]=b.sortIndex[st.id]; b.sortIndex[st.id]=t;
+  saveKarten(); saveStapel(); renderStapel();
+}
 /* §3.5 KPI: offen/alle · Punktesumme (offen=Prognose/Soll, erledigt=Ist) · Ø-Dauer */
 function stapelKpi(ks){
   const alle=ks.length, offen=ks.filter(k=>k.status==='offen').length;
@@ -1116,14 +1154,20 @@ function kartenreiheHtml(k, stapelId){
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
   const startBtn = k.status==='erledigt' ? '' :
     '<button class="kstart'+(laeuft?' laeuft':'')+'" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="In den Fokus starten">'+(laeuft?'⏸':'▶')+'</button>';
+  // A5: Hoch/Runter-Pfeile (ein Tap = eine Position); A3: Tick-Karten → „+" statt Abhaken
+  const sortCtrl = '<div class="ksort"><button class="sar" data-sortup="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="hoch">▲</button>'+
+    '<button class="sar" data-sortdown="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="runter">▼</button></div>';
+  const rechts = istTickKarte(k)
+    ? '<button class="kcheck ktick" data-tickplus="'+k.id+'" aria-label="Tick +">＋</button>'
+    : '<div class="kcheck" data-check="'+k.id+'"><div class="box">✓</div></div>';
   return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+'" data-kid="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
-    '<div class="kgriff" data-griff="1">⠿</div>'+
+    sortCtrl+
     '<div class="kmain" data-detail="'+k.id+'">'+
       '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
       '<div class="kmeta">'+meta.join('')+'</div>'+
     '</div>'+
     startBtn+
-    '<div class="kcheck" data-check="'+k.id+'"><div class="box">✓</div></div>'+
+    rechts+
   '</div>';
 }
 /* Karten eines Stapels rendern — Gruppen-Mitglieder als einklappbaren Block
@@ -1255,8 +1299,11 @@ function renderFokus(){
     '<div class="tsub">'+(k.domain==='dfm'?'DFM':'Privat')+(k.prioritaet==='muss'?' · <span style="color:var(--bad)">MUSS</span>':'')+
     ' · <span id="tGesamtP">'+Math.round(kartePunkteGeplant(k))+'</span> P gesamt</div></div>'+
     '<button class="tedit" data-detail="'+k.id+'" aria-label="Bearbeiten">✎</button>'+
+    '<button class="tedit" data-fkschieben="'+k.id+'" aria-label="Schieben">⏭</button>'+
     '<button class="tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause">'+(laeuft?'⏸':'▶')+'</button>'+
-    '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button></div>';
+    (istTickKarte(k)
+      ? '<button class="tcheck ttick" data-tickplus="'+k.id+'" aria-label="Tick +">＋</button>'
+      : '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button>')+'</div>';
   const stName=(S.stapel.find(s=>s.id===S.ui.aktivStapel)||{}).name||'Stapel';
   const carousel = kand.length>1
     ? '<div class="fk-carousel"><button class="arw" data-fkprev="1">‹</button><div class="pos">'+(idx+1)+' / '+kand.length+' · '+esc(stName)+'</div><button class="arw" data-fknext="1">›</button></div>'
@@ -1332,7 +1379,7 @@ function fokusTacho(k){
 /* 3 Tages-Kacheln: Akku · Punkte heute/Ziel · Zeit heute/geplant. */
 function fokusStats(k){
   const a=akkuLive(); if(el('tAkku')) el('tAkku').textContent = a!=null?Math.round(a)+'%':'–%';
-  const istHeute=punkteHeuteAnzeige(), ziel=Math.max(1, num(S.settings.tageszielPunkteProStd,100)*8);
+  const istHeute=punkteHeuteAnzeige(), ziel=Math.max(1, tagesZielDomain('dfm')+tagesZielDomain('privat'));
   if(el('tPktW')){ el('tPktW').textContent=Math.round(istHeute)+'/'+Math.round(ziel); el('tPktSub').textContent=Math.round(istHeute/ziel*100)+'% · Pkt'; }
   let zeitIst=0, zeitPlan=0; S.karten.forEach(x=>{ if(!imTagesstrom(x)) return; zeitIst+=heuteInvestiertMin(x); zeitPlan+=num(x.sollMin); });
   if(el('tZeitW')){ el('tZeitW').textContent=tZeitKurz(zeitIst)+'/'+tZeitKurz(zeitPlan); el('tZeitSub').textContent='Aufg '+(zeitPlan>0?Math.round(num(k.sollMin)/zeitPlan*100):0)+'%'; }
@@ -1340,7 +1387,7 @@ function fokusStats(k){
 /* 4 aufgabenbezogene KPIs (P/Std ø · Punkte · bearbeitet · Unteraufgaben). */
 function fokusKpis(k){
   const box=el('tKpis'); if(!box) return;
-  const min=istSekLive(k)/60, geplant=num(k.sollMin), ziel=num(S.settings.tageszielPunkteProStd,100);
+  const min=istSekLive(k)/60, geplant=num(k.sollMin), ziel=num(S.settings.basisProStd,120);   // Rate-Benchmark = Basis-Rate
   const r=rate(k)*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   const f1 = (r>=ziel && ziel>0) ? 'gut' : 'warn';
   const planP=Math.max(0, kartePunkteGeplant(k)), earnedP=Math.max(0,kartePunkte(k));
@@ -1390,19 +1437,28 @@ function fokusSubsHtml(k){
     '</div></div>';
 }
 /* Farbstreifen: nächste 10 Karten des aktiven Stapels als Farbrechtecke. */
+/* A6: großer, horizontal snappender Karten-Streifen über ALLE Karten des
+   aktiven Stapels — Titel (voll) + Soll-Min + Dringlichkeit; Kartenfarbe als
+   Grundierung (Farb-Band oben). Tap wählt die Karte in den Fokus. */
 function streifenHtml(){
   const st=S.stapel.find(s=>s.id===S.ui.aktivStapel) || S.stapel[0];
   if(!st) return '';
-  const ks=stapelKarten(st).slice(0,10);
-  const aktivId = (aktiveFokusKarte()||{}).id;
-  const rects = ks.map(k=>{
-    let rest='';
-    if(k.uhrzeit){ const r=restBisTermin(k); if(r!=null) rest='<span class="rest">'+r+'</span>'; }
-    return '<div class="strk '+(k.id===aktivId?'aktiv ':'')+(k.status==='erledigt'?'check ':'')+'" data-streif="'+k.id+'" style="background:'+karteFarbe(k)+'">'+rest+'</div>';
+  const ks=stapelKarten(st);
+  const aktivId=(aktiveFokusKarte()||{}).id;
+  const cards=ks.map(k=>{
+    let dring='';
+    if(k.uhrzeit){ const r=restBisTermin(k); dring='🕐 '+esc(k.uhrzeit)+(r!=null&&r!=='–'?' · '+r:''); }
+    else if(k.faelligkeit){ dring = k.faelligkeit<heuteApp()?'überfällig':esc(fmtDatum(k.faelligkeit)); }
+    const soll=num(k.sollMin)>0?num(k.sollMin)+'′':'';
+    const meta=[soll,dring].filter(Boolean).join(' · ');
+    return '<div class="fcard '+(k.id===aktivId?'aktiv ':'')+(k.status==='erledigt'?'check ':'')+'" data-streif="'+k.id+'">'+
+      '<div class="fc-col" style="background:'+karteFarbe(k)+'"></div>'+
+      '<div class="fc-body"><div class="fc-titel">'+esc(k.titel||'(ohne Titel)')+'</div>'+
+        (meta?'<div class="fc-meta">'+meta+'</div>':'')+'</div></div>';
   }).join('');
-  const wahl = S.stapel.map(s=>'<option value="'+s.id+'"'+(s.id===st.id?' selected':'')+'>'+esc(s.name)+'</option>').join('');
-  return '<div class="streifsec"><div class="lab">Nächste im Stapel <select class="stapelwahl" id="streifStapel">'+wahl+'</select></div>'+
-    '<div class="farbstreifen">'+(rects||'<div style="color:var(--mut2);font-size:12px">leer</div>')+'</div></div>';
+  const wahl=S.stapel.map(s=>'<option value="'+s.id+'"'+(s.id===st.id?' selected':'')+'>'+esc(s.name)+'</option>').join('');
+  return '<div class="streifsec"><div class="lab">Stapel <select class="stapelwahl" id="streifStapel">'+wahl+'</select> · '+ks.length+'</div>'+
+    '<div class="fk-cards">'+(cards||'<div style="color:var(--mut2);font-size:12px">leer</div>')+'</div></div>';
 }
 /* Rest-Timer bis zum Startzeitpunkt einer Uhrzeit-Karte (Minuten, kompakt). */
 function restBisTermin(k){
@@ -1466,22 +1522,21 @@ function renderStatusbar(){
   el('sZiel').textContent = nk
     ? (k>=nk.preis ? BELOHNUNG[nk.kat].icon+' Kauf frei!' : BELOHNUNG[nk.kat].icon+' noch '+Math.round(nk.preis-k))
     : '';
-  // Tages-Fortschrittsbalken: 100% = Tagesziel (Punkte über den Tag), lila = Ist,
-  // orange = Soll-Tempo (Anteil verstrichener Zeit × Ziel), blau = Kauf-Schwellen.
-  const std=Math.max(0.1, tagStundenVergangen());
-  const sollGes=Math.max(1, num(S.settings.tageszielPunkteProStd,100)*std);   // Ziel bis jetzt
-  const istPct=Math.min(100, istHeute/sollGes*100);
-  const pacePct=100;   // Soll-Tempo = 100% des „bis jetzt"-Ziels
+  // Tages-Fortschrittsbalken (A1): 100% = volles Gesamt-Tagesziel (DFM+Privat),
+  // lila = Ist, orange = Soll-Tempo (Anteil des wachen Tages), blau = Kauf-Schwellen.
+  const zielGes=Math.max(1, tagesZielDomain('dfm')+tagesZielDomain('privat'));
+  const istPct=Math.min(100, istHeute/zielGes*100);
+  const pacePct=Math.min(100, wachTagAnteil()*100);   // Soll-Tempo = Tagesanteil
   el('sBarIst').style.width=istPct.toFixed(1)+'%';
   const o=el('sBarPaceO'); const minPct=Math.min(istPct,pacePct);
   o.style.left=minPct.toFixed(1)+'%'; o.style.width=Math.max(0,pacePct-minPct).toFixed(1)+'%';
-  // Kauf-Schwellen als Marken (kumulativ, relativ zum „bis jetzt"-Ziel)
+  // Kauf-Schwellen als Marken (kumulativ, relativ zum vollen Tagesziel)
   let marks='';
   if(S.belohnung){
     const bankOhneHeute=k-istHeute; let kum=0;
     KAT_KEYS.filter(kk=>!kaufSperre(kk)).map(preisFuer).filter(p=>p!=null).sort((a,b)=>a-b).forEach(pr=>{
       kum+=pr; const need=kum-bankOhneHeute;
-      if(need>0 && need<=sollGes) marks+='<span class="mark" style="left:'+(need/sollGes*100).toFixed(1)+'%"></span>';
+      if(need>0 && need<=zielGes) marks+='<span class="mark" style="left:'+(need/zielGes*100).toFixed(1)+'%"></span>';
     });
   }
   el('sBarMarks').innerHTML=marks;
@@ -1522,14 +1577,30 @@ function layoutTopbar(){
 function aktuelleTagId(){ return S.tag ? S.tag.tagId : heuteApp(); }
 function tagOffen(){ return !!(S.tag && !S.tag.endeTs); }
 /* Heute erreichte Punkte (live, inkl. laufendem Timer) minus Schiebe-Abzüge. */
-function tagesPunkteLive(){
-  const tid=aktuelleTagId();
-  let p=0;
-  S.karten.forEach(k=>{ if(k.status==='erledigt' && k.tagId===tid) p+=kartePunkte(k); });
-  if(S.fokus){ const fk=fokusKarte(); if(fk && fk.status==='offen') p+=kartePunkte(fk); } // laufend
-  if(S.tag) p -= num(S.tag.abzuegeBilanz);   // Schiebe-Abzüge mindern die Tagesbilanz
+/* A1: heutige Punkte EINER Domäne (erledigt heute + laufender Fokus dieser
+   Domäne + Schiebe-Strafen dieser Domäne als negative Log-Einträge, A4). */
+function tagesPunkteDomain(dom){
+  const tid=aktuelleTagId(); let p=0;
+  const laeuftId = S.fokus ? S.fokus.karteId : null;
+  S.karten.forEach(k=>{
+    if(k.domain!==dom) return;
+    const erl = k.status==='erledigt' && k.tagId===tid;
+    const laeuft = k.id===laeuftId && k.status==='offen';
+    if(erl || laeuft){ p+=kartePunkte(k); return; }
+    // A3: heute getickte Tick-Karten (Counter/Timer) zählen nur ihre Tick-Punkte
+    if(num(k.ticksHeute)>0 && istTickKarte(k)) p+=tickPunkte(k);
+  });
+  if(S.tag && Array.isArray(S.tag.log)) S.tag.log.forEach(e=>{ if(e.art==='schub' && e.domain===dom) p+=num(e.punkte); });
   return p;
 }
+function tagesPunkteLive(){
+  return tagesPunkteDomain('dfm') + tagesPunkteDomain('privat') - (S.tag ? num(S.tag.abzuegeBilanz) : 0);
+}
+/* A1: getrenntes Tagesziel je Domäne (Punkte) + Anteil des wachen Tages (16 h
+   linear ab Tagesstart) für die Pace. */
+function tagesZielDomain(dom){ return dom==='dfm' ? num(S.settings.tagesZielDfm,5000) : num(S.settings.tagesZielPrivat,3000); }
+function wachTagAnteil(){ return Math.max(0, Math.min(1, tagStundenVergangen()/16)); }
+function punkteHeuteDomain(dom){ return Math.max(0, tagesPunkteDomain(dom)); }
 /* Wohlstand live = eingefrorener Stand + heutiger (noch offener) Tag. */
 function wohlstandLive(){ return num(S.meta.wohlstand) + (tagOffen() ? tagesPunkteLive() : 0); }
 /* Zeit-Aggregat (§9 Stat 3): Ist-Sekunden je Domäne + Projekt für einen Tag.
@@ -1555,12 +1626,15 @@ function tagStundenVergangen(){
   if(!S.tag || !S.tag.startTs) return 0;
   return Math.max(0, (Date.now()-new Date(S.tag.startTs).getTime())/3600000);
 }
-/* Pace: erreichte Punkte/Std (ist) vs. Tagesziel-Punkte/Std (soll). */
+/* Pace (A1): erreichte Gesamt-Punkte heute vs. anteiliges Gesamt-Tagesziel
+   (Summe beider Domänen × Anteil des wachen Tages). ist/soll in Punkten. */
 function paceWerte(){
-  const std=tagStundenVergangen();
-  const ist = std>0.02 ? punkteHeuteAnzeige()/std : 0;
-  const soll = num(S.settings.tageszielPunkteProStd,100);
-  return { ist, soll };
+  const soll = (tagesZielDomain('dfm')+tagesZielDomain('privat')) * wachTagAnteil();
+  return { ist: punkteHeuteAnzeige(), soll };
+}
+/* Pace je Domäne: erreichte Punkte vs. anteiliges Domänen-Tagesziel. */
+function paceDomain(dom){
+  return { ist: punkteHeuteDomain(dom), soll: tagesZielDomain(dom)*wachTagAnteil(), ziel: tagesZielDomain(dom) };
 }
 /* Karte gehört in den heutigen Energie-/Pace-Horizont: offen + heute fällig
    oder überfällig, oder die aktuell laufende Fokus-Karte. */
@@ -1781,7 +1855,7 @@ function renderAbschlussAbraeumen(){
   let h='<p class="d"><b>Durchgang 1 — Abräumen.</b> Fällige/überfällige Karten abhaken, schieben, archivieren. Routinen: verpasst oder heute nicht nötig.</p>';
   if(!karten.length){ h+='<div class="card"><p class="d" style="text-align:center">Alles abgeräumt 🎉</p></div>'; }
   karten.forEach(k=>{
-    const istRoutine=!!k.rhythmus, ueberf=k.faelligkeit<heuteApp();
+    const istRoutine=!!k.rhythmus, tickartig=istTickKarte(k), ueberf=k.faelligkeit<heuteApp();
     h+='<div class="abcard" style="border-left-color:'+karteFarbe(k)+'">'+
       '<div class="abtitel">'+esc(k.titel)+'</div>'+
       '<div class="abmeta">'+(ueberf?'<span class="pri-muss">überfällig</span>':'heute')+' · '+num(k.sollMin)+'′ · '+Math.round(kartePunkte(k))+'P'+(istRoutine?' · 🔥'+num(k.streak):'')+'</div>';
@@ -1796,11 +1870,12 @@ function renderAbschlussAbraeumen(){
       '</div>';
     } else {
       h+='<div class="abbtns">'+
-        '<button class="abbtn ok" data-abfertig="'+k.id+'">✓ Fertig</button>'+
+        (!tickartig?'<button class="abbtn ok" data-abfertig="'+k.id+'">✓ Fertig</button>':'')+   // A3: Timer/Counter nie „erledigt"
         '<button class="abbtn" data-abschieben="'+k.id+'">→ Schieben</button>'+
         '<button class="abbtn" data-abarchiv="'+k.id+'">🗄</button>'+
         '<button class="abbtn" data-abedit="'+k.id+'">✎</button>'+
-        (istRoutine?'<button class="abbtn warn" data-abverpasst="'+k.id+'">😴 Verpasst</button><button class="abbtn" data-abnicht="'+k.id+'">🆗 nicht nötig</button>':'')+
+        (istRoutine?'<button class="abbtn warn" data-abverpasst="'+k.id+'">😴 Verpasst</button><button class="abbtn" data-abnicht="'+k.id+'">🆗 nicht nötig</button>'
+          : tickartig?'<button class="abbtn" data-abnicht="'+k.id+'">🆗 weg</button>':'')+
       '</div>';
     }
     h+='</div>';
@@ -2039,9 +2114,47 @@ function detailSpeichern(){
   closeSheet(); renderAlles();
   toast(entwurfNeu?'Karte angelegt':'Gespeichert'); haptik(12);
 }
+/* A3: einen Tick buchen (Timer-/Counter-Karten). Erhöht ticksHeute; Punkte
+   kommen über die Tick-Kurve (tickSumme) in tickPunkte/kartePunkte. */
+function karteTick(kid, fromDetail){
+  const k = kid ? S.karten.find(x=>x.id===kid) : entwurf;
+  if(!k) return;
+  k.ticksHeute = num(k.ticksHeute)+1;
+  if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
+  haptik(12);
+  if(!fromDetail){ saveKarten(); saveTag(); renderAlles(); }
+}
+/* A4: Schieben um +24 h. Datum +1 Tag ab aktueller Fälligkeit (sonst heute);
+   Uhrzeit bleibt. Vorschlag Minuspunkte = 10 % der Punkte-Prognose (sollMin/60
+   × Rate), auf 5 gerundet, min. 10. */
+function datumPlus1(iso){ const d=new Date((iso||heuteApp())+'T12:00:00'); d.setDate(d.getDate()+1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function schiebeVorschlag(k){ const prog=num(k.sollMin)/60*rate(k); return Math.max(10, Math.round(prog*0.1/5)*5); }
+function oeffneSchieben(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  const neu=datumPlus1(k.faelligkeit), v=schiebeVorschlag(k);
+  let h='<p class="d">„<b>'+esc(k.titel||'(ohne Titel)')+'</b>" auf <b>'+fmtDatum(neu)+'</b> schieben (+24 h'+(k.uhrzeit?' · '+esc(k.uhrzeit)+' bleibt':'')+').</p>'+
+    '<div class="field"><label>Minuspunkte (nur bei „mit Punktverlust")</label>'+
+    '<input type="number" inputmode="numeric" id="schiebAbzug" value="'+v+'">'+
+    '<div class="hint">Vorschlag = 10 % der Punkte-Prognose, auf 5 gerundet (min. 10). Wird sofort vom '+(k.domain==='dfm'?'DFM':'Privat')+'-Tagesscore abgezogen (nicht in der Kartenleistung).</div></div>';
+  openSheet('Aufgabe schieben', h,
+    '<button class="btn ghost sm" data-schiebohne="'+k.id+'">ohne Punktverlust</button>'+
+    '<button class="btn warn sm" data-schiebmit="'+k.id+'">mit Punktverlust</button>');
+}
+function karteSchiebenA4(kid, mitAbzug, abzug){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  k.faelligkeit = datumPlus1(k.faelligkeit);   // +24 h, Uhrzeit unverändert
+  if(mitAbzug && num(abzug)>0 && S.tag){
+    (S.tag.log=S.tag.log||[]).push({ itemId:k.id, titel:k.titel||'', domain:k.domain, art:'schub', punkte:-Math.abs(num(abzug)), ts:jetztIso() });
+  }
+  saveKarten(); saveTag(); closeSheet(); renderAlles();
+  toast('Auf '+fmtDatum(k.faelligkeit)+' geschoben'+(mitAbzug&&num(abzug)>0?' · −'+Math.abs(num(abzug))+' P':'')); haptik(15);
+}
 function karteAbhaken(kid, fromDetail){
   const k = kid ? S.karten.find(x=>x.id===kid) : entwurf;
   if(!k) return;
+  // A3: Timer-/Counter-Karten werden nie erledigt — „Abhaken" bucht einen Tick.
+  if(istTickKarte(k) && k.status!=='erledigt'){ karteTick(kid, fromDetail); return; }
   if(k.status==='erledigt'){
     k.status='offen'; k.tagId=null;
     if(k.rhythmus && k.zuletztRoutine===heuteApp()){ k.streak=Math.max(0,num(k.streak)-1); k.zuletztRoutine=null; }
@@ -2541,13 +2654,14 @@ function renderEinst(){
 
   h+='<div class="card"><h3>Punktesystem</h3><p class="d">Alle Sätze live (§3.8). Farbe/Timer/Fokus (M2), Tageslogik (M3) und Sync (M4) laufen.</p>';
   const regler=[
-    ['basisProStd','Basis P/Std','',1],
-    ['zeitGewicht','Zeit-Gewicht','',0.1],
+    ['tagesZielDfm','Tagesziel DFM','Punkte/Tag',100],
+    ['tagesZielPrivat','Tagesziel Privat','Punkte/Tag',100],
+    ['basisProStd','Basis P/Std','',5],
+    ['zeitGewicht','Zeit-Gewicht','',0.05],
     ['tickGewicht','Tick-Gewicht','',0.1],
     ['geldGewicht','Geld-Gewicht','nur DFM',0.1],
     ['geldDeckel','Geld-Deckel','Faktor max',0.1],
     ['geldScoreRef','Geld-Score-Referenz','norm = Score / Ref',10],
-    ['tageszielPunkteProStd','Tagesziel P/Std','Pace (M3)',5],
     ['preisFaktor','Shop-Preis-Faktor','Belohnung §7',0.1]
   ];
   regler.forEach(([k,lab,sub,step])=>{
@@ -2739,7 +2853,9 @@ function diagrammKurveTag(snap, dom){
   let kum=0; const pts=[[0,0]];
   ev.forEach(e=>{ kum+=e.p; pts.push([Math.min(xEndMin,Math.max(0,e.min)),kum]); });
   if(snap.istHeute){ const ges=snapPunkte(snap,dom); if(ges>kum) kum=ges; pts.push([xEndMin,kum]); }  // Live-Endpunkt inkl. laufendem Fokus
-  const sollEnd=num(S.settings.tageszielPunkteProStd,100)*(xEndMin/60);
+  // A1/A7: Soll-Diagonale = Domänen-Tagesziel über den wachen Tag (16 h)
+  const visionTag = dom==='alle' ? (tagesZielDomain('dfm')+tagesZielDomain('privat')) : tagesZielDomain(dom);
+  const sollEnd=visionTag*Math.min(1, xEndMin/(16*60));
   const avgEnd=avgProStdVergangen(dom)*(xEndMin/60);
   const peak=pts.reduce((m,p)=>Math.max(m,p[1]),0);
   const maxY=Math.max(peak, sollEnd, avgEnd, 10)*1.15;
@@ -2770,13 +2886,19 @@ function diagrammBalken(zeitraum, dom){
   const n=zeitraum==='woche'?7:30, heute=heuteApp(), sel=statDatum(), reihe=[];
   for(let i=n-1;i>=0;i--){ const iso=isoMinus(heute,i); const sn=tagSnapshot(iso);
     reihe.push({iso, p: sn?snapPunkte(sn,dom):0, luecke:!sn && !(tagOffen()&&S.tag.datum===iso)}); }
-  const maxP=Math.max(10,...reihe.map(x=>x.p)), bw=Math.max(3,Math.floor(288/n)-2);
+  // A7: Vision-/Ziel-Linie (aus den Tageszielen) + Ø-Linie der gezeigten Tage
+  const vision = dom==='alle' ? (tagesZielDomain('dfm')+tagesZielDomain('privat')) : tagesZielDomain(dom);
+  const echte=reihe.filter(x=>!x.luecke); const avg = echte.length ? echte.reduce((a,x)=>a+x.p,0)/echte.length : 0;
+  const maxP=Math.max(10, vision, ...reihe.map(x=>x.p)), bw=Math.max(3,Math.floor(288/n)-2);
+  const Y=v=>90-(v/maxP)*80;
   let balken='';
   reihe.forEach((d,i)=>{ const hgt=Math.max(2,(d.p/maxP)*80), x=6+i*(288/n);
     balken+='<rect x="'+x.toFixed(1)+'" y="'+(90-hgt).toFixed(1)+'" width="'+bw+'" height="'+hgt.toFixed(1)+'" rx="2" fill="'+(d.iso===sel?'var(--cyan)':d.luecke?'var(--line)':'var(--purple)')+'" data-statpick="'+d.iso+'"/>'; });
   const summe=reihe.reduce((a,d)=>a+d.p,0);
+  const avgLine = avg>0 ? '<line x1="6" y1="'+Y(avg).toFixed(1)+'" x2="294" y2="'+Y(avg).toFixed(1)+'" stroke="#b58a2e" stroke-width="1.2" stroke-dasharray="3 3"/><text x="8" y="'+Math.max(8,Y(avg)-2).toFixed(1)+'" fill="#b58a2e" font-size="8">Ø '+Math.round(avg)+'</text>' : '';
+  const visLine = vision>0 ? '<line x1="6" y1="'+Y(vision).toFixed(1)+'" x2="294" y2="'+Y(vision).toFixed(1)+'" stroke="var(--blue)" stroke-width="1.6"/><text x="252" y="'+Math.max(8,Y(vision)-2).toFixed(1)+'" fill="var(--blue)" font-size="8">Ziel '+Math.round(vision)+'</text>' : '';
   return '<div class="akkukarte"><div class="lbl"><span>Punkte je Tag ('+n+')</span><span>Σ '+Math.round(summe)+' P</span></div>'+
-    '<svg viewBox="0 0 300 100" width="100%" height="100">'+'<line x1="6" y1="90" x2="294" y2="90" stroke="var(--line)"/>'+balken+
+    '<svg viewBox="0 0 300 100" width="100%" height="100">'+'<line x1="6" y1="90" x2="294" y2="90" stroke="var(--line)"/>'+balken+visLine+avgLine+
     '<text x="6" y="99" fill="var(--mut2)" font-size="8">'+reihe[0].iso.slice(5)+'</text>'+
     '<text x="256" y="99" fill="var(--mut2)" font-size="8">'+reihe[reihe.length-1].iso.slice(5)+'</text></svg></div>';
 }
@@ -2827,6 +2949,21 @@ function diagrammHtml(){
 /* Inline-Live-Kurve unter der Statusleiste (heute). */
 function renderStatChart(){ const c=el('statChart'); if(!c) return;
   c.innerHTML='<div class="card" style="margin:0">'+diagrammKurveTag(tagSnapshot(heuteApp()), S.ui.statDomain||'alle')+'</div>'; }
+/* A1: ein Domänen-Score-Ring (heutige Punkte der Domäne ÷ Domänen-Tagesziel),
+   Pace-Pfeil = liegt die Domäne über ihrem anteiligen Soll? */
+function scoreRingDomain(dom, label, farbe){
+  const ist=Math.round(punkteHeuteDomain(dom)), ziel=tagesZielDomain(dom), p=paceDomain(dom);
+  const imSoll = p.ist>=p.soll;
+  const pct=Math.max(0,Math.min(1, ziel? ist/ziel : 0));
+  const R=42, U=2*Math.PI*R, off=U*(1-pct);
+  return '<div class="statring-dom"><svg viewBox="0 0 104 104" width="104" height="104">'+
+      '<circle cx="52" cy="52" r="'+R+'" fill="none" stroke="var(--line)" stroke-width="9"/>'+
+      '<circle cx="52" cy="52" r="'+R+'" fill="none" stroke="'+farbe+'" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+U.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 52 52)"/>'+
+      '<text x="52" y="48" text-anchor="middle" fill="var(--txt)" font-size="19" font-weight="800">'+ist+'</text>'+
+      '<text x="52" y="67" text-anchor="middle" fill="var(--mut)" font-size="9">von '+ziel+'</text></svg>'+
+    '<div class="srd-lab">'+label+' <span class="'+(imSoll?'gut':'schlecht')+'">'+(imSoll?'▲':'▼')+'</span></div>'+
+    '<div class="srd-sub">'+Math.round(pct*100)+'% · Soll jetzt '+Math.round(p.soll)+'</div></div>';
+}
 function renderBelohnung(){
   rangCacheBauen();
   let h='';
@@ -2843,23 +2980,11 @@ function renderBelohnung(){
       '<div class="rankpts">Konto '+Math.round(kontoP)+' P</div></div>'+
     '<div class="av-bar"><i style="width:'+Math.round(Math.max(0,Math.min(1,(lvl-1)/Math.max(1,maxLvl-1)))*100)+'%"></i></div></div>';
 
-  // ── Stat 1: Tages-Score-Ring + Pace ──────────────────────────────
-  const heuteP=Math.round(tagesPunkteLive());
-  const stundenLief = tagOffen()? Math.max(0.1,(Date.now()-new Date(S.tag.startTs).getTime())/3600000) : 0;
-  const pace = stundenLief? heuteP/stundenLief : 0;
-  const ziel = num(S.settings.tageszielPunkteProStd,100);
-  const zielTag = ziel*8;                          // Tagesziel ≈ Ziel-P/Std × 8h
-  const ringPct = Math.max(0,Math.min(1, zielTag? heuteP/zielTag : 0));
-  const R=52, U=2*Math.PI*R, off=U*(1-ringPct);
-  const paceGut = pace>=ziel;
-  h+='<div class="card"><h3>Heute</h3><div class="statring">'+
-    '<svg viewBox="0 0 130 130" width="120" height="120"><circle cx="65" cy="65" r="'+R+'" fill="none" stroke="var(--line)" stroke-width="11"/>'+
-      '<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="'+(paceGut?'var(--ok)':'var(--warn)')+'" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+U.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 65 65)"/>'+
-      '<text x="65" y="60" text-anchor="middle" fill="var(--txt)" font-size="24" font-weight="800">'+heuteP+'</text>'+
-      '<text x="65" y="82" text-anchor="middle" fill="var(--mut)" font-size="11">von '+zielTag+' P</text></svg>'+
-    '<div class="statpace"><div class="pl '+(paceGut?'gut':'schlecht')+'">'+(paceGut?'▲':'▼')+' '+pace.toFixed(0)+' P/Std</div>'+
-      '<div class="ps">Ziel '+ziel+' P/Std</div>'+
-      '<div class="ps">'+(tagOffen()?('Tag läuft · '+stundenLief.toFixed(1)+' h'):'kein Tag offen')+'</div></div></div></div>';
+  // ── Stat 1 (A1): zwei Domänen-Score-Ringe (DFM gold · Privat grün) + Pace ──
+  h+='<div class="card"><h3>Heute</h3><div class="statring2">'+
+      scoreRingDomain('dfm','DFM','var(--warn)')+
+      scoreRingDomain('privat','Privat','var(--ok)')+'</div>'+
+    '<div class="stathint">'+(tagOffen()?('Tag läuft · '+tagStundenVergangen().toFixed(1)+' h · Soll = Ziel × Tagesanteil'):'kein Tag offen')+'</div></div>';
 
   // ── Diagramme (Punkt 2): Tagesverlauf/Woche/Monat + Kennzahlen + Aufschlüsselung ──
   h+=diagrammHtml();
@@ -2961,6 +3086,8 @@ el('fokusView').addEventListener('click', e=>{
   const tg=t.closest('[data-fktoggle]'); if(tg){ const kid=tg.dataset.fktoggle;
     if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid); return; }
   const ck=t.closest('[data-fkcheck]'); if(ck){ karteAbhaken(ck.dataset.fkcheck, false); return; }
+  const tpf=t.closest('[data-tickplus]'); if(tpf){ karteTick(tpf.dataset.tickplus, false); return; }   // A3
+  const sch=t.closest('[data-fkschieben]'); if(sch){ oeffneSchieben(sch.dataset.fkschieben); return; }  // A4
   const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
   if(t.closest('[data-fkprev]')){ S.ui.fokusIdx=Math.max(0,(S.ui.fokusIdx||0)-1); saveUi(); renderFokus(); return; }
   if(t.closest('[data-fknext]')){ S.ui.fokusIdx=(S.ui.fokusIdx||0)+1; saveUi(); renderFokus(); return; }
@@ -3030,6 +3157,10 @@ el('stapelListe').addEventListener('click', e=>{
     if(sid){ S.ui.aktivStapel=sid; saveUi(); }
     if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid);
     setTab('fokus'); return; }
+  // A5: Sortier-Pfeile · A3: Tick-Plus (vor data-detail, da eigene Buttons)
+  const su=t.closest('[data-sortup]'); if(su){ e.stopPropagation(); karteSortieren(su.dataset.sortup, -1, su.dataset.stapel); return; }
+  const sd=t.closest('[data-sortdown]'); if(sd){ e.stopPropagation(); karteSortieren(sd.dataset.sortdown, +1, sd.dataset.stapel); return; }
+  const tp=t.closest('[data-tickplus]'); if(tp){ e.stopPropagation(); karteTick(tp.dataset.tickplus, false); return; }
   const det=t.closest('[data-detail]'); if(det){ oeffneDetail(det.dataset.detail); return; }
   const chk=t.closest('[data-check]'); if(chk){ karteAbhaken(chk.dataset.check, false); return; }
 });
@@ -3059,6 +3190,10 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-gzapply]')){ gruppeZuordnenAnwenden(); return; }
 
   // ── Gruppen-Aktionen (§3.3)
+  // A4: Schieben-Dialog (ohne / mit Punktverlust)
+  const schO=t.closest('[data-schiebohne]'); if(schO){ karteSchiebenA4(schO.dataset.schiebohne, false, 0); return; }
+  const schM=t.closest('[data-schiebmit]'); if(schM){ const inp=el('schiebAbzug'); karteSchiebenA4(schM.dataset.schiebmit, true, inp?num(inp.value):0); return; }
+
   const grh=t.closest('[data-grpheute]'); if(grh){ gruppeVerschieben(grh.dataset.grpheute, heuteApp()); closeSheet(); renderAlles(); toast('Gruppe auf heute'); return; }
   const grm=t.closest('[data-grpmorgen]'); if(grm){ gruppeVerschieben(grm.dataset.grpmorgen, morgenIso()); closeSheet(); renderAlles(); toast('Gruppe auf morgen'); return; }
   const grw=t.closest('[data-grpwarte]'); if(grw){ gruppeVerschieben(grw.dataset.grpwarte, null); closeSheet(); renderAlles(); toast('Gruppe in Warteschlange'); return; }
@@ -3077,7 +3212,7 @@ el('sheet').addEventListener('click', e=>{
   const aba=t.closest('[data-abarchiv]'); if(aba){ const k=S.karten.find(x=>x.id===aba.dataset.abarchiv); if(k){ k.status='archiviert'; saveKarten(); } renderAbschluss(); return; }
   const abe=t.closest('[data-abedit]'); if(abe){ oeffneDetail(abe.dataset.abedit); return; }
   const abv=t.closest('[data-abverpasst]'); if(abv){ const k=S.karten.find(x=>x.id===abv.dataset.abverpasst); if(k){ routineBilanz(k,true); k.faelligkeit=null; saveKarten(); saveTag(); } renderAbschluss(); return; }
-  const abn=t.closest('[data-abnicht]'); if(abn){ const k=S.karten.find(x=>x.id===abn.dataset.abnicht); if(k){ routineBilanz(k,false); k.faelligkeit=null; saveKarten(); saveTag(); } renderAbschluss(); return; }
+  const abn=t.closest('[data-abnicht]'); if(abn){ const k=S.karten.find(x=>x.id===abn.dataset.abnicht); if(k){ if(k.rhythmus) routineBilanz(k,false); k.faelligkeit=null; saveKarten(); saveTag(); } renderAbschluss(); return; }
   if(t.closest('[data-abweiter]')){ abschlussTmp.step=2; renderAbschluss(); return; }
   const stp=t.closest('[data-sorttap]'); if(stp){ const id=stp.dataset.sorttap; const o=abschlussTmp.sortOrder; const i=o.indexOf(id); if(i>=0) o.splice(i,1); else o.push(id); renderAbschluss(); return; }
   if(t.closest('[data-absortreset]')){ abschlussTmp.sortOrder=[]; renderAbschluss(); return; }
