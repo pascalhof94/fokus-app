@@ -554,7 +554,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.0.0';                    // Datenvertrag/Sync-appVersion — bleibt 1.0.0 (Airtable /Fokus Sync, §D)
 const UI_VERSION = 'v1.1';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-07-30-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-07-30-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -630,7 +630,7 @@ const DEFAULT_SETTINGS = {
   tageszielPunkteProStd: 100,  // Tagesziel (Pace) — M3
   pfeilZone1: 5, pfeilZone2: 15, pfeilZone3: 40,  // v1.1: Pace-Pfeil-Zonen (% Abw. vom Soll) — v0.38-Port
   preisFaktor: 1.0,            // Shop-Preis-Faktor (§7 D7)
-  levelSchwellen: [0,400,1200,2500,4500,7000,10000,14000,19000,25000,32000,40000],
+  levelSchwellen: [0,6000,18000,37500,67500,105000,150000,210000,285000,375000,480000,600000],  // Punkte-Neukalibrierung 30.07. (×15)
   akkuProStd: -8,              // Akku-%/Std im Fokus — M3
   farbEndpunkte: {             // §5 (M2 nutzt das voll aus)
     dfm:{hVon:50,hBis:0}, privat:{h:140}, wdh:{hVon:270,hBis:320}
@@ -715,6 +715,9 @@ function settingsMerge(gespeichert){
     if(v && typeof v==='object' && !Array.isArray(v) && typeof s[k]==='object') Object.assign(s[k], v);
     else s[k]=v;
   }
+  // Einmalige Migration (Punkte-Neukalibrierung 30.07.): alte Level-Kurve
+  // (…,40000) → neue ×15-Kurve. Nur diese eine Konstante, sonst nichts.
+  if(Array.isArray(s.levelSchwellen) && s.levelSchwellen[11]===40000) s.levelSchwellen = DEFAULT_SETTINGS.levelSchwellen.slice();
   return s;
 }
 function ladeAlles(){
@@ -2229,6 +2232,13 @@ function mapAltKarte(it){
     status: (it.status==='erledigt') ? 'erledigt' : 'offen',
     streak: num(it.routineStreak || it.streak),
   });
+  // v1.0-Direktfelder (Seed-Format Weg 2): NUR wenn im Item vorhanden — sonst
+  // bleibt die v0.38-Ableitung/das Default unverändert.
+  if(Array.isArray(it.tickKurve) && it.tickKurve.length) k.tickKurve = it.tickKurve.map(num);
+  if(it.rhythmus && it.rhythmus.typ) k.rhythmus = it.rhythmus;      // direktes v1.0-Format
+  if(it.uhrzeit)        k.uhrzeit   = it.uhrzeit;                    // "HH:MM"
+  if(it.tageszeit)      k.tageszeit = it.tageszeit;                  // morgens|mittags|abends|beliebig
+  if(it.geldScore!=null) k.geldScore = num(it.geldScore);           // direkte Zahl (statt geldImpact)
   return k;
 }
 function migrationVorschau(){
@@ -2270,6 +2280,12 @@ function importItems(items, opts){
         rhythmus:k.rhythmus, tickKurve:k.tickKurve, streak:k.streak,
         komplex:k.komplex, energie:k.energie, blockade:k.blockade, prioritaet:k.prioritaet,
         punkteProStd:k.punkteProStd, akkuProStd:k.akkuProStd, zeitStufen:k.zeitStufen });
+      // v1.0-Direktfelder NUR bei Vorhandensein übernehmen (Seed-Format Weg 2)
+      if(Array.isArray(it.tickKurve) && it.tickKurve.length) exist.tickKurve = it.tickKurve.map(num);
+      if(it.rhythmus && it.rhythmus.typ) exist.rhythmus = it.rhythmus;
+      if(it.uhrzeit)        exist.uhrzeit   = it.uhrzeit;
+      if(it.tageszeit)      exist.tageszeit = it.tageszeit;
+      if(it.geldScore!=null) exist.geldScore = num(it.geldScore);
       ziel=exist; upd++;
     } else { S.karten.push(k); ziel=k; neu++; if(k.status==='erledigt') erl++; }
     // Unteraufgaben — Match ausschließlich über App-id
@@ -2493,6 +2509,23 @@ function gruppeZuordnenAnwenden(){
   saveKarten(); gruppeZuTmp=null; closeSheet(); renderEinst(); toast('Gruppe aktualisiert');
 }
 
+/* Reset „Alle Karten löschen" (bewusster Nullstand vor dem Gruppen-Seed):
+   doppelte Bestätigung, VORHER automatisches Voll-Backup als Download. Löscht
+   ausschließlich Karten + Unteraufgaben. Einstellungen, meta.wohlstand,
+   Historie, Stapel, Vorlagen, Gruppen bleiben unangetastet. (Ein laufender
+   Fokus-Timer wird beendet, weil seine Karte weg ist — nötige Folge, nicht in
+   der „behalten"-Liste.) */
+function resetKarten(){
+  const n=S.karten.length;
+  if(!confirm('Alle Karten & Unteraufgaben löschen?\n\nVorher wird automatisch ein Voll-Backup heruntergeladen. Einstellungen, Wohlstand, Historie, Stapel, Vorlagen und Gruppen bleiben erhalten.')) return;
+  if(!confirm('Wirklich '+n+' Karten endgültig löschen?\n\nRückgängig nur über das heruntergeladene Backup.')) return;
+  backupHtml();                          // Voll-Backup als Download (bestehende Mechanik)
+  S.fokus=null; saveFokus();             // laufenden Timer auf gelöschter Karte beenden
+  S.karten=[]; S.unteraufgaben=[];
+  saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
+  renderAlles(); renderEinst();
+  toast(n+' Karten gelöscht · Backup geladen'); haptik(20);
+}
 /* ══════════════════════════════════════════════════════════════════════
    14 · D6 Einstellungen (Regler · Migration · Sync · Backup)
    ══════════════════════════════════════════════════════════════════════ */
@@ -2502,7 +2535,9 @@ function renderEinst(){
   h+='<div class="card"><h3>Daten &amp; Sync</h3><p class="d">Sync mit dem Claude-Chat (nur DFM, Copy-Paste), Migration aus der alten App, lokales Backup.</p>'+
     '<div class="btnrow"><button class="btn sm prim" id="btnSync">⇄ Sync (DFM)</button></div>'+
     '<div class="btnrow"><button class="btn sm" id="btnMig">⇪ Migration (v0.38)</button>'+
-    '<button class="btn sm" id="btnBackup">⬇︎ Backup</button></div></div>';
+    '<button class="btn sm" id="btnBackup">⬇︎ Backup</button></div>'+
+    '<div class="btnrow"><button class="btn warn sm" id="btnReset">🗑 Alle Karten löschen</button></div>'+
+    '<div class="hint">Nullstand vor dem Seed. Lädt vorher ein Voll-Backup herunter. Behält Einstellungen, Wohlstand, Historie, Stapel, Vorlagen, Gruppen.</div></div>';
 
   h+='<div class="card"><h3>Punktesystem</h3><p class="d">Alle Sätze live (§3.8). Farbe/Timer/Fokus (M2), Tageslogik (M3) und Sync (M4) laufen.</p>';
   const regler=[
@@ -3209,6 +3244,7 @@ el('einstBody').addEventListener('click', e=>{
   if(e.target.closest('#btnSync')) oeffneSync();
   else if(e.target.closest('#btnMig')) oeffneMigration();
   else if(e.target.closest('#btnBackup')) backupHtml();
+  else if(e.target.closest('#btnReset')){ resetKarten(); return; }
   const vd=e.target.closest('[data-vorlagedel]'); if(vd){ if(confirm('Vorlage löschen?')){ vorlageLoeschen(vd.dataset.vorlagedel); renderEinst(); } return; }
   // Karten-Gruppen (§3.3 / Punkt 5g)
   if(e.target.closest('#btnGruppeNeu')){ const n=(prompt('Name der Gruppe:')||'').trim(); if(n){ const g=neueGruppe({name:n}); S.gruppen.push(g); saveGruppen(); renderEinst(); oeffneGruppeZuordnen(g.id); } return; }
