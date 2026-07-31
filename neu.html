@@ -264,9 +264,13 @@ main{
 .uaneu button{width:38px;flex:none;border-radius:8px;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:16px;font-weight:800}
 
 /* Karussell begonnene+Muss */
-.fk-carousel{display:flex;align-items:center;gap:8px;margin-bottom:var(--s2)}
-.fk-carousel .arw{flex:none;width:34px;height:34px;border:1px solid var(--line);border-radius:10px;color:var(--mut);display:flex;align-items:center;justify-content:center;font-size:16px}
-.fk-carousel .pos{flex:1;text-align:center;font-size:11px;color:var(--mut2);font-family:ui-monospace,monospace}
+/* Fokus-Karussell — jetzt im sticky Topbar (Bug 2: darf nie überlappt werden) */
+#fkNav{border-top:1px solid var(--line);padding:5px var(--s2);background:linear-gradient(180deg,var(--card2),var(--card))}
+#fkNav[hidden]{display:none}
+.fk-carousel{display:flex;align-items:center;gap:8px}
+.fk-carousel .arw{flex:none;width:44px;height:40px;border:1px solid var(--line);border-radius:10px;color:var(--txt);display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--bg)}
+.fk-carousel .arw:active{background:var(--card2)}
+.fk-carousel .pos{flex:1;text-align:center;font-size:12px;color:var(--mut);font-family:ui-monospace,monospace;font-weight:700}
 
 /* Farbstreifen: nächste 10 des aktiven Stapels als Farbrechtecke ohne Titel */
 .streifsec{margin-top:var(--s2)}
@@ -511,6 +515,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   <div class="sb-pace"><div class="pf" id="sPfeil">→</div><div class="z" id="sPaceZahl">0/0</div></div>
   <div class="sb-streak" id="sStreak">🔥0</div>
 </div>
+<div id="fkNav" hidden></div>
 <div id="statChart" hidden></div>
 </div>
 
@@ -570,7 +575,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.0.0';                    // Datenvertrag/Sync-appVersion — bleibt 1.0.0 (Airtable /Fokus Sync, §D)
 const UI_VERSION = 'v1.1';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-07-31-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-07-31-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -1260,6 +1265,7 @@ function renderFokus(){
   if(!k){
     const stn=(S.stapel.find(s=>s.id===S.ui.aktivStapel)||{}).name||'Stapel';
     host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine offene Karte im Stapel „'+esc(stn)+'".<br>Stapel unten wechseln oder eine Karte im Stapel starten.</div>'+streifenHtml();
+    renderFkNav();
     return;
   }
   const idx=Math.max(0, kand.findIndex(x=>x.id===k.id));
@@ -1304,16 +1310,12 @@ function renderFokus(){
     (istTickKarte(k)
       ? '<button class="tcheck ttick" data-tickplus="'+k.id+'" aria-label="Tick +">＋</button>'
       : '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button>')+'</div>';
-  const stName=(S.stapel.find(s=>s.id===S.ui.aktivStapel)||{}).name||'Stapel';
-  const carousel = kand.length>1
-    ? '<div class="fk-carousel"><button class="arw" data-fkprev="1">‹</button><div class="pos">'+(idx+1)+' / '+kand.length+' · '+esc(stName)+'</div><button class="arw" data-fknext="1">›</button></div>'
-    : '';
   host.innerHTML =
-    carousel +
     '<div id="fokusAktiv" class="tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
       kopf+stats+kpis+planbar+aufgabe+'</div>'+
     fokusSubsHtml(k)+
     streifenHtml();
+  renderFkNav();   // Karussell im sticky Topbar (Bug 2)
   fokusTacho(k);   // Ring, Timer, Kennzahlen, Balken befüllen
 }
 /* Live-Aktualisierung des Fokus-Tachos (v0.38-Port): Ring-Bögen, Restzeit,
@@ -1490,7 +1492,23 @@ function renderFokusleiste(){
   }
   const tages=Math.round(tagesPunkteLive());
   el('fkRight').innerHTML='<div class="pt">'+tages+'</div><div class="lbl">heute · P</div>';
+  renderFkNav();      // Bug 2: Karussell im sticky Topbar (vor layoutTopbar-Messung)
   renderStatusbar();
+  layoutTopbar();     // Topbar-Höhe (inkl. fkNav) immer nachziehen, auch bei geschlossenem Tag
+}
+/* Bug 2: Karten-Navigation (‹ n/N ›) lebt im fixen Topbar, damit sie nie von
+   der Fokus-Karte/FAB überlappt wird. Nur im Fokus-Tab bei >1 Kandidat. */
+function renderFkNav(){
+  const nav=el('fkNav'); if(!nav) return;
+  if(S.ui.tab!=='fokus'){ if(!nav.hidden){ nav.hidden=true; nav.innerHTML=''; } return; }
+  const kand=fokusKandidaten();
+  if(kand.length<2){ if(!nav.hidden){ nav.hidden=true; nav.innerHTML=''; } return; }
+  const ak=aktiveFokusKarte(), idx=Math.max(0, kand.findIndex(x=>x.id===(ak||{}).id));
+  const stName=(S.stapel.find(s=>s.id===S.ui.aktivStapel)||{}).name||'Stapel';
+  nav.innerHTML='<div class="fk-carousel"><button class="arw" data-fkprev="1" aria-label="vorherige">‹</button>'+
+    '<div class="pos">'+(idx+1)+' / '+kand.length+' · '+esc(stName)+'</div>'+
+    '<button class="arw" data-fknext="1" aria-label="nächste">›</button></div>';
+  nav.hidden=false;
 }
 const PACE_PFEILE=['⇊','↓','↘','→','↗','↑','⇈'];
 /* Nächster möglicher/naher Kauf (nur Kategorie-Icon + Restpunkte — verrät
@@ -1509,6 +1527,7 @@ function renderStatusbar(){
   const bar=el('statusbar'); if(!bar) return;
   if(!tagOffen()){ bar.hidden=true; const c=el('statChart'); if(c){ c.hidden=true; } return; }
   bar.hidden=false;
+  try{
   // Energie-Batterie
   const eb=energieBatterie();
   el('sAkkuFrei').style.width=eb.gruen.toFixed(1)+'%';
@@ -1554,6 +1573,7 @@ function renderStatusbar(){
   el('sStreak').textContent='🔥'+tagesStreakStand(true);
   // ausgeklappte Live-Kurve mitziehen
   if(!el('statChart').hidden && typeof renderStatChart==='function') renderStatChart();
+  }catch(e){ /* Statusleiste bleibt sichtbar, auch wenn ein Wert scheitert */ }
   layoutTopbar();
 }
 /* Tap auf die Statusleiste: bis die Live-Kurve (Punkt 2) da ist, in den
@@ -3081,6 +3101,11 @@ el('fkMid').addEventListener('click', ()=>setTab('fokus'));
 el('statusbar').addEventListener('click', ()=>toggleStatChart());
 
 // Fokus-View: Toggle / Häkchen / Karussell / Farbstreifen / Unteraufgaben / Stapelwahl
+// Bug 2: Karussell-Pfeile im Topbar (außerhalb von #fokusView)
+el('fkNav').addEventListener('click', e=>{
+  if(e.target.closest('[data-fkprev]')){ S.ui.fokusIdx=Math.max(0,(S.ui.fokusIdx||0)-1); saveUi(); renderFokus(); return; }
+  if(e.target.closest('[data-fknext]')){ S.ui.fokusIdx=(S.ui.fokusIdx||0)+1; saveUi(); renderFokus(); return; }
+});
 el('fokusView').addEventListener('click', e=>{
   const t=e.target;
   const tg=t.closest('[data-fktoggle]'); if(tg){ const kid=tg.dataset.fktoggle;
