@@ -230,15 +230,17 @@ main{
 .tpb-marks{position:absolute;inset:0;pointer-events:none}
 .tpb-mark{position:absolute;top:0;bottom:0;width:2px;background:var(--purple);box-shadow:0 0 4px var(--purple)}
 .tpb-info{font-size:9px;color:var(--mut2);margin-top:4px;font-family:ui-monospace,monospace;text-align:center}
-.taufgabe{display:flex;align-items:center;gap:10px;margin-top:12px}
+/* Hotfix2: Aufgabentitel ganz oben in der Fokus-Karte (voll, mehrzeilig, A2) */
+#fokusAktiv .fk-haupttitel{font-size:19px;font-weight:900;line-height:1.25;overflow-wrap:anywhere;margin-bottom:12px}
+.taufgabe{display:flex;align-items:center;gap:8px;margin-top:12px}
 .taufgabe .tmain{flex:1;min-width:0}
-.taufgabe .ttitel{font-size:14px;font-weight:800;overflow-wrap:anywhere;line-height:1.3}  /* A2: kein Zeilenlimit auf der aktiven Karte */
-.taufgabe .tsub{font-size:10px;color:var(--mut)}
-.taufgabe .tpp{width:52px;height:52px;border-radius:50%;background:var(--blue);flex:none;display:flex;align-items:center;justify-content:center;font-size:21px;color:#04122e}
+.taufgabe .ttitel{font-size:14px;font-weight:800;overflow-wrap:anywhere;line-height:1.3}
+.taufgabe .tsub{font-size:11px;color:var(--mut)}
+.taufgabe .tpp{width:56px;height:56px;border-radius:50%;background:var(--blue);flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;color:#04122e}
 #fokusAktiv.laeuft .taufgabe .tpp{background:var(--warn)}
-.taufgabe .tcheck{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ok);background:transparent}
+.taufgabe .tcheck{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--ok);background:transparent}
 .taufgabe .tcheck.ttick{color:var(--blue);font-size:22px;font-weight:800}  /* A3 Tick-Plus im Fokus */
-.taufgabe .tedit{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--mut);background:transparent}
+.taufgabe .tedit{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--mut);background:transparent}
 /* Unteraufgaben-Block unter dem Tacho (v0.38-Port) */
 .tacc{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:var(--s1);overflow:hidden}
 .tacc .tacckopf{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;font-size:12px;font-weight:700;color:var(--mut);cursor:pointer}
@@ -575,7 +577,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.0.0';                    // Datenvertrag/Sync-appVersion — bleibt 1.0.0 (Airtable /Fokus Sync, §D)
 const UI_VERSION = 'v1.1';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-07-31-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-07-31-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -652,7 +654,7 @@ const DEFAULT_SETTINGS = {
   tagesZielPrivat: 3000,       // A1: getrenntes Tagesziel Privat (Punkte)
   tageszielPunkteProStd: 100,  // ALT (M3-Pace) — durch tagesZielDfm/Privat ersetzt, intern belassen
   pfeilZone1: 5, pfeilZone2: 15, pfeilZone3: 40,  // v1.1: Pace-Pfeil-Zonen (% Abw. vom Soll) — v0.38-Port
-  preisFaktor: 1.0,            // Shop-Preis-Faktor (§7 D7)
+  preisFaktor: 15,             // Shop-Preis-Faktor (§7 D7) — Neukalibrierung 30.07. (1,0→15)
   levelSchwellen: [0,6000,18000,37500,67500,105000,150000,210000,285000,375000,480000,600000],  // Punkte-Neukalibrierung 30.07. (×15)
   akkuProStd: -8,              // Akku-%/Std im Fokus — M3
   farbEndpunkte: {             // §5 (M2 nutzt das voll aus)
@@ -743,6 +745,7 @@ function settingsMerge(gespeichert){
   if(Array.isArray(s.levelSchwellen) && s.levelSchwellen[11]===40000) s.levelSchwellen = DEFAULT_SETTINGS.levelSchwellen.slice();
   if(s.basisProStd===12)  s.basisProStd = 120;   // A8: Basis 12→120
   if(s.zeitGewicht===1)   s.zeitGewicht = 1.15;  // A8: Zeit-Gewicht 1→1,15
+  if(s.preisFaktor===1)   s.preisFaktor = 15;    // Shop-Preis-Faktor 1,0→15 (bestehende 15 unberührt)
   return s;
 }
 function ladeAlles(){
@@ -1301,7 +1304,9 @@ function renderFokus(){
   const kpis='<div class="tkpis" id="tKpis"></div>';
   const planbar='<div class="tpbar"><div class="tpb-track"><i class="tpb-g" id="tpbG"></i><i class="tpb-y" id="tpbY"></i><i class="tpb-r" id="tpbR"></i>'+
     '<div class="tpb-marks" id="tpbMarks"></div></div><div class="tpb-info" id="tpbInfo"></div></div>';
-  const aufgabe='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'"><div class="ttitel">'+esc(k.titel||'(ohne Titel)')+'</div>'+
+  // Hotfix2: Titel ganz oben über der Zeit (voll, mehrzeilig, A2); unten nur Meta + Buttons.
+  const titel='<div class="fk-haupttitel" data-detail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</div>';
+  const aufgabe='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'">'+
     '<div class="tsub">'+(k.domain==='dfm'?'DFM':'Privat')+(k.prioritaet==='muss'?' · <span style="color:var(--bad)">MUSS</span>':'')+
     ' · <span id="tGesamtP">'+Math.round(kartePunkteGeplant(k))+'</span> P gesamt</div></div>'+
     '<button class="tedit" data-detail="'+k.id+'" aria-label="Bearbeiten">✎</button>'+
@@ -1312,7 +1317,7 @@ function renderFokus(){
       : '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button>')+'</div>';
   host.innerHTML =
     '<div id="fokusAktiv" class="tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
-      kopf+stats+kpis+planbar+aufgabe+'</div>'+
+      titel+kopf+stats+kpis+planbar+aufgabe+'</div>'+
     fokusSubsHtml(k)+
     streifenHtml();
   renderFkNav();   // Karussell im sticky Topbar (Bug 2)
@@ -3051,7 +3056,7 @@ function setTab(tab){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
   el('v-'+tab).classList.add('on');
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
-  el('fab').style.display = (tab==='stapel'||tab==='fokus') ? 'flex' : 'none';
+  el('fab').style.display = (tab==='stapel') ? 'flex' : 'none';   // Hotfix2: kein FAB im Fokus (kollidierte mit ✓/＋); Karten anlegen im Stapel
   renderFokusleiste();
   if(tab==='einst') renderEinst();
   else if(tab==='stapel') renderStapel();
