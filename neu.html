@@ -449,6 +449,45 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .such-b{flex:none;width:44px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:16px;color:var(--blue);background:transparent}
 .such-b:active{background:var(--bg)}
 
+/* ── B1/B2/B3 Detailanalyse ───────────────────────────────────────── */
+#analyseOverlay{position:fixed;inset:0;z-index:315;background:var(--bg);display:flex;flex-direction:column}
+#analyseOverlay[hidden]{display:none}
+.an-kopf{display:flex;align-items:center;gap:8px;padding:max(10px,env(safe-area-inset-top)) 12px 8px;border-bottom:1px solid var(--line)}
+.an-kopf h3{font-size:16px;font-weight:800}
+.an-back{background:transparent;border:none;color:var(--blue);font-size:15px;font-weight:700;padding:6px 4px}
+.an-filter{padding:8px 12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.an-frow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.an-frow .seg{border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700;color:var(--mut);background:var(--bg);min-height:30px}
+.an-frow .seg.on{background:var(--blue);color:#0a0f1a;border-color:var(--blue)}
+.an-frow .seg.dom.on{background:var(--purple);border-color:var(--purple)}
+.an-frow input[type=date]{background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:12px;padding:4px 8px;font-family:ui-monospace,monospace}
+.an-frow .an-lbl{font-size:11px;color:var(--mut2);font-family:ui-monospace,monospace}
+.an-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;padding-bottom:40px}
+.anmod{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:13px}
+.anmod-h{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+.anmod-h .ic{font-size:15px}
+.anmod-h h4{font-size:14.5px;font-weight:800}
+.anmod-sub{font-size:11px;color:var(--mut2);margin-bottom:10px;line-height:1.35}
+.anmod-kpis{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:10px}
+.ankpi{min-width:70px}
+.ankpi .v{font-size:18px;font-weight:800;line-height:1.05;font-family:ui-monospace,monospace}
+.ankpi .l{font-size:9.5px;color:var(--mut2);text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+.ankpi .d{font-size:10px;font-weight:700;font-family:ui-monospace,monospace}
+.ankpi .d.up{color:var(--ok)} .ankpi .d.down{color:var(--bad)} .ankpi .d.flat{color:var(--mut2)}
+.an-svg{width:100%;height:auto;display:block;margin-top:4px;overflow:visible}
+.an-leer{color:var(--mut);font-size:12.5px;text-align:center;padding:16px;border:1px dashed var(--line);border-radius:10px;background:var(--card2)}
+.an-legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:10px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:8px}
+.an-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:middle}
+.an-hm{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px}
+.an-hm .wk{display:flex;flex-direction:column;gap:3px}
+.an-hm .cell{width:13px;height:13px;border-radius:3px;background:var(--card2)}
+.an-bars{display:flex;flex-direction:column;gap:7px;margin-top:6px}
+.an-bar{display:flex;align-items:center;gap:8px;font-size:11px;font-family:ui-monospace,monospace}
+.an-bar .nm{flex:none;width:52px;color:var(--mut)}
+.an-bar .track{flex:1;height:12px;border-radius:6px;background:var(--card2);overflow:hidden}
+.an-bar .track i{display:block;height:100%;border-radius:6px}
+.an-bar .vv{flex:none;width:66px;text-align:right;color:var(--txt);font-weight:700}
+
 /* ── Sheet (Detail D3 / Stapel-Editor D4) ────────────────────────── */
 #backdrop{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
 #backdrop.on{opacity:1;pointer-events:auto}
@@ -626,6 +665,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   <div id="suchList" class="such-list"></div>
 </div>
 
+<!-- B1: Detailanalyse (Vollbild-View) -->
+<div id="analyseOverlay" hidden>
+  <div class="an-kopf">
+    <button id="anBack" class="an-back">‹ zurück</button>
+    <h3>Detailanalyse</h3>
+    <span class="sp"></span>
+  </div>
+  <div class="an-filter" id="anFilter"></div>
+  <div class="an-body" id="anBody"></div>
+</div>
+
 <div id="toast"></div>
 <canvas id="konfetti"></canvas>
 
@@ -636,7 +686,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.0.0';                    // Datenvertrag/Sync-appVersion — bleibt 1.0.0 (Airtable /Fokus Sync, §D)
 const UI_VERSION = 'v1.1';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-07-31-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-07-31-6';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -842,7 +892,7 @@ function ladeAlles(){
   S.intraday = DB.get('intraday', []);   // B0: App-only Intraday-Log
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
-  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, bearbeitetStatus:'alle' }, DB.get('ui', {}));
+  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle' }, DB.get('ui', {}));
   // Karten gegen Schema-Drift härten (neue Felder erscheinen automatisch)
   S.karten = S.karten.map(k=>neueKarte(k));
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
@@ -3257,6 +3307,9 @@ function renderBelohnung(){
       '<div class="rankpts">Konto '+Math.round(kontoP)+' P</div></div>'+
     '<div class="av-bar"><i style="width:'+Math.round(Math.max(0,Math.min(1,(lvl-1)/Math.max(1,maxLvl-1)))*100)+'%"></i></div></div>';
 
+  // ── B1: Einstieg Detailanalyse ───────────────────────────────────
+  h+='<button class="btn prim" data-analyse="1" style="width:100%;margin:0 0 14px;display:flex;align-items:center;justify-content:center;gap:8px">📊 Detailanalyse öffnen</button>';
+
   // ── Stat 1 (A1): zwei Domänen-Score-Ringe (DFM gold · Privat grün) + Pace ──
   h+='<div class="card"><h3>Heute</h3><div class="statring2">'+
       scoreRingDomain('dfm','DFM','var(--warn)')+
@@ -3652,6 +3705,7 @@ el('belohnungBody').addEventListener('click', e=>{
   const dm=e.target.closest('[data-statdom]'); if(dm){ S.ui.statDomain=dm.dataset.statdom; saveUi(); renderBelohnung(); if(!el('statChart').hidden) renderStatChart(); return; }
   const pk=e.target.closest('[data-statpick]'); if(pk){ S.ui.statDatum=pk.dataset.statpick; S.ui.statZeitraum='tag'; saveUi(); renderBelohnung(); return; }
   const kf=e.target.closest('[data-kauf]'); if(kf){ kaufen(kf.dataset.kauf); return; }
+  if(e.target.closest('[data-analyse]')){ oeffneAnalyse(); return; }   // B1
 });
 el('belohnungBody').addEventListener('change', e=>{
   if(e.target.id==='statDatum'){ S.ui.statDatum=e.target.value||null; saveUi(); renderBelohnung(); }
@@ -3772,6 +3826,314 @@ el('suchOverlay').addEventListener('click', e=>{ if(e.target.id==='suchOverlay')
   }, {passive:true});
   m.addEventListener('touchend', ()=>{ y0=null; active=false; }, {passive:true});
 })();
+
+/* ══════════════════════════════════════════════════════════════════════
+   17c · B1–B3 Detailanalyse (Profisport-Adaption)
+   Datenquelle: Historie (Tages-Snapshots) + heutiger offener Tag. Reine
+   Auswertung, nichts wird gespeichert. Charts als SVG (keine Fremdbibliothek).
+   Dünne Datenlage → Module zeigen „sammelt noch Daten (X/Y Tage)".
+   ══════════════════════════════════════════════════════════════════════ */
+function anVorTage(iso,n){ const d=new Date((iso||heuteApp())+'T12:00:00'); d.setDate(d.getDate()-n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function anTageDiff(a,b){ return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000); }
+function anKurzDatum(iso){ return iso?iso.slice(8,10)+'.'+iso.slice(5,7):''; }
+function anWochentag(iso){ return (new Date(iso+'T12:00:00').getDay()+6)%7; }   // Mo=0 … So=6
+const AN_WT=['Mo','Di','Mi','Do','Fr','Sa','So'];
+function anFmt(v){ v=num(v); if(Math.abs(v)>=1000) return (Math.round(v/100)/10)+'k'; return (Math.round(v*10)/10).toString(); }
+function anFmtUhr(h){ if(h==null||!isFinite(h)) return '—'; const hh=Math.floor(h), mm=Math.round((h-hh)*60); return String(hh).padStart(2,'0')+':'+String(mm%60).padStart(2,'0'); }
+
+/* Roh-Tage: Historie (+ heute, falls offen) nach Kalendertag aggregiert. */
+function analyseRohTage(){
+  const q=(S.historie||[]).filter(h=>!h.luecke).slice();
+  if(tagOffen() && S.tag){
+    q.push({ datum:S.tag.datum, startTs:S.tag.startTs, endeTs:jetztIso(), akku:S.tag.akku,
+      punkteBilanz:tagesPunkteLive(), abzuege:num(S.tag.abzuegeBilanz),
+      zeit:tagesZeitAggregat(S.tag.tagId), log:(S.tag.log||[]), routinenBilanz:(S.tag.routinenBilanz||[]), _heute:true });
+  }
+  const map={};
+  q.forEach(h=>{ const d=h.datum; if(!d) return;
+    let e=map[d]; if(!e){ e=map[d]={ datum:d, punkte:0, punkteDfm:0, punktePrivat:0, minDfm:0, minPrivat:0,
+      akku:null, startTs:null, endeTs:null, schub:0, erledigt:0, routErledigt:0, routVerpasst:0, heute:false }; }
+    e.punkte+=num(h.punkteBilanz);
+    if(h.zeit){ e.minDfm+=num(h.zeit.dfm)/60; e.minPrivat+=num(h.zeit.privat)/60; }
+    (h.log||[]).forEach(l=>{
+      if(l.art==='schub'){ e.schub++; } else { e.erledigt++; }
+      e[l.domain==='dfm'?'punkteDfm':'punktePrivat']+=num(l.punkte);
+      if(l.art==='Routine' && num(l.punkte)>0) e.routErledigt++;
+    });
+    (h.routinenBilanz||[]).forEach(r=>{ if(r.verpasst) e.routVerpasst++; });
+    if(e.akku==null && h.akku!=null) e.akku=num(h.akku);
+    if(!e.startTs || (h.startTs&&h.startTs<e.startTs)) e.startTs=h.startTs;
+    if(!e.endeTs || (h.endeTs&&h.endeTs>e.endeTs)) e.endeTs=h.endeTs;
+    if(h._heute) e.heute=true;
+  });
+  const arr=Object.keys(map).sort().map(k=>map[k]);
+  arr.forEach(e=>{ e.min=e.minDfm+e.minPrivat; e.wt=anWochentag(e.datum); });
+  return arr;
+}
+function anPunkte(e,dom){ return dom==='dfm'?e.punkteDfm : dom==='privat'?e.punktePrivat : e.punkte; }
+function anMin(e,dom){ return dom==='dfm'?e.minDfm : dom==='privat'?e.minPrivat : e.min; }
+function anZiel(dom){ return dom==='dfm'?tagesZielDomain('dfm') : dom==='privat'?tagesZielDomain('privat') : (tagesZielDomain('dfm')+tagesZielDomain('privat')); }
+/* Fenster gemäß S.ui (Zeitraum-Preset / frei) inkl. Vorperiode gleicher Länge. */
+function analyseFenster(){
+  const alle=analyseRohTage();
+  const zr=S.ui.analyseZeitraum||'7';
+  let von, bis, span;
+  if(zr==='frei'){ bis=S.ui.analyseBis||heuteApp(); von=S.ui.analyseVon||anVorTage(bis,6); span=anTageDiff(von,bis)+1; }
+  else { span=num(zr,7); bis=heuteApp(); von=anVorTage(bis,span-1); }
+  const inWin=d=> d>=von && d<=bis;
+  const cur=alle.filter(e=>inWin(e.datum));
+  const pBis=anVorTage(von,1), pVon=anVorTage(von,span);
+  const prev=alle.filter(e=>e.datum>=pVon && e.datum<=pBis);
+  return { alle, cur, prev, von, bis, span };
+}
+/* Lückenlose Kalender-Reihe (fehlende Tage = null) — für gleitende Mittel/ACWR. */
+function anKalenderReihe(alle, von, bis){
+  const map={}; alle.forEach(e=>map[e.datum]=e);
+  const out=[]; let d=von, guard=0;
+  while(d<=bis && guard++<800){ out.push({datum:d, e:map[d]||null}); d=anVorTage(d,-1); }
+  return out;
+}
+function anMean(a){ const v=a.filter(x=>x!=null); return v.length?v.reduce((s,x)=>s+x,0)/v.length:null; }
+function anSum(a){ return a.reduce((s,x)=>s+num(x),0); }
+function anDeltaPct(cur,prev){ if(prev==null||prev===0||!isFinite(prev)) return null; return (cur-prev)/Math.abs(prev)*100; }
+function anKpi(val,label,deltaPct,unit,invert){
+  let d='';
+  if(deltaPct!=null && isFinite(deltaPct)){ let cls=Math.abs(deltaPct)<1?'flat':(deltaPct>0?'up':'down'); if(invert&&cls!=='flat') cls=cls==='up'?'down':'up';
+    d='<div class="d '+cls+'">'+(deltaPct>0?'+':'')+Math.round(deltaPct)+'%</div>'; }
+  return '<div class="ankpi"><div class="v">'+val+(unit?'<span style="font-size:11px;color:var(--mut2)"> '+unit+'</span>':'')+'</div><div class="l">'+esc(label)+'</div>'+d+'</div>';
+}
+function anLeer(txt){ return '<div class="an-leer">'+esc(txt)+'</div>'; }
+function anSammelt(have, need){ return anLeer('Sammelt noch Daten ('+have+'/'+need+' Tage). Ab dem 30.07. wächst die Historie täglich.'); }
+function anModul(ic, titel, sub, inner){
+  return '<div class="anmod"><div class="anmod-h"><span class="ic">'+ic+'</span><h4>'+esc(titel)+'</h4></div>'+
+    (sub?'<div class="anmod-sub">'+sub+'</div>':'')+inner+'</div>';
+}
+
+/* ── SVG-Bausteine ─────────────────────────────────────────────────── */
+function anSvgLine(labels, series, opts){
+  opts=opts||{}; const W=320,H=opts.height||132,pL=30,pR=10,pT=10,pB=18;
+  const n=labels.length; if(!n) return anLeer('keine Daten');
+  let yMin=opts.yMin, yMax=opts.yMax;
+  if(yMin==null||yMax==null){ let lo=Infinity,hi=-Infinity; series.forEach(s=>s.vals.forEach(v=>{ if(v!=null){ lo=Math.min(lo,v); hi=Math.max(hi,v); } })); (opts.hlines||[]).forEach(h=>{ lo=Math.min(lo,h.y); hi=Math.max(hi,h.y); });
+    if(!isFinite(lo)){ lo=0; hi=1; } if(lo===hi){ hi=lo+1; } const pad=(hi-lo)*0.1; yMin=(opts.yMin!=null?opts.yMin:lo-pad); yMax=(opts.yMax!=null?opts.yMax:hi+pad); if(opts.y0) yMin=Math.min(0,yMin); }
+  const yr=(yMax-yMin)||1;
+  const xAt=i=> pL+(n===1?(W-pL-pR)/2:i/(n-1)*(W-pL-pR));
+  const yAt=v=> pT+(1-(v-yMin)/yr)*(H-pT-pB);
+  let g='';
+  (opts.hlines||[]).forEach(h=>{ const y=yAt(h.y).toFixed(1); g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+h.color+'" stroke-width="1" stroke-dasharray="'+(h.dash||'3 3')+'"/>'+(h.label?'<text x="'+(W-pR)+'" y="'+(yAt(h.y)-2).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+h.color+'">'+esc(h.label)+'</text>':''); });
+  g+='<text x="'+(pL-3)+'" y="'+(yAt(yMax)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anFmt(yMax)+'</text>'+
+     '<text x="'+(pL-3)+'" y="'+(yAt(yMin)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anFmt(yMin)+'</text>';
+  series.forEach(s=>{ let d='',on=false;
+    s.vals.forEach((v,i)=>{ if(v==null){ on=false; return; } d+=(on?'L':'M')+xAt(i).toFixed(1)+' '+yAt(v).toFixed(1)+' '; on=true; });
+    if(d) g+='<path d="'+d+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.width||2)+'" stroke-linejoin="round" stroke-linecap="round"'+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+'/>';
+    if(s.dots!==false) s.vals.forEach((v,i)=>{ if(v!=null) g+='<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(v).toFixed(1)+'" r="2.1" fill="'+s.color+'"/>'; });
+  });
+  g+='<text x="'+xAt(0).toFixed(1)+'" y="'+(H-4)+'" text-anchor="start" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[0])+'</text>';
+  if(n>1) g+='<text x="'+xAt(n-1).toFixed(1)+'" y="'+(H-4)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[n-1])+'</text>';
+  return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>';
+}
+function anSvgScatter(pts, opts){
+  const W=320,H=150,pL=30,pR=10,pT=10,pB=24;
+  const xr=(opts.xMax-opts.xMin)||1, yr=(opts.yMax-opts.yMin)||1;
+  const xAt=v=>pL+(v-opts.xMin)/xr*(W-pL-pR), yAt=v=>pT+(1-(v-opts.yMin)/yr)*(H-pT-pB);
+  let g='';
+  // Trendlinie (lineare Regression)
+  if(pts.length>=3){ const nx=pts.length, sx=anSum(pts.map(p=>p.x)), sy=anSum(pts.map(p=>p.y)),
+      sxx=anSum(pts.map(p=>p.x*p.x)), sxy=anSum(pts.map(p=>p.x*p.y)); const den=nx*sxx-sx*sx;
+    if(den!==0){ const m=(nx*sxy-sx*sy)/den, b=(sy-m*sx)/nx;
+      g+='<line x1="'+xAt(opts.xMin).toFixed(1)+'" y1="'+yAt(m*opts.xMin+b).toFixed(1)+'" x2="'+xAt(opts.xMax).toFixed(1)+'" y2="'+yAt(m*opts.xMax+b).toFixed(1)+'" stroke="var(--warn)" stroke-width="1.4" stroke-dasharray="4 3"/>'; } }
+  pts.forEach(p=>{ g+='<circle cx="'+xAt(p.x).toFixed(1)+'" cy="'+yAt(p.y).toFixed(1)+'" r="3.2" fill="var(--blue)" opacity=".85"/>'; });
+  g+='<text x="'+pL+'" y="'+(H-4)+'" font-size="8" fill="var(--mut2)">'+esc(opts.xlabel||'')+'</text>';
+  g+='<text x="'+(pL-3)+'" y="'+(pT+6)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+esc(opts.ylabel||'')+'</text>';
+  return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>';
+}
+/* gleitendes Mittel über die letzten w gefüllten Werte je Position. */
+function anGleitend(vals, w){ return vals.map((_,i)=>{ const seg=vals.slice(Math.max(0,i-w+1),i+1).filter(x=>x!=null); return seg.length?anMean(seg):null; }); }
+
+/* ── Modul 1 · Readiness ───────────────────────────────────────────── */
+function anModReadiness(F,dom){
+  const pts=F.cur.filter(e=>e.akku!=null).map(e=>({x:e.akku, y:anPunkte(e,dom)}));
+  let inner;
+  if(pts.length<4){ inner=anSammelt(pts.length,4); }
+  else{
+    const yMax=Math.max.apply(null,pts.map(p=>p.y).concat([anZiel(dom)]));
+    inner=anSvgScatter(pts,{xMin:0,xMax:100,yMin:0,yMax:yMax*1.05,xlabel:'Start-Akku %  →',ylabel:'↑ Tagesscore'});
+    const rE=anMean(F.cur.filter(e=>e.akku!=null).map(e=>e.akku)), rP=anMean(pts.map(p=>p.y));
+    const pE=anMean(F.prev.filter(e=>e.akku!=null).map(e=>e.akku)), pP=anMean(F.prev.map(e=>anPunkte(e,dom)));
+    inner+='<div class="anmod-kpis">'+anKpi(Math.round(rE),'Ø Readiness',anDeltaPct(rE,pE),'%')+
+      anKpi(anFmt(rP),'Ø Score',anDeltaPct(rP,pP))+'</div>';
+  }
+  return anModul('🟢','Readiness','Start-Verfassung (Akku) vs. erreichter Tagesscore. Punktewolke rechts-oben = gut erholt & stark geliefert.',inner);
+}
+/* ── Modul 2 · Belastungssteuerung (ACWR) ──────────────────────────── */
+function anAcwrReihe(alle, bis, span, dom, metric){
+  // ACWR je Tag = Ø(7 Tage) ÷ Ø(28 Tage), lückenlos (fehlende Tage = 0 Last).
+  const startAll=alle.length?alle[0].datum:bis;
+  const reihe=anKalenderReihe(alle, startAll, bis);
+  const load=reihe.map(x=> x.e ? (metric==='min'?anMin(x.e,dom):anPunkte(x.e,dom)) : 0);
+  const acwr=load.map((_,i)=>{ if(i<7) return null; const ac=anMean(load.slice(i-6,i+1)); const ch=anMean(load.slice(Math.max(0,i-27),i+1)); return (ch&&ch>0)?ac/ch:null; });
+  // nur die letzten `span` Tage anzeigen
+  const from=Math.max(0, reihe.length-span);
+  return { labels:reihe.slice(from).map(x=>x.datum), vals:acwr.slice(from), current:acwr[acwr.length-1] };
+}
+function anModACWR(F,dom){
+  let inner;
+  if(F.alle.length<8){ inner=anSammelt(F.alle.length,8); }
+  else{
+    const P=anAcwrReihe(F.alle,F.bis,F.span,dom,'punkte');
+    const M=anAcwrReihe(F.alle,F.bis,F.span,dom,'min');
+    inner=anSvgLine(P.labels,[{vals:P.vals,color:'var(--blue)'}],{yMin:0,yMax:2,height:132,hlines:[
+      {y:0.8,color:'var(--ok)',dash:'2 3'},{y:1.3,color:'var(--warn)',dash:'2 3',label:'Sweet-Spot 0,8–1,3'},{y:1.5,color:'var(--bad)',dash:'2 3'}]});
+    const zone=v=> v==null?'—': v<0.8?'Unterlast':v<=1.3?'optimal':v<=1.5?'erhöht':'Overload';
+    inner+='<div class="anmod-kpis">'+
+      anKpi(P.current!=null?(Math.round(P.current*100)/100):'—','ACWR Punkte')+
+      anKpi(zone(P.current),'Zone')+
+      anKpi(M.current!=null?(Math.round(M.current*100)/100):'—','ACWR Zeit')+'</div>';
+    inner+='<div class="an-legend"><span><i style="background:var(--ok)"></i>0,8–1,3 optimal</span><span><i style="background:var(--warn)"></i>&gt;1,3 erhöht</span><span><i style="background:var(--bad)"></i>&gt;1,5 Overload</span></div>';
+  }
+  return anModul('📈','Belastungssteuerung','Acute:Chronic Workload Ratio (7-Tage-Last ÷ 28-Tage-Schnitt). 0,8–1,3 = nachhaltiger Aufbau, darüber steigt das Überlastungsrisiko.',inner);
+}
+/* ── Modul 3 · Leistung ────────────────────────────────────────────── */
+function anModLeistung(F,dom){
+  let inner;
+  if(F.cur.length<3){ inner=anSammelt(F.cur.length,3); }
+  else{
+    const labels=F.cur.map(e=>e.datum);
+    const ph=F.cur.map(e=>{ const m=anMin(e,dom); return m>2?anPunkte(e,dom)/(m/60):null; });
+    const avg7=anGleitend(ph,7);
+    inner=anSvgLine(labels,[{vals:ph,color:'var(--cyan)'},{vals:avg7,color:'var(--warn)',dots:false,dash:'5 3'}],{y0:true,height:132});
+    inner+='<div class="an-legend"><span><i style="background:var(--cyan)"></i>P/Std täglich</span><span><i style="background:var(--warn)"></i>7-Tage-Ø</span></div>';
+    // Domänen-Ziel-Erreichung (Bars)
+    const doms= dom==='alle'?[['dfm','DFM','var(--warn)'],['privat','Privat','var(--ok)']]:[[dom,dom==='dfm'?'DFM':'Privat',dom==='dfm'?'var(--warn)':'var(--ok)']];
+    let bars='<div class="an-bars">';
+    doms.forEach(function(d){ const avg=anMean(F.cur.map(e=>anPunkte(e,d[0]))), ziel=anZiel(d[0]); const pct=ziel?Math.max(0,Math.min(1.3,avg/ziel)):0;
+      bars+='<div class="an-bar"><span class="nm">'+d[1]+'</span><span class="track"><i style="width:'+Math.min(100,pct*100/1.3).toFixed(0)+'%;background:'+d[2]+'"></i></span><span class="vv">'+Math.round(pct*100)+'% Ziel</span></div>'; });
+    bars+='</div>';
+    inner+=bars;
+    const phCur=anMean(ph.filter(x=>x!=null)), phPrev=anMean(F.prev.map(e=>{const m=anMin(e,dom); return m>2?anPunkte(e,dom)/(m/60):null;}).filter(x=>x!=null));
+    const scCur=anMean(F.cur.map(e=>anPunkte(e,dom))), scPrev=anMean(F.prev.map(e=>anPunkte(e,dom)));
+    const best=Math.max.apply(null,F.cur.map(e=>anPunkte(e,dom)).concat([0]));
+    inner+='<div class="anmod-kpis">'+anKpi(anFmt(phCur||0),'Ø P/Std',anDeltaPct(phCur,phPrev))+
+      anKpi(anFmt(scCur||0),'Ø Score',anDeltaPct(scCur,scPrev))+
+      anKpi(anFmt(best),'Bestleistung')+'</div>';
+  }
+  return anModul('🏆','Leistung','Punkte pro Stunde als Effizienz-Trend mit 7-Tage-Schnitt, plus Zielerreichung je Domäne (DFM 5000 / Privat 3000).',inner);
+}
+/* ── Modul 4 · Konsistenz ──────────────────────────────────────────── */
+function anModKonsistenz(F,dom){
+  // Heatmap (immer, auch dünn) + Wochentagsprofil (ab 7 Tagen) + Routinenquote
+  const scores=F.cur.map(e=>anPunkte(e,dom)); const maxS=Math.max.apply(null,scores.concat([1]));
+  const map={}; F.cur.forEach(e=>map[e.datum]=anPunkte(e,dom));
+  // Heatmap-Spalten (Wochen) über das Fenster
+  const reihe=anKalenderReihe(F.alle.length?F.cur:[], F.von, F.bis);
+  let cells=[]; let d=F.von, guard=0; while(d<=F.bis && guard++<400){ cells.push({datum:d, v:map[d]}); d=anVorTage(d,-1); }
+  // in Wochen gruppieren (Mo-Start)
+  let hm='<div class="an-hm">'; let wk=null, curWt=-1;
+  const col=v=> v==null?'var(--card2)': v<=0?'#3a2530': 'rgba(62,207,142,'+(0.2+0.8*Math.min(1,v/maxS)).toFixed(2)+')';
+  cells.forEach((c,i)=>{ const wt=anWochentag(c.datum);
+    if(i===0){ hm+='<div class="wk">'; for(let p=0;p<wt;p++) hm+='<span class="cell" style="visibility:hidden"></span>'; }
+    else if(wt===0){ hm+='</div><div class="wk">'; }
+    hm+='<span class="cell" title="'+c.datum+'" style="background:'+col(c.v)+'"></span>';
+  });
+  hm+='</div>';
+  // Wochentagsprofil
+  let wtBars='';
+  if(F.cur.length>=7){ const byWt=[[],[],[],[],[],[],[]]; F.cur.forEach(e=>byWt[e.wt].push(anPunkte(e,dom)));
+    const avgs=byWt.map(a=>anMean(a)||0); const mx=Math.max.apply(null,avgs.concat([1]));
+    wtBars='<div class="an-bars" style="margin-top:10px">'+avgs.map((v,i)=>'<div class="an-bar"><span class="nm">'+AN_WT[i]+'</span><span class="track"><i style="width:'+(v/mx*100).toFixed(0)+'%;background:var(--purple)"></i></span><span class="vv">'+anFmt(v)+'</span></div>').join('')+'</div>';
+  }
+  const rE=anSum(F.cur.map(e=>e.routErledigt)), rV=anSum(F.cur.map(e=>e.routVerpasst));
+  const quote=(rE+rV)>0?Math.round(rE/(rE+rV)*100):null;
+  const aktiv=F.cur.filter(e=>anPunkte(e,dom)>0 || anMin(e,dom)>0).length;
+  let inner=hm+wtBars+'<div class="anmod-kpis">'+
+    anKpi(quote==null?'—':quote+'%','Routinenquote')+
+    anKpi(aktiv+'/'+F.span,'Aktive Tage')+'</div>'+
+    (F.cur.length<7?'<div class="anmod-sub" style="margin-top:8px">Wochentagsprofil ab 7 Tagen.</div>':'');
+  return anModul('🔥','Konsistenz','Aktivitäts-Heatmap, Routinen-Erfüllung und (ab 7 Tagen) das Wochentagsprofil — wo liegen deine starken und schwachen Tage?',inner);
+}
+/* ── Modul 5 · Kalibrierung ────────────────────────────────────────── */
+function anModKalibrierung(F,dom){
+  let inner;
+  if(F.cur.length<3){ inner=anSammelt(F.cur.length,3); }
+  else{
+    const ziel=anZiel(dom);
+    const labels=F.cur.map(e=>e.datum);
+    const ratio=F.cur.map(e=> ziel? anPunkte(e,dom)/ziel : null);
+    inner=anSvgLine(labels,[{vals:ratio,color:'var(--blue)'}],{yMin:0,yMax:Math.max(1.4,Math.max.apply(null,ratio.concat([1]))*1.1),height:132,hlines:[{y:1,color:'var(--ok)',dash:'4 3',label:'Ziel 1,0'}]});
+    const cur=anMean(ratio), prev=anMean(F.prev.map(e=>ziel?anPunkte(e,dom)/ziel:null).filter(x=>x!=null));
+    const treffer=F.cur.filter(e=>{ const r=ziel?anPunkte(e,dom)/ziel:0; return r>=0.8 && r<=1.2; }).length;
+    inner+='<div class="anmod-kpis">'+
+      anKpi(cur!=null?(Math.round(cur*100)/100):'—','Ø Ist÷Soll',anDeltaPct(cur,prev))+
+      anKpi(treffer+'/'+F.cur.length,'Tage ±20%')+'</div>';
+  }
+  return anModul('🎯','Kalibrierung','Ist ÷ Soll pro Tag (1,0 = Ziel exakt getroffen). Dauerhaft ≫1 = Ziele zu niedrig, ≪1 = zu hoch gesteckt.',inner);
+}
+/* ── Modul 6 · Verhalten ───────────────────────────────────────────── */
+function anModVerhalten(F,dom){
+  const schub=anSum(F.cur.map(e=>e.schub)), erl=anSum(F.cur.map(e=>e.erledigt));
+  const schiebeQuote=(schub+erl)>0?Math.round(schub/(schub+erl)*100):null;
+  const pSchub=anSum(F.prev.map(e=>e.schub)), pErl=anSum(F.prev.map(e=>e.erledigt));
+  const pSchiebe=(pSchub+pErl)>0?pSchub/(pSchub+pErl)*100:null;
+  // Überfälligkeit = Momentaufnahme aus offenen Karten
+  const offen=S.karten.filter(k=>k.status==='offen' && (dom==='alle'||k.domain===dom) && k.faelligkeit);
+  const ueber=offen.filter(k=>k.faelligkeit<heuteApp()).length;
+  const ueberQ=offen.length?Math.round(ueber/offen.length*100):null;
+  // Start-/Ende-Zeiten (Ø Stunde)
+  const stH=anMean(F.cur.filter(e=>e.startTs).map(e=>{ const d=new Date(e.startTs); return d.getHours()+d.getMinutes()/60; }));
+  const enH=anMean(F.cur.filter(e=>e.endeTs).map(e=>{ const d=new Date(e.endeTs); return d.getHours()+d.getMinutes()/60; }));
+  let inner='<div class="anmod-kpis">'+
+    anKpi(schiebeQuote==null?'—':schiebeQuote+'%','Schiebe-Quote',anDeltaPct(schiebeQuote,pSchiebe),'',true)+
+    anKpi(ueberQ==null?'—':ueberQ+'%','Überfällig jetzt')+
+    anKpi(anFmtUhr(stH),'Ø Start')+
+    anKpi(anFmtUhr(enH),'Ø Ende')+'</div>';
+  // Produktivität nach Stunde (aus Intraday-Log)
+  const von=F.von, bis=F.bis;
+  const ent=(S.intraday||[]).filter(x=>{ if(!x.ts) return false; const d=x.ts.slice(0,10); if(d<von||d>bis) return false; if(dom!=='alle' && x.domaene!==dom) return false; return num(x.punkte)>0; });
+  if(ent.length>=20){
+    const buckets=new Array(24).fill(0); ent.forEach(x=>{ buckets[new Date(x.ts).getHours()]+=num(x.punkte); });
+    const mx=Math.max.apply(null,buckets.concat([1]));
+    const labels=buckets.map((_,i)=>i+':00');
+    inner+='<div class="anmod-sub" style="margin-top:12px">Produktivität nach Tageszeit (Punkte je Stunde):</div>'+
+      anSvgLine(labels,[{vals:buckets.map(v=>v),color:'var(--purple)',dots:false}],{y0:true,height:110});
+  } else {
+    inner+='<div class="anmod-sub" style="margin-top:12px">Produktivität nach Tageszeit: sammelt noch Intraday-Daten ('+ent.length+'/20 Buchungen).</div>';
+  }
+  return anModul('🧭','Verhalten','Schiebe- und Überfälligkeitsquote, typische Start-/Endzeiten und – sobald genug Intraday-Buchungen vorliegen – deine produktivsten Stunden.',inner);
+}
+
+/* ── View / Filter / Wiring ────────────────────────────────────────── */
+function anZeitraumPresets(){ return [['7','7 T'],['14','14 T'],['30','30 T'],['90','90 T'],['frei','frei']]; }
+function renderAnFilter(){
+  const zr=S.ui.analyseZeitraum||'7', dm=S.ui.analyseDomain||'alle';
+  let h='<div class="an-frow">'+anZeitraumPresets().map(p=>'<button class="seg'+(zr===p[0]?' on':'')+'" data-anzr="'+p[0]+'">'+p[1]+'</button>').join('')+'</div>';
+  if(zr==='frei'){ const bis=S.ui.analyseBis||heuteApp(), von=S.ui.analyseVon||anVorTage(bis,6);
+    h+='<div class="an-frow"><span class="an-lbl">von</span><input type="date" id="anVon" value="'+von+'" max="'+heuteIso()+'"><span class="an-lbl">bis</span><input type="date" id="anBis" value="'+bis+'" max="'+heuteIso()+'"></div>'; }
+  h+='<div class="an-frow">'+[['alle','Alle'],['dfm','DFM'],['privat','Privat']].map(d=>'<button class="seg dom'+(dm===d[0]?' on':'')+'" data-andom="'+d[0]+'">'+d[1]+'</button>').join('')+'</div>';
+  el('anFilter').innerHTML=h;
+}
+function renderAnalyseBody(){
+  const F=analyseFenster(), dom=S.ui.analyseDomain||'alle';
+  const von=F.von, bis=F.bis;
+  let h='<div class="anmod-sub" style="margin:0 2px 12px">Zeitraum '+anKurzDatum(von)+'–'+anKurzDatum(bis)+' · '+F.cur.length+' Tage mit Daten · Domäne '+(dom==='alle'?'Alle':dom==='dfm'?'DFM':'Privat')+' · Δ% ggü. Vorperiode.</div>';
+  if(!F.alle.length){ h+=anLeer('Noch keine abgeschlossenen Tage. Starte einen Tag und schließe ihn ab — dann füllt sich die Analyse.'); }
+  else{
+    h+=anModReadiness(F,dom)+anModACWR(F,dom)+anModLeistung(F,dom)+anModKonsistenz(F,dom)+anModKalibrierung(F,dom)+anModVerhalten(F,dom);
+  }
+  el('anBody').innerHTML=h;
+}
+function renderAnalyse(){ renderAnFilter(); renderAnalyseBody(); }
+function oeffneAnalyse(){ el('analyseOverlay').hidden=false; renderAnalyse(); }
+function schliesseAnalyse(){ el('analyseOverlay').hidden=true; }
+el('anBack').addEventListener('click', schliesseAnalyse);
+el('analyseOverlay').addEventListener('click', e=>{
+  const zr=e.target.closest('[data-anzr]'); if(zr){ S.ui.analyseZeitraum=zr.dataset.anzr; saveUi(); renderAnalyse(); return; }
+  const dm=e.target.closest('[data-andom]'); if(dm){ S.ui.analyseDomain=dm.dataset.andom; saveUi(); renderAnalyse(); return; }
+});
+el('analyseOverlay').addEventListener('change', e=>{
+  if(e.target.id==='anVon'){ S.ui.analyseVon=e.target.value||null; saveUi(); renderAnalyse(); }
+  if(e.target.id==='anBis'){ S.ui.analyseBis=e.target.value||null; saveUi(); renderAnalyse(); }
+});
 
 /* ══════════════════════════════════════════════════════════════════════
    18 · Init
