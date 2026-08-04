@@ -65,6 +65,8 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #topbar .sub[hidden]{display:none}
 #topbar .sub .timer{color:var(--cyan);font-weight:700}
 #topbar .sub .ppm{color:var(--purple)}
+#topbar .tb-search{flex:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)}
+#topbar .tb-search:active{background:var(--card2)}
 #topbar .right{flex:none;text-align:right;font-family:ui-monospace,monospace}
 #topbar .right .pt{font-size:14px;font-weight:800;color:var(--ok);line-height:1}
 #topbar .right .lbl{font-size:9px;color:var(--mut2)}
@@ -177,6 +179,25 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .krow .kcheck{flex:none;width:46px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line)}
 .krow .kcheck .box{width:24px;height:24px;border-radius:7px;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:15px;color:transparent;transition:all .15s}
 .krow.erledigt .kcheck .box{background:var(--ok);border-color:var(--ok);color:#0a0f1a}
+/* A8 Pin + A4 Freeze (Zeilen-Buttons) */
+.krow .kpin,.krow .kfreeze{flex:none;width:30px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:13px;color:var(--mut2);background:transparent;filter:grayscale(1);opacity:.6}
+.krow .kpin.on{filter:none;opacity:1}
+.krow .kfreeze.on{filter:none;opacity:1;color:#6dd3e0}
+.krow .kstart.auftau{color:#6dd3e0}
+.krow.eingefroren{opacity:.5;filter:grayscale(.55)}
+.krow.eingefroren .ktitle{color:var(--mut)}
+.kmeta .frost{color:#6dd3e0}
+.kmeta .vor{color:var(--purple);font-weight:700}
+/* A8 Quick-Leiste (angepinnte Counter/Routinen) */
+.pinleiste{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;padding:2px 0}
+.pql-chip{display:inline-flex;align-items:center;gap:2px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:3px 4px 3px 10px;max-width:100%}
+.pql-chip.laeuft{border-color:var(--warn)}
+.pql-chip.frost{opacity:.55;filter:grayscale(.5)}
+.pql-t{font-size:12.5px;font-weight:700;color:var(--txt);max-width:44vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pql-n{font-size:11px;font-weight:800;color:var(--blue);margin-left:2px}
+.pql-b{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--blue);font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.pql-b.done{background:var(--ok);border-color:var(--ok);color:#0a0f1a}
+.pql-chip.laeuft .pql-b:first-of-type{background:var(--warn);border-color:var(--warn);color:#0a0f1a}
 
 /* Karten-Randfarbe kommt inline aus karteFarbe() (§5, berechnet, nie gespeichert) */
 
@@ -411,6 +432,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .gzrow .dot{width:12px;height:12px;border-radius:3px;flex:none}
 .gzrow .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* ── A10 Spotlight-Suche ──────────────────────────────────────────── */
+#suchOverlay{position:fixed;inset:0;z-index:320;background:rgba(6,10,16,.94);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;flex-direction:column;padding:max(12px,env(safe-area-inset-top)) 12px 12px}
+#suchOverlay[hidden]{display:none}
+.such-bar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:6px 8px 6px 12px}
+.such-bar .such-ic{font-size:15px;flex:none;opacity:.7}
+.such-bar input{flex:1;min-width:0;background:transparent;border:none;color:var(--txt);font-size:17px;padding:8px 2px}
+.such-bar input:focus{outline:none}
+.such-x{flex:none;background:transparent;border:none;color:var(--blue);font-size:14px;font-weight:700;padding:6px 8px}
+.such-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:10px}
+.such-leer{color:var(--mut);text-align:center;padding:24px;font-size:14px}
+.such-row{display:flex;align-items:stretch;gap:4px;background:var(--card2);border:1px solid var(--line);border-radius:11px;margin-bottom:7px;overflow:hidden}
+.such-main{flex:1;min-width:0;padding:9px 6px 9px 11px;cursor:pointer}
+.such-t{font-size:14px;font-weight:700;overflow-wrap:anywhere;line-height:1.25}
+.such-m{font-size:11px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:3px}
+.such-b{flex:none;width:44px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:16px;color:var(--blue);background:transparent}
+.such-b:active{background:var(--bg)}
+
 /* ── Sheet (Detail D3 / Stapel-Editor D4) ────────────────────────── */
 #backdrop{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
 #backdrop.on{opacity:1;pointer-events:auto}
@@ -517,6 +555,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
     <div class="sub" id="fkSub" hidden><span class="timer" id="fkTimer">0:00</span><span class="ppm" id="fkPts"></span></div>
   </div>
   <div class="right" id="fkRight"></div>
+  <button class="tb-search" id="btnSuche" aria-label="Suchen">🔍</button>
 </div>
 <div id="statusbar" hidden>
   <div class="sb-batt"><span class="batt"><span class="seg frei" id="sAkkuFrei"></span><span class="seg verpl" id="sAkkuVerplant"></span></span><span class="sb-akku" id="sAkkuPct">–%</span></div>
@@ -577,6 +616,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   <div class="sheetfoot" id="sheetFoot"></div>
 </div>
 
+<!-- A10: Spotlight-Suche (Pull-down / 🔍) -->
+<div id="suchOverlay" hidden>
+  <div class="such-bar">
+    <span class="such-ic">🔍</span>
+    <input id="suchInput" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Karten suchen …">
+    <button id="suchClose" class="such-x">Abbrechen</button>
+  </div>
+  <div id="suchList" class="such-list"></div>
+</div>
+
 <div id="toast"></div>
 <canvas id="konfetti"></canvas>
 
@@ -587,7 +636,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.0.0';                    // Datenvertrag/Sync-appVersion — bleibt 1.0.0 (Airtable /Fokus Sync, §D)
 const UI_VERSION = 'v1.1';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-07-31-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-07-31-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -635,6 +684,22 @@ function heuteIso(){
    gestarteten Tag (Tageslogik = M3) fällt es auf den Kalendertag zurück. */
 function heuteApp(){ return (S.tag && S.tag.datum) ? S.tag.datum : heuteIso(); }
 function jetztIso(){ return new Date().toISOString(); }
+/* A7: Karte „berührt" (jede Interaktion) → Zeitstempel für „Bearbeitet heute". */
+function beruehre(k){ if(k) k.letzteBearbeitung=jetztIso(); }
+/* A7: Minuten seit Zeitstempel + „vor X"-Kurzform. */
+function minSeit(iso){ if(!iso) return Infinity; const t=Date.parse(iso); if(isNaN(t)) return Infinity; return (Date.now()-t)/60000; }
+function fmtVor(iso){ const m=minSeit(iso); if(!isFinite(m)) return '–'; if(m<1) return 'gerade eben';
+  if(m<60) return 'vor '+Math.round(m)+' min'; if(m<60*24) return 'vor '+Math.round(m/60)+' Std'; return 'vor '+Math.round(m/1440)+' Tg'; }
+/* B0: Intraday-Log (App-only, localStorage, NICHT im §8-Export). Je Punkte-/
+   Zeitbuchung ein Eintrag {ts, kartenId, domaene, punkte, minuten, typ}. */
+function logIntraday(k, o){
+  o=o||{};
+  if(!Array.isArray(S.intraday)) S.intraday=[];
+  S.intraday.push({ ts:jetztIso(), kartenId:k?k.id:null, domaene:k?k.domain:null,
+    punkte:Math.round(num(o.punkte)), minuten:Math.round(num(o.minuten)*10)/10, typ:o.typ||'?' });
+  if(S.intraday.length>20000) S.intraday=S.intraday.slice(-20000);   // Sicherungskappe
+  DB.set('intraday', S.intraday);
+}
 function num(x, def){ const n=Number(x); return Number.isFinite(n)?n:(def===undefined?0:def); }
 function fmtDatum(iso){
   if(!iso) return '';
@@ -654,7 +719,9 @@ function haptik(ms){ try{ navigator.vibrate && navigator.vibrate(ms||10); }catch
    ══════════════════════════════════════════════════════════════════════ */
 /* §3.8 Settings (alle live einstellbar). Werte = sinnvolle Startbelegung. */
 const DEFAULT_SETTINGS = {
-  basisProStd: 120,            // Punkte/Std bei Faktor 1,0 (Kalibrierung 30.07.: 12→120)
+  basisProStd: 120,            // Alt-Einzelwert (nur Migrationsreferenz); Domänenwerte unten (A9)
+  basisProStdDfm: 180,         // A9: Basis-Rate DFM (1,5× privat)
+  basisProStdPrivat: 120,      // A9: Basis-Rate privat
   zeitGewicht: 1.15,           // Gewicht des Zeit-Terms (Kalibrierung 30.07.: 1→1,15)
   tickGewicht: 1,              // Gewicht des Tick-Terms
   geldGewicht: 0.5,            // geldFaktor = 1 + geldScoreNorm × geldGewicht (nur dfm)
@@ -697,6 +764,9 @@ function neueKarte(f={}){
     ticksHeute: 0,
     timerFlag: false,
     schnellauswahl: false,            // U2: manuell kuratierte Schnellauswahl (Toggle ⚡)
+    freeze: false,                    // A4: eingefroren (pausiert, keine Abräumpflicht, Timer gesperrt)
+    pin: false,                       // A8: Quick-Leiste (Counter/Routinen)
+    letzteBearbeitung: null,          // A7: Timestamp der letzten Interaktion
     rhythmus: null,                   // null | {typ:"taeglich"} | {typ:"alleNTage",n} | {typ:"wochentage",tage:[1..7]}
     gruppeId: null,
     status: 'offen',                  // offen | erledigt | archiviert
@@ -713,7 +783,7 @@ function neueKarte(f={}){
 }
 /* §3.2 Unteraufgabe — kein eigener Geld-Score, keine eigene Uhr. */
 function neueUnteraufgabe(parentId, f={}){
-  return Object.assign({ id:uuid(), parentId, titel:'', sollMin:0, done:false, bonusPunkte:null }, f);
+  return Object.assign({ id:uuid(), parentId, titel:'', sollMin:0, done:false, bonusPunkte:100 }, f);   // A3: Abhakbonus-Default 100
 }
 /* §3.5 Stapel */
 function neuerStapel(f={}){
@@ -769,9 +839,10 @@ function ladeAlles(){
   S.tag      = DB.get('tag', null);
   S.fokus    = DB.get('fokus', null);
   S.historie = DB.get('historie', []);
+  S.intraday = DB.get('intraday', []);   // B0: App-only Intraday-Log
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
-  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, schnellDomain:'alle' }, DB.get('ui', {}));
+  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, bearbeitetStatus:'alle' }, DB.get('ui', {}));
   // Karten gegen Schema-Drift härten (neue Felder erscheinen automatisch)
   S.karten = S.karten.map(k=>neueKarte(k));
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
@@ -779,6 +850,8 @@ function ladeAlles(){
              if(!S.tag.istMinutenStart) S.tag.istMinutenStart={};
              if(S.tag.streak==null) S.tag.streak=0; if(S.tag.erledigtHeute==null) S.tag.erledigtHeute=0; }
   if(S.fokus && S.fokus.sessionSek==null) S.fokus.sessionSek=0;
+  // A3: Unteraufgaben ohne gesetzten Bonus (0/unset) → 100 (explizite Werte bleiben)
+  S.unteraufgaben.forEach(u=>{ if(u.bonusPunkte==null || u.bonusPunkte===0) u.bonusPunkte=100; });
   // U2: Warteschlange → Schnellauswahl (nur wenn der alte System-Stapel noch
   // unverändert ist; eigene Umbenennungen/Filter des Nutzers bleiben unberührt).
   const wq=S.stapel.find(s=>s.id==='sys-warteschlange');
@@ -816,10 +889,13 @@ function geldFaktor(k){
 }
 /* Wirksamer Stundensatz: Karten-Override punkteProStd schlägt die Treiber-Rate
    (v0.38 effektiveRate); geldFaktor bleibt v1.0-Zusatz (dfm gedeckelt, privat 1). */
+function basisRate(k){   // A9: Basis-Rate je Domäne
+  return k.domain==='dfm' ? num(S.settings.basisProStdDfm,180) : num(S.settings.basisProStdPrivat,120);
+}
 function rate(k){
   const base = (k.punkteProStd!=null && Number.isFinite(Number(k.punkteProStd)))
     ? Number(k.punkteProStd)
-    : (S.settings.basisProStd||12) * num(k.komplex,1) * num(k.energie,1) * num(k.blockade,1);
+    : basisRate(k) * num(k.komplex,1) * num(k.energie,1) * num(k.blockade,1);
   return base * geldFaktor(k);
 }
 /* Akku %/Std dieser Karte (v0.38 akkuRate): Karten-Override sonst Settings. */
@@ -897,16 +973,19 @@ function fokusZeitEinbuchen(){
   if(!S.fokus || !S.fokus.laeuft) return;
   const k=fokusKarte();
   const sek=(Date.now()-S.fokus.startMs)/1000;
-  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); }   // v1.1: Akku-Drift beim Buchen
+  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); logIntraday(k,{minuten:sek/60,typ:'timer'}); }   // v1.1: Akku-Drift; A7 berührt; B0 Log
   S.fokus.sessionSek=num(S.fokus.sessionSek)+sek;               // v1.1: Session-Summe (v0.38-Port)
   S.fokus.laeuft=false; S.fokus.startMs=0;
   akkuSampleSchreiben();                                        // v1.1: Energie-Stichprobe
   saveKarten(); saveFokus(); saveTag();
 }
 function fokusStarten(kid){
+  const zk=S.karten.find(x=>x.id===kid);
+  if(zk && zk.freeze){ toast('Karte ist eingefroren — erst auftauen'); return; }   // A4: Freeze blockt Timer
   if(S.fokus && S.fokus.karteId!==kid) fokusZeitEinbuchen();  // alten Fokus pausieren+buchen
   if(!S.fokus || S.fokus.karteId!==kid) S.fokus={ karteId:kid, laeuft:false, startMs:0, sessionSek:0 };
   S.fokus.laeuft=true; S.fokus.startMs=Date.now();
+  beruehre(zk);              // A7: Timer-Start zählt als Interaktion
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
   saveFokus(); saveUi(); starteTicker(); renderAlles();
 }
@@ -1017,6 +1096,9 @@ const FELDER = {
   prioritaet: {label:'Priorität', typ:'select', opt:()=>[['muss','muss'],['soll','soll'],['idee','idee']]},
   timerFlag:  {label:'Timer',     typ:'select', wert:k=>k.timerFlag?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
   schnellauswahl:{label:'Schnellauswahl', typ:'select', wert:k=>k.schnellauswahl?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
+  freeze:     {label:'Freeze',    typ:'select', wert:k=>k.freeze?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
+  pin:        {label:'Gepinnt',   typ:'select', wert:k=>k.pin?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
+  letzteBearbeitung:{label:'Bearbeitet', typ:'datum', wert:k=>k.letzteBearbeitung?String(k.letzteBearbeitung).slice(0,10):null},
   rhythmus:   {label:'Wiederholung',typ:'select', wert:k=>k.rhythmus?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
   status:     {label:'Status',    typ:'select', opt:()=>[['offen','offen'],['erledigt','erledigt'],['archiviert','archiviert']]},
   streak:     {label:'Streak',    typ:'zahl'},
@@ -1089,18 +1171,23 @@ function sortiereStapel(ks, st){
   const dir=(so.richtung==='desc')?-1:1;
   const erl=k=>k.status==='erledigt'?1:0;   // Abgehakte ans Ende (§3.5)
   ks.sort((a,b)=>{
-    if(erl(a)!==erl(b)) return erl(a)-erl(b);
+    if(so.feld!=='letzteBearbeitung' && erl(a)!==erl(b)) return erl(a)-erl(b);   // A7: „Bearbeitet heute" rein nach Zeit
     if(so.feld==='manuell'){
       const sa=num(a.sortIndex&&a.sortIndex[st.id], 9e9), sb=num(b.sortIndex&&b.sortIndex[st.id], 9e9);
       if(sa!==sb) return sa-sb;
+    } else if(so.feld==='letzteBearbeitung'){
+      // A7: nach Zeitstempel (asc = am längsten her zuerst), per Richtung umkehrbar
+      const la=a.letzteBearbeitung||'', lb=b.letzteBearbeitung||'';
+      if(la!==lb) return (la<lb?-1:1)*dir;
     } else if(so.feld && so.feld!=='auto'){
       let va=feldWert(a,so.feld), vb=feldWert(b,so.feld);
       if(feldTyp(so.feld)==='zahl'){ va=num(va); vb=num(vb); }
       else { va=String(va==null?'':va); vb=String(vb==null?'':vb); }
       if(va<vb) return -1*dir; if(va>vb) return 1*dir;
     } else {
-      // auto: Fälligkeit (null zuletzt) → Priorität → Titel
-      const fa=a.faelligkeit||'9999', fb=b.faelligkeit||'9999';
+      // A5 auto: Fälligkeit inkl. Uhrzeit früh→spät (Überfällige zuerst, ohne Termin ans Ende) → Priorität
+      const fa=(a.faelligkeit||'9999-99-99')+'T'+(a.uhrzeit||'99:99');
+      const fb=(b.faelligkeit||'9999-99-99')+'T'+(b.uhrzeit||'99:99');
       if(fa!==fb) return fa<fb?-1:1;
       const pa=PRI_RANK[a.prioritaet]??1, pb=PRI_RANK[b.prioritaet]??1;
       if(pa!==pb) return pa-pb;
@@ -1137,22 +1224,40 @@ function stapelKpi(ks){
    8 · Seeds — 3 vorangelegte Stapel (§3.5). Nur beim ersten Start,
        danach normal editier-/löschbar (keine Systemlogik).
    ══════════════════════════════════════════════════════════════════════ */
+/* A6: feste Standardstapel in fester Reihenfolge (eigene Stapel darunter). */
+function standardStapelDefs(){
+  const A=werte=>[{feld:'kartenArt',op:'ist',werte:[werte]},{feld:'status',op:'ist',werte:['offen']}];
+  const PRI=(p)=>[{feld:'prioritaet',op:'ist',werte:[p]},{feld:'kartenArt',op:'ist',werte:['Aufgabe']},{feld:'status',op:'ist',werte:['offen']}];
+  return [
+    {id:'sys-schnellauswahl', name:'Schnellauswahl', farbe:'#b98af7', filter:[{feld:'schnellauswahl',op:'ist',werte:['ja']},{feld:'status',op:'ist',werte:['offen']}], sortierung:{feld:'manuell',richtung:'asc'}},
+    {id:'sys-heute', name:'Heute', farbe:'#4f8ef7', filter:[{feld:'faelligkeit',op:'heute'},{feld:'faelligkeit',op:'ueberfaellig'},{feld:'status',op:'ist',werte:['offen']}], sortierung:{feld:'manuell',richtung:'asc'}},
+    {id:'sys-aufgaben', name:'Aufgaben', farbe:'#6dd3e0', filter:A('Aufgabe'), sortierung:{feld:'auto',richtung:'asc'}},
+    {id:'sys-routinen', name:'Routinen', farbe:'#f78ad0', filter:A('Routine'), sortierung:{feld:'auto',richtung:'asc'}},
+    {id:'sys-counter', name:'Counter', farbe:'#f2b84b', filter:A('Counter'), sortierung:{feld:'auto',richtung:'asc'}},
+    {id:'sys-asap', name:'ASAP Aufgaben', farbe:'#f66d6d', filter:PRI('muss'), sortierung:{feld:'auto',richtung:'asc'}},
+    {id:'sys-can', name:'CAN Aufgaben', farbe:'#3ecf8e', filter:PRI('soll'), sortierung:{feld:'auto',richtung:'asc'}},
+    {id:'sys-overload', name:'Overload Aufgaben', farbe:'#8fa1b8', filter:PRI('idee'), sortierung:{feld:'auto',richtung:'asc'}},
+    {id:'sys-freeze', name:'Freeze', farbe:'#5d6d88', filter:[{feld:'freeze',op:'ist',werte:['ja']}], sortierung:{feld:'manuell',richtung:'asc'}},
+    {id:'sys-bearbeitet', name:'Bearbeitet heute', farbe:'#3ecf8e', filter:[{feld:'letzteBearbeitung',op:'heute'}], sortierung:{feld:'letzteBearbeitung',richtung:'asc'}}
+  ];
+}
+const STD_STAPEL_IDS = standardStapelDefs().map(d=>d.id);
+/* Standardstapel-Set herstellen: Reihenfolge fix, eigene Stapel bleiben darunter,
+   alte System-Stapel (die nicht mehr in der Liste sind) entfallen. Reine Config
+   (Karten-sortIndex bleibt unberührt). */
+function syncStandardStapel(){
+  const eigene = S.stapel.filter(s=>!s.vorangelegt && STD_STAPEL_IDS.indexOf(s.id)<0);
+  const standard = standardStapelDefs().map(d=>{
+    const bestand = S.stapel.find(s=>s.id===d.id);
+    return neuerStapel(Object.assign({}, d, { vorangelegt:true,
+      sortierung: (bestand && bestand.sortierung) ? bestand.sortierung : d.sortierung }));  // manuelle Übersteuerung bewahren
+  });
+  S.stapel = standard.concat(eigene);
+  if(STD_STAPEL_IDS.indexOf(S.ui.aktivStapel)<0 && !eigene.some(s=>s.id===S.ui.aktivStapel)) S.ui.aktivStapel='sys-heute';
+  saveStapel(); saveUi();
+}
 function seedStapel(){
-  if(S.meta.seeded) return;
-  if(!S.stapel.length){
-    S.stapel = [
-      neuerStapel({ id:'sys-heute', name:'Heute', farbe:'#4f8ef7', vorangelegt:true,
-        filter:[ {feld:'faelligkeit',op:'heute'}, {feld:'faelligkeit',op:'ueberfaellig'}, {feld:'status',op:'ist',werte:['offen']} ],
-        sortierung:{feld:'auto',richtung:'asc'} }),
-      neuerStapel({ id:'sys-schnellauswahl', name:'Schnellauswahl', farbe:'#b98af7', vorangelegt:true,
-        filter:[ {feld:'schnellauswahl',op:'ist',werte:['ja']}, {feld:'status',op:'ist',werte:['offen']} ],
-        sortierung:{feld:'manuell',richtung:'asc'} }),
-      neuerStapel({ id:'sys-erledigt', name:'Erledigt heute', farbe:'#3ecf8e', vorangelegt:true,
-        filter:[ {feld:'status',op:'ist',werte:['erledigt']}, {feld:'tagId',op:'heute'} ],
-        sortierung:{feld:'auto',richtung:'asc'} })
-    ];
-    saveStapel();
-  }
+  if(!S.meta.stapelV4){ syncStandardStapel(); S.meta.stapelV4=true; }   // A6: einmalige Umstellung
   S.meta.seeded=true; saveMeta();
 }
 
@@ -1189,9 +1294,13 @@ function kartenreiheHtml(k, stapelId){
   if(k.rhythmus && num(k.streak)>0) meta.push('<span>🔥'+num(k.streak)+'</span>');
   const subCount = untermenge(k.id).length;
   if(subCount) meta.push('<span>☰ '+subCount+'</span>');
+  if(k.freeze) meta.push('<span class="frost">❄︎ eingefroren</span>');   // A4
+  if(stapelId==='sys-bearbeitet' && k.letzteBearbeitung) meta.push('<span class="vor">'+fmtVor(k.letzteBearbeitung)+'</span>');   // A7
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
   const startBtn = k.status==='erledigt' ? '' :
-    '<button class="kstart'+(laeuft?' laeuft':'')+'" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="In den Fokus starten">'+(laeuft?'⏸':'▶')+'</button>';
+    (k.freeze
+      ? '<button class="kstart auftau" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="Auftauen &amp; in den Fokus">▶</button>'   // A4: auftauen + Fokus
+      : '<button class="kstart'+(laeuft?' laeuft':'')+'" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="In den Fokus starten">'+(laeuft?'⏸':'▶')+'</button>');
   // A5: Hoch/Runter-Pfeile (ein Tap = eine Position); A3: Tick-Karten → „+" statt Abhaken
   const sortCtrl = '<div class="ksort"><button class="sar" data-sortup="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="hoch">▲</button>'+
     '<button class="sar" data-sortdown="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="runter">▼</button></div>';
@@ -1200,12 +1309,19 @@ function kartenreiheHtml(k, stapelId){
     : '<div class="kcheck" data-check="'+k.id+'"><div class="box">✓</div></div>';
   // U2: Schnellauswahl-Toggle ⚡ (aktiv hervorgehoben)
   const schnellBtn = '<button class="kschnell'+(k.schnellauswahl?' on':'')+'" data-schnell="'+k.id+'" aria-label="Schnellauswahl">⚡</button>';
-  return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+'" data-kid="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
+  // A8: Pin-Toggle 📌 nur auf Counter/Routine (Quick-Leiste)
+  const pinBtn = (kartenArt(k)==='Counter'||kartenArt(k)==='Routine')
+    ? '<button class="kpin'+(k.pin?' on':'')+'" data-pin="'+k.id+'" aria-label="Anpinnen">📌</button>' : '';
+  // A4: Freeze-Toggle ❄︎ (eingefroren hervorgehoben)
+  const freezeBtn = '<button class="kfreeze'+(k.freeze?' on':'')+'" data-freeze="'+k.id+'" aria-label="Einfrieren">❄︎</button>';
+  return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+(k.freeze?'eingefroren ':'')+'" data-kid="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
     sortCtrl+
     '<div class="kmain" data-detail="'+k.id+'">'+
       '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
       '<div class="kmeta">'+meta.join('')+'</div>'+
     '</div>'+
+    pinBtn+
+    freezeBtn+
     schnellBtn+
     startBtn+
     rechts+
@@ -1235,8 +1351,8 @@ function stapelHtml(st){
   const ks=stapelKarten(st);
   const kpi=stapelKpi(ks);
   const offen = S.ui.stapelOffen[st.id];
-  const rows = stapelRowsHtml(st, filterSchnellDomain(st, ks));   // U2: Domänenfilter in Schnellauswahl
-  const filterBar = st.id==='sys-schnellauswahl' ? '<div class="schnellbar">'+schnellFilterHtml()+'</div>' : '';
+  const rows = stapelRowsHtml(st, filterStapelDomain(st, ks));   // A5: Domänenfilter je Stapel
+  const filterBar = stapelFilterHtml(st);
   return '<div class="stapel '+(offen?'':'zu')+'" data-sid="'+st.id+'" style="border-left-color:'+esc(st.farbe||'#5d6d88')+'">'+
     '<div class="stapelkopf" data-toggle="'+st.id+'">'+
       '<span class="caret">▾</span>'+
@@ -1256,7 +1372,7 @@ function renderStapel(){
   const host=el('stapelListe');
   // Ordner-Zuordnung: jeder Stapel kann in mehreren Ordnern liegen (§3.6).
   const zugeordnet=new Set();
-  let html=tagBannerHtml();
+  let html=tagBannerHtml()+pinLeisteHtml();   // A8: Quick-Leiste über den Stapeln
   S.ordner.forEach(o=>{
     const drin=(o.stapelIds||[]).map(id=>S.stapel.find(s=>s.id===id)).filter(Boolean);
     if(!drin.length) return;
@@ -1299,7 +1415,7 @@ function renderFokus(){
   const kand=fokusKandidaten();
   if(!k){
     const stn=(S.stapel.find(s=>s.id===S.ui.aktivStapel)||{}).name||'Stapel';
-    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine offene Karte im Stapel „'+esc(stn)+'".<br>Stapel unten wechseln oder eine Karte im Stapel starten.</div>'+fokusListeHtml();
+    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine offene Karte im Stapel „'+esc(stn)+'".<br>Stapel unten wechseln oder eine Karte im Stapel starten.</div>'+fokusListeHtml()+pinLeisteHtml();
     renderFkNav();
     return;
   }
@@ -1352,7 +1468,8 @@ function renderFokus(){
     '<div id="fokusAktiv" class="tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
       titel+kopf+stats+kpis+planbar+aufgabe+'</div>'+
     fokusSubsHtml(k)+
-    fokusListeHtml();
+    fokusListeHtml()+
+    pinLeisteHtml();   // A8: Quick-Leiste unter der Stapel-Liste
   renderFkNav();
   fokusTacho(k);   // Ring, Timer, Kennzahlen, Balken befüllen
 }
@@ -1427,7 +1544,7 @@ function fokusStats(k){
 /* 4 aufgabenbezogene KPIs (P/Std ø · Punkte · bearbeitet · Unteraufgaben). */
 function fokusKpis(k){
   const box=el('tKpis'); if(!box) return;
-  const min=istSekLive(k)/60, geplant=num(k.sollMin), ziel=num(S.settings.basisProStd,120);   // Rate-Benchmark = Basis-Rate
+  const min=istSekLive(k)/60, geplant=num(k.sollMin), ziel=basisRate(k);   // A9: Rate-Benchmark = Domänen-Basisrate
   const r=rate(k)*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   const f1 = (r>=ziel && ziel>0) ? 'gut' : 'warn';
   const planP=Math.max(0, kartePunkteGeplant(k)), earnedP=Math.max(0,kartePunkte(k));
@@ -1492,16 +1609,59 @@ function toggleSchnell(kid){
   }
   saveKarten(); renderAlles(); toast(k.schnellauswahl?'⚡ Zur Schnellauswahl':'Aus Schnellauswahl'); haptik(10);
 }
-/* U2: DFM/Privat/Alle-Filterchips im Kopf der Schnellauswahl. */
-function schnellFilterHtml(){
-  const d=S.ui.schnellDomain||'alle';
-  const c=(v,l)=>'<button class="schnellf'+(d===v?' on':'')+'" data-schnelldom="'+v+'">'+l+'</button>';
-  return ' <span class="schnellfilter">'+c('alle','Alle')+c('dfm','DFM')+c('privat','Privat')+'</span>';
+/* A4: Einfrieren/Auftauen. Eingefroren = pausiert (raus aus Abräumpflicht,
+   Timer nicht startbar); bleibt in allen Stapeln ausgegraut sichtbar. */
+function toggleFreeze(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  k.freeze=!k.freeze;
+  if(k.freeze && S.fokus && S.fokus.karteId===kid) fokusBeenden();   // laufenden Timer beenden
+  beruehre(k); saveKarten(); renderAlles();
+  toast(k.freeze?'❄︎ Eingefroren':'Aufgetaut'); haptik(12);
 }
-function filterSchnellDomain(st, ks){
-  if(!st || st.id!=='sys-schnellauswahl') return ks;
-  const d=S.ui.schnellDomain||'alle';
-  return d==='alle' ? ks : ks.filter(k=>k.domain===d);
+/* A8: Karte an-/abpinnen (Quick-Leiste). Nur sinnvoll auf Counter/Routine. */
+function togglePin(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  k.pin=!k.pin; saveKarten(); renderAlles();
+  toast(k.pin?'📌 Angepinnt':'Losgelöst'); haptik(10);
+}
+/* A8: Quick-Leiste der angepinnten Counter/Routinen mit Direktaktionen
+   (abhaken/ticken/Timer) — ohne Ansichtswechsel. */
+function pinLeisteHtml(){
+  const pins=S.karten.filter(k=>k.pin && k.status!=='archiviert');
+  if(!pins.length) return '';
+  const chip=k=>{
+    const laeuft=S.fokus&&S.fokus.karteId===k.id&&S.fokus.laeuft;
+    const akt = istTickKarte(k)
+      ? '<button class="pql-b" data-pqtick="'+k.id+'" aria-label="Tick +">＋</button>'
+      : '<button class="pql-b'+(k.status==='erledigt'?' done':'')+'" data-pqcheck="'+k.id+'" aria-label="Abhaken">✓</button>';
+    const cnt = istTickKarte(k) && num(k.ticksHeute)>0 ? '<span class="pql-n">'+num(k.ticksHeute)+'</span>' : '';
+    return '<div class="pql-chip'+(laeuft?' laeuft':'')+(k.freeze?' frost':'')+'">'+
+      '<span class="pql-t" data-pqdetail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</span>'+cnt+
+      '<button class="pql-b" data-pqstart="'+k.id+'" aria-label="Timer">'+(laeuft?'⏸':'▶')+'</button>'+akt+
+    '</div>';
+  };
+  return '<div class="pinleiste" aria-label="Angepinnt">'+pins.map(chip).join('')+'</div>';
+}
+/* A5: DFM/Privat/Alle-Filterchips je Stapel (eigener Zustand pro Stapel). */
+function stapelDomainOf(stId){ return (S.ui.stapelDomain&&S.ui.stapelDomain[stId])||'alle'; }
+function stapelFilterHtml(st){
+  const d=stapelDomainOf(st.id);
+  const c=(v,l)=>'<button class="schnellf'+(d===v?' on':'')+'" data-stapeldom="'+v+'" data-stapelid="'+st.id+'">'+l+'</button>';
+  let extra='';
+  if(st.id==='sys-bearbeitet'){   // A7: erledigt/offen-Filter + Richtungs-Toggle
+    const bs=S.ui.bearbeitetStatus||'alle';
+    extra=' <span class="schnellfilter">'+[['alle','alle'],['offen','offen'],['erledigt','erledigt']].map(([v,l])=>'<button class="schnellf'+(bs===v?' on':'')+'" data-berstatus="'+v+'">'+l+'</button>').join('')+
+      '<button class="schnellf" data-berichtung="1" aria-label="Sortierrichtung">⇅</button></span>';
+  }
+  return '<div class="schnellbar"><span class="schnellfilter">'+c('alle','Alle')+c('dfm','DFM')+c('privat','Privat')+'</span>'+extra+'</div>';
+}
+function filterStapelDomain(st, ks){
+  const d=stapelDomainOf(st.id);
+  if(d!=='alle') ks=ks.filter(k=>k.domain===d);
+  if(st.id==='sys-bearbeitet'){ const bs=S.ui.bearbeitetStatus||'alle';
+    if(bs==='offen') ks=ks.filter(k=>k.status!=='erledigt');
+    else if(bs==='erledigt') ks=ks.filter(k=>k.status==='erledigt'); }
+  return ks;
 }
 /* U1: aktiver Stapel als LISTE unter der Fokus-Karte — dieselbe Komponente wie
    der Stapel-Tab (stapelRowsHtml + kartenreiheHtml), inkl. Pfeile/Detail/Check/+. */
@@ -1510,9 +1670,8 @@ function fokusListeHtml(){
   if(!st) return '';
   const ks=stapelKarten(st);
   const wahl=S.stapel.map(s=>'<option value="'+s.id+'"'+(s.id===st.id?' selected':'')+'>'+esc(s.name)+'</option>').join('');
-  return '<div class="fk-liste"><div class="lab">Stapel <select class="stapelwahl" id="streifStapel">'+wahl+'</select>'+
-    (st.id==='sys-schnellauswahl'?schnellFilterHtml():'')+
-    ' · '+ks.length+'</div>'+stapelRowsHtml(st, filterSchnellDomain(st, ks))+'</div>';
+  return '<div class="fk-liste"><div class="lab">Stapel <select class="stapelwahl" id="streifStapel">'+wahl+'</select> · '+ks.length+'</div>'+
+    stapelFilterHtml(st)+stapelRowsHtml(st, filterStapelDomain(st, ks))+'</div>';
 }
 /* Rest-Timer bis zum Startzeitpunkt einer Uhrzeit-Karte (Minuten, kompakt). */
 function restBisTermin(k){
@@ -1603,16 +1762,17 @@ function renderStatusbar(){
     });
   }
   el('sBarMarks').innerHTML=marks;
-  // Pace-Pfeil (7 Zonen relativ zum Soll)
-  const {ist,soll}=paceWerte();
+  // Pace-Pfeil (7 Zonen relativ zum Soll) + Ø-P/Std-Anzeige (A2)
+  const pw=paceWerte();
   const z1=num(S.settings.pfeilZone1,5), z2=num(S.settings.pfeilZone2,15), z3=num(S.settings.pfeilZone3,40);
   let idx=3, farbe='var(--mut)';
-  if(soll>0){ const abw=(ist-soll)/soll*100;
+  if(pw.soll>0){ const abw=(pw.ist-pw.soll)/pw.soll*100;
     if(abw>=z3) idx=6; else if(abw>=z2) idx=5; else if(abw>=z1) idx=4;
     else if(abw<=-z3) idx=0; else if(abw<=-z2) idx=1; else if(abw<=-z1) idx=2;
     if(idx>3) farbe='var(--ok)'; if(idx<3) farbe='var(--bad)'; }
   const pf=el('sPfeil'); pf.textContent=PACE_PFEILE[idx]; pf.style.color=farbe;
-  el('sPaceZahl').textContent=Math.round(ist)+'/'+Math.round(soll);
+  const dr=Math.round(pw.deltaRate);
+  el('sPaceZahl').textContent=Math.round(pw.istRate)+' P/h '+(dr>=0?'+':'')+dr;
   // Streak
   el('sStreak').textContent='🔥'+tagesStreakStand(true);
   // ausgeklappte Live-Kurve mitziehen
@@ -1690,15 +1850,21 @@ function tagStundenVergangen(){
   if(!S.tag || !S.tag.startTs) return 0;
   return Math.max(0, (Date.now()-new Date(S.tag.startTs).getTime())/3600000);
 }
-/* Pace (A1): erreichte Gesamt-Punkte heute vs. anteiliges Gesamt-Tagesziel
-   (Summe beider Domänen × Anteil des wachen Tages). ist/soll in Punkten. */
+/* Pace (A2): Ø IST-Punkte/Stunde (Tagespunkte ÷ Stunden seit Tagesstart) vs.
+   SOLL-Rate (Gesamt-Tagesziel ÷ 16 h Wachfenster). ist/soll bleiben kumulativ
+   (Balken/Pfeil-Zonen), istRate/sollRate/deltaRate treiben die Anzeige. */
 function paceWerte(){
-  const soll = (tagesZielDomain('dfm')+tagesZielDomain('privat')) * wachTagAnteil();
-  return { ist: punkteHeuteAnzeige(), soll };
+  const zielGes=tagesZielDomain('dfm')+tagesZielDomain('privat');
+  const std=tagStundenVergangen(), ist=punkteHeuteAnzeige();
+  const istRate = std>0.05 ? ist/std : 0;
+  const sollRate = zielGes/16;
+  return { ist, soll: zielGes*wachTagAnteil(), istRate, sollRate, deltaRate: istRate-sollRate };
 }
-/* Pace je Domäne: erreichte Punkte vs. anteiliges Domänen-Tagesziel. */
+/* Pace je Domäne: Ø IST-P/Std vs. Domänen-SOLL-Rate (Domänen-Ziel ÷ 16 h). */
 function paceDomain(dom){
-  return { ist: punkteHeuteDomain(dom), soll: tagesZielDomain(dom)*wachTagAnteil(), ziel: tagesZielDomain(dom) };
+  const ziel=tagesZielDomain(dom), std=tagStundenVergangen(), ist=punkteHeuteDomain(dom);
+  const istRate = std>0.05 ? ist/std : 0, sollRate = ziel/16;
+  return { ist, soll: ziel*wachTagAnteil(), ziel, istRate, sollRate, deltaRate: istRate-sollRate };
 }
 /* Karte gehört in den heutigen Energie-/Pace-Horizont: offen + heute fällig
    oder überfällig, oder die aktuell laufende Fokus-Karte. */
@@ -1853,7 +2019,7 @@ function tagAbschlussAuto(grund){
   if(!tagOffen()) return;
   // offene fällige Routinen = „Verpasst"
   const datum=S.tag.datum;
-  S.karten.forEach(k=>{ if(k.rhythmus && k.status==='offen' && routineFaellig(k, datum)) routineBilanz(k, true); });
+  S.karten.forEach(k=>{ if(k.rhythmus && k.status==='offen' && !k.freeze && routineFaellig(k, datum)) routineBilanz(k, true); });   // A4: Eingefrorene nicht als „verpasst"
   tagAbschlussFinalisieren();
 }
 /* Beim Öffnen: vergessenen Abschluss / Lücke erkennen (§6 Kanten). */
@@ -1886,25 +2052,54 @@ function tagBannerHtml(){
 /* ── Tag-Start-Wizard ─────────────────────────────────────────────── */
 let tagStartTmp=null;
 function oeffneTagStart(){
-  tagStartTmp={ energie:70, motivation:70, akku:70, manuell:false };
+  tagStartTmp={ step:1, energie:70, motivation:70, akku:70, manuell:false, sortOrder:[] };
   renderTagStart();
 }
 function renderTagStart(){
+  if(tagStartTmp.step===2){ renderTagStartPrio(); return; }
   const t=tagStartTmp;
   if(!t.manuell) t.akku=Math.round((t.energie+t.motivation)/2);
   let h='<p class="d">Wie startest du in den Tag? Der Akku ist ein Vorschlag aus Energie und Motivation — frei anpassbar.</p>';
   h+='<div class="field"><label>Energie <span id="ts-energie-v">'+t.energie+'%</span></label><input type="range" min="0" max="100" data-ts="energie" value="'+t.energie+'"></div>';
   h+='<div class="field"><label>Motivation <span id="ts-motivation-v">'+t.motivation+'%</span></label><input type="range" min="0" max="100" data-ts="motivation" value="'+t.motivation+'"></div>';
   h+='<div class="field akkubox"><label>Akku-Start <b id="ts-akku-v">'+t.akku+'%</b></label><input type="range" min="0" max="100" data-ts="akku" value="'+t.akku+'"></div>';
-  const foot='<button class="btn ghost sm" data-close="1">Abbrechen</button><button class="btn prim" data-tagstartgo="1">Tag starten</button>';
-  openSheet('Neuen Tag starten', h, foot);
+  const foot='<button class="btn ghost sm" data-close="1">Abbrechen</button><button class="btn prim" data-tsnext="1">Weiter →</button>';
+  openSheet('Neuen Tag starten (1/2)', h, foot);
+}
+/* A1: Priorisierung direkt im Tag-Start (nach Energie/Motivation) — Heute-Stapel
+   in Wunschreihenfolge antippen (früher Tagesabschluss-Durchgang 2). */
+function renderTagStartPrio(){
+  rangCacheBauen();
+  const st=S.stapel.find(s=>s.id==='sys-heute');
+  const ks=(st?stapelKarten(st):[]).filter(k=>k.status==='offen' && !k.freeze);
+  const order=tagStartTmp.sortOrder||(tagStartTmp.sortOrder=[]);
+  ks.sort((a,b)=>{ const ia=order.indexOf(a.id), ib=order.indexOf(b.id); return (ia<0?9e9:ia)-(ib<0?9e9:ib); });
+  let h='<p class="d"><b>Heute priorisieren.</b> Tippe die Karten in der Reihenfolge an, in der du sie heute angehen willst. (Optional — „Fertig" reicht auch ohne.)</p>';
+  if(!ks.length){ h+='<div class="card"><p class="d" style="text-align:center">Nichts im „Heute"-Stapel.</p></div>'; }
+  ks.forEach(k=>{ const pos=order.indexOf(k.id);
+    h+='<div class="abcard tap '+(pos>=0?'num':'')+'" data-tsprio="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
+      '<div class="tapnum">'+(pos>=0?(pos+1):'·')+'</div>'+
+      '<div><div class="abtitel">'+esc(k.titel)+'</div><div class="abmeta">'+esc(fmtDatum(k.faelligkeit))+' · '+num(k.sollMin)+'′</div></div>'+
+    '</div>';
+  });
+  const foot='<button class="btn ghost sm" data-tsprioreset="1">Reset</button><button class="btn prim" data-tsfinish="1">Fertig</button>';
+  openSheet('Neuen Tag starten (2/2)', h, foot);
+}
+function tagStartPrioFinish(){
+  const order=tagStartTmp.sortOrder||[];
+  if(order.length){
+    order.forEach((id,i)=>{ const k=S.karten.find(x=>x.id===id); if(k){ k.sortIndex=k.sortIndex||{}; k.sortIndex['sys-heute']=i+1; } });
+    const st=S.stapel.find(s=>s.id==='sys-heute'); if(st) st.sortierung={feld:'manuell',richtung:'asc'};
+    saveKarten(); saveStapel();
+  }
+  closeSheet(); renderAlles(); toast('Tag gestartet'+(order.length?' · priorisiert':''));
 }
 
 /* ── Tagesabschluss (2 Durchgänge) ────────────────────────────────── */
 let abschlussTmp=null;
 function abraeumKarten(){
   const h=heuteApp();
-  return S.karten.filter(k=>k.status==='offen' && k.faelligkeit && (k.faelligkeit===h || k.faelligkeit<h));
+  return S.karten.filter(k=>k.status==='offen' && !k.freeze && k.faelligkeit && (k.faelligkeit===h || k.faelligkeit<h));   // A4: Eingefrorene raus
 }
 function morgenIso(){ const d=new Date(heuteApp()+'T12:00:00'); d.setDate(d.getDate()+1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function oeffneTagAbschluss(){
@@ -1916,7 +2111,7 @@ function renderAbschluss(){ abschlussTmp.step===1 ? renderAbschlussAbraeumen() :
 function renderAbschlussAbraeumen(){
   rangCacheBauen();
   const karten=abraeumKarten();
-  let h='<p class="d"><b>Durchgang 1 — Abräumen.</b> Fällige/überfällige Karten abhaken, schieben, archivieren. Routinen: verpasst oder heute nicht nötig.</p>';
+  let h='<p class="d"><b>Abräumen.</b> Fällige/überfällige Karten abhaken, schieben, archivieren. Routinen: verpasst oder heute nicht nötig. <span style="color:var(--mut2)">(Eingefrorene Karten sind ausgenommen — kein Abzug.)</span></p>';
   if(!karten.length){ h+='<div class="card"><p class="d" style="text-align:center">Alles abgeräumt 🎉</p></div>'; }
   karten.forEach(k=>{
     const istRoutine=!!k.rhythmus, tickartig=istTickKarte(k), ueberf=k.faelligkeit<heuteApp();
@@ -1944,8 +2139,8 @@ function renderAbschlussAbraeumen(){
     }
     h+='</div>';
   });
-  const foot='<button class="btn ghost sm" data-close="1">Später</button><button class="btn prim" data-abweiter="1">Weiter →</button>';
-  openSheet('Tagesabschluss (1/2)', h, foot);
+  const foot='<button class="btn ghost sm" data-close="1">Später</button><button class="btn prim" data-abfinish="1">Abschließen + Backup</button>';
+  openSheet('Tagesabschluss', h, foot);
 }
 function renderAbschlussSortieren(){
   rangCacheBauen();
@@ -2111,6 +2306,16 @@ function renderDetail(){
   // Timer-Flag
   h+='<div class="field"><label>Schnellzugriff Timer</label>'+chipGroup('timerFlag',k.timerFlag?'ja':'nein',[['ja','ja'],['nein','nein']])+'</div>';
 
+  // A4 Freeze + A8 Pin
+  h+='<div class="grid2">'+
+    '<div class="field"><label>Einfrieren</label><div class="chips">'+
+      '<button class="chip '+(k.freeze?'on rot':'')+'" data-dfreeze="1">'+(k.freeze?'❄︎ eingefroren':'❄︎ einfrieren')+'</button></div>'+
+      '<div class="hint">pausiert: kein Abräum-Zwang, Timer gesperrt</div></div>'+
+    '<div class="field"><label>Quick-Leiste</label><div class="chips">'+
+      '<button class="chip '+(k.pin?'on lila':'')+'" data-dpin="1">📌 '+(k.pin?'angepinnt':'anpinnen')+'</button></div>'+
+      '<div class="hint">Schnellzugriff oben/unten</div></div>'+
+  '</div>';
+
   // Unteraufgaben
   h+='<div class="field"><label>Unteraufgaben</label><div id="subWrap">';
   subs.forEach(u=>{
@@ -2174,6 +2379,7 @@ function detailSpeichern(){
   );
   // Erledigt/archiviert + war im Fokus → Fokus beenden.
   if((entwurf.status==='erledigt'||entwurf.status==='archiviert') && S.fokus && S.fokus.karteId===entwurf.id){ S.fokus=null; saveFokus(); }
+  beruehre(entwurf);                                     // A7: Edit zählt als Interaktion
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   closeSheet(); renderAlles();
   toast(entwurfNeu?'Karte angelegt':'Gespeichert'); haptik(12);
@@ -2183,8 +2389,10 @@ function detailSpeichern(){
 function karteTick(kid, fromDetail){
   const k = kid ? S.karten.find(x=>x.id===kid) : entwurf;
   if(!k) return;
+  const vor=tickPunkte(k);
   k.ticksHeute = num(k.ticksHeute)+1;
   if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
+  beruehre(k); logIntraday(k,{punkte:tickPunkte(k)-vor,typ:'tick'});   // A7 + B0
   haptik(12);
   if(!fromDetail){ saveKarten(); saveTag(); renderAlles(); }
 }
@@ -2210,7 +2418,9 @@ function karteSchiebenA4(kid, mitAbzug, abzug){
   k.faelligkeit = datumPlus1(k.faelligkeit);   // +24 h, Uhrzeit unverändert
   if(mitAbzug && num(abzug)>0 && S.tag){
     (S.tag.log=S.tag.log||[]).push({ itemId:k.id, titel:k.titel||'', domain:k.domain, art:'schub', punkte:-Math.abs(num(abzug)), ts:jetztIso() });
+    logIntraday(k,{punkte:-Math.abs(num(abzug)),typ:'schub'});   // B0
   }
+  beruehre(k);                                                    // A7
   saveKarten(); saveTag(); closeSheet(); renderAlles();
   toast('Auf '+fmtDatum(k.faelligkeit)+' geschoben'+(mitAbzug&&num(abzug)>0?' · −'+Math.abs(num(abzug))+' P':'')); haptik(15);
 }
@@ -2232,8 +2442,10 @@ function karteAbhaken(kid, fromDetail){
     if(k.rhythmus) routineErledigtBuchen(k);              // Streak + zuletztRoutine
     if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
     logPunktSchreiben(k);                                 // v1.1: Punkt-Ereignis (Verlauf/Kennzahlen)
+    logIntraday(k,{punkte:kartePunkte(k),typ:'abhaken'}); // B0: Intraday-Buchung
     konfetti(); haptik(20);
   }
+  beruehre(k);                                             // A7: jede Interaktion zählt
   if(!fromDetail){ saveKarten(); saveTag(); renderAlles(); }
 }
 /* v1.1: Punkt-Ereignisse des Tages (für Intraday-Kurve & Kennzahlen). Ein
@@ -2720,7 +2932,8 @@ function renderEinst(){
   const regler=[
     ['tagesZielDfm','Tagesziel DFM','Punkte/Tag',100],
     ['tagesZielPrivat','Tagesziel Privat','Punkte/Tag',100],
-    ['basisProStd','Basis P/Std','',5],
+    ['basisProStdDfm','Basis P/Std DFM','A9',5],
+    ['basisProStdPrivat','Basis P/Std privat','A9',5],
     ['zeitGewicht','Zeit-Gewicht','',0.05],
     ['tickGewicht','Tick-Gewicht','',0.1],
     ['geldGewicht','Geld-Gewicht','nur DFM',0.1],
@@ -2790,7 +3003,7 @@ function oePStd7(){
   const punkte=h.reduce((s,d)=>s+num(d.punkteBilanz),0);
   const sek=h.reduce((s,d)=>s+(d.zeit?(num(d.zeit.dfm)+num(d.zeit.privat)):0),0);
   if(sek>=3600) return Math.max(5, punkte/(sek/3600));
-  return (S.settings.basisProStd||12)*1.5;   // Startwert, bis Historie da ist
+  return num(S.settings.basisProStdPrivat,120)*1.5;   // Startwert, bis Historie da ist
 }
 /* Preis ≈ 4 Std Fokuszeit × 7-Tage-Ø × Settings-Faktor × Kategorie-Faktor. */
 function preisFuer(kat){
@@ -3026,7 +3239,7 @@ function scoreRingDomain(dom, label, farbe){
       '<text x="52" y="48" text-anchor="middle" fill="var(--txt)" font-size="19" font-weight="800">'+ist+'</text>'+
       '<text x="52" y="67" text-anchor="middle" fill="var(--mut)" font-size="9">von '+ziel+'</text></svg>'+
     '<div class="srd-lab">'+label+' <span class="'+(imSoll?'gut':'schlecht')+'">'+(imSoll?'▲':'▼')+'</span></div>'+
-    '<div class="srd-sub">'+Math.round(pct*100)+'% · Soll jetzt '+Math.round(p.soll)+'</div></div>';
+    '<div class="srd-sub">'+Math.round(pct*100)+'% · '+Math.round(p.istRate)+'/'+Math.round(p.sollRate)+' P/h</div></div>';   // A2
 }
 function renderBelohnung(){
   rangCacheBauen();
@@ -3194,10 +3407,20 @@ el('backdrop').addEventListener('click', closeSheet);
 /* Gemeinsame Klick-Aktionen einer Karten-Zeile (kartenreiheHtml) — genutzt vom
    Stapel-Tab UND von der Fokus-Liste (U1: eine Implementierung, nicht zwei). */
 function karteRowClick(t, e){
-  const scd=t.closest('[data-schnelldom]'); if(scd){ if(e) e.stopPropagation(); S.ui.schnellDomain=scd.dataset.schnelldom; saveUi(); renderAlles(); return true; }   // U2 Domänenfilter
+  const scd=t.closest('[data-stapeldom]'); if(scd){ if(e) e.stopPropagation(); (S.ui.stapelDomain=S.ui.stapelDomain||{})[scd.dataset.stapelid]=scd.dataset.stapeldom; saveUi(); renderAlles(); return true; }   // A5 Domänenfilter je Stapel
+  const bes=t.closest('[data-berstatus]'); if(bes){ if(e) e.stopPropagation(); S.ui.bearbeitetStatus=bes.dataset.berstatus; saveUi(); renderAlles(); return true; }   // A7 erledigt/offen
+  const bri=t.closest('[data-berichtung]'); if(bri){ if(e) e.stopPropagation(); const bst=S.stapel.find(s=>s.id==='sys-bearbeitet'); if(bst){ bst.sortierung={feld:'letzteBearbeitung',richtung:(bst.sortierung&&bst.sortierung.richtung==='asc')?'desc':'asc'}; saveStapel(); renderAlles(); } return true; }   // A7 Richtungs-Toggle
+  const frz=t.closest('[data-freeze]'); if(frz){ if(e) e.stopPropagation(); toggleFreeze(frz.dataset.freeze); return true; }   // A4
+  const pin=t.closest('[data-pin]'); if(pin){ if(e) e.stopPropagation(); togglePin(pin.dataset.pin); return true; }   // A8
+  // A8: Quick-Leiste-Direktaktionen (ohne Ansichtswechsel)
+  const pqs=t.closest('[data-pqstart]'); if(pqs){ if(e) e.stopPropagation(); const kid=pqs.dataset.pqstart; if(S.fokus&&S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid); return true; }
+  const pqt=t.closest('[data-pqtick]'); if(pqt){ if(e) e.stopPropagation(); karteTick(pqt.dataset.pqtick, false); return true; }
+  const pqc=t.closest('[data-pqcheck]'); if(pqc){ if(e) e.stopPropagation(); karteAbhaken(pqc.dataset.pqcheck, false); return true; }
+  const pqd=t.closest('[data-pqdetail]'); if(pqd){ if(e) e.stopPropagation(); oeffneDetail(pqd.dataset.pqdetail); return true; }
   const fst=t.closest('[data-fokusstart]'); if(fst){ if(e) e.stopPropagation();
     const sid=fst.dataset.stapel, kid=fst.dataset.fokusstart;
     if(sid){ S.ui.aktivStapel=sid; saveUi(); }
+    const fk=S.karten.find(x=>x.id===kid); if(fk && fk.freeze){ fk.freeze=false; saveKarten(); }   // A4: „in den Fokus holen" taut auf
     if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid);
     setTab('fokus'); return true; }
   const su=t.closest('[data-sortup]'); if(su){ if(e) e.stopPropagation(); karteSortieren(su.dataset.sortup, -1, su.dataset.stapel); return true; }
@@ -3256,8 +3479,11 @@ el('sheet').addEventListener('click', e=>{
   const grr=t.closest('[data-grprename]'); if(grr){ const g=S.gruppen.find(x=>x.id===grr.dataset.grprename); const n=(prompt('Neuer Name:', g?g.name:'')||'').trim(); if(g&&n){ g.name=n; saveGruppen(); renderAlles(); } oeffneGruppeAktion(grr.dataset.grprename); return; }
   const grx=t.closest('[data-grpdissolve]'); if(grx){ if(confirm('Gruppe auflösen? (Karten bleiben, nur Zuordnung weg)')){ gruppeLoeschen(grx.dataset.grpdissolve); closeSheet(); renderAlles(); toast('Gruppe aufgelöst'); } return; }
 
-  // ── Tag-Start-Wizard
-  if(t.closest('[data-tagstartgo]')){ const a=tagStartTmp.akku; closeSheet(); tagStarten(a); toast('Tag gestartet · Akku '+a+'%'); return; }
+  // ── Tag-Start-Wizard (A1: Schritt 1 = Energie/Akku, Schritt 2 = Priorisieren)
+  if(t.closest('[data-tsnext]')){ const a=tagStartTmp.akku; tagStarten(a); tagStartTmp.step=2; tagStartTmp.sortOrder=[]; renderTagStart(); toast('Tag gestartet · Akku '+a+'%'); return; }
+  const tsp=t.closest('[data-tsprio]'); if(tsp){ const id=tsp.dataset.tsprio; const o=tagStartTmp.sortOrder||(tagStartTmp.sortOrder=[]); const i=o.indexOf(id); if(i>=0) o.splice(i,1); else o.push(id); renderTagStart(); return; }
+  if(t.closest('[data-tsprioreset]')){ tagStartTmp.sortOrder=[]; renderTagStart(); return; }
+  if(t.closest('[data-tsfinish]')){ tagStartPrioFinish(); return; }
   // ── Tagesabschluss
   const abf=t.closest('[data-abfertig]'); if(abf){ karteAbhaken(abf.dataset.abfertig, false); renderAbschluss(); return; }
   const abs=t.closest('[data-abschieben]'); if(abs){ abschlussTmp.schiebenFor=abs.dataset.abschieben; const k=S.karten.find(x=>x.id===abs.dataset.abschieben); abschlussTmp.abzug=abzugVorschlag(k); renderAbschluss(); return; }
@@ -3294,6 +3520,8 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-alsvorlage]')){ detailLies(); vorlageAusEntwurf(); return; }
   const gr=t.closest('[data-gruppe]'); if(gr){ entwurf.gruppeId = gr.dataset.gruppe || null; renderDetail(); return; }
   if(t.closest('[data-gruppeneu]')){ const n=(prompt('Name der Gruppe:')||'').trim(); if(n){ const g=neueGruppe({name:n}); S.gruppen.push(g); saveGruppen(); entwurf.gruppeId=g.id; } renderDetail(); return; }
+  if(t.closest('[data-dfreeze]')){ entwurf.freeze=!entwurf.freeze; renderDetail(); return; }   // A4
+  if(t.closest('[data-dpin]')){ entwurf.pin=!entwurf.pin; renderDetail(); return; }   // A8
 
   // Tick-Kurve: erstes „Erstellen" springt auf 3 Schritte (Vorauswahl), jeder
   // weitere Klick fügt einen an; der ＋-Button bleibt immer.
@@ -3446,11 +3674,112 @@ el('einstBody').addEventListener('change', e=>{
 });
 
 /* ══════════════════════════════════════════════════════════════════════
+   17b · A10 Spotlight-Suche (Pull-down / 🔍)
+   In-Memory-Index über Titel/Notiz/Projekt/Unteraufgaben, fehlertolerant
+   (Wortanfang · Substring · Fuzzy), case-/umlaut-insensitiv. Rein additiv –
+   nichts wird gespeichert. ESC / Tap-außen / „Abbrechen" schließt.
+   ══════════════════════════════════════════════════════════════════════ */
+let suchIndex=[], _suchDeb=null;
+function normSuche(s){
+  return (s==null?'':String(s)).toLowerCase()
+    .replace(/ä/g,'a').replace(/ö/g,'o').replace(/ü/g,'u').replace(/ß/g,'ss')
+    .replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function baueSuchIndex(){
+  suchIndex = (S.karten||[]).map(k=>{
+    const teile=[k.titel, k.notiz, (k.domain==='dfm'?k.projekt:''), k.kommentarFuerClaude]
+      .concat(untermenge(k.id).map(u=>u.titel));
+    return { id:k.id, norm: normSuche(teile.filter(Boolean).join(' ')) };
+  });
+}
+function fuzzySub(hay, needle){ let i=0; for(let j=0;j<hay.length && i<needle.length;j++){ if(hay[j]===needle[i]) i++; } return i===needle.length; }
+function tokenScore(hay, tok){
+  if(!tok) return 0;
+  const words=hay.split(' ');
+  if(words.indexOf(tok)>=0) return 100;                 // exaktes Wort
+  if(words.some(w=>w.indexOf(tok)===0)) return 60;      // Wortanfang
+  if(hay.indexOf(tok)>=0) return 40;                    // Substring
+  if(tok.length>=3 && fuzzySub(hay,tok)) return 15;     // Fuzzy (Teilfolge)
+  return 0;
+}
+function sucheTreffer(q){
+  const qn=normSuche(q); if(!qn) return [];
+  const toks=qn.split(' '), res=[];
+  suchIndex.forEach(e=>{
+    let sc=0, ok=true;
+    for(const t of toks){ const s=tokenScore(e.norm,t); if(!s){ ok=false; break; } sc+=s; }
+    if(ok){ const k=(S.karten||[]).find(x=>x.id===e.id); if(k && k.status!=='archiviert') res.push({k,sc}); }
+  });
+  res.sort((a,b)=> b.sc-a.sc || String(a.k.titel||'').localeCompare(String(b.k.titel||'')));
+  return res.slice(0,25);
+}
+function oeffneSuche(){
+  baueSuchIndex();
+  const o=el('suchOverlay'); o.hidden=false;
+  const inp=el('suchInput'); inp.value=''; el('suchList').innerHTML='';
+  try{ inp.focus(); }catch(e){}
+  setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 40);   // iOS: Tastatur zuverlässig öffnen
+}
+function schliesseSuche(){ const o=el('suchOverlay'); if(o) o.hidden=true; if(_suchDeb){ clearTimeout(_suchDeb); _suchDeb=null; } }
+function renderSuchTreffer(){
+  const q=el('suchInput').value, box=el('suchList');
+  if(!normSuche(q)){ box.innerHTML=''; return; }
+  const tr=sucheTreffer(q);
+  if(!tr.length){ box.innerHTML='<div class="such-leer">Kein Treffer für „'+esc(q)+'"</div>'; return; }
+  box.innerHTML=tr.map(o=>{ const k=o.k;
+    const dom=k.domain==='dfm'?'DFM':'Privat';
+    const fa=k.faelligkeit?(fmtDatum(k.faelligkeit)+(k.uhrzeit?' '+esc(k.uhrzeit):'')):'ohne Termin';
+    const extra=(k.status==='erledigt'?' · ✓':'')+(k.freeze?' · ❄︎':'');
+    return '<div class="such-row">'+
+      '<div class="such-main" data-suchdetail="'+k.id+'"><div class="such-t">'+esc(k.titel||'(ohne Titel)')+'</div>'+
+      '<div class="such-m">'+esc(kartenArt(k))+' · '+dom+' · '+esc(fa)+extra+'</div></div>'+
+      '<button class="such-b" data-suchstart="'+k.id+'" aria-label="Fokus starten">▶</button>'+
+      '<button class="such-b" data-suchdetail="'+k.id+'" aria-label="Detail öffnen">≡</button>'+
+    '</div>';
+  }).join('');
+}
+function stapelFuerKarte(kid){ for(const st of S.stapel){ try{ if(stapelKarten(st).some(k=>k.id===kid)) return st; }catch(e){} } return null; }
+function suchFokusStarten(kid){
+  const k=(S.karten||[]).find(x=>x.id===kid); if(!k) return;
+  if(k.freeze){ k.freeze=false; saveKarten(); }
+  const st=stapelFuerKarte(kid); if(st){ S.ui.aktivStapel=st.id; saveUi(); }
+  schliesseSuche();
+  if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid);
+  setTab('fokus');
+}
+el('btnSuche').addEventListener('click', oeffneSuche);
+el('suchClose').addEventListener('click', schliesseSuche);
+el('suchInput').addEventListener('input', ()=>{ if(_suchDeb) clearTimeout(_suchDeb); _suchDeb=setTimeout(renderSuchTreffer, 90); });   // minimaler Debounce
+el('suchInput').addEventListener('keydown', e=>{ if(e.key==='Escape'){ e.preventDefault(); schliesseSuche(); } });
+el('suchList').addEventListener('click', e=>{
+  const st=e.target.closest('[data-suchstart]'); if(st){ suchFokusStarten(st.dataset.suchstart); return; }
+  const de=e.target.closest('[data-suchdetail]'); if(de){ schliesseSuche(); oeffneDetail(de.dataset.suchdetail); return; }
+});
+el('suchOverlay').addEventListener('click', e=>{ if(e.target.id==='suchOverlay') schliesseSuche(); });   // Tap-außen
+/* Pull-down bei scrollTop 0 (Fokus/Stapel) öffnet die Suche — ohne pan-y zu
+   stören (kein preventDefault; am oberen Rand scrollt ohnehin nichts). */
+(function(){
+  const m=document.querySelector('main'); if(!m) return;
+  let y0=null, active=false;
+  m.addEventListener('touchstart', e=>{
+    if(e.touches.length!==1){ y0=null; active=false; return; }
+    const tab=S.ui.tab; active=(tab==='fokus'||tab==='stapel') && m.scrollTop<=0;
+    y0=active?e.touches[0].clientY:null;
+  }, {passive:true});
+  m.addEventListener('touchmove', e=>{
+    if(y0==null || !active) return;
+    if((e.touches[0].clientY-y0)>78 && m.scrollTop<=0 && el('suchOverlay').hidden){ y0=null; active=false; oeffneSuche(); }
+  }, {passive:true});
+  m.addEventListener('touchend', ()=>{ y0=null; active=false; }, {passive:true});
+})();
+
+/* ══════════════════════════════════════════════════════════════════════
    18 · Init
    ══════════════════════════════════════════════════════════════════════ */
 function init(){
   ladeAlles();
   S.unteraufgaben = DB.get('unteraufgaben', []);
+  baueSuchIndex();   // A10: In-Memory-Suchindex bei App-Start
   seedStapel();
   pruefeTagKante();   // §6: vergessenen Abschluss beim Öffnen nachholen
   // Der Timer läuft über Reloads weiter (§7 D1): war er beim Verlassen aktiv,
