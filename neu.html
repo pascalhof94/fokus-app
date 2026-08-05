@@ -88,6 +88,12 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #statusbar .sb-bar .mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--blue);opacity:.8}
 #statusbar .sb-info{display:flex;gap:8px;font-size:9.5px;color:var(--mut);margin-top:1px;white-space:nowrap;overflow:hidden}
 #statusbar .sb-info b{color:var(--ok)}
+/* V2: Ø IST-P/Std je Domäne (Overall neutral · DFM gold · Privat grün) */
+#statusbar .sb-info .sbph{color:var(--mut2)}
+#statusbar .sb-info .sbph b{margin-left:2px;font-weight:800}
+#statusbar .sb-info .sbph.o b{color:var(--txt)}
+#statusbar .sb-info .sbph.d b{color:var(--warn)}
+#statusbar .sb-info .sbph.p b{color:var(--ok)}
 #statusbar .sb-info .wohl{color:var(--warn,#f2b84b)}
 #statusbar .sb-pace{flex:none;text-align:center;line-height:1}
 #statusbar .sb-pace .pf{font-size:16px;font-weight:800}
@@ -488,6 +494,29 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .an-bar .track i{display:block;height:100%;border-radius:6px}
 .an-bar .vv{flex:none;width:66px;text-align:right;color:var(--txt);font-weight:700}
 
+/* ── V3 Debug-Overlay: Tap-Flächen sichtbar (Mehr → Info) ─────────────
+   Rein visuell; outline verändert kein Layout, offenbart aber die exakten
+   Hit-Bereiche → Diskrepanz „sichtbares Feld ≠ Tap-Fläche" wird sofort sichtbar. */
+body.debugtap button,
+body.debugtap [role="button"],
+body.debugtap [data-detail],
+body.debugtap [data-check],
+body.debugtap [data-toggle],
+body.debugtap [data-gtoggle],
+body.debugtap [data-ordner],
+body.debugtap [data-pqdetail],
+body.debugtap [data-sorttap],
+body.debugtap [data-tsprio],
+body.debugtap [data-suchdetail],
+body.debugtap [data-editstapel]{ outline:1.5px solid rgba(246,109,109,.9) !important; outline-offset:-1px; }
+body.debugtap input,
+body.debugtap textarea,
+body.debugtap select{ outline:1.5px solid rgba(109,211,224,.95) !important; outline-offset:-1px; }
+body.debugtap [data-chip],
+body.debugtap .chip{ outline:1.5px solid rgba(242,184,75,.95) !important; outline-offset:-1px; }
+body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 62px); transform:translateX(-50%);
+  background:rgba(246,109,109,.92); color:#0a0f1a; font-size:11px; font-weight:800; padding:3px 10px; border-radius:9px; z-index:400; pointer-events:none }
+
 /* ── Sheet (Detail D3 / Stapel-Editor D4) ────────────────────────── */
 #backdrop{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
 #backdrop.on{opacity:1;pointer-events:auto}
@@ -600,9 +629,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   <div class="sb-batt"><span class="batt"><span class="seg frei" id="sAkkuFrei"></span><span class="seg verpl" id="sAkkuVerplant"></span></span><span class="sb-akku" id="sAkkuPct">–%</span></div>
   <div class="sb-mid">
     <div class="sb-bar"><span class="ist" id="sBarIst"></span><span class="paceo" id="sBarPaceO"></span><span id="sBarMarks"></span></div>
-    <div class="sb-info"><span><b id="sPunkte">0 P</b> heute</span><span class="wohl" id="sWohl"></span><span id="sZiel"></span></div>
+    <div class="sb-info"><span class="sbph o">Ø<b id="sPhAll">0</b></span><span class="sbph d">DFM<b id="sPhDfm">0</b></span><span class="sbph p">Pv<b id="sPhPrv">0</b></span><span class="wohl" id="sWohl"></span><span id="sZiel"></span></div>
   </div>
-  <div class="sb-pace"><div class="pf" id="sPfeil">→</div><div class="z" id="sPaceZahl">0/0</div></div>
+  <div class="sb-pace"><div class="pf" id="sPfeil">→</div><div class="z" id="sPaceZahl">P/h</div></div>
   <div class="sb-streak" id="sStreak">🔥0</div>
 </div>
 <div id="fkNav" hidden></div>
@@ -686,7 +715,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.0.0';                    // Datenvertrag/Sync-appVersion — bleibt 1.0.0 (Airtable /Fokus Sync, §D)
 const UI_VERSION = 'v1.1';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-07-31-6';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-08-05-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -892,7 +921,7 @@ function ladeAlles(){
   S.intraday = DB.get('intraday', []);   // B0: App-only Intraday-Log
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
-  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle' }, DB.get('ui', {}));
+  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', debugTap:false }, DB.get('ui', {}));
   // Karten gegen Schema-Drift härten (neue Felder erscheinen automatisch)
   S.karten = S.karten.map(k=>neueKarte(k));
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
@@ -1786,9 +1815,11 @@ function renderStatusbar(){
   el('sAkkuFrei').style.width=eb.gruen.toFixed(1)+'%';
   el('sAkkuVerplant').style.width=eb.gelb.toFixed(1)+'%';
   el('sAkkuPct').textContent = eb.akku!=null ? Math.round(eb.akku)+'%' : '–%';
-  // Punkte heute + Wohlstand + Kauf-Hinweis
+  // V2: Ø IST-P/Std je Domäne (Overall · DFM · Privat) statt Gesamtpunkte
   const istHeute=punkteHeuteAnzeige();
-  el('sPunkte').textContent=Math.round(istHeute)+' P';
+  el('sPhAll').textContent=Math.round(paceWerte().istRate);
+  el('sPhDfm').textContent=Math.round(paceDomain('dfm').istRate);
+  el('sPhPrv').textContent=Math.round(paceDomain('privat').istRate);
   el('sWohl').textContent='💰 '+Math.round(wohlstandLive());
   const nk=naechsterKaufHint(), k=(S.belohnung?konto():0);
   el('sZiel').textContent = nk
@@ -1816,13 +1847,14 @@ function renderStatusbar(){
   const pw=paceWerte();
   const z1=num(S.settings.pfeilZone1,5), z2=num(S.settings.pfeilZone2,15), z3=num(S.settings.pfeilZone3,40);
   let idx=3, farbe='var(--mut)';
-  if(pw.soll>0){ const abw=(pw.ist-pw.soll)/pw.soll*100;
+  if(pw.sollRate>0){ const abw=(pw.istRate-pw.sollRate)/pw.sollRate*100;   // konsistent zur angezeigten Δ-Rate (Overall)
     if(abw>=z3) idx=6; else if(abw>=z2) idx=5; else if(abw>=z1) idx=4;
     else if(abw<=-z3) idx=0; else if(abw<=-z2) idx=1; else if(abw<=-z1) idx=2;
     if(idx>3) farbe='var(--ok)'; if(idx<3) farbe='var(--bad)'; }
   const pf=el('sPfeil'); pf.textContent=PACE_PFEILE[idx]; pf.style.color=farbe;
-  const dr=Math.round(pw.deltaRate);
-  el('sPaceZahl').textContent=Math.round(pw.istRate)+' P/h '+(dr>=0?'+':'')+dr;
+  const dr=Math.round(pw.deltaRate);   // Δ Overall-Ist-Rate zur SOLL-Rate (Pfeil trackt nur Overall)
+  el('sPaceZahl').textContent=(dr>=0?'+':'')+dr+' P/h';
+  el('sPaceZahl').style.color=farbe;
   // Streak
   el('sStreak').textContent='🔥'+tagesStreakStand(true);
   // ausgeklappte Live-Kurve mitziehen
@@ -2275,6 +2307,7 @@ function oeffneDetail(kid){
   entwurfNeu = !kid;
   entwurf = JSON.parse(JSON.stringify(orig));
   entwurfSubs = kid ? JSON.parse(JSON.stringify(untermenge(kid))) : [];
+  const sb=el('sheetBody'); if(sb) sb.scrollTop=0;   // V3: frisch oben starten (nicht vom Vor-Sheet erben)
   renderDetail();
 }
 function chipGroup(feld, aktuell, opts, klasse){
@@ -2283,6 +2316,7 @@ function chipGroup(feld, aktuell, opts, klasse){
   ).join('')+'</div>';
 }
 function renderDetail(){
+  const _sbEl=el('sheetBody'), _scroll=_sbEl?_sbEl.scrollTop:0;   // V3: Scrollposition über Re-Render halten
   const k=entwurf, istDfm=k.domain==='dfm';
   const subs=entwurfSubs;
   const subSum=subs.reduce((a,u)=>a+num(u.sollMin),0);
@@ -2402,6 +2436,7 @@ function renderDetail(){
   if(!entwurfNeu) foot+='<button class="btn ghost sm" data-detailaktion="archiv">🗄</button>';
   foot+='<button class="btn prim" data-detailaktion="speichern">Speichern</button>';
   openSheet(entwurfNeu?'Neue Karte':'Karte', h, foot, null);
+  const _sb=el('sheetBody'); if(_sb) _sb.scrollTop=_scroll;   // V3: Scroll wiederherstellen → Folge-Taps treffen dasselbe Feld
 }
 /* Unteraufgaben-Balance (§3.2) */
 function subBalanceNachAdd(){
@@ -2522,9 +2557,11 @@ function oeffneStapelEditor(sid){
   stapelNeu=!sid;
   const orig = sid ? S.stapel.find(s=>s.id===sid) : neuerStapel();
   stapelEntwurf = JSON.parse(JSON.stringify(orig));
+  const sb=el('sheetBody'); if(sb) sb.scrollTop=0;   // V3: frisch oben starten
   renderStapelEditor();
 }
 function renderStapelEditor(){
+  const _sbEl=el('sheetBody'), _scroll=_sbEl?_sbEl.scrollTop:0;   // V3: Scrollposition halten
   feldKatalog();
   const st=stapelEntwurf;
   let h='';
@@ -2559,6 +2596,7 @@ function renderStapelEditor(){
   if(!stapelNeu) foot+='<button class="btn warn sm" data-saktion="loeschen">Löschen</button>';
   foot+='<button class="btn prim" data-saktion="speichern">Speichern</button>';
   openSheet(stapelNeu?'Neuer Stapel':'Stapel bearbeiten', h, foot, null);
+  const _sb=el('sheetBody'); if(_sb) _sb.scrollTop=_scroll;   // V3: Scroll wiederherstellen
 }
 function fbRowHtml(f, i){
   feldKatalog();
@@ -3016,10 +3054,15 @@ function renderEinst(){
     '<div class="kv"><span>Tag</span><b>'+(tagOffen()?('läuft · '+esc(S.tag.tagId)):(S.tag?'abgeschlossen':'nicht gestartet'))+'</b></div>'+
     '<div class="kv"><span>Abgeschlossene Tage</span><b>'+(S.historie?S.historie.length:0)+'</b></div>'+
     (S.meta.migriertAm?'<div class="kv"><span>migriert</span><b>'+esc(S.meta.migriertAm.slice(0,10))+'</b></div>':'')+
+    '<div class="kv"><span>🐞 Tap-Flächen anzeigen (Debug)</span>'+
+      '<button class="chip '+(S.ui.debugTap?'on gruen':'')+'" data-debugtap="1">'+(S.ui.debugTap?'AN':'aus')+'</button></div>'+
+    (S.ui.debugTap?'<div class="hint">Jede Tap-Fläche ist umrandet: <span style="color:#6dd3e0">Eingabefelder cyan</span>, <span style="color:#f2b84b">Chips amber</span>, <span style="color:#f66d6d">Buttons/Zonen rot</span>. Deckt sich der Rahmen nicht mit dem sichtbaren Feld, liegt dort der Fehler.</div>':'')+
   '</div>';
   h+='<div style="text-align:center;color:var(--mut2);font-size:11px;margin-top:6px">Fokus App '+UI_VERSION+' · neu.html · index.html bleibt Fallback</div>';
   el('einstBody').innerHTML=h;
 }
+/* V3: Debug-Overlay für Tap-Flächen (Mehr → Info). Rein visuell, app-only. */
+function setDebugTap(on){ S.ui.debugTap=!!on; saveUi(); document.body.classList.toggle('debugtap', !!on); if(on) toast('🐞 Tap-Debug an'); }
 function backupHtml(){
   const paket={ typ:'backup-v1', appVersion:VERSION, exportZeit:jetztIso(),
     karten:S.karten, unteraufgaben:S.unteraufgaben, stapel:S.stapel, ordner:S.ordner,
@@ -3722,6 +3765,7 @@ el('einstBody').addEventListener('click', e=>{
   if(e.target.closest('#btnGruppeNeu')){ const n=(prompt('Name der Gruppe:')||'').trim(); if(n){ const g=neueGruppe({name:n}); S.gruppen.push(g); saveGruppen(); renderEinst(); oeffneGruppeZuordnen(g.id); } return; }
   const ga=e.target.closest('[data-grpassign]'); if(ga){ oeffneGruppeZuordnen(ga.dataset.grpassign); return; }
   const gk=e.target.closest('[data-grpakt]'); if(gk){ oeffneGruppeAktion(gk.dataset.grpakt); return; }
+  if(e.target.closest('[data-debugtap]')){ setDebugTap(!S.ui.debugTap); renderEinst(); return; }   // V3
 });
 el('einstBody').addEventListener('change', e=>{
   const t=e.target; if(t.dataset.setting){ S.settings[t.dataset.setting]=num(t.value); saveSettings(); }
@@ -4070,36 +4114,64 @@ function anModKalibrierung(F,dom){
   return anModul('🎯','Kalibrierung','Ist ÷ Soll pro Tag (1,0 = Ziel exakt getroffen). Dauerhaft ≫1 = Ziele zu niedrig, ≪1 = zu hoch gesteckt.',inner);
 }
 /* ── Modul 6 · Verhalten ───────────────────────────────────────────── */
+/* V1: Aktivitätsfenster-Bausteine. Punkte je Stunde (0–23) + leichte Glättung. */
+function anStundenBuckets(entries){ const b=new Array(24).fill(0); entries.forEach(x=>{ const h=new Date(x.ts).getHours(); b[h]+=num(x.punkte); }); return b; }
+function anGlaett(arr){ return arr.map((v,i)=>{ const a=i>0?arr[i-1]:arr[i], c=i<arr.length-1?arr[i+1]:arr[i]; return 0.25*a+0.5*v+0.25*c; }); }
+/* Uhrzeit-Diagramm 0–24 h mit mehreren geglätteten Kurven (V1). */
+function anSvgFenster(series){
+  const W=320,H=142,pL=26,pR=10,pT=10,pB=20;
+  let yMax=0; series.forEach(s=>s.vals.forEach(v=>{ if(v>yMax) yMax=v; })); if(yMax<=0) yMax=1; yMax*=1.12;
+  const xAt=h=>pL+h/24*(W-pL-pR), yAt=v=>pT+(1-v/yMax)*(H-pT-pB);
+  let g='';
+  [0,6,12,18,24].forEach(h=>{ const x=xAt(h).toFixed(1);
+    g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--line)" stroke-width="0.5" opacity=".5"/>'+
+       '<text x="'+x+'" y="'+(H-6)+'" text-anchor="middle" font-size="8" fill="var(--mut2)">'+h+'</text>'; });
+  g+='<text x="'+(pL-3)+'" y="'+(yAt(yMax)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anFmt(yMax)+'</text>';
+  series.forEach(s=>{ let d=''; s.vals.forEach((v,i)=>{ d+=(i?'L':'M')+xAt(i).toFixed(1)+' '+yAt(v).toFixed(1)+' '; });
+    g+='<path d="'+d+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.width||2)+'"'+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+' stroke-linejoin="round" stroke-linecap="round"/>'; });
+  return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>';
+}
 function anModVerhalten(F,dom){
+  // ── Aktivitätsfenster (Kopf des Moduls): Punkte je Stunde, 3 Kurven ──
+  const ent=(S.intraday||[]).filter(x=>x.ts && num(x.punkte)>0 && (dom==='alle'||x.domaene===dom));
+  let chart;
+  if(ent.length<8){
+    chart='<div class="an-leer">Aktivitätsfenster: sammelt noch Intraday-Daten ('+ent.length+'/8 Buchungen). Jede Timer-/Tick-/Abhak-Buchung zählt.</div>';
+  } else {
+    const byDay={}; ent.forEach(x=>{ const d=x.ts.slice(0,10); (byDay[d]=byDay[d]||[]).push(x); });
+    const tage=Object.keys(byDay).sort(), heute=heuteApp();
+    const profil=keys=>{ if(!keys.length) return null; const acc=new Array(24).fill(0);
+      keys.forEach(d=>{ const b=anStundenBuckets(byDay[d]); for(let h=0;h<24;h++) acc[h]+=b[h]; });
+      return anGlaett(acc.map(v=>v/keys.length)); };
+    const series=[]; const overall=profil(tage); if(overall) series.push({vals:overall,color:'var(--purple)',width:2});
+    const hat14plus = tage.some(d=>d<anVorTage(heute,13));
+    const g14 = tage.filter(d=>d>=anVorTage(heute,13));
+    if(hat14plus && g14.length){ const p14=profil(g14); if(p14) series.push({vals:p14,color:'var(--warn)',width:2,dash:'5 3'}); }
+    const heuteHat=!!byDay[heute];
+    if(heuteHat) series.push({vals:anGlaett(anStundenBuckets(byDay[heute])),color:'var(--cyan)',width:2.4});
+    chart=anSvgFenster(series)+
+      '<div class="an-legend">'+
+        (heuteHat?'<span><i style="background:var(--cyan)"></i>Heute</span>':'<span style="color:var(--mut2)">Heute: noch keine Buchung</span>')+
+        '<span><i style="background:var(--purple)"></i>Ø Overall</span>'+
+        (hat14plus?'<span><i style="background:var(--warn)"></i>Ø 14 Tage</span>':'<span style="color:var(--mut2)">Ø 14 Tage: sammelt noch (≈ Overall)</span>')+
+      '</div>';
+  }
+  // ── Kennzahlen als kompakte Zeile darunter ──
   const schub=anSum(F.cur.map(e=>e.schub)), erl=anSum(F.cur.map(e=>e.erledigt));
   const schiebeQuote=(schub+erl)>0?Math.round(schub/(schub+erl)*100):null;
   const pSchub=anSum(F.prev.map(e=>e.schub)), pErl=anSum(F.prev.map(e=>e.erledigt));
   const pSchiebe=(pSchub+pErl)>0?pSchub/(pSchub+pErl)*100:null;
-  // Überfälligkeit = Momentaufnahme aus offenen Karten
   const offen=S.karten.filter(k=>k.status==='offen' && (dom==='alle'||k.domain===dom) && k.faelligkeit);
   const ueber=offen.filter(k=>k.faelligkeit<heuteApp()).length;
   const ueberQ=offen.length?Math.round(ueber/offen.length*100):null;
-  // Start-/Ende-Zeiten (Ø Stunde)
   const stH=anMean(F.cur.filter(e=>e.startTs).map(e=>{ const d=new Date(e.startTs); return d.getHours()+d.getMinutes()/60; }));
   const enH=anMean(F.cur.filter(e=>e.endeTs).map(e=>{ const d=new Date(e.endeTs); return d.getHours()+d.getMinutes()/60; }));
-  let inner='<div class="anmod-kpis">'+
+  const kpiRow='<div class="anmod-kpis" style="margin-top:10px">'+
     anKpi(schiebeQuote==null?'—':schiebeQuote+'%','Schiebe-Quote',anDeltaPct(schiebeQuote,pSchiebe),'',true)+
     anKpi(ueberQ==null?'—':ueberQ+'%','Überfällig jetzt')+
     anKpi(anFmtUhr(stH),'Ø Start')+
     anKpi(anFmtUhr(enH),'Ø Ende')+'</div>';
-  // Produktivität nach Stunde (aus Intraday-Log)
-  const von=F.von, bis=F.bis;
-  const ent=(S.intraday||[]).filter(x=>{ if(!x.ts) return false; const d=x.ts.slice(0,10); if(d<von||d>bis) return false; if(dom!=='alle' && x.domaene!==dom) return false; return num(x.punkte)>0; });
-  if(ent.length>=20){
-    const buckets=new Array(24).fill(0); ent.forEach(x=>{ buckets[new Date(x.ts).getHours()]+=num(x.punkte); });
-    const mx=Math.max.apply(null,buckets.concat([1]));
-    const labels=buckets.map((_,i)=>i+':00');
-    inner+='<div class="anmod-sub" style="margin-top:12px">Produktivität nach Tageszeit (Punkte je Stunde):</div>'+
-      anSvgLine(labels,[{vals:buckets.map(v=>v),color:'var(--purple)',dots:false}],{y0:true,height:110});
-  } else {
-    inner+='<div class="anmod-sub" style="margin-top:12px">Produktivität nach Tageszeit: sammelt noch Intraday-Daten ('+ent.length+'/20 Buchungen).</div>';
-  }
-  return anModul('🧭','Verhalten','Schiebe- und Überfälligkeitsquote, typische Start-/Endzeiten und – sobald genug Intraday-Buchungen vorliegen – deine produktivsten Stunden.',inner);
+  return anModul('🧭','Verhalten','Aktivitätsfenster über den Tag (Punkte je Stunde, geglättet): wann liegen deine produktiven Phasen — und verschieben sie sich über die Zeit (14-Tage- ggü. Overall-Kurve)? Kennzahlen darunter.',chart+kpiRow);
 }
 
 /* ── View / Filter / Wiring ────────────────────────────────────────── */
@@ -4147,6 +4219,7 @@ function init(){
   // Der Timer läuft über Reloads weiter (§7 D1): war er beim Verlassen aktiv,
   // rechnet startMs die verstrichene Zeit korrekt nach.
   if(S.fokus && S.fokus.laeuft) starteTicker();
+  if(S.ui.debugTap) document.body.classList.add('debugtap');   // V3: Tap-Debug-Zustand wiederherstellen
   setTab(S.ui.tab||'stapel');
   renderFokusleiste();
   layoutTopbar();
