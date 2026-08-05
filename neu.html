@@ -713,9 +713,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.0.0';                    // Datenvertrag/Sync-appVersion — bleibt 1.0.0 (Airtable /Fokus Sync, §D)
+const VERSION = '1.1.0';                    // Datenvertrag/Sync-appVersion — 1.1.0: additiv `freeze` im Sync (1.x-kompatibel, Airtable /Fokus Sync §D)
 const UI_VERSION = 'v1.1';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-05-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-08-05-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -1820,7 +1820,7 @@ function renderStatusbar(){
   el('sPhAll').textContent=Math.round(paceWerte().istRate);
   el('sPhDfm').textContent=Math.round(paceDomain('dfm').istRate);
   el('sPhPrv').textContent=Math.round(paceDomain('privat').istRate);
-  el('sWohl').textContent='💰 '+Math.round(wohlstandLive());
+  el('sWohl').textContent='👛 '+Math.round(konto());   // M2: Kontostand (Saldo verdient−ausgegeben), konsistent zur Belohnungsseite
   const nk=naechsterKaufHint(), k=(S.belohnung?konto():0);
   el('sZiel').textContent = nk
     ? (k>=nk.preis ? BELOHNUNG[nk.kat].icon+' Kauf frei!' : BELOHNUNG[nk.kat].icon+' noch '+Math.round(nk.preis-k))
@@ -2835,14 +2835,18 @@ function syncExport(typ){
   const dfm=S.karten.filter(k=>k.domain==='dfm' && k.status!=='archiviert');
   return {
     typ: typ||'sync', appVersion:VERSION, tagId: aktuelleTagId(), exportZeit:jetztIso(),
-    karten: dfm.map(k=>({
-      id:k.id, airtableId:k.airtableId||null, titel:k.titel, projekt:k.projekt||null, geldScore:num(k.geldScore),
-      faelligkeit:k.faelligkeit||null, uhrzeit:k.uhrzeit||null, sollMin:num(k.sollMin), istMin:Math.round(num(k.istSek)/60),
-      komplex:num(k.komplex,1), energie:num(k.energie,1), blockade:num(k.blockade,1),
-      prioritaet:k.prioritaet, status:k.status, punkteIst:Math.round(kartePunkte(k)),
-      notiz:k.notiz||'', kommentarFuerClaude:k.kommentarFuerClaude||'',
-      unteraufgaben: untermenge(k.id).map(u=>({ id:u.id, titel:u.titel, sollMin:num(u.sollMin), done:!!u.done }))
-    }))
+    karten: dfm.map(k=>{
+      const o={
+        id:k.id, airtableId:k.airtableId||null, titel:k.titel, projekt:k.projekt||null, geldScore:num(k.geldScore),
+        faelligkeit:k.faelligkeit||null, uhrzeit:k.uhrzeit||null, sollMin:num(k.sollMin), istMin:Math.round(num(k.istSek)/60),
+        komplex:num(k.komplex,1), energie:num(k.energie,1), blockade:num(k.blockade,1),
+        prioritaet:k.prioritaet, status:k.status, punkteIst:Math.round(kartePunkte(k)),
+        notiz:k.notiz||'', kommentarFuerClaude:k.kommentarFuerClaude||'',
+        unteraufgaben: untermenge(k.id).map(u=>({ id:u.id, titel:u.titel, sollMin:num(u.sollMin), done:!!u.done }))
+      };
+      if(k.freeze) o.freeze=true;   // M1 (v1.1.0): nur eingefrorene Karten senden das Feld (kompakt)
+      return o;
+    })
   };
 }
 function syncExportText(typ){ return JSON.stringify(syncExport(typ), null, 2); }
@@ -2876,6 +2880,7 @@ function syncImport(text){
     if(inc.blockade!=null) lok.blockade=num(inc.blockade);
     if(inc.faelligkeit!==undefined) lok.faelligkeit=inc.faelligkeit;   // Deadline↔Fälligkeit
     if(inc.uhrzeit!==undefined) lok.uhrzeit=inc.uhrzeit;               // Uhrzeit↔Airtable-Deadline
+    if(inc.freeze!==undefined) lok.freeze=!!inc.freeze;               // M1 (v1.1.0): freeze true setzt / false löst; fehlend = unverändert
     // App-Hoheit (Status offen/erledigt, Ist, Punkte) wird NIE vom Import überschrieben.
     // Unteraufgaben — Match ausschließlich über App-id, nie über Titel.
     if(Array.isArray(inc.unteraufgaben)){
