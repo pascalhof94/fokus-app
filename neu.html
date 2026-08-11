@@ -540,6 +540,14 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* Formular-Bausteine */
 .field{margin-bottom:14px}
 .field>label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);font-weight:800;margin-bottom:5px}
+/* U6-D: „Weitere Einstellungen" (eingeklappt) */
+.mehrfelder{border:1px solid var(--line);border-radius:12px;margin:4px 0 14px;background:var(--card2);overflow:hidden}
+.mehrfelder>summary{list-style:none;cursor:pointer;padding:13px 14px;font-size:13px;font-weight:800;color:var(--txt);display:flex;align-items:center;gap:8px;min-height:44px;box-sizing:border-box}
+.mehrfelder>summary::-webkit-details-marker{display:none}
+.mehrfelder>summary::before{content:'▸';color:var(--mut2);font-size:12px}
+.mehrfelder[open]>summary::before{content:'▾'}
+.mehrfelder[open]>summary{border-bottom:1px solid var(--line)}
+.mehrfelder-body{padding:12px 14px 4px}
 .field .hint{font-size:11px;color:var(--mut2);margin-top:4px;text-transform:none;letter-spacing:0;font-weight:400}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
@@ -713,9 +721,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.1.0';                    // Datenvertrag/Sync-appVersion — 1.1.0: additiv `freeze` im Sync (1.x-kompatibel, Airtable /Fokus Sync §D)
-const UI_VERSION = 'v1.1';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-05-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.2.0';                    // Datenvertrag/Sync-appVersion — 1.2.0: additiv `kommentarClaude` im Sync (1.x-kompatibel; 1.1.0-Pakete bleiben gültig)
+const UI_VERSION = 'v1.2';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-11-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -801,6 +809,10 @@ const DEFAULT_SETTINGS = {
   basisProStd: 120,            // Alt-Einzelwert (nur Migrationsreferenz); Domänenwerte unten (A9)
   basisProStdDfm: 180,         // A9: Basis-Rate DFM (1,5× privat)
   basisProStdPrivat: 120,      // A9: Basis-Rate privat
+  abhakbonusDfm: 0,            // U6-C: Abhakbonus je Domäne (0 = bisheriges Verhalten)
+  abhakbonusPrivat: 0,
+  subBonusDfm: 100,            // U6-C: Punkte pro Unteraufgabe je Domäne (bisher hart 100)
+  subBonusPrivat: 100,
   zeitGewicht: 1.15,           // Gewicht des Zeit-Terms (Kalibrierung 30.07.: 1→1,15)
   tickGewicht: 1,              // Gewicht des Tick-Terms
   geldGewicht: 0.5,            // geldFaktor = 1 + geldScoreNorm × geldGewicht (nur dfm)
@@ -826,7 +838,7 @@ function neueKarte(f={}){
     domain: 'privat',                 // "dfm" | "privat"
     titel: '',
     notiz: '',
-    kommentarFuerClaude: '',
+    kommentarClaude: '',              // U6-E: Hinweis an Claude für den nächsten Sync (Freitext, keine App-Logik)
     projekt: null,                    // nur dfm
     geldScore: 0,                     // nur dfm
     faelligkeit: null,                // "YYYY-MM-DD" | null (null = Warteschlange)
@@ -845,6 +857,8 @@ function neueKarte(f={}){
     schnellauswahl: false,            // U2: manuell kuratierte Schnellauswahl (Toggle ⚡)
     freeze: false,                    // A4: eingefroren (pausiert, keine Abräumpflicht, Timer gesperrt)
     pin: false,                       // A8: Quick-Leiste (Counter/Routinen)
+    punkteOverride: null,             // U6-A: beim Abhaken gewählte Ist-Punkte (null = automatisch berechnet)
+    abhakbonus: null,                 // U6-A/D: Abhakbonus dieser Karte (null = Domänen-Default, 0 = keiner)
     letzteBearbeitung: null,          // A7: Timestamp der letzten Interaktion
     rhythmus: null,                   // null | {typ:"taeglich"} | {typ:"alleNTage",n} | {typ:"wochentage",tage:[1..7]}
     gruppeId: null,
@@ -862,7 +876,9 @@ function neueKarte(f={}){
 }
 /* §3.2 Unteraufgabe — kein eigener Geld-Score, keine eigene Uhr. */
 function neueUnteraufgabe(parentId, f={}){
-  return Object.assign({ id:uuid(), parentId, titel:'', sollMin:0, done:false, bonusPunkte:100 }, f);   // A3: Abhakbonus-Default 100
+  const p = parentId && S.karten ? S.karten.find(k=>k.id===parentId) : null;   // U6-C: Sub-Bonus-Default je Domäne
+  const def = (p && p.domain==='dfm') ? num(S.settings&&S.settings.subBonusDfm,100) : num(S.settings&&S.settings.subBonusPrivat,100);
+  return Object.assign({ id:uuid(), parentId, titel:'', sollMin:0, done:false, bonusPunkte:def }, f);
 }
 /* §3.5 Stapel */
 function neuerStapel(f={}){
@@ -922,8 +938,16 @@ function ladeAlles(){
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
   S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', debugTap:false }, DB.get('ui', {}));
+  // U6-B: Erstell-Zeitstempel für Altkarten guarded nachrüsten (VOR der Härtung,
+  // damit der Fallback greift statt der neueKarte-Default-Jetztzeit). Idempotent.
+  S.karten.forEach(k=>{ if(k && !k.erstelltTs) k.erstelltTs = k.letzteBearbeitung || jetztIso(); });
   // Karten gegen Schema-Drift härten (neue Felder erscheinen automatisch)
   S.karten = S.karten.map(k=>neueKarte(k));
+  // U6-E: einmalige Feld-Umbenennung kommentarFuerClaude → kommentarClaude (Wert erhalten).
+  if(!S.meta.u6migriert){
+    S.karten.forEach(k=>{ if(k.kommentarFuerClaude!==undefined){ if(!k.kommentarClaude) k.kommentarClaude=k.kommentarFuerClaude; delete k.kommentarFuerClaude; } });
+    S.meta.u6migriert=true; saveKarten(); saveMeta();
+  }
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
              if(!S.tag.istMinutenStart) S.tag.istMinutenStart={};
@@ -1019,6 +1043,7 @@ function tickSumme(k, bis){
 function subBonusErreicht(k){ return untermenge(k.id).reduce((s,u)=>s+(u.done?num(u.bonusPunkte):0),0); }
 function subBonusOffen(k){ return untermenge(k.id).reduce((s,u)=>s+(!u.done?num(u.bonusPunkte):0),0); }
 function kartePunkte(k){
+  if(k.punkteOverride!=null) return num(k.punkteOverride);   // U6-A: beim Abhaken gewählter Ist-Punktwert schlägt die Berechnung
   const zeitTerm = punkteFuerZeit(k, zeitquelleMin(k)) * (S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   const tickTerm = tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k);
   return zeitTerm + tickTerm + subBonusErreicht(k);   // + gebuchte Unteraufgaben-Boni
@@ -1317,7 +1342,8 @@ function standardStapelDefs(){
     {id:'sys-can', name:'CAN Aufgaben', farbe:'#3ecf8e', filter:PRI('soll'), sortierung:{feld:'auto',richtung:'asc'}},
     {id:'sys-overload', name:'Overload Aufgaben', farbe:'#8fa1b8', filter:PRI('idee'), sortierung:{feld:'auto',richtung:'asc'}},
     {id:'sys-freeze', name:'Freeze', farbe:'#5d6d88', filter:[{feld:'freeze',op:'ist',werte:['ja']}], sortierung:{feld:'manuell',richtung:'asc'}},
-    {id:'sys-bearbeitet', name:'Bearbeitet heute', farbe:'#3ecf8e', filter:[{feld:'letzteBearbeitung',op:'heute'}], sortierung:{feld:'letzteBearbeitung',richtung:'asc'}}
+    {id:'sys-bearbeitet', name:'Bearbeitet heute', farbe:'#3ecf8e', filter:[{feld:'letzteBearbeitung',op:'heute'}], sortierung:{feld:'letzteBearbeitung',richtung:'asc'}},
+    {id:'sys-zuletzt', name:'🆕 Zuletzt hinzugefügt', farbe:'#6dd3e0', filter:[{feld:'status',op:'ist',werte:['offen']}], sortierung:{feld:'erstelltTs',richtung:'desc'}}   // U6-B: neueste zuerst
   ];
 }
 const STD_STAPEL_IDS = standardStapelDefs().map(d=>d.id);
@@ -1337,6 +1363,7 @@ function syncStandardStapel(){
 }
 function seedStapel(){
   if(!S.meta.stapelV4){ syncStandardStapel(); S.meta.stapelV4=true; }   // A6: einmalige Umstellung
+  if(!S.meta.stapelV6){ syncStandardStapel(); S.meta.stapelV6=true; }   // U6-B: +„Zuletzt hinzugefügt"
   S.meta.seeded=true; saveMeta();
 }
 
@@ -2298,6 +2325,7 @@ function closeSheet(){
 let entwurf=null;     // Arbeitskopie der Karte im offenen Sheet
 let entwurfSubs=null; // Arbeitskopie der Unteraufgaben
 let entwurfNeu=false;
+let _detailMehrAuf=false, _detailAutofocus=false;   // U6-D: „Weitere Einstellungen"-Zustand + Titel-Autofokus
 
 function oeffneDetail(kid){
   // Läuft der Timer auf dieser Karte, erst die Zeit einbuchen (pausieren),
@@ -2307,6 +2335,8 @@ function oeffneDetail(kid){
   entwurfNeu = !kid;
   entwurf = JSON.parse(JSON.stringify(orig));
   entwurfSubs = kid ? JSON.parse(JSON.stringify(untermenge(kid))) : [];
+  _detailMehrAuf = !entwurfNeu;   // Neuanlage: „Weitere Einstellungen" eingeklappt; Bearbeiten: offen
+  _detailAutofocus = entwurfNeu;  // Neuanlage: Titel autofokussieren
   const sb=el('sheetBody'); if(sb) sb.scrollTop=0;   // V3: frisch oben starten (nicht vom Vor-Sheet erben)
   renderDetail();
 }
@@ -2326,81 +2356,14 @@ function renderDetail(){
     h+='<div class="field"><label>Aus Vorlage</label><div class="chips">'+
       S.vorlagen.map(v=>'<button class="chip" data-ausvorlage="'+v.id+'">📄 '+esc(v.name)+'</button>').join('')+'</div></div>';
   }
-  h+='<div class="field"><label>Titel</label><input data-bind="titel" value="'+esc(k.titel)+'" placeholder="Was ist zu tun?"></div>';
-
+  // U6-D · 1 Domäne · 2 Priorität
   h+='<div class="grid2">'+
     '<div class="field"><label>Domäne</label>'+chipGroup('domain',k.domain,[['privat','Privat'],['dfm','DFM']], k.domain==='privat'?'gruen':'')+'</div>'+
     '<div class="field"><label>Priorität</label>'+chipGroup('prioritaet',k.prioritaet,[['muss','muss'],['soll','soll'],['idee','idee']], k.prioritaet==='muss'?'rot':'')+'</div>'+
   '</div>';
-
-  if(istDfm){
-    h+='<div class="grid2">'+
-      '<div class="field"><label>Projekt</label><input data-bind="projekt" value="'+esc(k.projekt||'')+'" placeholder="aus Airtable"></div>'+
-      '<div class="field"><label>Geld-Score</label><input type="number" inputmode="numeric" data-bind="geldScore" value="'+num(k.geldScore)+'"></div>'+
-    '</div>';
-  }
-
-  h+='<div class="grid2">'+
-    '<div class="field"><label>Fälligkeit</label><input type="date" data-bind="faelligkeit" value="'+esc(k.faelligkeit||'')+'"><div class="hint">leer = ohne Termin</div></div>'+
-    '<div class="field"><label>Uhrzeit (Termin)</label><input type="time" data-bind="uhrzeit" value="'+esc(k.uhrzeit||'')+'"><div class="hint">gesetzt ⇒ Termin (blau)</div></div>'+
-  '</div>';
-
-  h+='<div class="field"><label>Tageszeit</label>'+chipGroup('tageszeit',k.tageszeit,[['morgens','morgens'],['mittags','mittags'],['abends','abends'],['beliebig','beliebig']])+'</div>';
-
-  h+='<div class="field"><label>Soll-Zeit (Minuten)</label><input type="number" inputmode="numeric" data-bind="sollMin" value="'+num(k.sollMin)+'" '+(subs.length?'readonly style="opacity:.6"':'')+'>'+
-     (subs.length?'<div class="hint">= Summe der Unteraufgaben ('+subSum+'′)</div>':'')+'</div>';
-
-  // Rate-Treiber
-  h+='<div class="field"><label>Rate-Treiber (Komplexität · Energie · Blockade)</label><div class="grid3">'+
-    '<div>'+chipGroup('komplex',k.komplex,[[1,'1,0'],[1.5,'1,5'],[2,'2,0']])+'</div>'+
-    '<div>'+chipGroup('energie',k.energie,[[0.8,'0,8'],[1,'1,0'],[1.3,'1,3']])+'</div>'+
-    '<div>'+chipGroup('blockade',k.blockade,[[1,'1,0'],[1.5,'1,5'],[2,'2,0']])+'</div>'+
-  '</div><div class="hint">Rate ≈ '+Math.round(rate(k))+' P/Std · Prognose '+Math.round(kartePunkte(Object.assign({},k,{ticksHeute:0})))+' P</div></div>';
-
-  // v1.1 §4: Raten-/Akku-Override + zeitgestaffelte Rate (v0.38-Port)
-  h+='<div class="field"><label>Override: Rate &amp; Akku (v1.1)</label><div class="grid2">'+
-    '<div><input type="number" inputmode="decimal" data-bind="punkteProStd" value="'+(k.punkteProStd==null?'':num(k.punkteProStd))+'" placeholder="P/Std"><div class="hint">leer = aus Treibern</div></div>'+
-    '<div><input type="number" inputmode="decimal" data-bind="akkuProStd" value="'+(k.akkuProStd==null?'':num(k.akkuProStd))+'" placeholder="Akku %/Std"><div class="hint">leer = Standard '+(S.settings.akkuProStd||-8)+'</div></div>'+
-  '</div></div>';
-  const zs = Array.isArray(k.zeitStufen)?k.zeitStufen:[];
-  h+='<div class="field"><label>Zeitgestaffelte Rate (wirkt auf die Stoppuhr)</label><div id="zsWrap">';
-  zs.forEach((s,i)=>{ h+='<div class="sub" data-zs="'+i+'"><span class="mlab">bis</span><input class="m" type="number" inputmode="numeric" data-zsbis="'+i+'" value="'+(s.bisMin==null?'':num(s.bisMin))+'" placeholder="∞"><span class="mlab">min →</span><input class="m" type="number" inputmode="decimal" data-zspkt="'+i+'" value="'+num(s.punkteProStd)+'"><span class="mlab">P/Std</span><button class="del" data-zsdel="'+i+'">✕</button></div>'; });
-  h+='</div><button class="minibtn" data-zsadd="1" style="margin-top:4px">＋ Zeitstufe</button>'+
-     '<div class="hint">bis-Minute → Rate; leere bis-Minute = „danach". Beispiel Pausentimer: 60→−5, 90→−10, 120→−20.</div></div>';
-
-  // Wiederholung
-  const rTyp = k.rhythmus ? k.rhythmus.typ : 'keine';
-  h+='<div class="field"><label>Wiederholung</label>'+chipGroup('rhythmus',rTyp,[['keine','keine'],['taeglich','täglich'],['alleNTage','alle N Tage'],['wochentage','Wochentage']], rTyp!=='keine'?'lila':'')+'';
-  if(rTyp==='alleNTage'){
-    h+='<div style="margin-top:8px;display:flex;align-items:center;gap:8px"><span class="mlab" style="font-size:13px">alle</span><input type="number" inputmode="numeric" style="width:70px" data-bind="rhythmusN" value="'+num(k.rhythmus.n||2)+'"><span class="mlab" style="font-size:13px">Tage</span></div>';
-  } else if(rTyp==='wochentage'){
-    const tage=(k.rhythmus.tage||[]);
-    const namen=[['1','Mo'],['2','Di'],['3','Mi'],['4','Do'],['5','Fr'],['6','Sa'],['7','So']];
-    h+='<div class="chips" style="margin-top:8px">'+namen.map(([v,t])=>
-      '<button class="chip '+(tage.includes(num(v))?'on lila':'')+'" data-wtag="'+v+'">'+t+'</button>').join('')+'</div>';
-  }
-  h+='</div>';
-
-  // Tick-Kurve
-  h+='<div class="field"><label>Tick-Kurve (Punkte je Tick · Länge 1 = Abhaken)</label><div class="ticks" id="tickWrap">'+
-    k.tickKurve.map((v,i)=>'<input type="number" inputmode="numeric" data-tick="'+i+'" value="'+num(v)+'">').join('')+
-    '<button class="op" data-tickadd="1">＋</button>'+(k.tickKurve.length>1?'<button class="op" data-tickdel="1">－</button>':'')+
-  '</div></div>';
-
-  // Timer-Flag
-  h+='<div class="field"><label>Schnellzugriff Timer</label>'+chipGroup('timerFlag',k.timerFlag?'ja':'nein',[['ja','ja'],['nein','nein']])+'</div>';
-
-  // A4 Freeze + A8 Pin
-  h+='<div class="grid2">'+
-    '<div class="field"><label>Einfrieren</label><div class="chips">'+
-      '<button class="chip '+(k.freeze?'on rot':'')+'" data-dfreeze="1">'+(k.freeze?'❄︎ eingefroren':'❄︎ einfrieren')+'</button></div>'+
-      '<div class="hint">pausiert: kein Abräum-Zwang, Timer gesperrt</div></div>'+
-    '<div class="field"><label>Quick-Leiste</label><div class="chips">'+
-      '<button class="chip '+(k.pin?'on lila':'')+'" data-dpin="1">📌 '+(k.pin?'angepinnt':'anpinnen')+'</button></div>'+
-      '<div class="hint">Schnellzugriff oben/unten</div></div>'+
-  '</div>';
-
-  // Unteraufgaben
+  // 3 Titel
+  h+='<div class="field"><label>Titel</label><input data-bind="titel" value="'+esc(k.titel)+'" placeholder="Was ist zu tun?"></div>';
+  // 4 Unteraufgaben (inline)
   h+='<div class="field"><label>Unteraufgaben</label><div id="subWrap">';
   subs.forEach(u=>{
     h+='<div class="sub" data-sub="'+u.id+'">'+
@@ -2413,30 +2376,95 @@ function renderDetail(){
   h+='</div><button class="minibtn" data-subadd="1" style="margin-top:4px">＋ Unteraufgabe</button>';
   if(subs.length) h+='<div class="subsum'+(subSum!==num(k.sollMin)?' warn':'')+'">Σ '+subSum+'′ = Parent '+num(k.sollMin)+'′</div>';
   h+='</div>';
+  // 5 Zeit Soll · 6 Zeit Ist (optional → heute)
+  h+='<div class="grid2">'+
+    '<div class="field"><label>Zeit Soll (Min)</label><input type="number" inputmode="numeric" data-bind="sollMin" value="'+num(k.sollMin)+'" '+(subs.length?'readonly style="opacity:.6"':'')+'>'+
+      (subs.length?'<div class="hint">= Σ Unteraufgaben ('+subSum+'′)</div>':'')+'</div>'+
+    '<div class="field"><label>Zeit Ist (Min)</label><input type="number" inputmode="numeric" data-bind="_istMinEdit" value="'+Math.round(num(k.istSek)/60)+'"><div class="hint">optional · Differenz → heute gebucht</div></div>'+
+  '</div>';
+  // 7 Deadline
+  h+='<div class="grid2">'+
+    '<div class="field"><label>Deadline (Datum)</label><input type="date" data-bind="faelligkeit" value="'+esc(k.faelligkeit||'')+'"><div class="hint">leer = ohne Termin</div></div>'+
+    '<div class="field"><label>Uhrzeit (optional)</label><input type="time" data-bind="uhrzeit" value="'+esc(k.uhrzeit||'')+'"><div class="hint">gesetzt ⇒ Termin (blau)</div></div>'+
+  '</div>';
+  // 8 Abhakbonus (Toggle „Tick")
+  const abhakOn = k.abhakbonus!==0;
+  const domBonus = k.domain==='dfm'?num(S.settings.abhakbonusDfm,0):num(S.settings.abhakbonusPrivat,0);
+  const bonusWert = k.abhakbonus!=null ? num(k.abhakbonus) : domBonus;
+  h+='<div class="field"><label>Abhakbonus</label><div class="chips">'+
+    '<button class="chip '+(abhakOn?'on gruen':'')+'" data-dabhak="1">'+(abhakOn?'✓ Tick an':'aus')+'</button></div>'+
+    '<div class="hint">'+(abhakOn?('Domänen-Default: '+bonusWert+' P beim Abhaken'):'kein Abhakbonus für diese Karte')+'</div></div>';
+  // 9 Kommentar für Claude
+  h+='<div class="field"><label>Kommentar für Claude</label><textarea data-bind="kommentarClaude" placeholder="Hinweis für den nächsten Sync">'+esc(k.kommentarClaude||'')+'</textarea></div>';
+  // 10 Kommentar zur Aufgabe (Notiz)
+  h+='<div class="field"><label>Kommentar zur Aufgabe</label><textarea data-bind="notiz" placeholder="Notiz">'+esc(k.notiz||'')+'</textarea></div>';
 
-  // Gruppe (§3.3)
+  // ── Weitere Einstellungen (eingeklappt; alles bisherige, nur umsortiert) ──
+  h+='<details class="mehrfelder"'+(_detailMehrAuf?' open':'')+'><summary>Weitere Einstellungen</summary><div class="mehrfelder-body">';
+  if(istDfm){
+    h+='<div class="grid2">'+
+      '<div class="field"><label>Projekt</label><input data-bind="projekt" value="'+esc(k.projekt||'')+'" placeholder="aus Airtable"></div>'+
+      '<div class="field"><label>Geld-Impact (Score)</label><input type="number" inputmode="numeric" data-bind="geldScore" value="'+num(k.geldScore)+'"></div>'+
+    '</div>';
+  }
+  h+='<div class="field"><label>Tageszeit</label>'+chipGroup('tageszeit',k.tageszeit,[['morgens','morgens'],['mittags','mittags'],['abends','abends'],['beliebig','beliebig']])+'</div>';
+  h+='<div class="field"><label>Rate-Treiber (Komplexität · Energie · Blockade)</label><div class="grid3">'+
+    '<div>'+chipGroup('komplex',k.komplex,[[1,'1,0'],[1.5,'1,5'],[2,'2,0']])+'</div>'+
+    '<div>'+chipGroup('energie',k.energie,[[0.8,'0,8'],[1,'1,0'],[1.3,'1,3']])+'</div>'+
+    '<div>'+chipGroup('blockade',k.blockade,[[1,'1,0'],[1.5,'1,5'],[2,'2,0']])+'</div>'+
+  '</div><div class="hint">Rate ≈ '+Math.round(rate(k))+' P/Std · Prognose '+Math.round(kartePunkte(Object.assign({},k,{ticksHeute:0,punkteOverride:null})))+' P</div></div>';
+  h+='<div class="field"><label>Override: Rate &amp; Akku (v1.1)</label><div class="grid2">'+
+    '<div><input type="number" inputmode="decimal" data-bind="punkteProStd" value="'+(k.punkteProStd==null?'':num(k.punkteProStd))+'" placeholder="P/Std"><div class="hint">leer = aus Treibern</div></div>'+
+    '<div><input type="number" inputmode="decimal" data-bind="akkuProStd" value="'+(k.akkuProStd==null?'':num(k.akkuProStd))+'" placeholder="Akku %/Std"><div class="hint">leer = Standard '+(S.settings.akkuProStd||-8)+'</div></div>'+
+  '</div></div>';
+  const zs = Array.isArray(k.zeitStufen)?k.zeitStufen:[];
+  h+='<div class="field"><label>Zeitgestaffelte Rate (wirkt auf die Stoppuhr)</label><div id="zsWrap">';
+  zs.forEach((s,i)=>{ h+='<div class="sub" data-zs="'+i+'"><span class="mlab">bis</span><input class="m" type="number" inputmode="numeric" data-zsbis="'+i+'" value="'+(s.bisMin==null?'':num(s.bisMin))+'" placeholder="∞"><span class="mlab">min →</span><input class="m" type="number" inputmode="decimal" data-zspkt="'+i+'" value="'+num(s.punkteProStd)+'"><span class="mlab">P/Std</span><button class="del" data-zsdel="'+i+'">✕</button></div>'; });
+  h+='</div><button class="minibtn" data-zsadd="1" style="margin-top:4px">＋ Zeitstufe</button>'+
+     '<div class="hint">bis-Minute → Rate; leere bis-Minute = „danach". Beispiel Pausentimer: 60→−5, 90→−10, 120→−20.</div></div>';
+  const rTyp = k.rhythmus ? k.rhythmus.typ : 'keine';
+  h+='<div class="field"><label>Wiederholung</label>'+chipGroup('rhythmus',rTyp,[['keine','keine'],['taeglich','täglich'],['alleNTage','alle N Tage'],['wochentage','Wochentage']], rTyp!=='keine'?'lila':'')+'';
+  if(rTyp==='alleNTage'){
+    h+='<div style="margin-top:8px;display:flex;align-items:center;gap:8px"><span class="mlab" style="font-size:13px">alle</span><input type="number" inputmode="numeric" style="width:70px" data-bind="rhythmusN" value="'+num(k.rhythmus.n||2)+'"><span class="mlab" style="font-size:13px">Tage</span></div>';
+  } else if(rTyp==='wochentage'){
+    const tage=(k.rhythmus.tage||[]);
+    const namen=[['1','Mo'],['2','Di'],['3','Mi'],['4','Do'],['5','Fr'],['6','Sa'],['7','So']];
+    h+='<div class="chips" style="margin-top:8px">'+namen.map(([v,t])=>
+      '<button class="chip '+(tage.includes(num(v))?'on lila':'')+'" data-wtag="'+v+'">'+t+'</button>').join('')+'</div>';
+  }
+  h+='</div>';
+  h+='<div class="field"><label>Tick-Kurve (Punkte je Tick · Länge 1 = Abhaken)</label><div class="ticks" id="tickWrap">'+
+    k.tickKurve.map((v,i)=>'<input type="number" inputmode="numeric" data-tick="'+i+'" value="'+num(v)+'">').join('')+
+    '<button class="op" data-tickadd="1">＋</button>'+(k.tickKurve.length>1?'<button class="op" data-tickdel="1">－</button>':'')+
+  '</div></div>';
+  h+='<div class="field"><label>Schnellzugriff Timer</label>'+chipGroup('timerFlag',k.timerFlag?'ja':'nein',[['ja','ja'],['nein','nein']])+'</div>';
+  h+='<div class="grid2">'+
+    '<div class="field"><label>Einfrieren</label><div class="chips">'+
+      '<button class="chip '+(k.freeze?'on rot':'')+'" data-dfreeze="1">'+(k.freeze?'❄︎ eingefroren':'❄︎ einfrieren')+'</button></div>'+
+      '<div class="hint">pausiert: kein Abräum-Zwang, Timer gesperrt</div></div>'+
+    '<div class="field"><label>Quick-Leiste</label><div class="chips">'+
+      '<button class="chip '+(k.pin?'on lila':'')+'" data-dpin="1">📌 '+(k.pin?'angepinnt':'anpinnen')+'</button></div>'+
+      '<div class="hint">Schnellzugriff oben/unten</div></div>'+
+  '</div>';
   h+='<div class="field"><label>Karten-Gruppe</label><div class="chips">'+
     '<button class="chip '+(!k.gruppeId?'on':'')+'" data-gruppe="">keine</button>'+
     S.gruppen.map(g=>'<button class="chip '+(k.gruppeId===g.id?'on':'')+'" data-gruppe="'+g.id+'">'+esc(g.name)+'</button>').join('')+
     '<button class="chip" data-gruppeneu="1">＋ neue</button></div></div>';
-
-  // Notizen
-  h+='<div class="field"><label>Notiz</label><textarea data-bind="notiz" placeholder="Notiz">'+esc(k.notiz)+'</textarea></div>';
-  h+='<div class="field"><label>Kommentar für Claude</label><textarea data-bind="kommentarFuerClaude" placeholder="geht in den Sync-Export">'+esc(k.kommentarFuerClaude)+'</textarea></div>';
-
   h+='<button class="minibtn" data-alsvorlage="1" style="margin-bottom:10px">☆ Als Vorlage speichern</button>';
-
-  // Status/Meta
   h+='<div class="kv"><span>Art</span><b>'+kartenArt(k)+'</b></div>';
   h+='<div class="kv"><span>Status</span><b>'+esc(k.status)+'</b></div>';
   if(k.tagId) h+='<div class="kv"><span>Buchungstag</span><b>'+esc(k.tagId)+'</b></div>';
+  h+='</div></details>';
 
   let foot='';
   foot+='<button class="btn ghost sm" data-detailaktion="abhaken">'+(k.status==='erledigt'?'↩︎ offen':'✓ fertig')+'</button>';
+  if(k.status==='erledigt') foot+='<button class="btn ghost sm" data-detailaktion="neustarten">🔄 Neu starten</button>';   // U6-A6
   if(!entwurfNeu) foot+='<button class="btn ghost sm" data-detailaktion="archiv">🗄</button>';
   foot+='<button class="btn prim" data-detailaktion="speichern">Speichern</button>';
-  openSheet(entwurfNeu?'Neue Karte':'Karte', h, foot, null);
+  openSheet(entwurfNeu?'Neue Aufgabe':'Karte', h, foot, null);
   const _sb=el('sheetBody'); if(_sb) _sb.scrollTop=_scroll;   // V3: Scroll wiederherstellen → Folge-Taps treffen dasselbe Feld
+  const _dt=el('sheetBody').querySelector('details.mehrfelder'); if(_dt) _dt.addEventListener('toggle',()=>{ _detailMehrAuf=_dt.open; });   // U6-D: Zustand halten
+  if(_detailAutofocus){ _detailAutofocus=false; const _ti=el('sheetBody').querySelector('[data-bind="titel"]'); if(_ti) setTimeout(()=>{ try{ _ti.focus(); }catch(e){} }, 60); }
 }
 /* Unteraufgaben-Balance (§3.2) */
 function subBalanceNachAdd(){
@@ -2456,6 +2484,12 @@ function detailSpeichern(){
   if(entwurf.domain!=='dfm'){ entwurf.projekt=null; entwurf.geldScore=0; }
   if(!Array.isArray(entwurf.tickKurve)||!entwurf.tickKurve.length) entwurf.tickKurve=[0];
   subParentAngleichen();
+  // U6-D: Zeit-Ist-Nachtrag — Differenz zur bisher getrackten Zeit auf heute buchen
+  if(entwurf._istMinEdit!=null){
+    const delta = num(entwurf._istMinEdit) - Math.round(num(entwurf.istSek)/60);
+    if(delta!==0){ entwurf.istSek=Math.max(0, num(entwurf.istSek)+delta*60); if(delta>0) logIntraday(entwurf,{minuten:delta,typ:'nachtrag'}); }
+  }
+  delete entwurf._istMinEdit;
   const idx=S.karten.findIndex(k=>k.id===entwurf.id);
   if(idx>=0) S.karten[idx]=entwurf; else S.karten.push(entwurf);
   // Unteraufgaben ersetzen
@@ -2515,10 +2549,10 @@ function karteAbhaken(kid, fromDetail){
   // A3: Timer-/Counter-Karten werden nie erledigt — „Abhaken" bucht einen Tick.
   if(istTickKarte(k) && k.status!=='erledigt'){ karteTick(kid, fromDetail); return; }
   if(k.status==='erledigt'){
-    k.status='offen'; k.tagId=null;
+    logPunktEntfernen(k);                                 // v1.1: Punkt-Ereignis zurücknehmen (VOR override-Reset, damit der gebuchte Wert stimmt)
+    k.status='offen'; k.tagId=null; k.punkteOverride=null;   // U6-A: Override zurücknehmen → Punkte wieder automatisch
     if(k.rhythmus && k.zuletztRoutine===heuteApp()){ k.streak=Math.max(0,num(k.streak)-1); k.zuletztRoutine=null; }
     if(k.tickKurve && k.tickKurve.length===1) k.ticksHeute=0;
-    logPunktEntfernen(k);                                 // v1.1: Punkt-Ereignis zurücknehmen
   } else {
     // Läuft der Timer auf dieser Karte → erst Zeit einbuchen, Fokus beenden (§6 Kante).
     if(!fromDetail && S.fokus && S.fokus.karteId===k.id) fokusBeenden();
@@ -2546,6 +2580,96 @@ function logPunktEntfernen(k){
   if(!S.tag || !S.tag.log) return;
   for(let i=S.tag.log.length-1;i>=0;i--){ if(S.tag.log[i].itemId===k.id){ S.tag.log.splice(i,1); break; } }
   S.tag.erledigtHeute=Math.max(0, num(S.tag.erledigtHeute)-1);
+}
+/* U6-A6: erledigte (oder beliebige) Karte als frische, offene Vollkopie neu
+   starten — inkl. aller Unteraufgaben (neu, unabgehakt, neue App-IDs), ohne
+   airtableId (nächster Sync = Neuanlage), Ist/Punkte zurückgesetzt. Das
+   Original bleibt vollständig unangetastet (Statistik/Punkte/Zeiten bleiben). */
+function karteNeuStarten(kid){
+  const o=S.karten.find(k=>k.id===kid); if(!o) return;
+  const kopie=neueKarte({
+    domain:o.domain, titel:o.titel, prioritaet:o.prioritaet, projekt:o.projekt, geldScore:num(o.geldScore),
+    sollMin:num(o.sollMin), komplex:o.komplex, energie:o.energie, blockade:o.blockade,
+    punkteProStd:o.punkteProStd, akkuProStd:o.akkuProStd, abhakbonus:o.abhakbonus,
+    zeitStufen:o.zeitStufen?JSON.parse(JSON.stringify(o.zeitStufen)):null,
+    tickKurve:Array.isArray(o.tickKurve)?o.tickKurve.slice():[0], timerFlag:o.timerFlag,
+    rhythmus:o.rhythmus?JSON.parse(JSON.stringify(o.rhythmus)):null, tageszeit:o.tageszeit,
+    notiz:o.notiz, kommentarClaude:o.kommentarClaude, gruppeId:o.gruppeId,
+    faelligkeit:heuteApp()
+    // airtableId/id/erstelltTs/istSek(0)/status(offen)/punkteOverride(null) → aus neueKarte-Defaults
+  });
+  untermenge(o.id).forEach(u=>{ S.unteraufgaben.push(neueUnteraufgabe(kopie.id, { titel:u.titel, sollMin:num(u.sollMin), bonusPunkte:u.bonusPunkte, done:false })); });
+  S.karten.push(kopie);
+  saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
+  closeSheet(); renderAlles(); toast('🔄 Neu gestartet'); haptik(15);
+}
+/* ── U6-A: Abhak-Dialog (Punktejustierung beim Erledigen) ─────────────
+   Nur für einfache Aufgaben; Ticks/Counter/Routinen und Un-Abhaken laufen
+   direkt. Ein Tap auf ✅ ohne Änderung = bisheriges Verhalten (Override =
+   berechnete Punkte + Bonus-Default). */
+let abhakTmp=null;
+function karteAbhakenAuto(kid, fromDetail){
+  const k = kid ? S.karten.find(x=>x.id===kid) : entwurf;
+  if(!k) return;
+  if(k.status==='offen' && kartenArt(k)==='Aufgabe' && !istTickKarte(k)){ abhakDialog(k.id, fromDetail); return; }
+  karteAbhaken(kid, fromDetail);   // Ticks/Routinen/Un-Abhaken direkt
+}
+function abhakbonusDefault(k){ return k.abhakbonus!=null ? num(k.abhakbonus)
+  : (k.domain==='dfm' ? num(S.settings.abhakbonusDfm,0) : num(S.settings.abhakbonusPrivat,0)); }
+function abhakDialog(kid, fromDetail){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  const basis=Math.round(kartePunkte(k));
+  abhakTmp={ kid, fromDetail, folge:false, basis, max:Math.max(10, basis*2),
+    bonusDef:abhakbonusDefault(k), istMin:Math.round(istSekLive(k)/60),
+    offeneSubs:untermenge(k.id).filter(u=>!u.done).length };
+  renderAbhakDialog();
+}
+function renderAbhakDialog(){
+  const t=abhakTmp, k=S.karten.find(x=>x.id===t.kid); if(!k) return;
+  const restMin=Math.max(0, num(k.sollMin)-t.istMin);
+  let h='<p class="d">„<b>'+esc(k.titel||'(ohne Titel)')+'</b>" erledigen — Werte anpassen oder direkt ✅.</p>';
+  h+='<div class="field"><label>Punkte <b id="abPktV">'+t.basis+'</b></label>'+
+     '<input type="range" id="abPkt" min="0" max="'+t.max+'" step="5" value="'+t.basis+'"><div class="hint">Standard '+t.basis+' P · Bereich 0–'+t.max+'</div></div>';
+  h+='<div class="grid2">'+
+     '<div class="field"><label>Ist-Zeit (Min)</label><input type="number" inputmode="numeric" id="abIst" value="'+t.istMin+'"><div class="hint">Differenz wird auf heute gebucht</div></div>'+
+     '<div class="field"><label>Abhakbonus</label><input type="number" inputmode="numeric" id="abBonus" value="'+t.bonusDef+'"><div class="hint">0 = kein Bonus</div></div>'+
+     '</div>';
+  h+='<div class="field"><label>Folgeaufgabe</label><div class="chips"><button class="chip '+(t.folge?'on lila':'')+'" data-abfolge="1">'+(t.folge?'✓ wird angelegt':'＋ anlegen')+'</button></div>';
+  if(t.folge){
+    h+='<div style="margin-top:8px">'+
+       '<input id="abFolgeTitel" value="'+esc((k.titel||'')+' — Fortsetzung')+'" style="width:100%;margin-bottom:6px" placeholder="Titel der Folgeaufgabe">'+
+       '<div style="display:flex;align-items:center;gap:8px"><span class="mlab">Soll-Min</span><input type="number" inputmode="numeric" id="abFolgeSoll" value="'+restMin+'" style="width:90px"></div>'+
+       '<div class="hint">'+t.offeneSubs+' offene Unteraufgabe(n) wandern mit; abgehakte bleiben bei der alten. Neue Karte ohne airtableId.</div></div>';
+  }
+  h+='</div>';
+  const foot='<button class="btn ghost sm" data-close="1">Abbrechen</button><button class="btn prim" data-abgo="1">✅ Erledigen</button>';
+  openSheet('Aufgabe erledigen', h, foot);
+  const r=el('abPkt'), v=el('abPktV'); if(r&&v) r.addEventListener('input',()=>{ v.textContent=r.value; });
+  el('sheetBody').querySelectorAll('input[type="number"]').forEach(x=>x.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); abhakDialogConfirm(); } }));
+}
+function folgeAufgabeAnlegen(k, titel, sollMin){
+  titel=(titel||'').trim() || ((k.titel||'')+' — Fortsetzung');
+  const neu=neueKarte({ domain:k.domain, titel, prioritaet:k.prioritaet, projekt:k.projekt, geldScore:num(k.geldScore),
+    komplex:k.komplex, energie:k.energie, blockade:k.blockade, abhakbonus:k.abhakbonus, tageszeit:k.tageszeit, faelligkeit:heuteApp() });
+  const offene=untermenge(k.id).filter(u=>!u.done);
+  offene.forEach(u=>{ u.parentId=neu.id; });   // offene Subs wandern in die Folgeaufgabe
+  neu.sollMin=Math.max(num(sollMin)||0, offene.reduce((s,u)=>s+num(u.sollMin),0));
+  S.karten.push(neu); DB.set('unteraufgaben', S.unteraufgaben);
+  return neu;
+}
+function abhakDialogConfirm(){
+  const t=abhakTmp; if(!t) return;
+  const k=S.karten.find(x=>x.id===t.kid); if(!k){ abhakTmp=null; closeSheet(); return; }
+  const pkt=num(el('abPkt')?el('abPkt').value:t.basis);
+  const bonus=num(el('abBonus')?el('abBonus').value:t.bonusDef);
+  const istMin=num(el('abIst')?el('abIst').value:t.istMin);
+  const deltaMin=istMin-Math.round(istSekLive(k)/60);
+  if(deltaMin!==0){ k.istSek=Math.max(0,num(k.istSek)+deltaMin*60); logIntraday(k,{minuten:deltaMin,typ:'nachtrag'}); }   // Zeit-Nachtrag auf heute
+  k.abhakbonus=bonus;                                   // Wahl je Karte merken
+  k.punkteOverride=Math.max(0, pkt+bonus);              // gebuchte Ist-Punkte (Slider + Bonus)
+  if(t.folge) folgeAufgabeAnlegen(k, el('abFolgeTitel')?el('abFolgeTitel').value:'', num(el('abFolgeSoll')?el('abFolgeSoll').value:0));
+  abhakTmp=null; closeSheet();
+  karteAbhaken(k.id, false);                            // eigentliches Erledigen (Punkte=Override, Konfetti, Intraday, Speichern)
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2687,7 +2811,7 @@ function mapAltKarte(it){
     domain,
     titel: it.titel || '',
     notiz: it.notiz || '',
-    kommentarFuerClaude: it.kommentarFuerClaude || '',
+    kommentarClaude: it.kommentarClaude || it.kommentarFuerClaude || '',   // U6-E
     projekt: domain==='dfm' ? (it.projekt||null) : null,
     geldScore: domain==='dfm' ? altGeldScore(it.geldImpact) : 0,
     faelligkeit,
@@ -2841,10 +2965,11 @@ function syncExport(typ){
         faelligkeit:k.faelligkeit||null, uhrzeit:k.uhrzeit||null, sollMin:num(k.sollMin), istMin:Math.round(num(k.istSek)/60),
         komplex:num(k.komplex,1), energie:num(k.energie,1), blockade:num(k.blockade,1),
         prioritaet:k.prioritaet, status:k.status, punkteIst:Math.round(kartePunkte(k)),
-        notiz:k.notiz||'', kommentarFuerClaude:k.kommentarFuerClaude||'',
+        notiz:k.notiz||'',
         unteraufgaben: untermenge(k.id).map(u=>({ id:u.id, titel:u.titel, sollMin:num(u.sollMin), done:!!u.done }))
       };
-      if(k.freeze) o.freeze=true;   // M1 (v1.1.0): nur eingefrorene Karten senden das Feld (kompakt)
+      if(k.freeze) o.freeze=true;                          // M1 (1.1.0): nur eingefrorene Karten senden das Feld
+      if(k.kommentarClaude) o.kommentarClaude=k.kommentarClaude;   // U6-F (1.2.0): nur wenn nicht leer
       return o;
     })
   };
@@ -2869,7 +2994,8 @@ function syncImport(text){
     if(inc.projekt!==undefined) lok.projekt=inc.projekt;
     if(inc.geldScore!=null) lok.geldScore=num(inc.geldScore);
     if(inc.notiz!=null) lok.notiz=inc.notiz;
-    if(inc.kommentarFuerClaude!=null) lok.kommentarFuerClaude=inc.kommentarFuerClaude;
+    if(inc.kommentarClaude!=null) lok.kommentarClaude=inc.kommentarClaude;             // U6-F (1.2.0)
+    else if(inc.kommentarFuerClaude!=null) lok.kommentarClaude=inc.kommentarFuerClaude; // Abwärtskompat.: 1.1.0-Pakete
     // Archivierung ist Airtable-Hoheit (Teil des Status); No-delete: nur archivieren, nie löschen
     if(inc.status==='archiviert' && lok.status!=='archiviert'){ lok.status='archiviert'; arch++; }
     // Beidseitige Felder → letzter Stand (Import bringt den abgestimmten Stand)
@@ -3021,12 +3147,23 @@ function renderEinst(){
     '<div class="btnrow"><button class="btn warn sm" id="btnReset">🗑 Alle Karten löschen</button></div>'+
     '<div class="hint">Nullstand vor dem Seed. Lädt vorher ein Voll-Backup herunter. Behält Einstellungen, Wohlstand, Historie, Stapel, Vorlagen, Gruppen.</div></div>';
 
+  // U6-C: Punkte-Balance (je Domäne) — Basis-Rate, Abhakbonus, Sub-Bonus
+  h+='<div class="card"><h3>Punkte-Balance</h3><p class="d">Je Domäne (DFM · Privat). Wirkt nur auf künftige Buchungen — nichts wird rückwirkend neu berechnet.</p>';
+  const balance=[
+    ['basisProStdDfm','Basis P/Std · DFM',5],['basisProStdPrivat','Basis P/Std · Privat',5],
+    ['abhakbonusDfm','Abhakbonus · DFM',5],['abhakbonusPrivat','Abhakbonus · Privat',5],
+    ['subBonusDfm','Pkt/Unteraufgabe · DFM',5],['subBonusPrivat','Pkt/Unteraufgabe · Privat',5]
+  ];
+  balance.forEach(([k,lab,step])=>{
+    h+='<div class="slider"><label>'+lab+'</label>'+
+      '<input type="number" inputmode="numeric" step="'+step+'" data-setting="'+k+'" value="'+num(s[k])+'"></div>';
+  });
+  h+='</div>';
+
   h+='<div class="card"><h3>Punktesystem</h3><p class="d">Alle Sätze live (§3.8). Farbe/Timer/Fokus (M2), Tageslogik (M3) und Sync (M4) laufen.</p>';
   const regler=[
     ['tagesZielDfm','Tagesziel DFM','Punkte/Tag',100],
     ['tagesZielPrivat','Tagesziel Privat','Punkte/Tag',100],
-    ['basisProStdDfm','Basis P/Std DFM','A9',5],
-    ['basisProStdPrivat','Basis P/Std privat','A9',5],
     ['zeitGewicht','Zeit-Gewicht','',0.05],
     ['tickGewicht','Tick-Gewicht','',0.1],
     ['geldGewicht','Geld-Gewicht','nur DFM',0.1],
@@ -3464,7 +3601,7 @@ el('fokusView').addEventListener('click', e=>{
   const t=e.target;
   const tg=t.closest('[data-fktoggle]'); if(tg){ const kid=tg.dataset.fktoggle;
     if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid); return; }
-  const ck=t.closest('[data-fkcheck]'); if(ck){ karteAbhaken(ck.dataset.fkcheck, false); return; }
+  const ck=t.closest('[data-fkcheck]'); if(ck){ karteAbhakenAuto(ck.dataset.fkcheck, false); return; }
   const tpf=t.closest('[data-tickplus]'); if(tpf){ karteTick(tpf.dataset.tickplus, false); return; }   // A3
   const sch=t.closest('[data-fkschieben]'); if(sch){ oeffneSchieben(sch.dataset.fkschieben); return; }  // A4
   const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
@@ -3516,7 +3653,7 @@ function karteRowClick(t, e){
   // A8: Quick-Leiste-Direktaktionen (ohne Ansichtswechsel)
   const pqs=t.closest('[data-pqstart]'); if(pqs){ if(e) e.stopPropagation(); const kid=pqs.dataset.pqstart; if(S.fokus&&S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid); return true; }
   const pqt=t.closest('[data-pqtick]'); if(pqt){ if(e) e.stopPropagation(); karteTick(pqt.dataset.pqtick, false); return true; }
-  const pqc=t.closest('[data-pqcheck]'); if(pqc){ if(e) e.stopPropagation(); karteAbhaken(pqc.dataset.pqcheck, false); return true; }
+  const pqc=t.closest('[data-pqcheck]'); if(pqc){ if(e) e.stopPropagation(); karteAbhakenAuto(pqc.dataset.pqcheck, false); return true; }
   const pqd=t.closest('[data-pqdetail]'); if(pqd){ if(e) e.stopPropagation(); oeffneDetail(pqd.dataset.pqdetail); return true; }
   const fst=t.closest('[data-fokusstart]'); if(fst){ if(e) e.stopPropagation();
     const sid=fst.dataset.stapel, kid=fst.dataset.fokusstart;
@@ -3529,7 +3666,7 @@ function karteRowClick(t, e){
   const sq=t.closest('[data-schnell]'); if(sq){ if(e) e.stopPropagation(); toggleSchnell(sq.dataset.schnell); return true; }   // U2
   const tp=t.closest('[data-tickplus]'); if(tp){ if(e) e.stopPropagation(); karteTick(tp.dataset.tickplus, false); return true; }
   const det=t.closest('[data-detail]'); if(det){ oeffneDetail(det.dataset.detail); return true; }
-  const chk=t.closest('[data-check]'); if(chk){ karteAbhaken(chk.dataset.check, false); return true; }
+  const chk=t.closest('[data-check]'); if(chk){ karteAbhakenAuto(chk.dataset.check, false); return true; }
   return false;
 }
 el('stapelListe').addEventListener('click', e=>{
@@ -3550,6 +3687,9 @@ el('sheet').addEventListener('click', e=>{
   const t=e.target;
   if(t.id==='sheetX') return;   // eigener Close-Handler
   if(t.closest('[data-close]')){ closeSheet(); return; }
+  // U6-A: Abhak-Dialog
+  if(t.closest('[data-abfolge]')){ if(abhakTmp){ abhakTmp.folge=!abhakTmp.folge; renderAbhakDialog(); } return; }
+  if(t.closest('[data-abgo]')){ abhakDialogConfirm(); return; }
   if(t.closest('[data-migstart]')){ migrationAusfuehren(); return; }
   if(t.closest('[data-v038import]')){ const ta=el('v038In'); const box=el('v038Ergebnis'); const r=v038ImportAusText(ta?ta.value:'');
     if(r.fehler){ if(box) box.innerHTML='<div class="card" style="border-color:var(--bad);margin-top:8px"><p class="d" style="color:var(--bad)">'+esc(r.fehler)+'</p></div>'; }
@@ -3623,6 +3763,7 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-gruppeneu]')){ const n=(prompt('Name der Gruppe:')||'').trim(); if(n){ const g=neueGruppe({name:n}); S.gruppen.push(g); saveGruppen(); entwurf.gruppeId=g.id; } renderDetail(); return; }
   if(t.closest('[data-dfreeze]')){ entwurf.freeze=!entwurf.freeze; renderDetail(); return; }   // A4
   if(t.closest('[data-dpin]')){ entwurf.pin=!entwurf.pin; renderDetail(); return; }   // A8
+  if(t.closest('[data-dabhak]')){ entwurf.abhakbonus = (entwurf.abhakbonus===0) ? null : 0; renderDetail(); return; }   // U6-D: Abhakbonus an/aus (null=Domänen-Default)
 
   // Tick-Kurve: erstes „Erstellen" springt auf 3 Schritte (Vorauswahl), jeder
   // weitere Klick fügt einen an; der ＋-Button bleibt immer.
@@ -3645,8 +3786,10 @@ el('sheet').addEventListener('click', e=>{
   if(da){
     const a=da.dataset.detailaktion;
     if(a==='speichern'){ detailLies(); detailSpeichern(); }
-    else if(a==='abhaken'){ detailLies(); karteAbhaken(null,true); detailSpeichern(); }
+    else if(a==='abhaken'){ detailLies(); const id=entwurf.id, wasOffen=entwurf.status==='offen'; detailSpeichern();
+      wasOffen ? karteAbhakenAuto(id, false) : karteAbhaken(id, false); }   // U6-A: Erledigen über Dialog, Un-Abhaken direkt
     else if(a==='archiv'){ detailLies(); entwurf.status='archiviert'; detailSpeichern(); }
+    else if(a==='neustarten'){ karteNeuStarten(entwurf.id); }   // U6-A6
     return;
   }
 
@@ -3705,7 +3848,7 @@ el('sheetBody').addEventListener('change', e=>{
 function detailFeld(bind, input){
   const v=input.value;
   if(bind==='geldScore'||bind==='sollMin'){ entwurf[bind]=num(v); }
-  else if(bind==='punkteProStd'||bind==='akkuProStd'){ entwurf[bind]= v===''?null:num(v); }  // leer = null (Fallback)
+  else if(bind==='punkteProStd'||bind==='akkuProStd'||bind==='_istMinEdit'){ entwurf[bind]= v===''?null:num(v); }  // leer = null (Fallback)
   else if(bind==='rhythmusN'){ if(entwurf.rhythmus) entwurf.rhythmus.n=Math.max(1,num(v)); }
   else { entwurf[bind]= (v===''&&(bind==='faelligkeit'||bind==='uhrzeit'||bind==='projekt')) ? null : v; }
 }
@@ -3790,7 +3933,7 @@ function normSuche(s){
 }
 function baueSuchIndex(){
   suchIndex = (S.karten||[]).map(k=>{
-    const teile=[k.titel, k.notiz, (k.domain==='dfm'?k.projekt:''), k.kommentarFuerClaude]
+    const teile=[k.titel, k.notiz, (k.domain==='dfm'?k.projekt:''), k.kommentarClaude]
       .concat(untermenge(k.id).map(u=>u.titel));
     return { id:k.id, norm: normSuche(teile.filter(Boolean).join(' ')) };
   });
