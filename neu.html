@@ -723,7 +723,7 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.2.0';                    // Datenvertrag/Sync-appVersion — 1.2.0: additiv `kommentarClaude` im Sync (1.x-kompatibel; 1.1.0-Pakete bleiben gültig)
 const UI_VERSION = 'v1.2';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-11-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-08-11-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -1086,12 +1086,19 @@ function fokusZeitEinbuchen(){
 function fokusStarten(kid){
   const zk=S.karten.find(x=>x.id===kid);
   if(zk && zk.freeze){ toast('Karte ist eingefroren — erst auftauen'); return; }   // A4: Freeze blockt Timer
+  // Mini-6b B: erledigte Karte per Timer-Start reaktivieren — OHNE Storno. Status
+  // erledigt→offen, aber punkteOverride/istSek/tagId/Subs/Log bleiben unangetastet
+  // (Punkte zählen weiter, kein Reset). Untere Stapelansicht → „Bearbeitet heute".
+  let reaktiviert=false;
+  if(zk && zk.status==='erledigt'){ zk.status='offen'; reaktiviert=true; }
   if(S.fokus && S.fokus.karteId!==kid) fokusZeitEinbuchen();  // alten Fokus pausieren+buchen
   if(!S.fokus || S.fokus.karteId!==kid) S.fokus={ karteId:kid, laeuft:false, startMs:0, sessionSek:0 };
   S.fokus.laeuft=true; S.fokus.startMs=Date.now();
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
+  if(reaktiviert){ S.ui.aktivStapel='sys-bearbeitet'; saveKarten(); }   // untere Ansicht auf „Bearbeitet heute"
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
   saveFokus(); saveUi(); starteTicker(); renderAlles();
+  if(reaktiviert) toast('Wieder geöffnet — Timer läuft');
 }
 /* U1: die Fokus-Karte an Position 1 des aktiven Stapels (echte Umsortierung —
    manueller Modus, aktuelle Reihenfolge festschreiben, Ziel-Karte sortIndex 0). */
@@ -1403,8 +1410,9 @@ function kartenreiheHtml(k, stapelId){
   if(k.freeze) meta.push('<span class="frost">❄︎ eingefroren</span>');   // A4
   if(stapelId==='sys-bearbeitet' && k.letzteBearbeitung) meta.push('<span class="vor">'+fmtVor(k.letzteBearbeitung)+'</span>');   // A7
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
-  const startBtn = k.status==='erledigt' ? '' :
-    (k.freeze
+  const startBtn = k.status==='erledigt'
+    ? '<button class="kstart auftau" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="Wieder öffnen &amp; Timer">▶</button>'   // Mini-6b B: erledigte Karte reaktivieren
+    : (k.freeze
       ? '<button class="kstart auftau" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="Auftauen &amp; in den Fokus">▶</button>'   // A4: auftauen + Fokus
       : '<button class="kstart'+(laeuft?' laeuft':'')+'" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="In den Fokus starten">'+(laeuft?'⏸':'▶')+'</button>');
   // A5: Hoch/Runter-Pfeile (ein Tap = eine Position); A3: Tick-Karten → „+" statt Abhaken
@@ -1919,7 +1927,10 @@ function tagesPunkteDomain(dom){
     if(k.domain!==dom) return;
     const erl = k.status==='erledigt' && k.tagId===tid;
     const laeuft = k.id===laeuftId && k.status==='offen';
-    if(erl || laeuft){ p+=kartePunkte(k); return; }
+    // Mini-6b B: per Timer reaktivierte Karte (heute gebucht) behält ihre Punkte im Tages-Tally,
+    // auch wenn der Timer gerade pausiert ist (tagId-Gate verhindert Doppelzählung an Folgetagen).
+    const reaktiviert = k.status==='offen' && k.punkteOverride!=null && k.tagId===tid;
+    if(erl || laeuft || reaktiviert){ p+=kartePunkte(k); return; }
     // A3: heute getickte Tick-Karten (Counter/Timer) zählen nur ihre Tick-Punkte
     if(num(k.ticksHeute)>0 && istTickKarte(k)) p+=tickPunkte(k);
   });
@@ -2618,9 +2629,11 @@ function abhakbonusDefault(k){ return k.abhakbonus!=null ? num(k.abhakbonus)
   : (k.domain==='dfm' ? num(S.settings.abhakbonusDfm,0) : num(S.settings.abhakbonusPrivat,0)); }
 function abhakDialog(kid, fromDetail){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
-  const basis=Math.round(kartePunkte(k));
+  const hatOverride=k.punkteOverride!=null;                 // Re-Abhaken einer reaktivierten Karte
+  const basis=Math.round(kartePunkte(k));                   // bei Override = bereits gebuchte Punkte, sonst berechnet
   abhakTmp={ kid, fromDetail, folge:false, basis, max:Math.max(10, basis*2),
-    bonusDef:abhakbonusDefault(k), istMin:Math.round(istSekLive(k)/60),
+    bonusDef: hatOverride ? 0 : abhakbonusDefault(k),       // Bonus steckt beim Re-Abhaken schon im Override → 0 vorbelegt
+    istMin:Math.round(istSekLive(k)/60),
     offeneSubs:untermenge(k.id).filter(u=>!u.done).length };
   renderAbhakDialog();
 }
@@ -2628,8 +2641,10 @@ function renderAbhakDialog(){
   const t=abhakTmp, k=S.karten.find(x=>x.id===t.kid); if(!k) return;
   const restMin=Math.max(0, num(k.sollMin)-t.istMin);
   let h='<p class="d">„<b>'+esc(k.titel||'(ohne Titel)')+'</b>" erledigen — Werte anpassen oder direkt ✅.</p>';
-  h+='<div class="field"><label>Punkte <b id="abPktV">'+t.basis+'</b></label>'+
-     '<input type="range" id="abPkt" min="0" max="'+t.max+'" step="5" value="'+t.basis+'"><div class="hint">Standard '+t.basis+' P · Bereich 0–'+t.max+'</div></div>';
+  h+='<div class="field"><label>Punkte</label>'+
+     '<input type="range" id="abPkt" min="0" max="'+t.max+'" step="5" value="'+Math.min(t.basis,t.max)+'">'+
+     '<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="number" inputmode="numeric" min="0" step="5" id="abPktN" value="'+t.basis+'" style="width:120px">'+
+       '<span class="hint" style="margin:0">Standard '+t.basis+' P · Regler bis '+t.max+', Direkteingabe auch darüber</span></div></div>';
   h+='<div class="grid2">'+
      '<div class="field"><label>Ist-Zeit (Min)</label><input type="number" inputmode="numeric" id="abIst" value="'+t.istMin+'"><div class="hint">Differenz wird auf heute gebucht</div></div>'+
      '<div class="field"><label>Abhakbonus</label><input type="number" inputmode="numeric" id="abBonus" value="'+t.bonusDef+'"><div class="hint">0 = kein Bonus</div></div>'+
@@ -2644,7 +2659,12 @@ function renderAbhakDialog(){
   h+='</div>';
   const foot='<button class="btn ghost sm" data-close="1">Abbrechen</button><button class="btn prim" data-abgo="1">✅ Erledigen</button>';
   openSheet('Aufgabe erledigen', h, foot);
-  const r=el('abPkt'), v=el('abPktV'); if(r&&v) r.addEventListener('input',()=>{ v.textContent=r.value; });
+  // Regler ↔ Zahlenfeld bidirektional (Direkteingabe darf das Regler-Maximum überschreiten)
+  const r=el('abPkt'), n=el('abPktN');
+  if(r&&n){
+    r.addEventListener('input',()=>{ n.value=r.value; });
+    n.addEventListener('input',()=>{ const v=Math.max(0,Math.floor(num(n.value))); r.value=String(Math.min(v,t.max)); });
+  }
   el('sheetBody').querySelectorAll('input[type="number"]').forEach(x=>x.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); abhakDialogConfirm(); } }));
 }
 function folgeAufgabeAnlegen(k, titel, sollMin){
@@ -2660,7 +2680,8 @@ function folgeAufgabeAnlegen(k, titel, sollMin){
 function abhakDialogConfirm(){
   const t=abhakTmp; if(!t) return;
   const k=S.karten.find(x=>x.id===t.kid); if(!k){ abhakTmp=null; closeSheet(); return; }
-  const pkt=num(el('abPkt')?el('abPkt').value:t.basis);
+  const raw=el('abPktN')?el('abPktN').value.trim():'';           // Zahlenfeld ist führend (auch > Regler-Max)
+  const pkt=raw==='' ? t.basis : Math.max(0, Math.floor(num(raw)));   // leer = Default, sonst ganze Zahl ≥ 0
   const bonus=num(el('abBonus')?el('abBonus').value:t.bonusDef);
   const istMin=num(el('abIst')?el('abIst').value:t.istMin);
   const deltaMin=istMin-Math.round(istSekLive(k)/60);
