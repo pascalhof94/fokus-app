@@ -494,6 +494,35 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .an-bar .track i{display:block;height:100%;border-radius:6px}
 .an-bar .vv{flex:none;width:66px;text-align:right;color:var(--txt);font-weight:700}
 
+/* ── V2 Belohnungsseite ───────────────────────────────────────────── */
+.belkpi-r1{display:flex;gap:8px;margin-bottom:8px}
+.belkpi-col{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--card2)}
+.belkpi-col .bk-h{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.belkpi-col.dfm .bk-h{color:var(--warn)} .belkpi-col.priv .bk-h{color:var(--ok)}
+.belkpi-col .bk-row{font-size:11.5px;color:var(--mut);font-family:ui-monospace,monospace}
+.belkpi-col .bk-row b{color:var(--txt)}
+.belkpi-r2{display:flex;gap:8px}
+.belkpi-v{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 6px;text-align:center}
+.belkpi-v b{display:block;font-size:19px;font-weight:800;line-height:1.05;font-family:ui-monospace,monospace}
+.belkpi-v span{font-size:9px;color:var(--mut2);text-transform:uppercase;letter-spacing:.3px}
+.aufl-g{border-top:1px solid var(--line)}
+.aufl-g:first-of-type{border-top:none}
+.aufl-gh{display:flex;align-items:center;gap:7px;padding:9px 2px;cursor:pointer;min-height:44px;box-sizing:border-box}
+.aufl-gh .caret{color:var(--mut2);font-size:11px;flex:none}
+.aufl-gh .nm{font-weight:700;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aufl-gh .v{font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace;flex:none}
+.aufl-body{padding:0 2px 8px 20px}
+.aufl-k{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;padding:4px 0;border-top:1px dashed var(--line)}
+.aufl-k .nm{color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aufl-k .v{flex:none;color:var(--txt);font-family:ui-monospace,monospace}
+.stbar-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:10px;color:var(--mut);margin-bottom:10px;font-family:ui-monospace,monospace}
+.stbar-leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:middle}
+.stbar-row{margin-bottom:9px}
+.stbar-nm{font-size:12px;font-weight:700;margin-bottom:3px;display:flex;gap:6px}
+.stbar-nm span{color:var(--mut2);font-weight:600;font-family:ui-monospace,monospace}
+.stbar{display:flex;height:18px;border-radius:6px;overflow:hidden;background:var(--card2)}
+.stbar i{display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:800;color:#0a0f1a;min-width:0;font-family:ui-monospace,monospace}
+
 /* ── V3 Debug-Overlay: Tap-Flächen sichtbar (Mehr → Info) ─────────────
    Rein visuell; outline verändert kein Layout, offenbart aber die exakten
    Hit-Bereiche → Diskrepanz „sichtbares Feld ≠ Tap-Fläche" wird sofort sichtbar. */
@@ -723,7 +752,7 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.2.1';                    // Datenvertrag/Sync-appVersion — 1.2.1 (V1: Live-Punkte-Fix, keine Vertragsfelder geändert; 1.x-kompatibel)
 const UI_VERSION = 'v1.2';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-13-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-08-13-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -1918,33 +1947,29 @@ function tagOffen(){ return !!(S.tag && !S.tag.endeTs); }
 /* Heute erreichte Punkte (live, inkl. laufendem Timer) minus Schiebe-Abzüge. */
 /* A1: heutige Punkte EINER Domäne (erledigt heute + laufender Fokus dieser
    Domäne + Schiebe-Strafen dieser Domäne als negative Log-Einträge, A4). */
-function tagesPunkteDomain(dom){
-  const tid=aktuelleTagId(); let p=0;
+/* Heutiger Punkt-Beitrag EINER Karte (V1.1): erledigt/laufend/reaktiviert oder
+   heute getrackt (auch pausiert) → volle Kartenpunkte, bei mehrtägigen Aufgaben
+   minus der an Vortagen gezählten Zeit; sonst nur heutige Tick-Punkte. */
+function kartePunkteHeute(k){
+  const tid=aktuelleTagId();
   const laeuftId = S.fokus ? S.fokus.karteId : null;
-  const zg = (S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
-  S.karten.forEach(k=>{
-    if(k.domain!==dom) return;
-    const erl = k.status==='erledigt' && k.tagId===tid;
-    const laeuft = k.id===laeuftId && k.status==='offen';
-    // Mini-6b B: per Timer reaktivierte Karte (heute gebucht) behält ihre Punkte im Tages-Tally,
-    // auch wenn der Timer gerade pausiert ist (tagId-Gate verhindert Doppelzählung an Folgetagen).
-    const reaktiviert = k.status==='offen' && k.punkteOverride!=null && k.tagId===tid;
-    // V1.1: heute getrackte (auch pausierte) offene Karte zählt ihre Punkte live —
-    // getrackte Zeit fließt sofort in den Tages-Tally, nicht erst beim Abhaken.
-    const gearbeitet = k.status==='offen' && k.punkteOverride==null && heuteInvestiertMin(k)>0;
-    if(erl || laeuft || reaktiviert || gearbeitet){
-      let pk = kartePunkte(k);
-      // V1.1: bei mehrtägigen Aufgaben die an Vortagen bereits gezählte Zeit abziehen
-      // (Basis = getrackte Minuten bei Tagesstart) → kein Doppelzählen über Tage.
-      if(k.punkteOverride==null && S.tag && S.tag.istMinutenStart){
-        const basisMin=num(S.tag.istMinutenStart[k.id],0);
-        if(basisMin>0 && num(k.istSek)/60 > basisMin) pk -= punkteFuerZeit(k, basisMin)*zg;
-      }
-      p += Math.max(0, pk); return;
-    }
-    // A3: heute getickte Tick-Karten (Counter/Timer) zählen nur ihre Tick-Punkte
-    if(num(k.ticksHeute)>0 && istTickKarte(k)) p+=tickPunkte(k);
-  });
+  const erl = k.status==='erledigt' && k.tagId===tid;
+  const laeuft = k.id===laeuftId && k.status==='offen';
+  const reaktiviert = k.status==='offen' && k.punkteOverride!=null && k.tagId===tid;
+  const gearbeitet = k.status==='offen' && k.punkteOverride==null && heuteInvestiertMin(k)>0;
+  if(!(erl || laeuft || reaktiviert || gearbeitet)){
+    return (num(k.ticksHeute)>0 && istTickKarte(k)) ? tickPunkte(k) : 0;
+  }
+  let pk = kartePunkte(k);
+  if(k.punkteOverride==null && S.tag && S.tag.istMinutenStart){
+    const basisMin=num(S.tag.istMinutenStart[k.id],0);
+    if(basisMin>0 && num(k.istSek)/60 > basisMin) pk -= punkteFuerZeit(k, basisMin)*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
+  }
+  return Math.max(0, pk);
+}
+function tagesPunkteDomain(dom){
+  let p=0;
+  S.karten.forEach(k=>{ if(k.domain===dom) p+=kartePunkteHeute(k); });
   if(S.tag && Array.isArray(S.tag.log)) S.tag.log.forEach(e=>{ if(e.art==='schub' && e.domain===dom) p+=num(e.punkte); });
   return p;
 }
@@ -3520,6 +3545,158 @@ function scoreRingDomain(dom, label, farbe){
     '<div class="srd-lab">'+label+' <span class="'+(imSoll?'gut':'schlecht')+'">'+(imSoll?'▲':'▼')+'</span></div>'+
     '<div class="srd-sub">'+Math.round(pct*100)+'% · '+Math.round(p.istRate)+'/'+Math.round(p.sollRate)+' P/h</div></div>';   // A2
 }
+/* ══════════════════════════════════════════════════════════════════════
+   V2 · Belohnungsseite neu — Tages-Diagramm 5→5, KPI-Felder mit Farbverlauf,
+   Punkte-Aufschlüsselung, Stapel-100%-Balken. Alles Inline-SVG/HTML.
+   ══════════════════════════════════════════════════════════════════════ */
+const AN_WT_LANG=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];   // getDay-Index
+function belX(ts){ const d=new Date(ts); let hh=d.getHours()+d.getMinutes()/60+d.getSeconds()/3600; return hh<5?hh+24:hh; }   // 5..29
+function belFensterDatum(ts){ const d=new Date(ts); if(d.getHours()<5) d.setDate(d.getDate()-1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function belWochentag(datum){ return new Date(datum+'T12:00:00').getDay(); }
+function belUhr(x){ x=((x%24)+24)%24; const h=Math.floor(x), m=Math.round((x-h)*60); return String(h).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+/* Kumulative Punkte-Kurve eines 5→5-Fensters aus dem Intraday-Log. */
+function belTagKurve(fensterDatum, dom){
+  const ent=(S.intraday||[]).filter(e=>e.ts && num(e.punkte)>0 && (dom==='alle'||e.domaene===dom) && belFensterDatum(e.ts)===fensterDatum)
+    .slice().sort((a,b)=> a.ts<b.ts?-1:1);
+  let c=0; const pts=[{x:5,p:0}];
+  ent.forEach(e=>{ c+=num(e.punkte); pts.push({x:belX(e.ts), p:c}); });
+  return pts;
+}
+function belKurveWert(pts, x){ let v=0; for(let i=0;i<pts.length;i++){ if(pts[i].x<=x) v=pts[i].p; else break; } return v; }
+/* Farbverlauf rot(−1) → lila(0) → grün(+1). */
+function belGrad(v){ v=Math.max(-1,Math.min(1,isFinite(v)?v:0));
+  const R=[246,109,109],P=[185,138,247],G=[62,207,142], a=v<0?R:P, b=v<0?P:G, t=v<0?v+1:v;
+  const c=a.map((x,i)=>Math.round(x+(b[i]-x)*t)); return 'rgb('+c[0]+','+c[1]+','+c[2]+')'; }
+
+/* V2.1: Tages-Diagramm 5:00→5:00 mit 3 Heute- + 3 Wochentags-Ø-Linien + Ziel-Linie. */
+function belTagesDiagramm(){
+  const nowIso=jetztIso(), heuteF=belFensterDatum(nowIso), nowX=belX(nowIso), wt=belWochentag(heuteF);
+  const liveGes = k=>Math.max(0, tagesPunkteDomain(k));
+  function heuteKurve(dom){ const pts=belTagKurve(heuteF,dom);
+    const live=dom==='alle'?(liveGes('dfm')+liveGes('privat')):liveGes(dom);
+    const last=pts[pts.length-1].p; pts.push({x:nowX, p:Math.max(last,live)}); return pts; }
+  const kD=heuteKurve('dfm'), kP=heuteKurve('privat'), kG=heuteKurve('alle');
+  const fenster={}; (S.intraday||[]).forEach(e=>{ if(e.ts && num(e.punkte)>0) fenster[belFensterDatum(e.ts)]=true; });
+  const wtF=Object.keys(fenster).filter(fd=>fd!==heuteF && belWochentag(fd)===wt);
+  function wtAvg(dom){ if(wtF.length<2) return null; const out=[];
+    for(let x=5;x<=29;x+=0.5){ const vals=wtF.map(fd=>belKurveWert(belTagKurve(fd,dom),x)); out.push({x, p: vals.reduce((a,b)=>a+b,0)/vals.length}); } return out; }
+  const wD=wtAvg('dfm'), wP=wtAvg('privat'), wG=wtAvg('alle');
+  const ziel=tagesZielDomain('dfm')+tagesZielDomain('privat');
+  const heuteGes=kG[kG.length-1].p, std=Math.max(0.02, nowX-5), pace=heuteGes/std;
+  const zielX = pace>0 ? 5+ziel/pace : null;
+  let maxY=ziel*1.05; [kD,kP,kG,wD,wP,wG].forEach(s=>{ if(s) s.forEach(pt=>{ if(pt.p>maxY) maxY=pt.p; }); }); maxY=(maxY||10)*1.08;
+  const W=320,H=176,pL=8,pR=8,pT=12,pB=20;
+  const X=x=>pL+((x-5)/24)*(W-pL-pR), Y=p=>pT+(1-p/maxY)*(H-pT-pB);
+  function poly(pts,color,width,dash,clip){ if(!pts||!pts.length) return '';
+    const seg=clip?pts.filter(p=>p.x<=nowX+0.001):pts; if(seg.length<1) return '';
+    const d=seg.map((p,i)=>(i?'L':'M')+X(p.x).toFixed(1)+' '+Y(p.p).toFixed(1)).join(' ');
+    return '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+width+'"'+(dash?' stroke-dasharray="'+dash+'" opacity="0.5"':'')+' stroke-linejoin="round" stroke-linecap="round"/>'; }
+  let g='';
+  [5,11,17,23,29].forEach(hx=>{ const x=X(hx).toFixed(1); g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--line)" stroke-width="0.5" opacity=".5"/><text x="'+x+'" y="'+(H-6)+'" text-anchor="middle" font-size="8" fill="var(--mut2)">'+(hx%24)+'</text>'; });
+  g+='<line x1="'+pL+'" y1="'+Y(ziel).toFixed(1)+'" x2="'+(W-pR)+'" y2="'+Y(ziel).toFixed(1)+'" stroke="var(--mut2)" stroke-width="0.7" stroke-dasharray="2 3"/><text x="'+(W-pR)+'" y="'+(Y(ziel)-2).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">Ziel '+Math.round(ziel)+'</text>';
+  g+=poly(wD,'var(--blue)',1.4,'4 3')+poly(wP,'var(--warn)',1.4,'4 3')+poly(wG,'#f08c4b',1.4,'4 3');
+  g+=poly(kD,'var(--blue)',2,null,true)+poly(kP,'var(--warn)',2,null,true)+poly(kG,'#f08c4b',2.4,null,true);
+  if(zielX!=null && zielX<=29){ const x=X(zielX).toFixed(1); g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--ok)" stroke-width="1.4" stroke-dasharray="3 2"/><text x="'+x+'" y="'+(pT+8)+'" text-anchor="middle" font-size="8" fill="var(--ok)">🎯 ~'+belUhr(zielX)+'</text>'; }
+  else { g+='<text x="'+(W-pR-2)+'" y="'+(pT+8)+'" text-anchor="end" font-size="8" fill="var(--bad)">🎯 außer Reichweite ▸</text>'; }
+  const legende='<div class="an-legend"><span><i style="background:var(--blue)"></i>DFM</span><span><i style="background:var(--warn)"></i>Privat</span><span><i style="background:#f08c4b"></i>Gesamt</span><span style="color:var(--mut2)">— heute · - - Ø '+AN_WT_LANG[wt]+'</span></div>';
+  const hint = wtF.length<2 ? '<div class="stathint">Wochentags-Ø sammelt noch ('+wtF.length+'/2 '+AN_WT_LANG[wt]+'e).</div>' : '';
+  return '<div class="card"><h3>Tagesverlauf · 5→5 Uhr</h3><svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>'+legende+hint+'</div>';
+}
+
+/* V2.2: KPI-Felder mit Farbverläufen. */
+function belKpiFelder(){
+  const zielD=tagesZielDomain('dfm'), zielP=tagesZielDomain('privat'), ziel=zielD+zielP;
+  const pD=Math.round(tagesPunkteDomain('dfm')), pP=Math.round(tagesPunkteDomain('privat')), pGes=pD+pP;
+  const paceD=paceDomain('dfm').istRate, paceP=paceDomain('privat').istRate;
+  const dz=v=>v>=0?'+'+Math.round(v):''+Math.round(v);
+  // Reihe 1: ein Feld, intern DFM | Privat
+  let h='<div class="belkpi-r1"><div class="belkpi-col dfm"><div class="bk-h">DFM</div>'+
+      '<div class="bk-row"><b>'+pD+'</b> P · <b>'+Math.round(paceD)+'</b> P/h · Δ '+dz(pD-zielD)+'</div></div>'+
+    '<div class="belkpi-col priv"><div class="bk-h">Privat</div>'+
+      '<div class="bk-row"><b>'+pP+'</b> P · <b>'+Math.round(paceP)+'</b> P/h · Δ '+dz(pP-zielP)+'</div></div></div>';
+  // Reihe 2: drei Verlaufs-Felder
+  const nowIso=jetztIso(), heuteF=belFensterDatum(nowIso), nowX=belX(nowIso), wt=belWochentag(heuteF);
+  const fenster={}; (S.intraday||[]).forEach(e=>{ if(e.ts&&num(e.punkte)>0) fenster[belFensterDatum(e.ts)]=true; });
+  const wtF=Object.keys(fenster).filter(fd=>fd!==heuteF && belWochentag(fd)===wt);
+  const wtBei = wtF.length? wtF.map(fd=>belKurveWert(belTagKurve(fd,'alle'),nowX)).reduce((a,b)=>a+b,0)/wtF.length : null;
+  // 1) Noch benötigte Punkte (Verlauf: heute vs Wochentags-Ø zur selben Uhrzeit)
+  const noch=Math.max(0, ziel-pGes);
+  let s1=0; if(wtBei!=null && wtBei>0) s1=Math.max(-1,Math.min(1,(pGes-wtBei)/Math.max(1,wtBei)));
+  // 2) Benötigter Pace bis 22:00
+  const nowH=new Date(nowIso).getHours()+new Date(nowIso).getMinutes()/60;
+  const hBis22=Math.max(0.25, 22-nowH);
+  const needPace = noch/hBis22, ownPace=(pGes)/Math.max(0.25,(nowX-5));
+  let s2 = ownPace>0 ? Math.max(-1,Math.min(1,(ownPace-needPace)/Math.max(1,needPace))) : (needPace<=0?1:-1);
+  if(noch<=0) s2=1;
+  // 3) Aufgaben erledigt vs reingekommen heute
+  const tid=aktuelleTagId();
+  const erlAuf=S.karten.filter(k=>k.status==='erledigt'&&k.tagId===tid&&kartenArt(k)==='Aufgabe').length;
+  const reinAuf=S.karten.filter(k=>k.erstelltTs && belFensterDatum(k.erstelltTs)===heuteF && kartenArt(k)==='Aufgabe').length;
+  const dAuf=erlAuf-reinAuf; let s3 = dAuf>2?1 : dAuf<-2?-1 : dAuf/2*0.5;   // −2..+2 = lila-Bereich
+  const feld=(val,sub,score)=>'<div class="belkpi-v" style="background:linear-gradient(180deg,'+belGrad(score)+'22, transparent);border-color:'+belGrad(score)+'55"><b style="color:'+belGrad(score)+'">'+val+'</b><span>'+sub+'</span></div>';
+  h+='<div class="belkpi-r2">'+
+    feld(noch>0?Math.round(noch):'✓', 'noch nötig', s1)+
+    feld((noch<=0?'0':Math.round(needPace)), 'P/h bis 22:00', s2)+
+    feld(dz(dAuf), 'erledigt−rein', s3)+'</div>';
+  return '<div class="card"><h3>Heute</h3>'+h+'</div>';
+}
+
+/* V2.3: Punkte-Aufschlüsselung (DFM-Projekte / Private Routinen / Private Aufgaben). */
+function belAufschluesselung(){
+  const gesamt=Math.max(1, tagesPunkteDomain('dfm')+tagesPunkteDomain('privat'));
+  function ph(pkt,min){ return min>0.5 ? (pkt/(min/60)) : 0; }
+  function karteZeile(k, offen){
+    const pkt=kartePunkteHeute(k), min=heuteInvestiertMin(k);
+    if(pkt<=0 && min<=0) return '';
+    return '<div class="aufl-k"><span class="nm">'+esc(k.titel||'(ohne Titel)')+'</span>'+
+      '<span class="v">'+Math.round(pkt)+' P · '+Math.round(ph(pkt,min))+' P/h · '+Math.round(pkt/gesamt*100)+'%</span></div>';
+  }
+  // Gruppen bauen
+  const groups=[];
+  // DFM-Projekte
+  const dfmK=S.karten.filter(k=>k.domain==='dfm' && (kartePunkteHeute(k)>0||heuteInvestiertMin(k)>0));
+  const proj={}; dfmK.forEach(k=>{ const p=k.projekt||'(ohne Projekt)'; (proj[p]=proj[p]||[]).push(k); });
+  Object.keys(proj).sort().forEach(p=>groups.push({key:'dfm:'+p, label:'DFM · '+p, karten:proj[p]}));
+  // Private Routinen + Aufgaben
+  const prR=S.karten.filter(k=>k.domain==='privat' && k.rhythmus && (kartePunkteHeute(k)>0||heuteInvestiertMin(k)>0));
+  const prA=S.karten.filter(k=>k.domain==='privat' && !k.rhythmus && (kartePunkteHeute(k)>0||heuteInvestiertMin(k)>0));
+  if(prR.length) groups.push({key:'priv:rout', label:'Privat · Routinen', karten:prR});
+  if(prA.length) groups.push({key:'priv:auf', label:'Privat · Aufgaben', karten:prA});
+  let h='<div class="card"><h3>Punkte-Aufschlüsselung</h3>';
+  if(!groups.length){ h+='<p class="d" style="color:var(--mut2)">Heute noch keine Punkte gesammelt.</p></div>'; return h; }
+  groups.forEach(gr=>{
+    const gp=gr.karten.reduce((a,k)=>a+kartePunkteHeute(k),0);
+    const gm=gr.karten.reduce((a,k)=>a+heuteInvestiertMin(k),0);
+    const auf=S.ui.auflAuf&&S.ui.auflAuf[gr.key];
+    h+='<div class="aufl-g"><div class="aufl-gh" data-aufltoggle="'+gr.key+'"><span class="caret">'+(auf?'▾':'▸')+'</span>'+
+      '<span class="nm">'+esc(gr.label)+'</span><span class="v">'+Math.round(gp)+' P · '+Math.round(ph(gp,gm))+' P/h · '+Math.round(gp/gesamt*100)+'%</span></div>';
+    if(auf){ h+='<div class="aufl-body">'+gr.karten.slice().sort((a,b)=>kartePunkteHeute(b)-kartePunkteHeute(a)).map(k=>karteZeile(k)).join('')+'</div>'; }
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+
+/* V2.4: Stapel-100%-Segmentbalken. */
+function belStapelBalken(){
+  const seg=[['erl','#3ecf8e','erledigt/bearbeitet'],['muss','#f66d6d','offen muss'],['sk','#f2b84b','offen soll/kann'],['freeze','#4f8ef7','wartet'],['idee','#b98af7','idee']];
+  let h='<div class="card"><h3>Stapel-Übersicht</h3>';
+  h+='<div class="stbar-leg">'+seg.map(s=>'<span><i style="background:'+s[1]+'"></i>'+s[2]+'</span>').join('')+'</div>';
+  S.stapel.forEach(st=>{
+    const ks=stapelKarten(st); if(!ks.length) return;
+    const c={erl:0,muss:0,sk:0,freeze:0,idee:0};
+    ks.forEach(k=>{ if(k.status==='erledigt' || (k.letzteBearbeitung&&String(k.letzteBearbeitung).slice(0,10)===heuteApp() && k.status!=='offen')) { c.erl++; return; }
+      if(k.freeze){ c.freeze++; return; }
+      if(k.status==='erledigt'){ c.erl++; return; }
+      const pr=k.prioritaet; if(pr==='muss') c.muss++; else if(pr==='idee') c.idee++; else c.sk++; });
+    const tot=ks.length;
+    let bar=''; seg.forEach(s=>{ const n=c[s[0]]; if(!n) return; const pct=n/tot*100;
+      bar+='<i style="width:'+pct.toFixed(1)+'%;background:'+s[1]+'" title="'+s[2]+': '+n+'">'+(pct>=8?Math.round(pct)+'%':'')+'</i>'; });
+    h+='<div class="stbar-row"><div class="stbar-nm">'+esc(st.name)+' <span>'+tot+'</span></div><div class="stbar">'+bar+'</div></div>';
+  });
+  return h+'</div>';
+}
+
 function renderBelohnung(){
   rangCacheBauen();
   let h='';
@@ -3539,14 +3716,9 @@ function renderBelohnung(){
   // ── B1: Einstieg Detailanalyse ───────────────────────────────────
   h+='<button class="btn prim" data-analyse="1" style="width:100%;margin:0 0 14px;display:flex;align-items:center;justify-content:center;gap:8px">📊 Detailanalyse öffnen</button>';
 
-  // ── Stat 1 (A1): zwei Domänen-Score-Ringe (DFM gold · Privat grün) + Pace ──
-  h+='<div class="card"><h3>Heute</h3><div class="statring2">'+
-      scoreRingDomain('dfm','DFM','var(--warn)')+
-      scoreRingDomain('privat','Privat','var(--ok)')+'</div>'+
-    '<div class="stathint">'+(tagOffen()?('Tag läuft · '+tagStundenVergangen().toFixed(1)+' h · Soll = Ziel × Tagesanteil'):'kein Tag offen')+'</div></div>';
-
-  // ── Diagramme (Punkt 2): Tagesverlauf/Woche/Monat + Kennzahlen + Aufschlüsselung ──
-  h+=diagrammHtml();
+  // ── V2.1 Tages-Diagramm 5→5 + V2.2 KPI-Felder ────────────────────
+  h+=belTagesDiagramm();
+  h+=belKpiFelder();
 
   // ── Stat 3: Zeitverteilung je Domäne + Projekt (heute) ───────────
   const zh=tagesZeitAggregat(aktuelleTagId()); const gesZ=zh.dfm+zh.privat;
@@ -3560,6 +3732,9 @@ function renderBelohnung(){
   }
   h+='</div>';
 
+  // ── V2.3 Punkte-Aufschlüsselung (aufklappbar) ────────────────────
+  h+=belAufschluesselung();
+
   // ── Stat 4: Routinen-Erfüllungsquote + Streaks ───────────────────
   let erf=0, verp=0; S.historie.forEach(x=>(x.routinenBilanz||[]).forEach(r=>{ if(r.entschuldigt) return; if(r.verpasst) verp++; else erf++; }));
   // erfüllte = in Historie als nicht-verpasst gebucht; zusätzlich heute erledigte Routinen
@@ -3571,10 +3746,8 @@ function renderBelohnung(){
   routKarten.sort((a,b)=>num(b.streak)-num(a.streak)).slice(0,8).forEach(k=>{ h+='<div class="kv"><span>'+esc(k.titel)+'</span><b>🔥 '+num(k.streak)+'</b></div>'; });
   h+='</div>';
 
-  // ── Stat 5: Stapel-KPI ───────────────────────────────────────────
-  h+='<div class="card"><h3>Stapel-KPI</h3>';
-  S.stapel.forEach(st=>{ const kpi=stapelKpi(stapelKarten(st)); h+='<div class="kv"><span>'+esc(st.name)+'</span><b>'+kpi.offen+'/'+kpi.alle+' · '+kpi.punkte+' P'+(kpi.avgMin?' · Ø'+kpi.avgMin+'′':'')+'</b></div>'; });
-  h+='</div>';
+  // ── V2.4 Stapel-100%-Segmentbalken (ersetzt die alte Stapel-KPI) ──
+  h+=belStapelBalken();
 
   // ── Shop — nächste Stufen (§7 D7, voller Port) ───────────────────
   h+='<div class="card"><h3>Shop — nächste Stufen</h3><p class="d">Konto '+Math.round(konto())+' P (Wohlstand − Ausgaben). Der Inhalt der nächsten Stufe bleibt „???" bis zum Freischalten.</p>'+shopHtml()+'</div>';
@@ -3941,6 +4114,7 @@ el('belohnungBody').addEventListener('click', e=>{
   const pk=e.target.closest('[data-statpick]'); if(pk){ S.ui.statDatum=pk.dataset.statpick; S.ui.statZeitraum='tag'; saveUi(); renderBelohnung(); return; }
   const kf=e.target.closest('[data-kauf]'); if(kf){ kaufen(kf.dataset.kauf); return; }
   if(e.target.closest('[data-analyse]')){ oeffneAnalyse(); return; }   // B1
+  const at=e.target.closest('[data-aufltoggle]'); if(at){ const k=at.dataset.aufltoggle; S.ui.auflAuf=S.ui.auflAuf||{}; S.ui.auflAuf[k]=!S.ui.auflAuf[k]; saveUi(); renderBelohnung(); return; }   // V2.3
 });
 el('belohnungBody').addEventListener('change', e=>{
   if(e.target.id==='statDatum'){ S.ui.statDatum=e.target.value||null; saveUi(); renderBelohnung(); }

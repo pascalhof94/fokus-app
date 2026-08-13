@@ -12,7 +12,7 @@ function extract(name){
 }
 var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','basisRate','rate','akkuRate',
   'tickSumme','punkteFuerZeit','zeitquelleMin','subBonusErreicht','kartePunkte','kartenArt','laufendeSek',
-  'heuteInvestiertMin','akkuLive','aktuelleTagId','tagOffen','tagesPunkteDomain','tagesPunkteLive',
+  'heuteInvestiertMin','akkuLive','aktuelleTagId','tagOffen','kartePunkteHeute','tagesPunkteDomain','tagesPunkteLive',
   'punkteHeuteAnzeige','tagesZielDomain','wachTagAnteil','punkteHeuteDomain','istTickKarte','tickPunkte',
   'tagStundenVergangen','paceWerte','imTagesstrom','energieBatterie','tagesStreakStand',
   'fokusKarte','untermenge'];
