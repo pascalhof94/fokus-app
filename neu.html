@@ -83,22 +83,29 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #statusbar .sb-akku{font-size:11px;font-weight:800;color:var(--ok);min-width:30px}
 #statusbar .sb-mid{flex:1;min-width:0}
 #statusbar .sb-bar{position:relative;height:9px;border-radius:5px;background:#0a0f1a;overflow:hidden}
-#statusbar .sb-bar .ist{position:absolute;left:0;top:0;bottom:0;background:var(--purple);border-radius:5px}
-#statusbar .sb-bar .paceo{position:absolute;top:0;bottom:0;background:rgba(242,184,75,.55)}
+/* S1 (v1.3.2): Ist zweifarbig gestapelt (DFM blau · Privat gelb), Soll-Layer
+   8:30–22:00-Fenster in Rot — Fläche bei Rückstand, schmaler Marker bei Vorsprung */
+#statusbar .sb-bar .ist{position:absolute;top:0;bottom:0}
+#statusbar .sb-bar .ist.dfm{left:0;background:var(--blue)}
+#statusbar .sb-bar .ist.privat{background:var(--warn)}
+#statusbar .sb-bar .soll{position:absolute;top:0;bottom:0;background:rgba(246,109,109,.55)}
+#statusbar .sb-bar .sollmark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--bad)}
 #statusbar .sb-bar .mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--blue);opacity:.8}
 #statusbar .sb-info{display:flex;gap:8px;font-size:9.5px;color:var(--mut);margin-top:1px;white-space:nowrap;overflow:hidden}
 #statusbar .sb-info b{color:var(--ok)}
-/* V2: Ø IST-P/Std je Domäne (Overall neutral · DFM gold · Privat grün) */
+/* S2 (v1.3.2): erreichte Punkte je Domäne (DFM blau · Privat gelb) + Soll-jetzt rot */
 #statusbar .sb-info .sbph{color:var(--mut2)}
 #statusbar .sb-info .sbph b{margin-left:2px;font-weight:800}
-#statusbar .sb-info .sbph.o b{color:var(--txt)}
-#statusbar .sb-info .sbph.d b{color:var(--warn)}
-#statusbar .sb-info .sbph.p b{color:var(--ok)}
+#statusbar .sb-info .sbph.d b{color:var(--blue)}
+#statusbar .sb-info .sbph.p b{color:var(--warn)}
+#statusbar .sb-info .sbph.s b{color:var(--bad)}
 #statusbar .sb-info .wohl{color:var(--warn,#f2b84b)}
 #statusbar .sb-pace{flex:none;text-align:center;line-height:1}
 #statusbar .sb-pace .pf{font-size:16px;font-weight:800}
 #statusbar .sb-pace .z{font-size:8px;color:var(--mut2)}
-#statusbar .sb-streak{flex:none;font-size:12px;font-weight:800;color:#f2b84b}
+/* S3 (v1.3.2): ersetzt das bisherige Streak-Feld — Streak-Logik/-Daten bleiben
+   intern erhalten (S.tag.streak, tagesStreakStand), nur aus der Leiste entfernt */
+#statusbar .sb-level{flex:none;font-size:11px;font-weight:800;color:var(--purple);white-space:nowrap}
 #statChart{padding:0 var(--s2) 6px}
 #statChart[hidden]{display:none}
 
@@ -666,11 +673,11 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 <div id="statusbar" hidden>
   <div class="sb-batt"><span class="batt"><span class="seg frei" id="sAkkuFrei"></span><span class="seg verpl" id="sAkkuVerplant"></span></span><span class="sb-akku" id="sAkkuPct">–%</span></div>
   <div class="sb-mid">
-    <div class="sb-bar"><span class="ist" id="sBarIst"></span><span class="paceo" id="sBarPaceO"></span><span id="sBarMarks"></span></div>
-    <div class="sb-info"><span class="sbph o">Ø<b id="sPhAll">0</b></span><span class="sbph d">DFM<b id="sPhDfm">0</b></span><span class="sbph p">Pv<b id="sPhPrv">0</b></span><span class="wohl" id="sWohl"></span><span id="sZiel"></span></div>
+    <div class="sb-bar"><span class="ist dfm" id="sBarIstD"></span><span class="ist privat" id="sBarIstP"></span><span class="soll" id="sBarSoll"></span><span class="sollmark" id="sBarSollMark"></span><span id="sBarMarks"></span></div>
+    <div class="sb-info"><span class="sbph d">DFM<b id="sPhDfm">0</b></span><span class="sbph p">Pv<b id="sPhPrv">0</b></span><span class="sbph s">Soll<b id="sPhSoll">0</b></span><span class="wohl" id="sWohl"></span><span id="sZiel"></span></div>
   </div>
   <div class="sb-pace"><div class="pf" id="sPfeil">→</div><div class="z" id="sPaceZahl">P/h</div></div>
-  <div class="sb-streak" id="sStreak">🔥0</div>
+  <div class="sb-level" id="sLevel">Lv 1 · 0 P</div>
 </div>
 <div id="fkNav" hidden></div>
 <div id="statChart" hidden></div>
@@ -751,9 +758,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.3.1';                    // Datenvertrag/Sync-appVersion — 1.3.1 (Hotfix, keine Vertragsfelder geändert; 1.x-kompatibel)
-const UI_VERSION = 'v1.3.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-13-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.3.2';                    // Datenvertrag/Sync-appVersion — 1.3.2 (Hotfix, reine Anzeige-Logik, keine Vertragsfelder geändert; 1.x-kompatibel)
+const UI_VERSION = 'v1.3.2';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-13-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -1873,9 +1880,10 @@ function naechsterKaufHint(){
     if(pr!=null && (best==null || pr<best.preis)) best={ kat:kk, preis:pr }; });
   return best;
 }
-/* Statusleiste (v1.1, v0.38-Port): 3-teilige Energie-Batterie · Tages-
-   Fortschrittsbalken (lila Ist / orange Soll-Tempo / blaue Kauf-Schwellen) ·
-   Pace-Pfeil (7 Zonen) · Tages-Streak. Punkte heute nie negativ. */
+/* Statusleiste (v1.3.2, S1–S3): 3-teilige Energie-Batterie · Tagesziel-
+   Fortschrittsbalken (Ist DFM blau + Privat gelb gestapelt / Soll-Layer 8:30–22:00
+   rot / blaue Kauf-Schwellen) · Pace-Pfeil (7 Zonen) · Level + Punktekonto.
+   Punkte heute nie negativ. */
 function renderStatusbar(){
   const bar=el('statusbar'); if(!bar) return;
   if(!tagOffen()){ bar.hidden=true; const c=el('statChart'); if(c){ c.hidden=true; } return; }
@@ -1886,25 +1894,32 @@ function renderStatusbar(){
   el('sAkkuFrei').style.width=eb.gruen.toFixed(1)+'%';
   el('sAkkuVerplant').style.width=eb.gelb.toFixed(1)+'%';
   el('sAkkuPct').textContent = eb.akku!=null ? Math.round(eb.akku)+'%' : '–%';
-  // V2: Ø IST-P/Std je Domäne (Overall · DFM · Privat) statt Gesamtpunkte
   const istHeute=punkteHeuteAnzeige();
-  el('sPhAll').textContent=Math.round(paceWerte().istRate);
-  el('sPhDfm').textContent=Math.round(paceDomain('dfm').istRate);
-  el('sPhPrv').textContent=Math.round(paceDomain('privat').istRate);
   el('sWohl').textContent='👛 '+Math.round(konto());   // M2: Kontostand (Saldo verdient−ausgegeben), konsistent zur Belohnungsseite
   const nk=naechsterKaufHint(), k=(S.belohnung?konto():0);
   el('sZiel').textContent = nk
     ? (k>=nk.preis ? BELOHNUNG[nk.kat].icon+' Kauf frei!' : BELOHNUNG[nk.kat].icon+' noch '+Math.round(nk.preis-k))
     : '';
-  // Tages-Fortschrittsbalken (A1): 100% = volles Gesamt-Tagesziel (DFM+Privat),
-  // lila = Ist, orange = Soll-Tempo (Anteil des wachen Tages), blau = Kauf-Schwellen.
-  const zielGes=Math.max(1, tagesZielDomain('dfm')+tagesZielDomain('privat'));
-  const istPct=Math.min(100, istHeute/zielGes*100);
-  const pacePct=Math.min(100, wachTagAnteil()*100);   // Soll-Tempo = Tagesanteil
-  el('sBarIst').style.width=istPct.toFixed(1)+'%';
-  const o=el('sBarPaceO'); const minPct=Math.min(istPct,pacePct);
-  o.style.left=minPct.toFixed(1)+'%'; o.style.width=Math.max(0,pacePct-minPct).toFixed(1)+'%';
-  // Kauf-Schwellen als Marken (kumulativ, relativ zum vollen Tagesziel)
+  // S1 (v1.3.2): Balkenlänge = Tagesziel (DFM+Privat, Wochenende via H4.3-Regel:
+  // belZielGesamt/belIstDfm rechnen Sa/So kombiniert gg. 3000 DFM). Ist zweifarbig
+  // gestapelt (DFM blau · Privat gelb). Soll-Layer = reines 8:30–22:00-Uhrfenster
+  // (sbFensterAnteil) — Buchungen außerhalb zählen unverändert voll in Ist/Statistik.
+  const zielGes=Math.max(1, belZielGesamt());
+  const pDfm=Math.max(0, belIstDfm()), pPriv=Math.max(0, tagesPunkteDomain('privat'));
+  let pctD=pDfm/zielGes*100, pctP=pPriv/zielGes*100;
+  if(pctD+pctP>100){ const sc=100/(pctD+pctP); pctD*=sc; pctP*=sc; }   // Balken bleibt bei Überschuss voll, Anteil bleibt gewahrt
+  el('sBarIstD').style.width=pctD.toFixed(1)+'%';
+  el('sBarIstP').style.left=pctD.toFixed(1)+'%'; el('sBarIstP').style.width=pctP.toFixed(1)+'%';
+  const istTotalPct=pctD+pctP, sollPct=Math.min(100, sbFensterAnteil()*100);
+  const sollEl=el('sBarSoll'), sollMk=el('sBarSollMark');
+  if(istTotalPct>=sollPct){   // Vorsprung: nur schmaler Marker innerhalb der Ist-Füllung
+    sollEl.style.width='0%';
+    sollMk.style.left=sollPct.toFixed(1)+'%'; sollMk.style.display='block';
+  } else {                    // Rückstand: rote Fläche vom Ist-Ende bis zur Soll-Position
+    sollEl.style.left=istTotalPct.toFixed(1)+'%'; sollEl.style.width=(sollPct-istTotalPct).toFixed(1)+'%';
+    sollMk.style.display='none';
+  }
+  // Kauf-Schwellen als Marken (kumulativ, relativ zum vollen Tagesziel, unverändert)
   let marks='';
   if(S.belohnung){
     const bankOhneHeute=k-istHeute; let kum=0;
@@ -1914,7 +1929,11 @@ function renderStatusbar(){
     });
   }
   el('sBarMarks').innerHTML=marks;
-  // Pace-Pfeil (7 Zonen relativ zum Soll) + Ø-P/Std-Anzeige (A2)
+  // S2 (v1.3.2): Beschriftung unter der Leiste — Ist DFM/Privat (Punkte) + Soll-jetzt (rot)
+  el('sPhDfm').textContent=Math.round(pDfm);
+  el('sPhPrv').textContent=Math.round(pPriv);
+  el('sPhSoll').textContent=Math.round(zielGes*sbFensterAnteil());
+  // Pace-Pfeil (7 Zonen relativ zum Soll) + Δ-P/Std-Anzeige (A2, unverändert)
   const pw=paceWerte();
   const z1=num(S.settings.pfeilZone1,5), z2=num(S.settings.pfeilZone2,15), z3=num(S.settings.pfeilZone3,40);
   let idx=3, farbe='var(--mut)';
@@ -1926,8 +1945,8 @@ function renderStatusbar(){
   const dr=Math.round(pw.deltaRate);   // Δ Overall-Ist-Rate zur SOLL-Rate (Pfeil trackt nur Overall)
   el('sPaceZahl').textContent=(dr>=0?'+':'')+dr+' P/h';
   el('sPaceZahl').style.color=farbe;
-  // Streak
-  el('sStreak').textContent='🔥'+tagesStreakStand(true);
+  // S3 (v1.3.2): Level + Punktekonto statt Streak (Streak bleibt intern/in Historie erhalten)
+  el('sLevel').textContent='Lv '+avatarStufe()+' · '+Math.round(konto())+' P';
   // ausgeklappte Live-Kurve mitziehen
   if(!el('statChart').hidden && typeof renderStatChart==='function') renderStatChart();
   }catch(e){ /* Statusleiste bleibt sichtbar, auch wenn ein Wert scheitert */ }
@@ -1989,6 +2008,14 @@ function tagesPunkteLive(){
    linear ab Tagesstart) für die Pace. */
 function tagesZielDomain(dom){ return dom==='dfm' ? num(S.settings.tagesZielDfm,5000) : num(S.settings.tagesZielPrivat,3000); }
 function wachTagAnteil(){ return Math.max(0, Math.min(1, tagStundenVergangen()/16)); }
+/* S1 (v1.3.2): Soll-Kurve der Statusleiste läuft rein nach Uhrzeit 8:30–22:00 Uhr
+   (unabhängig vom manuellen Tagesstart) — nur für die Anzeige der Soll-Linie im
+   Fortschrittsbalken; Punkte-Buchungen/Statistiken zählen unverändert ganztägig,
+   auch außerhalb des Fensters. */
+function sbFensterAnteil(){
+  const d=new Date(), h=d.getHours()+d.getMinutes()/60+d.getSeconds()/3600;
+  return Math.max(0, Math.min(1, (h-8.5)/(22-8.5)));
+}
 function punkteHeuteDomain(dom){ return Math.max(0, tagesPunkteDomain(dom)); }
 /* Wohlstand live = eingefrorener Stand + heutiger (noch offener) Tag. */
 function wohlstandLive(){ return num(S.meta.wohlstand) + (tagOffen() ? tagesPunkteLive() : 0); }
@@ -4600,15 +4627,19 @@ function anFlowReihe(dom){
   Object.keys(trackedBy).forEach(d=>{ let n=0; Object.keys(trackedBy[d]).forEach(id=>{ const k=byId[id]; if(k && String(k.tagId||'').slice(0,10)!==d) n++; }); trackedOpen[d]=n; });
   return {created, done, geschoben, trackedOpen};
 }
-/* H3: Netto-Backlog-SVG mit 0-Anker (0 immer Rand je Vorzeichen) + ≥10 Puffer. */
+/* H3: Netto-Backlog-SVG mit 0-Anker (0 immer Rand je Vorzeichen) + ≥10 Puffer.
+   S4 (v1.3.2): deutliche durchgezogene 0-Linie + blasse Rot-/Grünzone unter/über 0. */
 function anSvgBacklog(labels, vals){
   const W=320,H=110,pL=26,pR=8,pT=10,pB=18;
   let mn=Math.min.apply(null,[0].concat(vals)), mx=Math.max.apply(null,[0].concat(vals));
   if(mx>0) mx+=10; if(mn<0) mn-=10; if(mx-mn<10) mx=mn+10;
   const range=(mx-mn)||1, n=labels.length;
   const xAt=i=>pL+(n<2?(W-pL-pR)/2:i/(n-1)*(W-pL-pR)), yAt=v=>pT+(1-(v-mn)/range)*(H-pT-pB);
-  let g='<line x1="'+pL+'" y1="'+yAt(0).toFixed(1)+'" x2="'+(W-pR)+'" y2="'+yAt(0).toFixed(1)+'" stroke="var(--mut2)" stroke-width="0.8" stroke-dasharray="2 3"/>'+
-    '<text x="'+(pL-3)+'" y="'+(yAt(0)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">0</text>'+
+  const y0=yAt(0);
+  let g='<rect x="'+pL+'" y="'+pT+'" width="'+(W-pL-pR)+'" height="'+Math.max(0,y0-pT).toFixed(1)+'" fill="rgba(62,207,142,.09)"/>'+
+    '<rect x="'+pL+'" y="'+y0.toFixed(1)+'" width="'+(W-pL-pR)+'" height="'+Math.max(0,(H-pB)-y0).toFixed(1)+'" fill="rgba(246,109,109,.09)"/>'+
+    '<line x1="'+pL+'" y1="'+y0.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y0.toFixed(1)+'" stroke="var(--txt)" stroke-width="1.3"/>'+
+    '<text x="'+(pL-3)+'" y="'+(y0+3).toFixed(1)+'" text-anchor="end" font-size="8" font-weight="700" fill="var(--txt)">0</text>'+
     '<text x="'+(pL-3)+'" y="'+(yAt(mx)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+Math.round(mx)+'</text>'+
     (mn<0?'<text x="'+(pL-3)+'" y="'+(yAt(mn)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+Math.round(mn)+'</text>':'');
   let d=''; vals.forEach((v,i)=>{ d+=(i?'L':'M')+xAt(i).toFixed(1)+' '+yAt(v).toFixed(1)+' '; });
