@@ -161,8 +161,8 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .krow:last-child{margin-bottom:0}
 .krow.erledigt{opacity:.55}
 .krow .kgriff{flex:none;width:26px;display:flex;align-items:center;justify-content:center;color:var(--mut2);font-size:15px;cursor:grab;touch-action:none}
-.krow .ksort{flex:none;width:34px;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:0 3px}  /* A5 Sortier-Pfeile */
-.krow .ksort .sar{height:28px;border:1px solid var(--line);border-radius:6px;color:var(--txt);font-size:12px;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.krow .ksort{flex:none;width:40px;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:4px 4px}  /* A5/V1.2 Sortier-Pfeile — größere Tap-Ziele */
+.krow .ksort .sar{height:40px;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:14px;background:var(--bg);display:flex;align-items:center;justify-content:center;touch-action:manipulation}
 .krow .ksort .sar:active{background:var(--card2)}
 .krow .ksort .sar:active{background:var(--card2);color:var(--txt)}
 .krow .kcheck.ktick{font-size:22px;font-weight:800;color:var(--blue);background:transparent}  /* A3 Tick-Plus */
@@ -721,9 +721,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.2.0';                    // Datenvertrag/Sync-appVersion — 1.2.0: additiv `kommentarClaude` im Sync (1.x-kompatibel; 1.1.0-Pakete bleiben gültig)
+const VERSION = '1.2.1';                    // Datenvertrag/Sync-appVersion — 1.2.1 (V1: Live-Punkte-Fix, keine Vertragsfelder geändert; 1.x-kompatibel)
 const UI_VERSION = 'v1.2';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-11-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-08-13-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -1086,19 +1086,15 @@ function fokusZeitEinbuchen(){
 function fokusStarten(kid){
   const zk=S.karten.find(x=>x.id===kid);
   if(zk && zk.freeze){ toast('Karte ist eingefroren — erst auftauen'); return; }   // A4: Freeze blockt Timer
-  // Mini-6b B: erledigte Karte per Timer-Start reaktivieren — OHNE Storno. Status
-  // erledigt→offen, aber punkteOverride/istSek/tagId/Subs/Log bleiben unangetastet
-  // (Punkte zählen weiter, kein Reset). Untere Stapelansicht → „Bearbeitet heute".
-  let reaktiviert=false;
-  if(zk && zk.status==='erledigt'){ zk.status='offen'; reaktiviert=true; }
+  // V1.3: Timer-Start auf einer erledigten Karte öffnet IMMER ein frisches Duplikat
+  // (ersetzt das UP6b-„in-place wieder öffnen"). Ein Codepfad über karteNeuStarten.
+  if(zk && zk.status==='erledigt'){ karteNeuStarten(kid, {starten:true}); return; }
   if(S.fokus && S.fokus.karteId!==kid) fokusZeitEinbuchen();  // alten Fokus pausieren+buchen
   if(!S.fokus || S.fokus.karteId!==kid) S.fokus={ karteId:kid, laeuft:false, startMs:0, sessionSek:0 };
   S.fokus.laeuft=true; S.fokus.startMs=Date.now();
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
-  if(reaktiviert){ S.ui.aktivStapel='sys-bearbeitet'; saveKarten(); }   // untere Ansicht auf „Bearbeitet heute"
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
   saveFokus(); saveUi(); starteTicker(); renderAlles();
-  if(reaktiviert) toast('Wieder geöffnet — Timer läuft');
 }
 /* U1: die Fokus-Karte an Position 1 des aktiven Stapels (echte Umsortierung —
    manueller Modus, aktuelle Reihenfolge festschreiben, Ziel-Karte sortIndex 0). */
@@ -1282,7 +1278,9 @@ function sortiereStapel(ks, st){
   const dir=(so.richtung==='desc')?-1:1;
   const erl=k=>k.status==='erledigt'?1:0;   // Abgehakte ans Ende (§3.5)
   ks.sort((a,b)=>{
-    if(so.feld!=='letzteBearbeitung' && erl(a)!==erl(b)) return erl(a)-erl(b);   // A7: „Bearbeitet heute" rein nach Zeit
+    // V1.2: im manuellen Modus KEINE Zusatzregeln — die manuelle Reihenfolge gilt absolut
+    // (auch erledigte Karten bleiben, wo sie hingeschoben wurden). Sonst „erledigt ans Ende".
+    if(so.feld!=='letzteBearbeitung' && so.feld!=='manuell' && erl(a)!==erl(b)) return erl(a)-erl(b);
     if(so.feld==='manuell'){
       const sa=num(a.sortIndex&&a.sortIndex[st.id], 9e9), sb=num(b.sortIndex&&b.sortIndex[st.id], 9e9);
       if(sa!==sb) return sa-sb;
@@ -1314,10 +1312,10 @@ function karteSortieren(kid, dir, stapelId){
   const st=S.stapel.find(s=>s.id===stapelId); if(!st) return;
   const ks=stapelKarten(st); const i=ks.findIndex(k=>k.id===kid); if(i<0) return;
   const j=i+dir; if(j<0 || j>=ks.length) return;
-  st.sortierung={feld:'manuell', richtung:'asc'};
+  st.sortierung={feld:'manuell', richtung:'asc'};   // V1.2: manuelle Verschiebung schlägt Auto-Sortierung
   ks.forEach((k,idx)=>{ k.sortIndex=Object.assign({}, k.sortIndex); k.sortIndex[st.id]=idx+1; });
   const a=ks[i], b=ks[j], t=a.sortIndex[st.id]; a.sortIndex[st.id]=b.sortIndex[st.id]; b.sortIndex[st.id]=t;
-  saveKarten(); saveStapel(); renderStapel();
+  saveKarten(); saveStapel(); renderAlles();   // V1.2 Fix: aktive Ansicht neu zeichnen (auch Fokus-Liste, nicht nur Stapel-Tab)
 }
 /* §3.5 KPI: offen/alle · Punktesumme (offen=Prognose/Soll, erledigt=Ist) · Ø-Dauer */
 function stapelKpi(ks){
@@ -1923,6 +1921,7 @@ function tagOffen(){ return !!(S.tag && !S.tag.endeTs); }
 function tagesPunkteDomain(dom){
   const tid=aktuelleTagId(); let p=0;
   const laeuftId = S.fokus ? S.fokus.karteId : null;
+  const zg = (S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   S.karten.forEach(k=>{
     if(k.domain!==dom) return;
     const erl = k.status==='erledigt' && k.tagId===tid;
@@ -1930,7 +1929,19 @@ function tagesPunkteDomain(dom){
     // Mini-6b B: per Timer reaktivierte Karte (heute gebucht) behält ihre Punkte im Tages-Tally,
     // auch wenn der Timer gerade pausiert ist (tagId-Gate verhindert Doppelzählung an Folgetagen).
     const reaktiviert = k.status==='offen' && k.punkteOverride!=null && k.tagId===tid;
-    if(erl || laeuft || reaktiviert){ p+=kartePunkte(k); return; }
+    // V1.1: heute getrackte (auch pausierte) offene Karte zählt ihre Punkte live —
+    // getrackte Zeit fließt sofort in den Tages-Tally, nicht erst beim Abhaken.
+    const gearbeitet = k.status==='offen' && k.punkteOverride==null && heuteInvestiertMin(k)>0;
+    if(erl || laeuft || reaktiviert || gearbeitet){
+      let pk = kartePunkte(k);
+      // V1.1: bei mehrtägigen Aufgaben die an Vortagen bereits gezählte Zeit abziehen
+      // (Basis = getrackte Minuten bei Tagesstart) → kein Doppelzählen über Tage.
+      if(k.punkteOverride==null && S.tag && S.tag.istMinutenStart){
+        const basisMin=num(S.tag.istMinutenStart[k.id],0);
+        if(basisMin>0 && num(k.istSek)/60 > basisMin) pk -= punkteFuerZeit(k, basisMin)*zg;
+      }
+      p += Math.max(0, pk); return;
+    }
     // A3: heute getickte Tick-Karten (Counter/Timer) zählen nur ihre Tick-Punkte
     if(num(k.ticksHeute)>0 && istTickKarte(k)) p+=tickPunkte(k);
   });
@@ -1952,9 +1963,11 @@ function wohlstandLive(){ return num(S.meta.wohlstand) + (tagOffen() ? tagesPunk
 function tagesZeitAggregat(tid){
   const agg={ dfm:0, privat:0, projekte:{} };
   S.karten.forEach(k=>{
-    const zaehlt = (k.status==='erledigt' && k.tagId===tid) || (S.fokus && S.fokus.karteId===k.id && k.status==='offen');
-    if(!zaehlt) return;
-    const sek=istSekLive(k);
+    // V1.1: HEUTE getrackte Minuten jeder Karte (läuft, pausiert ODER erledigt) —
+    // heuteInvestiertMin zieht die Tagesbasis ab, zählt also nur die heutige Zeit
+    // (laufender Timer via istSekLive sofort inklusive).
+    const sek = heuteInvestiertMin(k) * 60;
+    if(sek<=0) return;
     agg[k.domain==='dfm'?'dfm':'privat'] += sek;
     const p = k.domain==='dfm' ? (k.projekt||'(ohne Projekt)') : 'Privat';
     agg.projekte[p]=(agg.projekte[p]||0)+sek;
@@ -2022,15 +2035,18 @@ function renderAlles(){
   else if(S.ui.tab==='einst') renderEinst();
 }
 /* 1-Sekunden-Ticker nur solange der Timer läuft — aktualisiert Text in-place. */
-let tickerId=null;
+let tickerId=null, _sekTakt=0;
 function starteTicker(){
   if(tickerId) return;
   tickerId=setInterval(()=>{
     if(!(S.fokus && S.fokus.laeuft)){ clearInterval(tickerId); tickerId=null; return; }
     if(S.tag){ S.tag.letzteAktivitaetTs=jetztIso(); }   // Aktivitäts-Stempel (Kanten §6)
     renderFokusleiste();
+    if(tagOffen()) renderStatusbar();                   // V1.1: Live-Punkte/-Minuten/-Pace in der Statusleiste sekündlich
     // Fokus-Tacho live nachziehen (Ring/Timer/Kennzahlen/Balken der angezeigten Karte)
     if(S.ui.tab==='fokus') fokusTacho(aktiveFokusKarte());
+    else if(S.ui.tab==='belohnung' && _sekTakt%5===0) renderBelohnung();   // V1.1: Belohnungsseite live (alle 5 s, Perf)
+    _sekTakt++;
   }, 1000);
 }
 
@@ -2069,7 +2085,7 @@ function tagStarten(akkuProzent){
   S.karten.forEach(k=>{
     if(k.rhythmus && routineFaellig(k, datum)){
       k.faelligkeit=datum; k.status='offen';
-      k.ticksHeute=0; k.istSek=0; k.tagId=null;                 // Tages-Ist 0, Historie bleibt
+      k.ticksHeute=0; k.istSek=0; k.tagId=null; k.punkteOverride=null;   // Tages-Ist 0 (V1.3: Override zurücksetzen), Historie bleibt
       untermenge(k.id).forEach(u=>u.done=false);
     }
   });
@@ -2592,11 +2608,15 @@ function logPunktEntfernen(k){
   for(let i=S.tag.log.length-1;i>=0;i--){ if(S.tag.log[i].itemId===k.id){ S.tag.log.splice(i,1); break; } }
   S.tag.erledigtHeute=Math.max(0, num(S.tag.erledigtHeute)-1);
 }
-/* U6-A6: erledigte (oder beliebige) Karte als frische, offene Vollkopie neu
-   starten — inkl. aller Unteraufgaben (neu, unabgehakt, neue App-IDs), ohne
-   airtableId (nächster Sync = Neuanlage), Ist/Punkte zurückgesetzt. Das
-   Original bleibt vollständig unangetastet (Statistik/Punkte/Zeiten bleiben). */
-function karteNeuStarten(kid){
+/* V1.3 (vereinheitlicht mit U6-A6): erledigte/beliebige Karte wieder öffnen =
+   IMMER ein frisches, offenes Duplikat — inkl. aller Unteraufgaben (neu,
+   unabgehakt, neue App-IDs), ohne airtableId (nächster Sync = Neuanlage),
+   Ist/Punkte/Override zurückgesetzt. Das Original bleibt vollständig erhalten
+   (Statistik/Punkte/Zeiten unangetastet, kein Punktabzug). opts.starten=true
+   nimmt das Duplikat direkt in den Fokus (Timer läuft). Ein Codepfad für
+   „🔄 Neu starten", ▶ auf erledigter Zeile und Timer-Start. */
+function karteNeuStarten(kid, opts){
+  opts=opts||{};
   const o=S.karten.find(k=>k.id===kid); if(!o) return;
   const kopie=neueKarte({
     domain:o.domain, titel:o.titel, prioritaet:o.prioritaet, projekt:o.projekt, geldScore:num(o.geldScore),
@@ -2612,18 +2632,21 @@ function karteNeuStarten(kid){
   untermenge(o.id).forEach(u=>{ S.unteraufgaben.push(neueUnteraufgabe(kopie.id, { titel:u.titel, sollMin:num(u.sollMin), bonusPunkte:u.bonusPunkte, done:false })); });
   S.karten.push(kopie);
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
-  closeSheet(); renderAlles(); toast('🔄 Neu gestartet'); haptik(15);
+  closeSheet();
+  if(opts.starten){ fokusStarten(kopie.id); setTab('fokus'); toast('Als neue Karte geöffnet — Timer läuft'); }
+  else { renderAlles(); toast('🔄 Als neue Karte geöffnet'); }
+  haptik(15);
 }
-/* ── U6-A: Abhak-Dialog (Punktejustierung beim Erledigen) ─────────────
-   Nur für einfache Aufgaben; Ticks/Counter/Routinen und Un-Abhaken laufen
-   direkt. Ein Tap auf ✅ ohne Änderung = bisheriges Verhalten (Override =
-   berechnete Punkte + Bonus-Default). */
+/* ── U6-A/V1.3: Abhak-Dialog (Punktejustierung beim Erledigen) ────────
+   Erscheint beim Abschließen JEDER abhakbaren Karte — Aufgaben UND Routinen.
+   Counter/Timer-Ticks (istTickKarte) bleiben schnelles ＋-Ticken ohne Dialog,
+   und Un-Abhaken läuft direkt. Abbrechen = nichts passiert. */
 let abhakTmp=null;
 function karteAbhakenAuto(kid, fromDetail){
   const k = kid ? S.karten.find(x=>x.id===kid) : entwurf;
   if(!k) return;
-  if(k.status==='offen' && kartenArt(k)==='Aufgabe' && !istTickKarte(k)){ abhakDialog(k.id, fromDetail); return; }
-  karteAbhaken(kid, fromDetail);   // Ticks/Routinen/Un-Abhaken direkt
+  if(k.status==='offen' && !istTickKarte(k)){ abhakDialog(k.id, fromDetail); return; }   // Aufgaben + Routinen
+  karteAbhaken(kid, fromDetail);   // Ticks (＋) / Un-Abhaken direkt
 }
 function abhakbonusDefault(k){ return k.abhakbonus!=null ? num(k.abhakbonus)
   : (k.domain==='dfm' ? num(S.settings.abhakbonusDfm,0) : num(S.settings.abhakbonusPrivat,0)); }
