@@ -382,8 +382,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .avscene{position:relative;border-radius:12px;background:linear-gradient(180deg,#0a0f1a 55%,#101a2c);display:flex;align-items:flex-end;justify-content:center;padding:18px 0 0;overflow:hidden;min-height:190px}
 .avground{position:absolute;left:0;right:0;bottom:0;height:16px;background:#22304a}
 .avfoto{position:relative;z-index:2;height:200px;width:auto;border-radius:12px;margin-bottom:8px;box-shadow:0 8px 22px rgba(0,0,0,.45);animation:avbob 4s ease-in-out infinite}
+/* v1.4.1: freigestelltes Avatar-PNG in der Belohnungs-Szene — der rechteckige
+   box-shadow würde hinter der Transparenz als grauer Kasten stehen, deshalb
+   drop-shadow (folgt der Silhouette). Nur die Szene, der Tacho-Ring auf der
+   Fokusseite (.tringwrap .avfoto) bleibt unverändert. */
+.avscene .avfoto{border-radius:0;background:transparent;box-shadow:none;
+  filter:drop-shadow(0 8px 16px rgba(0,0,0,.5))}
 @keyframes avbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-.avscene.erschoepft .avfoto{filter:grayscale(.35) brightness(.85);animation:none}
+/* v1.4.1: Erschöpft = Graustufen/Abdunklung auf demselben PNG (drop-shadow bleibt) */
+.avscene.erschoepft .avfoto{filter:grayscale(.55) brightness(.8) drop-shadow(0 8px 16px rgba(0,0,0,.5));animation:none}
 /* ── U4 (v1.4.0): Level-Hintergrund + gestufte Funkel-Effekte ──────────
    Rein CSS-animiert (transform/opacity), kein Canvas und kein JS-Ticker.
    Ab Lv 25 Schimmer, ab 50 Glitzer, ab 75 animiertes Funkeln, ab 90 Premium. */
@@ -823,9 +830,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.4.0';                    // Datenvertrag/Sync-appVersion — 1.4.0 (Paket 1; nur app-only Felder ergänzt, keine Vertragsfelder geändert; 1.x-kompatibel)
-const UI_VERSION = 'v1.4.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-13-7';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.4.1';                    // Datenvertrag/Sync-appVersion — 1.4.1 (Mini-Fix Avatar-Bild, reine Anzeige; 1.x-kompatibel)
+const UI_VERSION = 'v1.4.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-13-8';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -3566,10 +3573,13 @@ function kaufen(kat){
 }
 /* Vitalität (§6.2): getrieben vom Tages-Akku. */
 function vitalitaet(){ if(tagOffen()&&S.tag.akku!=null) return S.tag.akku>=50; return true; }
-/* U4 (v1.4.0): Bild kommt aus dem Level-Slot-Mapping (avatarAssets → 20 Slots);
-   erschöpft überschreibt es weiterhin mit dem Müde-Bild. */
+/* U4 (v1.4.0): Bild kommt aus dem Level-Slot-Mapping (avatarAssets → 20 Slots).
+   v1.4.1: auch der Erschöpft-Fall nutzt das freigestellte PNG — das alte
+   avatar-muede.jpg ist fotorealistisch mit hellem Hintergrund und stünde als
+   grauer Kasten auf dem Level-Verlauf. Die Erschöpft-Wirkung kommt aus
+   .avscene.erschoepft (Graustufen/Abdunklung + gedämpfte .avfx), nicht aus
+   einem eigenen Bild. */
 function avatarBild(lvl, vital){
-  if(!vital) return 'img/avatar-muede.jpg';
   return avatarAssets(lvl).bild;
 }
 /* Gekaufte Kategorien wachsen als Objekte in der Szene (Aufbauspiel-Stil §6.1). */
@@ -3611,13 +3621,15 @@ const AVATAR_MAX_LEVEL = 100;      // Level-Kappe
 const AVATAR_PRO_LEVEL = 10000;    // Punkte je Level
 const AVATAR_SLOTS     = 20;       // Bild-Slots (je 5 Level)
 /* Paket 2: hier je Slot das finale Bild eintragen (Index 0 = Slot 1 = Lv 1–5).
-   Bis dahin verteilen sich die vier vorhandenen Avatar-Stufenbilder als
-   Platzhalter über die 20 Slots. */
+   v1.4.1: bis dahin auf allen 20 Slots das freigestellte Low-Poly-PNG
+   img/avatar-pascal.png (transparenter Hintergrund → der Level-Verlauf der
+   Szene scheint durch, nie ein weißer/grauer Kasten). Die 20-Slot-Struktur
+   bleibt bestehen; Paket 2 ersetzt nur die Einträge. */
 const AVATAR_BILDER = [
-  'img/avatar-hoodie.jpg','img/avatar-hoodie.jpg','img/avatar-hoodie.jpg','img/avatar-hoodie.jpg','img/avatar-hoodie.jpg',
-  'img/avatar-rollkragen.jpg','img/avatar-rollkragen.jpg','img/avatar-rollkragen.jpg','img/avatar-rollkragen.jpg','img/avatar-rollkragen.jpg',
-  'img/avatar-blazer.jpg','img/avatar-blazer.jpg','img/avatar-blazer.jpg','img/avatar-blazer.jpg','img/avatar-blazer.jpg',
-  'img/avatar-anzug.jpg','img/avatar-anzug.jpg','img/avatar-anzug.jpg','img/avatar-anzug.jpg','img/avatar-anzug.jpg'
+  'img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png',
+  'img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png',
+  'img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png',
+  'img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png'
 ];
 /* 100 Level-Titel — aufsteigend von bescheidenen Anfängen bis zur Legende. */
 const AVATAR_NAMEN = [
