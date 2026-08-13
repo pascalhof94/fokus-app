@@ -752,7 +752,7 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.2.1';                    // Datenvertrag/Sync-appVersion — 1.2.1 (V1: Live-Punkte-Fix, keine Vertragsfelder geändert; 1.x-kompatibel)
 const UI_VERSION = 'v1.2';                  // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-13-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-08-13-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -4541,6 +4541,73 @@ function anModVerhalten(F,dom){
 }
 
 /* ── View / Filter / Wiring ────────────────────────────────────────── */
+/* ── V3 · Modul „📥📤 Aufgaben-Flow" ──────────────────────────────────
+   Zu-/Abgang von Aufgaben: reingekommen (erstelltTs) vs. erledigt (tagId).
+   Datenbasis rein aus S.karten; „sammelt noch" bei zu wenig Ereignissen. */
+function anFlowProTag(dom){
+  const rein={}, erl={}, ok=k=>dom==='alle'||k.domain===dom;
+  S.karten.forEach(k=>{ if(kartenArt(k)!=='Aufgabe'||!ok(k)) return;
+    if(k.erstelltTs){ const d=k.erstelltTs.slice(0,10); rein[d]=(rein[d]||0)+1; }
+    if(k.status==='erledigt' && k.tagId){ const d=String(k.tagId).slice(0,10); erl[d]=(erl[d]||0)+1; }
+  });
+  return {rein, erl};
+}
+function anModAufgabenFlow(F,dom){
+  const flow=anFlowProTag(dom), ok=k=>dom==='alle'||k.domain===dom;
+  const days=[]; let d=F.von, guard=0; while(d<=F.bis && guard++<400){ days.push(d); d=anVorTage(d,-1); }
+  const rArr=days.map(x=>flow.rein[x]||0), eArr=days.map(x=>flow.erl[x]||0);
+  const sumR=anSum(rArr), sumE=anSum(eArr);
+  if(sumR+sumE<3) return anModul('📥📤','Aufgaben-Flow','Zu- und Abgang von Aufgaben — Trend, Balance, Alter, Deadline-Treue.', anSammelt(F.cur.length,3));
+  // Trend rein vs erledigt + kumuliertes Netto-Backlog
+  let inner=anSvgLine(days,[{vals:rArr,color:'var(--warn)'},{vals:eArr,color:'var(--ok)'}],{y0:true,height:118});
+  inner+='<div class="an-legend"><span><i style="background:var(--warn)"></i>reingekommen</span><span><i style="background:var(--ok)"></i>erledigt</span></div>';
+  let cum=0; const backlog=days.map((x,i)=>{ cum+=rArr[i]-eArr[i]; return cum; });
+  inner+='<div class="anmod-sub" style="margin-top:10px">Netto-Backlog (kumuliert rein − erledigt):</div>'+
+    anSvgLine(days,[{vals:backlog,color:'var(--blue)',dots:false}],{height:96});
+  // Durchsatz & Balance (mit Vorperioden-Δ)
+  const span=F.span, pDays=[]; for(let i=span;i>=1;i--) pDays.push(anVorTage(F.von,i));
+  const prR=pDays.map(x=>flow.rein[x]||0), prE=pDays.map(x=>flow.erl[x]||0);
+  const avgR=anMean(rArr)||0, avgE=anMean(eArr)||0;
+  const ratio=sumR>0?Math.round(sumE/sumR*100):null;
+  const pRatio=(anSum(prR)>0)?anSum(prE)/anSum(prR)*100:null;
+  inner+='<div class="anmod-kpis">'+
+    anKpi(Math.round(avgR*10)/10,'Ø rein/Tag',anDeltaPct(avgR,anMean(prR)),'',true)+
+    anKpi(Math.round(avgE*10)/10,'Ø erledigt/Tag',anDeltaPct(avgE,anMean(prE)))+
+    anKpi((sumE-sumR>=0?'+':'')+(sumE-sumR),'Netto '+span+'T')+
+    anKpi(ratio==null?'—':ratio+'%','Completion',anDeltaPct(ratio,pRatio))+'</div>';
+  // Wochentagsprofil
+  const wtR=[0,0,0,0,0,0,0], wtE=[0,0,0,0,0,0,0];
+  days.forEach((x,i)=>{ const w=anWochentag(x); wtR[w]+=rArr[i]; wtE[w]+=eArr[i]; });
+  const mx=Math.max(1,Math.max.apply(null,wtR.concat(wtE)));
+  inner+='<div class="anmod-sub" style="margin-top:12px">Wochentagsprofil (Balken = rein, Zahl = rein/erledigt):</div><div class="an-bars">'+
+    AN_WT.map((n,i)=>'<div class="an-bar"><span class="nm">'+n+'</span><span class="track"><i style="width:'+(wtR[i]/mx*100).toFixed(0)+'%;background:var(--warn)"></i></span><span class="vv">'+wtR[i]+'/'+wtE[i]+'</span></div>').join('')+'</div>';
+  // Alters-/Liegezeit
+  const heute=heuteApp();
+  const offen=S.karten.filter(k=>kartenArt(k)==='Aufgabe'&&ok(k)&&k.status==='offen'&&k.erstelltTs);
+  const alter=offen.map(k=>Math.max(0,anTageDiff(k.erstelltTs.slice(0,10),heute)));
+  const avgAlter=alter.length?Math.round(anMean(alter)):null;
+  let aeltest=null,aeltestT=-1; offen.forEach(k=>{ const t=anTageDiff(k.erstelltTs.slice(0,10),heute); if(t>aeltestT){aeltestT=t;aeltest=k;} });
+  const erledigt=S.karten.filter(k=>kartenArt(k)==='Aufgabe'&&ok(k)&&k.status==='erledigt'&&k.erstelltTs&&k.tagId);
+  const durch=erledigt.map(k=>Math.max(0,anTageDiff(k.erstelltTs.slice(0,10),String(k.tagId).slice(0,10))));
+  const avgDurch=durch.length?Math.round(anMean(durch)*10)/10:null;
+  inner+='<div class="anmod-kpis" style="margin-top:12px">'+
+    anKpi(avgAlter==null?'—':avgAlter+'d','Ø Alter offen',null,'',true)+
+    anKpi(offen.length,'offen')+
+    anKpi(avgDurch==null?'—':avgDurch+'d','Ø Durchlaufzeit',null,'',true)+'</div>';
+  if(aeltest) inner+='<div class="anmod-sub">Älteste offene: „'+esc(aeltest.titel||'(ohne Titel)')+'" · '+aeltestT+' Tage.</div>';
+  // Deadline-Treue + Bestleistungen
+  const mitDl=erledigt.filter(k=>k.faelligkeit);
+  const puenkt=mitDl.filter(k=>String(k.tagId).slice(0,10)<=k.faelligkeit).length;
+  const dlQuote=mitDl.length?Math.round(puenkt/mitDl.length*100):null;
+  const bestErl=Math.max(0,Math.max.apply(null,eArr));
+  let serie=0,maxSerie=0; days.forEach((x,i)=>{ if((eArr[i]>0||rArr[i]>0)&&eArr[i]>=rArr[i]){ serie++; if(serie>maxSerie)maxSerie=serie; } else serie=0; });
+  inner+='<div class="anmod-kpis" style="margin-top:12px">'+
+    anKpi(dlQuote==null?'—':dlQuote+'%','pünktlich erledigt')+
+    anKpi(bestErl,'bester Erledigt-Tag')+
+    anKpi(maxSerie+'T','längste Positiv-Serie')+'</div>';
+  return anModul('📥📤','Aufgaben-Flow','Zu- und Abgang von Aufgaben: Trend & Netto-Backlog, Durchsatz/Balance, Wochentage, Alter/Durchlaufzeit, Deadline-Treue und Rekorde. Reingekommen = Erstellzeit, erledigt = Buchungstag.',inner);
+}
+
 function anZeitraumPresets(){ return [['7','7 T'],['14','14 T'],['30','30 T'],['90','90 T'],['frei','frei']]; }
 function renderAnFilter(){
   const zr=S.ui.analyseZeitraum||'7', dm=S.ui.analyseDomain||'alle';
@@ -4556,7 +4623,7 @@ function renderAnalyseBody(){
   let h='<div class="anmod-sub" style="margin:0 2px 12px">Zeitraum '+anKurzDatum(von)+'–'+anKurzDatum(bis)+' · '+F.cur.length+' Tage mit Daten · Domäne '+(dom==='alle'?'Alle':dom==='dfm'?'DFM':'Privat')+' · Δ% ggü. Vorperiode.</div>';
   if(!F.alle.length){ h+=anLeer('Noch keine abgeschlossenen Tage. Starte einen Tag und schließe ihn ab — dann füllt sich die Analyse.'); }
   else{
-    h+=anModReadiness(F,dom)+anModACWR(F,dom)+anModLeistung(F,dom)+anModKonsistenz(F,dom)+anModKalibrierung(F,dom)+anModVerhalten(F,dom);
+    h+=anModReadiness(F,dom)+anModACWR(F,dom)+anModLeistung(F,dom)+anModKonsistenz(F,dom)+anModKalibrierung(F,dom)+anModVerhalten(F,dom)+anModAufgabenFlow(F,dom);
   }
   el('anBody').innerHTML=h;
 }
