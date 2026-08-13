@@ -104,8 +104,13 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #statusbar .sb-pace .pf{font-size:16px;font-weight:800}
 #statusbar .sb-pace .z{font-size:8px;color:var(--mut2)}
 /* S3 (v1.3.2): ersetzt das bisherige Streak-Feld — Streak-Logik/-Daten bleiben
-   intern erhalten (S.tag.streak, tagesStreakStand), nur aus der Leiste entfernt */
-#statusbar .sb-level{flex:none;font-size:11px;font-weight:800;color:var(--purple);white-space:nowrap}
+   intern erhalten (S.tag.streak, tagesStreakStand), nur aus der Leiste entfernt.
+   F4 (v1.3.3): zweizeilig + auf die Breite des Batterie-Chips gedeckelt
+   (46px Zelle + 5px gap + 30px Prozent = 81px) — der Zielbalken gewinnt den Platz. */
+#statusbar .sb-level{flex:none;max-width:81px;display:flex;flex-direction:column;align-items:flex-end;
+  line-height:1.15;font-family:ui-monospace,monospace;white-space:nowrap;overflow:hidden}
+#statusbar .sb-level .lv{font-size:11px;font-weight:800;color:var(--purple)}
+#statusbar .sb-level .pk{font-size:9px;font-weight:700;color:var(--warn)}
 #statChart{padding:0 var(--s2) 6px}
 #statChart[hidden]{display:none}
 
@@ -425,8 +430,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .akkukarte{margin:8px 0 4px}
 .akkukarte .lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-bottom:2px;font-family:ui-monospace,monospace}
 .akkukarte .leer{color:var(--mut2);font-size:12px;text-align:center;padding:24px 0}
-.statfilter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 4px}
+.statfilter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 6px}
 .statfilter input[type=date]{background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:12px;padding:3px 8px;font-family:ui-monospace,monospace}
+/* F1 (v1.3.3): Tagesauswahl ‹ › + „heute" — Touch-Ziele ≥44px */
+.statfilter .segmini button{min-width:44px;min-height:44px}
+.dpick{display:flex;align-items:center;gap:4px}
+.dpick button{min-width:44px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--txt);font-size:15px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.dpick button[disabled]{color:var(--mut2);opacity:.45}
+.dpick button[data-statheute]{font-size:11px;font-weight:700;color:var(--blue);border-color:var(--blue);padding:0 8px}
+.dpick input[type=date]{min-height:44px}
 .kennz{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
 .kennz>div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 4px;text-align:center}
 .kennz b{display:block;font-size:16px;font-weight:800;font-family:ui-monospace,monospace}
@@ -491,9 +503,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .an-leer{color:var(--mut);font-size:12.5px;text-align:center;padding:16px;border:1px dashed var(--line);border-radius:10px;background:var(--card2)}
 .an-legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:10px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:8px}
 .an-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:middle}
-.an-hm{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px}
-.an-hm .wk{display:flex;flex-direction:column;gap:3px}
-.an-hm .cell{width:13px;height:13px;border-radius:3px;background:var(--card2)}
+/* F3.1 (v1.3.3): Heatmap mit Mo–So-Zeilenbeschriftung; Zellen und Labels teilen
+   dieselbe 13px-Rasterhöhe, damit jeder Punkt exakt auf seiner Tageszeile sitzt. */
+.an-hmwrap{display:flex;gap:5px;align-items:flex-start}
+.an-hmlab{display:flex;flex-direction:column;gap:3px;flex:none;padding-top:0}
+.an-hmlab span{height:13px;line-height:13px;font-size:8px;color:var(--mut2);font-family:ui-monospace,monospace}
+.an-hm{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px;flex:1;min-width:0}
+.an-hm .wk{display:flex;flex-direction:column;gap:3px;flex:none}
+.an-hm .cell{width:13px;height:13px;border-radius:3px;background:var(--card2);flex:none}
 .an-bars{display:flex;flex-direction:column;gap:7px;margin-top:6px}
 .an-bar{display:flex;align-items:center;gap:8px;font-size:11px;font-family:ui-monospace,monospace}
 .an-bar .nm{flex:none;width:52px;color:var(--mut)}
@@ -677,7 +694,7 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
     <div class="sb-info"><span class="sbph d">DFM<b id="sPhDfm">0</b></span><span class="sbph p">Pv<b id="sPhPrv">0</b></span><span class="sbph s">Soll<b id="sPhSoll">0</b></span><span class="wohl" id="sWohl"></span><span id="sZiel"></span></div>
   </div>
   <div class="sb-pace"><div class="pf" id="sPfeil">→</div><div class="z" id="sPaceZahl">P/h</div></div>
-  <div class="sb-level" id="sLevel">Lv 1 · 0 P</div>
+  <div class="sb-level" id="sLevel"><span class="lv">Lv 1</span><span class="pk">0 P</span></div>
 </div>
 <div id="fkNav" hidden></div>
 <div id="statChart" hidden></div>
@@ -758,9 +775,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.3.2';                    // Datenvertrag/Sync-appVersion — 1.3.2 (Hotfix, reine Anzeige-Logik, keine Vertragsfelder geändert; 1.x-kompatibel)
-const UI_VERSION = 'v1.3.2';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-13-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.3.3';                    // Datenvertrag/Sync-appVersion — 1.3.3 (Hotfix; flowBaseline ist app-only, keine Vertragsfelder geändert; 1.x-kompatibel)
+const UI_VERSION = 'v1.3.3';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-13-6';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -992,6 +1009,36 @@ function ladeAlles(){
     DB.set('historie_bak131', S.historie);
     DB.set('intraday_bak131', S.intraday);
     S.meta.hotfix131=true; saveMeta();
+  }
+  // F2 (v1.3.3): Baseline-Ausreißer im Aufgaben-Flow bereinigen. URSACHE: die
+  // U6-B-Nachrüstung weiter oben setzt erstelltTs für ALLE Karten ohne Zeitstempel
+  // (= der komplette aus v0.38/Airtable übernommene Bestand) auf dieselbe Jetztzeit
+  // des ersten U6-Ladevorgangs. anFlowReihe liest „reingekommen" aus erstelltTs →
+  // der gesamte Bestand zählte an genau EINEM Tag als Zugang. Liegt dieser Tag vor
+  // dem Analysefenster, werden die Karten darin erledigt, ohne je zugegangen zu sein
+  // → der Netto-Backlog rennt künstlich ins Minus. Diese Karten werden als
+  // Bestandsaufnahme markiert und zählen ab jetzt als Startbestand statt als Zugang.
+  // Guarded + idempotent; Sicherung der betroffenen Keys VOR dem Eingriff.
+  if(!S.meta.hotfix133){
+    DB.set('karten_bak133', S.karten);
+    DB.set('intraday_bak133', S.intraday);
+    const proTag={};
+    S.karten.forEach(k=>{ if(kartenArt(k)!=='Aufgabe' || !k.erstelltTs) return;
+      const d=String(k.erstelltTs).slice(0,10); proTag[d]=(proTag[d]||0)+1; });
+    const tage=Object.keys(proTag).sort();
+    if(tage.length){
+      const erst=tage[0], gesamt=tage.reduce((a,d)=>a+proTag[d],0);
+      const rest=tage.slice(1).map(d=>proTag[d]);
+      const restSchnitt = rest.length ? rest.reduce((a,b)=>a+b,0)/rest.length : 0;
+      // Ausreißer = ältester Erstelltag trägt ≥5 Aufgaben UND ≥40 % des Bestands
+      // oder ≥4× den Schnitt der übrigen Tage (Massen-Anlage statt echtem Zugang).
+      if(proTag[erst]>=5 && (proTag[erst]>=gesamt*0.4 || proTag[erst]>=Math.max(1,restSchnitt)*4)){
+        S.meta.flowBaseline133=erst;
+        S.karten.forEach(k=>{ if(kartenArt(k)==='Aufgabe' && k.erstelltTs && String(k.erstelltTs).slice(0,10)===erst) k.flowBaseline=true; });
+        saveKarten();
+      }
+    }
+    S.meta.hotfix133=true; saveMeta();
   }
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
@@ -1946,7 +1993,8 @@ function renderStatusbar(){
   el('sPaceZahl').textContent=(dr>=0?'+':'')+dr+' P/h';
   el('sPaceZahl').style.color=farbe;
   // S3 (v1.3.2): Level + Punktekonto statt Streak (Streak bleibt intern/in Historie erhalten)
-  el('sLevel').textContent='Lv '+avatarStufe()+' · '+Math.round(konto())+' P';
+  // F4 (v1.3.3): zweizeilig + gekürzte Punktzahl, damit der Chip die Batterie-Breite hält
+  el('sLevel').innerHTML='<span class="lv">Lv '+avatarStufe()+'</span><span class="pk">'+fmtKurzP(konto())+'</span>';
   // ausgeklappte Live-Kurve mitziehen
   if(!el('statChart').hidden && typeof renderStatChart==='function') renderStatChart();
   }catch(e){ /* Statusleiste bleibt sichtbar, auch wenn ein Wert scheitert */ }
@@ -2012,6 +2060,12 @@ function wachTagAnteil(){ return Math.max(0, Math.min(1, tagStundenVergangen()/1
    (unabhängig vom manuellen Tagesstart) — nur für die Anzeige der Soll-Linie im
    Fortschrittsbalken; Punkte-Buchungen/Statistiken zählen unverändert ganztägig,
    auch außerhalb des Fensters. */
+/* F4 (v1.3.3): kompakte Punktzahl für den Level-Chip (4320 → „4,3k"). */
+function fmtKurzP(v){ v=Math.round(num(v));
+  if(v<1000) return v+' P';
+  if(v<10000) return (Math.round(v/100)/10).toString().replace('.',',')+'k';
+  return Math.round(v/1000)+'k';
+}
 function sbFensterAnteil(){
   const d=new Date(), h=d.getHours()+d.getMinutes()/60+d.getSeconds()/3600;
   return Math.max(0, Math.min(1, (h-8.5)/(22-8.5)));
@@ -3618,39 +3672,72 @@ function belIstGesamt(){ return belIstDfm()+Math.max(0, tagesPunkteDomain('priva
 
 /* V2.1: Tages-Diagramm 5:00→5:00 mit 3 Heute- + 3 Wochentags-Ø-Linien + Ziel-Linie. */
 function belTagesDiagramm(){
-  const nowIso=jetztIso(), heuteF=belFensterDatum(nowIso), nowX=belX(nowIso), wt=belWochentag(heuteF);
+  // F1 (v1.3.3): Domänenfilter + Tagesauswahl wiederhergestellt (waren beim V2-Umbau
+  // mit der alten diagrammHtml-Karte verlorengegangen). State/Handler existierten noch:
+  // S.ui.statDomain (data-statdom) + S.ui.statDatum (#statDatum, statDatum()).
+  const dom=S.ui.statDomain||'alle', sel=statDatum();
+  const nowIso=jetztIso(), heuteF=belFensterDatum(nowIso), nowX=belX(nowIso);
+  const istHeute = sel===heuteF, wt=belWochentag(sel);
+  const bisX = istHeute ? nowX : 29;   // vergangene Tage: ganzes Fenster zeichnen
   const liveGes = k=>Math.max(0, tagesPunkteDomain(k));
-  function heuteKurve(dom){ const pts=belTagKurve(heuteF,dom);
-    const live=dom==='alle'?(liveGes('dfm')+liveGes('privat')):liveGes(dom);
+  function tagKurve(d){ const pts=belTagKurve(sel,d);
+    if(!istHeute) return pts;          // Historie: nur gebuchte Punkte, kein Live-Fortschreiben
+    const live=d==='alle'?(liveGes('dfm')+liveGes('privat')):liveGes(d);
     const last=pts[pts.length-1].p; pts.push({x:nowX, p:Math.max(last,live)}); return pts; }
-  const kD=heuteKurve('dfm'), kP=heuteKurve('privat'), kG=heuteKurve('alle');
+  const kD=tagKurve('dfm'), kP=tagKurve('privat'), kG=tagKurve('alle');
   const fenster={}; (S.intraday||[]).forEach(e=>{ if(e.ts && num(e.punkte)>0) fenster[belFensterDatum(e.ts)]=true; });
-  const wtF=Object.keys(fenster).filter(fd=>fd!==heuteF && belWochentag(fd)===wt);
-  function wtAvg(dom){ if(wtF.length<1) return null; const out=[];   // H1: schon 1 Vergleichstag genügt (als gedimmter Ø)
-    for(let x=5;x<=29;x+=0.5){ const vals=wtF.map(fd=>belKurveWert(belTagKurve(fd,dom),x)); out.push({x, p: vals.reduce((a,b)=>a+b,0)/vals.length}); } return out; }
+  const wtF=Object.keys(fenster).filter(fd=>fd!==sel && belWochentag(fd)===wt);
+  function wtAvg(d){ if(wtF.length<1) return null; const out=[];   // H1: schon 1 Vergleichstag genügt (als gedimmter Ø)
+    for(let x=5;x<=29;x+=0.5){ const vals=wtF.map(fd=>belKurveWert(belTagKurve(fd,d),x)); out.push({x, p: vals.reduce((a,b)=>a+b,0)/vals.length}); } return out; }
   const wD=wtAvg('dfm'), wP=wtAvg('privat'), wG=wtAvg('alle');
-  const ziel=belZielGesamt();   // H4.3: Wochenende → DFM-Ziel 3000 gemeinsam
-  const heuteGes=kG[kG.length-1].p, std=Math.max(0.02, nowX-5), pace=heuteGes/std;
-  const restZiel=Math.max(0, belZielGesamt()-belIstGesamt());   // am Wochenende zählt Sa+So kombiniert
-  const zielX = pace>0 ? nowX+restZiel/pace : null;
-  let maxY=ziel*1.05; [kD,kP,kG,wD,wP,wG].forEach(s=>{ if(s) s.forEach(pt=>{ if(pt.p>maxY) maxY=pt.p; }); }); maxY=(maxY||10)*1.08;
+  // F1: Domänenfilter blendet Linien aus (Ziel-Linie folgt der gewählten Domäne)
+  const zeigD=dom==='alle'||dom==='dfm', zeigP=dom==='alle'||dom==='privat', zeigG=dom==='alle';
+  const ziel = dom==='dfm' ? belZielDfm() : dom==='privat' ? tagesZielDomain('privat') : belZielGesamt();   // H4.3: WE → DFM-Ziel 3000 gemeinsam
+  const kSel = dom==='dfm'?kD : dom==='privat'?kP : kG;
+  const istSel = dom==='dfm' ? belIstDfm() : dom==='privat' ? Math.max(0,tagesPunkteDomain('privat')) : belIstGesamt();
+  const selGes=kSel[kSel.length-1].p, std=Math.max(0.02, nowX-5), pace=selGes/std;
+  const restZiel=Math.max(0, ziel-istSel);
+  const zielX = (istHeute && pace>0) ? nowX+restZiel/pace : null;   // Prognose nur für heute sinnvoll
+  let maxY=ziel*1.05;
+  [zeigD?kD:null, zeigP?kP:null, zeigG?kG:null, zeigD?wD:null, zeigP?wP:null, zeigG?wG:null]
+    .forEach(s=>{ if(s) s.forEach(pt=>{ if(pt.p>maxY) maxY=pt.p; }); }); maxY=(maxY||10)*1.08;
   const W=320,H=176,pL=8,pR=8,pT=12,pB=20;
   const X=x=>pL+((x-5)/24)*(W-pL-pR), Y=p=>pT+(1-p/maxY)*(H-pT-pB);
   function poly(pts,color,width,dash,clip){ if(!pts||!pts.length) return '';
-    const seg=clip?pts.filter(p=>p.x<=nowX+0.001):pts; if(seg.length<1) return '';
+    const seg=clip?pts.filter(p=>p.x<=bisX+0.001):pts; if(seg.length<1) return '';
     const d=seg.map((p,i)=>(i?'L':'M')+X(p.x).toFixed(1)+' '+Y(p.p).toFixed(1)).join(' ');
     return '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+width+'"'+(dash?' stroke-dasharray="'+dash+'" opacity="0.5"':'')+' stroke-linejoin="round" stroke-linecap="round"/>'; }
   let g='';
   [5,11,17,23,29].forEach(hx=>{ const x=X(hx).toFixed(1); g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--line)" stroke-width="0.5" opacity=".5"/><text x="'+x+'" y="'+(H-6)+'" text-anchor="middle" font-size="8" fill="var(--mut2)">'+(hx%24)+'</text>'; });
   g+='<line x1="'+pL+'" y1="'+Y(ziel).toFixed(1)+'" x2="'+(W-pR)+'" y2="'+Y(ziel).toFixed(1)+'" stroke="var(--mut2)" stroke-width="0.7" stroke-dasharray="2 3"/><text x="'+(W-pR)+'" y="'+(Y(ziel)-2).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">Ziel '+Math.round(ziel)+'</text>';
-  g+=poly(wD,'var(--blue)',1.4,'4 3')+poly(wP,'var(--warn)',1.4,'4 3')+poly(wG,'#f08c4b',1.4,'4 3');
-  g+=poly(kD,'var(--blue)',2,null,true)+poly(kP,'var(--warn)',2,null,true)+poly(kG,'#f08c4b',2.4,null,true);
-  if(zielX!=null && zielX<=29){ const x=X(zielX).toFixed(1); g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--ok)" stroke-width="1.4" stroke-dasharray="3 2"/><text x="'+x+'" y="'+(pT+8)+'" text-anchor="middle" font-size="8" fill="var(--ok)">🎯 ~'+belUhr(zielX)+'</text>'; }
-  else { g+='<text x="'+(W-pR-2)+'" y="'+(pT+8)+'" text-anchor="end" font-size="8" fill="var(--bad)">🎯 außer Reichweite ▸</text>'; }
-  const legende='<div class="an-legend"><span><i style="background:var(--blue)"></i>DFM</span><span><i style="background:var(--warn)"></i>Privat</span><span><i style="background:#f08c4b"></i>Gesamt</span><span style="color:var(--mut2)">— heute · - - Ø '+AN_WT_LANG[wt]+'</span></div>';
+  if(zeigD) g+=poly(wD,'var(--blue)',1.4,'4 3');
+  if(zeigP) g+=poly(wP,'var(--warn)',1.4,'4 3');
+  if(zeigG) g+=poly(wG,'#f08c4b',1.4,'4 3');
+  if(zeigD) g+=poly(kD,'var(--blue)',2,null,true);
+  if(zeigP) g+=poly(kP,'var(--warn)',2,null,true);
+  if(zeigG) g+=poly(kG,'#f08c4b',2.4,null,true);
+  if(istHeute){
+    if(zielX!=null && zielX<=29){ const x=X(zielX).toFixed(1); g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--ok)" stroke-width="1.4" stroke-dasharray="3 2"/><text x="'+x+'" y="'+(pT+8)+'" text-anchor="middle" font-size="8" fill="var(--ok)">🎯 ~'+belUhr(zielX)+'</text>'; }
+    else { g+='<text x="'+(W-pR-2)+'" y="'+(pT+8)+'" text-anchor="end" font-size="8" fill="var(--bad)">🎯 außer Reichweite ▸</text>'; }
+  } else {
+    g+='<text x="'+(W-pR-2)+'" y="'+(pT+8)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+Math.round(selGes)+' P gesamt</text>';
+  }
+  // F1: Filterzeile — Domänen-Segment + Tagesauswahl (Datumsfeld + ‹ › Schritt)
+  const dseg=(v,l)=>'<button class="'+(dom===v?'on':'')+'" data-statdom="'+v+'">'+l+'</button>';
+  const controls='<div class="statfilter"><span class="segmini">'+dseg('alle','Alle')+dseg('dfm','DFM')+dseg('privat','Privat')+'</span>'+
+    '<span class="dpick"><button data-statstep="-1" aria-label="Tag zurück">‹</button>'+
+    '<input type="date" id="statDatum" value="'+sel+'" max="'+heuteApp()+'">'+
+    '<button data-statstep="1" aria-label="Tag vor"'+(istHeute?' disabled':'')+'>›</button>'+
+    (istHeute?'':'<button data-statheute="1">heute</button>')+'</span></div>';
+  const legTeile=[];
+  if(zeigD) legTeile.push('<span><i style="background:var(--blue)"></i>DFM</span>');
+  if(zeigP) legTeile.push('<span><i style="background:var(--warn)"></i>Privat</span>');
+  if(zeigG) legTeile.push('<span><i style="background:#f08c4b"></i>Gesamt</span>');
+  const legende='<div class="an-legend">'+legTeile.join('')+'<span style="color:var(--mut2)">— '+(istHeute?'heute':anKurzDatum(sel))+' · - - Ø '+AN_WT_LANG[wt]+'</span></div>';
   const hint = wtF.length===0 ? '<div class="stathint">Noch kein Vergleichstag ('+AN_WT_LANG[wt]+') — Ø erscheint ab dem ersten getrackten '+AN_WT_LANG[wt]+'.</div>'
     : (wtF.length===1 ? '<div class="stathint">Ø basiert auf 1 Vergleichstag ('+AN_WT_LANG[wt]+').</div>' : '');   // H1
-  return '<div class="card"><h3>Tagesverlauf · 5→5 Uhr</h3><svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>'+legende+hint+'</div>';
+  const titel='Tagesverlauf · 5→5 Uhr'+(istHeute?'':' · '+AN_WT_LANG[wt]+' '+anKurzDatum(sel));
+  return '<div class="card"><h3>'+titel+'</h3>'+controls+'<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>'+legende+hint+'</div>';
 }
 
 /* V2.2: KPI-Felder mit Farbverläufen. */
@@ -4173,12 +4260,16 @@ el('belohnungBody').addEventListener('click', e=>{
   const zr=e.target.closest('[data-statzr]'); if(zr){ S.ui.statZeitraum=zr.dataset.statzr; saveUi(); renderBelohnung(); return; }
   const dm=e.target.closest('[data-statdom]'); if(dm){ S.ui.statDomain=dm.dataset.statdom; saveUi(); renderBelohnung(); if(!el('statChart').hidden) renderStatChart(); return; }
   const pk=e.target.closest('[data-statpick]'); if(pk){ S.ui.statDatum=pk.dataset.statpick; S.ui.statZeitraum='tag'; saveUi(); renderBelohnung(); return; }
+  // F1 (v1.3.3): Tagesauswahl im Tagesverlauf — ‹ › schrittweise, „heute" zurück auf live
+  const st=e.target.closest('[data-statstep]'); if(st){ const n=num(st.dataset.statstep);
+    const neu=anVorTage(statDatum(), -n); if(neu<=heuteApp()){ S.ui.statDatum = neu===heuteApp()?null:neu; saveUi(); renderBelohnung(); } return; }
+  if(e.target.closest('[data-statheute]')){ S.ui.statDatum=null; saveUi(); renderBelohnung(); return; }
   const kf=e.target.closest('[data-kauf]'); if(kf){ kaufen(kf.dataset.kauf); return; }
   if(e.target.closest('[data-analyse]')){ oeffneAnalyse(); return; }   // B1
   const at=e.target.closest('[data-aufltoggle]'); if(at){ const k=at.dataset.aufltoggle; S.ui.auflAuf=S.ui.auflAuf||{}; S.ui.auflAuf[k]=!S.ui.auflAuf[k]; saveUi(); renderBelohnung(); return; }   // V2.3
 });
 el('belohnungBody').addEventListener('change', e=>{
-  if(e.target.id==='statDatum'){ S.ui.statDatum=e.target.value||null; saveUi(); renderBelohnung(); }
+  if(e.target.id==='statDatum'){ const v=e.target.value||null; S.ui.statDatum=(v===heuteApp())?null:v; saveUi(); renderBelohnung(); }   // F1: „heute" bleibt live
 });
 
 // Einstellungen (Sync / Migration / Backup / Regler)
@@ -4495,36 +4586,67 @@ function anModLeistung(F,dom){
   return anModul('🏆','Leistung','Punkte pro Stunde als Effizienz-Trend mit 7-Tage-Schnitt, plus Zielerreichung je Domäne (DFM 5000 / Privat 3000).',inner);
 }
 /* ── Modul 4 · Konsistenz ──────────────────────────────────────────── */
+/* F3.2 (v1.3.3): Aktivität je Tag aus dem Intraday-Log — deckt ALLE getrackten
+   Karten ab (Timer-Minuten, Ticks, Abhaken, Nachträge), nicht nur die über
+   S.tag.log gebuchten Routinen/Counter. Domänen-gefiltert. */
+function anIntradayProTag(dom){
+  const out={};
+  (S.intraday||[]).forEach(e=>{ if(!e.ts) return;
+    if(dom!=='alle' && e.domaene!==dom) return;
+    const d=String(e.ts).slice(0,10), o=out[d]||(out[d]={pkt:0,min:0,karten:{}});
+    const p=num(e.punkte), m=Math.max(0,num(e.minuten));
+    if(p>0) o.pkt+=p;
+    o.min+=m;
+    if(p>0||m>0) o.karten[e.kartenId]=1;
+  });
+  return out;
+}
 function anModKonsistenz(F,dom){
   // Heatmap (immer, auch dünn) + Wochentagsprofil (ab 7 Tagen) + Routinenquote
-  const scores=F.cur.map(e=>anPunkte(e,dom)); const maxS=Math.max.apply(null,scores.concat([1]));
   const map={}; F.cur.forEach(e=>map[e.datum]=anPunkte(e,dom));
-  // Heatmap-Spalten (Wochen) über das Fenster
-  const reihe=anKalenderReihe(F.alle.length?F.cur:[], F.von, F.bis);
-  let cells=[]; let d=F.von, guard=0; while(d<=F.bis && guard++<400){ cells.push({datum:d, v:map[d]}); d=anVorTage(d,-1); }
-  // in Wochen gruppieren (Mo-Start)
-  let hm='<div class="an-hm">'; let wk=null, curWt=-1;
+  const minMap={}; F.cur.forEach(e=>minMap[e.datum]=anMin(e,dom));
+  const ia=anIntradayProTag(dom);   // F3.2: alle getrackten Aufgaben zählen mit
+  // Aktivitätswert eines Tages: Maximum aus gebuchten Tagespunkten und den
+  // Intraday-Punkten (letztere erfassen auch reine Timer-Arbeit ohne Abhaken).
+  const wert=d=>{ const a=ia[d]; const vL=map[d]==null?null:map[d], vI=a?a.pkt:null;
+    if(vL==null && vI==null) return null; return Math.max(vL||0, vI||0); };
+  const hatZeit=d=>{ const a=ia[d]; return (num(minMap[d])>0.01) || (a && a.min>0.01); };
+  let cells=[]; let d=F.von, guard=0; while(d<=F.bis && guard++<400){ cells.push({datum:d, v:wert(d)}); d=anVorTage(d,-1); }
+  const maxS=Math.max.apply(null, cells.map(c=>c.v||0).concat([1]));
+  // F3.1: Wochenspalten sind IMMER 7 Zellen hoch (führend/nachlaufend unsichtbar
+  // gepolstert) und bekommen eine Mo–So-Beschriftungsspalte — dadurch sitzt jeder
+  // Punkt exakt auf seiner Wochentagszeile. Zuvor blieb zusätzlich das letzte
+  // .wk-<div> offen, wodurch Wochentagsprofil und KPIs in die Heatmap-Flexzeile
+  // gerutscht sind (der sichtbare Versatz).
   const col=v=> v==null?'var(--card2)': v<=0?'#3a2530': 'rgba(62,207,142,'+(0.2+0.8*Math.min(1,v/maxS)).toFixed(2)+')';
+  const leer='<span class="cell" style="visibility:hidden"></span>';
+  let hm='<div class="an-hmwrap"><div class="an-hmlab">'+AN_WT.map(n=>'<span>'+n+'</span>').join('')+'</div><div class="an-hm">';
+  let offenSpalte=false, gefuellt=0;
   cells.forEach((c,i)=>{ const wt=anWochentag(c.datum);
-    if(i===0){ hm+='<div class="wk">'; for(let p=0;p<wt;p++) hm+='<span class="cell" style="visibility:hidden"></span>'; }
-    else if(wt===0){ hm+='</div><div class="wk">'; }
-    hm+='<span class="cell" title="'+c.datum+'" style="background:'+col(c.v)+'"></span>';
+    if(i===0){ hm+='<div class="wk">'; offenSpalte=true; for(let p=0;p<wt;p++){ hm+=leer; gefuellt++; } }
+    else if(wt===0){ hm+='</div><div class="wk">'; gefuellt=0; }
+    hm+='<span class="cell" title="'+c.datum+' · '+AN_WT[wt]+(c.v==null?'':' · '+anFmt(c.v)+' P')+'" style="background:'+col(c.v)+'"></span>';
+    gefuellt++;
   });
-  hm+='</div>';
-  // Wochentagsprofil
+  if(offenSpalte){ while(gefuellt<7){ hm+=leer; gefuellt++; } hm+='</div>'; }   // letzte Spalte auffüllen UND schließen
+  hm+='</div></div>';
+  // Wochentagsprofil — F3.2: über alle Tage mit Aktivität (inkl. reiner Timer-Arbeit)
   let wtBars='';
-  if(F.cur.length>=7){ const byWt=[[],[],[],[],[],[],[]]; F.cur.forEach(e=>byWt[e.wt].push(anPunkte(e,dom)));
+  const aktivTage=cells.filter(c=>(c.v!=null&&c.v>0)||hatZeit(c.datum));
+  if(aktivTage.length>=7){ const byWt=[[],[],[],[],[],[],[]];
+    aktivTage.forEach(c=>byWt[anWochentag(c.datum)].push(c.v||0));
     const avgs=byWt.map(a=>anMean(a)||0); const mx=Math.max.apply(null,avgs.concat([1]));
     wtBars='<div class="an-bars" style="margin-top:10px">'+avgs.map((v,i)=>'<div class="an-bar"><span class="nm">'+AN_WT[i]+'</span><span class="track"><i style="width:'+(v/mx*100).toFixed(0)+'%;background:var(--purple)"></i></span><span class="vv">'+anFmt(v)+'</span></div>').join('')+'</div>';
   }
   const rE=anSum(F.cur.map(e=>e.routErledigt)), rV=anSum(F.cur.map(e=>e.routVerpasst));
   const quote=(rE+rV)>0?Math.round(rE/(rE+rV)*100):null;
-  const aktiv=F.cur.filter(e=>anPunkte(e,dom)>0 || anMin(e,dom)>0).length;
+  const kartenAktiv=cells.reduce((a,c)=>a+(ia[c.datum]?Object.keys(ia[c.datum].karten).length:0),0);
   let inner=hm+wtBars+'<div class="anmod-kpis">'+
     anKpi(quote==null?'—':quote+'%','Routinenquote')+
-    anKpi(aktiv+'/'+F.span,'Aktive Tage')+'</div>'+
-    (F.cur.length<7?'<div class="anmod-sub" style="margin-top:8px">Wochentagsprofil ab 7 Tagen.</div>':'');
-  return anModul('🔥','Konsistenz','Aktivitäts-Heatmap, Routinen-Erfüllung und (ab 7 Tagen) das Wochentagsprofil — wo liegen deine starken und schwachen Tage?',inner);
+    anKpi(aktivTage.length+'/'+F.span,'Aktive Tage')+
+    anKpi(kartenAktiv,'getrackte Karten')+'</div>'+
+    (aktivTage.length<7?'<div class="anmod-sub" style="margin-top:8px">Wochentagsprofil ab 7 aktiven Tagen.</div>':'');
+  return anModul('🔥','Konsistenz','Aktivitäts-Heatmap (alle getrackten Karten: Timer-Zeit, Ticks, Abhaken), Routinen-Erfüllung und (ab 7 aktiven Tagen) das Wochentagsprofil — wo liegen deine starken und schwachen Tage?',inner);
 }
 /* ── Modul 5 · Kalibrierung ────────────────────────────────────────── */
 function anModKalibrierung(F,dom){
@@ -4615,7 +4737,9 @@ function anFlowReihe(dom){
   S.karten.forEach(k=>byId[k.id]=k);
   const created={}, done={}, geschoben={}, trackedBy={};
   S.karten.forEach(k=>{ if(kartenArt(k)!=='Aufgabe'||!ok(k)) return;
-    if(k.erstelltTs){ const d=k.erstelltTs.slice(0,10); created[d]=(created[d]||0)+1; }
+    // F2: als Bestandsaufnahme markierte Karten sind KEIN Tageszugang (sie gehen
+    // über anFlowStartBestand in den Anfangsbestand des Netto-Backlogs ein).
+    if(k.erstelltTs && !k.flowBaseline){ const d=k.erstelltTs.slice(0,10); created[d]=(created[d]||0)+1; }
     if(k.status==='erledigt' && k.tagId){ const d=String(k.tagId).slice(0,10); done[d]=(done[d]||0)+1; }
   });
   (S.intraday||[]).forEach(e=>{ if(!e.ts) return; const k=byId[e.kartenId]; if(!k||kartenArt(k)!=='Aufgabe'||!ok(k)) return;
@@ -4626,6 +4750,49 @@ function anFlowReihe(dom){
   const trackedOpen={};   // getrackt am Tag, aber nicht an dem Tag abgeschlossen
   Object.keys(trackedBy).forEach(d=>{ let n=0; Object.keys(trackedBy[d]).forEach(id=>{ const k=byId[id]; if(k && String(k.tagId||'').slice(0,10)!==d) n++; }); trackedOpen[d]=n; });
   return {created, done, geschoben, trackedOpen};
+}
+/* F2.3 (v1.3.3): Bestands-Balken unter dem Flow-Diagramm. 100 % = alle Aufgaben
+   des Betrachtungsrahmens (aktuell offen + im Fenster erledigt). Grün = erledigt,
+   offene nach Priorität in der App-Farbskala — identisch zum Stapel-Segmentbalken
+   (muss #f66d6d · soll #f2b84b · kann/„idee" #b98af7). */
+function anFlowBestandsBalken(F,dom){
+  const ok=k=>dom==='alle'||k.domain===dom;
+  const c={erl:0,muss:0,soll:0,kann:0};
+  S.karten.forEach(k=>{
+    if(kartenArt(k)!=='Aufgabe' || !ok(k) || k.status==='archiviert') return;
+    if(k.status==='erledigt'){
+      const t=k.tagId?String(k.tagId).slice(0,10):null;
+      if(t && t>=F.von && t<=F.bis) c.erl++;                 // nur im Fenster erledigt
+      return;
+    }
+    const pr=k.prioritaet;
+    if(pr==='muss') c.muss++; else if(pr==='idee') c.kann++; else c.soll++;
+  });
+  const tot=c.erl+c.muss+c.soll+c.kann;
+  if(!tot) return '';
+  const seg=[['erl','#3ecf8e','erledigt'],['muss','#f66d6d','offen muss'],['soll','#f2b84b','offen soll'],['kann','#b98af7','offen kann']];
+  let bar=''; seg.forEach(s=>{ const n=c[s[0]]; if(!n) return; const pct=n/tot*100;
+    bar+='<i style="width:'+pct.toFixed(1)+'%;background:'+s[1]+'" title="'+s[2]+': '+n+'">'+(pct>=8?Math.round(pct)+'%':'')+'</i>'; });
+  return '<div class="anmod-sub" style="margin-top:12px">Aufgaben-Bestand ('+tot+' gesamt · grün = erledigt, offen nach Priorität):</div>'+
+    '<div class="stbar">'+bar+'</div>'+
+    '<div class="stbar-leg">'+seg.filter(s=>c[s[0]]).map(s=>'<span><i style="background:'+s[1]+'"></i>'+s[2]+' '+c[s[0]]+'</span>').join('')+'</div>';
+}
+/* F2 (v1.3.3): realer Anfangsbestand des Netto-Backlogs zum Fensterstart —
+   Aufgaben, die vor dem Fenster existierten (oder als Bestandsaufnahme markiert
+   sind) und zu Fensterbeginn noch offen waren. Ersetzt den alten Nullstart, der
+   den Baseline-Zugang außerhalb des Fensters ignorierte und ins Minus lief. */
+function anFlowStartBestand(dom, von){
+  const ok=k=>dom==='alle'||k.domain===dom; let n=0;
+  S.karten.forEach(k=>{
+    if(kartenArt(k)!=='Aufgabe' || !ok(k) || k.status==='archiviert') return;
+    const erst=k.erstelltTs?String(k.erstelltTs).slice(0,10):null;
+    const vorher = k.flowBaseline || (erst && erst<von);      // existierte schon vor dem Fenster
+    if(!vorher) return;
+    const erlTag = (k.status==='erledigt' && k.tagId) ? String(k.tagId).slice(0,10) : null;
+    if(erlTag && erlTag<von) return;                          // war zu Fensterbeginn bereits erledigt
+    n++;
+  });
+  return n;
 }
 /* H3: Netto-Backlog-SVG mit 0-Anker (0 immer Rand je Vorzeichen) + ≥10 Puffer.
    S4 (v1.3.2): deutliche durchgezogene 0-Linie + blasse Rot-/Grünzone unter/über 0. */
@@ -4661,9 +4828,14 @@ function anModAufgabenFlow(F,dom){
   // Trend rein / erledigt / geschoben
   let inner=anSvgLine(days,[{vals:rArr,color:'var(--warn)'},{vals:eArr,color:'var(--ok)'},{vals:gesch,color:'var(--bad)',dots:false,dash:'3 2'}],{y0:true,height:118});
   inner+='<div class="an-legend"><span><i style="background:var(--warn)"></i>reingekommen</span><span><i style="background:var(--ok)"></i>erledigt</span><span><i style="background:var(--bad)"></i>geschoben</span></div>';
-  // Netto-Backlog: Zugang (rein + geschoben) − Erledigung (erledigt), kumuliert ab Zeitraum-Start
-  let cum=0; const backlog=days.map((x,i)=>{ cum+=(rArr[i]+gesch[i])-eArr[i]; return cum; });
-  inner+='<div class="anmod-sub" style="margin-top:10px">Netto-Backlog (kumuliert · Zugang inkl. geschoben − erledigt):</div>'+anSvgBacklog(days, backlog);
+  // F2.3 (v1.3.3): Bestands-Balken — 100 % = alle Aufgaben des Betrachtungsrahmens
+  // (offen + im Fenster erledigt). Grün = erledigt, offene nach Priorität in der
+  // App-Farbskala (muss rot · soll gelb · kann/„idee" lila, wie im Stapel-Balken).
+  inner+=anFlowBestandsBalken(F,dom);
+  // Netto-Backlog: Startbestand (F2) + Zugang (rein + geschoben) − Erledigung, kumuliert
+  const start=anFlowStartBestand(dom, F.von);
+  let cum=start; const backlog=days.map((x,i)=>{ cum+=(rArr[i]+gesch[i])-eArr[i]; return cum; });
+  inner+='<div class="anmod-sub" style="margin-top:10px">Netto-Backlog (Startbestand '+start+' + Zugang inkl. geschoben − erledigt):</div>'+anSvgBacklog(days, backlog);
   // Durchsatz & Balance (mit Vorperioden-Δ; H4.2: nur Tage mit Aktivität im Ø)
   const span=F.span, pDays=[]; for(let i=span;i>=1;i--) pDays.push(anVorTage(F.von,i));
   const prR=pDays.map(x=>(fl.created[x]||0)+(fl.trackedOpen[anVorTage(x,1)]||0)), prE=pDays.map(x=>(fl.done[x]||0)+(fl.trackedOpen[x]||0));
