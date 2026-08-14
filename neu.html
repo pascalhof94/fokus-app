@@ -854,9 +854,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.5.0';                    // Datenvertrag/Sync-appVersion — 1.5.0 (Paket 2 Avatar-Panorama, reine Anzeige/Ableitung; 1.x-kompatibel)
-const UI_VERSION = 'v1.5.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-14-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.5.1';                    // Datenvertrag/Sync-appVersion — 1.5.1 (Panorama-Reset als Offset + Level-Kosten einstellbar; 1.x-kompatibel)
+const UI_VERSION = 'v1.5.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-14-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -956,7 +956,8 @@ const DEFAULT_SETTINGS = {
   tageszielPunkteProStd: 100,  // ALT (M3-Pace) — durch tagesZielDfm/Privat ersetzt, intern belassen
   pfeilZone1: 5, pfeilZone2: 15, pfeilZone3: 40,  // v1.1: Pace-Pfeil-Zonen (% Abw. vom Soll) — v0.38-Port
   preisFaktor: 15,             // Shop-Preis-Faktor (§7 D7) — Neukalibrierung 30.07. (1,0→15)
-  levelSchwellen: [0,6000,18000,37500,67500,105000,150000,210000,285000,375000,480000,600000],  // Punkte-Neukalibrierung 30.07. (×15)
+  levelSchwellen: [0,6000,18000,37500,67500,105000,150000,210000,285000,375000,480000,600000],  // ALT (vor U4) — Level kommt jetzt aus punkteProLevel
+  punkteProLevel: 2000,        // v1.5.1: Punkte je Avatar-Level (einstellbar in Punkte-Balance, min 100)
   akkuProStd: -8,              // Akku-%/Std im Fokus — M3
   farbEndpunkte: {             // §5 (M2 nutzt das voll aus)
     dfm:{hVon:50,hBis:0}, privat:{h:140}, wdh:{hVon:270,hBis:320}
@@ -1142,6 +1143,35 @@ function ladeAlles(){
     S.meta.lifetimeBasis=Math.max(0, ausWohlstand, ausKonto);
     S.meta.lifetimeQuelle=(ausKonto>ausWohlstand)?'konto+ausgaben':'wohlstand';
     saveMeta();
+  }
+  // v1.5.1: Panorama-Progression einmalig zurücksetzen — als OFFSET, nicht als
+  // Löschung. Es wird kein historischer Datensatz angefasst: Historie, Intraday,
+  // Zeit-Aggregate, Streaks, Ist-Punkte je Karte und das Punkte-Konto bleiben
+  // unverändert. Zurückgesetzt wird nur, was das Panorama anzeigt:
+  //   (a) meta.panoramaResetOffset = Lifetime-Rohwert jetzt → Level startet bei 1,
+  //   (b) die 6 Objekt-Kategorien auf Stufe 0 → Szene zeigt nur bg01 + Avatar.
+  // Der alte Stand liegt vollständig in meta.panoramaResetBackup und ist damit
+  // umkehrbar. Guarded über meta.panoramaReset151, Sicherung wie üblich vorher.
+  if(!S.meta.panoramaReset151){
+    if(!S.belohnung){ S.belohnung={ stufen:{}, ausgegeben:0, kaeufe:[] }; }
+    S.belohnung.stufen = S.belohnung.stufen || {};
+    DB.set('belohnung_bak151', S.belohnung);
+    DB.set('meta_bak151', S.meta);
+    const altStufen={}; KAT_KEYS.forEach(k=>{ altStufen[k]=num(S.belohnung.stufen[k],1); });
+    const rohVorher=lifetimePunkteRoh();
+    S.meta.panoramaResetBackup={
+      ts: jetztIso(),
+      offset: rohVorher,                       // Lifetime-Rohwert zum Reset-Zeitpunkt
+      levelVorher: Math.max(1, Math.min(AVATAR_MAX_LEVEL, Math.ceil(rohVorher/punkteProLevel()))),
+      stufen: altStufen,                       // Kategorie-Stufen vor dem Reset
+      wohlstand: num(S.meta.wohlstand),
+      ausgegeben: num(S.belohnung.ausgegeben),
+      lifetimeBasis: num(S.meta.lifetimeBasis)
+    };
+    S.meta.panoramaResetOffset=rohVorher;
+    KAT_KEYS.forEach(k=>{ S.belohnung.stufen[k]=0; });   // Objekte verschwinden, Wiederaufbau nur durch neue Käufe
+    S.meta.panoramaReset151=true;
+    saveMeta(); saveBelohnung();
   }
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
@@ -3482,6 +3512,11 @@ function renderEinst(){
     h+='<div class="slider"><label>'+lab+'</label>'+
       '<input type="number" inputmode="numeric" step="'+step+'" data-setting="'+k+'" value="'+num(s[k])+'"></div>';
   });
+  // v1.5.1: Level-Kosten einstellbar — wirkt sofort auf Level, bg-Stufe und Funkel-Schwellen.
+  h+='<div class="slider"><label>Punkte pro Level</label>'+
+    '<input type="number" inputmode="numeric" step="100" min="100" data-setting="punkteProLevel" value="'+punkteProLevel()+'"></div>'+
+    '<p class="d" style="margin-top:4px">Aktuell Level '+avatarStufe()+' / '+AVATAR_MAX_LEVEL+
+      ' · noch '+Math.round(avatarFortschritt().rest)+' P bis zum nächsten. Minimum 100.</p>';
   h+='</div>';
 
   h+='<div class="card"><h3>Punktesystem</h3><p class="d">Alle Sätze live (§3.8). Farbe/Timer/Fokus (M2), Tageslogik (M3) und Sync (M4) laufen.</p>';
@@ -3519,6 +3554,8 @@ function renderEinst(){
     '<div class="kv"><span>Wohlstand (live)</span><b>'+Math.round(wohlstandLive())+'</b></div>'+
     // U4 (v1.4.0): Level-Basis nachvollziehbar machen (Migrationswert + Herleitung)
     '<div class="kv"><span>Lifetime-Punkte (Level-Basis)</span><b>'+Math.round(lifetimePunkte())+'</b></div>'+
+    // v1.5.1: Offset transparent machen — Rohwert bleibt erhalten, nur die Anzeige startet neu
+    '<div class="kv"><span>Panorama-Reset-Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
     '<div class="kv"><span>Level</span><b>Lv '+avatarStufe()+'/'+AVATAR_MAX_LEVEL+' · '+esc(avatarAssets(avatarStufe()).name)+'</b></div>'+
     '<div class="kv"><span>Migration Lifetime-Basis</span><b>'+(S.meta.lifetimeBasis==null?'—':Math.round(S.meta.lifetimeBasis)+' P ('+esc(S.meta.lifetimeQuelle||'?')+')')+'</b></div>'+
     '<div class="kv"><span>Tag</span><b>'+(tagOffen()?('läuft · '+esc(S.tag.tagId)):(S.tag?'abgeschlossen':'nicht gestartet'))+'</b></div>'+
@@ -3555,7 +3592,10 @@ function belohnungInit(){
   if(S.belohnung.ausgegeben==null) S.belohnung.ausgegeben=0;
   if(!S.belohnung.kaeufe) S.belohnung.kaeufe=[];
   S.belohnung.stufen = S.belohnung.stufen || {};
-  KAT_KEYS.forEach(k=>{ if(!S.belohnung.stufen[k]) S.belohnung.stufen[k]=1; });  // Stufe 1 (Schwelle 0) immer offen
+  // Stufe 1 (Schwelle 0) ist bei einer frischen Kategorie offen. v1.5.1: NUR noch
+  // bei fehlendem Wert setzen — nach dem Panorama-Reset steht hier bewusst 0, und
+  // ein `!0`-Test hätte das sofort wieder auf 1 hochgezogen (Punkt 3 der Vorgabe).
+  KAT_KEYS.forEach(k=>{ if(S.belohnung.stufen[k]==null) S.belohnung.stufen[k]=1; });
   saveBelohnung();
 }
 /* Punkte-Konto = Wohlstand live − bereits im Shop ausgegebene Punkte. */
@@ -3697,7 +3737,11 @@ function fmtMin(sek){ const m=Math.round(sek/60); return m>=60 ? (Math.floor(m/6
    (Bild wechselt alle 5 Level, Variante innerhalb der 5 Level).
    ══════════════════════════════════════════════════════════════════════ */
 const AVATAR_MAX_LEVEL = 100;      // Level-Kappe
-const AVATAR_PRO_LEVEL = 10000;    // Punkte je Level
+const AVATAR_PRO_LEVEL = 2000;     // Punkte je Level (Default; einstellbar via settings.punkteProLevel)
+/* v1.5.1: Level-Kosten sind einstellbar (Mehr → Punkte-Balance). Alle Level-,
+   bg- und Funkel-Rechnungen gehen über diesen Wert, nirgends bleibt eine feste
+   Punktzahl stehen. Untergrenze 100, damit die Skala nicht entartet. */
+function punkteProLevel(){ return Math.max(100, num(S.settings && S.settings.punkteProLevel, AVATAR_PRO_LEVEL)); }
 const AVATAR_SLOTS     = 20;       // Bild-Slots (je 5 Level)
 /* Ein Eintrag je bildSlot (Index 0 = Slot 1 = Lv 1–5).
    ACHTUNG Indexierung: bildSlot läuft 1–20 (EIN Slot deckt 5 Level ab) und
@@ -3743,20 +3787,32 @@ const AVATAR_NAMEN = [
 /* U4: jemals verdiente Punkte. Zwei unabhängige Wege, es gilt der größere —
    wohlstandLive() ist die kumulative Verdienstsumme, Kontostand + Ausgaben der
    Gegencheck (deckt Altdaten ab, in denen nur beides zusammen stimmig ist). */
-function lifetimePunkte(){
+function lifetimePunkteRoh(){
   const ausg=num(S.belohnung&&S.belohnung.ausgegeben);
   return Math.max(0, wohlstandLive(), konto()+ausg, num(S.meta&&S.meta.lifetimeBasis));
 }
-/* U4: Level 1 = 1…10.000 P, Level 100 = 990.001…1.000.000 P (Kappe). */
+/* v1.5.1: Panorama-Progression lässt sich zurücksetzen, OHNE Daten zu löschen —
+   meta.panoramaResetOffset hält den Rohstand zum Reset-Zeitpunkt und wird hier
+   abgezogen. Historie, Intraday-Log, Streaks, Konto und alle Statistiken lesen
+   weiterhin ihre eigenen, unangetasteten Quellen; nur die Avatar-/Panorama-
+   Anzeige startet dadurch wieder bei Level 1. */
+function lifetimePunkte(){
+  return Math.max(0, lifetimePunkteRoh() - num(S.meta && S.meta.panoramaResetOffset));
+}
+/* Level = volle Vielfache der Level-Kosten + 1. Start bei Level 1 mit 0 Punkten;
+   jedes weitere Level kostet exakt punkteProLevel() (v1.5.1: 2000 → Level 2,
+   20.000 → Level 11). Vorher war das ein ceil(), womit das erste Level einen
+   Punkt mehr gekostet hätte und die Fortschrittsleiste im alten Level schon voll
+   stand. Kappe bleibt AVATAR_MAX_LEVEL. */
 function avatarStufe(){
-  return Math.max(1, Math.min(AVATAR_MAX_LEVEL, Math.ceil(lifetimePunkte()/AVATAR_PRO_LEVEL)));
+  return Math.max(1, Math.min(AVATAR_MAX_LEVEL, Math.floor(lifetimePunkte()/punkteProLevel())+1));
 }
 /* U4: Punkte bis zum nächsten Level (für die Fortschrittsleiste). */
 function avatarFortschritt(){
-  const lt=lifetimePunkte(), lvl=avatarStufe();
-  if(lvl>=AVATAR_MAX_LEVEL) return { anteil:1, rest:0, imLevel:AVATAR_PRO_LEVEL, lifetime:lt };
-  const basis=(lvl-1)*AVATAR_PRO_LEVEL, imLevel=lt-basis;
-  return { anteil:Math.max(0,Math.min(1,imLevel/AVATAR_PRO_LEVEL)), rest:Math.max(0,AVATAR_PRO_LEVEL-imLevel), imLevel, lifetime:lt };
+  const lt=lifetimePunkte(), lvl=avatarStufe(), ppl=punkteProLevel();
+  if(lvl>=AVATAR_MAX_LEVEL) return { anteil:1, rest:0, imLevel:ppl, lifetime:lt };
+  const basis=(lvl-1)*ppl, imLevel=lt-basis;
+  return { anteil:Math.max(0,Math.min(1,imLevel/ppl)), rest:Math.max(0,ppl-imLevel), imLevel, lifetime:lt };
 }
 /* U4: zentrales Mapping Level → Darstellung. Paket 2 tauscht nur AVATAR_BILDER. */
 function avatarAssets(level){
@@ -4718,7 +4774,9 @@ el('einstBody').addEventListener('click', e=>{
   if(e.target.closest('[data-debugtap]')){ setDebugTap(!S.ui.debugTap); renderEinst(); return; }   // V3
 });
 el('einstBody').addEventListener('change', e=>{
-  const t=e.target; if(t.dataset.setting){ S.settings[t.dataset.setting]=num(t.value); saveSettings(); }
+  const t=e.target; if(t.dataset.setting){ S.settings[t.dataset.setting]=num(t.value); saveSettings();
+    // v1.5.1: Level-Kosten wirken sofort — Anzeige (Statusleiste/Belohnung/Hinweis) nachziehen.
+    if(t.dataset.setting==='punkteProLevel'){ renderStatusbar(); renderEinst(); } }
 });
 
 /* ══════════════════════════════════════════════════════════════════════
