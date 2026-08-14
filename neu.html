@@ -379,22 +379,40 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 /* ── D7 Belohnung + Statistiken (§9) ─────────────────────────────── */
 /* Avatar-Szene (voller Port §7 D7 / §6.1) */
 .avcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:var(--s2);margin-bottom:var(--s2)}
-.avscene{position:relative;border-radius:12px;background:linear-gradient(180deg,#0a0f1a 55%,#101a2c);display:flex;align-items:flex-end;justify-content:center;padding:18px 0 0;overflow:hidden;min-height:190px}
-.avground{position:absolute;left:0;right:0;bottom:0;height:16px;background:#22304a}
+/* v1.5.0 Panorama-Bühne: feste Bild-Geometrie (1200x669 wie die BG-JPGs), damit
+   die Prozent-Angaben der Objekte verlässlich greifen; min-height hält die
+   bisherige Außenhöhe der Karte. */
+.avscene{position:relative;border-radius:12px;background:linear-gradient(180deg,#0a0f1a 55%,#101a2c);
+  overflow:hidden;aspect-ratio:1200/669;min-height:236px}
+/* Layer 0 — Reise-Hintergrund. Liegt ÜBER dem HSL-Verlauf der Szene; scheitert
+   das JPG, bleibt der Verlauf als Unterlage sichtbar (kein Loch). */
+.avscene .avbg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;background-repeat:no-repeat}
 .avfoto{position:relative;z-index:2;height:200px;width:auto;border-radius:12px;margin-bottom:8px;box-shadow:0 8px 22px rgba(0,0,0,.45);animation:avbob 4s ease-in-out infinite}
 /* v1.4.1: freigestelltes Avatar-PNG in der Belohnungs-Szene — der rechteckige
    box-shadow würde hinter der Transparenz als grauer Kasten stehen, deshalb
    drop-shadow (folgt der Silhouette). Nur die Szene, der Tacho-Ring auf der
-   Fokusseite (.tringwrap .avfoto) bleibt unverändert. */
-.avscene .avfoto{border-radius:0;background:transparent;box-shadow:none;
-  filter:drop-shadow(0 8px 16px rgba(0,0,0,.5))}
+   Fokusseite (.tringwrap .avfoto) bleibt unverändert.
+   v1.5.0: Avatar steht mittig-vorn auf der gemeinsamen Bodenlinie (bottom 8 %);
+   Ausrichtung über Höhe + bottom, NIE über feste Breiten (alpha-gecroppte PNGs). */
+.avscene .avfoto{position:absolute;left:50%;bottom:8%;height:72%;width:auto;max-width:none;
+  margin:0;z-index:8;border-radius:0;background:transparent;box-shadow:none;
+  filter:drop-shadow(0 8px 16px rgba(0,0,0,.5));animation:avbob2 4s ease-in-out infinite}
 @keyframes avbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-/* v1.4.1: Erschöpft = Graustufen/Abdunklung auf demselben PNG (drop-shadow bleibt) */
-.avscene.erschoepft .avfoto{filter:grayscale(.55) brightness(.8) drop-shadow(0 8px 16px rgba(0,0,0,.5));animation:none}
+/* eigene Bob-Keyframes, weil die Zentrierung selbst über transform läuft */
+@keyframes avbob2{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}}
+/* ── v1.5.0 (C): Vitalität in 5 Stufen statt binär „erschöpft" ──────────
+   Filter wirken auf den Avatar; BG/Objekte werden höchstens minimal
+   entsättigt, damit die Szene lebendig bleibt. */
+.avscene.vital-1 .avfoto{filter:saturate(.9) brightness(.97) drop-shadow(0 8px 16px rgba(0,0,0,.5))}
+.avscene.vital-2 .avfoto{filter:saturate(.75) brightness(.92) drop-shadow(0 8px 16px rgba(0,0,0,.5))}
+.avscene.vital-3 .avfoto{filter:saturate(.6) brightness(.85) drop-shadow(0 8px 16px rgba(0,0,0,.5))}
+.avscene.vital-4 .avfoto{filter:grayscale(.55) brightness(.8) drop-shadow(0 8px 16px rgba(0,0,0,.5));animation:none}
+.avscene.vital-3 .avbg,.avscene.vital-3 .szobj,
+.avscene.vital-4 .avbg,.avscene.vital-4 .szobj{filter:saturate(.9)}
 /* ── U4 (v1.4.0): Level-Hintergrund + gestufte Funkel-Effekte ──────────
    Rein CSS-animiert (transform/opacity), kein Canvas und kein JS-Ticker.
    Ab Lv 25 Schimmer, ab 50 Glitzer, ab 75 animiertes Funkeln, ab 90 Premium. */
-.avscene .avfx{position:absolute;inset:0;pointer-events:none;z-index:1}
+.avscene .avfx{position:absolute;inset:0;pointer-events:none;z-index:9}   /* v1.5.0: bleibt oberstes Element über dem Panorama */
 .avscene .avfx::before,.avscene .avfx::after{content:"";position:absolute;inset:0;opacity:0}
 /* Schimmer (Lv 25+): ein langsam wandernder Lichtstreifen */
 .avfx.fx-schimmer::before,.avfx.fx-glitzer::before,.avfx.fx-funkeln::before,.avfx.fx-premium::before{
@@ -425,14 +443,20 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 @media (prefers-reduced-motion:reduce){
   .avfx.fx-premium,.avfx::before,.avfx::after{animation:none}
 }
-.avscene.erschoepft .avfx{opacity:.25;animation:none}
+.avscene.vital-3 .avfx,.avscene.vital-4 .avfx{opacity:.25;animation:none}
 .rankline .rankstufe{font-size:11px;color:var(--mut2);font-weight:700}
-.szobj{position:absolute;line-height:1;pointer-events:none}
-.szobj i{font-style:normal;font-size:9px;font-weight:800;color:var(--mut);vertical-align:top;margin-left:1px}
-.szobj.hinten{z-index:1;opacity:.55;filter:saturate(.8)}
-.szobj.vorne{z-index:3}
-.szobj.schwebt{animation:szschweb 5s ease-in-out infinite}
+/* v1.5.0: Wohlstands-Objekte als freigestellte PNGs. Höhe kommt inline (% der
+   Szenenhöhe), die Breite ergibt sich aus dem Seitenverhältnis — feste Breiten
+   wären bei alpha-gecroppten Bildern falsch. */
+.szobj{position:absolute;line-height:0;pointer-events:none}
+.szobj>img{height:100%;width:auto;display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))}
+.szobj i{position:absolute;right:-2px;top:-4px;font-style:normal;font-size:9px;font-weight:800;
+  color:var(--txt);background:rgba(10,15,26,.72);border-radius:6px;padding:0 4px;line-height:13px}
+/* Tiefenstaffelung: was weiter hinten liegt, wird leicht zurückgenommen */
+.szobj.zone-home,.szobj.zone-boat{opacity:.92}
+.szobj.zone-air{animation:szschweb 5s ease-in-out infinite}
 @keyframes szschweb{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@media (prefers-reduced-motion:reduce){ .szobj.zone-air,.avscene .avfoto{animation:none} }
 .rankline{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px}
 .rankname{font-size:15px;font-weight:900}
 .rankpts{font-size:12px;color:var(--purple);font-weight:800}
@@ -830,9 +854,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.4.2';                    // Datenvertrag/Sync-appVersion — 1.4.2 (Mini-Fix erste 4 finale Avatar-Slots, reine Anzeige; 1.x-kompatibel)
-const UI_VERSION = 'v1.4.2';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-13-9';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.5.0';                    // Datenvertrag/Sync-appVersion — 1.5.0 (Paket 2 Avatar-Panorama, reine Anzeige/Ableitung; 1.x-kompatibel)
+const UI_VERSION = 'v1.5.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-14-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -3573,25 +3597,80 @@ function kaufen(kat){
 }
 /* Vitalität (§6.2): getrieben vom Tages-Akku. */
 function vitalitaet(){ if(tagOffen()&&S.tag.akku!=null) return S.tag.akku>=50; return true; }
+/* ══════════════════════════════════════════════════════════════════════
+   Paket 2 (v1.5.0) · Avatar-Panorama — Komposition aus Hintergrund,
+   Wohlstands-Objekten und Avatar. Alles zur Laufzeit abgeleitet, kein
+   neues Storage-Feld.
+   ══════════════════════════════════════════════════════════════════════ */
+/* C: Vitalitäts-Stufe aus dem Tages-Akku (5 Zustände statt binär). Rein
+   abgeleitet; ohne laufenden Tag gilt „voll". */
+function vitalStufe(){
+  if(!(tagOffen() && S.tag && S.tag.akku!=null)) return '';
+  const a=num(S.tag.akku);
+  if(a>=80) return '';
+  if(a>=60) return 'vital-1';
+  if(a>=40) return 'vital-2';
+  if(a>=20) return 'vital-3';
+  return 'vital-4';
+}
+const VITAL_LABEL = { voll:'Vital', 'vital-1':'Wach', 'vital-2':'Angeschlagen', 'vital-3':'Müde', 'vital-4':'Erschöpft' };
+/* B/Layer 0: Reise-Hintergrund am GESAMT-Avatar-Level (nicht an einer
+   Kategorie) — 10 Stufen à 10 Level, arm→reich. */
+function bgFuerLevel(level){
+  const lvl=Math.max(1, Math.min(AVATAR_MAX_LEVEL, Math.round(num(level,1))||1));
+  const stufe=Math.min(10, Math.floor((lvl-1)/10)+1);
+  return 'img/bg'+String(stufe).padStart(2,'0')+'.jpg';
+}
+/* B/Layer 1: Wohlstands-Leitern → Bildzonen des Dioramas. */
+const KAT_ZONE = { wohnen:'home', fahrzeuge:'car', reisen:'boat', mobilitaet:'air', begleiter:'pet', soziales:'friends' };
+/* Bildstufe 1–5 einer Kategorie; 0 = nichts freigeschaltet → Objekt entfällt.
+   S.belohnung.stufen[kat] zählt die offenen Stufen und startet bei 1
+   („Stufe 1 = Schwelle 0" ist immer offen) — erst ab 2 ist wirklich etwas
+   erreicht, deshalb ist 1 hier gleichbedeutend mit „noch nichts". */
+function objBildStufe(kat){
+  const offen=num(S.belohnung && S.belohnung.stufen && S.belohnung.stufen[kat], 0);
+  if(offen<=1) return 0;
+  const max=Math.max(1, (BELOHNUNG[kat] && BELOHNUNG[kat].stufen ? BELOHNUNG[kat].stufen.length : 12));
+  return Math.max(1, Math.min(5, Math.ceil(offen/max*5)));
+}
+/* Layout des Dioramas: Höhe + Rand in % der Szenenhöhe (nie feste Breiten,
+   da alle PNGs alpha-gecroppt sind). Gemeinsame Bodenlinie bei 92 % (=
+   bottom 8 %); nur „air" schwebt und „boat" liegt als Horizont-Objekt höher.
+   z-Reihenfolge hinten→vorn: bg < home < boat < air < friends < car < pet < Avatar. */
+const SZENE_LAYOUT = {
+  home:    { h:54, pos:'left:0%;bottom:8%',    z:2 },
+  boat:    { h:15, pos:'right:4%;bottom:46%',  z:3 },
+  air:     { h:13, pos:'right:30%;top:4%',     z:4 },
+  friends: { h:36, pos:'right:1%;bottom:8%',   z:5 },
+  car:     { h:20, pos:'left:4%;bottom:8%',    z:6 },
+  pet:     { h:13, pos:'left:31%;bottom:8%',   z:7 }
+};
 /* U4 (v1.4.0): Bild kommt aus dem Level-Slot-Mapping (avatarAssets → 20 Slots).
-   v1.4.1: auch der Erschöpft-Fall nutzt das freigestellte PNG — das alte
+   v1.4.1: auch der müde Zustand nutzt das freigestellte PNG — das alte
    avatar-muede.jpg ist fotorealistisch mit hellem Hintergrund und stünde als
-   grauer Kasten auf dem Level-Verlauf. Die Erschöpft-Wirkung kommt aus
-   .avscene.erschoepft (Graustufen/Abdunklung + gedämpfte .avfx), nicht aus
-   einem eigenen Bild. */
+   grauer Kasten auf dem Level-Verlauf. Die Vitalitäts-Wirkung kommt aus den
+   .avscene.vital-* Klassen (Sättigung/Helligkeit + gedämpfte .avfx), nicht
+   aus einem eigenen Bild. Der Contract gilt unverändert: avatarBild() liefert
+   in JEDEM Zustand eine gültige Quelle, Vitalität ändert nie die Bildquelle. */
 function avatarBild(lvl, vital){
   return avatarAssets(lvl).bild;
 }
 /* Gekaufte Kategorien wachsen als Objekte in der Szene (Aufbauspiel-Stil §6.1). */
+/* v1.5.0: Wohlstands-Objekte als freigestellte PNGs statt Emoji. Je Kategorie
+   ein Bild der Stufe 1–5; nicht freigeschaltete Kategorien entfallen ganz.
+   Die kleinen Stufen-Badges (Zahlen) bleiben erhalten. */
 function szeneObjekteHtml(){
-  const st=kk=>(S.belohnung.stufen[kk]||1); const obj=[];
-  if(st('wohnen')>1){ const w=st('wohnen'); obj.push(['hinten', w>=7?'🏙️':w>=4?'🏠':'🛖','left:8%;bottom:14px',44+w*5,w]); }
-  if(st('reisen')>1) obj.push(['hinten', st('reisen')>=6?'🏝️':'🌄','left:6%;top:8%',18+st('reisen')*2,st('reisen')]);
-  if(st('mobilitaet')>1) obj.push(['vorne schwebt', st('mobilitaet')>=7?'✈️':st('mobilitaet')>=4?'🚤':'🛴','right:8%;top:12%',14+st('mobilitaet')*2,st('mobilitaet')]);
-  if(st('fahrzeuge')>1) obj.push(['vorne', st('fahrzeuge')>=7?'🏎️':st('fahrzeuge')>=3?'🚗':'🚲','right:5%;bottom:14px',18+st('fahrzeuge')*3,st('fahrzeuge')]);
-  if(st('begleiter')>1) obj.push(['vorne', st('begleiter')>=4?'🐕':'🐈','left:30%;bottom:14px',12+st('begleiter')*2,st('begleiter')]);
-  if(st('soziales')>1) obj.push(['vorne', '👥','right:26%;bottom:16px',12+st('soziales')*2,st('soziales')]);
-  return obj.map(o=>'<span class="szobj '+o[0]+'" style="'+o[2]+';font-size:'+o[3]+'px">'+o[1]+'<i>'+o[4]+'</i></span>').join('');
+  return KAT_KEYS.map(kat=>{
+    const zone=KAT_ZONE[kat], lay=zone&&SZENE_LAYOUT[zone];
+    if(!zone||!lay) return '';
+    const bs=objBildStufe(kat); if(!bs) return '';
+    const offen=num(S.belohnung.stufen[kat],0);
+    const src='img/obj-'+zone+bs+'.png';
+    return '<span class="szobj zone-'+zone+'" style="'+lay.pos+';height:'+lay.h+'%;z-index:'+lay.z+'">'+
+      '<img src="'+src+'" alt="'+esc(BELOHNUNG[kat].name)+'" loading="lazy" decoding="async"'+
+        ' onerror="this.closest(\'.szobj\').style.display=\'none\'">'+
+      '<i>'+offen+'</i></span>';
+  }).join('');
 }
 /* Shop-Karten: aktuelle (freigeschaltete) Stufe sichtbar, nächste „???". */
 function shopHtml(){
@@ -3620,25 +3699,24 @@ function fmtMin(sek){ const m=Math.round(sek/60); return m>=60 ? (Math.floor(m/6
 const AVATAR_MAX_LEVEL = 100;      // Level-Kappe
 const AVATAR_PRO_LEVEL = 10000;    // Punkte je Level
 const AVATAR_SLOTS     = 20;       // Bild-Slots (je 5 Level)
-/* Paket 2: hier je Slot das finale Bild eintragen (Index 0 = Slot 1 = Lv 1–5).
+/* Ein Eintrag je bildSlot (Index 0 = Slot 1 = Lv 1–5).
    ACHTUNG Indexierung: bildSlot läuft 1–20 (EIN Slot deckt 5 Level ab) und
    AVATAR_BILDER[bildSlot-1] liest GENAU EINEN Array-Eintrag pro Slot — das
    Array hat also 20 Einträge für 20 Slots, NICHT 5 wiederholte Einträge pro
-   Bild. (Eine erste Fassung mit 5x-Wiederholung je Bild hätte Level 6–20 alle
-   auf Slot-1-Bild zurückfallen lassen, statt bei jedem Slot zu wechseln.)
-   v1.4.2: Slot 1–4 (Lv 1–20) tragen die ersten vier finalen Low-Poly-Bilder
-   (Hoodie/Polo/Hemd/Sweater), Slot 5–20 (Lv 21–100) bleiben vorerst beim
-   freigestellten Platzhalter img/avatar-pascal.png (transparenter Hintergrund
-   → der Level-Verlauf der Szene scheint durch, nie ein weißer/grauer Kasten).
-   Die 20-Slot-Struktur bleibt bestehen; das Array wächst mit jeder Lieferung
-   weiter Richtung 20 echte Slots. */
+   Bild. (Eine Fassung mit 5x-Wiederholung je Bild ließe Level 6–20 alle auf
+   das Slot-1-Bild zurückfallen, statt bei jedem Slot zu wechseln.)
+   v1.5.0 (Paket 2): alle 20 Slots tragen die finalen Panorama-Avatare
+   (avatar-s01…s20.png, transparent, einheitlich 720 px hoch, Breite
+   alpha-gecroppt). Ausrichtung deshalb IMMER über Höhe + bottom, nie über
+   feste Breiten. avatar-pascal.png ist nur noch onerror-Not-Fallback. */
 const AVATAR_BILDER = [
   'img/avatar-s01.png','img/avatar-s02.png','img/avatar-s03.png','img/avatar-s04.png',
-  'img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png',
-  'img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png',
-  'img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png',
-  'img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png','img/avatar-pascal.png'
+  'img/avatar-s05.png','img/avatar-s06.png','img/avatar-s07.png','img/avatar-s08.png',
+  'img/avatar-s09.png','img/avatar-s10.png','img/avatar-s11.png','img/avatar-s12.png',
+  'img/avatar-s13.png','img/avatar-s14.png','img/avatar-s15.png','img/avatar-s16.png',
+  'img/avatar-s17.png','img/avatar-s18.png','img/avatar-s19.png','img/avatar-s20.png'
 ];
+const AVATAR_FALLBACK = 'img/avatar-pascal.png';   // Not-Fallback am <img> (onerror)
 /* 100 Level-Titel — aufsteigend von bescheidenen Anfängen bis zur Legende. */
 const AVATAR_NAMEN = [
   'Frisch aufgestanden','Kaffee gefunden','To-do-Liste entdeckt','Erster Haken gesetzt','Zaghafter Anfänger',
@@ -4137,14 +4215,20 @@ function renderBelohnung(){
   // Fortschrittsleiste zeigt den Weg zum nächsten Level (Lifetime-Punkte).
   const lvl=avatarStufe(), av=avatarAssets(lvl), fort=avatarFortschritt();
   const vital=vitalitaet(), kontoP=konto();
-  h+='<div class="avcard"><div class="avscene'+(vital?'':' erschoepft')+'" style="background:'+av.bgStyle+'">'+
+  // v1.5.0 Panorama: Layer 0 = Reise-Hintergrund (JPG über dem HSL-Verlauf, der
+  // als Unterlage bleibt und bei Ladefehler einspringt), Layer 1 = Wohlstands-
+  // Objekte, darüber der Avatar, ganz oben der Funkel-Layer.
+  const vs=vitalStufe();
+  h+='<div class="avcard"><div class="avscene'+(vs?' '+vs:'')+'" style="background:'+av.bgStyle+'">'+
+    '<div class="avbg" style="background-image:url(\''+bgFuerLevel(lvl)+'\')"></div>'+
+    szeneObjekteHtml()+
+    '<img class="avfoto" src="'+avatarBild(lvl,vital)+'" alt="Avatar" loading="lazy" decoding="async"'+
+      ' onerror="if(this.src.indexOf(\''+AVATAR_FALLBACK+'\')<0){this.src=\''+AVATAR_FALLBACK+'\';}else{this.style.display=\'none\';}">'+
     '<div class="avfx '+av.fx+'"></div>'+
-    '<div class="avground"></div>'+szeneObjekteHtml()+
-    '<img class="avfoto" src="'+avatarBild(lvl,vital)+'" alt="Avatar" onerror="this.style.display=\'none\'">'+
     '</div>'+
     '<div class="rankline"><div class="rankname" style="color:'+av.akzent+'">'+esc(av.name)+'</div>'+
       '<div class="rankpts">Konto '+Math.round(kontoP)+' P</div></div>'+
-    '<div class="rankline" style="margin-top:2px"><div class="rankstufe">Level '+lvl+' / '+AVATAR_MAX_LEVEL+' · '+(vital?'Vital':'Erschöpft')+
+    '<div class="rankline" style="margin-top:2px"><div class="rankstufe">Level '+lvl+' / '+AVATAR_MAX_LEVEL+' · '+VITAL_LABEL[vs||'voll']+
       ' · Bild-Slot '+av.bildSlot+'/'+AVATAR_SLOTS+'</div>'+
       '<div class="rankstufe">'+Math.round(fort.lifetime)+' P gesamt</div></div>'+
     '<div class="av-bar"><i style="width:'+Math.round(fort.anteil*100)+'%;background:'+av.akzent+'"></i></div>'+
