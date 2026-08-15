@@ -260,8 +260,16 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 #fokusAktiv.tkern.laeuft{box-shadow:0 0 0 1px var(--blue) inset}
 .tkopfreihe{display:flex;align-items:center;gap:12px}
 .tringwrap{position:relative;width:132px;height:132px;flex:none}
-.tringwrap .avfoto{position:absolute;inset:0;margin:auto;width:86px;height:86px;border-radius:50%;object-fit:cover;object-position:50% 4%}
-.tringwrap .avfallback{position:absolute;inset:0;margin:auto;width:86px;height:86px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--card2)}
+/* UI-A (v1.5.2): Kopf/Oberkörper-Zoom — der Kreis ist jetzt ein Clip-Wrapper
+   (.avclip), das Bild hängt mit ~320 % Höhe oben zentriert darin (alpha-
+   gecroppte PNGs, Kopf beginnt oben → sichtbar bleibt das obere Drittel).
+   Der Wrapper-Hintergrund ist zugleich die Pace-Färbung (fokusTacho setzt ihn
+   sekündlich, weicher Übergang). */
+.tringwrap .avclip{position:absolute;inset:0;margin:auto;width:86px;height:86px;border-radius:50%;overflow:hidden;background:var(--card2);transition:background-color 1.2s linear}
+/* animation:none ist PFLICHT: die geerbte avbob-Animation würde per transform
+   das translateX(-50%) überschreiben und den Kopf aus der Mitte schieben. */
+.tringwrap .avclip .avfoto{position:absolute;left:50%;top:8px;transform:translateX(-50%);height:320%;width:auto;max-width:none;border-radius:0;object-fit:unset;animation:none;margin:0;box-shadow:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+.tringwrap .avclip .avfallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:40px}
 .tkopfpuls{animation:tpuls 1.4s ease-in-out infinite}
 @keyframes tpuls{0%,100%{opacity:.85}50%{opacity:.15}}
 .tinfos{flex:1;min-width:0}
@@ -382,8 +390,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 /* v1.5.0 Panorama-Bühne: feste Bild-Geometrie (1200x669 wie die BG-JPGs), damit
    die Prozent-Angaben der Objekte verlässlich greifen; min-height hält die
    bisherige Außenhöhe der Karte. */
+/* UI-B (v1.5.2): Szene strikt auf Viewportbreite — keine festen Breiten, kein
+   horizontaler Overflow (Referenz iPhone/Safari-PWA). Nur bg + Avatar + Funkel. */
 .avscene{position:relative;border-radius:12px;background:linear-gradient(180deg,#0a0f1a 55%,#101a2c);
-  overflow:hidden;aspect-ratio:1200/669;min-height:236px}
+  overflow:hidden;aspect-ratio:1200/669;min-height:236px;width:100%;max-width:100%;box-sizing:border-box}
 /* Layer 0 — Reise-Hintergrund. Liegt ÜBER dem HSL-Verlauf der Szene; scheitert
    das JPG, bleibt der Verlauf als Unterlage sichtbar (kein Loch). */
 .avscene .avbg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;background-repeat:no-repeat}
@@ -393,8 +403,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
    drop-shadow (folgt der Silhouette). Nur die Szene, der Tacho-Ring auf der
    Fokusseite (.tringwrap .avfoto) bleibt unverändert.
    v1.5.0: Avatar steht mittig-vorn auf der gemeinsamen Bodenlinie (bottom 8 %);
-   Ausrichtung über Höhe + bottom, NIE über feste Breiten (alpha-gecroppte PNGs). */
-.avscene .avfoto{position:absolute;left:50%;bottom:8%;height:72%;width:auto;max-width:none;
+   Ausrichtung über Höhe + bottom, NIE über feste Breiten (alpha-gecroppte PNGs).
+   v1.5.2 (UI-B): ohne Objekte darf er größer/zentraler stehen → 84 %. */
+.avscene .avfoto{position:absolute;left:50%;bottom:6%;height:84%;width:auto;max-width:none;
   margin:0;z-index:8;border-radius:0;background:transparent;box-shadow:none;
   filter:drop-shadow(0 8px 16px rgba(0,0,0,.5));animation:avbob2 4s ease-in-out infinite}
 @keyframes avbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
@@ -407,8 +418,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .avscene.vital-2 .avfoto{filter:saturate(.75) brightness(.92) drop-shadow(0 8px 16px rgba(0,0,0,.5))}
 .avscene.vital-3 .avfoto{filter:saturate(.6) brightness(.85) drop-shadow(0 8px 16px rgba(0,0,0,.5))}
 .avscene.vital-4 .avfoto{filter:grayscale(.55) brightness(.8) drop-shadow(0 8px 16px rgba(0,0,0,.5));animation:none}
-.avscene.vital-3 .avbg,.avscene.vital-3 .szobj,
-.avscene.vital-4 .avbg,.avscene.vital-4 .szobj{filter:saturate(.9)}
+.avscene.vital-3 .avbg,.avscene.vital-4 .avbg{filter:saturate(.9)}
 /* ── U4 (v1.4.0): Level-Hintergrund + gestufte Funkel-Effekte ──────────
    Rein CSS-animiert (transform/opacity), kein Canvas und kein JS-Ticker.
    Ab Lv 25 Schimmer, ab 50 Glitzer, ab 75 animiertes Funkeln, ab 90 Premium. */
@@ -448,15 +458,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 /* v1.5.0: Wohlstands-Objekte als freigestellte PNGs. Höhe kommt inline (% der
    Szenenhöhe), die Breite ergibt sich aus dem Seitenverhältnis — feste Breiten
    wären bei alpha-gecroppten Bildern falsch. */
-.szobj{position:absolute;line-height:0;pointer-events:none}
-.szobj>img{height:100%;width:auto;display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))}
-.szobj i{position:absolute;right:-2px;top:-4px;font-style:normal;font-size:9px;font-weight:800;
-  color:var(--txt);background:rgba(10,15,26,.72);border-radius:6px;padding:0 4px;line-height:13px}
-/* Tiefenstaffelung: was weiter hinten liegt, wird leicht zurückgenommen */
-.szobj.zone-home,.szobj.zone-boat{opacity:.92}
-.szobj.zone-air{animation:szschweb 5s ease-in-out infinite}
-@keyframes szschweb{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-@media (prefers-reduced-motion:reduce){ .szobj.zone-air,.avscene .avfoto{animation:none} }
+@media (prefers-reduced-motion:reduce){ .avscene .avfoto{animation:none} }
+/* UI-C (v1.5.2): Wohlstands-Objektbild neben Kategorie-Name/Stufe im Shop-Block
+   (ersetzt die Objekte in der großen Szene). Stufe 0 → kein Bild. */
+.katcard.mitbild{display:flex;gap:12px;align-items:center}
+.katcard .kobj{flex:none;width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))}
+.katcard .katinfo{flex:1;min-width:0}
 .rankline{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px}
 .rankname{font-size:15px;font-weight:900}
 .rankpts{font-size:12px;color:var(--purple);font-weight:800}
@@ -854,9 +861,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.5.1';                    // Datenvertrag/Sync-appVersion — 1.5.1 (Panorama-Reset als Offset + Level-Kosten einstellbar; 1.x-kompatibel)
-const UI_VERSION = 'v1.5.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-14-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.5.2';                    // Datenvertrag/Sync-appVersion — 1.5.2 (Flow-Sync-Fix + Soll-bei-Subs + Panorama-UI; keine Vertragsfelder geändert, 1.x-kompatibel)
+const UI_VERSION = 'v1.5.2';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-14-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -1119,6 +1126,34 @@ function ladeAlles(){
       }
     }
     S.meta.hotfix133=true; saveMeta();
+  }
+  // FIX1 (v1.5.2): Sync-Bestandsübernahme reparieren. DIAGNOSE: syncImport()
+  // legt unbekannte Karten aus dem Rück-Paket per neueKarte() an — erstelltTs
+  // = Sync-Moment. anFlowReihe zählt „reingekommen" über erstelltTs, geschützt
+  // nur durch flowBaseline; das hat bisher AUSSCHLIESSLICH hotfix133 gesetzt
+  // (v0.38-Massendatum). Der Sync-Kanal war ungeschützt — der erste große
+  // Airtable-Sync erzeugte an einem Tag ~70 „Zugänge" und verzerrt Flow/
+  // Netto-Backlog/Ø. Rückwirkend: jeder Tag, an dem ≥SYNC_BESTAND_SCHWELLE
+  // Karten MIT airtableId dasselbe erstelltTs-Datum tragen, gilt als Massen-
+  // Anlage (Bestandsübernahme) statt echtem Tageszugang → flowBaseline=true
+  // (wandert in anFlowStartBestand). Guarded + idempotent, Sicherung vorher,
+  // Ergebnis in meta.flowfix152Log protokolliert (Datum + Anzahl je Tag).
+  if(!S.meta.flowfix152){
+    DB.set('karten_bak152', S.karten);
+    const proTag={};
+    S.karten.forEach(k=>{ if(kartenArt(k)!=='Aufgabe' || !k.erstelltTs || !k.airtableId) return;
+      const d=String(k.erstelltTs).slice(0,10); (proTag[d]=proTag[d]||[]).push(k); });
+    const spikes=[];
+    Object.keys(proTag).sort().forEach(d=>{
+      const arr=proTag[d];
+      if(arr.length>=SYNC_BESTAND_SCHWELLE){
+        arr.forEach(k=>{ k.flowBaseline=true; });
+        spikes.push({datum:d, anzahl:arr.length});
+      }
+    });
+    if(spikes.length) saveKarten();
+    S.meta.flowfix152Log=spikes;
+    S.meta.flowfix152=true; saveMeta();
   }
   // U3 (v1.4.0): bisher globaler „Bearbeitet heute"-Statusfilter wird zum
   // Pro-Stapel-Filter. Alten Wert einmalig übernehmen, guarded + idempotent.
@@ -1809,8 +1844,10 @@ function renderFokus(){
   const idx=Math.max(0, kand.findIndex(x=>x.id===k.id));
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
   const lvl=(typeof avatarStufe==='function')?avatarStufe():1, vital=(typeof vitalitaet==='function')?vitalitaet():true;
-  const av = '<img class="avfoto" src="'+avatarBild(lvl,vital)+'" alt="Avatar" onerror="this.style.display=\'none\';var f=this.nextElementSibling;if(f)f.style.display=\'flex\'">'+
-             '<span class="avfallback" style="display:none">🧑</span>';
+  // UI-A (v1.5.2): Clip-Kreis mit Kopf-Zoom; id tRingBg = Ziel der Pace-Färbung
+  const av = '<span class="avclip" id="tRingBg">'+
+             '<img class="avfoto" src="'+avatarBild(lvl,vital)+'" alt="Avatar" onerror="this.style.display=\'none\';var f=this.nextElementSibling;if(f)f.style.display=\'flex\'">'+
+             '<span class="avfallback" style="display:none">🧑</span></span>';
   // Tacho-Ring (SVG): äußerer Zeit-Ring + Überzug + innerer Fortschritts-Ring + Kopf-Punkt.
   const ring='<div class="tringwrap"><svg viewBox="0 0 132 132" width="132" height="132">'+
     '<defs>'+
@@ -1926,6 +1963,31 @@ function fokusTacho(k){
       el('tUaRest').textContent = segRest>=0 ? 'Abschnitt: noch '+hms(segRest*60) : 'Abschnitt: '+hms(-segRest*60)+' drüber';
       el('tUaRest').style.color = segRest>=0?'var(--mut)':'var(--bad)'; } else el('tUaRest').textContent='';
   } else uaBox.hidden=true;
+  // UI-A (v1.5.2): Pace-Färbung des Ring-Hintergrunds. Verhältnis = aktuelle
+  // Ist-Rate (P/h, dieselbe Größe hinter der Statusleisten-Anzeige) ÷ benötigte
+  // Rest-Pace zum Tagesziel (Restpunkte ÷ Reststunden im Belohnungsfenster,
+  // U1-Fenster Tagesstart→24:00/Abschluss). ≥1 → grün, ~0,5 → gelb/orange,
+  // →0 → rot; Ziel erreicht → dauerhaft grün; ohne Tag/Ziel/Restzeit → neutral.
+  const rbg=el('tRingBg');
+  if(rbg){
+    let bg='var(--card2)';
+    if(tagOffen()){
+      const ziel=belZielGesamt(), rest=Math.max(0, ziel-belIstGesamt());
+      if(ziel>0){
+        if(rest<=0){ bg='hsl(135,48%,24%)'; }             // Ziel erreicht
+        else{
+          const fn=belTagFenster(belFensterDatum(jetztIso())), nowX=belX(jetztIso());
+          const restStd=fn.bis-nowX;
+          if(restStd>0.05){
+            const need=rest/restStd;
+            const ratio=Math.max(0, Math.min(1, need>0 ? paceWerte().istRate/need : 1));
+            bg='hsl('+Math.round(ratio*120)+',48%,'+(20+Math.round(ratio*5))+'%)';   // 0 rot · 0,5 gelb · 1 grün
+          }                                               // keine Restzeit → neutral
+        }
+      }
+    }
+    rbg.style.backgroundColor=bg;
+  }
   // Kacheln + Balken
   fokusStats(k); fokusKpis(k); fokusPlanbar(k);
 }
@@ -2714,9 +2776,16 @@ function renderDetail(){
   if(subs.length) h+='<div class="subsum'+(subSum!==num(k.sollMin)?' warn':'')+'">Σ '+subSum+'′ = Parent '+num(k.sollMin)+'′</div>';
   h+='</div>';
   // 5 Zeit Soll · 6 Zeit Ist (optional → heute)
+  // FIX2 (v1.5.2): Solange ALLE Subs 0′ haben (typisch: Import-Karten mit einer
+  // 0′-Sub), wäre das Parent-Soll über die Invariante §3.2 unrettbar auf 0
+  // gesperrt. Dann bleibt das Feld frei editierbar; beim Speichern verteilt sich
+  // der Wert gleichmäßig auf die Subs (Invariante danach wieder erfüllt). Sobald
+  // eine Sub >0′ hat, gilt wie bisher: Parent = Σ, Feld abgeleitet.
+  const subsFixiert = subs.length>0 && subs.some(u=>num(u.sollMin)>0);
   h+='<div class="grid2">'+
-    '<div class="field"><label>Zeit Soll (Min)</label><input type="number" inputmode="numeric" data-bind="sollMin" value="'+num(k.sollMin)+'" '+(subs.length?'readonly style="opacity:.6"':'')+'>'+
-      (subs.length?'<div class="hint">= Σ Unteraufgaben ('+subSum+'′)</div>':'')+'</div>'+
+    '<div class="field"><label>Zeit Soll (Min)</label><input type="number" inputmode="numeric" data-bind="sollMin" value="'+num(k.sollMin)+'" '+(subsFixiert?'readonly style="opacity:.6"':'')+'>'+
+      (subsFixiert?'<div class="hint">= Σ Unteraufgaben ('+subSum+'′)</div>'
+        : (subs.length?'<div class="hint">alle Unteraufgaben 0′ — Wert wird beim Speichern gleichmäßig verteilt</div>':''))+'</div>'+
     '<div class="field"><label>Zeit Ist (Min)</label><input type="number" inputmode="numeric" data-bind="_istMinEdit" value="'+Math.round(num(k.istSek)/60)+'"><div class="hint">optional · Differenz → heute gebucht</div></div>'+
   '</div>';
   // 7 Deadline
@@ -2813,7 +2882,13 @@ function subBalanceNachAdd(){
 }
 function subParentAngleichen(){
   // Parent-Soll = Σ Unteraufgaben (Differenz wird mit dem Parent verrechnet).
-  if(entwurfSubs.length) entwurf.sollMin = entwurfSubs.reduce((a,u)=>a+num(u.sollMin),0);
+  if(!entwurfSubs.length) return;
+  // FIX2 (v1.5.2): Sind ALLE Subs 0′ und trägt der Parent einen Wert, wird der
+  // Parent-Wert gleichmäßig auf die Subs verteilt (statt den Parent auf 0 zu
+  // sperren) — Invariante §3.2 ist danach wieder erfüllt.
+  const alleNull = entwurfSubs.every(u=>num(u.sollMin)===0);
+  if(alleNull && num(entwurf.sollMin)>0){ subBalanceNachAdd(); return; }
+  entwurf.sollMin = entwurfSubs.reduce((a,u)=>a+num(u.sollMin),0);
 }
 function detailSpeichern(){
   entwurf.titel = (entwurf.titel||'').trim();
@@ -3330,17 +3405,23 @@ function syncExport(typ){
 }
 function syncExportText(typ){ return JSON.stringify(syncExport(typ), null, 2); }
 
+/* FIX1 (v1.5.2): ab dieser Zahl gleichzeitiger Neuanlagen in EINEM Importlauf
+   gilt es als Bestandsübernahme (Airtable-Erstsync), nicht als organischer
+   Tageszugang — siehe Migration flowfix152 weiter oben (ladeAlles) für die
+   rückwirkende Reparatur desselben Musters. */
+const SYNC_BESTAND_SCHWELLE = 10;
 /* Import eines Pakets aus dem Claude-Chat (§8-Hoheitsregeln). */
 function syncImport(text){
   let paket; try{ paket=JSON.parse(text); }catch(e){ return {fehler:'Ungültiges JSON'}; }
   const arr = Array.isArray(paket) ? paket : (paket && paket.karten) || null;
   if(!Array.isArray(arr) || !arr.length) return {fehler:'Keine Karten im Paket'};
   let neu=0, upd=0, arch=0;
+  const neuAngelegt=[];   // FIX1: Neuanlagen dieses Laufs — ggf. als Bestandsübernahme markieren
   arr.forEach(inc=>{
     // Anker: App-id; sekundär airtableId (§8: airtableId→id-Match)
     let lok = (inc.id && S.karten.find(k=>k.id===inc.id)) ||
               (inc.airtableId && S.karten.find(k=>k.airtableId===inc.airtableId)) || null;
-    if(!lok){ lok=neueKarte({ id: inc.id||uuid(), domain:'dfm', airtableId: inc.airtableId||null }); S.karten.push(lok); neu++; }
+    if(!lok){ lok=neueKarte({ id: inc.id||uuid(), domain:'dfm', airtableId: inc.airtableId||null }); S.karten.push(lok); neu++; neuAngelegt.push(lok); }
     else upd++;
     // Airtable-Hoheit → übernehmen
     if(inc.airtableId!=null) lok.airtableId=inc.airtableId;
@@ -3373,6 +3454,10 @@ function syncImport(text){
       });
     }
   });
+  // FIX1: ≥SYNC_BESTAND_SCHWELLE Neuanlagen in diesem Rutsch = Bestandsübernahme,
+  // kein Tageszugang — sofort markieren, bevor sie in einer Flow-Auswertung
+  // als Spike auftauchen. Unter der Schwelle bleiben es normale neue Aufgaben.
+  if(neuAngelegt.length>=SYNC_BESTAND_SCHWELLE) neuAngelegt.forEach(k=>{ k.flowBaseline=true; });
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   return {neu, upd, arch};
 }
@@ -3556,6 +3641,8 @@ function renderEinst(){
     '<div class="kv"><span>Lifetime-Punkte (Level-Basis)</span><b>'+Math.round(lifetimePunkte())+'</b></div>'+
     // v1.5.1: Offset transparent machen — Rohwert bleibt erhalten, nur die Anzeige startet neu
     '<div class="kv"><span>Panorama-Reset-Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
+    // FIX1 (v1.5.2): gefundene Sync-Spike-Tage nachvollziehbar machen
+    '<div class="kv"><span>Flow-Fix Spike-Tage</span><b>'+(!Array.isArray(S.meta.flowfix152Log)||!S.meta.flowfix152Log.length?'keine':S.meta.flowfix152Log.map(s=>s.datum+' ('+s.anzahl+')').join(', '))+'</b></div>'+
     '<div class="kv"><span>Level</span><b>Lv '+avatarStufe()+'/'+AVATAR_MAX_LEVEL+' · '+esc(avatarAssets(avatarStufe()).name)+'</b></div>'+
     '<div class="kv"><span>Migration Lifetime-Basis</span><b>'+(S.meta.lifetimeBasis==null?'—':Math.round(S.meta.lifetimeBasis)+' P ('+esc(S.meta.lifetimeQuelle||'?')+')')+'</b></div>'+
     '<div class="kv"><span>Tag</span><b>'+(tagOffen()?('läuft · '+esc(S.tag.tagId)):(S.tag?'abgeschlossen':'nicht gestartet'))+'</b></div>'+
@@ -3673,18 +3760,6 @@ function objBildStufe(kat){
   const max=Math.max(1, (BELOHNUNG[kat] && BELOHNUNG[kat].stufen ? BELOHNUNG[kat].stufen.length : 12));
   return Math.max(1, Math.min(5, Math.ceil(offen/max*5)));
 }
-/* Layout des Dioramas: Höhe + Rand in % der Szenenhöhe (nie feste Breiten,
-   da alle PNGs alpha-gecroppt sind). Gemeinsame Bodenlinie bei 92 % (=
-   bottom 8 %); nur „air" schwebt und „boat" liegt als Horizont-Objekt höher.
-   z-Reihenfolge hinten→vorn: bg < home < boat < air < friends < car < pet < Avatar. */
-const SZENE_LAYOUT = {
-  home:    { h:54, pos:'left:0%;bottom:8%',    z:2 },
-  boat:    { h:15, pos:'right:4%;bottom:46%',  z:3 },
-  air:     { h:13, pos:'right:30%;top:4%',     z:4 },
-  friends: { h:36, pos:'right:1%;bottom:8%',   z:5 },
-  car:     { h:20, pos:'left:4%;bottom:8%',    z:6 },
-  pet:     { h:13, pos:'left:31%;bottom:8%',   z:7 }
-};
 /* U4 (v1.4.0): Bild kommt aus dem Level-Slot-Mapping (avatarAssets → 20 Slots).
    v1.4.1: auch der müde Zustand nutzt das freigestellte PNG — das alte
    avatar-muede.jpg ist fotorealistisch mit hellem Hintergrund und stünde als
@@ -3695,24 +3770,10 @@ const SZENE_LAYOUT = {
 function avatarBild(lvl, vital){
   return avatarAssets(lvl).bild;
 }
-/* Gekaufte Kategorien wachsen als Objekte in der Szene (Aufbauspiel-Stil §6.1). */
-/* v1.5.0: Wohlstands-Objekte als freigestellte PNGs statt Emoji. Je Kategorie
-   ein Bild der Stufe 1–5; nicht freigeschaltete Kategorien entfallen ganz.
-   Die kleinen Stufen-Badges (Zahlen) bleiben erhalten. */
-function szeneObjekteHtml(){
-  return KAT_KEYS.map(kat=>{
-    const zone=KAT_ZONE[kat], lay=zone&&SZENE_LAYOUT[zone];
-    if(!zone||!lay) return '';
-    const bs=objBildStufe(kat); if(!bs) return '';
-    const offen=num(S.belohnung.stufen[kat],0);
-    const src='img/obj-'+zone+bs+'.png';
-    return '<span class="szobj zone-'+zone+'" style="'+lay.pos+';height:'+lay.h+'%;z-index:'+lay.z+'">'+
-      '<img src="'+src+'" alt="'+esc(BELOHNUNG[kat].name)+'" loading="lazy" decoding="async"'+
-        ' onerror="this.closest(\'.szobj\').style.display=\'none\'">'+
-      '<i>'+offen+'</i></span>';
-  }).join('');
-}
-/* Shop-Karten: aktuelle (freigeschaltete) Stufe sichtbar, nächste „???". */
+/* Shop-Karten: aktuelle (freigeschaltete) Stufe sichtbar, nächste „???".
+   UI-C (v1.5.2): je Kategorie das aktuelle Wohlstands-Objektbild daneben
+   (obj-<zone><bildStufe>.png, Mapping/objBildStufe aus v1.5.0 unverändert);
+   Stufe 0 → kein Bild. Ersetzt die Objekte in der großen Panorama-Szene. */
 function shopHtml(){
   const k=konto();
   return KAT_KEYS.map(kk=>{
@@ -3722,8 +3783,12 @@ function shopHtml(){
     else if(sperre){ unten='<div class="knext">🔒 ??? · '+esc(sperre)+'</div><div class="rankbar"><i style="width:0"></i></div>'; }
     else if(k>=preis){ unten='<button class="kaufbtn" data-kauf="'+kk+'">🎁 ??? für '+Math.round(preis)+' P freischalten</button>'; }
     else { unten='<div class="knext">??? · noch '+Math.round(preis-k)+' P (Preis '+Math.round(preis)+' P)</div><div class="rankbar"><i style="width:'+Math.min(100,k/preis*100).toFixed(0)+'%"></i></div>'; }
-    return '<div class="katcard"><div class="kzeile"><span>'+kat.icon+'</span><span class="kname">'+esc(kat.name)+'</span><span class="kstufe">Stufe '+offen+'/'+kat.stufen.length+'</span></div>'+
-      '<div class="kaktuell">'+esc(aktuell[0])+'</div>'+unten+'</div>';
+    // UI-C: aktuelles Objektbild der Kategorie (wechselt mit der Bildstufe)
+    const zone=KAT_ZONE[kk], bs=objBildStufe(kk);
+    const bild=(zone&&bs) ? '<img class="kobj" src="img/obj-'+zone+bs+'.png" alt="" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">' : '';
+    return '<div class="katcard'+(bild?' mitbild':'')+'">'+bild+'<div class="katinfo">'+
+      '<div class="kzeile"><span>'+kat.icon+'</span><span class="kname">'+esc(kat.name)+'</span><span class="kstufe">Stufe '+offen+'/'+kat.stufen.length+'</span></div>'+
+      '<div class="kaktuell">'+esc(aktuell[0])+'</div>'+unten+'</div></div>';
   }).join('');
 }
 
@@ -4271,13 +4336,12 @@ function renderBelohnung(){
   // Fortschrittsleiste zeigt den Weg zum nächsten Level (Lifetime-Punkte).
   const lvl=avatarStufe(), av=avatarAssets(lvl), fort=avatarFortschritt();
   const vital=vitalitaet(), kontoP=konto();
-  // v1.5.0 Panorama: Layer 0 = Reise-Hintergrund (JPG über dem HSL-Verlauf, der
-  // als Unterlage bleibt und bei Ladefehler einspringt), Layer 1 = Wohlstands-
-  // Objekte, darüber der Avatar, ganz oben der Funkel-Layer.
+  // v1.5.2 (UI-B): Die Szene zeigt nur noch Reise-Hintergrund (JPG über dem
+  // HSL-Verlauf, der bei Ladefehler einspringt) + Avatar + Funkel-Layer. Die
+  // Wohlstands-Objekte leben jetzt bei ihren Kategorien im Shop-Block (UI-C).
   const vs=vitalStufe();
   h+='<div class="avcard"><div class="avscene'+(vs?' '+vs:'')+'" style="background:'+av.bgStyle+'">'+
     '<div class="avbg" style="background-image:url(\''+bgFuerLevel(lvl)+'\')"></div>'+
-    szeneObjekteHtml()+
     '<img class="avfoto" src="'+avatarBild(lvl,vital)+'" alt="Avatar" loading="lazy" decoding="async"'+
       ' onerror="if(this.src.indexOf(\''+AVATAR_FALLBACK+'\')<0){this.src=\''+AVATAR_FALLBACK+'\';}else{this.style.display=\'none\';}">'+
     '<div class="avfx '+av.fx+'"></div>'+
