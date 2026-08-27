@@ -24,6 +24,9 @@ var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnte
   'altGeldScore','altRhythmusApprox','altRhythmus','altTickKurve','mapAltKarte','importItems','settingsMerge'];
 eval(NAMES.map(extract).join('\n'));
 
+/* v1.6.1 (§2): Feld `tageszeit` ist abgeschafft — die drei zugehoerigen
+   Assertions entfielen. Die Eingabedaten tragen es bewusst weiter: der Import
+   muss ein mitgeschicktes tageszeit still ignorieren. */
 var fails=0; function ok(n,c){ print((c?'OK   ':'FAIL ')+n); if(!c) fails++; }
 
 /* 1) Seed mit v1.0-Direktfeldern → alles übernommen (neue Karte). */
@@ -35,7 +38,6 @@ var a=S.karten[0];
 ok('tickKurve direkt übernommen', JSON.stringify(a.tickKurve)==='[2,4,6]');
 ok('rhythmus direkt (v1.0-Format)', a.rhythmus && a.rhythmus.typ==='taeglich');
 ok('uhrzeit direkt', a.uhrzeit==='22:00');
-ok('tageszeit direkt', a.tageszeit==='abends');
 ok('geldScore direkt', a.geldScore===150);
 
 /* 2) Ohne Direktfelder → Ableitung/Defaults unverändert (kein Bruch). */
@@ -43,7 +45,6 @@ S.karten=[]; S.unteraufgaben=[];
 importItems([{ id:'seed-2', domain:'privat', typ:'aufgabe', titel:'Normal' }], { mitErledigte:true });
 var b=S.karten[0];
 ok('ohne tickKurve → Default [0]', JSON.stringify(b.tickKurve)==='[0]');
-ok('ohne tageszeit → beliebig', b.tageszeit==='beliebig');
 ok('ohne uhrzeit → null', b.uhrzeit===null);
 ok('ohne rhythmus.typ → keine Routine (Aufgabe)', !b.rhythmus);
 
@@ -54,7 +55,6 @@ var b2=S.karten.filter(function(x){return x.herkunftId==='seed-2';})[0];
 ok('Update: nur 1 Karte (idempotent)', S.karten.length===1);
 ok('Update: tickKurve übernommen', JSON.stringify(b2.tickKurve)==='[1,1]');
 ok('Update: uhrzeit übernommen', b2.uhrzeit==='13:00');
-ok('Update: tageszeit übernommen', b2.tageszeit==='mittags');
 ok('Update: geldScore übernommen', b2.geldScore===80);
 
 /* 4) Levelschwellen-Migration (alt → ×15), Defaults, Fremd-Kurve unangetastet. */

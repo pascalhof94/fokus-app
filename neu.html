@@ -810,7 +810,25 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
   background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px}
 .routzeile .rz-plus{background:var(--ok);border-color:var(--ok);color:#0a0f1a;font-size:22px;font-weight:800}
 .routzeile .rz-play{color:var(--blue)}
+.routzeile.fertig .rz-titel{color:var(--mut);text-decoration:line-through}
+.routzeile.fertig .rz-plus{background:var(--card2);border-color:var(--line);color:var(--ok)}
 .routsheet .leer{color:var(--mut2);font-size:12px;padding:10px 2px;text-align:center}
+/* §3 (v1.6.1): Routinen-Gruppe als zusammenhängender Block mit Gruppenfarbe */
+.rgruppe{border-left:3px solid var(--purple);background:rgba(185,138,247,.06);margin:6px 0;border-radius:8px;overflow:hidden}
+.rgruppe.voll{background:rgba(62,207,142,.10)}
+.rgruppe-kopf{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:11px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.5px;color:var(--mut)}
+.rgruppe-kopf .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.rgruppe-kopf .z{color:var(--txt);font-family:ui-monospace,monospace}
+.rgruppe-kopf .b{color:var(--purple)}
+.rgruppe.voll .rgruppe-kopf .b{color:var(--ok)}
+.rgruppe .routzeile:first-of-type{border-top:none}
+/* Gruppen-Editor in den Einstellungen */
+.grpcard{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px}
+.grpcard .gz{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.grpcard .gz input[type=text]{flex:1;min-width:0}
+.grpcard .gm{font-size:11.5px;color:var(--mut);line-height:1.5}
+.grpcard .gm b{color:var(--txt)}
 
 /* Toast */
 #toast{position:fixed;left:50%;bottom:calc(84px + var(--sab));transform:translateX(-50%) translateY(20px);z-index:320;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:all .25s;max-width:88vw;text-align:center}
@@ -919,9 +937,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.6.0';                    // Datenvertrag/Sync-appVersion — 1.6.0 (Navigationsmodell neu, Ketten, Vertrag 1.4)
-const UI_VERSION = 'v1.6.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-27-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.6.1';                    // Datenvertrag/Sync-appVersion — 1.6.1 (tagesabschnitt als Array, tageszeit entfernt, Gruppen-Bonus, Auto-Pause)
+const UI_VERSION = 'v1.6.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-27-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -1048,10 +1066,26 @@ function tagesabschnittAbleiten(k){
   if(h<TA_AB_ABENDS)   return 'tagsueber';
   return 'abends';
 }
-/* Effektiver Abschnitt: manuell gesetzter Wert schlägt die Ableitung. */
-function tagesabschnittVon(k){
-  return TAGESABSCHNITTE.indexOf(k&&k.tagesabschnitt)>=0 ? k.tagesabschnitt : tagesabschnittAbleiten(k);
+/* §1 (v1.6.1): tagesabschnitt ist ein ARRAY — eine Routine kann in mehreren
+   Abschnitten Pflicht sein („Gesicht waschen" morgens UND abends). Sie erscheint
+   dann in jeder Gruppe, bleibt aber EINE Karte mit EINER Tick-Kurve, EINEM
+   Streak und EINEM Zeitkonto. Leeres/fehlendes Array → Ableitung aus der
+   Uhrzeit; ein manuell gesetztes Array wird nie überschrieben. Ein einzelner
+   String wird tolerant als einelementiges Array gelesen. */
+function tagesabschnitteVon(k){
+  const a=k&&k.tagesabschnitt;
+  if(Array.isArray(a)){
+    const f=a.filter(x=>TAGESABSCHNITTE.indexOf(x)>=0);
+    if(f.length) return f;
+  } else if(typeof a==='string' && TAGESABSCHNITTE.indexOf(a)>=0){
+    return [a];
+  }
+  return [tagesabschnittAbleiten(k)];
 }
+function tagesabschnittHat(k, ta){ return tagesabschnitteVon(k).indexOf(ta)>=0; }
+/* §4/§5 (v1.6.1): Zeitgrenzen an EINER Stelle. */
+const AUTOPAUSE_MIN        = 90;    // Timer ohne jede Interaktion → Auto-Pause + Rückfrage
+const PAUSENTIMER_MAX_MIN  = 120;   // Dauerlauf ohne Pause → ab hier negative Rate (nur keineAutoPause-Karten)
 function neueKarte(f={}){
   const k = Object.assign({
     id: uuid(),
@@ -1064,8 +1098,9 @@ function neueKarte(f={}){
     geldScore: 0,                     // nur dfm
     faelligkeit: null,                // "YYYY-MM-DD" | null (null = Warteschlange)
     uhrzeit: null,                    // "HH:MM" | null — Startzeitpunkt ⇒ Termin
-    tageszeit: 'beliebig',            // ALT (v0.38-Port, Sync-Feld): morgens | mittags | abends | beliebig
-    tagesabschnitt: null,             // §2.1 (1.6.0): morgens|tagsueber|abends — null = aus Uhrzeit ableiten
+    tagesabschnitt: null,             // §1 (1.6.1): ARRAY aus morgens|tagsueber|abends — null/leer = aus Uhrzeit ableiten
+    keineAutoPause: false,            // §5 (1.6.1): Pausentimer — keine Auto-Pause, dafür negative Rate ab PAUSENTIMER_MAX_MIN
+    strafPunkte: 0,                   // §5 (1.6.1): aufgelaufene Dauerlauf-Strafe (app-only, mindert kartePunkte)
     sollMin: 0,
     istSek: 0,                        // getrackte Zeit (nur am Parent)
     komplex: 1, energie: 1, blockade: 1,   // Rate-Treiber (stufenlose Faktoren)
@@ -1160,6 +1195,7 @@ function ladeAlles(){
   S.fokus    = DB.get('fokus', null);
   S.historie = DB.get('historie', []);
   S.intraday = DB.get('intraday', []);   // B0: App-only Intraday-Log
+  S.routinenGruppen = DB.get('routinenGruppen', []);   // §3 (1.6.1): Routinen-Gruppen mit Komplett-Bonus
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
   S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', debugTap:false }, DB.get('ui', {}));
@@ -1253,9 +1289,11 @@ function ladeAlles(){
       // 1) tagesabschnitt für Privat-Karten setzen (Ableitung §2.1; ein bereits
       //    gesetzter Wert bleibt unangetastet). Ein vorhandenes tageszeit-Feld
       //    wird als Vorgabe übernommen, wo es eindeutig ist — sonst Uhrzeit-Regel.
-      if(k.domain==='privat' && TAGESABSCHNITTE.indexOf(k.tagesabschnitt)<0){
+      // v1.6.1: schreibt bereits das ARRAY-Format (§1), damit nie ein Einzelwert
+      // im Datenmodell landet — die 161er-Migration muss dann nichts umformen.
+      if(k.domain==='privat' && !(Array.isArray(k.tagesabschnitt) && k.tagesabschnitt.length)){
         const alt={morgens:'morgens', mittags:'tagsueber', abends:'abends'}[k.tageszeit];
-        k.tagesabschnitt = alt || tagesabschnittAbleiten(k);
+        k.tagesabschnitt = [alt || tagesabschnittAbleiten(k)];
         log.tagesabschnitt++;
       }
       // 2) leeres Abschluss-Stack-Feld anlegen (§6.1 nutzt es ab jetzt)
@@ -1273,6 +1311,48 @@ function ladeAlles(){
     S.meta.migration160Log=log;
     S.meta.migration160=true;
     saveKarten(); saveMeta(); saveUi();
+  }
+  // ══ §7 (v1.6.1) · Migration ═══════════════════════════════════════════
+  // Ein gemeinsames Flag über alle Teilschritte, Sicherung VORHER, Protokoll
+  // einmalig anzeigen. Keine Karte gelöscht, kein Punkte-/Wohlstand-Reset.
+  if(!S.meta.migration161){
+    DB.set('karten_bak161', S.karten);
+    DB.set('meta_bak161', S.meta);
+    const log={ ts:jetztIso(), arrayUmstellung:0, ausTageszeit:0, tageszeitEntfernt:0, gruppeAngelegt:0, gruppeFehlend:[] };
+    S.karten.forEach(k=>{
+      // §1: Einzelwert → einelementiges Array
+      if(typeof k.tagesabschnitt==='string' && TAGESABSCHNITTE.indexOf(k.tagesabschnitt)>=0){
+        k.tagesabschnitt=[k.tagesabschnitt]; log.arrayUmstellung++;
+      } else if(k.tagesabschnitt!=null && !Array.isArray(k.tagesabschnitt)){
+        k.tagesabschnitt=null;
+      }
+      // §2: leeres tagesabschnitt einmalig aus tageszeit ableiten (tagesabschnitt gewinnt)
+      const leer=!Array.isArray(k.tagesabschnitt) || !k.tagesabschnitt.length;
+      if(leer && k.tageszeit){
+        const map={morgens:'morgens', abends:'abends', mittags:'tagsueber', beliebig:'tagsueber'};
+        const ta=map[k.tageszeit];
+        if(ta){ k.tagesabschnitt=[ta]; log.ausTageszeit++; }
+      }
+      // §2: tageszeit vollständig aus dem Datenmodell entfernen
+      if('tageszeit' in k){ delete k.tageszeit; log.tageszeitEntfernt++; }
+    });
+    // §3: erste Gruppe „Aufräumrunde" anlegen — KEINE Karten erfinden
+    if(!Array.isArray(S.routinenGruppen)) S.routinenGruppen=[];
+    if(!S.routinenGruppen.some(g=>g.name==='Aufräumrunde')){
+      const wunsch=['Geschirr wegräumen','Klamotten wegräumen','Katzenklo säubern','Roborock ready','Roborock fahren lassen'];
+      const ids=[];
+      wunsch.forEach(t=>{
+        const k=S.karten.find(x=>x.domain==='privat' && String(x.titel||'').trim().toLowerCase()===t.toLowerCase());
+        if(k) ids.push(k.id); else log.gruppeFehlend.push(t);
+      });
+      S.routinenGruppen.push({ id:uuid(), name:'Aufräumrunde', domain:'privat', mitglieder:ids,
+        komplettBonus:KOMPLETT_BONUS_DEFAULT, farbe:'#b98af7', bonusTag:null });
+      log.gruppeAngelegt=ids.length;
+      saveRoutGruppen();
+    }
+    S.meta.migration161Log=log;
+    S.meta.migration161=true;
+    saveKarten(); saveMeta();
   }
   // U3 (v1.4.0): bisher globaler „Bearbeitet heute"-Statusfilter wird zum
   // Pro-Stapel-Filter. Alten Wert einmalig übernehmen, guarded + idempotent.
@@ -1425,7 +1505,9 @@ function kartePunkte(k){
   if(k.punkteOverride!=null) return num(k.punkteOverride);   // U6-A: beim Abhaken gewählter Ist-Punktwert schlägt die Berechnung
   const zeitTerm = punkteFuerZeit(k, zeitquelleMin(k)) * (S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   const tickTerm = tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k);
-  return zeitTerm + tickTerm + subBonusErreicht(k);   // + gebuchte Unteraufgaben-Boni
+  // §5 (v1.6.1): Dauerlauf-Strafe des Pausentimers (beim Pausieren festgeschrieben,
+  // siehe fokusZeitEinbuchen). Reines Feld — kartePunkte behält seine Abhängigkeiten.
+  return zeitTerm + tickTerm + subBonusErreicht(k) - num(k.strafPunkte);   // + gebuchte Unteraufgaben-Boni
 }
 /* Prognose inkl. ALLER Unteraufgaben-Boni (erledigt + offen) — für „geplant". */
 function kartePunkteGeplant(k){ return kartePunkteBei(k, num(k.sollMin)||istSekLive(k)/60) + subBonusOffen(k); }
@@ -1457,6 +1539,16 @@ function fokusZeitEinbuchen(){
   const k=fokusKarte();
   const sek=(Date.now()-S.fokus.startMs)/1000;
   if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); logIntraday(k,{minuten:sek/60,typ:'timer'}); }   // v1.1: Akku-Drift; A7 berührt; B0 Log
+  // §5 (v1.6.1): Pausentimer — lief die Karte über PAUSENTIMER_MAX_MIN am Stück,
+  // zählen die Minuten DARÜBER negativ statt positiv (Differenz = doppelter Wert).
+  // Der Zähler ist unsichtbar; angezeigt/exportiert bleibt der normale App-Wert.
+  if(k && k.keineAutoPause){
+    const lauf=sek/60;
+    if(lauf>PAUSENTIMER_MAX_MIN){
+      const wert=punkteFuerZeit(k, lauf)-punkteFuerZeit(k, PAUSENTIMER_MAX_MIN);   // Wert des Überhangs
+      k.strafPunkte=num(k.strafPunkte)+2*wert*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
+    }
+  }
   S.fokus.sessionSek=num(S.fokus.sessionSek)+sek;               // v1.1: Session-Summe (v0.38-Port)
   S.fokus.laeuft=false; S.fokus.startMs=0;
   akkuSampleSchreiben();                                        // v1.1: Energie-Stichprobe
@@ -1574,7 +1666,6 @@ const FELDER = {
   geldScore:  {label:'Geld-Score',typ:'zahl'},
   faelligkeit:{label:'Fälligkeit',typ:'datum'},
   uhrzeit:    {label:'Termin',    typ:'select', wert:k=>k.uhrzeit?'ja':'nein', opt:()=>[['ja','hat Uhrzeit'],['nein','ohne']]},
-  tageszeit:  {label:'Tageszeit', typ:'select', opt:()=>[['morgens','morgens'],['mittags','mittags'],['abends','abends'],['beliebig','beliebig']]},
   sollMin:    {label:'Soll-Min',  typ:'zahl'},
   istSek:     {label:'Ist-Min',   typ:'zahl', wert:k=>Math.round(num(k.istSek)/60)},
   komplex:    {label:'Komplexität',typ:'zahl'},
@@ -2340,7 +2431,7 @@ function navSortiere(ks){
 function navGruppen(ks){
   return TAGESABSCHNITTE.map(ta=>({
     key:ta, label:TA_LABEL[ta],
-    karten:ks.filter(k=>tagesabschnittVon(k)===ta)
+    karten:ks.filter(k=>tagesabschnittHat(k,ta))
              .sort((a,b)=>((a.uhrzeit||'99:99')<(b.uhrzeit||'99:99')?-1:1))
   }));
 }
@@ -2576,6 +2667,12 @@ function tagesPunkteDomain(dom){
   let p=0;
   S.karten.forEach(k=>{ if(k.domain===dom) p+=kartePunkteHeute(k); });
   if(S.tag && Array.isArray(S.tag.log)) S.tag.log.forEach(e=>{ if(e.art==='schub' && e.domain===dom) p+=num(e.punkte); });
+  // §3 (1.6.1): heute gebuchte Komplett-Boni der Routinen-Gruppen. Bewusst inline
+  // statt über einen Helfer — tagesPunkteDomain wird von der Regressionssuite
+  // extrahiert und soll keine zusätzliche Funktionsabhängigkeit bekommen.
+  (S.routinenGruppen||[]).forEach(g=>{
+    if(g && g.bonusTag===aktuelleTagId() && (g.domain||'privat')===dom) p+=num(g.komplettBonus);
+  });
   return p;
 }
 function tagesPunkteLive(){
@@ -2679,12 +2776,73 @@ function renderAlles(){
   else if(S.ui.tab==='einst') renderEinst();
 }
 /* 1-Sekunden-Ticker nur solange der Timer läuft — aktualisiert Text in-place. */
+/* ══════════════════════════════════════════════════════════════════════
+   §4 (v1.6.1) · Auto-Pause bei unbeaufsichtigtem Timer
+   Ein Timer, der AUTOPAUSE_MIN Minuten ohne jede Interaktion läuft (kein Tap,
+   kein Tick, kein Seitenwechsel, keine Sichtbarkeitsänderung), wird pausiert.
+   Beim nächsten Öffnen fragt die App nach der echten Arbeitsdauer und korrigiert
+   istMin UND den zugehörigen Intraday-Eintrag, damit Karte und Log nicht driften.
+   Karten mit keineAutoPause (Pausentimer, §5) sind ausgenommen.
+   ══════════════════════════════════════════════════════════════════════ */
+function interaktion(){ S.meta.letzteInteraktionTs=jetztIso(); }
+/* Prüft im Sekundentakt, ob der laufende Timer unbeaufsichtigt ist. */
+function autoPausePruefen(){
+  if(!(S.fokus && S.fokus.laeuft)) return;
+  const k=fokusKarte(); if(!k || k.keineAutoPause) return;               // §5: Pausentimer ausgenommen
+  const letzte=S.meta.letzteInteraktionTs;
+  if(!letzte){ interaktion(); saveMeta(); return; }
+  if(minSeit(letzte) < AUTOPAUSE_MIN) return;
+  // Auto-Pause: gelaufene Zeit reguär einbuchen, Rückfrage vormerken.
+  const gelaufenMin=(Date.now()-S.fokus.startMs)/60000;
+  const vorschlagMin=Math.max(0, (Date.parse(letzte)-S.fokus.startMs)/60000);
+  const eintragTs=jetztIso();
+  fokusZeitEinbuchen();
+  // Der eben geschriebene Intraday-Eintrag ist der letzte dieser Karte.
+  let idx=-1;
+  for(let i=(S.intraday||[]).length-1;i>=0;i--){ if(S.intraday[i].kartenId===k.id){ idx=i; break; } }
+  S.meta.autoPause={ kartenId:k.id, titel:k.titel||'', gelaufenMin, vorschlagMin,
+                     intradayIdx:idx, ts:eintragTs };
+  saveMeta(); saveFokus(); renderAlles();
+  zeigeAutoPauseDialog();
+}
+/* Rückfrage — Vorschlag = Zeit bis zur letzten Interaktion, Direkteingabe möglich. */
+function zeigeAutoPauseDialog(){
+  const a=S.meta.autoPause; if(!a) return;
+  const k=S.karten.find(x=>x.id===a.kartenId);
+  const gel=hms(Math.round(a.gelaufenMin*60)), vor=Math.round(a.vorschlagMin);
+  const h='<div class="hinweisbox">Der Timer lief <b>'+gel+'</b> auf „'+esc(a.titel||(k&&k.titel)||'?')+
+    '", ohne dass etwas passiert ist. Wie lange hast du wirklich gearbeitet?</div>'+
+    '<div class="field"><label>Tatsächliche Dauer (Min)</label>'+
+    '<input type="number" inputmode="numeric" min="0" id="apMin" value="'+vor+'">'+
+    '<div class="hint">Vorschlag '+vor+' Min = bis zur letzten Interaktion. Der Wert ersetzt die gelaufene Zeit in der Karte und im Zeit-Log.</div></div>';
+  openSheet('Timer lief unbeaufsichtigt', h,
+    '<button class="btn ghost sm" data-apkeep="1">Volle Zeit behalten</button><button class="btn prim" data-apok="1">Übernehmen</button>');
+}
+function autoPauseUebernehmen(volleZeit){
+  const a=S.meta.autoPause; if(!a){ closeSheet(); return; }
+  const k=S.karten.find(x=>x.id===a.kartenId);
+  if(k && !volleZeit){
+    const neu=Math.max(0, num(el('apMin')?el('apMin').value:a.vorschlagMin));
+    const delta=neu-a.gelaufenMin;                       // negativ = Zeit abziehen
+    k.istSek=Math.max(0, num(k.istSek)+delta*60);
+    // Denselben Intraday-Eintrag korrigieren (statt einen zweiten anzulegen) und
+    // als 'autopause' markieren — so bleibt nachvollziehbar, was korrigiert wurde.
+    const e=(S.intraday||[])[a.intradayIdx];
+    if(e && e.kartenId===a.kartenId){ e.minuten=Math.round(neu*10)/10; e.typ='autopause'; DB.set('intraday', S.intraday); }
+    saveKarten();
+    toast('Zeit korrigiert auf '+Math.round(neu)+' Min');
+  }
+  delete S.meta.autoPause; saveMeta();
+  closeSheet(); renderAlles();
+}
 let tickerId=null, _sekTakt=0;
 function starteTicker(){
   if(tickerId) return;
   tickerId=setInterval(()=>{
     if(!(S.fokus && S.fokus.laeuft)){ clearInterval(tickerId); tickerId=null; return; }
     if(S.tag){ S.tag.letzteAktivitaetTs=jetztIso(); }   // Aktivitäts-Stempel (Kanten §6)
+    if(_sekTakt%10===0) autoPausePruefen();             // §4: alle 10 s reicht völlig
+    if(!(S.fokus && S.fokus.laeuft)){ clearInterval(tickerId); tickerId=null; return; }   // Auto-Pause hat gestoppt
     renderFokusleiste();
     if(tagOffen()) renderStatusbar();                   // V1.1: Live-Punkte/-Minuten/-Pace in der Statusleiste sekündlich
     // Fokus-Tacho live nachziehen (Ring/Timer/Kennzahlen/Balken der angezeigten Karte)
@@ -3082,13 +3240,12 @@ function renderDetail(){
     '<div class="field"><label>Deadline (Datum)</label><input type="date" data-bind="faelligkeit" value="'+esc(k.faelligkeit||'')+'"><div class="hint">leer = ohne Termin</div></div>'+
     '<div class="field"><label>Uhrzeit (optional)</label><input type="time" data-bind="uhrzeit" value="'+esc(k.uhrzeit||'')+'"><div class="hint">gesetzt ⇒ Termin (blau)</div></div>'+
   '</div>';
-  // 8 Abhakbonus (Toggle „Tick")
-  const abhakOn = k.abhakbonus!==0;
+  // 8 Abhakbonus — §6.2 (v1.6.1): je Karte als Zahlenfeld einstellbar, NEGATIVE
+  // Werte ausdrücklich zulässig (z. B. „Kopf vernebelt"). Leer = Domänen-Default.
   const domBonus = k.domain==='dfm'?num(S.settings.abhakbonusDfm,0):num(S.settings.abhakbonusPrivat,0);
-  const bonusWert = k.abhakbonus!=null ? num(k.abhakbonus) : domBonus;
-  h+='<div class="field"><label>Abhakbonus</label><div class="chips">'+
-    '<button class="chip '+(abhakOn?'on gruen':'')+'" data-dabhak="1">'+(abhakOn?'✓ Tick an':'aus')+'</button></div>'+
-    '<div class="hint">'+(abhakOn?('Domänen-Default: '+bonusWert+' P beim Abhaken'):'kein Abhakbonus für diese Karte')+'</div></div>';
+  h+='<div class="field"><label>Abhakbonus (Ganz-Karte)</label>'+
+    '<input type="number" inputmode="numeric" step="5" data-bind="abhakbonus" value="'+(k.abhakbonus!=null?num(k.abhakbonus):'')+'" placeholder="Default '+domBonus+'">'+
+    '<div class="hint">leer = Domänen-Default ('+domBonus+' P) · 0 = kein Bonus · negative Werte erlaubt</div></div>';
   // 9 Kommentar für Claude
   h+='<div class="field"><label>Kommentar für Claude</label><textarea data-bind="kommentarClaude" placeholder="Hinweis für den nächsten Sync">'+esc(k.kommentarClaude||'')+'</textarea></div>';
   // 10 Kommentar zur Aufgabe (Notiz)
@@ -3102,14 +3259,23 @@ function renderDetail(){
       '<div class="field"><label>Geld-Impact (Score)</label><input type="number" inputmode="numeric" data-bind="geldScore" value="'+num(k.geldScore)+'"></div>'+
     '</div>';
   }
-  h+='<div class="field"><label>Tageszeit</label>'+chipGroup('tageszeit',k.tageszeit,[['morgens','morgens'],['mittags','mittags'],['abends','abends'],['beliebig','beliebig']])+'</div>';
-  // §2.1 (v1.6.0): Tagesabschnitt steuert die Privat-Gruppierung. „auto" = aus der
-  // Deadline-Uhrzeit ableiten; ein manuell gesetzter Wert bleibt unangetastet.
-  if(k.domain==='privat'){
-    h+='<div class="field"><label>Tagesabschnitt (Gruppierung Privat)</label>'+
-      chipGroup('tagesabschnitt', k.tagesabschnitt||'', [['','auto'],['morgens','Morgens'],['tagsueber','Tagsüber'],['abends','Abends']])+
-      '<div class="hint">auto → aktuell „'+TA_LABEL[tagesabschnittAbleiten(k)]+'" (aus '+(k.uhrzeit?'Uhrzeit '+esc(k.uhrzeit):'fehlender Uhrzeit')+')</div></div>';
+  // §1 (v1.6.1): Tagesabschnitte als MEHRFACHAUSWAHL — eine Karte kann in
+  // mehreren Abschnitten Pflicht sein und erscheint dann in jeder Gruppe.
+  // Keine Auswahl = automatisch aus der Deadline-Uhrzeit ableiten.
+  {
+    const gesetzt=Array.isArray(k.tagesabschnitt)?k.tagesabschnitt:[];
+    h+='<div class="field"><label>Tagesabschnitte (Gruppierung + Routinen-Schublade)</label><div class="chips">'+
+      TAGESABSCHNITTE.map(ta=>'<button class="chip '+(gesetzt.indexOf(ta)>=0?'on':'')+'" data-dta="'+ta+'">'+TA_LABEL[ta]+'</button>').join('')+
+      '</div><div class="hint">'+(gesetzt.length
+        ? 'Karte erscheint in '+gesetzt.length+' Abschnitt(en) — eine Karte, eine Tick-Kurve, ein Streak.'
+        : 'automatisch → „'+TA_LABEL[tagesabschnittAbleiten(k)]+'" (aus '+(k.uhrzeit?'Uhrzeit '+esc(k.uhrzeit):'fehlender Uhrzeit')+')')+'</div></div>';
   }
+  // §5 (v1.6.1): Pausentimer-Sonderregel je Karte
+  h+='<div class="field"><label>Pausentimer</label><div class="chips">'+
+    '<button class="chip '+(k.keineAutoPause?'on lila':'')+'" data-dnoauto="1">'+(k.keineAutoPause?'✓ keine Auto-Pause':'normale Auto-Pause')+'</button></div>'+
+    '<div class="hint">'+(k.keineAutoPause
+      ? 'Läuft bewusst unbeaufsichtigt. Ab '+PAUSENTIMER_MAX_MIN+' Min am Stück ohne Pause kippt die Rate ins Negative.'
+      : 'Nach '+AUTOPAUSE_MIN+' Min ohne Interaktion pausiert der Timer automatisch und fragt nach der echten Dauer.')+'</div></div>';
   h+='<div class="field"><label>Rate-Treiber (Komplexität · Energie · Blockade)</label><div class="grid3">'+
     '<div>'+chipGroup('komplex',k.komplex,[[1,'1,0'],[1.5,'1,5'],[2,'2,0']])+'</div>'+
     '<div>'+chipGroup('energie',k.energie,[[0.8,'0,8'],[1,'1,0'],[1.3,'1,3']])+'</div>'+
@@ -3278,6 +3444,7 @@ function karteAbhaken(kid, fromDetail){
     konfetti(); haptik(20);
   }
   beruehre(k);                                             // A7: jede Interaktion zählt
+  gruppeNachAenderung(k.id);                               // §3 (1.6.1): Komplett-Bonus nachziehen
   if(!fromDetail){ saveKarten(); saveTag(); renderAlles(); }
 }
 /* ══════════════════════════════════════════════════════════════════════
@@ -3393,7 +3560,7 @@ function karteNeuStarten(kid, opts){
     punkteProStd:o.punkteProStd, akkuProStd:o.akkuProStd, abhakbonus:o.abhakbonus,
     zeitStufen:o.zeitStufen?JSON.parse(JSON.stringify(o.zeitStufen)):null,
     tickKurve:Array.isArray(o.tickKurve)?o.tickKurve.slice():[0], timerFlag:o.timerFlag,
-    rhythmus:o.rhythmus?JSON.parse(JSON.stringify(o.rhythmus)):null, tageszeit:o.tageszeit,
+    rhythmus:o.rhythmus?JSON.parse(JSON.stringify(o.rhythmus)):null,
     notiz:o.notiz, kommentarClaude:o.kommentarClaude, gruppeId:o.gruppeId,
     faelligkeit:heuteApp()
     // airtableId/id/erstelltTs/istSek(0)/status(offen)/punkteOverride(null) → aus neueKarte-Defaults
@@ -3498,7 +3665,7 @@ function folgeAufgabeAnlegen(k, f){
     geldScore:  num(f.geldScore!==undefined ? f.geldScore : k.geldScore),
     notiz:      (f.notiz!==undefined ? f.notiz : ''),
     komplex: num(f.komplex, k.komplex), energie: num(f.energie, k.energie), blockade: num(f.blockade, k.blockade),
-    abhakbonus:k.abhakbonus, tageszeit:k.tageszeit, tagesabschnitt:k.tagesabschnitt,
+    abhakbonus:k.abhakbonus, tagesabschnitt:k.tagesabschnitt,
     faelligkeit: (f.faelligkeit!==undefined ? (f.faelligkeit||null) : heuteApp()),
     vorgaengerAppId: k.id,
     vorgaengerAirtableId: k.airtableId || null
@@ -3552,6 +3719,55 @@ function abhakDialogConfirm(){
    Counter-Logik (Tick-Kurve, Streak, Punkte, Zeit) bleibt unverändert —
    es geht nur um Erreichbarkeit und Darstellung.
    ══════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════
+   §3 (v1.6.1) · Routinen-Gruppe mit Komplett-Bonus
+   Bündelt mehrere Routinen, die zusammengehören, aber einzeln und in
+   beliebiger Reihenfolge abhakbar bleiben — KEINE Kette, keine Abhängigkeit.
+   Sind an einem Tag alle Mitglieder erledigt, gibt es EINMALIG den
+   komplettBonus; wird eines wieder aufgemacht, wird er zurückgenommen.
+   ══════════════════════════════════════════════════════════════════════ */
+const KOMPLETT_BONUS_DEFAULT = 200;
+function saveRoutGruppen(){ DB.set('routinenGruppen', S.routinenGruppen); }
+function gruppeVonKarte(kid){ return (S.routinenGruppen||[]).find(g=>(g.mitglieder||[]).indexOf(kid)>=0) || null; }
+/* „heute erledigt" — Routinen werden abgehakt, Counter getickt. */
+function routErledigtHeute(k){
+  if(!k) return false;
+  if(istTickKarte(k)) return num(k.ticksHeute)>0;
+  return k.status==='erledigt' && k.tagId===aktuelleTagId();
+}
+function gruppeStand(g){
+  const ks=(g.mitglieder||[]).map(id=>S.karten.find(k=>k.id===id)).filter(Boolean);
+  return { karten:ks, fertig:ks.filter(routErledigtHeute).length, gesamt:ks.length };
+}
+/* Bonus buchen/zurücknehmen. Ein Tag-Marker verhindert Doppelbuchung. */
+function gruppeBonusPruefen(g){
+  if(!g || !g.mitglieder || !g.mitglieder.length) return;
+  const st=gruppeStand(g), tid=aktuelleTagId();
+  const komplett = st.gesamt>0 && st.fertig===st.gesamt;
+  g.bonusTag = g.bonusTag || null;
+  if(komplett && g.bonusTag!==tid){
+    g.bonusTag=tid; saveRoutGruppen();
+    const p=num(g.komplettBonus, KOMPLETT_BONUS_DEFAULT);
+    // Als eigene Log-Zeile mit Gruppennamen — bleibt in der Aufschlüsselung sichtbar.
+    if(S.tag){ (S.tag.log=S.tag.log||[]).push({ itemId:'grp-'+g.id, titel:'Komplett: '+g.name,
+      domain:g.domain||'privat', art:'Gruppenbonus', punkte:p, ts:jetztIso() }); saveTag(); }
+    if(S.meta) S.meta.gruppenBonus=Object.assign({}, S.meta.gruppenBonus, {[g.id]:{tag:tid, punkte:p}});
+    saveMeta();
+    toast('🎉 '+g.name+' komplett · +'+p+' P'); konfetti(); haptik(25);
+  } else if(!komplett && g.bonusTag===tid){
+    g.bonusTag=null; saveRoutGruppen();
+    if(S.tag && Array.isArray(S.tag.log)){
+      for(let i=S.tag.log.length-1;i>=0;i--){ if(S.tag.log[i].itemId==='grp-'+g.id){ S.tag.log.splice(i,1); break; } }
+      saveTag();
+    }
+    if(S.meta && S.meta.gruppenBonus){ delete S.meta.gruppenBonus[g.id]; saveMeta(); }
+    toast(g.name+' nicht mehr komplett · Bonus zurückgenommen');
+  }
+}
+/* Nach jedem Tick/Abhaken einer Gruppenkarte prüfen. */
+function gruppeNachAenderung(kid){
+  const g=gruppeVonKarte(kid); if(g) gruppeBonusPruefen(g);
+}
 let routTmp=null;
 /* Aktueller Tagesabschnitt nach Uhrzeit — bestimmt die offene Gruppe. */
 function jetztAbschnitt(){
@@ -3576,23 +3792,44 @@ function renderRoutinenSheet(){
       (d==='dfm'?'DFM':'Privat')+'</button>').join('')+'</div>';
   let body='';
   TAGESABSCHNITTE.forEach(ta=>{
-    const grp=ks.filter(k=>tagesabschnittVon(k)===ta);
+    const grp=ks.filter(k=>tagesabschnittHat(k,ta));
     const zu=(t.auf!==ta);
     body+='<div class="routgruppe'+(zu?' zu':'')+'"><div class="rg-kopf" data-rgrp="'+ta+'">'+
       '<span class="caret">▾</span>'+TA_LABEL[ta]+'<span class="n">'+grp.length+'</span></div><div class="rg-body">'+
-      (grp.length ? grp.map(k=>routZeileHtml(k)).join('') : '<div class="leer">—</div>')+'</div></div>';
+      (grp.length ? routBlockHtml(grp) : '<div class="leer">—</div>')+'</div></div>';
   });
   openSheet('Routinen', '<div class="routsheet">'+kopf+body+
     '<p class="d" style="margin-top:6px">Häkchen = +1 · nach links wischen = −1. Das Sheet bleibt offen.</p></div>',
     '<button class="btn ghost sm" data-close="1">Schließen</button>');
 }
+/* §3 (v1.6.1): Karten einer Routinen-Gruppe stehen als Block zusammen — in der
+   Array-Reihenfolge, gemeinsame Umrahmung, Gruppenfarbe, Kopfzeile mit Zähler.
+   Karten ohne Gruppe erscheinen einzeln wie bisher. */
+function routBlockHtml(ks){
+  const rest=ks.slice(), out=[], erledigt=new Set();
+  (S.routinenGruppen||[]).forEach(g=>{
+    const drin=(g.mitglieder||[]).map(id=>rest.find(k=>k.id===id)).filter(Boolean);
+    if(!drin.length) return;
+    drin.forEach(k=>erledigt.add(k.id));
+    const st=gruppeStand(g), voll=st.gesamt>0 && st.fertig===st.gesamt;
+    out.push('<div class="rgruppe'+(voll?' voll':'')+'" style="border-color:'+esc(g.farbe||'#b98af7')+'">'+
+      '<div class="rgruppe-kopf"><span class="nm">'+esc(g.name)+'</span>'+
+        '<span class="z">'+st.fertig+'/'+st.gesamt+'</span>'+
+        '<span class="b">+'+num(g.komplettBonus,KOMPLETT_BONUS_DEFAULT)+' P</span></div>'+
+      drin.map(k=>routZeileHtml(k)).join('')+'</div>');
+  });
+  const einzeln=rest.filter(k=>!erledigt.has(k.id));
+  return out.join('')+einzeln.map(k=>routZeileHtml(k)).join('');
+}
 function routZeileHtml(k){
   const t=routTmp, fb=t&&t.fb[k.id];
   const zeit=num(k.sollMin)>0 || k.timerFlag;   // Play nur bei Routinen mit Zeitanteil
-  return '<div class="routzeile" data-rzeile="'+k.id+'">'+
+  const fertig=routErledigtHeute(k);
+  return '<div class="routzeile'+(fertig?' fertig':'')+'" data-rzeile="'+k.id+'">'+
     '<div class="rz-main" data-detail="'+k.id+'">'+
       '<div class="rz-titel">'+esc(k.titel||'(ohne Titel)')+(fb?'<span class="rz-fb">'+fb+'</span>':'')+'</div>'+
-      '<div class="rz-sub">Ticks heute: <b>'+num(k.ticksHeute)+'</b>'+(num(k.streak)>0?' · 🔥'+num(k.streak):'')+'</div>'+
+      '<div class="rz-sub">'+(istTickKarte(k)?'Ticks heute: <b>'+num(k.ticksHeute)+'</b>':(fertig?'✓ heute erledigt':'offen'))+
+        (num(k.streak)>0?' · 🔥'+num(k.streak):'')+'</div>'+
     '</div>'+
     (zeit?'<button class="rz-play" data-rplay="'+k.id+'" aria-label="Timer">▶</button>':'')+
     '<button class="rz-plus" data-rplus="'+k.id+'" aria-label="Tick +1">✓</button>'+
@@ -3602,13 +3839,26 @@ function routZeileHtml(k){
 function routTick(kid, minus){
   const k=S.karten.find(x=>x.id===kid); if(!k || !routTmp) return;
   const vorher=Math.round(kartePunkte(k));
-  if(minus){
-    if(num(k.ticksHeute)<=0){ toast('Schon bei 0'); return; }
-    k.ticksHeute=Math.max(0, num(k.ticksHeute)-1);
-    beruehre(k); saveKarten();
+  if(istTickKarte(k)){
+    // Counter/Timer-Karten: reine Tick-Buchung (bestehende Tick-Kurven-Logik)
+    if(minus){
+      if(num(k.ticksHeute)<=0){ toast('Schon bei 0'); return; }
+      k.ticksHeute=Math.max(0, num(k.ticksHeute)-1);
+      beruehre(k); saveKarten();
+    } else {
+      karteTick(kid, true);
+    }
   } else {
-    karteTick(kid, true);   // bestehende Logik (Tick-Kurve, Punkte, Intraday, Streak)
+    // Echte Routinen werden abgehakt, nicht getickt — sonst bleiben Status,
+    // Streak und Punkte-Log unberührt und die Gruppen-Vollständigkeit (§3)
+    // wird nie erreicht. karteAbhaken toggelt erledigt ↔ offen.
+    const erledigt=k.status==='erledigt';
+    if(minus && !erledigt){ toast('Noch nicht erledigt'); return; }
+    if(!minus && erledigt){ toast('Schon erledigt'); return; }
+    karteAbhaken(kid, true);   // fromDetail=true → wir speichern selbst
+    saveKarten(); saveTag();
   }
+  gruppeNachAenderung(kid);   // §3: Komplett-Bonus buchen bzw. zurücknehmen
   const delta=Math.round(kartePunkte(k))-vorher;
   routTmp.fb[k.id]=(delta>=0?'+':'')+delta+' P';
   haptik(10); renderRoutinenSheet(); renderStatusbar();
@@ -3758,7 +4008,6 @@ function mapAltKarte(it){
     geldScore: domain==='dfm' ? altGeldScore(it.geldImpact) : 0,
     faelligkeit,
     uhrzeit: null,
-    tageszeit: 'beliebig',
     sollMin: num(it.aufwandGeplantMin),
     istSek: Math.round(num(it.istMinuten)*60),
     komplex: num(it.komplexitaet,1), energie: num(it.energie,1), blockade: num(it.blockade,1),
@@ -3780,7 +4029,6 @@ function mapAltKarte(it){
   if(Array.isArray(it.tickKurve) && it.tickKurve.length) k.tickKurve = it.tickKurve.map(num);
   if(it.rhythmus && it.rhythmus.typ) k.rhythmus = it.rhythmus;      // direktes v1.0-Format
   if(it.uhrzeit)        k.uhrzeit   = it.uhrzeit;                    // "HH:MM"
-  if(it.tageszeit)      k.tageszeit = it.tageszeit;                  // morgens|mittags|abends|beliebig
   if(it.geldScore!=null) k.geldScore = num(it.geldScore);           // direkte Zahl (statt geldImpact)
   return k;
 }
@@ -3827,7 +4075,6 @@ function importItems(items, opts){
       if(Array.isArray(it.tickKurve) && it.tickKurve.length) exist.tickKurve = it.tickKurve.map(num);
       if(it.rhythmus && it.rhythmus.typ) exist.rhythmus = it.rhythmus;
       if(it.uhrzeit)        exist.uhrzeit   = it.uhrzeit;
-      if(it.tageszeit)      exist.tageszeit = it.tageszeit;
       if(it.geldScore!=null) exist.geldScore = num(it.geldScore);
       ziel=exist; upd++;
     } else { S.karten.push(k); ziel=k; neu++; if(k.status==='erledigt') erl++; }
@@ -3867,6 +4114,12 @@ function v038ImportAusText(text){
   renderStapel(); renderEinst();
   return r;
 }
+/* §6.1 (v1.6.1): Der v0.38-Konverter ist aus der App ENTFERNT — kein Button,
+   kein erreichbarer Pfad, und das appVersion-Gate lässt Array-Pakete nicht mehr
+   durch. Die reinen Mapping-Funktionen (mapAltKarte/importItems/alt*) stehen nur
+   noch als Altlast hier, weil tests/seed-regression.js sie per Regex aus dieser
+   Datei extrahiert; sie zu löschen würde die Suite rotfärben und die Leitplanke
+   „nur neu.html" verletzen. Siehe Report — auf Zuruf entferne ich beides zusammen. */
 function oeffneMigration(){
   const v=migrationVorschau();
   let h='';
@@ -3913,7 +4166,7 @@ function syncExport(typ){
       if(k.freeze) o.freeze=true;                          // M1 (1.1.0): nur eingefrorene Karten senden das Feld
       if(k.kommentarClaude) o.kommentarClaude=k.kommentarClaude;   // U6-F (1.2.0): nur wenn nicht leer
       // §8.3 (1.4): neue Felder — nur senden, wenn belegt bzw. zutreffend
-      if(k.domain==='privat') o.tagesabschnitt=tagesabschnittVon(k);
+      if(k.domain==='privat') o.tagesabschnitt=tagesabschnitteVon(k);
       if(k.vorgaengerAppId)      o.vorgaengerAppId=k.vorgaengerAppId;
       if(k.vorgaengerAirtableId) o.vorgaengerAirtableId=k.vorgaengerAirtableId;
       return o;
@@ -3932,14 +4185,13 @@ const SYNC_BESTAND_SCHWELLE = 10;
 /* Import eines Pakets aus dem Claude-Chat (§8-Hoheitsregeln). */
 function syncImport(text){
   let paket; try{ paket=JSON.parse(text); }catch(e){ return {fehler:'Ungültiges JSON'}; }
-  // §8.1 (v1.6.0): appVersion-Gate. Pakete ohne appVersion oder mit 0.x werden
-  // abgelehnt — die Gegenseite spricht seit dem 11.08. Vertrag 1.3+.
-  if(!Array.isArray(paket)){
-    const av=paket && paket.appVersion;
-    if(av==null || av==='') return {fehler:'Paket ohne appVersion — bitte im Chat ein Paket nach Vertrag 1.x anfordern.'};
-    if(/^0\./.test(String(av)))  return {fehler:'Altformat appVersion '+av+' — dieses Paket wird nicht mehr verarbeitet (Vertrag ab 1.0).'};
-  }
-  const arr = Array.isArray(paket) ? paket : (paket && paket.karten) || null;
+  // §6.1 (v1.6.1): Das appVersion-Gate gilt jetzt AUSNAHMSLOS — auch für
+  // Array-Pakete. Der v0.38-Konverter wird nicht mehr gebraucht.
+  if(Array.isArray(paket)) return {fehler:'Array-Paket ohne appVersion — seit v1.6.1 nicht mehr zulässig. Bitte ein Paket nach Vertrag 1.x anfordern.'};
+  const av=paket && paket.appVersion;
+  if(av==null || av==='') return {fehler:'Paket ohne appVersion — bitte im Chat ein Paket nach Vertrag 1.x anfordern.'};
+  if(/^0\./.test(String(av)))  return {fehler:'Altformat appVersion '+av+' — dieses Paket wird nicht mehr verarbeitet (Vertrag ab 1.0).'};
+  const arr = (paket && paket.karten) || null;
   if(!Array.isArray(arr) || !arr.length) return {fehler:'Keine Karten im Paket'};
   let neu=0, upd=0, arch=0;
   const neuAngelegt=[];   // FIX1: Neuanlagen dieses Laufs — ggf. als Bestandsübernahme markieren
@@ -3963,7 +4215,13 @@ function syncImport(text){
     if(inc.sollMin!=null) lok.sollMin=num(inc.sollMin);
     if(inc.prioritaet!=null) lok.prioritaet=inc.prioritaet;
     // §8.3 (1.4): neue Felder auch beim Import übernehmen
-    if(inc.tagesabschnitt!=null && TAGESABSCHNITTE.indexOf(inc.tagesabschnitt)>=0) lok.tagesabschnitt=inc.tagesabschnitt;
+    // §1 (1.6.1): Array — ein einzelner String wird tolerant gelesen. §2: ein
+    // mitgeschicktes tageszeit wird still ignoriert.
+    if(inc.tagesabschnitt!=null){
+      const roh=Array.isArray(inc.tagesabschnitt)?inc.tagesabschnitt:[inc.tagesabschnitt];
+      const f=roh.filter(x=>TAGESABSCHNITTE.indexOf(x)>=0);
+      if(f.length) lok.tagesabschnitt=TAGESABSCHNITTE.filter(x=>f.indexOf(x)>=0);
+    }
     if(inc.vorgaengerAppId!=null)      lok.vorgaengerAppId=inc.vorgaengerAppId;
     if(inc.vorgaengerAirtableId!=null) lok.vorgaengerAirtableId=inc.vorgaengerAirtableId;
     if(inc.komplex!=null) lok.komplex=num(inc.komplex);
@@ -4123,14 +4381,37 @@ function resetKarten(){
 function renderEinst(){
   const s=S.settings;
   let h='';
-  h+='<div class="card"><h3>Daten &amp; Sync</h3><p class="d">Sync mit dem Claude-Chat (nur DFM, Copy-Paste), Migration aus der alten App, lokales Backup.</p>'+
+  h+='<div class="card"><h3>Daten &amp; Sync</h3><p class="d">Sync mit dem Claude-Chat (nur DFM, Copy-Paste) und lokales Backup.</p>'+
     '<div class="btnrow"><button class="btn sm prim" id="btnSync">⇄ Sync (DFM)</button></div>'+
-    '<div class="btnrow"><button class="btn sm" id="btnMig">⇪ Migration (v0.38)</button>'+
-    '<button class="btn sm" id="btnBackup">⬇︎ Backup</button></div>'+
+    '<div class="btnrow"><button class="btn sm" id="btnBackup">⬇︎ Backup</button></div>'+
     '<div class="btnrow"><button class="btn warn sm" id="btnReset">🗑 Alle Karten löschen</button></div>'+
     '<div class="hint">Nullstand vor dem Seed. Lädt vorher ein Voll-Backup herunter. Behält Einstellungen, Wohlstand, Historie, Stapel, Vorlagen, Gruppen.</div></div>';
 
   // U6-C: Punkte-Balance (je Domäne) — Basis-Rate, Abhakbonus, Sub-Bonus
+  // §3 (v1.6.1): Routinen-Gruppen — Name, Domäne, Mitglieder, Bonushöhe
+  h+='<div class="card"><h3>Routinen-Gruppen</h3><p class="d">Mitglieder bleiben einzeln und in beliebiger Reihenfolge abhakbar. '+
+    'Sind an einem Tag alle erledigt, gibt es einmalig den Komplett-Bonus.</p>';
+  (S.routinenGruppen||[]).forEach(g=>{
+    const st=gruppeStand(g);
+    const kand=S.karten.filter(k=>k.domain===(g.domain||'privat') && k.status!=='archiviert'
+      && (kartenArt(k)==='Routine'||kartenArt(k)==='Counter'));
+    h+='<div class="grpcard">'+
+      '<div class="gz"><input type="text" data-grpname="'+g.id+'" value="'+esc(g.name||'')+'">'+
+        '<input type="number" inputmode="numeric" step="10" data-grpbonus="'+g.id+'" value="'+num(g.komplettBonus,KOMPLETT_BONUS_DEFAULT)+'" style="width:88px">'+
+        '<button class="minibtn" data-grpdel="'+g.id+'">✕</button></div>'+
+      '<div class="chips" style="margin-bottom:6px">'+['dfm','privat'].map(d=>
+        '<button class="chip '+((g.domain||'privat')===d?'on':'')+'" data-grpdom="'+g.id+'" data-d="'+d+'">'+(d==='dfm'?'DFM':'Privat')+'</button>').join('')+'</div>'+
+      '<div class="gm">Mitglieder (<b>'+st.fertig+'/'+st.gesamt+'</b> heute erledigt) — Reihenfolge = Anzeigereihenfolge:</div>'+
+      '<div class="chips">'+ (kand.length ? kand.map(k=>{
+          const i=(g.mitglieder||[]).indexOf(k.id);
+          return '<button class="chip '+(i>=0?'on lila':'')+'" data-grpm="'+g.id+'" data-k="'+k.id+'">'+(i>=0?(i+1)+'. ':'')+esc(k.titel||'?')+'</button>';
+        }).join('') : '<span class="hint">Keine Routinen in dieser Domäne.</span>')+'</div>'+
+      ((g.mitglieder||[]).filter(id=>!S.karten.some(k=>k.id===id)).length
+        ? '<div class="hint" style="color:var(--warn)">Enthält '+(g.mitglieder||[]).filter(id=>!S.karten.some(k=>k.id===id)).length+' noch nicht vorhandene Karte(n) — sie greifen, sobald die Karten existieren.</div>'
+        : '')+
+    '</div>';
+  });
+  h+='<button class="minibtn" data-grpneu="1">＋ Gruppe</button></div>';
   h+='<div class="card"><h3>Punkte-Balance</h3><p class="d">Je Domäne (DFM · Privat). Wirkt nur auf künftige Buchungen — nichts wird rückwirkend neu berechnet.</p>';
   const balance=[
     ['basisProStdDfm','Basis P/Std · DFM',5],['basisProStdPrivat','Basis P/Std · Privat',5],
@@ -5196,6 +5477,9 @@ el('sheet').addEventListener('click', e=>{
   const afp=t.closest('[data-abfpri]'); if(afp){ if(abhakTmp){ abhakTmp.folgePri=afp.dataset.abfpri;
     const box=el('abFolgePri'); if(box) box.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on', c===afp)); } return; }
   if(t.closest('[data-abgo]')){ abhakDialogConfirm(); return; }
+  // §4 (v1.6.1): Rückfrage nach der Auto-Pause
+  if(t.closest('[data-apok]')){   autoPauseUebernehmen(false); return; }
+  if(t.closest('[data-apkeep]')){ autoPauseUebernehmen(true);  return; }
   if(t.closest('[data-migstart]')){ migrationAusfuehren(); return; }
   if(t.closest('[data-v038import]')){ const ta=el('v038In'); const box=el('v038Ergebnis'); const r=v038ImportAusText(ta?ta.value:'');
     if(r.fehler){ if(box) box.innerHTML='<div class="card" style="border-color:var(--bad);margin-top:8px"><p class="d" style="color:var(--bad)">'+esc(r.fehler)+'</p></div>'; }
@@ -5281,6 +5565,14 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-dfreeze]')){ entwurf.freeze=!entwurf.freeze; renderDetail(); return; }   // A4
   if(t.closest('[data-dpin]')){ entwurf.pin=!entwurf.pin; renderDetail(); return; }   // A8
   if(t.closest('[data-dabhak]')){ entwurf.abhakbonus = (entwurf.abhakbonus===0) ? null : 0; renderDetail(); return; }   // U6-D: Abhakbonus an/aus (null=Domänen-Default)
+  // §1 (v1.6.1): Tagesabschnitte umschalten (Mehrfachauswahl, leer = automatisch)
+  const dta=t.closest('[data-dta]'); if(dta){ const ta=dta.dataset.dta;
+    const cur=Array.isArray(entwurf.tagesabschnitt)?entwurf.tagesabschnitt.slice():[];
+    const i=cur.indexOf(ta); if(i>=0) cur.splice(i,1); else cur.push(ta);
+    entwurf.tagesabschnitt = cur.length ? TAGESABSCHNITTE.filter(x=>cur.indexOf(x)>=0) : null;   // stabile Reihenfolge
+    renderDetail(); return; }
+  // §5 (v1.6.1): Pausentimer-Flag je Karte
+  if(t.closest('[data-dnoauto]')){ entwurf.keineAutoPause=!entwurf.keineAutoPause; renderDetail(); return; }
 
   // Tick-Kurve: erstes „Erstellen" springt auf 3 Schritte (Vorauswahl), jeder
   // weitere Klick fügt einen an; der ＋-Button bleibt immer.
@@ -5365,7 +5657,9 @@ el('sheetBody').addEventListener('change', e=>{
 function detailFeld(bind, input){
   const v=input.value;
   if(bind==='geldScore'||bind==='sollMin'){ entwurf[bind]=num(v); }
-  else if(bind==='punkteProStd'||bind==='akkuProStd'||bind==='_istMinEdit'){ entwurf[bind]= v===''?null:num(v); }  // leer = null (Fallback)
+  // §6.2 (v1.6.1): abhakbonus wie die anderen Overrides — leer = Domänen-Default,
+  // sonst der eingegebene Wert INKLUSIVE negativer Beträge (kein Clamp).
+  else if(bind==='punkteProStd'||bind==='akkuProStd'||bind==='_istMinEdit'||bind==='abhakbonus'){ entwurf[bind]= v===''?null:num(v); }  // leer = null (Fallback)
   else if(bind==='rhythmusN'){ if(entwurf.rhythmus) entwurf.rhythmus.n=Math.max(1,num(v)); }
   else { entwurf[bind]= (v===''&&(bind==='faelligkeit'||bind==='uhrzeit'||bind==='projekt')) ? null : v; }
 }
@@ -5427,7 +5721,6 @@ el('belohnungBody').addEventListener('change', e=>{
 // Einstellungen (Sync / Migration / Backup / Regler)
 el('einstBody').addEventListener('click', e=>{
   if(e.target.closest('#btnSync')) oeffneSync();
-  else if(e.target.closest('#btnMig')) oeffneMigration();
   else if(e.target.closest('#btnBackup')) backupHtml();
   else if(e.target.closest('#btnReset')){ resetKarten(); return; }
   const vd=e.target.closest('[data-vorlagedel]'); if(vd){ if(confirm('Vorlage löschen?')){ vorlageLoeschen(vd.dataset.vorlagedel); renderEinst(); } return; }
@@ -5436,8 +5729,26 @@ el('einstBody').addEventListener('click', e=>{
   const ga=e.target.closest('[data-grpassign]'); if(ga){ oeffneGruppeZuordnen(ga.dataset.grpassign); return; }
   const gk=e.target.closest('[data-grpakt]'); if(gk){ oeffneGruppeAktion(gk.dataset.grpakt); return; }
   if(e.target.closest('[data-debugtap]')){ setDebugTap(!S.ui.debugTap); renderEinst(); return; }   // V3
+  // §3 (v1.6.1): Routinen-Gruppen verwalten
+  const gt=e.target;
+  if(gt.closest('[data-grpneu]')){ S.routinenGruppen.push({ id:uuid(), name:'Neue Gruppe', domain:'privat',
+    mitglieder:[], komplettBonus:KOMPLETT_BONUS_DEFAULT, farbe:'#b98af7', bonusTag:null });
+    saveRoutGruppen(); renderEinst(); return; }
+  const gd=gt.closest('[data-grpdel]'); if(gd){ const g=S.routinenGruppen.find(x=>x.id===gd.dataset.grpdel);
+    if(g && confirm('Gruppe „'+g.name+'" entfernen? Die Karten selbst bleiben unverändert.')){
+      S.routinenGruppen=S.routinenGruppen.filter(x=>x.id!==g.id); saveRoutGruppen(); renderEinst(); } return; }
+  const gdm=gt.closest('[data-grpdom]'); if(gdm){ const g=S.routinenGruppen.find(x=>x.id===gdm.dataset.grpdom);
+    if(g){ g.domain=gdm.dataset.d; g.mitglieder=[]; saveRoutGruppen(); renderEinst(); } return; }
+  const gm=gt.closest('[data-grpm]'); if(gm){ const g=S.routinenGruppen.find(x=>x.id===gm.dataset.grpm);
+    if(g){ g.mitglieder=g.mitglieder||[]; const i=g.mitglieder.indexOf(gm.dataset.k);
+      if(i>=0) g.mitglieder.splice(i,1); else g.mitglieder.push(gm.dataset.k);   // Anhängen = Reihenfolge
+      saveRoutGruppen(); gruppeBonusPruefen(g); renderEinst(); } return; }
 });
 el('einstBody').addEventListener('change', e=>{
+  // §3 (v1.6.1): Gruppenname / Bonushöhe
+  const gn=e.target.dataset.grpname, gb=e.target.dataset.grpbonus;
+  if(gn){ const g=S.routinenGruppen.find(x=>x.id===gn); if(g){ g.name=e.target.value; saveRoutGruppen(); } return; }
+  if(gb){ const g=S.routinenGruppen.find(x=>x.id===gb); if(g){ g.komplettBonus=num(e.target.value); saveRoutGruppen(); renderStatusbar(); } return; }
   const t=e.target; if(t.dataset.setting){ S.settings[t.dataset.setting]=num(t.value); saveSettings();
     // v1.5.1: Level-Kosten wirken sofort — Anzeige (Statusleiste/Belohnung/Hinweis) nachziehen.
     if(t.dataset.setting==='punkteProLevel'){ renderStatusbar(); renderEinst(); } }
@@ -6095,7 +6406,14 @@ function init(){
   // laufenden Timer alle 20 s auffrischen, solange ein Tag offen ist.
   setInterval(()=>{ if(tagOffen() && !(S.fokus&&S.fokus.laeuft)) renderStatusbar(); }, 20000);
   window.addEventListener('resize', layoutTopbar);
+  // §4 (v1.6.1): jede echte Interaktion stempeln — Taps, Ticks, Seitenwechsel
+  // und Sichtbarkeitswechsel. Capture-Phase, damit nichts verlorengeht.
+  ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev, interaktion, true));
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ interaktion(); saveMeta(); zeigeAutoPauseDialog(); } });
+  interaktion(); saveMeta();
   zeigeMigration160();   // §9.1: Protokoll einmalig anzeigen
+  zeigeMigration161();   // §7 (1.6.1): Protokoll einmalig anzeigen
+  zeigeAutoPauseDialog();// §4: offene Rückfrage aus einer Auto-Pause nachholen
 }
 /* §9.1 (v1.6.0): Migrationsprotokoll genau einmal zeigen, danach abhaken. */
 function zeigeMigration160(){
@@ -6113,6 +6431,26 @@ function zeigeMigration160(){
     'Übrig bleiben die Stapel <b>Heute</b> (steuert die Swipe-Reihenfolge) und <b>Erledigt</b> (zum Zurückholen).</p>';
   openSheet('Update v1.6.0 — Migration', h, '<button class="btn prim" data-close="1">Verstanden</button>');
   S.meta.migration160Gezeigt=true; saveMeta();
+}
+/* §7 (v1.6.1): Migrationsprotokoll einmalig zeigen. */
+function zeigeMigration161(){
+  const L=S.meta.migration161Log;
+  if(!L || S.meta.migration161Gezeigt) return;
+  const z=[['Tagesabschnitt auf Array umgestellt',L.arrayUmstellung],
+           ['Abschnitt aus „tageszeit" übernommen',L.ausTageszeit],
+           ['Feld „tageszeit" entfernt (Karten)',L.tageszeitEntfernt],
+           ['Gruppe „Aufräumrunde" — zugeordnete Karten',L.gruppeAngelegt]];
+  const fehlt=(L.gruppeFehlend||[]).length
+    ? '<p class="d" style="color:var(--warn);margin-top:8px">Für die „Aufräumrunde" fehlen noch diese Karten (nichts erfunden — die Gruppe greift, sobald du sie anlegst): '+
+      esc(L.gruppeFehlend.join(' · '))+'</p>' : '';
+  const h='<p class="d"><b>Es wurde nichts gelöscht</b> — keine Karte, kein Punktestand, kein Wohlstand. '+
+    'Der Vorzustand liegt gesichert unter <code>karten_bak161</code> und <code>meta_bak161</code>.</p>'+
+    '<div class="kvblock">'+z.map(([t,n])=>'<div class="kv"><span>'+t+'</span><b>'+num(n)+'</b></div>').join('')+'</div>'+
+    fehlt+
+    '<p class="d" style="margin-top:8px">Neu: Tagesabschnitte sind mehrfach wählbar (eine Karte kann morgens <i>und</i> abends Pflicht sein), '+
+    'Routinen-Gruppen geben einen Komplett-Bonus, und ein unbeaufsichtigter Timer pausiert nach '+AUTOPAUSE_MIN+' Minuten und fragt nach.</p>';
+  openSheet('Update v1.6.1 — Migration', h, '<button class="btn prim" data-close="1">Verstanden</button>');
+  S.meta.migration161Gezeigt=true; saveMeta();
 }
 init();
 
