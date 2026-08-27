@@ -65,7 +65,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #topbar .sub[hidden]{display:none}
 #topbar .sub .timer{color:var(--cyan);font-weight:700}
 #topbar .sub .ppm{color:var(--purple)}
-#topbar .tb-search{flex:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)}
+#topbar .tb-search{flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:16px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)}  /* v1.6.0 Touch 44px */
 #topbar .tb-search:active{background:var(--card2)}
 #topbar .right{flex:none;text-align:right;font-family:ui-monospace,monospace}
 #topbar .right .pt{font-size:14px;font-weight:800;color:var(--ok);line-height:1}
@@ -185,10 +185,27 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .krow .kmeta .b{color:var(--txt)}
 .krow .kmeta .tag{color:var(--blue)}
 .krow .kmeta .pri-muss{color:var(--bad)}
-.krow .kschnell{flex:none;width:36px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:15px;color:var(--mut2);background:transparent}  /* U2 ⚡ */
+.krow .kschnell{flex:none;width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:15px;color:var(--mut2);background:transparent}  /* U2 ⚡ · v1.6.0 Touch 44px */
 .krow .kschnell.on{color:#f2b84b}
 /* U3 (v1.4.0): Leiste trägt jetzt Domäne + Status + Richtung für JEDEN Stapel —
    Chips auf 44px Touch-Ziel gebracht, Zeile darf umbrechen. */
+/* ══ §2.5 (v1.6.0) · Navigationsleiste der drei Ebenen auf der Fokusseite ══
+   Dauerhaft sichtbar, ein Tap je Ebene, alle Ziele ≥44px. */
+.navleiste{display:flex;flex-direction:column;gap:6px;margin:2px 0 8px}
+.navzeile{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.navzeile.e3{margin-top:2px}
+.navlab{font-size:10px;color:var(--mut2);font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-right:2px}
+.navchip{flex:1;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--mut);font-size:13px;font-weight:800;
+  padding:0 10px;touch-action:manipulation}
+.navchip.on{background:var(--blue);border-color:var(--blue);color:#0a0f1a}
+.navzeile.e3 .navchip{flex:none;font-size:12px;font-weight:700}
+/* Privat-Gruppierung — alle drei Abschnitte bleiben sichtbar (§2 Ebene 3) */
+.navgruppe{margin-bottom:10px}
+.navgh{font-size:11px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.8px;padding:4px 2px}
+.navgh span{color:var(--mut2);font-weight:600}
+.navgruppe .leer{color:var(--mut2);font-size:12px;padding:4px 2px}
+.fk-liste>.leer{color:var(--mut2);font-size:12px;text-align:center;padding:14px 0}
 .schnellbar{padding:6px 4px 2px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .schnellfilter{display:inline-flex;gap:6px;flex-wrap:wrap}
 .schnellfilter .schnellf{border:1px solid var(--line);border-radius:9px;padding:5px 12px;font-size:12px;color:var(--mut);font-weight:700;background:var(--bg);min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center}
@@ -200,7 +217,8 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .krow .kcheck .box{width:24px;height:24px;border-radius:7px;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:15px;color:transparent;transition:all .15s}
 .krow.erledigt .kcheck .box{background:var(--ok);border-color:var(--ok);color:#0a0f1a}
 /* A8 Pin + A4 Freeze (Zeilen-Buttons) */
-.krow .kpin,.krow .kfreeze{flex:none;width:30px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:13px;color:var(--mut2);background:transparent;filter:grayscale(1);opacity:.6}
+.krow .kkette.on{filter:none;opacity:1;color:var(--blue)}
+.krow .kpin,.krow .kfreeze,.krow .kkette{flex:none;width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:13px;color:var(--mut2);background:transparent;filter:grayscale(1);opacity:.6}  /* v1.6.0 Touch 44px */
 .krow .kpin.on{filter:none;opacity:1}
 .krow .kfreeze.on{filter:none;opacity:1;color:#6dd3e0}
 .krow .kstart.auftau{color:#6dd3e0}
@@ -797,7 +815,7 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
     <div class="headbar">
       <h2>Stapel</h2>
       <span class="sp"></span>
-      <button class="minibtn" id="btnStapelNeu">＋ Stapel</button>
+      <!-- v1.6.0: eigene Stapel entfallen — nur noch „Heute" und „Erledigt" -->
     </div>
     <div id="stapelListe"></div>
   </section>
@@ -861,9 +879,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.5.2';                    // Datenvertrag/Sync-appVersion — 1.5.2 (Flow-Sync-Fix + Soll-bei-Subs + Panorama-UI; keine Vertragsfelder geändert, 1.x-kompatibel)
-const UI_VERSION = 'v1.5.2';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-14-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.6.0';                    // Datenvertrag/Sync-appVersion — 1.6.0 (Navigationsmodell neu, Ketten, Vertrag 1.4)
+const UI_VERSION = 'v1.6.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-27-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -972,6 +990,28 @@ const DEFAULT_SETTINGS = {
 };
 
 /* §3.1 Karte — vollständiges Schema, fehlende Felder mit Defaults. */
+/* ══════════════════════════════════════════════════════════════════════
+   §2.1 (v1.6.0) · Tagesabschnitte für Privat-Karten. Grenzen als Konstanten
+   an EINER Stelle, nicht verstreut. Ein manuell gesetzter Wert wird von der
+   Ableitung nie überschrieben.
+   ══════════════════════════════════════════════════════════════════════ */
+const TAGESABSCHNITTE = ['morgens','tagsueber','abends'];
+const TA_LABEL = { morgens:'Morgens', tagsueber:'Tagsüber', abends:'Abends' };
+const TA_BIS_MORGENS = 11;   // Deadline-Uhrzeit < 11:00  → morgens
+const TA_AB_ABENDS   = 17;   // Deadline-Uhrzeit ≥ 17:00  → abends (dazwischen tagsueber)
+/* Ableitung NUR aus der Deadline-Uhrzeit; ohne Uhrzeit → tagsueber (§2.1). */
+function tagesabschnittAbleiten(k){
+  const m=/^(\d{1,2}):(\d{2})$/.exec(String((k&&k.uhrzeit)||''));
+  if(!m) return 'tagsueber';
+  const h=num(m[1])+num(m[2])/60;
+  if(h<TA_BIS_MORGENS) return 'morgens';
+  if(h<TA_AB_ABENDS)   return 'tagsueber';
+  return 'abends';
+}
+/* Effektiver Abschnitt: manuell gesetzter Wert schlägt die Ableitung. */
+function tagesabschnittVon(k){
+  return TAGESABSCHNITTE.indexOf(k&&k.tagesabschnitt)>=0 ? k.tagesabschnitt : tagesabschnittAbleiten(k);
+}
 function neueKarte(f={}){
   const k = Object.assign({
     id: uuid(),
@@ -984,7 +1024,8 @@ function neueKarte(f={}){
     geldScore: 0,                     // nur dfm
     faelligkeit: null,                // "YYYY-MM-DD" | null (null = Warteschlange)
     uhrzeit: null,                    // "HH:MM" | null — Startzeitpunkt ⇒ Termin
-    tageszeit: 'beliebig',            // morgens | mittags | abends | beliebig
+    tageszeit: 'beliebig',            // ALT (v0.38-Port, Sync-Feld): morgens | mittags | abends | beliebig
+    tagesabschnitt: null,             // §2.1 (1.6.0): morgens|tagsueber|abends — null = aus Uhrzeit ableiten
     sollMin: 0,
     istSek: 0,                        // getrackte Zeit (nur am Parent)
     komplex: 1, energie: 1, blockade: 1,   // Rate-Treiber (stufenlose Faktoren)
@@ -1078,7 +1119,7 @@ function ladeAlles(){
   S.intraday = DB.get('intraday', []);   // B0: App-only Intraday-Log
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
-  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', debugTap:false }, DB.get('ui', {}));
+  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', debugTap:false }, DB.get('ui', {}));
   // U6-B: Erstell-Zeitstempel für Altkarten guarded nachrüsten (VOR der Härtung,
   // damit der Fallback greift statt der neueKarte-Default-Jetztzeit). Idempotent.
   S.karten.forEach(k=>{ if(k && !k.erstelltTs) k.erstelltTs = k.letzteBearbeitung || jetztIso(); });
@@ -1154,6 +1195,41 @@ function ladeAlles(){
     if(spikes.length) saveKarten();
     S.meta.flowfix152Log=spikes;
     S.meta.flowfix152=true; saveMeta();
+  }
+  // ══ §9.1 (v1.6.0) · Migration auf das neue Navigationsmodell ═══════════
+  // Guarded über meta.migration160, Sicherung des Vorzustands unter
+  // karten_bak160 / meta_bak160. KEINE Karte wird gelöscht, kein Punktestand
+  // und kein Wohlstand angefasst. Protokoll landet in meta.migration160Log und
+  // wird einmalig in der App angezeigt.
+  if(!S.meta.migration160){
+    DB.set('karten_bak160', S.karten);
+    DB.set('meta_bak160', S.meta);
+    DB.set('stapel_bak160', S.stapel);
+    const log={ ts:jetztIso(), tagesabschnitt:0, abschluesse:0, stapelEntfernt:0, ketteStart:0 };
+    S.karten.forEach(k=>{
+      // 1) tagesabschnitt für Privat-Karten setzen (Ableitung §2.1; ein bereits
+      //    gesetzter Wert bleibt unangetastet). Ein vorhandenes tageszeit-Feld
+      //    wird als Vorgabe übernommen, wo es eindeutig ist — sonst Uhrzeit-Regel.
+      if(k.domain==='privat' && TAGESABSCHNITTE.indexOf(k.tagesabschnitt)<0){
+        const alt={morgens:'morgens', mittags:'tagsueber', abends:'abends'}[k.tageszeit];
+        k.tagesabschnitt = alt || tagesabschnittAbleiten(k);
+        log.tagesabschnitt++;
+      }
+      // 2) leeres Abschluss-Stack-Feld anlegen (§6.1 nutzt es ab jetzt)
+      if(!Array.isArray(k.abschluesse)){ k.abschluesse=[]; log.abschluesse++; }
+    });
+    // 3) alte Stapel-Definitionen entfernen; nur „Heute" + „Erledigt" bleiben.
+    //    Der persistierte Filterzustand der alten Stapel fällt mit weg.
+    const alteIds=S.stapel.map(s=>s.id).filter(id=>id!=='sys-heute' && id!=='sys-erledigt');
+    log.stapelEntfernt=alteIds.length;
+    S.ui.stapelDomain={}; S.ui.stapelStatus={}; S.ui.stapelOffen={};
+    syncStandardStapel();
+    // 4) Tageskette einmalig aus den heute fälligen Karten vorbefüllen
+    const st=ketteState();
+    if(!st.ids.length){ ketteSetzen(ketteAutoIds()); log.ketteStart=ketteState().ids.length; }
+    S.meta.migration160Log=log;
+    S.meta.migration160=true;
+    saveKarten(); saveMeta(); saveUi();
   }
   // U3 (v1.4.0): bisher globaler „Bearbeitet heute"-Statusfilter wird zum
   // Pro-Stapel-Filter. Alten Wert einmalig übernehmen, guarded + idempotent.
@@ -1521,6 +1597,9 @@ function filterEinzel(k, f){
   return String(v==null?'':v).toLowerCase().includes(String(f.wert||'').toLowerCase());
 }
 function stapelKarten(st){
+  // §2.2/§2.3 (v1.6.0): die beiden Sonderstapel kommen nicht aus der Filter-Engine.
+  if(st && st.id==='sys-heute')    return ketteKarten();
+  if(st && st.id==='sys-erledigt') return erledigtKarten();
   const byFeld={};
   (st.filter||[]).forEach(f=>{ (byFeld[f.feld]=byFeld[f.feld]||[]).push(f); });
   const gruppen=Object.values(byFeld);
@@ -1529,6 +1608,17 @@ function stapelKarten(st){
     return gruppen.every(g=> g.some(f=>filterEinzel(k,f)));
   });
   return sortiereStapel(ks, st);
+}
+/* §2.3 (v1.6.0): „Erledigt" — alle abgeschlossenen Karten chronologisch,
+   jüngste zuerst. Sortierschlüssel ist der jüngste Abschluss-Snapshot (§6.1),
+   ersatzweise der Buchungstag bzw. die letzte Bearbeitung. */
+function abschlussZeit(k){
+  const a=Array.isArray(k.abschluesse)&&k.abschluesse.length ? k.abschluesse[k.abschluesse.length-1] : null;
+  return (a && a.ts) || k.letzteBearbeitung || (k.tagId?String(k.tagId).slice(0,10)+'T23:59:59':'') || '';
+}
+function erledigtKarten(){
+  return S.karten.filter(k=>k.status==='erledigt')
+    .slice().sort((a,b)=> abschlussZeit(a)<abschlussZeit(b)?1:-1);
 }
 function filterNenntArchiv(st){
   return (st.filter||[]).some(f=>f.feld==='status' && (f.werte||[]).includes('archiviert'));
@@ -1594,37 +1684,81 @@ function stapelKpi(ks){
    8 · Seeds — 3 vorangelegte Stapel (§3.5). Nur beim ersten Start,
        danach normal editier-/löschbar (keine Systemlogik).
    ══════════════════════════════════════════════════════════════════════ */
-/* A6: feste Standardstapel in fester Reihenfolge (eigene Stapel darunter). */
+/* §2 (v1.6.0): Die 11 Standardstapel entfallen. Es bleiben genau ZWEI Stapel —
+   „Heute" (die einzige Kette der App, steuert die Swipe-Reihenfolge) und
+   „Erledigt" (chronologisch, zum Zurückholen). Beide werden NICHT über die
+   Filter-Engine gespeist, sondern in stapelKarten() gesondert behandelt.
+   Eigene Stapel sind nicht mehr anlegbar; die Filterung läuft über die drei
+   Navigationsebenen auf der Fokusseite. */
 function standardStapelDefs(){
-  const A=werte=>[{feld:'kartenArt',op:'ist',werte:[werte]},{feld:'status',op:'ist',werte:['offen']}];
-  const PRI=(p)=>[{feld:'prioritaet',op:'ist',werte:[p]},{feld:'kartenArt',op:'ist',werte:['Aufgabe']},{feld:'status',op:'ist',werte:['offen']}];
   return [
-    {id:'sys-schnellauswahl', name:'Schnellauswahl', farbe:'#b98af7', filter:[{feld:'schnellauswahl',op:'ist',werte:['ja']},{feld:'status',op:'ist',werte:['offen']}], sortierung:{feld:'manuell',richtung:'asc'}},
-    {id:'sys-heute', name:'Heute', farbe:'#4f8ef7', filter:[{feld:'faelligkeit',op:'heute'},{feld:'faelligkeit',op:'ueberfaellig'},{feld:'status',op:'ist',werte:['offen']}], sortierung:{feld:'manuell',richtung:'asc'}},
-    {id:'sys-aufgaben', name:'Aufgaben', farbe:'#6dd3e0', filter:A('Aufgabe'), sortierung:{feld:'auto',richtung:'asc'}},
-    {id:'sys-routinen', name:'Routinen', farbe:'#f78ad0', filter:A('Routine'), sortierung:{feld:'auto',richtung:'asc'}},
-    {id:'sys-counter', name:'Counter', farbe:'#f2b84b', filter:A('Counter'), sortierung:{feld:'auto',richtung:'asc'}},
-    {id:'sys-asap', name:'ASAP Aufgaben', farbe:'#f66d6d', filter:PRI('muss'), sortierung:{feld:'auto',richtung:'asc'}},
-    {id:'sys-can', name:'CAN Aufgaben', farbe:'#3ecf8e', filter:PRI('soll'), sortierung:{feld:'auto',richtung:'asc'}},
-    {id:'sys-overload', name:'Overload Aufgaben', farbe:'#8fa1b8', filter:PRI('idee'), sortierung:{feld:'auto',richtung:'asc'}},
-    {id:'sys-freeze', name:'Freeze', farbe:'#5d6d88', filter:[{feld:'freeze',op:'ist',werte:['ja']}], sortierung:{feld:'manuell',richtung:'asc'}},
-    {id:'sys-bearbeitet', name:'Bearbeitet heute', farbe:'#3ecf8e', filter:[{feld:'letzteBearbeitung',op:'heute'}], sortierung:{feld:'letzteBearbeitung',richtung:'asc'}},
-    {id:'sys-zuletzt', name:'🆕 Zuletzt hinzugefügt', farbe:'#6dd3e0', filter:[{feld:'status',op:'ist',werte:['offen']}], sortierung:{feld:'erstelltTs',richtung:'desc'}}   // U6-B: neueste zuerst
+    {id:'sys-heute',    name:'Heute',    farbe:'#4f8ef7', filter:[], sortierung:{feld:'kette',   richtung:'asc'}},
+    {id:'sys-erledigt', name:'Erledigt', farbe:'#3ecf8e', filter:[], sortierung:{feld:'abschluss',richtung:'desc'}}
   ];
+}
+/* ══════════════════════════════════════════════════════════════════════
+   §2.2 (v1.6.0) · Tageskette „Heute" — ein Array von App-IDs je Kalendertag
+   mit Rollover nicht erledigter Einträge auf den Folgetag. Sie ist die
+   einzige Kette der App und bestimmt die Swipe-Reihenfolge im Fokus.
+   ══════════════════════════════════════════════════════════════════════ */
+function ketteState(){
+  if(!S.meta.kette || typeof S.meta.kette!=='object' || !Array.isArray(S.meta.kette.ids))
+    S.meta.kette={ datum:null, ids:[] };
+  return S.meta.kette;
+}
+/* Auto-Vorschlag: offene Karten, die heute (oder überfällig) dran sind. */
+function ketteAutoIds(){
+  const h=heuteApp();
+  return S.karten.filter(k=>k.status==='offen' && k.faelligkeit && k.faelligkeit<=h).map(k=>k.id);
+}
+/* Liefert die Kette für heute. Beim Tageswechsel: nicht erledigte Einträge
+   rollen mit, danach werden neue fällige Karten hinten angehängt (Auto-
+   Befüllung; manuell entfernte Karten kommen am selben Tag nicht zurück). */
+function tagesKette(){
+  const st=ketteState(), h=heuteApp();
+  if(st.datum!==h){
+    const uebrig=(st.ids||[]).filter(id=>{ const k=S.karten.find(x=>x.id===id); return k && k.status==='offen'; });
+    const auto=ketteAutoIds().filter(id=>uebrig.indexOf(id)<0);
+    st.datum=h; st.ids=uebrig.concat(auto); saveMeta();
+  } else {
+    // Auto-Nachzug für heute neu fällig gewordene Karten (nur additiv, ans Ende)
+    const bekannt=new Set(st.ids), entfernt=new Set(st.entfernt||[]);
+    const neu=ketteAutoIds().filter(id=>!bekannt.has(id) && !entfernt.has(id));
+    if(neu.length){ st.ids=st.ids.concat(neu); saveMeta(); }
+  }
+  // verwaiste IDs (gelöschte Karten) still aussortieren
+  const lebt=st.ids.filter(id=>S.karten.some(k=>k.id===id));
+  if(lebt.length!==st.ids.length){ st.ids=lebt; saveMeta(); }
+  return st.ids;
+}
+function ketteKarten(){ const by={}; S.karten.forEach(k=>by[k.id]=k); return tagesKette().map(id=>by[id]).filter(Boolean); }
+function ketteHat(id){ return tagesKette().indexOf(id)>=0; }
+/* Manuelles Ergänzen/Entfernen. Entfernte Karten merkt sich der Tag, damit die
+   Auto-Befüllung sie nicht sofort wieder einsammelt. */
+function ketteToggle(id){
+  const st=ketteState(); tagesKette();
+  const i=st.ids.indexOf(id);
+  if(!Array.isArray(st.entfernt)) st.entfernt=[];
+  if(i>=0){ st.ids.splice(i,1); if(st.entfernt.indexOf(id)<0) st.entfernt.push(id); }
+  else { st.ids.push(id); st.entfernt=st.entfernt.filter(x=>x!==id); }
+  saveMeta(); return i<0;
+}
+/* Reihenfolge setzen (Tagesplanung / Sync-Import). */
+function ketteSetzen(ids){
+  const st=ketteState();
+  st.datum=heuteApp();
+  st.ids=(ids||[]).filter((id,i,a)=>a.indexOf(id)===i && S.karten.some(k=>k.id===id));
+  st.entfernt=[]; saveMeta();
 }
 const STD_STAPEL_IDS = standardStapelDefs().map(d=>d.id);
 /* Standardstapel-Set herstellen: Reihenfolge fix, eigene Stapel bleiben darunter,
    alte System-Stapel (die nicht mehr in der Liste sind) entfallen. Reine Config
    (Karten-sortIndex bleibt unberührt). */
+/* v1.6.0: Es gibt nur noch die beiden festen Stapel. Frühere System- UND eigene
+   Stapel fallen aus der Konfiguration (Sicherung liegt in stapel_bak160). */
 function syncStandardStapel(){
-  const eigene = S.stapel.filter(s=>!s.vorangelegt && STD_STAPEL_IDS.indexOf(s.id)<0);
-  const standard = standardStapelDefs().map(d=>{
-    const bestand = S.stapel.find(s=>s.id===d.id);
-    return neuerStapel(Object.assign({}, d, { vorangelegt:true,
-      sortierung: (bestand && bestand.sortierung) ? bestand.sortierung : d.sortierung }));  // manuelle Übersteuerung bewahren
-  });
-  S.stapel = standard.concat(eigene);
-  if(STD_STAPEL_IDS.indexOf(S.ui.aktivStapel)<0 && !eigene.some(s=>s.id===S.ui.aktivStapel)) S.ui.aktivStapel='sys-heute';
+  S.stapel = standardStapelDefs().map(d=>neuerStapel(Object.assign({}, d, { vorangelegt:true })));
+  if(STD_STAPEL_IDS.indexOf(S.ui.aktivStapel)<0) S.ui.aktivStapel='sys-heute';
   saveStapel(); saveUi();
 }
 function seedStapel(){
@@ -1687,12 +1821,16 @@ function kartenreiheHtml(k, stapelId){
     ? '<button class="kpin'+(k.pin?' on':'')+'" data-pin="'+k.id+'" aria-label="Anpinnen">📌</button>' : '';
   // A4: Freeze-Toggle ❄︎ (eingefroren hervorgehoben)
   const freezeBtn = '<button class="kfreeze'+(k.freeze?' on':'')+'" data-freeze="'+k.id+'" aria-label="Einfrieren">❄︎</button>';
+  // §2.2 (v1.6.0): Karte manuell in die Tageskette „Heute" legen bzw. herausnehmen
+  const ketteBtn = k.status==='offen'
+    ? '<button class="kkette'+(ketteHat(k.id)?' on':'')+'" data-kette="'+k.id+'" aria-label="Zu Heute">▤</button>' : '';
   return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+(k.freeze?'eingefroren ':'')+'" data-kid="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
     sortCtrl+
     '<div class="kmain" data-detail="'+k.id+'">'+
       '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
       '<div class="kmeta">'+meta.join('')+'</div>'+
     '</div>'+
+    ketteBtn+
     pinBtn+
     freezeBtn+
     schnellBtn+
@@ -1735,30 +1873,18 @@ function stapelHtml(st){
       '<span class="st-kpi"><span><b>'+kpi.offen+'</b>/'+kpi.alle+'</span>'+
         '<span class="p"><b>'+kpi.punkte+'</b>P</span>'+
         (kpi.avgMin?'<span>Ø<b>'+kpi.avgMin+'</b>′</span>':'')+'</span>'+
-      '<button class="st-edit" data-editstapel="'+st.id+'">⚙︎</button>'+
     '</div>'+
     '<div class="stapelbody">'+filterBar+rows+'</div>'+
   '</div>';
 }
+/* §2 (v1.6.0): Der Stapel-Tab zeigt nur noch die beiden festen Stapel „Heute"
+   und „Erledigt". Eigene Stapel sind nicht mehr anlegbar, der Stapel-Editor und
+   die Ordner-Gruppierung entfallen damit aus der Ansicht (Daten bleiben liegen). */
 function renderStapel(){
   rangCacheBauen();
   const host=el('stapelListe');
-  // Ordner-Zuordnung: jeder Stapel kann in mehreren Ordnern liegen (§3.6).
-  const zugeordnet=new Set();
   let html=tagBannerHtml()+pinLeisteHtml();   // A8: Quick-Leiste über den Stapeln
-  S.ordner.forEach(o=>{
-    const drin=(o.stapelIds||[]).map(id=>S.stapel.find(s=>s.id===id)).filter(Boolean);
-    if(!drin.length) return;
-    drin.forEach(s=>zugeordnet.add(s.id));
-    const zu=S.ui.ordnerZu[o.id];
-    html+='<div class="ordner '+(zu?'zu':'')+'" data-oid="'+o.id+'">'+
-      '<div class="ordnerkopf" data-ordner="'+o.id+'"><span class="caret">▾</span>'+esc(o.name)+
-        ' <span style="color:var(--mut2);font-weight:600">· '+drin.length+'</span></div>'+
-      '<div class="ordnerbody">'+drin.map(stapelHtml).join('')+'</div>'+
-    '</div>';
-  });
-  const rest=S.stapel.filter(s=>!zugeordnet.has(s.id));
-  html += rest.map(stapelHtml).join('');
+  html += S.stapel.map(stapelHtml).join('');
   if(!S.stapel.length) html='<div class="placeholder" style="margin-top:14vh"><span class="big">🗂</span>Noch keine Stapel</div>';
   host.innerHTML=html;
 }
@@ -1769,10 +1895,14 @@ function renderStapel(){
 /* Durchwechsel-Set: begonnene offene Karten PLUS alle Muss-Karten (offen). */
 /* Fokus-Karussell = ausschließlich die offenen Karten des GEWÄHLTEN Stapels
    (in Stapel-Reihenfolge). Keine karten aus anderen Stapeln. */
+/* §2.2 (v1.6.0): Das Fließband ist die Tageskette „Heute" — sie bestimmt die
+   Swipe-Reihenfolge, unabhängig von den drei Navigationsebenen (die filtern nur
+   die Liste darunter). Ist die Kette leer, greift ersatzweise die aktuelle
+   Navigationsauswahl, damit die Fokusseite nie leer dasteht. */
 function fokusKandidaten(){
-  const st=S.stapel.find(s=>s.id===S.ui.aktivStapel) || S.stapel[0];
-  if(!st) return [];
-  return stapelKarten(st).filter(k=>k.status==='offen');
+  const kette=ketteKarten().filter(k=>k.status==='offen');
+  if(kette.length) return kette;
+  return navSortiere(navFilter(S.karten.filter(k=>k.status==='offen')));
 }
 /* U2 (v1.4.0): heute bearbeitete Karten, zuletzt bearbeitete zuerst —
    Datenbasis der Rückwärts-Navigation (stapelunabhängig). */
@@ -2100,6 +2230,56 @@ function pinLeisteHtml(){
   };
   return '<div class="pinleiste" aria-label="Angepinnt">'+pins.map(chip).join('')+'</div>';
 }
+/* ══════════════════════════════════════════════════════════════════════
+   §2 (v1.6.0) · Drei Navigationsebenen — ersetzen die 11 Standardstapel.
+     Ebene 1  Domäne  dfm | privat                → Filter
+     Ebene 2  Art     aufgabe | routine           → Filter
+     Ebene 3  dfm:    projekt | deadline | start  → SORTIERUNG (filtert nicht)
+              privat: Morgens/Tagsüber/Abends     → GRUPPIERUNG (alle sichtbar)
+   Der Zustand liegt in S.ui und überlebt damit jeden Reload.
+   ══════════════════════════════════════════════════════════════════════ */
+function navDomain(){ return S.ui.navDomain==='privat' ? 'privat' : 'dfm'; }
+function navArt(){ return S.ui.navArt==='routine' ? 'routine' : 'aufgabe'; }
+function navSort(){ return ['projekt','deadline','start'].indexOf(S.ui.navSort)>=0 ? S.ui.navSort : 'deadline'; }
+/* Ebene 1+2 auf eine Kartenliste anwenden. Counter zählen zu den Routinen
+   (beide werden abgetickt statt durchgearbeitet). Freeze filtert NICHT (§2.4). */
+function navFilter(ks){
+  const dom=navDomain(), art=navArt();
+  return ks.filter(k=>{
+    if(k.domain!==dom) return false;
+    const a=kartenArt(k);
+    return art==='routine' ? (a==='Routine'||a==='Counter') : a==='Aufgabe';
+  });
+}
+/* Ebene 3 für DFM: reine Sortierung. */
+function navSortiere(ks){
+  const so=navSort();
+  return ks.slice().sort((a,b)=>{
+    if(so==='projekt'){
+      const pa=(a.projekt||'￿'), pb=(b.projekt||'￿');
+      if(pa!==pb) return pa.localeCompare(pb);
+    } else if(so==='start'){
+      // „Start" = geplanter Beginn: Fälligkeit + Uhrzeit, ohne Termin ans Ende
+      const sa=(a.faelligkeit||'9999-99-99')+'T'+(a.uhrzeit||'99:99');
+      const sb=(b.faelligkeit||'9999-99-99')+'T'+(b.uhrzeit||'99:99');
+      if(sa!==sb) return sa<sb?-1:1;
+    } else {
+      const da=(a.faelligkeit||'9999-99-99'), db=(b.faelligkeit||'9999-99-99');
+      if(da!==db) return da<db?-1:1;
+    }
+    const pr=(PRI_RANK[a.prioritaet]??1)-(PRI_RANK[b.prioritaet]??1);
+    if(pr) return pr;
+    return String(a.titel).localeCompare(String(b.titel));
+  });
+}
+/* Ebene 3 für Privat: Gruppierung in drei Abschnitte — alle bleiben sichtbar. */
+function navGruppen(ks){
+  return TAGESABSCHNITTE.map(ta=>({
+    key:ta, label:TA_LABEL[ta],
+    karten:ks.filter(k=>tagesabschnittVon(k)===ta)
+             .sort((a,b)=>((a.uhrzeit||'99:99')<(b.uhrzeit||'99:99')?-1:1))
+  }));
+}
 /* A5: DFM/Privat/Alle-Filterchips je Stapel (eigener Zustand pro Stapel). */
 function stapelDomainOf(stId){ return (S.ui.stapelDomain&&S.ui.stapelDomain[stId])||'alle'; }
 /* U3 (v1.4.0): Status-Filter je Stapel (war zuvor nur global für „Bearbeitet
@@ -2126,13 +2306,41 @@ function filterStapelDomain(st, ks){
 }
 /* U1: aktiver Stapel als LISTE unter der Fokus-Karte — dieselbe Komponente wie
    der Stapel-Tab (stapelRowsHtml + kartenreiheHtml), inkl. Pfeile/Detail/Check/+. */
+/* §2.5 (v1.6.0): Die drei Ebenen als dauerhaft sichtbare Leiste — ein Tap je
+   Ebene, kein Menü, kein Seitenwechsel. Alle Tap-Ziele ≥44px (siehe .navchip). */
+function navLeisteHtml(){
+  const dom=navDomain(), art=navArt(), so=navSort();
+  const c=(aktiv,attr,wert,label,extra)=>'<button class="navchip'+(aktiv?' on':'')+'" data-'+attr+'="'+wert+'"'+(extra||'')+'>'+label+'</button>';
+  let h='<div class="navleiste">';
+  h+='<div class="navzeile">'+c(dom==='dfm','navdom','dfm','DFM')+c(dom==='privat','navdom','privat','Privat')+'</div>';
+  h+='<div class="navzeile">'+c(art==='aufgabe','navart','aufgabe','Aufgaben')+c(art==='routine','navart','routine','Routinen')+'</div>';
+  if(dom==='dfm'){
+    h+='<div class="navzeile e3"><span class="navlab">Sortierung</span>'+
+       c(so==='projekt','navsort','projekt','Projekt')+c(so==='deadline','navsort','deadline','Deadline')+c(so==='start','navsort','start','Start')+'</div>';
+  } else {
+    h+='<div class="navzeile e3"><span class="navlab">Gruppiert nach Tagesabschnitt</span></div>';
+  }
+  return h+'</div>';
+}
+/* Kartenliste unter der Fokuskarte — gefiltert/sortiert bzw. gruppiert nach den
+   drei Ebenen. Die Swipe-Reihenfolge kommt weiterhin aus „Heute" (§2.2), diese
+   Liste ist die Übersicht daneben. */
 function fokusListeHtml(){
-  const st=S.stapel.find(s=>s.id===S.ui.aktivStapel) || S.stapel[0];
-  if(!st) return '';
-  const ks=stapelKarten(st);
-  const wahl=S.stapel.map(s=>'<option value="'+s.id+'"'+(s.id===st.id?' selected':'')+'>'+esc(s.name)+'</option>').join('');
-  return '<div class="fk-liste"><div class="lab">Stapel <select class="stapelwahl" id="streifStapel">'+wahl+'</select> · '+ks.length+'</div>'+
-    stapelFilterHtml(st)+stapelRowsHtml(st, filterStapelDomain(st, ks))+'</div>';
+  const st=S.stapel.find(s=>s.id==='sys-heute');
+  // Nur offene Karten — Abgeschlossenes lebt im Stapel „Erledigt" (§2.3).
+  const basis=navFilter(S.karten.filter(k=>k.status==='offen'));
+  let inner='', anzahl=basis.length;
+  if(navDomain()==='privat'){
+    inner=navGruppen(basis).map(g=>
+      '<div class="navgruppe"><div class="navgh">'+g.label+' <span>'+g.karten.length+'</span></div>'+
+      (g.karten.length ? stapelRowsHtml(st, g.karten) : '<div class="leer">—</div>')+'</div>').join('');
+  } else {
+    const ks=navSortiere(basis);
+    inner = ks.length ? stapelRowsHtml(st, ks) : '<div class="leer">Keine Karten in dieser Auswahl.</div>';
+  }
+  return '<div class="fk-liste">'+navLeisteHtml()+
+    '<div class="lab">'+(navDomain()==='dfm'?'DFM':'Privat')+' · '+(navArt()==='aufgabe'?'Aufgaben':'Routinen')+' · '+anzahl+'</div>'+
+    inner+'</div>';
 }
 /* Rest-Timer bis zum Startzeitpunkt einer Uhrzeit-Karte (Minuten, kompakt). */
 function restBisTermin(k){
@@ -2579,7 +2787,9 @@ function renderTagStart(){
 function renderTagStartPrio(){
   rangCacheBauen();
   const st=S.stapel.find(s=>s.id==='sys-heute');
-  const ks=(st?stapelKarten(st):[]).filter(k=>k.status==='offen' && !k.freeze);
+  // §2.4 (v1.6.0): Freeze steuert keine Aufnahme in „Heute" mehr — eingefrorene
+  // Karten erscheinen hier mit, nur optisch zurückgenommen.
+  const ks=(st?stapelKarten(st):[]).filter(k=>k.status==='offen');
   const order=tagStartTmp.sortOrder||(tagStartTmp.sortOrder=[]);
   ks.sort((a,b)=>{ const ia=order.indexOf(a.id), ib=order.indexOf(b.id); return (ia<0?9e9:ia)-(ib<0?9e9:ib); });
   let h='<p class="d"><b>Heute priorisieren.</b> Tippe die Karten in der Reihenfolge an, in der du sie heute angehen willst. (Optional — „Fertig" reicht auch ohne.)</p>';
@@ -2595,11 +2805,11 @@ function renderTagStartPrio(){
 }
 function tagStartPrioFinish(){
   const order=tagStartTmp.sortOrder||[];
-  if(order.length){
-    order.forEach((id,i)=>{ const k=S.karten.find(x=>x.id===id); if(k){ k.sortIndex=k.sortIndex||{}; k.sortIndex['sys-heute']=i+1; } });
-    const st=S.stapel.find(s=>s.id==='sys-heute'); if(st) st.sortierung={feld:'manuell',richtung:'asc'};
-    saveKarten(); saveStapel();
-  }
+  // §2.2 (v1.6.0): Die Tagesplanung schreibt direkt die Tageskette „Heute" —
+  // angetippte Karten in Wunschreihenfolge zuerst, der Rest der fälligen Karten
+  // hinten dran (Auto-Befüllung, manuell nachjustierbar).
+  const rest=tagesKette().filter(id=>order.indexOf(id)<0);
+  ketteSetzen(order.concat(rest));
   closeSheet(); renderAlles(); toast('Tag gestartet'+(order.length?' · priorisiert':''));
 }
 
@@ -2814,6 +3024,13 @@ function renderDetail(){
     '</div>';
   }
   h+='<div class="field"><label>Tageszeit</label>'+chipGroup('tageszeit',k.tageszeit,[['morgens','morgens'],['mittags','mittags'],['abends','abends'],['beliebig','beliebig']])+'</div>';
+  // §2.1 (v1.6.0): Tagesabschnitt steuert die Privat-Gruppierung. „auto" = aus der
+  // Deadline-Uhrzeit ableiten; ein manuell gesetzter Wert bleibt unangetastet.
+  if(k.domain==='privat'){
+    h+='<div class="field"><label>Tagesabschnitt (Gruppierung Privat)</label>'+
+      chipGroup('tagesabschnitt', k.tagesabschnitt||'', [['','auto'],['morgens','Morgens'],['tagsueber','Tagsüber'],['abends','Abends']])+
+      '<div class="hint">auto → aktuell „'+TA_LABEL[tagesabschnittAbleiten(k)]+'" (aus '+(k.uhrzeit?'Uhrzeit '+esc(k.uhrzeit):'fehlender Uhrzeit')+')</div></div>';
+  }
   h+='<div class="field"><label>Rate-Treiber (Komplexität · Energie · Blockade)</label><div class="grid3">'+
     '<div>'+chipGroup('komplex',k.komplex,[[1,'1,0'],[1.5,'1,5'],[2,'2,0']])+'</div>'+
     '<div>'+chipGroup('energie',k.energie,[[0.8,'0,8'],[1,'1,0'],[1.3,'1,3']])+'</div>'+
@@ -4448,7 +4665,8 @@ function konfetti(){
 // Nav
 el('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-tab]'); if(b) setTab(b.dataset.tab); });
 el('fab').addEventListener('click', ()=>oeffneDetail(null));
-el('btnStapelNeu').addEventListener('click', ()=>oeffneStapelEditor(null));
+/* v1.6.0: „＋ Stapel" entfällt — der Stapel-Editor bleibt im Code, ist aber nicht
+   mehr erreichbar (keine eigenen Stapel mehr, Filterung läuft über Ebene 1–3). */
 
 // Fokus-Leiste: Play/Pause-Toggle + Mitte tippen → Fokus-Tab
 el('fkPP').addEventListener('click', ()=>{ if(S.fokus) fokusToggle(); else setTab('fokus'); });
@@ -4459,6 +4677,11 @@ el('statusbar').addEventListener('click', ()=>toggleStatChart());
 // Bug 2: Karussell-Pfeile im Topbar (außerhalb von #fokusView)
 el('fokusView').addEventListener('click', e=>{
   const t=e.target;
+  // §2.5 (v1.6.0): die drei Navigationsebenen — je ein Tap, Zustand in S.ui (reload-fest)
+  const nd=t.closest('[data-navdom]');  if(nd){ S.ui.navDomain=nd.dataset.navdom; saveUi(); renderFokus(); return; }
+  const na=t.closest('[data-navart]');  if(na){ S.ui.navArt=na.dataset.navart;   saveUi(); renderFokus(); return; }
+  const ns=t.closest('[data-navsort]'); if(ns){ S.ui.navSort=ns.dataset.navsort; saveUi(); renderFokus(); return; }
+  // (data-kette läuft über karteRowClick weiter unten — ein Codepfad für beide Views)
   const tg=t.closest('[data-fktoggle]'); if(tg){ const kid=tg.dataset.fktoggle;
     if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid); return; }
   const ck=t.closest('[data-fkcheck]'); if(ck){ karteAbhakenAuto(ck.dataset.fkcheck, false); return; }
@@ -4474,7 +4697,7 @@ el('fokusView').addEventListener('click', e=>{
   const ua=t.closest('[data-uaadd]'); if(ua){ const inp=el('fkUaNeu'); const tt=(inp&&inp.value||'').trim(); if(tt){ S.unteraufgaben.push(neueUnteraufgabe(ua.dataset.uaadd,{titel:tt})); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
 });
 el('fokusView').addEventListener('change', e=>{
-  if(e.target.id==='streifStapel'){ S.ui.aktivStapel=e.target.value; fokusNavReset(); saveUi(); renderFokus(); return; }   // U2: Stapelwechsel beendet die Swipe-Navigation
+  // (v1.6.0) Stapel-Auswahl auf der Fokusseite entfällt — Ebene 1–3 ersetzen sie.
   const um=e.target.closest('[data-uamin]'); if(um){ const u=S.unteraufgaben.find(x=>x.id===um.dataset.uamin); if(u){ u.sollMin=num(e.target.value);
     const k=S.karten.find(x=>x.id===u.parentId); if(k){ k.sollMin=untermenge(k.id).reduce((s,x)=>s+num(x.sollMin),0); saveKarten(); }   // Karten-Sollzeit = Σ Unteraufgaben
     DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
@@ -4565,6 +4788,9 @@ function karteRowClick(t, e){
     if(bst){ const so=bst.sortierung||{feld:'auto',richtung:'asc'};
       bst.sortierung={feld:so.feld||'auto', richtung:(so.richtung==='asc'||!so.richtung)?'desc':'asc'}; saveStapel(); renderAlles(); }
     return true; }
+  // §2.2 (v1.6.0): „▤" legt die Karte in die Tageskette „Heute" bzw. nimmt sie heraus
+  const ket=t.closest('[data-kette]'); if(ket){ if(e) e.stopPropagation();
+    const drin=ketteToggle(ket.dataset.kette); toast(drin?'▤ zu Heute':'aus Heute entfernt'); renderAlles(); return true; }
   const frz=t.closest('[data-freeze]'); if(frz){ if(e) e.stopPropagation(); toggleFreeze(frz.dataset.freeze); return true; }   // A4
   const pin=t.closest('[data-pin]'); if(pin){ if(e) e.stopPropagation(); togglePin(pin.dataset.pin); return true; }   // A8
   // A8: Quick-Leiste-Direktaktionen (ohne Ansichtswechsel)
@@ -5489,6 +5715,24 @@ function init(){
   // laufenden Timer alle 20 s auffrischen, solange ein Tag offen ist.
   setInterval(()=>{ if(tagOffen() && !(S.fokus&&S.fokus.laeuft)) renderStatusbar(); }, 20000);
   window.addEventListener('resize', layoutTopbar);
+  zeigeMigration160();   // §9.1: Protokoll einmalig anzeigen
+}
+/* §9.1 (v1.6.0): Migrationsprotokoll genau einmal zeigen, danach abhaken. */
+function zeigeMigration160(){
+  const L=S.meta.migration160Log;
+  if(!L || S.meta.migration160Gezeigt) return;
+  const z=[['Tagesabschnitt gesetzt (Privat-Karten)',L.tagesabschnitt],
+           ['Abschluss-Verlauf angelegt (Karten)',L.abschluesse],
+           ['alte Stapel entfernt',L.stapelEntfernt],
+           ['Tageskette „Heute" vorbefüllt (Karten)',L.ketteStart]];
+  const h='<p class="d">Die App ist auf das neue Navigationsmodell umgestellt. '+
+    '<b>Es wurde nichts gelöscht</b> — keine Karte, kein Punktestand, kein Wohlstand. '+
+    'Der Vorzustand liegt gesichert unter <code>karten_bak160</code>, <code>meta_bak160</code> und <code>stapel_bak160</code>.</p>'+
+    '<div class="kvblock">'+z.map(([t,n])=>'<div class="kv"><span>'+t+'</span><b>'+num(n)+'</b></div>').join('')+'</div>'+
+    '<p class="d" style="margin-top:8px">Die 11 alten Stapel sind durch die drei Filterebenen auf der Fokusseite ersetzt. '+
+    'Übrig bleiben die Stapel <b>Heute</b> (steuert die Swipe-Reihenfolge) und <b>Erledigt</b> (zum Zurückholen).</p>';
+  openSheet('Update v1.6.0 — Migration', h, '<button class="btn prim" data-close="1">Verstanden</button>');
+  S.meta.migration160Gezeigt=true; saveMeta();
 }
 init();
 
