@@ -595,9 +595,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .an-back{background:transparent;border:none;color:var(--blue);font-size:15px;font-weight:700;padding:6px 4px}
 .an-filter{padding:8px 12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
 .an-frow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.an-frow .seg{border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700;color:var(--mut);background:var(--bg);min-height:30px}
+.an-frow .seg{border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700;color:var(--mut);background:var(--bg);min-height:44px;min-width:44px}  /* v1.7.0: Touch 44px */
 .an-frow .seg.on{background:var(--blue);color:#0a0f1a;border-color:var(--blue)}
 .an-frow .seg.dom.on{background:var(--purple);border-color:var(--purple)}
+.an-frow .seg.art.on{background:var(--cyan);border-color:var(--cyan)}   /* §2 (1.7.0): Kartenart-Zeile */
 .an-frow input[type=date]{background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:12px;padding:4px 8px;font-family:ui-monospace,monospace}
 .an-frow .an-lbl{font-size:11px;color:var(--mut2);font-family:ui-monospace,monospace}
 .an-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;padding-bottom:40px}
@@ -937,9 +938,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.6.1';                    // Datenvertrag/Sync-appVersion — 1.6.1 (tagesabschnitt als Array, tageszeit entfernt, Gruppen-Bonus, Auto-Pause)
-const UI_VERSION = 'v1.6.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-27-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.7.0';                    // Datenvertrag/Sync-appVersion — 1.7.0 (Statistik-Ausbau: Kartenart-Filter, Routinen-Flow; keine Vertragsfelder geändert)
+const UI_VERSION = 'v1.7.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-27-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -1198,7 +1199,7 @@ function ladeAlles(){
   S.routinenGruppen = DB.get('routinenGruppen', []);   // §3 (1.6.1): Routinen-Gruppen mit Komplett-Bonus
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
-  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', debugTap:false }, DB.get('ui', {}));
+  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', analyseArt:'alle', debugTap:false }, DB.get('ui', {}));
   // U6-B: Erstell-Zeitstempel für Altkarten guarded nachrüsten (VOR der Härtung,
   // damit der Fallback greift statt der neueKarte-Default-Jetztzeit). Idempotent.
   S.karten.forEach(k=>{ if(k && !k.erstelltTs) k.erstelltTs = k.letzteBearbeitung || jetztIso(); });
@@ -4837,13 +4838,20 @@ function kennzahlenHtml(snap, dom){
   const p=snapPunkte(snap,dom);
   const hrs=snap.startTs?((snap.istHeute?Date.now():new Date(snap.endeTs||snap.startTs).getTime())-new Date(snap.startTs).getTime())/3600000:0;
   const zeitSek=dom==='alle'?(snap.zeit.dfm+snap.zeit.privat):(dom==='dfm'?snap.zeit.dfm:snap.zeit.privat);
-  const anzahl=(snap.log&&snap.log.length)?(dom==='alle'?snap.log.length:snap.log.filter(e=>e.domain===dom).length):snap.erledigtHeute;
+  // §5 (v1.7.0) BUGFIX: „erledigt" zählte snap.log.length — also PUNKT-BUCHUNGEN
+  // inkl. jedes Routinen-Ticks/Schubs, nicht erledigte Karten. Jetzt: echte
+  // Abschlüsse aus dem Log (ein Eintrag je Abschluss), getrennt nach Aufgaben
+  // und Routinen. Fallback für Alt-Tage ohne Log bleibt der alte Zähler.
+  const log=(snap.log||[]).filter(e=>dom==='alle'||e.domain===dom);
+  const erlA=log.filter(e=>e.art==='Aufgabe').length;
+  const erlR=log.filter(e=>e.art==='Routine').length;
+  const erlTxt=(snap.log&&snap.log.length)?(erlA+' · '+erlR):String(num(snap.erledigtHeute));
   return '<div class="kennz">'+
     '<div><b>'+Math.round(p)+'</b><span>Punkte</span></div>'+
     '<div><b>'+(hrs>0.05?(p/hrs).toFixed(0):'0')+'</b><span>P/Std</span></div>'+
     '<div><b>'+(zeitSek>60?(p/(zeitSek/60)).toFixed(1):'0')+'</b><span>P/min</span></div>'+
     '<div><b>'+fmtMin(zeitSek)+'</b><span>Zeit</span></div>'+
-    '<div><b>'+anzahl+'</b><span>erledigt</span></div>'+
+    '<div><b>'+erlTxt+'</b><span>erledigt A · R</span></div>'+
     '<div><b>'+(snap.akku!=null?Math.round(snap.akku)+'%':'–')+'</b><span>Ø Akku</span></div></div>';
 }
 /* Aufschlüsselung: nach Kartenart + Top-Karten (aus dem Punkt-Log). */
@@ -4861,14 +4869,22 @@ function aufschluesselungHtml(snap, dom){
   Object.entries(kAgg).sort((a,b)=>b[1]-a[1]).slice(0,6).forEach(([t,v])=>h+='<div class="arow"><span>'+esc(t)+'</span><span class="bwrap2"><i style="width:'+Math.round(v/ges*100)+'%"></i></span><b>'+Math.round(v)+'</b></div>');
   return h+'</div>';
 }
-/* Diagramm-Karte: Zeitraum-/Domänen-Umschalter + Picker + Chart + Kennzahlen. */
+/* Diagramm-Karte: Zeitraum-/Domänen-Umschalter + Picker + Chart + Kennzahlen.
+   §5 (v1.7.0): wiederbelebt — war seit dem V2-Umbau nirgends mehr eingehängt
+   (die data-statzr/-statpick-Handler liefen ins Leere). Der Domänenfilter ist
+   derselbe wie überall auf der Belohnungsseite (S.ui.statDomain); die
+   Kartenart erscheint hier über die e.art-Aufschlüsselung mit exakt den
+   Begriffen des Analyse-Filters (Aufgabe/Routine/Counter) — kein zweiter,
+   konkurrierender Filterbegriff. */
 function diagrammHtml(){
   const zr=S.ui.statZeitraum||'tag', dom=S.ui.statDomain||'alle', sel=statDatum();
   const seg=(v,l)=>'<button class="'+(zr===v?'on':'')+'" data-statzr="'+v+'">'+l+'</button>';
   const dseg=(v,l)=>'<button class="'+(dom===v?'on':'')+'" data-statdom="'+v+'">'+l+'</button>';
   let h='<div class="card"><h3>Diagramme <span class="segmini">'+seg('tag','Tag')+seg('woche','Woche')+seg('monat','Monat')+'</span></h3>';
   h+='<div class="statfilter"><span class="segmini">'+dseg('alle','Alle')+dseg('dfm','DFM')+dseg('privat','Privat')+'</span>';
-  if(zr==='tag') h+='<input type="date" id="statDatum" value="'+sel+'" max="'+heuteIso()+'">';
+  // id statDatum2: das Tagesverlauf-Diagramm (F1) trägt bereits #statDatum auf
+  // derselben Seite — beide Picker schreiben denselben Zustand S.ui.statDatum.
+  if(zr==='tag') h+='<input type="date" id="statDatum2" value="'+sel+'" max="'+heuteIso()+'">';
   h+='</div>';
   const snap=tagSnapshot(sel);
   if(zr==='tag'){ h+=diagrammKurveTag(snap,dom)+kennzahlenHtml(snap,dom)+'<h4 class="auflh">Aufschlüsselung</h4>'+aufschluesselungHtml(snap,dom); }
@@ -5072,16 +5088,21 @@ function belKpiFelder(){
   const needPace = noch/hBis22, ownPace=(pGes)/Math.max(0.25,(nowX-5));
   let s2 = ownPace>0 ? Math.max(-1,Math.min(1,(ownPace-needPace)/Math.max(1,needPace))) : (needPace<=0?1:-1);
   if(noch<=0) s2=1;
-  // 3) Aufgaben erledigt vs reingekommen heute
-  const tid=aktuelleTagId();
-  const erlAuf=S.karten.filter(k=>k.status==='erledigt'&&k.tagId===tid&&kartenArt(k)==='Aufgabe').length;
-  const reinAuf=S.karten.filter(k=>k.erstelltTs && belFensterDatum(k.erstelltTs)===heuteF && kartenArt(k)==='Aufgabe').length;
+  // 3) Aufgaben erledigt vs reingekommen heute.
+  // §6.1 (v1.7.0) BUGFIX: zählte über ALLE Karten, obwohl direkt daneben nach
+  // Domäne getrennt wird — jetzt folgt es dem aktiven Domänenfilter der Seite
+  // (S.ui.statDomain), und beide Rohzahlen werden ausgewiesen; die Differenz
+  // bleibt als Färbung erhalten.
+  const tid=aktuelleTagId(), kDom=S.ui.statDomain||'alle';
+  const domOk=k=>kDom==='alle'||k.domain===kDom;
+  const erlAuf=S.karten.filter(k=>domOk(k)&&k.status==='erledigt'&&k.tagId===tid&&kartenArt(k)==='Aufgabe').length;
+  const reinAuf=S.karten.filter(k=>domOk(k)&&k.erstelltTs && belFensterDatum(k.erstelltTs)===heuteF && kartenArt(k)==='Aufgabe').length;
   const dAuf=erlAuf-reinAuf; let s3 = dAuf>2?1 : dAuf<-2?-1 : dAuf/2*0.5;   // −2..+2 = lila-Bereich
   const feld=(val,sub,score)=>'<div class="belkpi-v" style="background:linear-gradient(180deg,'+belGrad(score)+'22, transparent);border-color:'+belGrad(score)+'55"><b style="color:'+belGrad(score)+'">'+val+'</b><span>'+sub+'</span></div>';
   h+='<div class="belkpi-r2">'+
     feld(noch>0?Math.round(noch):'✓', 'noch nötig', s1)+
     feld((noch<=0?'0':Math.round(needPace)), 'P/h bis 22:00', s2)+
-    feld(dz(dAuf), 'erledigt−rein', s3)+'</div>';
+    feld(reinAuf+' / '+erlAuf, 'rein / erledigt'+(kDom==='alle'?'':' · '+(kDom==='dfm'?'DFM':'Privat')), s3)+'</div>';
   return '<div class="card"><h3>Heute</h3>'+h+'</div>';
 }
 
@@ -5132,22 +5153,33 @@ function belAufschluesselung(){
 }
 
 /* V2.4: Stapel-100%-Segmentbalken. */
+/* §7 (v1.7.0): Die Stapel-Übersicht rendert nicht mehr entlang der elf alten
+   Stapel (mit v1.6.0 verschwunden), sondern entlang der neuen Filterebenen —
+   je Domäne × Art eine Zeile (Routinen inkl. Counter, wie Ebene 2 der
+   Navigation) — plus je eine Zeile für die Sonderstapel „Heute" und „Erledigt".
+   Segmente unverändert: erledigt / offen muss / offen soll-kann / wartet / idee. */
 function belStapelBalken(){
   const seg=[['erl','#3ecf8e','erledigt/bearbeitet'],['muss','#f66d6d','offen muss'],['sk','#f2b84b','offen soll/kann'],['freeze','#4f8ef7','wartet'],['idee','#b98af7','idee']];
-  let h='<div class="card"><h3>Stapel-Übersicht</h3>';
+  let h='<div class="card"><h3>Übersicht</h3>';
   h+='<div class="stbar-leg">'+seg.map(s=>'<span><i style="background:'+s[1]+'"></i>'+s[2]+'</span>').join('')+'</div>';
-  S.stapel.forEach(st=>{
-    const ks=stapelKarten(st); if(!ks.length) return;
+  const zeile=(name, ks)=>{
+    if(!ks.length) return;
     const c={erl:0,muss:0,sk:0,freeze:0,idee:0};
     ks.forEach(k=>{ if(k.status==='erledigt' || (k.letzteBearbeitung&&String(k.letzteBearbeitung).slice(0,10)===heuteApp() && k.status!=='offen')) { c.erl++; return; }
       if(k.freeze){ c.freeze++; return; }
-      if(k.status==='erledigt'){ c.erl++; return; }
       const pr=k.prioritaet; if(pr==='muss') c.muss++; else if(pr==='idee') c.idee++; else c.sk++; });
     const tot=ks.length;
     let bar=''; seg.forEach(s=>{ const n=c[s[0]]; if(!n) return; const pct=n/tot*100;
       bar+='<i style="width:'+pct.toFixed(1)+'%;background:'+s[1]+'" title="'+s[2]+': '+n+'">'+(pct>=8?Math.round(pct)+'%':'')+'</i>'; });
-    h+='<div class="stbar-row"><div class="stbar-nm">'+esc(st.name)+' <span>'+tot+'</span></div><div class="stbar">'+bar+'</div></div>';
-  });
+    h+='<div class="stbar-row"><div class="stbar-nm">'+esc(name)+' <span>'+tot+'</span></div><div class="stbar">'+bar+'</div></div>';
+  };
+  const aktiv=S.karten.filter(k=>k.status!=='archiviert');
+  const istArt=(k,art)=>{ const a=kartenArt(k); return art==='aufgabe' ? a==='Aufgabe' : (a==='Routine'||a==='Counter'); };
+  [['dfm','aufgabe','DFM · Aufgaben'],['dfm','routine','DFM · Routinen'],
+   ['privat','aufgabe','Privat · Aufgaben'],['privat','routine','Privat · Routinen']]
+    .forEach(([d,a,name])=>zeile(name, aktiv.filter(k=>k.domain===d && istArt(k,a))));
+  zeile('Heute', ketteKarten());
+  zeile('Erledigt', erledigtKarten());
   return h+'</div>';
 }
 
@@ -5201,6 +5233,9 @@ function renderBelohnung(){
   h+='</div>';
 
   // ── V2.3 Punkte-Aufschlüsselung (aufklappbar) ────────────────────
+  // §5 (v1.7.0): Diagramme-Karte wiederbelebt — Tag/Woche/Monat + Kennzahlen +
+  // Aufschlüsselung nach Kartenart, oberhalb der Punkte-Aufschlüsselung.
+  h+=diagrammHtml();
   h+=belAufschluesselung();
 
   // ── Stat 4: Routinen-Erfüllungsquote + Streaks ───────────────────
@@ -5715,7 +5750,7 @@ el('belohnungBody').addEventListener('click', e=>{
   const at=e.target.closest('[data-aufltoggle]'); if(at){ const k=at.dataset.aufltoggle; S.ui.auflAuf=S.ui.auflAuf||{}; S.ui.auflAuf[k]=!S.ui.auflAuf[k]; saveUi(); renderBelohnung(); return; }   // V2.3
 });
 el('belohnungBody').addEventListener('change', e=>{
-  if(e.target.id==='statDatum'){ const v=e.target.value||null; S.ui.statDatum=(v===heuteApp())?null:v; saveUi(); renderBelohnung(); }   // F1: „heute" bleibt live
+  if(e.target.id==='statDatum'||e.target.id==='statDatum2'){ const v=e.target.value||null; S.ui.statDatum=(v===heuteApp())?null:v; saveUi(); renderBelohnung(); }   // F1 + §5 (1.7.0): beide Picker teilen den Zustand · „heute" bleibt live
 });
 
 // Einstellungen (Sync / Migration / Backup / Regler)
@@ -5869,6 +5904,15 @@ const AN_WT=['Mo','Di','Mi','Do','Fr','Sa','So'];
 function anFmt(v){ v=num(v); if(Math.abs(v)>=1000) return (Math.round(v/100)/10)+'k'; return (Math.round(v*10)/10).toString(); }
 function anFmtUhr(h){ if(h==null||!isFinite(h)) return '—'; const hh=Math.floor(h), mm=Math.round((h-hh)*60); return String(hh).padStart(2,'0')+':'+String(mm%60).padStart(2,'0'); }
 
+/* ══ §2 (v1.7.0) · Kartenart als dritte Filterebene der Detailanalyse ══
+   Alle / Aufgaben / Routinen / Counter — wirkt auf ALLE Module, konsistent
+   zum Domänenfilter. Zustand in S.ui.analyseArt (reload-fest). */
+const AN_ARTEN=[['alle','Alle'],['aufgabe','Aufgaben'],['routine','Routinen'],['counter','Counter']];
+const AN_ART_KARTE={aufgabe:'Aufgabe', routine:'Routine', counter:'Counter'};   // Filterwert → kartenArt()
+function analyseArt(){ return ['aufgabe','routine','counter'].indexOf(S.ui.analyseArt)>=0 ? S.ui.analyseArt : 'alle'; }
+function analyseArtLabel(){ return (AN_ARTEN.find(a=>a[0]===analyseArt())||AN_ARTEN[0])[1]; }
+/* Karte gegen den aktiven Kartenart-Filter prüfen. */
+function anArtOk(k){ const a=analyseArt(); return a==='alle' || kartenArt(k)===AN_ART_KARTE[a]; }
 /* Roh-Tage: Historie (+ heute, falls offen) nach Kalendertag aggregiert. */
 function analyseRohTage(){
   const q=(S.historie||[]).filter(h=>!h.luecke).slice();
@@ -5878,21 +5922,42 @@ function analyseRohTage(){
       zeit:tagesZeitAggregat(S.tag.tagId), log:(S.tag.log||[]), routinenBilanz:(S.tag.routinenBilanz||[]), _heute:true });
   }
   const map={};
+  // §2 (v1.7.0): Domäne einer Routinen-Bilanz-Zeile über die Karte auflösen
+  // (die Bilanz trägt nur id+titel); gelöschte Karten fallen auf 'privat'.
+  const kById={}; S.karten.forEach(k=>kById[k.id]=k);
   q.forEach(h=>{ const d=h.datum; if(!d) return;
     let e=map[d]; if(!e){ e=map[d]={ datum:d, punkte:0, punkteDfm:0, punktePrivat:0, minDfm:0, minPrivat:0,
-      akku:null, startTs:null, endeTs:null, schub:0, erledigt:0, routErledigt:0, routVerpasst:0, heute:false }; }
+      akku:null, startTs:null, endeTs:null, schub:0, erledigt:0, routErledigt:0, routVerpasst:0, heute:false,
+      artPkt:{}, artMin:{},                                        // §2: Punkte/Minuten je "Art|Domäne"
+      routErf:{dfm:0,privat:0}, routVerp:{dfm:0,privat:0}, routEnt:{dfm:0,privat:0} }; }   // §3: Routinen-Flow
     e.punkte+=num(h.punkteBilanz);
     if(h.zeit){ e.minDfm+=num(h.zeit.dfm)/60; e.minPrivat+=num(h.zeit.privat)/60; }
     (h.log||[]).forEach(l=>{
       if(l.art==='schub'){ e.schub++; } else { e.erledigt++; }
       e[l.domain==='dfm'?'punkteDfm':'punktePrivat']+=num(l.punkte);
-      if(l.art==='Routine' && num(l.punkte)>0) e.routErledigt++;
+      const ak=(l.art||'?')+'|'+(l.domain==='dfm'?'dfm':'privat');
+      e.artPkt[ak]=(e.artPkt[ak]||0)+num(l.punkte);                // §2: Punkt-Buchungen tragen ihre Art
+      if(l.art==='Routine' && num(l.punkte)>0){ e.routErledigt++;
+        e.routErf[l.domain==='dfm'?'dfm':'privat']++; }
     });
-    (h.routinenBilanz||[]).forEach(r=>{ if(r.verpasst) e.routVerpasst++; });
+    (h.routinenBilanz||[]).forEach(r=>{
+      const kd=kById[r.id], rd=(kd&&kd.domain==='dfm')?'dfm':'privat';
+      if(r.verpasst){ e.routVerpasst++; e.routVerp[rd]++; }
+      else if(r.entschuldigt){ e.routEnt[rd]++; }                  // §3: getrennt, zählt NICHT als erfüllt
+    });
     if(e.akku==null && h.akku!=null) e.akku=num(h.akku);
     if(!e.startTs || (h.startTs&&h.startTs<e.startTs)) e.startTs=h.startTs;
     if(!e.endeTs || (h.endeTs&&h.endeTs>e.endeTs)) e.endeTs=h.endeTs;
     if(h._heute) e.heute=true;
+  });
+  // §2: Minuten je Art×Domäne aus dem Intraday-Log (existiert seit UP4-B 31.07.;
+  // ältere Tage haben hier 0 — die Module weisen darauf hin).
+  (S.intraday||[]).forEach(x=>{
+    if(!x.ts) return; const e=map[String(x.ts).slice(0,10)]; if(!e) return;
+    const m=num(x.minuten); if(m<=0) return;
+    const k=kById[x.kartenId];
+    const ak=(k?kartenArt(k):'?')+'|'+((k?k.domain:x.domaene)==='dfm'?'dfm':'privat');
+    e.artMin[ak]=(e.artMin[ak]||0)+m;
   });
   let arr=Object.keys(map).sort().map(k=>map[k]);
   // §7 (v1.6.0): Bonus-Glättung anwenden — der beim Abschluss gebuchte Bonus
@@ -5907,8 +5972,29 @@ function analyseRohTage(){
   arr=arr.filter(e=> e.heute || e.min>0.01 || e.punkte!==0);
   return arr;
 }
-function anPunkte(e,dom){ return dom==='dfm'?e.punkteDfm : dom==='privat'?e.punktePrivat : e.punkte; }
-function anMin(e,dom){ return dom==='dfm'?e.minDfm : dom==='privat'?e.minPrivat : e.min; }
+/* §2 (v1.7.0): Die beiden zentralen Tages-Accessoren respektieren den
+   Kartenart-Filter. Bei „Alle" exakt das bisherige Verhalten (inkl. Glättung
+   und Tagesbilanz); bei gewählter Art die Summe der Punkt-Buchungen bzw.
+   Intraday-Minuten dieser Art — dadurch wirkt der Filter auf jedes Modul,
+   das über anPunkte/anMin liest. */
+function anArtSumme(agg, art, dom){
+  const name=AN_ART_KARTE[art]; let s=0;
+  Object.keys(agg||{}).forEach(k=>{
+    const t=k.split('|');
+    if(t[0]===name && (dom==='alle'||t[1]===dom)) s+=agg[k];
+  });
+  return s;
+}
+function anPunkte(e,dom){
+  const a=analyseArt();
+  if(a!=='alle') return anArtSumme(e.artPkt, a, dom);
+  return dom==='dfm'?e.punkteDfm : dom==='privat'?e.punktePrivat : e.punkte;
+}
+function anMin(e,dom){
+  const a=analyseArt();
+  if(a!=='alle') return anArtSumme(e.artMin, a, dom);
+  return dom==='dfm'?e.minDfm : dom==='privat'?e.minPrivat : e.min;
+}
 function anZiel(dom){ return dom==='dfm'?tagesZielDomain('dfm') : dom==='privat'?tagesZielDomain('privat') : (tagesZielDomain('dfm')+tagesZielDomain('privat')); }
 /* Fenster gemäß S.ui (Zeitraum-Preset / frei) inkl. Vorperiode gleicher Länge. */
 function analyseFenster(){
@@ -6061,9 +6147,12 @@ function anModLeistung(F,dom){
    Karten ab (Timer-Minuten, Ticks, Abhaken, Nachträge), nicht nur die über
    S.tag.log gebuchten Routinen/Counter. Domänen-gefiltert. */
 function anIntradayProTag(dom){
-  const out={};
+  const out={}, kById={}; S.karten.forEach(k=>kById[k.id]=k);
   (S.intraday||[]).forEach(e=>{ if(!e.ts) return;
     if(dom!=='alle' && e.domaene!==dom) return;
+    // §2 (v1.7.0): Kartenart-Filter — Buchungen fremder Arten überspringen
+    // (Karte nicht mehr vorhanden → nur bei aktivem Filter ausblenden).
+    if(analyseArt()!=='alle'){ const k=kById[e.kartenId]; if(!k || !anArtOk(k)) return; }
     const d=String(e.ts).slice(0,10), o=out[d]||(out[d]={pkt:0,min:0,karten:{}});
     const p=num(e.punkte), m=Math.max(0,num(e.minuten));
     if(p>0) o.pkt+=p;
@@ -6122,6 +6211,12 @@ function anModKonsistenz(F,dom){
 /* ── Modul 5 · Kalibrierung ────────────────────────────────────────── */
 function anModKalibrierung(F,dom){
   let inner;
+  // §2 (v1.7.0): Tagesziele existieren nur je Domäne, nicht je Kartenart —
+  // Ist÷Soll ist mit Art-Filter strukturell nicht bildbar → Hinweis statt Leere.
+  if(analyseArt()!=='alle'){
+    return anModul('🎯','Kalibrierung','Ist ÷ Soll pro Tag (1,0 = Ziel exakt getroffen).',
+      anLeer('Für einzelne Kartenarten gibt es kein eigenes Tagesziel — Kalibrierung ist nur unter „Alle" aussagekräftig.'));
+  }
   if(F.cur.length<3){ inner=anSammelt(F.cur.length,3); }
   else{
     const ziel=anZiel(dom);
@@ -6156,7 +6251,10 @@ function anSvgFenster(series){
 }
 function anModVerhalten(F,dom){
   // ── Aktivitätsfenster (Kopf des Moduls): Punkte je Stunde, 3 Kurven ──
-  const ent=(S.intraday||[]).filter(x=>x.ts && num(x.punkte)>0 && (dom==='alle'||x.domaene===dom));
+  // §2 (v1.7.0): Kartenart-Filter auch hier — Buchungen über die Karte auflösen.
+  const kById={}; S.karten.forEach(k=>kById[k.id]=k);
+  const ent=(S.intraday||[]).filter(x=>x.ts && num(x.punkte)>0 && (dom==='alle'||x.domaene===dom)
+    && (analyseArt()==='alle' || (kById[x.kartenId] && anArtOk(kById[x.kartenId]))));
   let chart;
   if(ent.length<8){
     chart='<div class="an-leer">Aktivitätsfenster: sammelt noch Intraday-Daten ('+ent.length+'/8 Buchungen). Jede Timer-/Tick-/Abhak-Buchung zählt.</div>';
@@ -6184,7 +6282,9 @@ function anModVerhalten(F,dom){
   const schiebeQuote=(schub+erl)>0?Math.round(schub/(schub+erl)*100):null;
   const pSchub=anSum(F.prev.map(e=>e.schub)), pErl=anSum(F.prev.map(e=>e.erledigt));
   const pSchiebe=(pSchub+pErl)>0?pSchub/(pSchub+pErl)*100:null;
-  const offen=S.karten.filter(k=>k.status==='offen' && (dom==='alle'||k.domain===dom) && k.faelligkeit);
+  // §6.2 (v1.7.0): „Überfällig jetzt" zählte als einzige Kennzahl des Moduls
+  // ALLE Karten mit Fälligkeit — jetzt an den Kartenart-Filter gekoppelt.
+  const offen=S.karten.filter(k=>k.status==='offen' && (dom==='alle'||k.domain===dom) && k.faelligkeit && anArtOk(k));
   const ueber=offen.filter(k=>k.faelligkeit<heuteApp()).length;
   const ueberQ=offen.length?Math.round(ueber/offen.length*100):null;
   const stH=anMean(F.cur.filter(e=>e.startTs).map(e=>{ const d=new Date(e.startTs); return d.getHours()+d.getMinutes()/60; }));
@@ -6316,9 +6416,13 @@ function anModAufgabenFlow(F,dom){
   const pAvgR=anSum(prR)/pAktiv, pAvgE=anSum(prE)/pAktiv;
   const ratio=sumR>0?Math.round(sumE/sumR*100):null;
   const pRatio=(anSum(prR)>0)?anSum(prE)/anSum(prR)*100:null;
+  // §4 (v1.7.0): Rohzahlen zusätzlich zur Completion-Quote ausweisen
   inner+='<div class="anmod-kpis">'+
+    anKpi(sumR,'reingekommen '+span+'T','',null,true)+
+    anKpi(sumE,'erledigt '+span+'T')+
     anKpi(Math.round(avgR*10)/10,'Ø rein/aktiver Tag',anDeltaPct(avgR,pAvgR),'',true)+
-    anKpi(Math.round(avgE*10)/10,'Ø erledigt/Tag',anDeltaPct(avgE,pAvgE))+
+    anKpi(Math.round(avgE*10)/10,'Ø erledigt/Tag',anDeltaPct(avgE,pAvgE))+'</div>'+
+  '<div class="anmod-kpis" style="margin-top:8px">'+
     anKpi((sumG>0?sumG:'0'),'geschoben '+span+'T','',null,true)+
     anKpi(ratio==null?'—':ratio+'%','Completion',anDeltaPct(ratio,pRatio))+'</div>';
   // Wochentagsprofil
@@ -6354,6 +6458,101 @@ function anModAufgabenFlow(F,dom){
   return anModul('📥📤','Aufgaben-Flow','Zu- und Abgang von Aufgaben: Trend & Netto-Backlog, Durchsatz/Balance, Wochentage, Alter/Durchlaufzeit, Deadline-Treue und Rekorde. Reingekommen = Erstellzeit, erledigt = Buchungstag.',inner);
 }
 
+/* ══ §3 (v1.7.0) · Modul „🔁 Routinen-Flow" — Gegenstück zum Aufgaben-Flow ══
+   Für Routinen heißt „reingekommen" FÄLLIG GEWORDEN, „erledigt" GETICKT.
+   Datenquellen: routinenBilanz der Historie (verpasst/entschuldigt beim
+   Tagesabschluss), das Punkt-Log (erfüllte Routinen je Tag+Domäne, via
+   analyseRohTage bereits als routErf/routVerp/routEnt aggregiert) und für den
+   laufenden Tag routineFaellig() live. Entschuldigte Tage werden getrennt
+   ausgewiesen und zählen NICHT als erfüllt. */
+function anModRoutinenFlow(F,dom){
+  const dsum=o=> dom==='alle' ? num(o&&o.dfm)+num(o&&o.privat) : num(o&&o[dom]);
+  const heute=heuteApp();
+  const days=[]; let d=F.von, guard=0; while(d<=F.bis && guard++<400){ days.push(d); d=anVorTage(d,-1); }
+  const byDay={}; F.cur.forEach(e=>byDay[e.datum]=e);
+  const erf=days.map(x=>{ const e=byDay[x]; return e?dsum(e.routErf):0; });
+  const verp=days.map(x=>{ const e=byDay[x]; return e?dsum(e.routVerp):0; });
+  const ent=days.map(x=>{ const e=byDay[x]; return e?dsum(e.routEnt):0; });
+  // fällig = erfüllt + verpasst + entschuldigt; für HEUTE (Tag noch offen, Bilanz
+  // leer) zusätzlich die jetzt noch offenen fälligen Routinen live dazurechnen.
+  const faellig=days.map((x,i)=>{
+    let f=erf[i]+verp[i]+ent[i];
+    if(x===heute && tagOffen()){
+      f+=S.karten.filter(k=>k.rhythmus && k.status==='offen' && (dom==='alle'||k.domain===dom) && routineFaellig(k,heute)).length;
+    }
+    return f;
+  });
+  const sumF=anSum(faellig), sumE=anSum(erf), sumV=anSum(verp), sumEnt=anSum(ent);
+  if(sumF<3) return anModul('🔁','Routinen-Flow','Fällig vs. erfüllt vs. verpasst — Quote, Wochentage, Streaks, Ausreißer.', anSammelt(F.cur.length,3));
+  // Trendkurve je Tag: fällig · erfüllt · verpasst · entschuldigt (getrennt)
+  let inner=anSvgLine(days,[
+    {vals:faellig,color:'var(--warn)'},
+    {vals:erf,color:'var(--ok)'},
+    {vals:verp,color:'var(--bad)',dots:false,dash:'3 2'},
+    {vals:ent,color:'var(--cyan)',dots:false,dash:'2 4'}
+  ],{y0:true,height:118});
+  inner+='<div class="an-legend"><span><i style="background:var(--warn)"></i>fällig</span><span><i style="background:var(--ok)"></i>erfüllt</span><span><i style="background:var(--bad)"></i>verpasst</span><span><i style="background:var(--cyan)"></i>entschuldigt</span></div>';
+  // Erfüllungsquote (entschuldigte raus — wie die bestehende Routinenquote) + Vorperiode
+  const quote=(sumE+sumV)>0?Math.round(sumE/(sumE+sumV)*100):null;
+  const pE=anSum(F.prev.map(e=>dsum(e.routErf))), pV=anSum(F.prev.map(e=>dsum(e.routVerp)));
+  const pQuote=(pE+pV)>0?pE/(pE+pV)*100:null;
+  // Wochentagsprofil fällig/erfüllt (Balken = fällig, Zahl = fällig/erfüllt)
+  const wtF=[0,0,0,0,0,0,0], wtE=[0,0,0,0,0,0,0];
+  days.forEach((x,i)=>{ const w=anWochentag(x); wtF[w]+=faellig[i]; wtE[w]+=erf[i]; });
+  const mx=Math.max(1,Math.max.apply(null,wtF));
+  inner+='<div class="anmod-sub" style="margin-top:12px">Wochentagsprofil (Balken = fällig, Zahl = fällig/erfüllt):</div><div class="an-bars">'+
+    AN_WT.map((n,i)=>'<div class="an-bar"><span class="nm">'+n+'</span><span class="track"><i style="width:'+(wtF[i]/mx*100).toFixed(0)+'%;background:var(--warn)"></i></span><span class="vv">'+wtF[i]+'/'+wtE[i]+'</span></div>').join('')+'</div>';
+  // Streak-Übersicht: aktuelle Serie = App-Wert; längste Serie über die gesamte
+  // verfügbare Historie rekonstruiert (nie persistiert; entschuldigt bricht nicht).
+  const routinen=S.karten.filter(k=>k.rhythmus && k.status!=='archiviert' && (dom==='alle'||k.domain===dom));
+  const hist=(S.historie||[]).filter(h=>!h.luecke).slice().sort((a,b)=>a.datum<b.datum?-1:1);
+  const laengste={};
+  routinen.forEach(k=>{ let run=0, best=0;
+    hist.forEach(h=>{
+      const erfDa=(h.log||[]).some(l=>l.itemId===k.id && l.art==='Routine' && num(l.punkte)>0);
+      const bil=(h.routinenBilanz||[]).find(r=>r.id===k.id);
+      if(erfDa){ run++; if(run>best) best=run; }
+      else if(bil && bil.verpasst){ run=0; }
+    });
+    laengste[k.id]=Math.max(best, num(k.streak));
+  });
+  const topStreak=routinen.slice().sort((a,b)=>num(b.streak)-num(a.streak)).slice(0,8);
+  if(topStreak.length){
+    inner+='<div class="anmod-sub" style="margin-top:12px">Streaks (aktuell · längste):</div><div class="an-bars">'+
+      topStreak.map(k=>{ const l=Math.max(1,laengste[k.id]);
+        return '<div class="an-bar"><span class="nm" style="width:auto;min-width:34%;text-align:left">'+esc(k.titel||'?')+'</span>'+
+          '<span class="track"><i style="width:'+Math.min(100,num(k.streak)/l*100).toFixed(0)+'%;background:var(--ok)"></i></span>'+
+          '<span class="vv">🔥'+num(k.streak)+' · '+laengste[k.id]+'</span></div>'; }).join('')+'</div>';
+  }
+  // Ausreißer: schlechteste Quote im Zeitraum (mind. 3 fällige Ereignisse)
+  const proRoutine={};
+  routinen.forEach(k=>proRoutine[k.id]={erf:0,verp:0});
+  hist.concat(tagOffen()&&S.tag?[{datum:S.tag.datum,log:S.tag.log||[],routinenBilanz:S.tag.routinenBilanz||[]}]:[]).forEach(h=>{
+    if(h.datum<F.von || h.datum>F.bis) return;
+    (h.log||[]).forEach(l=>{ if(l.art==='Routine' && num(l.punkte)>0 && proRoutine[l.itemId]) proRoutine[l.itemId].erf++; });
+    (h.routinenBilanz||[]).forEach(r=>{ if(r.verpasst && proRoutine[r.id]) proRoutine[r.id].verp++; });
+  });
+  const ausreisser=routinen
+    .map(k=>{ const s=proRoutine[k.id], n=s.erf+s.verp; return {k, n, q:n?s.erf/n:null, verp:s.verp}; })
+    .filter(x=>x.n>=3 && x.q!=null).sort((a,b)=>a.q-b.q).slice(0,4);
+  if(ausreisser.length){
+    inner+='<div class="anmod-sub" style="margin-top:12px">Ausreißer (schlechteste Quote — Kandidaten zum Streichen oder Umbauen):</div><div class="an-bars">'+
+      ausreisser.map(x=>'<div class="an-bar"><span class="nm" style="width:auto;min-width:34%;text-align:left">'+esc(x.k.titel||'?')+'</span>'+
+        '<span class="track"><i style="width:'+Math.round(x.q*100)+'%;background:var(--bad)"></i></span>'+
+        '<span class="vv">'+Math.round(x.q*100)+'% · '+x.verp+'× verpasst</span></div>').join('')+'</div>';
+  }
+  // Kennzahlen
+  const aktiv=days.filter((x,i)=>faellig[i]>0).length||1;
+  const besteSerie=Math.max.apply(null,[0].concat(Object.keys(laengste).map(id=>laengste[id])));
+  inner+='<div class="anmod-kpis" style="margin-top:12px">'+
+    anKpi(Math.round(sumF/aktiv*10)/10,'Ø fällig/Tag')+
+    anKpi(Math.round(sumE/aktiv*10)/10,'Ø erfüllt/Tag')+
+    anKpi(quote==null?'—':quote+'%','Quote',anDeltaPct(quote,pQuote))+
+    anKpi(besteSerie+'T','längste Serie')+'</div>';
+  if(sumEnt>0) inner+='<div class="anmod-sub" style="margin-top:8px">'+sumEnt+' entschuldigte Routinentage im Zeitraum — sie zählen weder als erfüllt noch gegen die Quote.</div>';
+  return anModul('🔁','Routinen-Flow','Fällig geworden vs. erfüllt vs. verpasst — die Routinenquote als Zeitreihe, Wochentagsprofil, Streaks und die Routinen mit der schlechtesten Quote.',inner);
+}
+
 function anZeitraumPresets(){ return [['7','7 T'],['14','14 T'],['30','30 T'],['90','90 T'],['frei','frei']]; }
 function renderAnFilter(){
   const zr=S.ui.analyseZeitraum||'7', dm=S.ui.analyseDomain||'alle';
@@ -6361,15 +6560,26 @@ function renderAnFilter(){
   if(zr==='frei'){ const bis=S.ui.analyseBis||heuteApp(), von=S.ui.analyseVon||anVorTage(bis,6);
     h+='<div class="an-frow"><span class="an-lbl">von</span><input type="date" id="anVon" value="'+von+'" max="'+heuteIso()+'"><span class="an-lbl">bis</span><input type="date" id="anBis" value="'+bis+'" max="'+heuteIso()+'"></div>'; }
   h+='<div class="an-frow">'+[['alle','Alle'],['dfm','DFM'],['privat','Privat']].map(d=>'<button class="seg dom'+(dm===d[0]?' on':'')+'" data-andom="'+d[0]+'">'+d[1]+'</button>').join('')+'</div>';
+  // §2 (v1.7.0): dritte Filterzeile — Kartenart, wirkt auf alle Module
+  const art=analyseArt();
+  h+='<div class="an-frow">'+AN_ARTEN.map(a=>'<button class="seg art'+(art===a[0]?' on':'')+'" data-anart="'+a[0]+'">'+a[1]+'</button>').join('')+'</div>';
   el('anFilter').innerHTML=h;
 }
 function renderAnalyseBody(){
-  const F=analyseFenster(), dom=S.ui.analyseDomain||'alle';
+  const F=analyseFenster(), dom=S.ui.analyseDomain||'alle', art=analyseArt();
   const von=F.von, bis=F.bis;
-  let h='<div class="anmod-sub" style="margin:0 2px 12px">Zeitraum '+anKurzDatum(von)+'–'+anKurzDatum(bis)+' · '+F.cur.length+' Tage mit Daten · Domäne '+(dom==='alle'?'Alle':dom==='dfm'?'DFM':'Privat')+' · Δ% ggü. Vorperiode.</div>';
+  // §2: Kopfzeile nennt die aktive Art zusätzlich zu Zeitraum und Domäne
+  let h='<div class="anmod-sub" style="margin:0 2px 12px">Zeitraum '+anKurzDatum(von)+'–'+anKurzDatum(bis)+' · '+F.cur.length+' Tage mit Daten · Domäne '+(dom==='alle'?'Alle':dom==='dfm'?'DFM':'Privat')+' · Art '+analyseArtLabel()+' · Δ% ggü. Vorperiode.</div>';
+  if(art!=='alle') h+='<div class="anmod-sub" style="margin:-6px 2px 12px;color:var(--mut2)">Kartenart-Filter aktiv: Punkte je Art aus dem Punkt-Log, Minuten je Art aus dem Intraday-Log (ab 31.07.) — ältere Tage tragen dort 0.</div>';
   if(!F.alle.length){ h+=anLeer('Noch keine abgeschlossenen Tage. Starte einen Tag und schließe ihn ab — dann füllt sich die Analyse.'); }
   else{
-    h+=anModReadiness(F,dom)+anModACWR(F,dom)+anModLeistung(F,dom)+anModKonsistenz(F,dom)+anModKalibrierung(F,dom)+anModVerhalten(F,dom)+anModAufgabenFlow(F,dom);
+    h+=anModReadiness(F,dom)+anModACWR(F,dom)+anModLeistung(F,dom)+anModKonsistenz(F,dom)+anModKalibrierung(F,dom)+anModVerhalten(F,dom);
+    // §4 (v1.7.0): der Kartenart-Filter entscheidet, welche Flow-Module laufen.
+    // „Alle" = beide untereinander, jedes mit eigener Überschrift.
+    if(art==='alle' || art==='aufgabe') h+=anModAufgabenFlow(F,dom);
+    if(art==='alle' || art==='routine') h+=anModRoutinenFlow(F,dom);
+    if(art==='counter') h+=anModul('📥📤','Zu- & Abgang','Flow für Counter.',
+      anLeer('Counter kennen keinen Abschluss und keine Fälligkeit — einen Zu-/Abgangs-Flow gibt es für sie strukturell nicht. Ihre Ticks stecken in Konsistenz, Leistung und Verhalten.'));
   }
   el('anBody').innerHTML=h;
 }
@@ -6380,6 +6590,7 @@ el('anBack').addEventListener('click', schliesseAnalyse);
 el('analyseOverlay').addEventListener('click', e=>{
   const zr=e.target.closest('[data-anzr]'); if(zr){ S.ui.analyseZeitraum=zr.dataset.anzr; saveUi(); renderAnalyse(); return; }
   const dm=e.target.closest('[data-andom]'); if(dm){ S.ui.analyseDomain=dm.dataset.andom; saveUi(); renderAnalyse(); return; }
+  const aa=e.target.closest('[data-anart]'); if(aa){ S.ui.analyseArt=aa.dataset.anart; saveUi(); renderAnalyse(); return; }   // §2 (1.7.0)
 });
 el('analyseOverlay').addEventListener('change', e=>{
   if(e.target.id==='anVon'){ S.ui.analyseVon=e.target.value||null; saveUi(); renderAnalyse(); }
