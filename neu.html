@@ -921,7 +921,7 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.6.0';                    // Datenvertrag/Sync-appVersion — 1.6.0 (Navigationsmodell neu, Ketten, Vertrag 1.4)
 const UI_VERSION = 'v1.6.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-27-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-08-27-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -2955,7 +2955,22 @@ function abschlussFinish(){
   const paket=tagBackupPaket();
   closeSheet(); renderAlles();
   toast('Tag abgeschlossen · '+S.tag.punkteBilanz+' P');
-  backupDownload(paket, 'fokus-tagesabschluss-'+S.tag.tagId+'.json');
+  // §8.4 (v1.6.0): Der programmatische a.click()-Download über eine data:-URI
+  // wird von der iOS-PWA unterdrückt — bei Pascal kam nie eine JSON an. Der
+  // Abschluss zeigt jetzt dasselbe Kopier-Sheet wie der Sync-Button; der
+  // Download bleibt als zusätzliche Option erhalten.
+  oeffneTagAbschlussPaket(paket);
+}
+/* §8.4: Kopier-Sheet für das Tagesabschluss-Paket (Copy-Paste statt Download). */
+function oeffneTagAbschlussPaket(paket){
+  const txt=JSON.stringify(paket, null, 2);
+  const h='<p class="d">Tag abgeschlossen. Kopiere das Paket in den Claude-Chat — '+
+    'der Download bleibt als Zusatzoption, wird auf dem iPhone aber oft unterdrückt.</p>'+
+    '<div class="field"><label>Tagesabschluss-Paket</label>'+
+    '<textarea id="tagEx" readonly style="min-height:150px;font-family:ui-monospace,monospace;font-size:11px">'+esc(txt)+'</textarea>'+
+    '<div class="btnrow"><button class="btn sm" data-tagcopy="1">📋 Kopieren</button>'+
+    '<button class="btn sm" data-tagdownload="1">⬇︎ Datei</button></div></div>';
+  openSheet('Tagesabschluss — Paket', h, '<button class="btn prim" data-close="1">Fertig</button>');
 }
 function tagBackupPaket(){
   return { typ:'tagesabschluss', appVersion:VERSION, exportZeit:jetztIso(),
@@ -3897,8 +3912,14 @@ function syncExport(typ){
       };
       if(k.freeze) o.freeze=true;                          // M1 (1.1.0): nur eingefrorene Karten senden das Feld
       if(k.kommentarClaude) o.kommentarClaude=k.kommentarClaude;   // U6-F (1.2.0): nur wenn nicht leer
+      // §8.3 (1.4): neue Felder — nur senden, wenn belegt bzw. zutreffend
+      if(k.domain==='privat') o.tagesabschnitt=tagesabschnittVon(k);
+      if(k.vorgaengerAppId)      o.vorgaengerAppId=k.vorgaengerAppId;
+      if(k.vorgaengerAirtableId) o.vorgaengerAirtableId=k.vorgaengerAirtableId;
       return o;
-    })
+    }),
+    // §8.2 (1.4): aktuelle Tageskette in Reihenfolge — NUR nicht erledigte Einträge
+    tagesKette: ketteKarten().filter(k=>k.status!=='erledigt').map(k=>k.airtableId||k.id)
   };
 }
 function syncExportText(typ){ return JSON.stringify(syncExport(typ), null, 2); }
@@ -3911,6 +3932,13 @@ const SYNC_BESTAND_SCHWELLE = 10;
 /* Import eines Pakets aus dem Claude-Chat (§8-Hoheitsregeln). */
 function syncImport(text){
   let paket; try{ paket=JSON.parse(text); }catch(e){ return {fehler:'Ungültiges JSON'}; }
+  // §8.1 (v1.6.0): appVersion-Gate. Pakete ohne appVersion oder mit 0.x werden
+  // abgelehnt — die Gegenseite spricht seit dem 11.08. Vertrag 1.3+.
+  if(!Array.isArray(paket)){
+    const av=paket && paket.appVersion;
+    if(av==null || av==='') return {fehler:'Paket ohne appVersion — bitte im Chat ein Paket nach Vertrag 1.x anfordern.'};
+    if(/^0\./.test(String(av)))  return {fehler:'Altformat appVersion '+av+' — dieses Paket wird nicht mehr verarbeitet (Vertrag ab 1.0).'};
+  }
   const arr = Array.isArray(paket) ? paket : (paket && paket.karten) || null;
   if(!Array.isArray(arr) || !arr.length) return {fehler:'Keine Karten im Paket'};
   let neu=0, upd=0, arch=0;
@@ -3934,6 +3962,10 @@ function syncImport(text){
     // Beidseitige Felder → letzter Stand (Import bringt den abgestimmten Stand)
     if(inc.sollMin!=null) lok.sollMin=num(inc.sollMin);
     if(inc.prioritaet!=null) lok.prioritaet=inc.prioritaet;
+    // §8.3 (1.4): neue Felder auch beim Import übernehmen
+    if(inc.tagesabschnitt!=null && TAGESABSCHNITTE.indexOf(inc.tagesabschnitt)>=0) lok.tagesabschnitt=inc.tagesabschnitt;
+    if(inc.vorgaengerAppId!=null)      lok.vorgaengerAppId=inc.vorgaengerAppId;
+    if(inc.vorgaengerAirtableId!=null) lok.vorgaengerAirtableId=inc.vorgaengerAirtableId;
     if(inc.komplex!=null) lok.komplex=num(inc.komplex);
     if(inc.energie!=null) lok.energie=num(inc.energie);
     if(inc.blockade!=null) lok.blockade=num(inc.blockade);
@@ -3956,8 +3988,22 @@ function syncImport(text){
   // kein Tageszugang — sofort markieren, bevor sie in einer Flow-Auswertung
   // als Spike auftauchen. Unter der Schwelle bleiben es normale neue Aufgaben.
   if(neuAngelegt.length>=SYNC_BESTAND_SCHWELLE) neuAngelegt.forEach(k=>{ k.flowBaseline=true; });
+  // §8.2 (v1.6.0): Top-Level kette[] ersetzt die Tageskette für heute KOMPLETT.
+  // Einträge sind App-IDs und/oder Airtable-Record-IDs (über airtableId aufgelöst).
+  // Unauflösbare IDs werden übersprungen UND gemeldet — nicht still verschluckt.
+  let ketteGesetzt=null, ketteUnbekannt=[];
+  if(paket && !Array.isArray(paket) && Array.isArray(paket.kette)){
+    const ids=[];
+    paket.kette.forEach(ref=>{
+      const s=String(ref||'').trim(); if(!s) return;
+      const k=S.karten.find(x=>x.id===s) || S.karten.find(x=>x.airtableId===s);
+      if(k) ids.push(k.id); else ketteUnbekannt.push(s);
+    });
+    ketteSetzen(ids);
+    ketteGesetzt=ids.length;
+  }
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
-  return {neu, upd, arch};
+  return {neu, upd, arch, ketteGesetzt, ketteUnbekannt};
 }
 
 /* Sync-Sheet (EIN Button in D6). */
@@ -5159,9 +5205,20 @@ el('sheet').addEventListener('click', e=>{
   // ── Sync (§8)
   if(t.closest('[data-synccopy]')){ const ta=el('syncEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){} if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
   if(t.closest('[data-syncdownload]')){ backupDownload(syncExport('sync'), 'fokus-sync-'+aktuelleTagId()+'.json'); return; }
+  // §8.4: Kopieren/Download des Tagesabschluss-Pakets
+  if(t.closest('[data-tagcopy]')){ const ta=el('tagEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){}
+    if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
+  if(t.closest('[data-tagdownload]')){ backupDownload(tagBackupPaket(), 'fokus-tagesabschluss-'+(S.tag?S.tag.tagId:'tag')+'.json'); return; }
   if(t.closest('[data-syncimport]')){ const ta=el('syncIn'); const res=syncImport(ta?ta.value:''); const box=el('syncErgebnis');
     if(res.fehler){ if(box) box.innerHTML='<div class="card" style="border-color:var(--bad)"><p class="d" style="color:var(--bad)">'+esc(res.fehler)+'</p></div>'; }
-    else { renderAlles(); const exta=el('syncEx'); if(exta) exta.value=syncExportText('sync'); if(box) box.innerHTML='<div class="card" style="border-color:var(--ok)"><p class="d">Import: <b>'+res.neu+'</b> neu · <b>'+res.upd+'</b> aktualisiert · <b>'+res.arch+'</b> archiviert.</p></div>'; toast('Sync importiert'); haptik(15); }
+    else { renderAlles(); const exta=el('syncEx'); if(exta) exta.value=syncExportText('sync');
+      // §8.2: Kettenergebnis mitmelden — unauflösbare IDs ausdrücklich zeigen
+      let kz='';
+      if(res.ketteGesetzt!=null) kz+=' Tageskette gesetzt: <b>'+res.ketteGesetzt+'</b> Einträge.';
+      if(res.ketteUnbekannt && res.ketteUnbekannt.length)
+        kz+='<br><span style="color:var(--warn)">Übersprungen (unbekannte IDs): '+esc(res.ketteUnbekannt.join(', '))+'</span>';
+      if(box) box.innerHTML='<div class="card" style="border-color:var(--ok)"><p class="d">Import: <b>'+res.neu+'</b> neu · <b>'+res.upd+'</b> aktualisiert · <b>'+res.arch+'</b> archiviert.'+kz+'</p></div>';
+      toast('Sync importiert'); haptik(15); }
     return; }
 
   // ── Gruppen-Bulk-Zuordnung (§3.3 / Punkt 5g)
@@ -5527,6 +5584,12 @@ function analyseRohTage(){
     if(h._heute) e.heute=true;
   });
   let arr=Object.keys(map).sort().map(k=>map[k]);
+  // §7 (v1.6.0): Bonus-Glättung anwenden — der beim Abschluss gebuchte Bonus
+  // wandert vom Abschlusstag auf die Tage, an denen tatsächlich an der Karte
+  // gearbeitet wurde (anteilig nach Ist-Minuten). Reine Auswertung: punkteIst
+  // und das Export-Paket bleiben unverändert.
+  const gd=glaettungDeltas();
+  Object.keys(gd).forEach(d=>{ if(map[d]) map[d].punkte+=gd[d]; });
   arr.forEach(e=>{ e.min=e.minDfm+e.minPrivat; e.wt=anWochentag(e.datum); });
   // H4.2: Tage ohne jegliche Aktivität (keine Zeit, keine Punkte) fallen komplett
   // aus allen Statistiken/Durchschnitten heraus — kein Verzerren als 0-Tag.
