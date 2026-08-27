@@ -191,6 +191,9 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
    Chips auf 44px Touch-Ziel gebracht, Zeile darf umbrechen. */
 /* ══ §2.5 (v1.6.0) · Navigationsleiste der drei Ebenen auf der Fokusseite ══
    Dauerhaft sichtbar, ein Tap je Ebene, alle Ziele ≥44px. */
+/* §5 (v1.6.0): Hinweis auf offene Unteraufgaben im Abhak-Dialog */
+.hinweisbox{background:rgba(185,138,247,.12);border:1px solid rgba(185,138,247,.4);border-radius:10px;
+  padding:9px 11px;font-size:12.5px;color:var(--txt);margin-bottom:10px;line-height:1.4}
 .navleiste{display:flex;flex-direction:column;gap:6px;margin:2px 0 8px}
 .navzeile{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .navzeile.e3{margin-top:2px}
@@ -222,6 +225,11 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .krow .kpin.on{filter:none;opacity:1}
 .krow .kfreeze.on{filter:none;opacity:1;color:#6dd3e0}
 .krow .kstart.auftau{color:#6dd3e0}
+/* §3 (v1.6.0): Routinen in normalen Listen zurückgenommen — schmaler, ruhiger.
+   Bedient werden sie in der Routinen-Schublade. */
+.krow.routinezeile{opacity:.82}
+.krow.routinezeile .kmain{padding-top:5px;padding-bottom:5px}
+.krow.routinezeile .ktitle{font-size:13px;font-weight:600}
 .krow.eingefroren{opacity:.5;filter:grayscale(.55)}
 .krow.eingefroren .ktitle{color:var(--mut)}
 .kmeta .frost{color:#6dd3e0}
@@ -349,6 +357,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .uareihe.fertig .uapunkte{color:var(--ok)}
 .uareihe .uax{width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--bad);font-size:13px;border-radius:7px;background:rgba(246,109,109,.12);border:1px solid rgba(246,109,109,.28)}
 .uaneu{display:flex;gap:var(--s1);margin-top:6px}
+.uaneu .uaminneu{flex:none;width:72px;text-align:center}   /* §4: Soll-Minuten (Pflicht) */
 .uaneu input{flex:1;font-size:13px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt)}
 .uaneu button{width:38px;flex:none;border-radius:8px;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:16px;font-weight:800}
 
@@ -773,6 +782,35 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 
 /* FAB */
 #fab{position:fixed;left:16px;bottom:calc(64px + var(--sab) + 10px);z-index:70;width:54px;height:54px;border-radius:50%;background:var(--blue);color:#0a0f1a;font-size:28px;font-weight:400;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.45)}
+/* §3 (v1.6.0): Routinen-Schublade — Auslöser rechts, ≥56px, Farbe der aktiven Domäne */
+#routFab{position:fixed;right:16px;bottom:calc(64px + var(--sab) + 10px);z-index:70;width:56px;height:56px;border-radius:50%;
+  background:var(--blue);color:#0a0f1a;font-size:26px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 22px rgba(0,0,0,.45);border:none}
+#routFab[hidden]{display:none}
+#routFab.privat{background:var(--warn)}
+/* Halbhohes Sheet — die Fokuskarte bleibt dahinter sichtbar */
+.routsheet .rs-kopf{display:flex;gap:8px;margin-bottom:10px}
+.routsheet .rs-kopf button{flex:1;min-height:44px;border-radius:11px;border:1px solid var(--line);background:var(--bg);
+  color:var(--mut);font-size:14px;font-weight:800}
+.routsheet .rs-kopf button.on{background:var(--blue);border-color:var(--blue);color:#0a0f1a}
+.routsheet .rs-kopf button.on.privat{background:var(--warn);border-color:var(--warn)}
+.routgruppe{margin-bottom:8px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.routgruppe .rg-kopf{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;background:var(--card2);
+  font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--mut)}
+.routgruppe .rg-kopf .caret{font-size:10px;color:var(--mut2);transition:transform .2s}
+.routgruppe.zu .rg-kopf .caret{transform:rotate(-90deg)}
+.routgruppe.zu .rg-body{display:none}
+.routgruppe .rg-kopf .n{margin-left:auto;color:var(--mut2);font-weight:700}
+.routzeile{display:flex;align-items:center;gap:10px;padding:7px 10px;border-top:1px solid var(--line);touch-action:pan-y}
+.routzeile .rz-main{flex:1;min-width:0}
+.routzeile .rz-titel{font-size:14px;font-weight:700;overflow-wrap:anywhere}
+.routzeile .rz-sub{font-size:11px;color:var(--mut2);font-family:ui-monospace,monospace}
+.routzeile .rz-fb{color:var(--ok);font-weight:800;margin-left:6px}
+.routzeile .rz-play,.routzeile .rz-plus{flex:none;width:44px;height:44px;border-radius:11px;border:1px solid var(--line);
+  background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px}
+.routzeile .rz-plus{background:var(--ok);border-color:var(--ok);color:#0a0f1a;font-size:22px;font-weight:800}
+.routzeile .rz-play{color:var(--blue)}
+.routsheet .leer{color:var(--mut2);font-size:12px;padding:10px 2px;text-align:center}
 
 /* Toast */
 #toast{position:fixed;left:50%;bottom:calc(84px + var(--sab));transform:translateX(-50%) translateY(20px);z-index:320;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:all .25s;max-width:88vw;text-align:center}
@@ -834,6 +872,8 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 </main>
 
 <button id="fab">＋</button>
+<!-- §3 (v1.6.0): Routinen-Schublade — runder Auslöser unten RECHTS im Daumenbogen -->
+<button id="routFab" hidden>↻</button>
 
 <nav id="nav">
   <button data-tab="fokus"><span class="ic">🎯</span>Fokus</button>
@@ -881,7 +921,7 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
    ══════════════════════════════════════════════════════════════════════ */
 const VERSION = '1.6.0';                    // Datenvertrag/Sync-appVersion — 1.6.0 (Navigationsmodell neu, Ketten, Vertrag 1.4)
 const UI_VERSION = 'v1.6.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-27-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-08-27-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
   ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
@@ -1050,6 +1090,9 @@ function neueKarte(f={}){
     zuletztRoutine: null,             // "YYYY-MM-DD" letzte Routinen-Erledigung (alleNTage / Streak)
     sortIndex: {},                    // { stapelId: n } — manuelle Tap-Reihenfolge
     herkunftId: null,                 // Migration: alte App-ID (Idempotenz §10)
+    abschluesse: [],                  // §6.1 (1.6.0): Stack der Abschluss-Snapshots (Reaktivierung = Korrektur)
+    vorgaengerAppId: null,            // §5 (1.6.0): Folgeaufgabe → App-ID der Vorgängerin
+    vorgaengerAirtableId: null,       // §5 (1.6.0): dito Airtable-Record-ID, falls vorhanden
     erstelltTs: jetztIso()
   }, f);
   if(!Array.isArray(k.tickKurve) || !k.tickKurve.length) k.tickKurve=[0];
@@ -1794,7 +1837,10 @@ function kartenreiheHtml(k, stapelId){
   if(k.uhrzeit) meta.push('<span class="tag">🕐 '+esc(k.uhrzeit)+'</span>');
   const ib=istBadge(k); if(ib) meta.push(ib);
   else if(num(k.sollMin)>0) meta.push('<span><b>'+num(k.sollMin)+'</b>′</span>');
-  meta.push('<span>'+Math.round(kartePunkte(k))+' P</span>');
+  // §3 (v1.6.0): Routinen/Counter in den normalen Listen optisch zurückgenommen —
+  // keine Punkte-Prognose (die Bedienung läuft über die Routinen-Schublade).
+  const istRout = kartenArt(k)==='Routine' || kartenArt(k)==='Counter';
+  if(!istRout) meta.push('<span>'+Math.round(kartePunkte(k))+' P</span>');
   if(k.prioritaet==='muss') meta.push('<span class="pri-muss">muss</span>');
   if(k.domain==='dfm' && k.projekt) meta.push('<span>'+esc(k.projekt)+'</span>');
   if(k.rhythmus && num(k.streak)>0) meta.push('<span>🔥'+num(k.streak)+'</span>');
@@ -1824,7 +1870,7 @@ function kartenreiheHtml(k, stapelId){
   // §2.2 (v1.6.0): Karte manuell in die Tageskette „Heute" legen bzw. herausnehmen
   const ketteBtn = k.status==='offen'
     ? '<button class="kkette'+(ketteHat(k.id)?' on':'')+'" data-kette="'+k.id+'" aria-label="Zu Heute">▤</button>' : '';
-  return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+(k.freeze?'eingefroren ':'')+'" data-kid="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
+  return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+(k.freeze?'eingefroren ':'')+(istRout?'routinezeile ':'')+'" data-kid="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
     sortCtrl+
     '<div class="kmain" data-detail="'+k.id+'">'+
       '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
@@ -2178,8 +2224,26 @@ function fokusSubsHtml(k){
     '<div class="taccinhalt">'+
     (subs.length?'<div class="thinweis">Spalten: Minuten (→ Kartenzeit) · Punkte (einmalige Zusatzpunkte, leer = 0)</div>':'<div class="thinweis">Noch keine Unteraufgaben.</div>')+
     rows+
-    '<div class="uaneu"><input id="fkUaNeu" type="text" placeholder="Unteraufgabe hinzufügen …"><button data-uaadd="'+k.id+'">+</button></div>'+
+    // §4 (v1.6.0): Unteraufgabe an Ort und Stelle anlegen — Titel + Soll-Minuten
+    // (Pflicht). Der neue Sub erhöht den Parent-Soll (Invariante §3.2 bleibt hart).
+    '<div class="uaneu"><input id="fkUaNeu" type="text" placeholder="Unteraufgabe hinzufügen …">'+
+      '<input id="fkUaMin" class="uaminneu" type="number" inputmode="numeric" min="1" placeholder="Min">'+
+      '<button data-uaadd="'+k.id+'">+</button></div>'+
+    '<div class="thinweis">Soll-Minuten sind Pflicht — sie erhöhen die Kartenzeit.</div>'+
     '</div></div>';
+}
+/* §4: gemeinsamer Pfad für Button und Enter. Ohne Minuten kein Anlegen. */
+function fokusSubAnlegen(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  const inp=el('fkUaNeu'), mi=el('fkUaMin');
+  const titel=(inp&&inp.value||'').trim();
+  const min=Math.max(0, Math.round(num(mi&&mi.value)));
+  if(!titel){ toast('Titel fehlt'); if(inp) inp.focus(); return; }
+  if(min<=0){ toast('Soll-Minuten fehlen'); if(mi) mi.focus(); return; }
+  S.unteraufgaben.push(neueUnteraufgabe(kid,{titel, sollMin:min}));
+  DB.set('unteraufgaben', S.unteraufgaben);
+  k.sollMin=untermenge(kid).reduce((s,u)=>s+num(u.sollMin),0);   // Invariante §3.2
+  saveKarten(); renderFokus();
 }
 /* Farbstreifen: nächste 10 Karten des aktiven Stapels als Farbrechtecke. */
 /* A6: großer, horizontal snappender Karten-Streifen über ALLE Karten des
@@ -3178,13 +3242,18 @@ function karteAbhaken(kid, fromDetail){
   // A3: Timer-/Counter-Karten werden nie erledigt — „Abhaken" bucht einen Tick.
   if(istTickKarte(k) && k.status!=='erledigt'){ karteTick(kid, fromDetail); return; }
   if(k.status==='erledigt'){
+    // §6 (v1.6.0): Reaktivierung ist eine KORREKTUR an derselben Karte —
+    // kein Duplikat mehr (die v1.2.1-Regel entfällt). Der oberste
+    // Abschluss-Snapshot wird gepoppt und der Stand davor wiederhergestellt.
     logPunktEntfernen(k);                                 // v1.1: Punkt-Ereignis zurücknehmen (VOR override-Reset, damit der gebuchte Wert stimmt)
-    k.status='offen'; k.tagId=null; k.punkteOverride=null;   // U6-A: Override zurücknehmen → Punkte wieder automatisch
+    abschlussZuruecknehmen(k);
+    k.status='offen'; k.tagId=null;
     if(k.rhythmus && k.zuletztRoutine===heuteApp()){ k.streak=Math.max(0,num(k.streak)-1); k.zuletztRoutine=null; }
     if(k.tickKurve && k.tickKurve.length===1) k.ticksHeute=0;
   } else {
     // Läuft der Timer auf dieser Karte → erst Zeit einbuchen, Fokus beenden (§6 Kante).
     if(!fromDetail && S.fokus && S.fokus.karteId===k.id) fokusBeenden();
+    abschlussSnapshot(k);                                // §6.1: Stand VOR dem Abschluss sichern
     k.status='erledigt'; k.tagId=aktuelleTagId();
     if(k.tickKurve && k.tickKurve.length===1) k.ticksHeute=1;
     if(k.rhythmus) routineErledigtBuchen(k);              // Streak + zuletztRoutine
@@ -3195,6 +3264,89 @@ function karteAbhaken(kid, fromDetail){
   }
   beruehre(k);                                             // A7: jede Interaktion zählt
   if(!fromDetail){ saveKarten(); saveTag(); renderAlles(); }
+}
+/* ══════════════════════════════════════════════════════════════════════
+   §6.1 + §7 (v1.6.0) · Abschluss-Snapshots und Bonus-Glättung
+   Beim Abschließen wird der Stand VORHER auf einen Stack karte.abschluesse[]
+   gelegt (Stack, damit mehrfaches Abschließen/Zurückholen funktioniert).
+   Zusätzlich wird der Bonus-Anteil rückwirkend auf die Tage verteilt, an denen
+   tatsächlich an der Karte gearbeitet wurde — reine Auswertungs-Logik,
+   punkteIst bleibt kumulativ und ereignisbasiert.
+   ══════════════════════════════════════════════════════════════════════ */
+/* Tagesweise Ist-Minuten dieser Karte aus dem Intraday-Log (Timer + Nachträge).
+   Liefert {datum: minuten}. Für Karten aus der Zeit vor dem Intraday-Log
+   (< UP4-B) bleibt das leer → Fallback: Bonus bleibt am Abschlusstag (§7). */
+function kartenMinutenProTag(kid){
+  const out={};
+  (S.intraday||[]).forEach(e=>{
+    if(e.kartenId!==kid || !e.ts) return;
+    const m=num(e.minuten); if(m<=0) return;
+    const d=String(e.ts).slice(0,10); out[d]=(out[d]||0)+m;
+  });
+  return out;
+}
+/* §7: Bonus-Anteil des Abschlusses = Abhakbonus + Σ Sub-Boni der TATSÄCHLICH
+   abgehakten Unteraufgaben (subBonusErreicht). Der zeitbasierte Anteil liegt
+   bereits auf den richtigen Tagen und bleibt unangetastet. */
+function abschlussBonusAnteil(k){
+  return Math.max(0, abhakbonusDefault(k) + subBonusErreicht(k));
+}
+/* §7: Bonus anteilig nach den je Tag getrackten Minuten verteilen. */
+function glaettungBerechnen(k, bonus){
+  const proTag=kartenMinutenProTag(k.id);
+  const tage=Object.keys(proTag).sort();
+  const summe=tage.reduce((a,d)=>a+proTag[d],0);
+  if(!tage.length || summe<=0 || bonus<=0) return [];   // Fallback: bleibt am Abschlusstag
+  let rest=bonus, out=[];
+  tage.forEach((d,i)=>{
+    const p = (i===tage.length-1) ? rest : Math.round(bonus*proTag[d]/summe);
+    rest-=p; out.push({datum:d, punkte:p});
+  });
+  return out;
+}
+/* §6.1: Snapshot des Standes VOR dem Abschluss auf den Stack legen. */
+function abschlussSnapshot(k){
+  if(!Array.isArray(k.abschluesse)) k.abschluesse=[];
+  const bonus=abschlussBonusAnteil(k);
+  k.abschluesse.push({
+    ts: jetztIso(),
+    tagId: aktuelleTagId(),
+    punkteIstVorher: Math.round(kartePunkte(k)),
+    istMinVorher: Math.round(num(k.istSek)/60),
+    bonusPunkte: bonus,
+    subsDoneVorher: untermenge(k.id).filter(u=>u.done).map(u=>u.id),
+    glaettung: glaettungBerechnen(k, bonus)
+  });
+}
+/* §6.2: obersten Snapshot poppen und den Stand davor wiederherstellen. */
+function abschlussZuruecknehmen(k){
+  if(!Array.isArray(k.abschluesse) || !k.abschluesse.length){
+    // §6.2 Altbestand ohne Snapshot: NICHT verweigern — Karte öffnen und die
+    // Punkte ausdrücklich UNVERÄNDERT lassen (nicht rückrechenbar), mit Hinweis.
+    toast('Zurückgeholt · Punkte dieser Altkarte sind nicht rückrechenbar');
+    return false;
+  }
+  const s=k.abschluesse.pop();
+  k.istSek=Math.max(0, num(s.istMinVorher)*60);
+  k.punkteOverride = (s.punkteIstVorher!=null) ? num(s.punkteIstVorher) : null;
+  const done=new Set(s.subsDoneVorher||[]);
+  untermenge(k.id).forEach(u=>{ u.done = done.has(u.id); });
+  DB.set('unteraufgaben', S.unteraufgaben);
+  return true;
+}
+/* §7: Bonus-Verschiebungen aller abgeschlossenen Karten für die Statistik.
+   Liefert {datum: deltaPunkte} — Abschlusstag negativ, Arbeitstage positiv. */
+function glaettungDeltas(){
+  const out={};
+  S.karten.forEach(k=>{
+    (k.abschluesse||[]).forEach(s=>{
+      const g=s.glaettung; if(!Array.isArray(g) || !g.length) return;
+      const abTag=String(s.tagId||'').slice(0,10); if(!abTag) return;
+      out[abTag]=(out[abTag]||0)-num(s.bonusPunkte);
+      g.forEach(x=>{ out[x.datum]=(out[x.datum]||0)+num(x.punkte); });
+    });
+  });
+  return out;
 }
 /* v1.1: Punkt-Ereignisse des Tages (für Intraday-Kurve & Kennzahlen). Ein
    Eintrag je Abschluss mit Zeitstempel + Punktwert; Rücknahme entfernt den
@@ -3256,7 +3408,10 @@ function abhakDialog(kid, fromDetail){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
   const hatOverride=k.punkteOverride!=null;                 // Re-Abhaken einer reaktivierten Karte
   const basis=Math.round(kartePunkte(k));                   // bei Override = bereits gebuchte Punkte, sonst berechnet
-  abhakTmp={ kid, fromDetail, folge:false, basis, max:Math.max(10, basis*2),
+  // §5 (v1.6.0): Bei offenen Unteraufgaben wird die Folgeaufgabe von sich aus
+  // vorgeschlagen (angelegt wird sie erst mit „Erledigen").
+  const offen=untermenge(kid).filter(u=>!u.done).length;
+  abhakTmp={ kid, fromDetail, folge:offen>0, basis, max:Math.max(10, basis*2),
     bonusDef: hatOverride ? 0 : abhakbonusDefault(k),       // Bonus steckt beim Re-Abhaken schon im Override → 0 vorbelegt
     istMin:Math.round(istSekLive(k)/60),
     offeneSubs:untermenge(k.id).filter(u=>!u.done).length };
@@ -3274,12 +3429,34 @@ function renderAbhakDialog(){
      '<div class="field"><label>Ist-Zeit (Min)</label><input type="number" inputmode="numeric" id="abIst" value="'+t.istMin+'"><div class="hint">Differenz wird auf heute gebucht</div></div>'+
      '<div class="field"><label>Abhakbonus</label><input type="number" inputmode="numeric" id="abBonus" value="'+t.bonusDef+'"><div class="hint">0 = kein Bonus</div></div>'+
      '</div>';
+  // §5: Bei offenen Unteraufgaben deutlich darauf hinweisen und die Folgeaufgabe
+  // als vollständig editierbaren Vorschlag anbieten (angelegt wird erst beim ✅).
+  if(t.offeneSubs>0) h+='<div class="hinweisbox">Es sind noch <b>'+t.offeneSubs+'</b> Unteraufgabe(n) offen. '+
+    'Sie wandern in die Folgeaufgabe und bringen ihre Punkte dort ein — nichts doppelt, nichts verschenkt.</div>';
   h+='<div class="field"><label>Folgeaufgabe</label><div class="chips"><button class="chip '+(t.folge?'on lila':'')+'" data-abfolge="1">'+(t.folge?'✓ wird angelegt':'＋ anlegen')+'</button></div>';
   if(t.folge){
+    const heute=heuteApp();
     h+='<div style="margin-top:8px">'+
-       '<input id="abFolgeTitel" value="'+esc((k.titel||'')+' — Fortsetzung')+'" style="width:100%;margin-bottom:6px" placeholder="Titel der Folgeaufgabe">'+
-       '<div style="display:flex;align-items:center;gap:8px"><span class="mlab">Soll-Min</span><input type="number" inputmode="numeric" id="abFolgeSoll" value="'+restMin+'" style="width:90px"></div>'+
-       '<div class="hint">'+t.offeneSubs+' offene Unteraufgabe(n) wandern mit; abgehakte bleiben bei der alten. Neue Karte ohne airtableId.</div></div>';
+       '<input id="abFolgeTitel" value="'+esc(k.titel||'')+'" style="width:100%;margin-bottom:6px" placeholder="Titel der Folgeaufgabe">'+
+       '<div class="grid2">'+
+         (k.domain==='dfm'
+           ? '<div class="field"><label>Projekt</label><input id="abFolgeProjekt" value="'+esc(k.projekt||'')+'"></div>'+
+             '<div class="field"><label>Geld-Impact</label><input type="number" inputmode="numeric" id="abFolgeGeld" value="'+num(k.geldScore)+'"></div>'
+           : '')+
+         '<div class="field"><label>Deadline</label><input type="date" id="abFolgeDl" value="'+esc(heute)+'"></div>'+
+         '<div class="field"><label>Soll-Min</label><input type="number" inputmode="numeric" id="abFolgeSoll" value="'+restMin+'"'+(t.offeneSubs>0?' readonly style="opacity:.6"':'')+'>'+
+           (t.offeneSubs>0?'<div class="hint">= Σ mitwandernder Unteraufgaben</div>':'')+'</div>'+
+       '</div>'+
+       '<div class="field"><label>Priorität</label>'+
+         '<div class="chips" id="abFolgePri">'+['muss','soll','idee'].map(p=>
+           '<button class="chip '+(p===k.prioritaet?'on':'')+'" data-abfpri="'+p+'">'+p+'</button>').join('')+'</div></div>'+
+       '<div class="grid3">'+
+         '<div class="field"><label>Komplex</label><input type="number" step="0.5" id="abFolgeKx" value="'+num(k.komplex,1)+'"></div>'+
+         '<div class="field"><label>Energie</label><input type="number" step="0.5" id="abFolgeEn" value="'+num(k.energie,1)+'"></div>'+
+         '<div class="field"><label>Blockade</label><input type="number" step="0.5" id="abFolgeBl" value="'+num(k.blockade,1)+'"></div>'+
+       '</div>'+
+       '<div class="field"><label>Notiz</label><textarea id="abFolgeNotiz" style="min-height:54px"></textarea></div>'+
+       '<div class="hint">'+t.offeneSubs+' offene Unteraufgabe(n) wandern mit neuen App-IDs mit; abgehakte bleiben bei der alten Karte. Neue Karte ohne airtableId, Vorgängerin wird vermerkt.</div></div>';
   }
   h+='</div>';
   const foot='<button class="btn ghost sm" data-close="1">Abbrechen</button><button class="btn prim" data-abgo="1">✅ Erledigen</button>';
@@ -3292,13 +3469,36 @@ function renderAbhakDialog(){
   }
   el('sheetBody').querySelectorAll('input[type="number"]').forEach(x=>x.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); abhakDialogConfirm(); } }));
 }
-function folgeAufgabeAnlegen(k, titel, sollMin){
-  titel=(titel||'').trim() || ((k.titel||'')+' — Fortsetzung');
-  const neu=neueKarte({ domain:k.domain, titel, prioritaet:k.prioritaet, projekt:k.projekt, geldScore:num(k.geldScore),
-    komplex:k.komplex, energie:k.energie, blockade:k.blockade, abhakbonus:k.abhakbonus, tageszeit:k.tageszeit, faelligkeit:heuteApp() });
+/* §5 (v1.6.0): Folgeaufgabe aus dem editierten Vorschlag anlegen. Die offenen
+   Unteraufgaben wandern MIT IHREN SOLL-MINUTEN und erhalten dort NEUE App-IDs;
+   die abgehakten bleiben an der abgeschlossenen Aufgabe. Die Folgeaufgabe merkt
+   sich ihre Vorgängerin (vorgaengerAppId / vorgaengerAirtableId). */
+function folgeAufgabeAnlegen(k, f){
+  f=f||{};
+  const titel=(f.titel||'').trim() || (k.titel||'');
+  const neu=neueKarte({
+    domain:k.domain, titel,
+    prioritaet: f.prioritaet || k.prioritaet,
+    projekt:    (f.projekt!==undefined ? f.projekt : k.projekt),
+    geldScore:  num(f.geldScore!==undefined ? f.geldScore : k.geldScore),
+    notiz:      (f.notiz!==undefined ? f.notiz : ''),
+    komplex: num(f.komplex, k.komplex), energie: num(f.energie, k.energie), blockade: num(f.blockade, k.blockade),
+    abhakbonus:k.abhakbonus, tageszeit:k.tageszeit, tagesabschnitt:k.tagesabschnitt,
+    faelligkeit: (f.faelligkeit!==undefined ? (f.faelligkeit||null) : heuteApp()),
+    vorgaengerAppId: k.id,
+    vorgaengerAirtableId: k.airtableId || null
+  });
+  // Offene Subs KOPIEREN (neue IDs), Originale an der alten Karte entfernen.
   const offene=untermenge(k.id).filter(u=>!u.done);
-  offene.forEach(u=>{ u.parentId=neu.id; });   // offene Subs wandern in die Folgeaufgabe
-  neu.sollMin=Math.max(num(sollMin)||0, offene.reduce((s,u)=>s+num(u.sollMin),0));
+  const kopien=offene.map(u=>neueUnteraufgabe(neu.id,{ titel:u.titel, sollMin:num(u.sollMin), bonusPunkte:u.bonusPunkte, done:false }));
+  const offenIds=new Set(offene.map(u=>u.id));
+  S.unteraufgaben=S.unteraufgaben.filter(u=>!offenIds.has(u.id)).concat(kopien);
+  // Invariante §3.2: Parent-Soll = Σ Subs (bei Subs) — sonst der eingegebene Wert.
+  const summe=kopien.reduce((s,u)=>s+num(u.sollMin),0);
+  neu.sollMin = kopien.length ? summe : Math.max(0, num(f.sollMin));
+  // Alte Karte: ihr Soll schrumpft auf die verbliebenen (abgehakten) Subs.
+  const rest=untermenge(k.id);
+  if(rest.length) k.sollMin=rest.reduce((s,u)=>s+num(u.sollMin),0);
   S.karten.push(neu); DB.set('unteraufgaben', S.unteraufgaben);
   return neu;
 }
@@ -3313,11 +3513,92 @@ function abhakDialogConfirm(){
   if(deltaMin!==0){ k.istSek=Math.max(0,num(k.istSek)+deltaMin*60); logIntraday(k,{minuten:deltaMin,typ:'nachtrag'}); }   // Zeit-Nachtrag auf heute
   k.abhakbonus=bonus;                                   // Wahl je Karte merken
   k.punkteOverride=Math.max(0, pkt+bonus);              // gebuchte Ist-Punkte (Slider + Bonus)
-  if(t.folge) folgeAufgabeAnlegen(k, el('abFolgeTitel')?el('abFolgeTitel').value:'', num(el('abFolgeSoll')?el('abFolgeSoll').value:0));
+  if(t.folge) folgeAufgabeAnlegen(k, {
+    titel:      el('abFolgeTitel') ? el('abFolgeTitel').value : '',
+    projekt:    el('abFolgeProjekt') ? (el('abFolgeProjekt').value.trim()||null) : undefined,
+    geldScore:  el('abFolgeGeld') ? num(el('abFolgeGeld').value) : undefined,
+    faelligkeit:el('abFolgeDl') ? el('abFolgeDl').value : undefined,
+    sollMin:    num(el('abFolgeSoll') ? el('abFolgeSoll').value : 0),
+    prioritaet: t.folgePri || k.prioritaet,
+    komplex:    el('abFolgeKx') ? num(el('abFolgeKx').value, k.komplex) : k.komplex,
+    energie:    el('abFolgeEn') ? num(el('abFolgeEn').value, k.energie) : k.energie,
+    blockade:   el('abFolgeBl') ? num(el('abFolgeBl').value, k.blockade) : k.blockade,
+    notiz:      el('abFolgeNotiz') ? el('abFolgeNotiz').value : ''
+  });
   abhakTmp=null; closeSheet();
   karteAbhaken(k.id, false);                            // eigentliches Erledigen (Punkte=Override, Konfetti, Intraday, Speichern)
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   §3 (v1.6.0) · Routinen-Schublade — Routinen werden nebenbei abgetickt,
+   nicht durchgearbeitet. Halbhohes Bottom-Sheet, bleibt nach dem Abhaken
+   OFFEN (mehrere hintereinander), Domänen-Toggle im Kopf, Gruppen nach
+   Tagesabschnitt (die aktuelle ist aufgeklappt). Die bestehende Routinen-/
+   Counter-Logik (Tick-Kurve, Streak, Punkte, Zeit) bleibt unverändert —
+   es geht nur um Erreichbarkeit und Darstellung.
+   ══════════════════════════════════════════════════════════════════════ */
+let routTmp=null;
+/* Aktueller Tagesabschnitt nach Uhrzeit — bestimmt die offene Gruppe. */
+function jetztAbschnitt(){
+  const h=new Date().getHours();
+  if(h<TA_BIS_MORGENS) return 'morgens';
+  if(h<TA_AB_ABENDS)   return 'tagsueber';
+  return 'abends';
+}
+function oeffneRoutinen(){
+  routTmp={ dom:navDomain(), auf:jetztAbschnitt(), fb:{} };
+  renderRoutinenSheet();
+}
+function routinenDerDomaene(dom){
+  return S.karten.filter(k=>k.domain===dom && k.status!=='archiviert'
+    && (kartenArt(k)==='Routine' || kartenArt(k)==='Counter'));
+}
+function renderRoutinenSheet(){
+  const t=routTmp; if(!t) return;
+  const ks=routinenDerDomaene(t.dom);
+  const kopf='<div class="rs-kopf">'+
+    ['dfm','privat'].map(d=>'<button class="'+(t.dom===d?'on '+(d==='privat'?'privat':''):'')+'" data-rdom="'+d+'">'+
+      (d==='dfm'?'DFM':'Privat')+'</button>').join('')+'</div>';
+  let body='';
+  TAGESABSCHNITTE.forEach(ta=>{
+    const grp=ks.filter(k=>tagesabschnittVon(k)===ta);
+    const zu=(t.auf!==ta);
+    body+='<div class="routgruppe'+(zu?' zu':'')+'"><div class="rg-kopf" data-rgrp="'+ta+'">'+
+      '<span class="caret">▾</span>'+TA_LABEL[ta]+'<span class="n">'+grp.length+'</span></div><div class="rg-body">'+
+      (grp.length ? grp.map(k=>routZeileHtml(k)).join('') : '<div class="leer">—</div>')+'</div></div>';
+  });
+  openSheet('Routinen', '<div class="routsheet">'+kopf+body+
+    '<p class="d" style="margin-top:6px">Häkchen = +1 · nach links wischen = −1. Das Sheet bleibt offen.</p></div>',
+    '<button class="btn ghost sm" data-close="1">Schließen</button>');
+}
+function routZeileHtml(k){
+  const t=routTmp, fb=t&&t.fb[k.id];
+  const zeit=num(k.sollMin)>0 || k.timerFlag;   // Play nur bei Routinen mit Zeitanteil
+  return '<div class="routzeile" data-rzeile="'+k.id+'">'+
+    '<div class="rz-main" data-detail="'+k.id+'">'+
+      '<div class="rz-titel">'+esc(k.titel||'(ohne Titel)')+(fb?'<span class="rz-fb">'+fb+'</span>':'')+'</div>'+
+      '<div class="rz-sub">Ticks heute: <b>'+num(k.ticksHeute)+'</b>'+(num(k.streak)>0?' · 🔥'+num(k.streak):'')+'</div>'+
+    '</div>'+
+    (zeit?'<button class="rz-play" data-rplay="'+k.id+'" aria-label="Timer">▶</button>':'')+
+    '<button class="rz-plus" data-rplus="'+k.id+'" aria-label="Tick +1">✓</button>'+
+  '</div>';
+}
+/* +1 / −1 — nutzt die bestehende Tick-Logik, das Sheet bleibt offen. */
+function routTick(kid, minus){
+  const k=S.karten.find(x=>x.id===kid); if(!k || !routTmp) return;
+  const vorher=Math.round(kartePunkte(k));
+  if(minus){
+    if(num(k.ticksHeute)<=0){ toast('Schon bei 0'); return; }
+    k.ticksHeute=Math.max(0, num(k.ticksHeute)-1);
+    beruehre(k); saveKarten();
+  } else {
+    karteTick(kid, true);   // bestehende Logik (Tick-Kurve, Punkte, Intraday, Streak)
+  }
+  const delta=Math.round(kartePunkte(k))-vorher;
+  routTmp.fb[k.id]=(delta>=0?'+':'')+delta+' P';
+  haptik(10); renderRoutinenSheet(); renderStatusbar();
+  setTimeout(()=>{ if(routTmp && routTmp.fb[k.id]){ delete routTmp.fb[k.id]; renderRoutinenSheet(); } }, 1800);
+}
 /* ══════════════════════════════════════════════════════════════════════
    12 · D4 Stapel-Editor (Anlage & Bearbeitung, identisch §7 D4)
    ══════════════════════════════════════════════════════════════════════ */
@@ -4624,6 +4905,9 @@ function setTab(tab){
   el('v-'+tab).classList.add('on');
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
   el('fab').style.display = (tab==='stapel'||tab==='fokus') ? 'flex' : 'none';   // FAB unten-links, im Fokus + Stapel
+  // §3 (v1.6.0): Routinen-Schublade nur auf der Fokusseite, Farbe = aktive Domäne
+  const rf=el('routFab');
+  if(rf){ rf.hidden = (tab!=='fokus'); rf.classList.toggle('privat', navDomain()==='privat'); }
   renderFokusleiste();
   if(tab==='einst') renderEinst();
   else if(tab==='stapel') renderStapel();
@@ -4665,6 +4949,34 @@ function konfetti(){
 // Nav
 el('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-tab]'); if(b) setTab(b.dataset.tab); });
 el('fab').addEventListener('click', ()=>oeffneDetail(null));
+// §3 (v1.6.0): Routinen-Schublade öffnen (Farbe folgt der aktiven Domäne)
+el('routFab').addEventListener('click', oeffneRoutinen);
+// Sheet-Interaktionen der Schublade (Toggle, Gruppen, +1, Play)
+el('sheetBody').addEventListener('click', e=>{
+  const t=e.target;
+  const rd=t.closest('[data-rdom]');  if(rd){ if(routTmp){ routTmp.dom=rd.dataset.rdom; renderRoutinenSheet(); } return; }
+  const rg=t.closest('[data-rgrp]');  if(rg){ if(routTmp){ const g=rg.dataset.rgrp; routTmp.auf=(routTmp.auf===g?null:g); renderRoutinenSheet(); } return; }
+  const rp=t.closest('[data-rplus]'); if(rp){ routTick(rp.dataset.rplus, false); return; }
+  const rl=t.closest('[data-rplay]'); if(rl){ closeSheet(); fokusStarten(rl.dataset.rplay); return; }
+});
+/* §3: Wischen nach links auf einer Routinen-Zeile = −1 (Negativ-Counter). */
+(function(){
+  let x0=null, y0=null, id=null, zeile=null;
+  const body=el('sheetBody');
+  body.addEventListener('pointerdown', e=>{
+    const z=e.target.closest && e.target.closest('[data-rzeile]');
+    if(!z || e.target.closest('button')) return;
+    id=e.pointerId; x0=e.clientX; y0=e.clientY; zeile=z;
+  }, {passive:true});
+  body.addEventListener('pointerup', e=>{
+    if(id===null || e.pointerId!==id || !zeile) return;
+    const dx=e.clientX-x0, dy=e.clientY-y0;
+    const kid=zeile.dataset.rzeile;
+    id=null; zeile=null;
+    if(dx<-55 && Math.abs(dx)>Math.abs(dy)*1.4) routTick(kid, true);   // links = −1
+  });
+  body.addEventListener('pointercancel', ()=>{ id=null; zeile=null; });
+})();
 /* v1.6.0: „＋ Stapel" entfällt — der Stapel-Editor bleibt im Code, ist aber nicht
    mehr erreichbar (keine eigenen Stapel mehr, Filterung läuft über Ebene 1–3). */
 
@@ -4678,7 +4990,8 @@ el('statusbar').addEventListener('click', ()=>toggleStatChart());
 el('fokusView').addEventListener('click', e=>{
   const t=e.target;
   // §2.5 (v1.6.0): die drei Navigationsebenen — je ein Tap, Zustand in S.ui (reload-fest)
-  const nd=t.closest('[data-navdom]');  if(nd){ S.ui.navDomain=nd.dataset.navdom; saveUi(); renderFokus(); return; }
+  const nd=t.closest('[data-navdom]');  if(nd){ S.ui.navDomain=nd.dataset.navdom; saveUi(); renderFokus();
+    const rf=el('routFab'); if(rf) rf.classList.toggle('privat', navDomain()==='privat'); return; }
   const na=t.closest('[data-navart]');  if(na){ S.ui.navArt=na.dataset.navart;   saveUi(); renderFokus(); return; }
   const ns=t.closest('[data-navsort]'); if(ns){ S.ui.navSort=ns.dataset.navsort; saveUi(); renderFokus(); return; }
   // (data-kette läuft über karteRowClick weiter unten — ein Codepfad für beide Views)
@@ -4694,7 +5007,7 @@ el('fokusView').addEventListener('click', e=>{
   if(t.closest('[data-tacctoggle]')){ const acc=t.closest('.tacc'); const zu=acc.classList.toggle('zu'); S.ui.fokusSubsZu=zu; saveUi(); return; }
   const ut=t.closest('[data-uatoggle]'); if(ut){ const u=S.unteraufgaben.find(x=>x.id===ut.dataset.uatoggle); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
   const ux=t.closest('[data-uadel]'); if(ux){ S.unteraufgaben=S.unteraufgaben.filter(x=>x.id!==ux.dataset.uadel); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); return; }
-  const ua=t.closest('[data-uaadd]'); if(ua){ const inp=el('fkUaNeu'); const tt=(inp&&inp.value||'').trim(); if(tt){ S.unteraufgaben.push(neueUnteraufgabe(ua.dataset.uaadd,{titel:tt})); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
+  const ua=t.closest('[data-uaadd]'); if(ua){ fokusSubAnlegen(ua.dataset.uaadd); return; }   // §4
 });
 el('fokusView').addEventListener('change', e=>{
   // (v1.6.0) Stapel-Auswahl auf der Fokusseite entfällt — Ebene 1–3 ersetzen sie.
@@ -4704,7 +5017,8 @@ el('fokusView').addEventListener('change', e=>{
   const ub=e.target.closest('[data-uabonus]'); if(ub){ const u=S.unteraufgaben.find(x=>x.id===ub.dataset.uabonus); if(u){ u.bonusPunkte = e.target.value===''?null:num(e.target.value); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
 });
 el('fokusView').addEventListener('keydown', e=>{
-  if(e.target.id==='fkUaNeu' && e.key==='Enter'){ const k=aktiveFokusKarte(); const tt=e.target.value.trim(); if(k&&tt){ S.unteraufgaben.push(neueUnteraufgabe(k.id,{titel:tt})); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } }
+  if((e.target.id==='fkUaNeu'||e.target.id==='fkUaMin') && e.key==='Enter'){   // §4
+    e.preventDefault(); const k=aktiveFokusKarte(); if(k) fokusSubAnlegen(k.id); }
 });
 
 /* ── U2 (v1.4.0) · Swipe-Navigation auf der Fokuskarte ─────────────────
@@ -4832,6 +5146,9 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-close]')){ closeSheet(); return; }
   // U6-A: Abhak-Dialog
   if(t.closest('[data-abfolge]')){ if(abhakTmp){ abhakTmp.folge=!abhakTmp.folge; renderAbhakDialog(); } return; }
+  // §5: Priorität im Folgeaufgaben-Vorschlag (Auswahl über Render-Zyklus halten)
+  const afp=t.closest('[data-abfpri]'); if(afp){ if(abhakTmp){ abhakTmp.folgePri=afp.dataset.abfpri;
+    const box=el('abFolgePri'); if(box) box.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on', c===afp)); } return; }
   if(t.closest('[data-abgo]')){ abhakDialogConfirm(); return; }
   if(t.closest('[data-migstart]')){ migrationAusfuehren(); return; }
   if(t.closest('[data-v038import]')){ const ta=el('v038In'); const box=el('v038Ergebnis'); const r=v038ImportAusText(ta?ta.value:'');
