@@ -938,14 +938,10 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.7.0';                    // Datenvertrag/Sync-appVersion — 1.7.0 (Statistik-Ausbau: Kartenart-Filter, Routinen-Flow; keine Vertragsfelder geändert)
-const UI_VERSION = 'v1.7.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-27-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.7.1';                    // Datenvertrag/Sync-appVersion — 1.7.1 (Import legt Karten an: domain, Bausteine, gruppen[]; Vertrag bleibt 1.x)
+const UI_VERSION = 'v1.7.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-27-6';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
-const ALT = {                              // Alt-Keys der v0.38 — nur read-only lesen (§10)
-  ITEMS:'fokus2.items', TAG:'fokus2.tag', SETTINGS:'fokus2.settings',
-  HISTORIE:'fokus2.historie', VORLAGEN:'fokus2.vorlagen'
-};
 
 /* ══════════════════════════════════════════════════════════════════════
    1 · Speicher-Wrapper (§1: dünner get/set/list, DB später austauschbar)
@@ -968,10 +964,6 @@ const DB = {
   del(key){ try{ localStorage.removeItem(PREFIX+key); }catch(e){} }
 };
 /* Alt-Speicher: strikt read-only (§10 „Alt-Keys bleiben unangetastet") */
-function altLese(key, fallback){
-  try{ const r = localStorage.getItem(key); return r ? JSON.parse(r) : fallback; }
-  catch(e){ return fallback; }
-}
 
 /* ══════════════════════════════════════════════════════════════════════
    2 · Helfer
@@ -1502,13 +1494,29 @@ function tickSumme(k, bis){
    explizit gesetzt; leer = 0). Erreicht = erledigte, Offen = noch offene. */
 function subBonusErreicht(k){ return untermenge(k.id).reduce((s,u)=>s+(u.done?num(u.bonusPunkte):0),0); }
 function subBonusOffen(k){ return untermenge(k.id).reduce((s,u)=>s+(!u.done?num(u.bonusPunkte):0),0); }
+/* §1 (v1.7.1): Dauerlauf-Strafe des Pausentimers — EINE Formel für beide Wege.
+   pausenStrafe(k, laufMin) = Wert der Minuten über PAUSENTIMER_MAX_MIN mit
+   umgekehrtem Vorzeichen (Differenz = doppelter Wert, Höhe unverändert seit
+   v1.6.1). fokusZeitEinbuchen schreibt sie beim Pausieren fest;
+   pausenStrafeLive liefert den WACHSENDEN Anteil des gerade laufenden Timers,
+   damit der Abzug sofort sichtbar ist statt erst nach der Pause. */
+function pausenStrafe(k, laufMin){
+  if(!k || !k.keineAutoPause || !(laufMin>PAUSENTIMER_MAX_MIN)) return 0;
+  const wert=punkteFuerZeit(k, laufMin)-punkteFuerZeit(k, PAUSENTIMER_MAX_MIN);
+  return 2*wert*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
+}
+function pausenStrafeLive(k){
+  if(!(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id && S.fokus.startMs)) return 0;
+  return pausenStrafe(k, (Date.now()-S.fokus.startMs)/60000);
+}
 function kartePunkte(k){
   if(k.punkteOverride!=null) return num(k.punkteOverride);   // U6-A: beim Abhaken gewählter Ist-Punktwert schlägt die Berechnung
   const zeitTerm = punkteFuerZeit(k, zeitquelleMin(k)) * (S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   const tickTerm = tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k);
-  // §5 (v1.6.1): Dauerlauf-Strafe des Pausentimers (beim Pausieren festgeschrieben,
-  // siehe fokusZeitEinbuchen). Reines Feld — kartePunkte behält seine Abhängigkeiten.
-  return zeitTerm + tickTerm + subBonusErreicht(k) - num(k.strafPunkte);   // + gebuchte Unteraufgaben-Boni
+  // §1 (v1.7.1): festgeschriebene + live wachsende Pausentimer-Strafe. Der
+  // 1-Sekunden-Ticker rendert kartePunkte-basierte Anzeigen ohnehin sekündlich —
+  // damit wächst der Abzug ab Minute 120 sichtbar auf Fokusseite/Statusleiste.
+  return zeitTerm + tickTerm + subBonusErreicht(k) - num(k.strafPunkte) - pausenStrafeLive(k);   // + gebuchte Unteraufgaben-Boni
 }
 /* Prognose inkl. ALLER Unteraufgaben-Boni (erledigt + offen) — für „geplant". */
 function kartePunkteGeplant(k){ return kartePunkteBei(k, num(k.sollMin)||istSekLive(k)/60) + subBonusOffen(k); }
@@ -1540,16 +1548,11 @@ function fokusZeitEinbuchen(){
   const k=fokusKarte();
   const sek=(Date.now()-S.fokus.startMs)/1000;
   if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); logIntraday(k,{minuten:sek/60,typ:'timer'}); }   // v1.1: Akku-Drift; A7 berührt; B0 Log
-  // §5 (v1.6.1): Pausentimer — lief die Karte über PAUSENTIMER_MAX_MIN am Stück,
-  // zählen die Minuten DARÜBER negativ statt positiv (Differenz = doppelter Wert).
-  // Der Zähler ist unsichtbar; angezeigt/exportiert bleibt der normale App-Wert.
-  if(k && k.keineAutoPause){
-    const lauf=sek/60;
-    if(lauf>PAUSENTIMER_MAX_MIN){
-      const wert=punkteFuerZeit(k, lauf)-punkteFuerZeit(k, PAUSENTIMER_MAX_MIN);   // Wert des Überhangs
-      k.strafPunkte=num(k.strafPunkte)+2*wert*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
-    }
-  }
+  // §5 (v1.6.1) / §1 (v1.7.1): Beim Pausieren wird die bis dahin live angezeigte
+  // Dauerlauf-Strafe festgeschrieben — DIESELBE Formel wie pausenStrafeLive,
+  // dadurch springt der Wert beim Pausieren nicht. Reset des Zählers folgt
+  // direkt darunter (startMs=0); jede Pause startet die 120 Minuten neu.
+  if(k) k.strafPunkte=num(k.strafPunkte)+pausenStrafe(k, sek/60);
   S.fokus.sessionSek=num(S.fokus.sessionSek)+sek;               // v1.1: Session-Summe (v0.38-Port)
   S.fokus.laeuft=false; S.fokus.startMs=0;
   akkuSampleSchreiben();                                        // v1.1: Energie-Stichprobe
@@ -3517,16 +3520,23 @@ function abschlussZuruecknehmen(k){
   DB.set('unteraufgaben', S.unteraufgaben);
   return true;
 }
-/* §7: Bonus-Verschiebungen aller abgeschlossenen Karten für die Statistik.
-   Liefert {datum: deltaPunkte} — Abschlusstag negativ, Arbeitstage positiv. */
+/* §7 (v1.6.0) / §3 (v1.7.1): Bonus-Verschiebungen aller abgeschlossenen Karten
+   für die Statistik — Abschlusstag negativ, Arbeitstage positiv. Der Bonus
+   gehört zu DER Karte, an der er entstand: jedes Delta trägt deshalb Domäne
+   und Kartenart mit, damit auch die gefilterten Sichten denselben
+   Umbuchungsschritt anwenden und Summe(Arten) = Alle-Sicht bleibt.
+   Liefert {datum: {gesamt, dom:{dfm,privat}, art:{'Art|dom':delta}}}. */
 function glaettungDeltas(){
   const out={};
   S.karten.forEach(k=>{
+    const dom=(k.domain==='dfm')?'dfm':'privat', key=kartenArt(k)+'|'+dom;
+    const add=(d,p)=>{ const o=out[d]||(out[d]={gesamt:0, dom:{dfm:0,privat:0}, art:{}});
+      o.gesamt+=p; o.dom[dom]+=p; o.art[key]=(o.art[key]||0)+p; };
     (k.abschluesse||[]).forEach(s=>{
       const g=s.glaettung; if(!Array.isArray(g) || !g.length) return;
       const abTag=String(s.tagId||'').slice(0,10); if(!abTag) return;
-      out[abTag]=(out[abTag]||0)-num(s.bonusPunkte);
-      g.forEach(x=>{ out[x.datum]=(out[x.datum]||0)+num(x.punkte); });
+      add(abTag, -num(s.bonusPunkte));
+      g.forEach(x=>add(x.datum, num(x.punkte)));
     });
   });
   return out;
@@ -3959,193 +3969,10 @@ function stapelLoeschen(){
   saveStapel(); saveOrdner(); closeSheet(); renderStapel(); toast('Stapel gelöscht');
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   13 · Migration §10 (aus alten fokus2.* Keys, read-only, idempotent)
-   ══════════════════════════════════════════════════════════════════════ */
-function altGeldScore(impact){
-  const map={hoch:300, mittel:200, niedrig:100};
-  return map[impact]!=null ? map[impact] : 0;
-}
-/* v0.38-Rhythmus → v1.0 (taeglich | alleNTage | wochentage). Die v1.0-Modelle
-   sind bewusst schlanker (§2): Monats-/Zufalls-Rhythmen gibt es nicht, sie
-   werden auf „alle N Tage" angenähert (Näherung wird im Import gezählt). */
-function altRhythmusApprox(it){ return ['monatstage','zufallWoche','zufallMonat'].includes(it.rhythmusModus); }
-function altRhythmus(it){
-  if(it.typ!=='routine') return null;
-  const modus=it.rhythmusModus, wt=it.rhythmusWochentage;
-  if((modus==='wochentage'||!modus) && Array.isArray(wt) && wt.length)
-    return {typ:'wochentage', tage: wt.map(d=>num(d)+1).filter(n=>n>=1&&n<=7)};
-  if(modus==='monatstage'){ const c=(it.rhythmusMonatstage||[]).length; return {typ:'alleNTage', n: c>0?Math.max(1,Math.round(30/c)):30}; }
-  if(modus==='zufallWoche'){ const c=num(it.rhythmusZufallAnzahl,2); return {typ:'alleNTage', n: Math.max(1,Math.round(7/Math.max(1,c)))}; }
-  if(modus==='zufallMonat'){ const c=num(it.rhythmusZufallAnzahl,2); return {typ:'alleNTage', n: Math.max(1,Math.round(30/Math.max(1,c)))}; }
-  const n=num(it.rhythmusTage, 1);
-  if(n<=1) return {typ:'taeglich'};
-  return {typ:'alleNTage', n};
-}
-function altTickKurve(it){
-  if(it.typ!=='counter') return [0];
-  if(Array.isArray(it.tickStufen) && it.tickStufen.length){
-    // grobe Übernahme: je Stufe ihr punkteProTick
-    return it.tickStufen.map(s=>num(s.punkteProTick)).slice(0,12) || [0];
-  }
-  const schwelle=num(it.tickSchwelle,3), vor=num(it.punkteJeTickVorSchwelle,1), nach=num(it.punkteJeTickNachSchwelle,-2);
-  return Array(Math.max(1,schwelle)).fill(vor).concat([nach]);
-}
-function mapAltKarte(it){
-  const domain = it.domain==='dfm' ? 'dfm' : 'privat';
-  // §10: ort/streamSlot → Fälligkeit (heute→heute, Warteschlange→null).
-  // Vorhandene Deadline bleibt als Fälligkeit erhalten (Fälligkeit ist die
-  // einzige Wahrheit §2) — sonst würden Termine verloren gehen.
-  let faelligkeit = (it.streamSlot!=null) ? heuteApp() : (it.deadline || null);
-  const k = neueKarte({
-    id: it.id || uuid(),
-    herkunftId: it.id || null,
-    airtableId: (domain==='dfm' && it.id && /^rec/i.test(it.id)) ? it.id : null,
-    domain,
-    titel: it.titel || '',
-    notiz: it.notiz || '',
-    kommentarClaude: it.kommentarClaude || it.kommentarFuerClaude || '',   // U6-E
-    projekt: domain==='dfm' ? (it.projekt||null) : null,
-    geldScore: domain==='dfm' ? altGeldScore(it.geldImpact) : 0,
-    faelligkeit,
-    uhrzeit: null,
-    sollMin: num(it.aufwandGeplantMin),
-    istSek: Math.round(num(it.istMinuten)*60),
-    komplex: num(it.komplexitaet,1), energie: num(it.energie,1), blockade: num(it.blockade,1),
-    // v1.1 §4-Port: Raten-Override, Akku-Rate und zeitgestaffelte Rate mitnehmen
-    // (in v0.38 pro Item vorhanden). Re-Import stellt so Pausen-/Meeting-Timer wieder her.
-    punkteProStd: (it.punkteProStd!=null && Number.isFinite(Number(it.punkteProStd))) ? Number(it.punkteProStd) : null,
-    akkuProStd:   (it.akkuProStd!=null && Number.isFinite(Number(it.akkuProStd))) ? Number(it.akkuProStd) : null,
-    zeitStufen:   (Array.isArray(it.zeitStufen) && it.zeitStufen.length) ? it.zeitStufen.map(s=>({bisMin:s.bisMin==null?null:num(s.bisMin), punkteProStd:num(s.punkteProStd)})) : null,
-    prioritaet: ['muss','soll','idee'].includes(it.prioritaet)?it.prioritaet:'soll',
-    tickKurve: altTickKurve(it),
-    ticksHeute: num(it.tickStandHeute),
-    timerFlag: !!it.timerFlag,
-    rhythmus: altRhythmus(it),
-    status: (it.status==='erledigt') ? 'erledigt' : 'offen',
-    streak: num(it.routineStreak || it.streak),
-  });
-  // v1.0-Direktfelder (Seed-Format Weg 2): NUR wenn im Item vorhanden — sonst
-  // bleibt die v0.38-Ableitung/das Default unverändert.
-  if(Array.isArray(it.tickKurve) && it.tickKurve.length) k.tickKurve = it.tickKurve.map(num);
-  if(it.rhythmus && it.rhythmus.typ) k.rhythmus = it.rhythmus;      // direktes v1.0-Format
-  if(it.uhrzeit)        k.uhrzeit   = it.uhrzeit;                    // "HH:MM"
-  if(it.geldScore!=null) k.geldScore = num(it.geldScore);           // direkte Zahl (statt geldImpact)
-  return k;
-}
-function migrationVorschau(){
-  const items=altLese(ALT.ITEMS, []);
-  if(!Array.isArray(items)) return {items:[], offen:0, routinen:0, counter:0, wohlstand:0};
-  const offen=items.filter(i=>i.status!=='erledigt').length;
-  const routinen=items.filter(i=>i.typ==='routine').length;
-  const counter=items.filter(i=>i.typ==='counter').length;
-  const tag=altLese(ALT.TAG, null);
-  const hist=altLese(ALT.HISTORIE, []);
-  let wohlstand = tag && tag.wohlstandStand!=null ? tag.wohlstandStand : 0;
-  if(Array.isArray(hist)) hist.forEach(h=>{ if(h && h.wohlstandStand>wohlstand) wohlstand=h.wohlstandStand; });
-  return {items, offen, routinen, counter, wohlstand};
-}
-function migrationBackupHref(){
-  const paket={ typ:'alt-backup', exportZeit:jetztIso(),
-    tag:altLese(ALT.TAG,null), historie:altLese(ALT.HISTORIE,[]) };
-  return 'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(paket,null,2));
-}
-/* Gemeinsamer Kern: mappt alte Items (aus localStorage ODER aus einem
-   v0.38-Export) auf v1.0-Karten. Idempotent über herkunftId/id. */
-function importItems(items, opts){
-  opts=opts||{};
-  let neu=0, upd=0, erl=0, approx=0, subs=0;
-  items.forEach(it=>{
-    // Ohne mitErledigte: erledigte Einmal-Aufgaben überspringen (§10 = nur offen).
-    if(!opts.mitErledigte && it.status==='erledigt' && it.typ==='aufgabe') return;
-    if(altRhythmusApprox(it)) approx++;
-    const k=mapAltKarte(it);
-    // Erledigt-Import: NICHT auf den Import-/Export-Tag umdatieren (sonst zählt
-    // eine alte Erledigung als „heute" und flutet Erledigt-heute/Tagesbilanz).
-    // Nur den echten v0.38-Erledigungstag übernehmen, sonst undatiert lassen.
-    if(k.status==='erledigt') k.tagId = it.zuletztErledigt || null;
-    const exist = S.karten.find(x=> (k.herkunftId && x.herkunftId===k.herkunftId) || x.id===k.id );
-    let ziel;
-    if(exist){
-      // idempotent: nur Definition auffrischen, App-Hoheit (Status/Ist) lassen
-      Object.assign(exist, { titel:k.titel, projekt:k.projekt, geldScore:k.geldScore, notiz:k.notiz,
-        rhythmus:k.rhythmus, tickKurve:k.tickKurve, streak:k.streak,
-        komplex:k.komplex, energie:k.energie, blockade:k.blockade, prioritaet:k.prioritaet,
-        punkteProStd:k.punkteProStd, akkuProStd:k.akkuProStd, zeitStufen:k.zeitStufen });
-      // v1.0-Direktfelder NUR bei Vorhandensein übernehmen (Seed-Format Weg 2)
-      if(Array.isArray(it.tickKurve) && it.tickKurve.length) exist.tickKurve = it.tickKurve.map(num);
-      if(it.rhythmus && it.rhythmus.typ) exist.rhythmus = it.rhythmus;
-      if(it.uhrzeit)        exist.uhrzeit   = it.uhrzeit;
-      if(it.geldScore!=null) exist.geldScore = num(it.geldScore);
-      ziel=exist; upd++;
-    } else { S.karten.push(k); ziel=k; neu++; if(k.status==='erledigt') erl++; }
-    // Unteraufgaben — Match ausschließlich über App-id
-    if(Array.isArray(it.unteraufgaben)){
-      it.unteraufgaben.forEach(u=>{
-        const uid=u.id||uuid();
-        if(S.unteraufgaben.find(x=>x.id===uid)) return;
-        S.unteraufgaben.push(neueUnteraufgabe(ziel.id, {id:uid, titel:u.titel||'', sollMin:num(u.geplantMin), done:!!u.erledigt, bonusPunkte:(u.bonusPunkte!=null?num(u.bonusPunkte):null)}));
-        subs++;
-      });
-    }
-  });
-  return {neu, upd, erledigt:erl, approx, subs};
-}
-/* Weg 1 (§10): aus der v0.38-App im SELBEN Browser (localStorage, nur offen). */
-function migrationAusfuehren(){
-  const v=migrationVorschau();
-  if(!v.items.length){ toast('Keine Alt-Daten gefunden'); return; }
-  const r=importItems(v.items, {mitErledigte:false});
-  if(v.wohlstand>num(S.meta.wohlstand)) S.meta.wohlstand=v.wohlstand;   // Wohlstand aus lokaler App
-  S.meta.migriertAm=jetztIso();
-  saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
-  closeSheet(); renderStapel(); renderEinst();
-  toast('Migriert: '+r.neu+' neu, '+r.upd+' aktualisiert'); haptik(20);
-}
-/* Weg 2: gepasteter v0.38-Export {typ,appVersion,datum,items,zeitEintraege}
-   — inkl. erledigter Aufgaben. Wohlstand nur, falls im Paket enthalten. */
-function v038ImportAusText(text){
-  let paket; try{ paket=JSON.parse(text); }catch(e){ return {fehler:'Ungültiges JSON'}; }
-  const items = Array.isArray(paket) ? paket : (paket && paket.items);
-  if(!Array.isArray(items) || !items.length) return {fehler:'Kein v0.38-Export erkannt (kein items-Array).'};
-  const r=importItems(items, {mitErledigte:true, datum: paket && paket.datum});
-  if(paket && paket.wohlstand!=null && num(paket.wohlstand)>num(S.meta.wohlstand)) S.meta.wohlstand=num(paket.wohlstand);
-  S.meta.migriertAm=jetztIso();
-  saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
-  renderStapel(); renderEinst();
-  return r;
-}
-/* §6.1 (v1.6.1): Der v0.38-Konverter ist aus der App ENTFERNT — kein Button,
-   kein erreichbarer Pfad, und das appVersion-Gate lässt Array-Pakete nicht mehr
-   durch. Die reinen Mapping-Funktionen (mapAltKarte/importItems/alt*) stehen nur
-   noch als Altlast hier, weil tests/seed-regression.js sie per Regex aus dieser
-   Datei extrahiert; sie zu löschen würde die Suite rotfärben und die Leitplanke
-   „nur neu.html" verletzen. Siehe Report — auf Zuruf entferne ich beides zusammen. */
-function oeffneMigration(){
-  const v=migrationVorschau();
-  let h='';
-  h+='<p class="d"><b>Zwei Wege</b>, deine v0.38-Daten zu übernehmen — bringt Karten, Definitionen, Streaks und Unteraufgaben.</p>';
-  // Weg 1: selber Browser (localStorage §10)
-  h+='<div class="card"><h3>1 · App im selben Browser</h3>';
-  if(v.items.length){
-    h+='<div class="kv"><span>Aufgaben / offen</span><b>'+v.items.length+' / '+v.offen+'</b></div>'+
-       '<div class="kv"><span>Routinen / Counter</span><b>'+v.routinen+' / '+v.counter+'</b></div>'+
-       '<div class="kv"><span>Wohlstand (kumulativ)</span><b>'+Math.round(v.wohlstand)+'</b></div>'+
-       '<a class="btn sm" style="display:block;text-decoration:none;margin:8px 0" href="'+migrationBackupHref()+'" download="fokus-alt-backup.json">⬇︎ Alt-Historie sichern</a>'+
-       '<button class="btn sm prim" data-migstart="1">Offene übernehmen (§10)</button>';
-  } else {
-    h+='<p class="d" style="color:var(--mut2)">Keine Alt-Daten in diesem Browser (nur dort, wo v0.38 gespeichert hat).</p>';
-  }
-  h+='</div>';
-  // Weg 2: v0.38-Export einfügen
-  h+='<div class="card"><h3>2 · v0.38-Export einfügen</h3><p class="d">Den Export der v0.38 (Feld <code>items</code>) hier einfügen — inkl. erledigter Aufgaben. Wohlstand ist im Sync-Export nicht enthalten (kommt über Weg 1 oder bleibt).</p>'+
-    '<textarea id="v038In" placeholder=\'{ "appVersion":"0.38.0", "items":[ … ] }\' style="min-height:110px;font-family:ui-monospace,monospace;font-size:11px"></textarea>'+
-    '<div id="v038Ergebnis"></div>'+
-    '<button class="btn sm prim" data-v038import="1" style="margin-top:8px">Aus Export importieren</button></div>';
-  // Was ankommt / was vereinfacht wird
-  h+='<div class="card"><h3>Was kommt an?</h3><p class="d">✅ Titel · Domäne · Projekt · Geld-Score · Soll/Ist-Zeit · Priorität · Rate-Treiber · Notiz · Fälligkeit · Status · <b>Streaks</b> · Unteraufgaben (Titel/Soll/erledigt) · Rhythmus · Counter-Tickkurve.<br>➖ Vom v1.0-Modell (§2) vereinfacht: Monats-/Zufalls-Rhythmus → „alle N Tage"; Zeit-Stufen-Kurven → einheitliche Rate; Unteraufgaben-Einzelpunkte & das Zeit-Log werden nicht als Einzelposten übernommen (Punkte rechnet v1.0 neu, Wohlstand bleibt die Summe).</p></div>';
-  openSheet('Migration & v0.38-Import', h, '<button class="btn ghost" data-close="1">Schließen</button>');
-}
+/* §5 (v1.7.1): Der v0.38-Konverter (mapAltKarte, importItems, alt*-Helfer,
+   migrationVorschau/-Ausfuehren/-BackupHref, v038ImportAusText, oeffneMigration)
+   ist vollstaendig entfernt — der Sync-Import legt seit v1.7.1 auch private
+   Karten samt Routinen-Bausteinen und Gruppen an (§2) und ersetzt ihn. */
 
 /* ══════════════════════════════════════════════════════════════════════
    13b · Sync Stufe 1 (§8, Copy-Paste) — EIN Button in D6.
@@ -4194,14 +4021,25 @@ function syncImport(text){
   if(/^0\./.test(String(av)))  return {fehler:'Altformat appVersion '+av+' — dieses Paket wird nicht mehr verarbeitet (Vertrag ab 1.0).'};
   const arr = (paket && paket.karten) || null;
   if(!Array.isArray(arr) || !arr.length) return {fehler:'Keine Karten im Paket'};
-  let neu=0, upd=0, arch=0;
+  let neu=0, neuDfm=0, neuPrivat=0, upd=0, arch=0;
   const neuAngelegt=[];   // FIX1: Neuanlagen dieses Laufs — ggf. als Bestandsübernahme markieren
+  const uebersprungen=[]; // §2.4 (v1.7.1): alles, was nicht ankam — MIT Grund
   arr.forEach(inc=>{
+    if(!inc || (inc.id==null && inc.airtableId==null && (inc.titel==null||String(inc.titel).trim()===''))){
+      uebersprungen.push({was:'Karte ohne id/airtableId/titel', grund:'nicht identifizierbar'}); return;
+    }
     // Anker: App-id; sekundär airtableId (§8: airtableId→id-Match)
     let lok = (inc.id && S.karten.find(k=>k.id===inc.id)) ||
               (inc.airtableId && S.karten.find(k=>k.airtableId===inc.airtableId)) || null;
-    if(!lok){ lok=neueKarte({ id: inc.id||uuid(), domain:'dfm', airtableId: inc.airtableId||null }); S.karten.push(lok); neu++; neuAngelegt.push(lok); }
-    else upd++;
+    if(!lok){
+      // §2.1 (v1.7.1): domain wirkt NUR bei Neuanlage — 'privat' legt eine
+      // private Karte an, alles andere (auch fehlend) bleibt beim bisherigen dfm.
+      const dom = inc.domain==='privat' ? 'privat' : 'dfm';
+      lok=neueKarte({ id: inc.id||uuid(), domain:dom, airtableId: inc.airtableId||null });
+      S.karten.push(lok); neu++; if(dom==='dfm') neuDfm++; else neuPrivat++;
+      neuAngelegt.push(lok);
+    }
+    else upd++;   // §2.1: bei bekannter Karte wird ein mitgeschicktes domain IGNORIERT
     // Airtable-Hoheit → übernehmen
     if(inc.airtableId!=null) lok.airtableId=inc.airtableId;
     if(inc.titel!=null) lok.titel=inc.titel;
@@ -4225,6 +4063,17 @@ function syncImport(text){
     }
     if(inc.vorgaengerAppId!=null)      lok.vorgaengerAppId=inc.vorgaengerAppId;
     if(inc.vorgaengerAirtableId!=null) lok.vorgaengerAirtableId=inc.vorgaengerAirtableId;
+    // §2.2 (v1.7.1): Karten-Bausteine — jeweils NUR wenn mitgeschickt; fehlende
+    // Felder ändern nichts. Damit entstehen Routinen und Counter vollständig
+    // aus einem Paket (Neuaufbau-Weg).
+    if(inc.rhythmus!==undefined)       lok.rhythmus = inc.rhythmus ? JSON.parse(JSON.stringify(inc.rhythmus)) : null;
+    if(inc.tickKurve!==undefined){     const tk=Array.isArray(inc.tickKurve)?inc.tickKurve.map(x=>num(x)):null;
+                                       lok.tickKurve = (tk&&tk.length)?tk:[0]; }   // negative Werte zulässig
+    if(inc.punkteProStd!==undefined)   lok.punkteProStd = inc.punkteProStd==null?null:num(inc.punkteProStd);
+    if(inc.akkuProStd!==undefined)     lok.akkuProStd   = inc.akkuProStd==null?null:num(inc.akkuProStd);
+    if(inc.abhakbonus!==undefined)     lok.abhakbonus   = inc.abhakbonus==null?null:num(inc.abhakbonus);   // auch negativ
+    if(inc.timerFlag!==undefined)      lok.timerFlag=!!inc.timerFlag;
+    if(inc.keineAutoPause!==undefined) lok.keineAutoPause=!!inc.keineAutoPause;
     if(inc.komplex!=null) lok.komplex=num(inc.komplex);
     if(inc.energie!=null) lok.energie=num(inc.energie);
     if(inc.blockade!=null) lok.blockade=num(inc.blockade);
@@ -4260,9 +4109,47 @@ function syncImport(text){
     });
     ketteSetzen(ids);
     ketteGesetzt=ids.length;
+    ketteUnbekannt.forEach(s=>uebersprungen.push({was:'Ketten-Eintrag „'+s+'"', grund:'keine Karte mit dieser ID'}));
+  }
+  // §2.3 (v1.7.1): Top-Level gruppen[] — Routinen-Gruppen anlegen/aktualisieren.
+  // mitglieder dürfen App-IDs ODER Kartentitel sein (Titel werden gegen die im
+  // selben Paket angelegten Karten aufgelöst, da die Auflösung NACH der
+  // Kartenschleife läuft). Unauflösbares wird gemeldet, nicht verschluckt.
+  // Gleiche id → aktualisieren, nie duplizieren.
+  let gruppenNeu=0, gruppenUpd=0;
+  if(paket && Array.isArray(paket.gruppen)){
+    if(!Array.isArray(S.routinenGruppen)) S.routinenGruppen=[];
+    paket.gruppen.forEach(g=>{
+      if(!g || (!g.id && !(g.name&&String(g.name).trim()))){
+        uebersprungen.push({was:'Gruppe ohne id und name', grund:'nicht identifizierbar'}); return;
+      }
+      const mitglieder=[];
+      (g.mitglieder||[]).forEach(ref=>{
+        const s=String(ref||'').trim(); if(!s) return;
+        const k=S.karten.find(x=>x.id===s)
+             || S.karten.find(x=>String(x.titel||'').trim().toLowerCase()===s.toLowerCase());
+        if(k){ if(mitglieder.indexOf(k.id)<0) mitglieder.push(k.id); }
+        else uebersprungen.push({was:'Gruppen-Mitglied „'+s+'" ('+esc(g.name||g.id)+')', grund:'keine Karte mit dieser ID / diesem Titel'});
+      });
+      let vorhanden = g.id ? S.routinenGruppen.find(x=>x.id===g.id) : null;
+      if(vorhanden){
+        if(g.name!=null) vorhanden.name=g.name;
+        if(g.domain==='dfm'||g.domain==='privat') vorhanden.domain=g.domain;
+        vorhanden.mitglieder=mitglieder;
+        if(g.komplettBonus!=null) vorhanden.komplettBonus=num(g.komplettBonus);
+        gruppenUpd++;
+      } else {
+        S.routinenGruppen.push({ id:g.id||uuid(), name:g.name||'Gruppe',
+          domain:(g.domain==='dfm'?'dfm':'privat'), mitglieder,
+          komplettBonus:(g.komplettBonus!=null?num(g.komplettBonus):KOMPLETT_BONUS_DEFAULT),
+          farbe:'#b98af7', bonusTag:null });
+        gruppenNeu++;
+      }
+    });
+    saveRoutGruppen();
   }
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
-  return {neu, upd, arch, ketteGesetzt, ketteUnbekannt};
+  return {neu, neuDfm, neuPrivat, upd, arch, ketteGesetzt, ketteUnbekannt, gruppenNeu, gruppenUpd, uebersprungen};
 }
 
 /* Sync-Sheet (EIN Button in D6). */
@@ -5239,8 +5126,17 @@ function renderBelohnung(){
   h+=belAufschluesselung();
 
   // ── Stat 4: Routinen-Erfüllungsquote + Streaks ───────────────────
-  let erf=0, verp=0; S.historie.forEach(x=>(x.routinenBilanz||[]).forEach(r=>{ if(r.entschuldigt) return; if(r.verpasst) verp++; else erf++; }));
-  // erfüllte = in Historie als nicht-verpasst gebucht; zusätzlich heute erledigte Routinen
+  // §4 (v1.7.1) BUGFIX: die Quote rechnete NUR über routinenBilanz — die enthält
+  // aber ausschließlich verpasste/entschuldigte Einträge, nie erfüllte, womit
+  // erf strukturell 0 blieb und die Quote dauerhaft 0 % zeigte. Jetzt DIESELBE
+  // Rechnung wie im Routinen-Flow der Analyse: erfüllt aus dem Punkt-Log
+  // (Historie + heute), verpasst aus der Bilanz, entschuldigt bleibt draußen.
+  let erf=0, verp=0;
+  S.historie.forEach(x=>{
+    (x.log||[]).forEach(l=>{ if(l.art==='Routine' && num(l.punkte)>0) erf++; });
+    (x.routinenBilanz||[]).forEach(r=>{ if(r.verpasst) verp++; });
+  });
+  if(tagOffen() && S.tag) (S.tag.log||[]).forEach(l=>{ if(l.art==='Routine' && num(l.punkte)>0) erf++; });
   const routKarten=S.karten.filter(k=>k.rhythmus && k.status!=='archiviert');
   const quote = (erf+verp)>0 ? Math.round(erf/(erf+verp)*100) : null;
   h+='<div class="card"><h3>Routinen</h3>';
@@ -5515,11 +5411,6 @@ el('sheet').addEventListener('click', e=>{
   // §4 (v1.6.1): Rückfrage nach der Auto-Pause
   if(t.closest('[data-apok]')){   autoPauseUebernehmen(false); return; }
   if(t.closest('[data-apkeep]')){ autoPauseUebernehmen(true);  return; }
-  if(t.closest('[data-migstart]')){ migrationAusfuehren(); return; }
-  if(t.closest('[data-v038import]')){ const ta=el('v038In'); const box=el('v038Ergebnis'); const r=v038ImportAusText(ta?ta.value:'');
-    if(r.fehler){ if(box) box.innerHTML='<div class="card" style="border-color:var(--bad);margin-top:8px"><p class="d" style="color:var(--bad)">'+esc(r.fehler)+'</p></div>'; }
-    else { if(box) box.innerHTML='<div class="card" style="border-color:var(--ok);margin-top:8px"><p class="d"><b>'+r.neu+'</b> neu · <b>'+r.upd+'</b> aktualisiert · <b>'+r.erledigt+'</b> erledigt · <b>'+r.subs+'</b> Unteraufgaben'+(r.approx?' · <b>'+r.approx+'</b> Rhythmen genähert':'')+'.</p></div>'; toast('v0.38-Export importiert'); haptik(20); }
-    return; }
 
   // ── Sync (§8)
   if(t.closest('[data-synccopy]')){ const ta=el('syncEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){} if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
@@ -5531,12 +5422,18 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-syncimport]')){ const ta=el('syncIn'); const res=syncImport(ta?ta.value:''); const box=el('syncErgebnis');
     if(res.fehler){ if(box) box.innerHTML='<div class="card" style="border-color:var(--bad)"><p class="d" style="color:var(--bad)">'+esc(res.fehler)+'</p></div>'; }
     else { renderAlles(); const exta=el('syncEx'); if(exta) exta.value=syncExportText('sync');
-      // §8.2: Kettenergebnis mitmelden — unauflösbare IDs ausdrücklich zeigen
-      let kz='';
-      if(res.ketteGesetzt!=null) kz+=' Tageskette gesetzt: <b>'+res.ketteGesetzt+'</b> Einträge.';
-      if(res.ketteUnbekannt && res.ketteUnbekannt.length)
-        kz+='<br><span style="color:var(--warn)">Übersprungen (unbekannte IDs): '+esc(res.ketteUnbekannt.join(', '))+'</span>';
-      if(box) box.innerHTML='<div class="card" style="border-color:var(--ok)"><p class="d">Import: <b>'+res.neu+'</b> neu · <b>'+res.upd+'</b> aktualisiert · <b>'+res.arch+'</b> archiviert.'+kz+'</p></div>';
+      // §2.4 (v1.7.1): getrennt ausweisen — angelegt je Domäne, aktualisiert,
+      // übersprungen MIT Grund. Beim Neuaufbau muss auf einen Blick erkennbar
+      // sein, ob alles angekommen ist.
+      let kz='<b>'+res.neu+'</b> angelegt';
+      if(res.neu>0) kz+=' (DFM '+res.neuDfm+' · Privat '+res.neuPrivat+')';
+      kz+=' · <b>'+res.upd+'</b> aktualisiert · <b>'+res.arch+'</b> archiviert.';
+      if(res.gruppenNeu||res.gruppenUpd) kz+='<br>Gruppen: <b>'+num(res.gruppenNeu)+'</b> angelegt · <b>'+num(res.gruppenUpd)+'</b> aktualisiert.';
+      if(res.ketteGesetzt!=null) kz+='<br>Tageskette gesetzt: <b>'+res.ketteGesetzt+'</b> Einträge.';
+      if(res.uebersprungen && res.uebersprungen.length)
+        kz+='<br><span style="color:var(--warn)">Übersprungen ('+res.uebersprungen.length+'):</span><br>'+
+          res.uebersprungen.map(u=>'<span style="color:var(--warn)">· '+esc(u.was)+' — '+esc(u.grund)+'</span>').join('<br>');
+      if(box) box.innerHTML='<div class="card" style="border-color:'+((res.uebersprungen&&res.uebersprungen.length)?'var(--warn)':'var(--ok)')+'"><p class="d">'+kz+'</p></div>';
       toast('Sync importiert'); haptik(15); }
     return; }
 
@@ -5964,8 +5861,14 @@ function analyseRohTage(){
   // wandert vom Abschlusstag auf die Tage, an denen tatsächlich an der Karte
   // gearbeitet wurde (anteilig nach Ist-Minuten). Reine Auswertung: punkteIst
   // und das Export-Paket bleiben unverändert.
+  // §3 (v1.7.1): dieselbe Umbuchung in ALLEN Sichten — Tagessumme, Domänen-
+  // Aggregate UND Art-Aggregate. Tage ohne Eintrag werden in allen Sichten
+  // gleich übersprungen (Konsistenz bleibt gewahrt).
   const gd=glaettungDeltas();
-  Object.keys(gd).forEach(d=>{ if(map[d]) map[d].punkte+=gd[d]; });
+  Object.keys(gd).forEach(d=>{ const e=map[d]; if(!e) return; const o=gd[d];
+    e.punkte+=o.gesamt; e.punkteDfm+=o.dom.dfm; e.punktePrivat+=o.dom.privat;
+    Object.keys(o.art).forEach(k=>{ e.artPkt[k]=(e.artPkt[k]||0)+o.art[k]; });
+  });
   arr.forEach(e=>{ e.min=e.minDfm+e.minPrivat; e.wt=anWochentag(e.datum); });
   // H4.2: Tage ohne jegliche Aktivität (keine Zeit, keine Punkte) fallen komplett
   // aus allen Statistiken/Durchschnitten heraus — kein Verzerren als 0-Tag.

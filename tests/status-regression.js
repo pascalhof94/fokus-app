@@ -11,11 +11,15 @@ function extract(name){
   throw 'kein Ende: ' + name;
 }
 var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','basisRate','rate','akkuRate',
-  'tickSumme','punkteFuerZeit','zeitquelleMin','subBonusErreicht','kartePunkte','kartenArt','laufendeSek',
+  'tickSumme','punkteFuerZeit','zeitquelleMin','subBonusErreicht','pausenStrafe','pausenStrafeLive','kartePunkte','kartenArt','laufendeSek',
   'heuteInvestiertMin','akkuLive','aktuelleTagId','tagOffen','kartePunkteHeute','tagesPunkteDomain','tagesPunkteLive',
   'punkteHeuteAnzeige','tagesZielDomain','wachTagAnteil','punkteHeuteDomain','istTickKarte','tickPunkte',
   'tagStundenVergangen','paceWerte','imTagesstrom','energieBatterie','tagesStreakStand',
   'fokusKarte','untermenge'];
+/* §1 (v1.7.1): kartePunkte zieht die Pausentimer-Strafe live ab — die beiden
+   Helfer werden mit extrahiert, die Konstante hier gespiegelt (Konstanten sind
+   nicht extrahierbar). Mit S.fokus=null liefert pausenStrafeLive stets 0. */
+var PAUSENTIMER_MAX_MIN = 120;
 var DEFAULT_SETTINGS = { basisProStd:120, zeitGewicht:1.15, tickGewicht:1, geldGewicht:0.5, geldDeckel:1.5,
   geldScoreRef:200, tagesZielDfm:5000, tagesZielPrivat:3000, tageszielPunkteProStd:100, akkuProStd:-8 };
 var S = { karten:[], unteraufgaben:[], tag:null, fokus:null, historie:[], meta:{wohlstand:0}, settings:DEFAULT_SETTINGS };

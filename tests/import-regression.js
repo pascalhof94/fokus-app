@@ -1,12 +1,13 @@
-/* Dev-only Regressionstest fuer den v0.38-Import/Konverter in neu.html.
+/* Dev-only Regressionstest fuer den Sync-Import (syncImport) in neu.html.
    NICHT Teil der PWA (wird von der App nicht geladen, steht nicht in sw.js).
    Ausfuehren aus dem Repo-Verzeichnis mit JavaScriptCore:
-     "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc" tests/import-regression.js
-   Extrahiert die echten Funktionen aus neu.html (kein Nachbau) und prueft sie
-   isoliert (gestubbtes S/localStorage) — ruehrt keine echten Daten an.
+     jsc tests/import-regression.js
 
-   Deckt ab: Konverter-Bug „offen -> erledigt/heute" (Karte f440ff25,
-   „Probefahrt Schwalbe vereinbaren"). */
+   v1.7.1: Der v0.38-Konverter (mapAltKarte/importItems), den diese Suite
+   urspruenglich prufte, ist entfernt. Die Suite schuetzt jetzt dieselben
+   INVARIANTEN am lebenden Importpfad — insbesondere den historischen Bug
+   „offen → erledigt/heute": der Import darf NIE Status, tagId, Ist-Zeit oder
+   Punkte setzen (App-Hoheit, §8), und Unteraufgaben matchen nur per App-id. */
 
 var src = readFile('neu.html');
 function extract(name){
@@ -18,53 +19,62 @@ function extract(name){
   for(; j < src.length; j++){ var c2 = src[j]; if(c2 === '{') depth++; else if(c2 === '}'){ depth--; if(depth === 0) return src.substring(m.index + 1, j + 1); } }
   throw 'Kein Funktionsende: ' + name;
 }
-var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnteraufgabe',
-  'altGeldScore','altRhythmusApprox','altRhythmus','altTickKurve','mapAltKarte','importItems'];
+var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnteraufgabe','syncImport'];
 // Stubs fuer die Laufzeit-Abhaengigkeiten (keine echten Daten)
 var crypto = {};
-var S = { karten: [], unteraufgaben: [], tag: null, meta: { wohlstand: 0 }, settings: {} };
+var S = { karten: [], unteraufgaben: [], routinenGruppen: [], tag: null, meta: { wohlstand: 0 }, settings: {} };
+var TAGESABSCHNITTE = ['morgens','tagsueber','abends'];
+var SYNC_BESTAND_SCHWELLE = 10;
+var KOMPLETT_BONUS_DEFAULT = 200;
+function esc(s){ return String(s==null?'':s); }
+function saveKarten(){} function saveRoutGruppen(){} function ketteSetzen(){}
+var DB = { get:function(k,f){ return f; }, set:function(){}, del:function(){}, list:function(){ return []; } };
 eval(NAMES.map(extract).join('\n'));
 
 var fails = 0;
 function ok(name, cond){ print((cond ? 'OK   ' : 'FAIL ') + name); if(!cond) fails++; }
-var HEUTE = heuteApp();
+function imp(p){ return syncImport(JSON.stringify(p)); }
 
-/* 1) Die real betroffene Karte: offen, ueberfaellig, tageGeschoben, Teil-Unteraufgaben. */
-var probefahrt = { id:'f440ff25-0764-418b-977c-718e42256140', domain:'privat', typ:'aufgabe',
-  titel:'Probefahrt Schwalbe vereinbaren', status:'offen', istMinuten:0, deadline:'2026-07-21',
-  tageGeschoben:2, streamSlot:null,
-  unteraufgaben:[{id:'s1',titel:'A',erledigt:true},{id:'s2',titel:'B',erledigt:false}] };
-S.karten = []; S.unteraufgaben = [];
-importItems([JSON.parse(JSON.stringify(probefahrt))], { mitErledigte:true, datum:'2026-07-29' });
-var k = S.karten[0];
-ok('offene Karte bleibt offen', k.status === 'offen');
-ok('offene Karte bekommt KEIN tagId', k.tagId === null);
-ok('Faelligkeit = ueberfaellige Deadline', k.faelligkeit === '2026-07-21');
-ok('Unteraufgaben per id, done erhalten',
-   S.unteraufgaben.length === 2 &&
-   S.unteraufgaben.filter(function(u){return u.id==='s1';})[0].done === true &&
-   S.unteraufgaben.filter(function(u){return u.id==='s2';})[0].done === false);
+/* 1) App-Hoheit: der Import setzt NIE Status/tagId/Ist/Punkte — auch wenn das
+      Paket sie mitschickt (historischer Konverter-Bug „offen → erledigt/heute"). */
+S.karten=[]; S.unteraufgaben=[];
+imp({ appVersion:'1.4', karten:[{ id:'k1', titel:'Probefahrt vereinbaren', faelligkeit:'2026-07-21',
+  status:'erledigt', tagId:'2026-08-27-1', istMin:99, punkteIst:500,
+  unteraufgaben:[{ id:'s1', titel:'A', sollMin:10 },{ id:'s2', titel:'B', sollMin:20 }] }] });
+var k=S.karten[0];
+ok('neue Karte startet offen (status ist App-Hoheit)', k.status==='offen');
+ok('kein tagId aus dem Paket', k.tagId===null);
+ok('keine Ist-Zeit aus dem Paket', num(k.istSek)===0);
+ok('kein punkteOverride aus dem Paket', k.punkteOverride===null);
+ok('Faelligkeit = ueberfaellige Deadline uebernommen', k.faelligkeit==='2026-07-21');
 
-/* 2) Erledigt-Import darf NICHT auf den Import-/Export-Tag umdatiert werden. */
-S.karten = []; S.unteraufgaben = [];
-importItems([{ id:'done-1', domain:'dfm', typ:'aufgabe', titel:'Alt-erledigt', status:'erledigt', istMinuten:20 }],
-            { mitErledigte:true, datum:'2026-07-29' });
-ok('erledigte Aufgabe ohne zuletztErledigt -> tagId null (nicht heute)',
-   S.karten[0].status === 'erledigt' && S.karten[0].tagId === null && S.karten[0].tagId !== HEUTE);
+/* 2) Unteraufgaben: Match NUR per App-id; done ist App-Hoheit. */
+S.unteraufgaben.forEach(function(u){ if(u.id==='s1') u.done=true; });
+imp({ appVersion:'1.4', karten:[{ id:'k1',
+  unteraufgaben:[{ id:'s1', titel:'A neu', sollMin:15, done:false },{ id:'s3', titel:'C', sollMin:5 }] }] });
+var s1=S.unteraufgaben.filter(function(u){return u.id==='s1';})[0];
+ok('Sub per id gematcht, Titel/Soll aktualisiert', s1.titel==='A neu' && s1.sollMin===15);
+ok('done bleibt App-Hoheit (nicht ueberschrieben)', s1.done===true);
+ok('neuer Sub angelegt, alter erhalten', S.unteraufgaben.length===3);
+ok('kein Titel-Match: gleicher Titel woanders erzeugt KEINE Verknuepfung',
+  S.unteraufgaben.filter(function(u){return u.parentId==='k1';}).length===3);
 
-S.karten = []; S.unteraufgaben = [];
-importItems([{ id:'done-2', domain:'privat', typ:'routine', titel:'Alt-Routine', status:'erledigt',
-              zuletztErledigt:'2026-07-20', rhythmusTage:1, routineStreak:4 }],
-            { mitErledigte:true, datum:'2026-07-29' });
-ok('erledigte Routine -> tagId = echter zuletztErledigt-Tag', S.karten[0].tagId === '2026-07-20');
-ok('Routine-Streak erhalten', S.karten[0].streak === 4);
+/* 3) No-delete: Archivierung ist der einzige Status-Einfluss des Imports. */
+var r3=imp({ appVersion:'1.4', karten:[{ id:'k1', status:'archiviert' }] });
+ok('archiviert wird uebernommen (No-delete: nie loeschen)', k.status==='archiviert' && r3.arch===1);
+ok('Karte existiert weiter', S.karten.length===1);
 
-/* 3) §10-Migration (mitErledigte:false) ueberspringt erledigte Einmal-Aufgaben. */
-S.karten = []; S.unteraufgaben = [];
-var r = importItems([{ id:'done-3', domain:'dfm', typ:'aufgabe', titel:'Erledigt einmal', status:'erledigt' }],
-                    { mitErledigte:false });
-ok('§10: erledigte Aufgabe wird uebersprungen', S.karten.length === 0 && r.neu === 0);
+/* 4) Idempotenz: derselbe Re-Import erzeugt keine Duplikate. */
+imp({ appVersion:'1.4', karten:[{ id:'k1', titel:'Probefahrt vereinbaren' }] });
+ok('Re-Import: weiterhin genau 1 Karte', S.karten.length===1);
+
+/* 5) airtableId-Match als Zweitanker. */
+S.karten=[]; S.unteraufgaben=[];
+imp({ appVersion:'1.4', karten:[{ airtableId:'recX', titel:'Via Airtable' }] });
+var vorher=S.karten.length;
+imp({ appVersion:'1.4', karten:[{ airtableId:'recX', titel:'Via Airtable v2' }] });
+ok('airtableId-Match: Update statt Duplikat', S.karten.length===vorher && S.karten[0].titel==='Via Airtable v2');
 
 print('');
-if(fails){ print(fails + ' FEHLGESCHLAGEN'); throw 'Regression fehlgeschlagen'; }
+if(fails){ print(fails + ' FEHLGESCHLAGEN'); throw 'Test rot'; }
 print('alle Regressionstests gruen');
