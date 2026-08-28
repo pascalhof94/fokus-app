@@ -30,7 +30,7 @@ function untermenge(id){ return S.unteraufgaben.filter(function(u){return u.pare
 
 var fails=0; function ok(n,c){ print((c?'OK   ':'FAIL ')+n); if(!c) fails++; }
 function karte(f){ return Object.assign({ id:'x', domain:'privat', status:'offen', titel:'T',
-  komplex:1, energie:1, blockade:1, sollMin:60, istSek:0, ticksHeute:0, tickKurve:[1],
+  komplex:1, energie:1, blockade:1, sollMin:60, istSek:0, ticksHeute:0, ticksAktiv:false, tickWert:0, tickWerteHeute:[],
   punkteProStd:null, akkuProStd:null, zeitStufen:null, rhythmus:null, faelligkeit:heuteApp() }, f||{}); }
 
 var HEUTE=heuteApp();
@@ -56,10 +56,18 @@ var pw=paceWerte();
 ok('paceWerte.soll = anteiliges Gesamtziel (~1000)', Math.abs(pw.soll-1000)<1);
 ok('paceWerte.ist >= 0 endlich', pw.ist>=0 && isFinite(pw.ist));
 // A3: Tick-Karte-Erkennung + Tick-Punkte
-ok('istTickKarte: Counter (tickKurve>1)', istTickKarte(karte({tickKurve:[5,4,3]}))===true);
-ok('istTickKarte: timerFlag', istTickKarte(karte({timerFlag:true}))===true);
+/* §7/§9 (v1.8.0): Tick-Modell — maßgeblich ist ticksAktiv, timerFlag ist nur
+   noch Zeitmessung, und tickPunkte summiert die heutigen Einzelwerte
+   (Fallback: tickWert je Tick). Eine Routine mit ticksAktiv bleibt Routine
+   (kartenArt) UND ist tickbar — der historische Bug. */
+ok('istTickKarte: ticksAktiv', istTickKarte(karte({ticksAktiv:true}))===true);
+ok('istTickKarte: Routine MIT ticksAktiv ist tickbar', istTickKarte(karte({rhythmus:{typ:'taeglich'}, ticksAktiv:true}))===true);
+ok('kartenArt: Routine mit Ticks bleibt Routine', kartenArt(karte({rhythmus:{typ:'taeglich'}, ticksAktiv:true}))==='Routine');
+ok('istTickKarte: timerFlag allein tickt NICHT mehr', istTickKarte(karte({timerFlag:true}))===false);
 ok('istTickKarte: normale Aufgabe = false', istTickKarte(karte({}))===false);
-ok('tickPunkte summiert Tickkurve×ticks', Math.round(tickPunkte(karte({tickKurve:[10,6,4],ticksHeute:2})))===16);
+ok('tickPunkte: ticksHeute × tickWert (Fallback)', Math.round(tickPunkte(karte({ticksAktiv:true, tickWert:8, ticksHeute:2})))===16);
+ok('tickPunkte: Einzelwerte schlagen den Default', Math.round(tickPunkte(karte({ticksAktiv:true, tickWert:8, ticksHeute:2, tickWerteHeute:[10,-5]})))===5);
+ok('tickPunkte: negativer tickWert zulässig', Math.round(tickPunkte(karte({ticksAktiv:true, tickWert:-15, ticksHeute:2})))===-30);
 
 // 4) energieBatterie: gruen+gelb = akku, dunkel = 100−akku
 S.tag.akku=60; S.fokus=null;

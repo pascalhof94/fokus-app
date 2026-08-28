@@ -55,7 +55,9 @@ ok('tagesabschnitt als Array übernommen', JSON.stringify(prv.tagesabschnitt)===
 ok('abhakbonus negativ zulässig', prv.abhakbonus===-25);
 ok('punkteProStd 0 kommt an (nicht als fehlend gewertet)', prv.punkteProStd===0);
 ok('timerFlag + keineAutoPause gesetzt', prv.timerFlag===true && prv.keineAutoPause===true);
-ok('Negativ-Counter: Tick-Kurve mit Minuswerten', JSON.stringify(cnt.tickKurve)==='[-15,-20]');
+/* §9.5 (v1.8.0): eine alte tickKurve im Paket wird aufs neue Modell umgesetzt —
+   ticksAktiv + tickWert (erster Wert), negative Werte zulässig. */
+ok('Negativ-Counter: tickKurve → ticksAktiv + tickWert(-15)', cnt.ticksAktiv===true && cnt.tickWert===-15);
 /* 3) Fehlende Felder ändern nichts (Re-Import derselben Karte ohne Bausteine). */
 imp({ appVersion:'1.4', karten:[{ id:'n-prv', titel:'Private Routine v2' }] });
 ok('Re-Import: nur 1 Karte (kein Duplikat)', S.karten.filter(function(k){return k.id==='n-prv';}).length===1);

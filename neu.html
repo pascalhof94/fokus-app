@@ -177,17 +177,21 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .krow.erledigt{opacity:.55}
 /* Zeile 2: drei Gruppen — Sortieren links, Toggles mittig, Aktion rechts.
    Gruppen durch feine Trennlinien abgesetzt; alle Ziele 44×44. */
-/* flex-wrap: 8 Ziele à 44px (352px) + Trenner passen auf 375px-Geräten nicht in
-   EINE Zeile (≈360px netto) — die Aktionsgruppe rechts darf dann kontrolliert
-   in eine eigene Zeile umbrechen, statt abgeschnitten zu werden. Ab ~410px
-   Viewport steht alles nebeneinander. Kein Ziel schrumpft unter 44px. */
-.krow .ktools{display:flex;align-items:center;flex-wrap:wrap;gap:2px;row-gap:2px;padding:4px 6px 6px;border-top:1px solid var(--line)}
-.krow .tgrp{display:flex;align-items:center;gap:2px}
-.krow .tgrp+.tgrp{border-left:1px solid var(--line);padding-left:6px;margin-left:3px}
-.krow .tgrp.taktion{margin-left:auto}
-.krow .ksort{display:flex;flex-direction:row;gap:4px}  /* v1.7.2: Pfeile nebeneinander */
-.krow .ksort .sar{width:44px;height:44px;border:1px solid var(--line);border-radius:9px;color:var(--txt);font-size:14px;background:var(--bg);display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+/* §2.1 (v1.8.0): ZWEI Werkzeugzeilen — primär groß (Start·Schieben·Erledigt,
+   flex:1 → symmetrisch verteilte breite Felder ≥44px hoch), sekundär kleiner
+   (40px-Raster, gleichmäßig verteilt). Fehlende Elemente rücken zusammen. */
+.krow .ktools{padding:4px 8px 6px;border-top:1px solid var(--line)}
+.krow .trow{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.krow .trow.tprim{margin-bottom:4px}
+.krow .trow.tprim>*{flex:1;height:46px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--bg)}
+.krow .trow.tsek{padding-top:4px;border-top:1px dashed var(--line)}
+.krow .trow.tsek>*:not(.ksort), .krow .trow.tsek .sar{width:40px;height:40px;min-height:40px;flex:none}
+.krow .trow.tsek .ksort{flex:none}
+.krow .ksort{display:flex;flex-direction:row;gap:6px}
+.krow .ksort .sar{border:1px solid var(--line);border-radius:9px;color:var(--txt);font-size:13px;background:var(--bg);display:flex;align-items:center;justify-content:center;touch-action:manipulation}
 .krow .ksort .sar:active{background:var(--card2);color:var(--txt)}
+.krow .kschieb{color:var(--purple)}
+.krow .karchiv{display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--mut2);background:transparent;border:none;filter:grayscale(1);opacity:.6;border-radius:9px}
 .krow .kcheck.ktick{font-size:22px;font-weight:800;color:var(--blue);background:transparent}  /* A3 Tick-Plus */
 /* Zeile 1: Titel+Meta allein. min-width als Rückfall-Schutz — wandert je wieder
    etwas hierher, läuft die Zeile sichtbar über, statt den Titel zu zerbröseln. */
@@ -369,6 +373,8 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .uareihe .uapunkte{width:48px;flex:none;text-align:center;font-size:11px;color:var(--cyan);font-weight:700;padding-top:6px}
 .uareihe.fertig .uapunkte{color:var(--ok)}
 .uareihe .uax{width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--bad);font-size:13px;border-radius:7px;background:rgba(246,109,109,.12);border:1px solid rgba(246,109,109,.28)}
+.uareihe.tickzeile{background:rgba(242,184,75,.07);border:1px solid rgba(242,184,75,.3);border-radius:9px;padding:4px 8px;margin-bottom:6px}
+.uareihe.tickzeile .tickstand{margin-left:auto;font-family:ui-monospace,monospace;font-size:12px;color:var(--warn);font-weight:700;white-space:nowrap}
 .uaneu{display:flex;gap:var(--s1);margin-top:6px}
 .uaneu .uaminneu{flex:none;width:72px;text-align:center}   /* §4: Soll-Minuten (Pflicht) */
 .uaneu input{flex:1;font-size:13px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt)}
@@ -801,6 +807,11 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
   background:var(--blue);color:#0a0f1a;font-size:26px;font-weight:700;display:flex;align-items:center;justify-content:center;
   box-shadow:0 8px 22px rgba(0,0,0,.45);border:none}
 #routFab[hidden]{display:none}
+/* §10 (v1.8.0): zweiter Schnellzugriff — 📌 links neben ↻, beide ≥56px im Daumenbogen */
+#pinFab{position:fixed;right:calc(16px + 56px + 12px);bottom:calc(64px + var(--sab) + 10px);z-index:70;width:56px;height:56px;border-radius:50%;
+  background:var(--card2);color:var(--txt);font-size:22px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 22px rgba(0,0,0,.45);border:1px solid var(--line)}
+#pinFab[hidden]{display:none}
 #routFab.privat{background:var(--warn)}
 /* Halbhohes Sheet — die Fokuskarte bleibt dahinter sichtbar */
 .routsheet .rs-kopf{display:flex;gap:8px;margin-bottom:10px}
@@ -906,6 +917,8 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 <button id="fab">＋</button>
 <!-- §3 (v1.6.0): Routinen-Schublade — runder Auslöser unten RECHTS im Daumenbogen -->
 <button id="routFab" hidden>↻</button>
+<!-- §10 (v1.8.0): Pin-Schublade — zweiter Schnellzugriff links daneben -->
+<button id="pinFab" hidden>📌</button>
 
 <nav id="nav">
   <button data-tab="fokus"><span class="ic">🎯</span>Fokus</button>
@@ -951,9 +964,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.7.2';                    // Datenvertrag/Sync-appVersion — 1.7.2 (UI-Hotfix Kartenzeile; keine Vertragsfelder geändert)
-const UI_VERSION = 'v1.7.2';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-28-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.8.0';                    // Datenvertrag/Sync-appVersion — 1.8.0 (Tick-Modell ticksAktiv+tickWert im Import; sonst 1.x-kompatibel)
+const UI_VERSION = 'v1.8.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-28-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1114,7 +1127,10 @@ function neueKarte(f={}){
     akkuProStd: null,                 // v1.1: Akku %/Std dieser Karte (null = Settings-Standard) — v0.38-Port
     zeitStufen: null,                 // v1.1: [{bisMin|null, punkteProStd}] zeitgestaffelte Rate (null = flach) — v0.38-Port §4
     prioritaet: 'soll',               // muss | soll | idee
-    tickKurve: [0],                   // Punkte je Tick; Länge 1 = einfaches Abhak-Tick
+    tickKurve: [0],                   // ALT (§9 1.8.0: wird nicht mehr gelesen; bleibt für kartenArt-Altbestand)
+    ticksAktiv: false,                // §9 (1.8.0): Karte wird getickt statt abgehakt
+    tickWert: 0,                      // §9 (1.8.0): Default-Punkte je Tick (negativ zulässig)
+    tickWerteHeute: [],               // §9 (1.8.0): heutige Einzel-Tickwerte (je Tick überschreibbar)
     ticksHeute: 0,
     timerFlag: false,
     schnellauswahl: false,            // U2: manuell kuratierte Schnellauswahl (Toggle ⚡)
@@ -1360,6 +1376,34 @@ function ladeAlles(){
     S.meta.migration161=true;
     saveKarten(); saveMeta();
   }
+  // ══ §9.5 (v1.8.0) · Migration aufs neue Tick-Modell ════════════════════
+  // Guarded, Sicherung VORHER. tickKurve → ticksAktiv + tickWert (erster Wert).
+  // Mehrstufige Kurven verlieren ihre Staffelung — gewollt, aber protokolliert.
+  // Kurven [0] (der alte Default JEDER Karte) zählen als „ohne Kurve", sonst
+  // würde jede Aufgabe tickbar. §3.1: WhatsApp wird reiner Counter.
+  if(!S.meta.migration180){
+    DB.set('karten_bak180', S.karten);
+    const log={ ts:jetztIso(), ticker:0, gestaffelt:[], whatsapp:null };
+    S.karten.forEach(k=>{
+      const kv=Array.isArray(k.tickKurve)?k.tickKurve:[];
+      const echt = kv.length>1 || (kv.length===1 && num(kv[0])!==0);
+      if(echt){
+        k.ticksAktiv=true; k.tickWert=num(kv[0]); log.ticker++;
+        if(kv.length>1) log.gestaffelt.push({titel:k.titel||'(ohne Titel)', kurve:kv.slice(), behalten:num(kv[0])});
+      } else if(k.ticksAktiv==null){ k.ticksAktiv=false; k.tickWert=num(k.tickWert); }
+      if(!Array.isArray(k.tickWerteHeute)) k.tickWerteHeute=[];
+      // §3.1: „WhatsApp" trackte Zeit, weil JEDE Karte den Start-Knopf bekam —
+      // seit §3 hängt der an hatZeitmessung(). Damit die Karte auch per
+      // Definition ein reiner Counter ist: Zeitanteile entfernen.
+      if(String(k.titel||'').trim().toLowerCase()==='whatsapp' && k.rhythmus){
+        log.whatsapp={ timerFlagVorher:!!k.timerFlag, sollMinVorher:num(k.sollMin) };
+        k.timerFlag=false; k.sollMin=0;
+      }
+    });
+    S.meta.migration180Log=log;
+    S.meta.migration180=true;
+    saveKarten(); saveMeta();
+  }
   // U3 (v1.4.0): bisher globaler „Bearbeitet heute"-Statusfilter wird zum
   // Pro-Stapel-Filter. Alten Wert einmalig übernehmen, guarded + idempotent.
   if(!S.ui.stapelStatus) S.ui.stapelStatus={};
@@ -1496,9 +1540,15 @@ function zeitquelleMin(k){
   if(k.prioritaet==='idee') z = Math.min(z, num(k.sollMin));
   return z;
 }
+/* §9 (v1.8.0): Die mehrstufige tickKurve ist abgelöst. Jeder Tick bucht den
+   Kartenwert tickWert — je Tick überschreibbar (§9.4), deshalb hält
+   tickWerteHeute die heutigen Einzelwerte (Reset beim Tagesstart wie
+   ticksHeute). tickSumme summiert die ersten `bis` heutigen Ticks; fehlt für
+   Alt-Ticks der Einzelwert, greift der Default tickWert. */
 function tickSumme(k, bis){
-  const kurve = Array.isArray(k.tickKurve)?k.tickKurve:[];
-  let s=0; for(let i=0;i<bis && i<kurve.length;i++) s += num(kurve[i]);
+  const w = Array.isArray(k.tickWerteHeute)?k.tickWerteHeute:[];
+  let s=0;
+  for(let i=0;i<bis;i++) s += (i<w.length) ? num(w[i]) : num(k.tickWert);
   return s;
 }
 /* Zeit- und Tick-Punkte sind orthogonal (§4): eine Karte kann beides tragen
@@ -1543,12 +1593,25 @@ function tickPunkte(k){ return tickSumme(k, num(k.ticksHeute)) * (S.settings.tic
    timerFlag/Stoppuhr ist ORTHOGONAL (§4: eine Karte kann Zeit UND Ticks tragen). */
 function kartenArt(k){
   if(k.rhythmus) return 'Routine';
-  if(Array.isArray(k.tickKurve) && k.tickKurve.length>1) return 'Counter';
+  if(k.ticksAktiv) return 'Counter';                                    // §9 (1.8.0): neues Tick-Modell
+  if(Array.isArray(k.tickKurve) && k.tickKurve.length>1) return 'Counter';   // Altbestand vor Migration
   return 'Aufgabe';
 }
-/* A3: „Tick-Karte" = wird über „+" getickt statt abgehakt (Timer-Karten +
-   Counter). Solche Karten bekommen nie ein Erledigt-Feld. */
-function istTickKarte(k){ return !!k.timerFlag || kartenArt(k)==='Counter'; }
+/* §7 (v1.8.0) BUGFIX: istTickKarte war an kartenArt gekoppelt — und weil dort
+   der Rhythmus VOR der Tick-Kurve geprüft wird, wurde eine Routine mit Kurve
+   nie als tickbar erkannt (Zähne putzen, Sport, WhatsApp … bekamen ein
+   Erledigt-Häkchen statt ＋). Maßgeblich ist jetzt AUSSCHLIESSLICH das Feld
+   ticksAktiv (§9); timerFlag löst nur noch Zeitmessung aus, keine Ticks.
+   Eine Routine mit ticksAktiv behält Streak und Tagesabschnitte UND ist
+   tickbar — Normalfall, kein Sonderfall. */
+function istTickKarte(k){ return !!k.ticksAktiv; }
+/* §3 (v1.8.0): Zeitmessung ist eine Eigenschaft der KARTE, nicht ihrer Art.
+   Aufgaben messen immer; Routinen/Counter nur mit Zeitanteil (Soll, timerFlag
+   oder Zeitstaffel). Reine Ticker bekommen keinen Start/Pause-Knopf. */
+function hatZeitmessung(k){
+  if(kartenArt(k)==='Aufgabe') return true;
+  return !!k.timerFlag || num(k.sollMin)>0 || (Array.isArray(k.zeitStufen)&&k.zeitStufen.length>0);
+}
 
 /* ── Timer-Engine (§7 D1: EIN Play/Pause-Toggle) ──────────────────────
    S.fokus = { karteId, laeuft, startMs } — bei Pause/Wechsel/Abschluss
@@ -1748,8 +1811,9 @@ function filterEinzel(k, f){
   return String(v==null?'':v).toLowerCase().includes(String(f.wert||'').toLowerCase());
 }
 function stapelKarten(st){
-  // §2.2/§2.3 (v1.6.0): die beiden Sonderstapel kommen nicht aus der Filter-Engine.
+  // §2.2/§2.3 (v1.6.0) + §4 (v1.8.0): die Sonderstapel kommen nicht aus der Filter-Engine.
   if(st && st.id==='sys-heute')    return ketteKarten();
+  if(st && st.id==='sys-schnell')  return schnellKarten();
   if(st && st.id==='sys-erledigt') return erledigtKarten();
   const byFeld={};
   (st.filter||[]).forEach(f=>{ (byFeld[f.feld]=byFeld[f.feld]||[]).push(f); });
@@ -1810,14 +1874,28 @@ function sortiereStapel(ks, st){
 /* A5: Karte im Stapel eine Position hoch/runter. Überführt den Stapel in den
    manuellen Modus und schreibt die aktuelle Anzeige-Reihenfolge als sortIndex
    fest, dann Tausch mit dem Nachbarn. */
-function karteSortieren(kid, dir, stapelId){
-  const st=S.stapel.find(s=>s.id===stapelId); if(!st) return;
-  const ks=stapelKarten(st); const i=ks.findIndex(k=>k.id===kid); if(i<0) return;
-  const j=i+dir; if(j<0 || j>=ks.length) return;
-  st.sortierung={feld:'manuell', richtung:'asc'};   // V1.2: manuelle Verschiebung schlägt Auto-Sortierung
-  ks.forEach((k,idx)=>{ k.sortIndex=Object.assign({}, k.sortIndex); k.sortIndex[st.id]=idx+1; });
-  const a=ks[i], b=ks[j], t=a.sortIndex[st.id]; a.sortIndex[st.id]=b.sortIndex[st.id]; b.sortIndex[st.id]=t;
-  saveKarten(); saveStapel(); renderAlles();   // V1.2 Fix: aktive Ansicht neu zeichnen (auch Fokus-Liste, nicht nur Stapel-Tab)
+/* §1 (v1.8.0) BUGFIX: schrieb sortIndex[stapelId], das seit v1.6.0 niemand
+   mehr las. Jetzt je Kontext: „Heute" ordnet die Tageskette direkt um;
+   Fokus-Liste/Schnellauswahl tauschen über den Ansichts-Schlüssel; „Erledigt"
+   hat keine Pfeile (Chronologie). */
+function karteSortieren(kid, dir, kontext){
+  if(kontext==='sys-erledigt') return;
+  if(kontext==='sys-heute'){
+    const st=ketteState(); tagesKette();
+    const i=st.ids.indexOf(kid), j=i+dir;
+    if(i<0 || j<0 || j>=st.ids.length) return;
+    const t=st.ids[i]; st.ids[i]=st.ids[j]; st.ids[j]=t;
+    saveMeta(); renderAlles(); return;
+  }
+  const key=String(kontext||'');
+  if(key!=='sys-schnell' && key!=='sys-pins' && key.indexOf('fl|')!==0) return;
+  const ks=ansichtsListe(key);
+  const i=ks.findIndex(k=>k.id===kid), j=i+dir;
+  if(i<0 || j<0 || j>=ks.length) return;
+  const a=ks[i], b=ks[j];
+  a.sortIndex=Object.assign({}, a.sortIndex); a.sortIndex[key]=j;
+  b.sortIndex=Object.assign({}, b.sortIndex); b.sortIndex[key]=i;
+  saveKarten(); renderAlles();
 }
 /* §3.5 KPI: offen/alle · Punktesumme (offen=Prognose/Soll, erledigt=Ist) · Ø-Dauer */
 function stapelKpi(ks){
@@ -1844,8 +1922,51 @@ function stapelKpi(ks){
 function standardStapelDefs(){
   return [
     {id:'sys-heute',    name:'Heute',    farbe:'#4f8ef7', filter:[], sortierung:{feld:'kette',   richtung:'asc'}},
+    {id:'sys-schnell',  name:'Schnellauswahl', farbe:'#f2b84b', filter:[], sortierung:{feld:'schnell',richtung:'desc'}},   // §4 (1.8.0)
     {id:'sys-erledigt', name:'Erledigt', farbe:'#3ecf8e', filter:[], sortierung:{feld:'abschluss',richtung:'desc'}}
   ];
+}
+/* ══ §1 (v1.8.0) · Manuelle Position je ANSICHT ══════════════════════════
+   Hoch/Runter schrieb sortIndex[stapelId] — aber seit v1.6.0 liest kein
+   Sonderstapel das Feld mehr (Kette/Chronologie), und in der Fokus-Liste gab
+   es gar keinen Stapel. Jetzt: „Heute" ordnet die Tageskette selbst um; jede
+   andere Ansicht bekommt einen eigenen sortIndex-Schlüssel
+   (fl|Domäne|Art|Ebene3 bzw. sys-schnell). Manuell platzierte Karten schlagen
+   die Auto-Sortierung, unverschobene behalten ihre Auto-Position. */
+function ansichtsKey(gruppe){
+  const d=navDomain();
+  return 'fl|'+d+'|'+navArt()+'|'+(d==='dfm'?navSort():String(gruppe||''));
+}
+function anwendenManuell(ks, key){
+  const mit=[], ohne=[];
+  ks.forEach(k=>{ const i=k.sortIndex&&k.sortIndex[key]; if(i!=null) mit.push(k); else ohne.push(k); });
+  if(!mit.length) return ks;
+  mit.sort((a,b)=>num(a.sortIndex[key])-num(b.sortIndex[key]));
+  const out=ohne.slice();
+  mit.forEach(k=>out.splice(Math.max(0,Math.min(num(k.sortIndex[key]), out.length)), 0, k));
+  return out;
+}
+/* Render-Reihenfolge einer Ansicht — dieselbe Funktion nutzt karteSortieren
+   als LESESEITE, damit Schreiben und Lesen nie wieder auseinanderlaufen. */
+function ansichtsListe(key){
+  if(key==='sys-schnell') return schnellKarten();
+  if(key==='sys-pins') return pinListe();   // §10 (1.8.0)
+  if(String(key).indexOf('fl|')===0){
+    const t=String(key).split('|');
+    const basis=navFilter(S.karten.filter(k=>k.status==='offen'));
+    if(t[1]==='privat' && t[3]){
+      const g=navGruppen(basis).find(x=>x.key===t[3]);
+      return g?anwendenManuell(g.karten, key):[];
+    }
+    return anwendenManuell(navSortiere(basis), key);
+  }
+  return [];
+}
+/* §4: Schnellauswahl — zuletzt hinzugefügte zuerst, Pfeile greifen darüber. */
+function schnellKarten(){
+  const ks=S.karten.filter(k=>k.schnellauswahl && k.status!=='archiviert')
+    .slice().sort((a,b)=>(a.schnellTs||'')<(b.schnellTs||'')?1:-1);
+  return anwendenManuell(ks, 'sys-schnell');
 }
 /* ══════════════════════════════════════════════════════════════════════
    §2.2 (v1.6.0) · Tageskette „Heute" — ein Array von App-IDs je Kalendertag
@@ -1915,6 +2036,7 @@ function syncStandardStapel(){
 function seedStapel(){
   if(!S.meta.stapelV4){ syncStandardStapel(); S.meta.stapelV4=true; }   // A6: einmalige Umstellung
   if(!S.meta.stapelV6){ syncStandardStapel(); S.meta.stapelV6=true; }   // U6-B: +„Zuletzt hinzugefügt"
+  if(!S.meta.stapelV8){ syncStandardStapel(); S.meta.stapelV8=true; }   // §4 (1.8.0): +„Schnellauswahl"
   S.meta.seeded=true; saveMeta();
 }
 
@@ -1931,6 +2053,47 @@ function tZeitKurz(min){ min=Math.max(0,Math.round(min)); return min>=60 ? Math.
 function kartePunkteBei(k, min){ return kartePunkte(Object.assign({}, k, { istSek: Math.max(0,min)*60 })); }
 const RING_C = 2*Math.PI*58;    // Umfang Timer-Ring
 const RING_CP = 2*Math.PI*48;   // Umfang Fortschritts-Ring
+/* ══ §5.1 (v1.8.0) · P/h-Pfeil gegen den Gruppenschnitt ══════════════════
+   Vier getrennte Schnitte (Domäne × Aufgaben/Routinen, Counter zählen zu den
+   Routinen wie überall seit v1.6.0). Grundlage: tatsächlich erreichte P/h aller
+   Karten der Gruppe mit nennenswerter Ist-Zeit. Beim Rendern berechnet, nie
+   persistiert; unter PH_MIN_KARTEN Datenpunkten wird der Pfeil weggelassen. */
+const PH_MIN_KARTEN = 3;     // Mindestzahl Karten je Schnitt, sonst kein Pfeil
+const PH_MIN_MIN    = 10;    // Karten unter 10 Ist-Minuten verzerren nur — raus
+const PH_NEUTRAL    = 0.15;  // ±15 % um den Schnitt = neutral (→)
+let _phCache=null;
+function phGruppe(k){ return (k.domain==='dfm'?'dfm':'privat')+'|'+(kartenArt(k)==='Aufgabe'?'A':'R'); }
+function phSchnitte(){
+  if(_phCache) return _phCache;
+  const agg={};
+  S.karten.forEach(k=>{
+    if(k.status==='archiviert') return;
+    const min=num(k.istSek)/60; if(min<PH_MIN_MIN) return;
+    const p=kartePunkte(k); if(!(p>0)) return;
+    const g=phGruppe(k), o=agg[g]||(agg[g]={sum:0,n:0});
+    o.sum+=p/(min/60); o.n++;
+  });
+  _phCache={};
+  Object.keys(agg).forEach(g=>{ _phCache[g]={ schnitt:agg[g].sum/agg[g].n, n:agg[g].n }; });
+  return _phCache;
+}
+function phBadge(k){
+  const sollM=num(k.sollMin);
+  const planPh = sollM>0 ? kartePunkteGeplant(k)/(sollM/60) : null;
+  const min=istSekLive(k)/60;
+  let pfeil='', farbe='var(--mut2)';
+  if(min>=PH_MIN_MIN){
+    const s=phSchnitte()[phGruppe(k)];
+    if(s && s.n>=PH_MIN_KARTEN){
+      const eigen=kartePunkte(k)/(min/60);
+      if(eigen>s.schnitt*(1+PH_NEUTRAL)){ pfeil='▲'; farbe='var(--ok)'; }
+      else if(eigen<s.schnitt*(1-PH_NEUTRAL)){ pfeil='▼'; farbe='var(--bad)'; }
+      else { pfeil='→'; farbe='var(--warn)'; }
+    }
+  }
+  if(!pfeil && planPh==null) return '';
+  return '<span style="color:'+farbe+'">'+pfeil+(planPh!=null?' '+Math.round(planPh)+' P/h':'')+'</span>';
+}
 function istBadge(k){
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
   const min = istSekLive(k)/60;
@@ -1943,12 +2106,21 @@ function kartenreiheHtml(k, stapelId){
   meta.push('<span class="art">'+esc(kartenArt(k))+'</span>');
   if(k.faelligkeit) meta.push('<span class="tag">'+esc(fmtDatum(k.faelligkeit))+'</span>');
   if(k.uhrzeit) meta.push('<span class="tag">🕐 '+esc(k.uhrzeit)+'</span>');
-  const ib=istBadge(k); if(ib) meta.push(ib);
-  else if(num(k.sollMin)>0) meta.push('<span><b>'+num(k.sollMin)+'</b>′</span>');
-  // §3 (v1.6.0): Routinen/Counter in den normalen Listen optisch zurückgenommen —
-  // keine Punkte-Prognose (die Bedienung läuft über die Routinen-Schublade).
+  // §5 (v1.8.0): Ist/Soll-Zeit kombiniert, Punkte ist/geplant, P/h-Pfeil gegen
+  // den Schnitt der eigenen Gruppe (Domäne × Art) — jeweils nur wenn vorhanden.
+  const istMin=istSekLive(k)/60, sollM=num(k.sollMin);
+  const laeuftJetzt = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
+  if(laeuftJetzt) meta.push('<span class="tag">▶ '+mmss(istSekLive(k))+(sollM>0?' / '+sollM+'′':'')+'</span>');
+  else if(istMin>0.05 && sollM>0) meta.push('<span><b>'+Math.round(istMin)+'</b>′ / '+sollM+'′</span>');
+  else if(istMin>0.05) meta.push('<span><b>'+Math.round(istMin)+'</b>′ ist</span>');
+  else if(sollM>0) meta.push('<span><b>'+sollM+'</b>′</span>');
   const istRout = kartenArt(k)==='Routine' || kartenArt(k)==='Counter';
-  if(!istRout) meta.push('<span>'+Math.round(kartePunkte(k))+' P</span>');
+  {
+    const pIst=Math.round(kartePunkte(k)), pPlan=Math.round(kartePunkteGeplant(k));
+    if(pPlan>0 && pPlan!==pIst) meta.push('<span><b>'+pIst+'</b> / '+pPlan+' P</span>');
+    else if(pIst>0 || !istRout) meta.push('<span><b>'+pIst+'</b> P</span>');
+  }
+  const phb=phBadge(k); if(phb) meta.push(phb);
   if(k.prioritaet==='muss') meta.push('<span class="pri-muss">muss</span>');
   if(k.domain==='dfm' && k.projekt) meta.push('<span>'+esc(k.projekt)+'</span>');
   if(k.rhythmus && num(k.streak)>0) meta.push('<span>🔥'+num(k.streak)+'</span>');
@@ -1957,22 +2129,29 @@ function kartenreiheHtml(k, stapelId){
   if(k.freeze) meta.push('<span class="frost">❄︎ eingefroren</span>');   // A4
   if(stapelId==='sys-bearbeitet' && k.letzteBearbeitung) meta.push('<span class="vor">'+fmtVor(k.letzteBearbeitung)+'</span>');   // A7
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
-  const startBtn = k.status==='erledigt'
+  // §3 (v1.8.0): Start/Pause nur für Karten MIT Zeitmessung — reine Ticker
+  // bekommen keinen Timer-Knopf mehr (Ursache des WhatsApp-Zeittrackings).
+  const startBtn = !hatZeitmessung(k) ? '' : (k.status==='erledigt'
     ? '<button class="kstart auftau" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="Wieder öffnen &amp; Timer">▶</button>'   // Mini-6b B: erledigte Karte reaktivieren
     : (k.freeze
       ? '<button class="kstart auftau" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="Auftauen &amp; in den Fokus">▶</button>'   // A4: auftauen + Fokus
-      : '<button class="kstart'+(laeuft?' laeuft':'')+'" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="In den Fokus starten">'+(laeuft?'⏸':'▶')+'</button>');
-  // A5: Hoch/Runter-Pfeile (ein Tap = eine Position); A3: Tick-Karten → „+" statt Abhaken
-  const sortCtrl = '<div class="ksort"><button class="sar" data-sortup="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="hoch">▲</button>'+
+      : '<button class="kstart'+(laeuft?' laeuft':'')+'" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="In den Fokus starten">'+(laeuft?'⏸':'▶')+'</button>'));
+  // §1.3 (v1.8.0): im Erledigt-Stapel keine Pfeile — Chronologie bleibt Chronologie
+  const sortCtrl = stapelId==='sys-erledigt' ? '' :
+    '<div class="ksort"><button class="sar" data-sortup="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="hoch">▲</button>'+
     '<button class="sar" data-sortdown="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="runter">▼</button></div>';
   const rechts = istTickKarte(k)
     ? '<button class="kcheck ktick" data-tickplus="'+k.id+'" aria-label="Tick +">＋</button>'
     : '<div class="kcheck" data-check="'+k.id+'"><div class="box">✓</div></div>';
+  // §2 (v1.8.0): Schieben + Archivieren neu in der Karte
+  const schiebBtn = k.status==='offen'
+    ? '<button class="kstart kschieb" data-schieb="'+k.id+'" aria-label="Schieben">⏭</button>' : '';
+  const archivBtn = k.status!=='archiviert'
+    ? '<button class="karchiv" data-archiv="'+k.id+'" aria-label="Archivieren">🗑</button>' : '';
   // U2: Schnellauswahl-Toggle ⚡ (aktiv hervorgehoben)
   const schnellBtn = '<button class="kschnell'+(k.schnellauswahl?' on':'')+'" data-schnell="'+k.id+'" aria-label="Schnellauswahl">⚡</button>';
-  // A8: Pin-Toggle 📌 nur auf Counter/Routine (Quick-Leiste)
-  const pinBtn = (kartenArt(k)==='Counter'||kartenArt(k)==='Routine')
-    ? '<button class="kpin'+(k.pin?' on':'')+'" data-pin="'+k.id+'" aria-label="Anpinnen">📌</button>' : '';
+  // A8 · §10 (v1.8.0): Pin-Toggle 📌 jetzt für ALLE Kartenarten (Pin-Schublade)
+  const pinBtn = '<button class="kpin'+(k.pin?' on':'')+'" data-pin="'+k.id+'" aria-label="Anpinnen">📌</button>';
   // A4: Freeze-Toggle ❄︎ (eingefroren hervorgehoben)
   const freezeBtn = '<button class="kfreeze'+(k.freeze?' on':'')+'" data-freeze="'+k.id+'" aria-label="Einfrieren">❄︎</button>';
   // §2.2 (v1.6.0): Karte manuell in die Tageskette „Heute" legen bzw. herausnehmen
@@ -1984,17 +2163,32 @@ function kartenreiheHtml(k, stapelId){
   // in drei Gruppen (Sortieren | Toggles | Start/Abhaken), dieselben
   // data-Attribute und Handler, reine Umplatzierung. Umrandung umlaufend in
   // karteFarbe(k) statt nur linker Kante.
-  return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+(k.freeze?'eingefroren ':'')+(istRout?'routinezeile ':'')+'" data-kid="'+k.id+'" style="border-color:'+karteFarbe(k)+'">'+
+  // §2.1 (v1.8.0): zwei Werkzeugzeilen — PRIMÄR groß (Start · Schieben ·
+  // Erledigt/Tick, tragen den Arbeitsfluss, ≥44px), SEKUNDÄR kleiner (Position,
+  // Zu Heute, Pin, Wartend, Schnellauswahl, Archivieren — 40px). Fehlende
+  // Elemente lassen die Zeile symmetrisch zusammenrücken.
+  // §8 (v1.8.0): heute nicht Fälliges (Zukunfts-Deadline, Routine am freien
+  // Tag) wird wie Wartendes ausgegraut — rein visuell, EIN Erscheinungsbild.
+  const gedimmt = k.freeze || istNichtFaellig(k);
+  return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+(gedimmt?'eingefroren ':'')+(istRout?'routinezeile ':'')+'" data-kid="'+k.id+'" style="border-color:'+karteFarbe(k)+'">'+
     '<div class="kmain" data-detail="'+k.id+'">'+
       '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
       '<div class="kmeta">'+meta.join('')+'</div>'+
     '</div>'+
     '<div class="ktools">'+
-      '<div class="tgrp">'+sortCtrl+'</div>'+
-      '<div class="tgrp">'+ketteBtn+pinBtn+freezeBtn+schnellBtn+'</div>'+
-      '<div class="tgrp taktion">'+startBtn+rechts+'</div>'+
+      '<div class="trow tprim">'+startBtn+schiebBtn+rechts+'</div>'+
+      '<div class="trow tsek">'+sortCtrl+ketteBtn+pinBtn+freezeBtn+schnellBtn+archivBtn+'</div>'+
     '</div>'+
   '</div>';
+}
+/* §8 (v1.8.0): heute nicht fällig = Zukunfts-Deadline ODER Routine, die laut
+   Rhythmus heute nicht dran ist. Vergleich gegen den App-Tag, nicht die
+   Systemuhr-Mitternacht. Rein visuell — keinerlei Logik-Wirkung. */
+function istNichtFaellig(k){
+  if(k.status!=='offen') return false;
+  const h=heuteApp();
+  if(k.rhythmus) return !routineFaellig(k, h) && !(num(k.ticksHeute)>0 || k.zuletztRoutine===h);
+  return !!k.faelligkeit && k.faelligkeit>h;
 }
 /* Karten eines Stapels rendern — Gruppen-Mitglieder als einklappbaren Block
    an der Position ihrer besten (erstsortierten) Karte (§3.3). */
@@ -2331,9 +2525,19 @@ function fokusSubsHtml(k){
       ? '<span class="uapunkte">+'+Math.round(num(u.bonusPunkte))+'</span>'
       : '<input class="uamin uabonus" type="number" inputmode="numeric" data-uabonus="'+u.id+'" placeholder="0" value="'+(u.bonusPunkte!=null?num(u.bonusPunkte):'')+'" title="Einmalige Zusatzpunkte (zählen zu den Kartenpunkten)">')+
     '<button class="uax" data-uadel="'+u.id+'">✕</button></div>').join('');
+  // §9.4 (v1.8.0): Tick-Zeile OBERHALB der ersten Unteraufgabe — ＋ bucht mit
+  // dem eingegebenen Wert (leer = Karten-Default), rechts der Tagesstand.
+  // Zähler und Summe werden per DOM-Update aktualisiert, kein Seitenneuaufbau.
+  const tickZeile = k.ticksAktiv
+    ? '<div class="uareihe tickzeile"><button class="btn sm prim" data-ftick="'+k.id+'" style="flex:none">＋ Tick</button>'+
+      '<input class="uamin" type="number" inputmode="numeric" step="5" id="fkTickWert" placeholder="'+num(k.tickWert)+'" title="Wert für den nächsten Tick (leer = Default '+num(k.tickWert)+')">'+
+      '<span class="tickstand" id="fkTickStand">'+num(k.ticksHeute)+' × · '+Math.round(tickSumme(k, num(k.ticksHeute)))+' P</span></div>'
+    : '';
   return '<div class="tacc'+(zu?' zu':'')+'"><div class="tacckopf" data-tacctoggle="1">☑ Unteraufgaben'+
+    (k.ticksAktiv?' + Ticks':'')+
     (subs.length?' · '+fertig+'/'+subs.length:'')+'<span class="pfeil">▾</span></div>'+
     '<div class="taccinhalt">'+
+    tickZeile+
     (subs.length?'<div class="thinweis">Spalten: Minuten (→ Kartenzeit) · Punkte (einmalige Zusatzpunkte, leer = 0)</div>':'<div class="thinweis">Noch keine Unteraufgaben.</div>')+
     rows+
     // §4 (v1.6.0): Unteraufgabe an Ort und Stelle anlegen — Titel + Soll-Minuten
@@ -2363,14 +2567,12 @@ function fokusSubAnlegen(kid){
    Grundierung (Farb-Band oben). Tap wählt die Karte in den Fokus. */
 /* U2: Karte in die Schnellauswahl aufnehmen/entfernen (Toggle ⚡). Beim
    Aufnehmen ans Ende der manuellen Reihenfolge. */
+/* §4 (v1.8.0): ⚡ legt die Karte in den Schnellauswahl-Stapel bzw. nimmt sie
+   heraus. Der Zeitstempel sorgt dafür, dass zuletzt Hinzugefügtes oben steht. */
 function toggleSchnell(kid){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
   k.schnellauswahl=!k.schnellauswahl;
-  if(k.schnellauswahl){
-    const st=S.stapel.find(s=>s.id==='sys-schnellauswahl');
-    if(st){ const max=Math.max(0,...S.karten.filter(x=>x.schnellauswahl).map(x=>num(x.sortIndex&&x.sortIndex[st.id],0)));
-      k.sortIndex=Object.assign({},k.sortIndex); k.sortIndex[st.id]=max+1; }
-  }
+  if(k.schnellauswahl) k.schnellTs=jetztIso();
   saveKarten(); renderAlles(); toast(k.schnellauswahl?'⚡ Zur Schnellauswahl':'Aus Schnellauswahl'); haptik(10);
 }
 /* A4: Einfrieren/Auftauen. Eingefroren = pausiert (raus aus Abräumpflicht,
@@ -2502,17 +2704,20 @@ function navLeisteHtml(){
    drei Ebenen. Die Swipe-Reihenfolge kommt weiterhin aus „Heute" (§2.2), diese
    Liste ist die Übersicht daneben. */
 function fokusListeHtml(){
-  const st=S.stapel.find(s=>s.id==='sys-heute');
   // Nur offene Karten — Abgeschlossenes lebt im Stapel „Erledigt" (§2.3).
+  // §1.2 (v1.8.0): jede Ansicht trägt ihren eigenen Sortier-Schlüssel — die
+  // Sortierpfeile schreiben und lesen darüber (Pseudo-Stapel {id: key}).
   const basis=navFilter(S.karten.filter(k=>k.status==='offen'));
   let inner='', anzahl=basis.length;
   if(navDomain()==='privat'){
-    inner=navGruppen(basis).map(g=>
-      '<div class="navgruppe"><div class="navgh">'+g.label+' <span>'+g.karten.length+'</span></div>'+
-      (g.karten.length ? stapelRowsHtml(st, g.karten) : '<div class="leer">—</div>')+'</div>').join('');
+    inner=navGruppen(basis).map(g=>{
+      const key=ansichtsKey(g.key);
+      return '<div class="navgruppe"><div class="navgh">'+g.label+' <span>'+g.karten.length+'</span></div>'+
+      (g.karten.length ? stapelRowsHtml({id:key}, anwendenManuell(g.karten, key)) : '<div class="leer">—</div>')+'</div>'; }).join('');
   } else {
-    const ks=navSortiere(basis);
-    inner = ks.length ? stapelRowsHtml(st, ks) : '<div class="leer">Keine Karten in dieser Auswahl.</div>';
+    const key=ansichtsKey();
+    const ks=anwendenManuell(navSortiere(basis), key);
+    inner = ks.length ? stapelRowsHtml({id:key}, ks) : '<div class="leer">Keine Karten in dieser Auswahl.</div>';
   }
   return '<div class="fk-liste">'+navLeisteHtml()+
     '<div class="lab">'+(navDomain()==='dfm'?'DFM':'Privat')+' · '+(navArt()==='aufgabe'?'Aufgaben':'Routinen')+' · '+anzahl+'</div>'+
@@ -2790,6 +2995,7 @@ function energieBatterie(){
   return { akku, gruen, gelb, dunkel };
 }
 function renderAlles(){
+  _phCache=null;   // §5 (1.8.0): P/h-Schnitte je Render frisch
   rangCacheBauen();
   renderFokusleiste();
   if(S.ui.tab==='stapel') renderStapel();
@@ -2908,7 +3114,7 @@ function tagStarten(akkuProzent){
   S.karten.forEach(k=>{
     if(k.rhythmus && routineFaellig(k, datum)){
       k.faelligkeit=datum; k.status='offen';
-      k.ticksHeute=0; k.istSek=0; k.tagId=null; k.punkteOverride=null;   // Tages-Ist 0 (V1.3: Override zurücksetzen), Historie bleibt
+      k.ticksHeute=0; k.tickWerteHeute=[]; k.istSek=0; k.tagId=null; k.punkteOverride=null;   // Tages-Ist 0 (V1.3: Override zurücksetzen), Historie bleibt
       untermenge(k.id).forEach(u=>u.done=false);
     }
   });
@@ -3183,6 +3389,7 @@ function openSheet(titel, bodyHtml, footHtml, saveFn){
   el('sheet').classList.add('on');
 }
 function closeSheet(){
+  pinSheetOffen=false;   // §10 (1.8.0)
   el('sheet').classList.remove('on');
   el('backdrop').classList.remove('on');
   sheetSaveFn=null; entwurf=null; stapelEntwurf=null;
@@ -3322,10 +3529,17 @@ function renderDetail(){
       '<button class="chip '+(tage.includes(num(v))?'on lila':'')+'" data-wtag="'+v+'">'+t+'</button>').join('')+'</div>';
   }
   h+='</div>';
-  h+='<div class="field"><label>Tick-Kurve (Punkte je Tick · Länge 1 = Abhaken)</label><div class="ticks" id="tickWrap">'+
-    k.tickKurve.map((v,i)=>'<input type="number" inputmode="numeric" data-tick="'+i+'" value="'+num(v)+'">').join('')+
-    '<button class="op" data-tickadd="1">＋</button>'+(k.tickKurve.length>1?'<button class="op" data-tickdel="1">－</button>':'')+
-  '</div></div>';
+  // §9.2 (v1.8.0): Die mehrstufige Tick-Kurve ist abgelöst — ein Schalter
+  // „Ticks" plus EIN Default-Punktwert je Tick (negativ zulässig, Normalfall
+  // für Karten wie „Kopf freimachen").
+  h+='<div class="field"><label>Ticks</label><div class="chips">'+
+    '<button class="chip '+(k.ticksAktiv?'on gruen':'')+'" data-dticks="1">'+(k.ticksAktiv?'✓ Ticks an':'aus')+'</button></div>'+
+    (k.ticksAktiv
+      ? '<div style="display:flex;align-items:center;gap:8px;margin-top:6px"><span class="mlab">Punkte je Tick</span>'+
+        '<input type="number" inputmode="numeric" step="5" data-bind="tickWert" value="'+num(k.tickWert)+'" style="width:100px"></div>'+
+        '<div class="hint">negativ zulässig · die Karte wird per ＋ getickt statt abgehakt</div>'
+      : '<div class="hint">aus = Karte trägt das Erledigt-Häkchen</div>')+
+  '</div>';
   h+='<div class="field"><label>Schnellzugriff Timer</label>'+chipGroup('timerFlag',k.timerFlag?'ja':'nein',[['ja','ja'],['nein','nein']])+'</div>';
   h+='<div class="grid2">'+
     '<div class="field"><label>Einfrieren</label><div class="chips">'+
@@ -3400,15 +3614,33 @@ function detailSpeichern(){
 }
 /* A3: einen Tick buchen (Timer-/Counter-Karten). Erhöht ticksHeute; Punkte
    kommen über die Tick-Kurve (tickSumme) in tickPunkte/kartePunkte. */
-function karteTick(kid, fromDetail){
+/* §9 (v1.8.0): Ein Tick bucht tickWert — oder den in der Tick-Zeile (§9.4)
+   eingegebenen Override. Der erste Tick des Tages bucht bei Routinen den
+   Streak (bisher nur beim Abhaken — seit §7 werden Tick-Routinen aber getickt,
+   nie abgehakt, sonst ginge der Streak verloren). */
+function karteTick(kid, fromDetail, wertOverride){
   const k = kid ? S.karten.find(x=>x.id===kid) : entwurf;
   if(!k) return;
   const vor=tickPunkte(k);
+  const wert = (wertOverride!=null && wertOverride!=='') ? num(wertOverride) : num(k.tickWert);
+  if(!Array.isArray(k.tickWerteHeute)) k.tickWerteHeute=[];
+  k.tickWerteHeute.push(wert);
   k.ticksHeute = num(k.ticksHeute)+1;
+  if(k.rhythmus && num(k.ticksHeute)===1) routineErledigtBuchen(k);   // §7: Streak bleibt intakt
   if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
   beruehre(k); logIntraday(k,{punkte:tickPunkte(k)-vor,typ:'tick'});   // A7 + B0
   haptik(12);
   if(!fromDetail){ saveKarten(); saveTag(); renderAlles(); }
+}
+/* §9: Gegenstück −1 — nimmt den letzten heutigen Tick samt seinem Wert zurück. */
+function karteTickMinus(k){
+  if(!k || num(k.ticksHeute)<=0) return false;
+  if(Array.isArray(k.tickWerteHeute) && k.tickWerteHeute.length) k.tickWerteHeute.pop();
+  k.ticksHeute=Math.max(0, num(k.ticksHeute)-1);
+  if(k.rhythmus && num(k.ticksHeute)===0 && k.zuletztRoutine===heuteApp()){
+    k.streak=Math.max(0,num(k.streak)-1); k.zuletztRoutine=null;      // Streak-Buchung des Tages zurück
+  }
+  beruehre(k); return true;
 }
 /* A4: Schieben um +24 h. Datum +1 Tag ab aktueller Fälligkeit (sonst heute);
    Uhrzeit bleibt. Vorschlag Minuspunkte = 10 % der Punkte-Prognose (sollMin/60
@@ -3451,13 +3683,11 @@ function karteAbhaken(kid, fromDetail){
     abschlussZuruecknehmen(k);
     k.status='offen'; k.tagId=null;
     if(k.rhythmus && k.zuletztRoutine===heuteApp()){ k.streak=Math.max(0,num(k.streak)-1); k.zuletztRoutine=null; }
-    if(k.tickKurve && k.tickKurve.length===1) k.ticksHeute=0;
   } else {
     // Läuft der Timer auf dieser Karte → erst Zeit einbuchen, Fokus beenden (§6 Kante).
     if(!fromDetail && S.fokus && S.fokus.karteId===k.id) fokusBeenden();
     abschlussSnapshot(k);                                // §6.1: Stand VOR dem Abschluss sichern
     k.status='erledigt'; k.tagId=aktuelleTagId();
-    if(k.tickKurve && k.tickKurve.length===1) k.ticksHeute=1;
     if(k.rhythmus) routineErledigtBuchen(k);              // Streak + zuletztRoutine
     if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
     logPunktSchreiben(k);                                 // v1.1: Punkt-Ereignis (Verlauf/Kennzahlen)
@@ -3631,6 +3861,30 @@ function renderAbhakDialog(){
   const t=abhakTmp, k=S.karten.find(x=>x.id===t.kid); if(!k) return;
   const restMin=Math.max(0, num(k.sollMin)-t.istMin);
   let h='<p class="d">„<b>'+esc(k.titel||'(ohne Titel)')+'</b>" erledigen — Werte anpassen oder direkt ✅.</p>';
+  // §6.1 (v1.8.0): Zusammensetzung — Zeit, Boni, Summe. Aktualisiert sich beim
+  // Abhaken einer Unteraufgabe im Dialog (§6.2) sofort mit.
+  {
+    const zeitP=Math.round(punkteFuerZeit(k, zeitquelleMin(k))*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1)
+               + tickSumme(k, num(k.ticksHeute))*(S.settings.tickGewicht!=null?S.settings.tickGewicht:1)*geldFaktor(k));
+    const bonusP=Math.round(abhakbonusDefault(k)+subBonusErreicht(k));
+    h+='<div class="kvblock" style="margin-bottom:10px">'+
+      '<div class="kv"><span>aus Zeit'+(num(k.ticksHeute)>0?' + Ticks':'')+'</span><b>'+zeitP+' P</b></div>'+
+      '<div class="kv"><span>Abhakbonus + Unteraufgaben-Boni</span><b>'+bonusP+' P</b></div>'+
+      '<div class="kv" style="font-size:15px"><span><b>Gesamt</b></span><b style="color:var(--ok)">'+(zeitP+bonusP)+' P</b></div>'+
+    '</div>';
+  }
+  // §6.2 (v1.8.0): Unteraufgaben direkt im Dialog — abhakbar und editierbar,
+  // Invariante Parent-Soll = Σ Subs gilt weiter (Angleich beim Bestätigen).
+  {
+    const subs=untermenge(k.id);
+    if(subs.length){
+      h+='<div class="field"><label>Unteraufgaben</label>'+subs.map(u=>
+        '<div class="uareihe"><button class="uacheck" data-absubdone="'+u.id+'">'+(u.done?'☑':'☐')+'</button>'+
+        '<input type="text" data-absubtitel="'+u.id+'" value="'+esc(u.titel||'')+'" style="flex:1;min-width:0">'+
+        '<input class="uamin" type="number" inputmode="numeric" data-absubmin="'+u.id+'" value="'+num(u.sollMin)+'" style="width:64px">'+
+        '</div>').join('')+'</div>';
+    }
+  }
   h+='<div class="field"><label>Punkte</label>'+
      '<input type="range" id="abPkt" min="0" max="'+t.max+'" step="5" value="'+Math.min(t.basis,t.max)+'">'+
      '<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="number" inputmode="numeric" min="0" step="5" id="abPktN" value="'+t.basis+'" style="width:120px">'+
@@ -3796,6 +4050,32 @@ function gruppeBonusPruefen(g){
 function gruppeNachAenderung(kid){
   const g=gruppeVonKarte(kid); if(g) gruppeBonusPruefen(g);
 }
+/* ══ §10 (v1.8.0) · Pin-Schublade — zweiter Schnellzugriff ══════════════
+   Bottom-Sheet mit ALLEN angepinnten Karten, quer zu Domäne/Art/Fälligkeit.
+   Darstellung = dieselbe .krow wie im Stapel-Tab (volle Bedienzeile), Kopf =
+   dieselben Filter (Domäne/Status/Richtung) mit derselben Persistenz über die
+   Pseudo-Stapel-id 'sys-pins'. */
+let pinSheetOffen=false;
+const PIN_ST={ id:'sys-pins', name:'Angepinnt' };
+function pinListe(){
+  let ks=S.karten.filter(k=>k.pin && k.status!=='archiviert');
+  ks=filterStapelDomain(PIN_ST, ks);
+  if(S.ui.pinsRicht==='desc') ks=ks.slice().reverse();
+  return anwendenManuell(ks, 'sys-pins');
+}
+function oeffnePins(){ pinSheetOffen=true; renderPinSheet(); }
+function renderPinSheet(){
+  if(!pinSheetOffen) return;
+  const ks=pinListe();
+  const alle=S.karten.filter(k=>k.pin && k.status!=='archiviert').length;
+  let h='<div class="routsheet">'+stapelFilterHtml(PIN_ST);
+  h+= ks.length ? stapelRowsHtml(PIN_ST, ks)
+    : (alle
+      ? '<div class="leer">Kein Pin passt zum Filter — Filter oben lockern.</div>'
+      : '<div class="leer">Noch nichts angepinnt.<br>Tippe auf einer Karte das 📌 in der unteren Werkzeugzeile — sie erscheint dann hier, egal aus welcher Domäne oder Liste.</div>');
+  h+='</div>';
+  openSheet('📌 Angepinnt'+(alle?' · '+alle:''), h, '<button class="btn ghost sm" data-close="1">Schließen</button>');
+}
 let routTmp=null;
 /* Aktueller Tagesabschnitt nach Uhrzeit — bestimmt die offene Gruppe. */
 function jetztAbschnitt(){
@@ -3870,9 +4150,8 @@ function routTick(kid, minus){
   if(istTickKarte(k)){
     // Counter/Timer-Karten: reine Tick-Buchung (bestehende Tick-Kurven-Logik)
     if(minus){
-      if(num(k.ticksHeute)<=0){ toast('Schon bei 0'); return; }
-      k.ticksHeute=Math.max(0, num(k.ticksHeute)-1);
-      beruehre(k); saveKarten();
+      if(!karteTickMinus(k)){ toast('Schon bei 0'); return; }
+      saveKarten();
     } else {
       karteTick(kid, true);
     }
@@ -3996,7 +4275,10 @@ function stapelLoeschen(){
         Export: nur domain=dfm. Import: Hoheitsregeln, Unteraufgaben nur per id.
    ══════════════════════════════════════════════════════════════════════ */
 function syncExport(typ){
-  const dfm=S.karten.filter(k=>k.domain==='dfm' && k.status!=='archiviert');
+  // §2.2 (v1.8.0): archivierte Karten bleiben im Export — seit die App selbst
+  // archivieren kann (🗑), muss der Status den Chat/Airtable erreichen können;
+  // vorher hätte eine App-Archivierung die Gegenseite nie erfahren.
+  const dfm=S.karten.filter(k=>k.domain==='dfm');
   return {
     typ: typ||'sync', appVersion:VERSION, tagId: aktuelleTagId(), exportZeit:jetztIso(),
     karten: dfm.map(k=>{
@@ -4084,8 +4366,15 @@ function syncImport(text){
     // Felder ändern nichts. Damit entstehen Routinen und Counter vollständig
     // aus einem Paket (Neuaufbau-Weg).
     if(inc.rhythmus!==undefined)       lok.rhythmus = inc.rhythmus ? JSON.parse(JSON.stringify(inc.rhythmus)) : null;
-    if(inc.tickKurve!==undefined){     const tk=Array.isArray(inc.tickKurve)?inc.tickKurve.map(x=>num(x)):null;
-                                       lok.tickKurve = (tk&&tk.length)?tk:[0]; }   // negative Werte zulässig
+    // §9.5 (1.8.0): neues Tick-Modell im Paket; eine alte tickKurve wird nach
+    // derselben Regel wie in der Migration umgesetzt (erster Wert, [0] = aus).
+    if(inc.ticksAktiv!==undefined)     lok.ticksAktiv=!!inc.ticksAktiv;
+    if(inc.tickWert!==undefined)       lok.tickWert=num(inc.tickWert);            // negativ zulässig
+    if(inc.tickKurve!==undefined && inc.ticksAktiv===undefined && inc.tickWert===undefined){
+      const tk=Array.isArray(inc.tickKurve)?inc.tickKurve.map(x=>num(x)):[];
+      const echt = tk.length>1 || (tk.length===1 && tk[0]!==0);
+      if(echt){ lok.ticksAktiv=true; lok.tickWert=tk[0]; }
+    }
     if(inc.punkteProStd!==undefined)   lok.punkteProStd = inc.punkteProStd==null?null:num(inc.punkteProStd);
     if(inc.akkuProStd!==undefined)     lok.akkuProStd   = inc.akkuProStd==null?null:num(inc.akkuProStd);
     if(inc.abhakbonus!==undefined)     lok.abhakbonus   = inc.abhakbonus==null?null:num(inc.abhakbonus);   // auch negativ
@@ -4171,7 +4460,7 @@ function syncImport(text){
 
 /* Sync-Sheet (EIN Button in D6). */
 function oeffneSync(){
-  const anzahl=S.karten.filter(k=>k.domain==='dfm' && k.status!=='archiviert').length;
+  const anzahl=S.karten.filter(k=>k.domain==='dfm').length;   // §2.2 (1.8.0): inkl. archivierter
   const ex=esc(syncExportText('sync'));
   let h='';
   h+='<p class="d">Sync Stufe 1 (Copy-Paste, §8). <b>Export</b> nur DFM-Karten ('+anzahl+') — kopiere ihn in den Claude-Chat. <b>Import</b> das Paket, das der Chat zurückgibt.</p>';
@@ -5183,6 +5472,7 @@ function setTab(tab){
   // §3 (v1.6.0): Routinen-Schublade nur auf der Fokusseite, Farbe = aktive Domäne
   const rf=el('routFab');
   if(rf){ rf.hidden = (tab!=='fokus'); rf.classList.toggle('privat', navDomain()==='privat'); }
+  const pf=el('pinFab'); if(pf) pf.hidden=(tab!=='fokus');   // §10 (1.8.0)
   renderFokusleiste();
   if(tab==='einst') renderEinst();
   else if(tab==='stapel') renderStapel();
@@ -5226,9 +5516,15 @@ el('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-t
 el('fab').addEventListener('click', ()=>oeffneDetail(null));
 // §3 (v1.6.0): Routinen-Schublade öffnen (Farbe folgt der aktiven Domäne)
 el('routFab').addEventListener('click', oeffneRoutinen);
+el('pinFab').addEventListener('click', oeffnePins);   // §10 (1.8.0)
 // Sheet-Interaktionen der Schublade (Toggle, Gruppen, +1, Play)
 el('sheetBody').addEventListener('click', e=>{
   const t=e.target;
+  // §10 (1.8.0): Im Pin-Sheet laufen die Karten über denselben karteRowClick wie
+  // im Stapel-Tab — danach das Sheet nachziehen, damit Filter/Toggles sichtbar wirken.
+  if(pinSheetOffen){
+    if(karteRowClick(t, e)){ renderPinSheet(); return; }
+  }
   const rd=t.closest('[data-rdom]');  if(rd){ if(routTmp){ routTmp.dom=rd.dataset.rdom; renderRoutinenSheet(); } return; }
   const rg=t.closest('[data-rgrp]');  if(rg){ if(routTmp){ const g=rg.dataset.rgrp; routTmp.auf=(routTmp.auf===g?null:g); renderRoutinenSheet(); } return; }
   const rp=t.closest('[data-rplus]'); if(rp){ routTick(rp.dataset.rplus, false); return; }
@@ -5283,6 +5579,15 @@ el('fokusView').addEventListener('click', e=>{
   const ut=t.closest('[data-uatoggle]'); if(ut){ const u=S.unteraufgaben.find(x=>x.id===ut.dataset.uatoggle); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
   const ux=t.closest('[data-uadel]'); if(ux){ S.unteraufgaben=S.unteraufgaben.filter(x=>x.id!==ux.dataset.uadel); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); return; }
   const ua=t.closest('[data-uaadd]'); if(ua){ fokusSubAnlegen(ua.dataset.uaadd); return; }   // §4
+  // §9.4 (v1.8.0): Tick aus der Fokus-Zeile — Wert-Feld überschreibt den Default
+  const ft=t.closest('[data-ftick]'); if(ft){
+    const kid=ft.dataset.ftick, inp=el('fkTickWert');
+    karteTick(kid, true, inp?inp.value:null);
+    saveKarten(); saveTag();
+    const fk=S.karten.find(x=>x.id===kid), st=el('fkTickStand');
+    if(fk && st) st.textContent=num(fk.ticksHeute)+' × · '+Math.round(tickSumme(fk, num(fk.ticksHeute)))+' P';
+    renderStatusbar(); gruppeNachAenderung(kid);
+    return; }
 });
 el('fokusView').addEventListener('change', e=>{
   // (v1.6.0) Stapel-Auswahl auf der Fokusseite entfällt — Ebene 1–3 ersetzen sie.
@@ -5373,6 +5678,7 @@ function karteRowClick(t, e){
     S.ui.stapelStatus=Object.assign({}, S.ui.stapelStatus); S.ui.stapelStatus[sts.dataset.stapelid]=sts.dataset.stapelstatus;
     saveUi(); renderAlles(); return true; }
   const sri=t.closest('[data-stapelricht]'); if(sri){ if(e) e.stopPropagation();
+    if(sri.dataset.stapelid==='sys-pins'){ S.ui.pinsRicht=(S.ui.pinsRicht==='desc')?'asc':'desc'; saveUi(); return true; }   // §10 (1.8.0)
     const bst=S.stapel.find(s=>s.id===sri.dataset.stapelid);
     if(bst){ const so=bst.sortierung||{feld:'auto',richtung:'asc'};
       bst.sortierung={feld:so.feld||'auto', richtung:(so.richtung==='asc'||!so.richtung)?'desc':'asc'}; saveStapel(); renderAlles(); }
@@ -5380,6 +5686,13 @@ function karteRowClick(t, e){
   // §2.2 (v1.6.0): „▤" legt die Karte in die Tageskette „Heute" bzw. nimmt sie heraus
   const ket=t.closest('[data-kette]'); if(ket){ if(e) e.stopPropagation();
     const drin=ketteToggle(ket.dataset.kette); toast(drin?'▤ zu Heute':'aus Heute entfernt'); renderAlles(); return true; }
+  // §2 (v1.8.0): Schieben-Dialog + Archivieren (mit Sicherheitsabfrage, No-delete)
+  const scb=t.closest('[data-schieb]'); if(scb){ if(e) e.stopPropagation(); oeffneSchieben(scb.dataset.schieb); return true; }
+  const arc=t.closest('[data-archiv]'); if(arc){ if(e) e.stopPropagation();
+    const ak=S.karten.find(x=>x.id===arc.dataset.archiv);
+    if(ak && confirm('„'+(ak.titel||'(ohne Titel)')+'" archivieren? Die Karte verschwindet aus allen Listen, bleibt aber im Datenbestand und im Export.')){
+      ak.status='archiviert'; beruehre(ak); saveKarten(); renderAlles(); toast('Archiviert'); }
+    return true; }
   const frz=t.closest('[data-freeze]'); if(frz){ if(e) e.stopPropagation(); toggleFreeze(frz.dataset.freeze); return true; }   // A4
   const pin=t.closest('[data-pin]'); if(pin){ if(e) e.stopPropagation(); togglePin(pin.dataset.pin); return true; }   // A8
   // A8: Quick-Leiste-Direktaktionen (ohne Ansichtswechsel)
@@ -5421,6 +5734,22 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-close]')){ closeSheet(); return; }
   // U6-A: Abhak-Dialog
   if(t.closest('[data-abfolge]')){ if(abhakTmp){ abhakTmp.folge=!abhakTmp.folge; renderAbhakDialog(); } return; }
+  // §6.2 (v1.8.0): Unteraufgabe im Abhak-Dialog abhaken → Bonus/Summe/Basis live
+  const asd=t.closest('[data-absubdone]'); if(asd){ if(!abhakTmp) return;
+    const u=S.unteraufgaben.find(x=>x.id===asd.dataset.absubdone); if(!u) return;
+    u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben);
+    const k=S.karten.find(x=>x.id===abhakTmp.kid);
+    const tI=el('abIst'), tB=el('abBonus'), tP=el('abPktN');
+    const altBasis=abhakTmp.basis;
+    if(tI) abhakTmp.istMin=num(tI.value); if(tB) abhakTmp.bonusDef=num(tB.value);
+    abhakTmp.basis=Math.round(kartePunkte(k));
+    abhakTmp.max=Math.max(10, abhakTmp.basis*2);
+    abhakTmp.userPkt=(tP && num(tP.value)!==altBasis)?tP.value:null;   // eigene Eingabe respektieren
+    abhakTmp.offeneSubs=untermenge(k.id).filter(x=>!x.done).length;
+    abhakTmp.folge=abhakTmp.offeneSubs>0;
+    renderAbhakDialog();
+    const nP=el('abPktN'); if(nP && abhakTmp.userPkt!=null){ nP.value=abhakTmp.userPkt; const r=el('abPkt'); if(r) r.value=String(Math.min(num(abhakTmp.userPkt),abhakTmp.max)); }
+    return; }
   // §5: Priorität im Folgeaufgaben-Vorschlag (Auswahl über Render-Zyklus halten)
   const afp=t.closest('[data-abfpri]'); if(afp){ if(abhakTmp){ abhakTmp.folgePri=afp.dataset.abfpri;
     const box=el('abFolgePri'); if(box) box.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on', c===afp)); } return; }
@@ -5525,8 +5854,8 @@ el('sheet').addEventListener('click', e=>{
 
   // Tick-Kurve: erstes „Erstellen" springt auf 3 Schritte (Vorauswahl), jeder
   // weitere Klick fügt einen an; der ＋-Button bleibt immer.
-  if(t.closest('[data-tickadd]')){ if(entwurf.tickKurve.length<3){ while(entwurf.tickKurve.length<3) entwurf.tickKurve.push(0); } else entwurf.tickKurve.push(0); renderDetail(); return; }
-  if(t.closest('[data-tickdel]')){ if(entwurf.tickKurve.length>1) entwurf.tickKurve.pop(); renderDetail(); return; }
+  // §9.2 (v1.8.0): Ticks an/aus je Karte
+  if(t.closest('[data-dticks]')){ entwurf.ticksAktiv=!entwurf.ticksAktiv; renderDetail(); return; }
 
   // Zeitstaffel (§4): erste Anlage seedet 3 Stufen, danach je +1; Button bleibt.
   if(t.closest('[data-zsadd]')){ zeitStufenLies(); const cur=entwurf.zeitStufen||[];
@@ -5575,7 +5904,11 @@ el('sheetBody').addEventListener('input', e=>{
     return;
   }
   if(t.dataset.bind!=null && entwurf){ detailFeld(t.dataset.bind, t); return; }
-  if(t.dataset.tick!=null && entwurf){ entwurf.tickKurve[num(t.dataset.tick)]=num(t.value); return; }
+  if(t.dataset.absubtitel!=null){ const u=S.unteraufgaben.find(x=>x.id===t.dataset.absubtitel); if(u){ u.titel=t.value; DB.set('unteraufgaben', S.unteraufgaben); } return; }
+  if(t.dataset.absubmin!=null){ const u=S.unteraufgaben.find(x=>x.id===t.dataset.absubmin); if(u){ u.sollMin=num(t.value);
+    const k=abhakTmp&&S.karten.find(x=>x.id===abhakTmp.kid);
+    if(k){ k.sollMin=untermenge(k.id).reduce((a,x)=>a+num(x.sollMin),0); saveKarten(); }   // §3.2-Invariante
+    DB.set('unteraufgaben', S.unteraufgaben); } return; }
   if(t.dataset.subtitel!=null){ const u=entwurfSubs.find(x=>x.id===t.dataset.subtitel); if(u) u.titel=t.value; return; }
   if(t.dataset.submin!=null){ const u=entwurfSubs.find(x=>x.id===t.dataset.submin); if(u){ u.sollMin=num(t.value); subParentAngleichen(); } return; }
   if((t.dataset.zsbis!=null||t.dataset.zspkt!=null) && entwurf){ zeitStufenLies(); return; }   // Zeitstaffel live binden
@@ -5608,6 +5941,7 @@ function detailFeld(bind, input){
   if(bind==='geldScore'||bind==='sollMin'){ entwurf[bind]=num(v); }
   // §6.2 (v1.6.1): abhakbonus wie die anderen Overrides — leer = Domänen-Default,
   // sonst der eingegebene Wert INKLUSIVE negativer Beträge (kein Clamp).
+  else if(bind==='tickWert'){ entwurf.tickWert=num(v); }
   else if(bind==='punkteProStd'||bind==='akkuProStd'||bind==='_istMinEdit'||bind==='abhakbonus'){ entwurf[bind]= v===''?null:num(v); }  // leer = null (Fallback)
   else if(bind==='rhythmusN'){ if(entwurf.rhythmus) entwurf.rhythmus.n=Math.max(1,num(v)); }
   else { entwurf[bind]= (v===''&&(bind==='faelligkeit'||bind==='uhrzeit'||bind==='projekt')) ? null : v; }
@@ -5625,7 +5959,6 @@ function zeitStufenLies(){
 /* Detail: gesamten Formularstand aus dem DOM in den Entwurf lesen (vor Save/Aktion) */
 function detailLies(){
   document.querySelectorAll('#sheetBody [data-bind]').forEach(inp=>detailFeld(inp.dataset.bind, inp));
-  document.querySelectorAll('#sheetBody [data-tick]').forEach(inp=>{ entwurf.tickKurve[num(inp.dataset.tick)]=num(inp.value); });
   document.querySelectorAll('#sheetBody [data-subtitel]').forEach(inp=>{ const u=entwurfSubs.find(x=>x.id===inp.dataset.subtitel); if(u) u.titel=inp.value; });
   document.querySelectorAll('#sheetBody [data-submin]').forEach(inp=>{ const u=entwurfSubs.find(x=>x.id===inp.dataset.submin); if(u) u.sollMin=num(inp.value); });
   zeitStufenLies();
@@ -6544,6 +6877,7 @@ function init(){
   interaktion(); saveMeta();
   zeigeMigration160();   // §9.1: Protokoll einmalig anzeigen
   zeigeMigration161();   // §7 (1.6.1): Protokoll einmalig anzeigen
+  zeigeMigration180();   // §9.5 (1.8.0): Protokoll einmalig anzeigen
   zeigeAutoPauseDialog();// §4: offene Rückfrage aus einer Auto-Pause nachholen
 }
 /* §9.1 (v1.6.0): Migrationsprotokoll genau einmal zeigen, danach abhaken. */
@@ -6582,6 +6916,22 @@ function zeigeMigration161(){
     'Routinen-Gruppen geben einen Komplett-Bonus, und ein unbeaufsichtigter Timer pausiert nach '+AUTOPAUSE_MIN+' Minuten und fragt nach.</p>';
   openSheet('Update v1.6.1 — Migration', h, '<button class="btn prim" data-close="1">Verstanden</button>');
   S.meta.migration161Gezeigt=true; saveMeta();
+}
+/* §9.5 (v1.8.0): Migrationsprotokoll einmalig zeigen — inkl. der Karten, die
+   ihre Tick-Staffelung verloren haben. */
+function zeigeMigration180(){
+  const L=S.meta.migration180Log;
+  if(!L || S.meta.migration180Gezeigt) return;
+  let h='<p class="d"><b>Es wurde nichts gelöscht.</b> Sicherung unter <code>karten_bak180</code>. '+
+    'Das Tick-Modell ist vereinfacht: ein Wert je Tick (beim Ticken überschreibbar) statt der Staffel-Kurve.</p>'+
+    '<div class="kvblock"><div class="kv"><span>Karten auf Ticks umgestellt</span><b>'+num(L.ticker)+'</b></div></div>';
+  if((L.gestaffelt||[]).length){
+    h+='<p class="d" style="margin-top:8px;color:var(--warn)">Diese Karten hatten eine Staffelung — behalten wurde jeweils der erste Wert:</p>'+
+      '<div class="kvblock">'+L.gestaffelt.map(g=>'<div class="kv"><span>'+esc(g.titel)+' ['+g.kurve.join(', ')+']</span><b>→ '+g.behalten+'</b></div>').join('')+'</div>';
+  }
+  if(L.whatsapp) h+='<p class="d" style="margin-top:8px">„WhatsApp" ist jetzt ein reiner Counter (Zeitanteile entfernt'+(L.whatsapp.timerFlagVorher?', timerFlag war gesetzt':'')+(L.whatsapp.sollMinVorher?(', Soll war '+L.whatsapp.sollMinVorher+'′'):'')+').</p>';
+  openSheet('Update v1.8.0 — Migration', h, '<button class="btn prim" data-close="1">Verstanden</button>');
+  S.meta.migration180Gezeigt=true; saveMeta();
 }
 init();
 
