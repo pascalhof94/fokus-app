@@ -1018,9 +1018,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.9.0';                    // Datenvertrag/Sync-appVersion — 1.9.0 (Gamification: nur App-interne Groessen, Vertrag 1.x unveraendert)
-const UI_VERSION = 'v1.9.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-28-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.9.1';                    // Datenvertrag/Sync-appVersion — 1.9.1 (zeitmessung als optionales Import-Feld; sonst 1.x unveraendert)
+const UI_VERSION = 'v1.9.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-28-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1178,6 +1178,7 @@ function neueKarte(f={}){
     faelligkeit: null,                // "YYYY-MM-DD" | null (null = Warteschlange)
     uhrzeit: null,                    // "HH:MM" | null — Startzeitpunkt ⇒ Termin
     tagesabschnitt: null,             // §1 (1.6.1): ARRAY aus morgens|tagsueber|abends — null/leer = aus Uhrzeit ableiten
+    zeitmessung: true,                // §2 (1.9.1): Karte misst Zeit, außer ausdrücklich abgeschaltet
     keineAutoPause: false,            // §5 (1.6.1): Pausentimer — keine Auto-Pause, dafür negative Rate ab PAUSENTIMER_MAX_MIN
     strafPunkte: 0,                   // §5 (1.6.1): aufgelaufene Dauerlauf-Strafe (app-only, mindert kartePunkte)
     sollMin: 0,
@@ -1528,6 +1529,24 @@ function ladeAlles(){
     S.meta.gamify190=true;
     saveMeta();
   }
+  // ══ §2.1 (v1.9.1) · Zeitmessung als Schalter ═══════════════════════════
+  // Default true für ALLE Karten (die Grundregel). Einzige Ausnahme steht in
+  // den Daten: die v1.8.0-Migration hat WhatsApp ausdrücklich die Zeitanteile
+  // entzogen (migration180Log.whatsapp) — diese Karte startet mit false.
+  if(!S.meta.zeit191){
+    DB.set('karten_bak191', S.karten);
+    const log={ ts:jetztIso(), gesetzt:0, whatsappAus:false, whatsappLogVorhanden:!!(S.meta.migration180Log&&S.meta.migration180Log.whatsapp) };
+    S.karten.forEach(k=>{
+      if(k.zeitmessung==null){ k.zeitmessung=true; log.gesetzt++; }
+    });
+    if(log.whatsappLogVorhanden){
+      const wa=S.karten.find(k=>String(k.titel||'').trim().toLowerCase()==='whatsapp' && k.rhythmus);
+      if(wa){ wa.zeitmessung=false; log.whatsappAus=true; }
+    }
+    S.meta.zeit191Log=log;
+    S.meta.zeit191=true;
+    saveKarten(); saveMeta();
+  }
   // U3 (v1.4.0): bisher globaler „Bearbeitet heute"-Statusfilter wird zum
   // Pro-Stapel-Filter. Alten Wert einmalig übernehmen, guarded + idempotent.
   if(!S.ui.stapelStatus) S.ui.stapelStatus={};
@@ -1729,13 +1748,11 @@ function kartenArt(k){
    Eine Routine mit ticksAktiv behält Streak und Tagesabschnitte UND ist
    tickbar — Normalfall, kein Sonderfall. */
 function istTickKarte(k){ return !!k.ticksAktiv; }
-/* §3 (v1.8.0): Zeitmessung ist eine Eigenschaft der KARTE, nicht ihrer Art.
-   Aufgaben messen immer; Routinen/Counter nur mit Zeitanteil (Soll, timerFlag
-   oder Zeitstaffel). Reine Ticker bekommen keinen Start/Pause-Knopf. */
-function hatZeitmessung(k){
-  if(kartenArt(k)==='Aufgabe') return true;
-  return !!k.timerFlag || num(k.sollMin)>0 || (Array.isArray(k.zeitStufen)&&k.zeitStufen.length>0);
-}
+/* §2 (v1.9.1): Zeitmessung ist ein SCHALTER der Karte — kein aus vier Feldern
+   abgeleitetes Rätsel (genau diese Ableitung hat in v1.8.0 den Play-Knopf der
+   Routinen gekostet). Steuert AUSSCHLIESSLICH, ob die Stoppuhr läuft — nie,
+   ob ein Knopf existiert. ▶ heißt „in den Fokus". Punkt. */
+function hatZeitmessung(k){ return !(k && k.zeitmessung===false); }
 
 /* ── Timer-Engine (§7 D1: EIN Play/Pause-Toggle) ──────────────────────
    S.fokus = { karteId, laeuft, startMs } — bei Pause/Wechsel/Abschluss
@@ -1766,11 +1783,14 @@ function fokusStarten(kid){
   if(zk && zk.status==='erledigt'){ karteNeuStarten(kid, {starten:true}); return; }
   if(S.fokus && S.fokus.karteId!==kid) fokusZeitEinbuchen();  // alten Fokus pausieren+buchen
   if(!S.fokus || S.fokus.karteId!==kid) S.fokus={ karteId:kid, laeuft:false, startMs:0, sessionSek:0 };
-  S.fokus.laeuft=true; S.fokus.startMs=Date.now();
+  // §3 (v1.9.1): ▶ öffnet den Fokus IMMER; die Stoppuhr läuft nur an, wenn die
+  // Karte Zeit misst. Ohne Uhr: kein laeuft, keine Buchung, kein Intraday.
+  if(hatZeitmessung(zk)){ S.fokus.laeuft=true; S.fokus.startMs=Date.now(); }
+  else { S.fokus.laeuft=false; S.fokus.startMs=0; }
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
   fokusNavReset();           // U2: aktive Auswahl beendet die Swipe-Navigation
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
-  saveFokus(); saveUi(); starteTicker(); renderAlles();
+  saveFokus(); saveUi(); if(S.fokus.laeuft) starteTicker(); renderAlles();
 }
 /* U1: die Fokus-Karte an Position 1 des aktiven Stapels (echte Umsortierung —
    manueller Modus, aktuelle Reihenfolge festschreiben, Ziel-Karte sortIndex 0). */
@@ -1783,6 +1803,8 @@ function fokusKarteNachOben(kid){
 }
 function fokusToggle(){
   if(!S.fokus){ return; }
+  const fk=fokusKarte();
+  if(fk && !hatZeitmessung(fk)){ toast('Zeitmessung ist für diese Karte aus'); return; }   // §3 (1.9.1)
   if(S.fokus.laeuft){ fokusZeitEinbuchen(); }
   else { S.fokus.laeuft=true; S.fokus.startMs=Date.now(); saveFokus(); starteTicker(); }
   renderAlles();
@@ -2253,9 +2275,9 @@ function kartenreiheHtml(k, stapelId){
   if(k.freeze) meta.push('<span class="frost">❄︎ eingefroren</span>');   // A4
   if(stapelId==='sys-bearbeitet' && k.letzteBearbeitung) meta.push('<span class="vor">'+fmtVor(k.letzteBearbeitung)+'</span>');   // A7
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
-  // §3 (v1.8.0): Start/Pause nur für Karten MIT Zeitmessung — reine Ticker
-  // bekommen keinen Timer-Knopf mehr (Ursache des WhatsApp-Zeittrackings).
-  const startBtn = !hatZeitmessung(k) ? '' : (k.status==='erledigt'
+  // §1/§3 (v1.9.1): ▶ BEDINGUNGSLOS auf jeder Karte — er heißt „in den Fokus".
+  // Ob dabei eine Stoppuhr läuft, entscheidet fokusStarten über hatZeitmessung.
+  const startBtn = (k.status==='erledigt'
     ? '<button class="kstart auftau" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="Wieder öffnen &amp; Timer">▶</button>'   // Mini-6b B: erledigte Karte reaktivieren
     : (k.freeze
       ? '<button class="kstart auftau" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="Auftauen &amp; in den Fokus">▶</button>'   // A4: auftauen + Fokus
@@ -2264,9 +2286,11 @@ function kartenreiheHtml(k, stapelId){
   const sortCtrl = stapelId==='sys-erledigt' ? '' :
     '<div class="ksort"><button class="sar" data-sortup="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="hoch">▲</button>'+
     '<button class="sar" data-sortdown="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="runter">▼</button></div>';
-  const rechts = istTickKarte(k)
-    ? '<button class="kcheck ktick" data-tickplus="'+k.id+'" aria-label="Tick +">＋</button>'
-    : '<div class="kcheck" data-check="'+k.id+'"><div class="box">✓</div></div>';
+  // §4 (v1.9.1): Ticks sind eine Ebene OBENDRAUF, kein Ersatz — eine getickte
+  // Karte kann auch fertig sein. Bei ticksAktiv stehen ＋ und ✓ nebeneinander.
+  const rechts = (istTickKarte(k)
+    ? '<button class="kcheck ktick" data-tickplus="'+k.id+'" aria-label="Tick +">＋</button>' : '')
+    + '<div class="kcheck" data-check="'+k.id+'"><div class="box">✓</div></div>';
   // §2 (v1.8.0): Schieben + Archivieren neu in der Karte
   const schiebBtn = k.status==='offen'
     ? '<button class="kstart kschieb" data-schieb="'+k.id+'" aria-label="Schieben">⏭</button>' : '';
@@ -2492,8 +2516,8 @@ function renderFokus(){
     '<button class="tedit" data-fkschieben="'+k.id+'" aria-label="Schieben">⏭</button>'+
     '<button class="tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause">'+(laeuft?'⏸':'▶')+'</button>'+
     (istTickKarte(k)
-      ? '<button class="tcheck ttick" data-tickplus="'+k.id+'" aria-label="Tick +">＋</button>'
-      : '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button>')+'</div>';
+      ? '<button class="tcheck ttick" data-tickplus="'+k.id+'" aria-label="Tick +">＋</button>' : '')+
+    '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button>'+'</div>';   // §4 (1.9.1): ＋ UND ✓
   // U2 (v1.4.0): Swipe-Zeitleiste — links = nächste Stapel-Karte, rechts = heutiger
   // Bearbeitungsverlauf rückwärts. Die Mitte zeigt, wo man gerade steht.
   const nav=fokusNav(), vlLen=fokusVerlaufHeute().length;
@@ -3734,8 +3758,9 @@ function renderDetail(){
   // §9.2 (v1.8.0): Die mehrstufige Tick-Kurve ist abgelöst — ein Schalter
   // „Ticks" plus EIN Default-Punktwert je Tick (negativ zulässig, Normalfall
   // für Karten wie „Kopf freimachen").
-  h+='<div class="field"><label>Ticks</label><div class="chips">'+
-    '<button class="chip '+(k.ticksAktiv?'on gruen':'')+'" data-dticks="1">'+(k.ticksAktiv?'✓ Ticks an':'aus')+'</button></div>'+
+  h+='<div class="field"><label>Ticks · Zeitmessung</label><div class="chips">'+
+    '<button class="chip '+(k.ticksAktiv?'on gruen':'')+'" data-dticks="1">'+(k.ticksAktiv?'✓ Ticks an':'Ticks aus')+'</button>'+
+    '<button class="chip '+(hatZeitmessung(k)?'on gruen':'')+'" data-dzeit="1">'+(hatZeitmessung(k)?'✓ Zeit messen':'Zeit aus')+'</button></div>'+
     (k.ticksAktiv
       ? '<div style="display:flex;align-items:center;gap:8px;margin-top:6px"><span class="mlab">Punkte je Tick</span>'+
         '<input type="number" inputmode="numeric" step="5" data-bind="tickWert" value="'+num(k.tickWert)+'" style="width:100px"></div>'+
@@ -3877,8 +3902,8 @@ function karteSchiebenA4(kid, mitAbzug, abzug){
 function karteAbhaken(kid, fromDetail){
   const k = kid ? S.karten.find(x=>x.id===kid) : entwurf;
   if(!k) return;
-  // A3: Timer-/Counter-Karten werden nie erledigt — „Abhaken" bucht einen Tick.
-  if(istTickKarte(k) && k.status!=='erledigt'){ karteTick(kid, fromDetail); return; }
+  // §4 (v1.9.1): die alte A3-Umleitung „Tick-Karte → karteTick" entfällt —
+  // Ticken läuft über ＋ (data-tickplus), ✓ schließt die Karte ab.
   if(k.status==='erledigt'){
     // §6 (v1.6.0): Reaktivierung ist eine KORREKTUR an derselben Karte —
     // kein Duplikat mehr (die v1.2.1-Regel entfällt). Der oberste
@@ -4044,8 +4069,9 @@ let abhakTmp=null;
 function karteAbhakenAuto(kid, fromDetail){
   const k = kid ? S.karten.find(x=>x.id===kid) : entwurf;
   if(!k) return;
-  if(k.status==='offen' && !istTickKarte(k)){ abhakDialog(k.id, fromDetail); return; }   // Aufgaben + Routinen
-  karteAbhaken(kid, fromDetail);   // Ticks (＋) / Un-Abhaken direkt
+  // §4 (v1.9.1): ✓ heißt Abschließen — auch bei Tick-Karten (＋ tickt separat).
+  if(k.status==='offen'){ abhakDialog(k.id, fromDetail); return; }
+  karteAbhaken(kid, fromDetail);   // Un-Abhaken direkt
 }
 function abhakbonusDefault(k){ return k.abhakbonus!=null ? num(k.abhakbonus)
   : (k.domain==='dfm' ? num(S.settings.abhakbonusDfm,0) : num(S.settings.abhakbonusPrivat,0)); }
@@ -4336,7 +4362,7 @@ function routBlockHtml(ks){
 }
 function routZeileHtml(k){
   const t=routTmp, fb=t&&t.fb[k.id];
-  const zeit=num(k.sollMin)>0 || k.timerFlag;   // Play nur bei Routinen mit Zeitanteil
+  const zeit=true;   // §3 (1.9.1): ▶ bedingungslos — er heißt „in den Fokus", die Uhr entscheidet die Karte
   const fertig=routErledigtHeute(k);
   return '<div class="routzeile'+(fertig?' fertig':'')+'" data-rzeile="'+k.id+'">'+
     '<div class="rz-main" data-detail="'+k.id+'">'+
@@ -4583,7 +4609,9 @@ function syncImport(text){
     if(inc.punkteProStd!==undefined)   lok.punkteProStd = inc.punkteProStd==null?null:num(inc.punkteProStd);
     if(inc.akkuProStd!==undefined)     lok.akkuProStd   = inc.akkuProStd==null?null:num(inc.akkuProStd);
     if(inc.abhakbonus!==undefined)     lok.abhakbonus   = inc.abhakbonus==null?null:num(inc.abhakbonus);   // auch negativ
-    if(inc.timerFlag!==undefined)      lok.timerFlag=!!inc.timerFlag;
+    if(inc.timerFlag!==undefined){     lok.timerFlag=!!inc.timerFlag;
+                                       if(inc.zeitmessung===undefined) lok.zeitmessung=!!inc.timerFlag || kartenArt(lok)==='Aufgabe' || num(lok.sollMin)>0; }
+    if(inc.zeitmessung!==undefined)    lok.zeitmessung=!!inc.zeitmessung;   // §2 (1.9.1): expliziter Schalter gewinnt
     if(inc.keineAutoPause!==undefined) lok.keineAutoPause=!!inc.keineAutoPause;
     if(inc.komplex!=null) lok.komplex=num(inc.komplex);
     if(inc.energie!=null) lok.energie=num(inc.energie);
@@ -6352,6 +6380,7 @@ el('sheet').addEventListener('click', e=>{
   // weitere Klick fügt einen an; der ＋-Button bleibt immer.
   // §9.2 (v1.8.0): Ticks an/aus je Karte
   if(t.closest('[data-dticks]')){ entwurf.ticksAktiv=!entwurf.ticksAktiv; renderDetail(); return; }
+  if(t.closest('[data-dzeit]')){ entwurf.zeitmessung=!hatZeitmessung(entwurf); renderDetail(); return; }   // §2 (1.9.1)
 
   // Zeitstaffel (§4): erste Anlage seedet 3 Stufen, danach je +1; Button bleibt.
   if(t.closest('[data-zsadd]')){ zeitStufenLies(); const cur=entwurf.zeitStufen||[];
