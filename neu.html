@@ -208,6 +208,60 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
    Chips auf 44px Touch-Ziel gebracht, Zeile darf umbrechen. */
 /* ══ §2.5 (v1.6.0) · Navigationsleiste der drei Ebenen auf der Fokusseite ══
    Dauerhaft sichtbar, ein Tap je Ebene, alle Ziele ≥44px. */
+/* ══ §8 (v1.9.0) · Album ══ */
+.albtabs{display:flex;gap:6px;margin-bottom:10px}
+.albtab{flex:1;min-height:44px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--mut);font-size:13px;font-weight:800}
+.albtab.on{background:var(--purple);border-color:var(--purple);color:#0a0f1a}
+.albgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.albitem{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:6px;text-align:center;min-height:44px}
+.albitem.breit{grid-column:span 3}
+.albitem img{width:100%;height:72px;object-fit:contain;border-radius:8px}
+.albitem.breit img{height:90px;object-fit:cover}
+.albitem.zu img{filter:brightness(0) opacity(.45)}
+.albitem .albn{font-size:10.5px;font-weight:700;color:var(--txt);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.albitem.zu .albn{color:var(--mut2)}
+.albitem .albs{font-size:9.5px;color:var(--mut2);font-family:ui-monospace,monospace}
+.albdetail{position:fixed;inset:0;z-index:300;background:rgba(6,10,18,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:12px}
+.albdetail img{max-width:92vw;max-height:70vh;border-radius:14px;border:1px solid var(--line)}
+.albdetail .nm{font-size:15px;font-weight:800;color:var(--txt)}
+/* ══ §6 (v1.9.0) · Momente — reine CSS-Keyframes, keine Bibliothek ══ */
+.mom-fly{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:200;pointer-events:none;
+  font-size:17px;font-weight:800;color:var(--ok);text-shadow:0 2px 8px rgba(0,0,0,.6);
+  animation:momfly 1.25s ease-out forwards}
+@keyframes momfly{0%{opacity:0;transform:translate(-50%,0) scale(.8)}15%{opacity:1;transform:translate(-50%,-14px) scale(1.15)}
+  100%{opacity:0;transform:translate(-50%,-120px) scale(.9)}}
+.mom-stern{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:200;pointer-events:none;
+  font-size:15px;font-weight:800;color:var(--warn);background:var(--card2);border:1px solid var(--warn);
+  border-radius:12px;padding:8px 14px;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:momstern 1.8s ease forwards}
+@keyframes momstern{0%{opacity:0;transform:translate(-50%,8px)}12%{opacity:1;transform:translate(-50%,0)}
+  80%{opacity:1}100%{opacity:0;transform:translate(-50%,-10px)}}
+.mom-voll{position:fixed;inset:0;z-index:300;background:rgba(6,10,18,.92);display:flex;align-items:center;
+  justify-content:center;padding:24px;animation:momvoll .35s ease}
+.mom-voll.still{animation:none}
+@keyframes momvoll{from{opacity:0}to{opacity:1}}
+.mv-kern{text-align:center;max-width:340px}
+.mv-titel{font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:14px}
+.mv-bilder{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px}
+.mv-bilder img{width:120px;max-width:36vw;border-radius:14px;border:1px solid var(--line)}
+.mv-bilder img.alt{opacity:.45;filter:grayscale(.6);width:90px}
+.mv-bilder img.neu{box-shadow:0 0 40px rgba(242,184,75,.35);animation:mvneu .6s ease}
+@keyframes mvneu{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.mv-pfeil{font-size:22px;color:var(--warn);font-weight:800}
+.mv-kulisse img{width:100%;max-width:320px;border-radius:14px;border:1px solid var(--line);animation:mvneu .6s ease}
+.mv-name{font-size:18px;font-weight:800;color:var(--txt);margin-bottom:6px}
+.mv-flamme{font-size:56px;margin-bottom:10px;animation:mvneu .6s ease}
+.mv-sub{font-size:11px;color:var(--mut2)}
+@media (prefers-reduced-motion: reduce){ .mom-fly,.mom-stern,.mv-bilder img.neu,.mv-kulisse img,.mv-flamme{animation:none} .mom-voll{animation:none} }
+/* §6.2: vier Meilensteine im Tagesbalken */
+.sb-bar .qmark{position:absolute;top:-1px;bottom:-1px;width:1px;background:rgba(255,255,255,.28)}
+/* Tagesabschluss-Abfolge */
+.abfolge{margin-bottom:10px}
+.ab-schritt{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;margin-bottom:4px;
+  background:var(--card2);border:1px solid var(--line);border-radius:9px;font-size:13px;
+  opacity:0;animation:abstep .4s ease forwards}
+.ab-schritt b{font-size:15px;color:var(--ok)}
+@keyframes abstep{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@media (prefers-reduced-motion: reduce){ .ab-schritt{animation:none;opacity:1} }
 /* §5 (v1.6.0): Hinweis auf offene Unteraufgaben im Abhak-Dialog */
 .hinweisbox{background:rgba(185,138,247,.12);border:1px solid rgba(185,138,247,.4);border-radius:10px;
   padding:9px 11px;font-size:12.5px;color:var(--txt);margin-bottom:10px;line-height:1.4}
@@ -964,9 +1018,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.8.1';                    // Datenvertrag/Sync-appVersion — 1.8.1 (Urlaubsmodus, Wochenendregel-Analyse, Flow-Fix; 1.x-kompatibel)
-const UI_VERSION = 'v1.8.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-28-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.9.0';                    // Datenvertrag/Sync-appVersion — 1.9.0 (Gamification: nur App-interne Groessen, Vertrag 1.x unveraendert)
+const UI_VERSION = 'v1.9.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-28-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1436,6 +1490,43 @@ function ladeAlles(){
     S.meta.flowfix181Log=log;
     S.meta.flowfix181=true;
     saveKarten(); saveMeta();
+  }
+  // ══ §7 (v1.9.0) · Gamification-Migration ═══════════════════════════════
+  // Seedet die neuen Akkumulatoren EINMALIG aus dem Bestand — danach laufen
+  // sie eigenständig (die alte max-Kaskade würde den Kauf-Bonus sonst wieder
+  // einebnen). Der heutige Live-Anteil wird herausgerechnet, weil die Anzeigen
+  // ihn über spielLiveZufluss() dazurechnen (sonst zählte heute doppelt).
+  if(!S.meta.gamify190){
+    DB.set('meta_bak190', S.meta);
+    DB.set('belohnung_bak190', S.belohnung);
+    const live = tagOffen() ? Math.max(0, tagesPunkteLive()) : 0;
+    const ausg = num(S.belohnung && S.belohnung.ausgegeben);
+    // Kaskadenwerte VOR dem Setzen der neuen Felder einfrieren — konto() greift
+    // sonst mitten im Seed auf halb gesetzte Akkumulatoren zu.
+    const rohAlt  = lifetimePunkteRoh();
+    const lifeAlt = lifetimePunkte();
+    S.meta.muenzenGesamt   = Math.max(0, Math.round(rohAlt  - live));
+    S.meta.rangPunkte      = Math.max(0, Math.round(lifeAlt - live));
+    S.meta.ausgegebenGesamt= Math.round(ausg);
+    S.meta.rangResetOffset=0; S.meta.muenzenResetOffset=0; S.meta.ausgabenResetOffset=0;
+    // Tages-Streak aus der Historie rekonstruieren (Urlaubstage neutral)
+    const abschluss={}, urlaubT={};
+    (S.historie||[]).forEach(h=>{ if(h.luecke) return; abschluss[h.datum]=true; if(h.urlaub) urlaubT[h.datum]=true; });
+    let st=0, letzt=null, d=heuteApp(), guard=0;
+    if(!abschluss[d] && !urlaubT[d]) d=anVorTage(d,1);   // offener heutiger Tag zählt noch nicht
+    while(guard++<730){
+      if(urlaubT[d] && !abschluss[d]){ d=anVorTage(d,1); continue; }
+      if(abschluss[d] && !urlaubT[d]){ st++; if(!letzt) letzt=d; d=anVorTage(d,1); continue; }
+      if(abschluss[d] && urlaubT[d]){ d=anVorTage(d,1); continue; }   // Urlaubs-Abschluss: neutral
+      break;
+    }
+    S.meta.tagesStreak=st; S.meta.tagesStreakBest=st; S.meta.streakLetzterTag=letzt;
+    const rp=Math.max(0,num(S.meta.rangPunkte));
+    S.meta.gamify190Log={ ts:jetztIso(), rangPunkte:rp, muenzen:num(S.meta.muenzenGesamt),
+      ausgegeben:num(S.meta.ausgegebenGesamt), rang:rangVon(rp), sterne:sterneVon(rp),
+      kulisse:bgStufeAus(num(S.meta.ausgegebenGesamt)), streak:st, streakQuelle:(S.historie&&S.historie.length)?'Historie':'leer' };
+    S.meta.gamify190=true;
+    saveMeta();
   }
   // U3 (v1.4.0): bisher globaler „Bearbeitet heute"-Statusfilter wird zum
   // Pro-Stapel-Filter. Alten Wert einmalig übernehmen, guarded + idempotent.
@@ -2846,8 +2937,8 @@ function renderStatusbar(){
     sollEl.style.left=istTotalPct.toFixed(1)+'%'; sollEl.style.width=(sollPct-istTotalPct).toFixed(1)+'%';
     sollMk.style.display='none';
   }
-  // Kauf-Schwellen als Marken (kumulativ, relativ zum vollen Tagesziel, unverändert)
-  let marks='';
+  // §6.2 (v1.9.0): vier Meilensteine im Tagesbalken (¼ · ½ · ¾ · Ziel)
+  let marks='<span class="qmark" style="left:25%"></span><span class="qmark" style="left:50%"></span><span class="qmark" style="left:75%"></span>';
   if(S.belohnung){
     const bankOhneHeute=k-istHeute; let kum=0;
     KAT_KEYS.filter(kk=>!kaufSperre(kk)).map(preisFuer).filter(p=>p!=null).sort((a,b)=>a-b).forEach(pr=>{
@@ -2878,7 +2969,13 @@ function renderStatusbar(){
   }
   // S3 (v1.3.2): Level + Punktekonto statt Streak (Streak bleibt intern/in Historie erhalten)
   // F4 (v1.3.3): zweizeilig + gekürzte Punktzahl, damit der Chip die Batterie-Breite hält
-  el('sLevel').innerHTML='<span class="lv">Lv '+avatarStufe()+'</span><span class="pk">'+fmtKurzP(konto())+'</span>';
+  // §3/§5 (v1.9.0): Rang + Sterne + Streak-Flamme (jederzeit sichtbar) + Joker
+  {
+    const sp=spielStand();
+    el('sLevel').innerHTML='<span class="lv">R'+sp.rang+'<span style="color:var(--warn)">'+('★'.repeat(Math.max(0,sp.sterne))||'')+'</span></span>'+
+      '<span class="pk">🔥'+num(S.meta.tagesStreak)+'·×'+streakFaktor().toFixed(2).replace('.',',')+(jokerVerfuegbar()?'♦':'')+' '+fmtKurzP(konto())+'</span>';
+  }
+  momentRangCheck();   // §6 (1.9.0): Rang/Stern/Meilenstein/Joker zentral erkennen
   // ausgeklappte Live-Kurve mitziehen
   if(!el('statChart').hidden && typeof renderStatChart==='function') renderStatChart();
   }catch(e){ /* Statusleiste bleibt sichtbar, auch wenn ein Wert scheitert */ }
@@ -3169,6 +3266,48 @@ function tagStarten(akkuProzent){
 /* Tages-Streak (v0.38-Art, additiv): Anzahl unmittelbar zusammenhängender
    abgeschlossener Tage mit positiver Bilanz. inklHeute=true zählt den offenen
    Tag mit, wenn seine Live-Bilanz > 0 ist (für die Live-Anzeige). */
+/* ══ §5 (v1.9.0) · Tages-Streak-Fortschreibung beim Tagesabschluss ══════
+   Regeln: Urlaubstag = neutral (bricht nicht, verlängert nicht, letzter
+   Zähl-Tag bleibt stehen). Lückentage brechen nicht, wenn sie Urlaubs-
+   Snapshots tragen ODER der Urlaubsmodus aktiv ist (der „große Freeze").
+   Eine 1-Tages-Lücke wird ab Streak 30 automatisch von einem Joker
+   überbrückt (einer je Kalendermonat), mit ruhigem Hinweis beim nächsten
+   Rendern. Sonst: Serie auf 0 → neuer Tag zählt als 1. */
+const STREAK_MEILENSTEINE={ 7:{m:2500,r:0}, 30:{m:5000,r:5000}, 100:{m:10000,r:10000}, 365:{m:25000,r:25000} };
+function istUrlaubsLueckentag(d){
+  if(S.meta && S.meta.urlaubsmodus) return true;
+  return (S.historie||[]).some(h=>h.datum===d && h.urlaub && !h.luecke);
+}
+function streakFortschreiben(datum, urlaub){
+  if(urlaub) return;   // neutral — Serie steht, zählt aber nicht weiter
+  const letzt=S.meta.streakLetzterTag;
+  let neu;
+  if(!letzt || letzt>=datum){ neu=Math.max(1, num(S.meta.tagesStreak)); if(!letzt) neu=1; }
+  else {
+    let luecke=0, d=letzt, guard=0;
+    while(guard++<400){ d=anVorTage(d,-1); if(d>=datum) break; if(!istUrlaubsLueckentag(d)) luecke++; }
+    if(luecke===0) neu=num(S.meta.tagesStreak)+1;
+    else if(luecke===1 && jokerVerfuegbar()){
+      S.meta.jokerVerbrauchtMonat=heuteApp().slice(0,7);
+      S.meta.jokerHinweis=num(S.meta.tagesStreak)+1;   // ruhiger Hinweis beim nächsten Rendern
+      neu=num(S.meta.tagesStreak)+1;
+    }
+    else neu=1;
+  }
+  S.meta.tagesStreak=neu;
+  S.meta.tagesStreakBest=Math.max(num(S.meta.tagesStreakBest), neu);
+  S.meta.streakLetzterTag=datum;
+  // §5.3: Meilensteine — einmalig beim exakten Erreichen
+  const ms=STREAK_MEILENSTEINE[neu];
+  if(ms){
+    S.meta.muenzenGesamt=num(S.meta.muenzenGesamt)+ms.m;   // Münzen-Bonus
+    S.meta.rangPunkte=num(S.meta.rangPunkte)+ms.r;         // Rang-Bonus (Quelle 3, §2.2)
+    S.meta.meilensteinMoment=neu;                          // Feier beim nächsten Rendern (§6.3)
+  }
+  saveMeta();
+}
+/* ALT (v1.1): Tage in Folge mit positiver Bilanz — bleibt für S.tag.streak in
+   der Historie erhalten; der NEUE Multiplikator-Streak ist meta.tagesStreak. */
 function tagesStreakStand(inklHeute){
   const tage=(S.historie||[]).filter(h=>!h.luecke).slice().sort((a,b)=> (a.datum<b.datum?1:a.datum>b.datum?-1:(num(b.laufindex)-num(a.laufindex))) );
   let s=0;
@@ -3211,6 +3350,18 @@ function tagAbschlussFinalisieren(){
   S.meta.wohlstand = num(S.meta.wohlstand) + bilanz;     // §4: kumulativ, nie Reset
   // Snapshot für Statistiken (§9) + Belohnungs-Diagramme (v1.1: log/akkuVerlauf/streak)
   S.tag.urlaub=urlaubHeute();   // §5.4 (1.8.1): Markierung gehoert an den TAG
+  // ══ §2/§5 (v1.9.0) · Spiel-Ebene beim Tagesabschluss ═══════════════════
+  // Zufluss = Tagesbilanz × Streakfaktor DES TAGES (der Faktor, der den ganzen
+  // Tag sichtbar war — der Streak selbst wird erst DANACH fortgeschrieben).
+  // Wirkt ausschließlich auf muenzenGesamt/rangPunkte, nie auf die Mess-Ebene.
+  {
+    const faktor=streakFaktor();
+    const zufluss=Math.round(Math.max(0, bilanz)*faktor);
+    S.meta.muenzenGesamt=num(S.meta.muenzenGesamt)+zufluss;
+    S.meta.rangPunkte=num(S.meta.rangPunkte)+zufluss;
+    S.tag.spielZufluss=zufluss; S.tag.spielFaktor=faktor;   // für die Abschluss-Abfolge (§6.2)
+    streakFortschreiben(S.tag.datum, S.tag.urlaub);
+  }
   S.historie.push({
     tagId:S.tag.tagId, datum:S.tag.datum, laufindex:S.tag.laufindex, urlaub:S.tag.urlaub,
     startTs:S.tag.startTs, endeTs:S.tag.endeTs, akku:S.tag.akku,
@@ -3392,7 +3543,15 @@ function abschlussFinish(){
 /* §8.4: Kopier-Sheet für das Tagesabschluss-Paket (Copy-Paste statt Download). */
 function oeffneTagAbschlussPaket(paket){
   const txt=JSON.stringify(paket, null, 2);
-  const h='<p class="d">Tag abgeschlossen. Kopiere das Paket in den Claude-Chat — '+
+  // §6.2 (v1.9.0): Bilanz als kurze ABFOLGE — Punkte → Faktor → Münzen → Rang.
+  const sp=spielStand();
+  const seq='<div class="abfolge">'+
+    '<div class="ab-schritt" style="animation-delay:.05s"><span>Punkte heute</span><b>'+Math.round(num(S.tag&&S.tag.punkteBilanz))+'</b></div>'+
+    '<div class="ab-schritt" style="animation-delay:.35s"><span>🔥 Serie '+num(S.meta.tagesStreak)+' Tg</span><b>×'+num(S.tag&&S.tag.spielFaktor,1).toFixed(2).replace('.',',')+'</b></div>'+
+    '<div class="ab-schritt" style="animation-delay:.65s"><span>🪙 Münzen</span><b>+'+Math.round(num(S.tag&&S.tag.spielZufluss))+'</b></div>'+
+    '<div class="ab-schritt" style="animation-delay:.95s"><span>Rang '+sp.rang+' '+('★'.repeat(sp.sterne))+'</span><b>'+(sp.rang>=RANG_MAX?'MAX':('noch '+Math.round(sp.rest)+' bis R'+(sp.rang+1)))+'</b></div>'+
+  '</div>';
+  const h=seq+'<p class="d">Tag abgeschlossen. Kopiere das Paket in den Claude-Chat — '+
     'der Download bleibt als Zusatzoption, wird auf dem iPhone aber oft unterdrückt.</p>'+
     '<div class="field"><label>Tagesabschluss-Paket</label>'+
     '<textarea id="tagEx" readonly style="min-height:150px;font-family:ui-monospace,monospace;font-size:11px">'+esc(txt)+'</textarea>'+
@@ -3672,6 +3831,7 @@ function karteTick(kid, fromDetail, wertOverride){
   if(k.rhythmus && num(k.ticksHeute)===1) routineErledigtBuchen(k);   // §7: Streak bleibt intakt
   if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
   beruehre(k); logIntraday(k,{punkte:tickPunkte(k)-vor,typ:'tick'});   // A7 + B0
+  momentBuchung(tickPunkte(k)-vor);                                    // §6.1 (1.9.0)
   haptik(12);
   if(!fromDetail){ saveKarten(); saveTag(); renderAlles(); }
 }
@@ -3736,6 +3896,7 @@ function karteAbhaken(kid, fromDetail){
     if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
     logPunktSchreiben(k);                                 // v1.1: Punkt-Ereignis (Verlauf/Kennzahlen)
     logIntraday(k,{punkte:kartePunkte(k),typ:'abhaken'}); // B0: Intraday-Buchung
+    momentBuchung(kartePunkte(k));                        // §6.1 (1.9.0)
     konfetti(); haptik(20);
   }
   beruehre(k);                                             // A7: jede Interaktion zählt
@@ -4706,7 +4867,10 @@ function renderEinst(){
     '<div class="kv"><span>Panorama-Reset-Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
     // FIX1 (v1.5.2): gefundene Sync-Spike-Tage nachvollziehbar machen
     '<div class="kv"><span>Flow-Fix Spike-Tage</span><b>'+(!Array.isArray(S.meta.flowfix152Log)||!S.meta.flowfix152Log.length?'keine':S.meta.flowfix152Log.map(s=>s.datum+' ('+s.anzahl+')').join(', '))+'</b></div>'+
-    '<div class="kv"><span>Level</span><b>Lv '+avatarStufe()+'/'+AVATAR_MAX_LEVEL+' · '+esc(avatarAssets(avatarStufe()).name)+'</b></div>'+
+    '<div class="kv"><span>Rang (v1.9)</span><b>R'+spielStand().rang+'/'+RANG_MAX+' '+('★'.repeat(spielStand().sterne))+' · '+esc(spielStand().name)+'</b></div>'+
+    '<div class="kv"><span>Rang-P · Münzen · ausgegeben</span><b>'+Math.round(rangPunkteAnzeige())+' · '+Math.round(muenzenAnzeige())+' · '+Math.round(ausgabenAnzeige())+'</b></div>'+
+    '<div class="kv"><span>Tages-Serie (best)</span><b>'+num(S.meta.tagesStreak)+' ('+num(S.meta.tagesStreakBest)+')</b></div>'+
+    '<div class="kv"><span>Level (Altwert)</span><b>Lv '+avatarStufe()+'/'+AVATAR_MAX_LEVEL+'</b></div>'+
     '<div class="kv"><span>Migration Lifetime-Basis</span><b>'+(S.meta.lifetimeBasis==null?'—':Math.round(S.meta.lifetimeBasis)+' P ('+esc(S.meta.lifetimeQuelle||'?')+')')+'</b></div>'+
     '<div class="kv"><span>Tag</span><b>'+(tagOffen()?('läuft · '+esc(S.tag.tagId)):(S.tag?'abgeschlossen':'nicht gestartet'))+'</b></div>'+
     '<div class="kv"><span>Abgeschlossene Tage</span><b>'+(S.historie?S.historie.length:0)+'</b></div>'+
@@ -4720,6 +4884,11 @@ function renderEinst(){
     '<p class="d">Nichts ist verpflichtend, alles bleibt möglich: keine Streak-Brüche, kein Ziel, keine Schiebe-Minuspunkte, keine Abräumpflicht. Timer, Ticks und Punkte laufen normal weiter. Urlaubstage erscheinen in der Statistik, fließen aber nicht in Durchschnitte und Trends ein.</p>'+
     '<div class="kv"><span>Urlaubsmodus</span><button class="chip '+(S.meta.urlaubsmodus?'on gruen':'')+'" data-urlaubtoggle="1">'+(S.meta.urlaubsmodus?'AN':'aus')+'</button></div>'+
     (S.meta.urlaubsmodus?'<div class="hint">Läuft — sichtbar am 🏖 in der Statusleiste. Der Zustand beim Tagesabschluss gilt für den ganzen Tag.</div>':'')+
+  '</div>';
+  // §6.4 (v1.9.0): Vollbild-Momente abschaltbar (Default: an)
+  h+='<div class="card"><h3>✨ Momente</h3>'+
+    '<p class="d">Rangaufstieg, Kulissenwechsel und Serien-Meilensteine erscheinen als Vollbild (ein Tap schließt). Hier lassen sie sich abschalten — kleine Einblendungen beim Abhaken bleiben.</p>'+
+    '<div class="kv"><span>Vollbild-Momente</span><button class="chip '+(!S.meta.momenteAus?'on gruen':'')+'" data-momenttoggle="1">'+(!S.meta.momenteAus?'AN':'aus')+'</button></div>'+
   '</div>';
   // §4 (v1.8.1): Eingriffe mit Tragweite — optisch abgesetzt, GANZ unten
   h+='<div class="card" style="border-color:var(--bad);margin-top:18px"><h3 style="color:var(--bad)">⚠️ Eingriffe mit Tragweite</h3>'+
@@ -4735,7 +4904,7 @@ function renderEinst(){
    151er-Migration, jetzt wiederholbar und mit Rückgängig (solange ein Backup
    vorliegt). Es wird ausschließlich Anzeige-Zustand verschoben. */
 function panoramaResetJetzt(){
-  if(!confirm('Wohlstand zurücksetzen?\n\nAvatar und Panorama starten wieder bei Level 1, die sechs Zonen-Stufen gehen auf 0.\n\nNICHT angefasst werden: Historie, Intraday-Log, Streaks, Punkte-Konto und alle Statistiken. Der Schritt ist über „Rückgängig" umkehrbar, solange kein neuer Reset folgt.')) return;
+  if(!confirm('Wohlstand zurücksetzen?\n\nRang, Kleidung, Kulisse und Konto-Anzeige starten wieder bei null (Rang 1, Startkulisse, Konto 0), die sechs Zonen-Stufen gehen auf 0.\n\nNICHT angefasst werden: Historie, Intraday-Log, Streaks (auch die Tages-Serie), Statistiken und die gekauften Objekte im Album. Der Schritt ist über „Rückgängig" umkehrbar, solange kein neuer Reset folgt.')) return;
   if(!S.belohnung){ S.belohnung={ stufen:{}, ausgegeben:0, kaeufe:[] }; }
   S.belohnung.stufen=S.belohnung.stufen||{};
   const altStufen={}; KAT_KEYS.forEach(k=>{ altStufen[k]=num(S.belohnung.stufen[k],0); });
@@ -4744,9 +4913,17 @@ function panoramaResetJetzt(){
     ts: jetztIso(), offset: num(S.meta.panoramaResetOffset),   // vorheriger Offset (nicht der neue!)
     levelVorher: avatarStufe(), stufen: altStufen,
     wohlstand: num(S.meta.wohlstand), ausgegeben: num(S.belohnung.ausgegeben),
-    lifetimeBasis: num(S.meta.lifetimeBasis)
+    lifetimeBasis: num(S.meta.lifetimeBasis),
+    // §7.2 (v1.9.0): die drei Spiel-Offsets VOR dem Reset — Undo stellt sie her
+    rangResetOffset: num(S.meta.rangResetOffset),
+    muenzenResetOffset: num(S.meta.muenzenResetOffset),
+    ausgabenResetOffset: num(S.meta.ausgabenResetOffset)
   };
   S.meta.panoramaResetOffset=rohVorher;
+  // §7.2 (v1.9.0): die neuen Achsen mitnehmen — Anzeige = Rohwert − Offset
+  S.meta.rangResetOffset    = num(S.meta.rangPunkte);
+  S.meta.muenzenResetOffset = num(S.meta.muenzenGesamt);
+  S.meta.ausgabenResetOffset= num(S.meta.ausgegebenGesamt);
   KAT_KEYS.forEach(k=>{ S.belohnung.stufen[k]=0; });
   saveMeta(); saveBelohnung(); renderEinst(); toast('Panorama zurückgesetzt — Level 1');
 }
@@ -4755,6 +4932,10 @@ function panoramaResetUndo(){
   if(!b){ toast('Kein Reset-Backup vorhanden'); return; }
   if(!confirm('Letzten Wohlstand-Reset rückgängig machen?\n\nOffset und Zonen-Stufen gehen auf den Stand von '+String(b.ts||'?').slice(0,10)+' zurück.')) return;
   S.meta.panoramaResetOffset = (b.offset>0 ? b.offset : null);
+  // §7.2 (v1.9.0): alle drei Spiel-Offsets zurück auf den Stand vor dem Reset
+  S.meta.rangResetOffset    = num(b.rangResetOffset);
+  S.meta.muenzenResetOffset = num(b.muenzenResetOffset);
+  S.meta.ausgabenResetOffset= num(b.ausgabenResetOffset);
   KAT_KEYS.forEach(k=>{ S.belohnung.stufen[k]=num(b.stufen&&b.stufen[k],0); });
   delete S.meta.panoramaResetBackup;
   saveMeta(); saveBelohnung(); renderEinst(); toast('Reset rückgängig gemacht');
@@ -4790,7 +4971,9 @@ function belohnungInit(){
   saveBelohnung();
 }
 /* Punkte-Konto = Wohlstand live − bereits im Shop ausgegebene Punkte. */
-function konto(){ return Math.max(0, wohlstandLive() - ((S.belohnung&&S.belohnung.ausgegeben)||0)); }
+/* §2.2 (v1.9.0): Konto = Münzen-Zufluss − Ausgaben (beide monoton, beide gegen
+   ihre Reset-Offsets) + heutiger Live-Zufluss. Ersetzt wohlstandLive−ausgegeben. */
+function konto(){ return Math.max(0, muenzenAnzeige() - ausgabenAnzeige()); }
 /* Persönlicher Ø-Punktesatz der letzten 7 abgeschlossenen Tage (aus Historie). */
 function oePStd7(){
   const h=(S.historie||[]).slice(-7);
@@ -4818,12 +5001,26 @@ function kaufen(kat){
   if(!stufe || kaufSperre(kat)) return false;
   const preis=preisFuer(kat);
   if(konto()<preis){ toast('Noch '+Math.round(preis-konto())+' P bis zum Freischalten'); return false; }
+  const bgVorher=bgStufeAus(ausgabenAnzeige());
   S.belohnung.stufen[kat]=idx+1;
-  S.belohnung.ausgegeben=(S.belohnung.ausgegeben||0)+preis;
+  S.belohnung.ausgegeben=(S.belohnung.ausgegeben||0)+preis;   // Altfeld läuft mit (Backup/Kompatibilität)
   S.belohnung.kaeufe.push({ kat, stufe:idx+1, name:stufe[0], datum:heuteApp(), preis });
+  // §2.2 (v1.9.0): Kauf kostet Konto, nicht Biografie — er ERHÖHT sie.
+  S.meta.ausgegebenGesamt=num(S.meta.ausgegebenGesamt)+preis;
+  S.meta.rangPunkte=num(S.meta.rangPunkte)+Math.round(preis*0.5);
+  saveMeta();
   saveBelohnung(); konfetti(); haptik(25);
   toast('🎉 Freigeschaltet: '+BELOHNUNG[kat].icon+' '+stufe[0]);
+  // §4/§6.3 (v1.9.0): öffnet der Kauf eine neue Kulisse → sichtbarer Ortswechsel
+  const bgNachher=bgStufeAus(ausgabenAnzeige());
+  if(bgNachher>bgVorher){
+    S.meta.kulisseErreicht=Object.assign({}, S.meta.kulisseErreicht);
+    for(let n=bgVorher+1;n<=bgNachher;n++) if(!S.meta.kulisseErreicht[n]) S.meta.kulisseErreicht[n]=heuteApp();
+    saveMeta();
+  }
   renderBelohnung();
+  if(bgNachher>bgVorher) momentKulisse(bgVorher, bgNachher);
+  momentRangCheck();
   return true;
 }
 /* Vitalität (§6.2): getrieben vom Tages-Akku. */
@@ -4845,13 +5042,8 @@ function vitalStufe(){
   return 'vital-4';
 }
 const VITAL_LABEL = { voll:'Vital', 'vital-1':'Wach', 'vital-2':'Angeschlagen', 'vital-3':'Müde', 'vital-4':'Erschöpft' };
-/* B/Layer 0: Reise-Hintergrund am GESAMT-Avatar-Level (nicht an einer
-   Kategorie) — 10 Stufen à 10 Level, arm→reich. */
-function bgFuerLevel(level){
-  const lvl=Math.max(1, Math.min(AVATAR_MAX_LEVEL, Math.round(num(level,1))||1));
-  const stufe=Math.min(10, Math.floor((lvl-1)/10)+1);
-  return 'img/bg'+String(stufe).padStart(2,'0')+'.jpg';
-}
+/* §4 (v1.9.0): bgFuerLevel() ist durch bgFuerAusgaben() ersetzt — die Reise
+   hängt jetzt an den ausgegebenen Münzen, nicht am Level. */
 /* B/Layer 1: Wohlstands-Leitern → Bildzonen des Dioramas. */
 const KAT_ZONE = { wohnen:'home', fahrzeuge:'car', reisen:'boat', mobilitaet:'air', begleiter:'pet', soziales:'friends' };
 /* Bildstufe 1–5 einer Kategorie; 0 = nichts freigeschaltet → Objekt entfällt.
@@ -4968,6 +5160,197 @@ function lifetimePunkteRoh(){
 function lifetimePunkte(){
   return Math.max(0, lifetimePunkteRoh() - num(S.meta && S.meta.panoramaResetOffset));
 }
+/* ══════════════════════════════════════════════════════════════════════
+   §2–§5 (v1.9.0) · Spiel-Ebene „Rang, Reise, Serie"
+   Zwei Achsen statt vier Anzeigen an einer Zahl:
+     Leistung  → rangPunkte  → Kleidung (20 Ränge, quadratische Kurve)
+     Ausgeben  → ausgegebenGesamt → Kulisse (10 Hintergründe)
+   Beide Speicher sind ECHTE, monoton wachsende Akkumulatoren (meta.*) —
+   die alte lifetimePunkte()-max-Kaskade bleibt nur als Altdaten-Notnagel
+   (Migration-Seed + Level-Anzeige im Info-Panel) bestehen.
+   Die MESS-Ebene (Punkte, Statistik, Schätzfaktoren) bleibt unberührt:
+   Streakfaktor und Kauf-Bonus wirken ausschließlich hier.
+   ══════════════════════════════════════════════════════════════════════ */
+const RANG_MAX = 20;
+function rangKosten(n){ return 1200*(n-1)*(n-1); }                 // Kosten für Rang n (n≥2)
+function rangSchwelle(n){ let s=0; for(let i=2;i<=n;i++) s+=rangKosten(i); return s; }
+function rangVon(p){ let n=1; while(n<RANG_MAX && p>=rangSchwelle(n+1)) n++; return n; }
+/* Sterne 0–5 im aktuellen Rang, linear interpoliert (§3.2). */
+function sterneVon(p){
+  const n=rangVon(p);
+  if(n>=RANG_MAX) return 5;
+  const basis=rangSchwelle(n), kosten=rangKosten(n+1);
+  return Math.max(0, Math.min(5, Math.floor((p-basis)/kosten*5)));
+}
+/* §3.3: Rang n trägt den Namen von Level 5n, Stern k den von Level 5(n−1)+k —
+   alle 100 Namen bleiben im Einsatz. */
+function rangName(n){ return AVATAR_NAMEN[Math.min(100, n*5)-1] || ('Rang '+n); }
+function sternName(n, k){ return AVATAR_NAMEN[Math.min(100, 5*(n-1)+k)-1] || ''; }
+/* §5: Tages-Streak (Tage in Folge mit Tagesabschluss; Urlaubstage neutral). */
+function streakFaktor(){ return 1 + Math.min(0.5, Math.max(0,num(S.meta&&S.meta.tagesStreak))*0.02); }
+function jokerVerfuegbar(){
+  return num(S.meta&&S.meta.tagesStreak)>=30 && (S.meta.jokerVerbrauchtMonat||'')!==heuteApp().slice(0,7);
+}
+/* Live-Zufluss der Spiel-Ebene: heutige Punkte × Faktor (beim Abschluss wird
+   exakt derselbe Betrag festgeschrieben — Anzeige und Buchung springen nicht). */
+function spielLiveZufluss(){ return tagOffen() ? Math.max(0, tagesPunkteLive())*streakFaktor() : 0; }
+/* Anzeigen rechnen gegen Rohwert − Reset-Offset (§7.2). */
+function rangPunkteAnzeige(){ return Math.max(0, num(S.meta&&S.meta.rangPunkte) - num(S.meta&&S.meta.rangResetOffset) + spielLiveZufluss()); }
+function ausgabenAnzeige(){ return Math.max(0, num(S.meta&&S.meta.ausgegebenGesamt) - num(S.meta&&S.meta.ausgabenResetOffset)); }
+function muenzenAnzeige(){ return Math.max(0, num(S.meta&&S.meta.muenzenGesamt) - num(S.meta&&S.meta.muenzenResetOffset) + spielLiveZufluss()); }
+function spielStand(){
+  const rp=rangPunkteAnzeige(), n=rangVon(rp), st=sterneVon(rp);
+  const naechste=n<RANG_MAX ? rangSchwelle(n+1) : null;
+  return { rp, rang:n, sterne:st, name:rangName(n),
+    sternName: st>=1 ? sternName(n, st) : null,
+    basis:rangSchwelle(n), naechste,
+    anteil: naechste!=null ? Math.max(0,Math.min(1,(rp-rangSchwelle(n))/rangKosten(n+1))) : 1,
+    rest: naechste!=null ? Math.max(0, naechste-rp) : 0 };
+}
+/* §4: Kulisse aus den insgesamt ausgegebenen Münzen — 2500 × n^2,3.
+   Unter der ersten Schwelle gilt Kulisse 1 als Startbild. */
+function bgSchwelle(n){ return Math.round(2500*Math.pow(n,2.3)); }
+function bgStufeAus(ausgegeben){
+  let s=1; for(let n=1;n<=10;n++){ if(ausgegeben>=bgSchwelle(n)) s=Math.max(s,Math.min(10,n)); }
+  return s;
+}
+function bgFuerAusgaben(){ return 'img/bg'+String(bgStufeAus(ausgabenAnzeige())).padStart(2,'0')+'.jpg'; }
+/* ══════════════════════════════════════════════════════════════════════
+   §8 (v1.9.0) · Das Album — vorhandenes Material zum ersten Mal als
+   Sammlung. Gesperrtes als Silhouette (CSS-Filter, keine zweite Datei) mit
+   fehlendem Betrag; die Lücke ist der Antrieb. Gesperrte BESITZ-Stücke
+   bleiben „???" — die Stufen-Inhalte sind bis zum Kauf Überraschung.
+   ══════════════════════════════════════════════════════════════════════ */
+let albumTab='raenge';
+function oeffneAlbum(){ albumTab='raenge'; renderAlbum(); }
+function renderAlbum(){
+  const sp=spielStand(), ausg=ausgabenAnzeige();
+  const tabs=[['raenge','Ränge'],['kulissen','Kulissen'],['besitz','Besitz']];
+  let h='<div class="albtabs">'+tabs.map(t=>'<button class="albtab'+(albumTab===t[0]?' on':'')+'" data-albtab="'+t[0]+'">'+t[1]+'</button>').join('')+'</div>';
+  h+='<div class="albgrid">';
+  if(albumTab==='raenge'){
+    for(let n=1;n<=RANG_MAX;n++){
+      const frei=n<=sp.rang;
+      const datum=(S.meta.rangErreicht&&S.meta.rangErreicht[n])||null;
+      h+='<div class="albitem'+(frei?'':' zu')+'"'+(frei?' data-albbild="'+AVATAR_BILDER[n-1]+'" data-albname="Rang '+n+' · '+esc(rangName(n))+'"':'')+'>'+
+        '<img src="'+AVATAR_BILDER[n-1]+'" alt="" loading="lazy">'+
+        '<div class="albn">'+(frei?esc(rangName(n)):'Rang '+n)+'</div>'+
+        '<div class="albs">'+(frei?(datum?fmtDatum(datum):'freigeschaltet'):('noch '+Math.round(rangSchwelle(n)-sp.rp)+' P'))+'</div></div>';
+    }
+  } else if(albumTab==='kulissen'){
+    for(let n=1;n<=10;n++){
+      const frei=(n===1) || ausg>=bgSchwelle(n);
+      const datum=(S.meta.kulisseErreicht&&S.meta.kulisseErreicht[n])||null;
+      h+='<div class="albitem breit'+(frei?'':' zu')+'"'+(frei?' data-albbild="img/bg'+String(n).padStart(2,'0')+'.jpg" data-albname="Kulisse '+n+' von 10"':'')+'>'+
+        '<img src="img/bg'+String(n).padStart(2,'0')+'.jpg" alt="" loading="lazy">'+
+        '<div class="albn">Station '+n+'</div>'+
+        '<div class="albs">'+(frei?(datum?fmtDatum(datum):(n===1?'Start':'freigeschaltet')):('noch '+Math.round(bgSchwelle(n)-ausg)+' 🪙 ausgeben'))+'</div></div>';
+    }
+  } else {
+    KAT_KEYS.forEach(kat=>{
+      const zone=KAT_ZONE[kat], bs=objBildStufe(kat);
+      for(let i=1;i<=5;i++){
+        const frei=bs>=i;
+        // Name/Datum nur für Freigeschaltetes — gesperrte Stufen bleiben ???
+        let name='???', datum=null;
+        if(frei){
+          const kauf=(S.belohnung.kaeufe||[]).filter(x=>x.kat===kat);
+          const k=kauf.length?kauf[Math.min(kauf.length-1, Math.ceil(i/5*kauf.length)-1)]:null;
+          name=BELOHNUNG[kat].icon+' '+BELOHNUNG[kat].name; datum=k?k.datum:null;
+        }
+        h+='<div class="albitem'+(frei?'':' zu')+'"'+(frei?' data-albbild="img/obj-'+zone+i+'.png" data-albname="'+esc(BELOHNUNG[kat].name)+' · Stufe '+i+'"':'')+'>'+
+          '<img src="img/obj-'+zone+i+'.png" alt="" loading="lazy">'+
+          '<div class="albn">'+(frei?esc(name):'???')+'</div>'+
+          '<div class="albs">'+(frei?(datum?fmtDatum(datum):'freigeschaltet'):'über den Shop')+'</div></div>';
+      }
+    });
+  }
+  h+='</div>';
+  openSheet('🖼 Album', h, '<button class="btn ghost sm" data-close="1">Schließen</button>');
+}
+/* ══════════════════════════════════════════════════════════════════════
+   §6 (v1.9.0) · Momente auf drei Zeitebenen — reine CSS-Transitions/Keyframes,
+   keine Bibliothek, kein Canvas. Vollbild-Momente respektieren
+   prefers-reduced-motion, blockieren keine Bedienung (ein Tap schließt),
+   werden bei laufendem Timer zurückgestellt und sind abschaltbar.
+   ══════════════════════════════════════════════════════════════════════ */
+let _spielMemo=null, _momentQueue=[];
+function momenteAn(){ return !(S.meta && S.meta.momenteAus); }
+function motionErlaubt(){ try{ return !window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return true; } }
+/* Sekunden-Ebene: Punkte fliegen Richtung Tagesbalken, Faktor blitzt auf. */
+function momentBuchung(punkte){
+  if(!momenteAn() || !motionErlaubt() || !(punkte>0)) return;
+  const f=streakFaktor();
+  const d=document.createElement('div');
+  d.className='mom-fly';
+  d.textContent='+'+Math.round(punkte)+(f>1?' ×'+f.toFixed(2).replace('.',','):'');
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(), 1300);
+}
+/* Vollbild-Moment — Tap irgendwo schließt; bei laufendem Timer in die Queue. */
+function momentVollbild(html){
+  if(!momenteAn()) return;
+  if(S.fokus && S.fokus.laeuft){ _momentQueue.push(html); return; }
+  const o=document.createElement('div');
+  o.className='mom-voll'+(motionErlaubt()?'':' still');
+  o.innerHTML=html;
+  o.addEventListener('click', ()=>o.remove());
+  document.body.appendChild(o);
+}
+function momentQueueFlush(){
+  if(_momentQueue.length && !(S.fokus && S.fokus.laeuft)){
+    const q=_momentQueue.slice(); _momentQueue=[];
+    q.forEach(h=>momentVollbild(h));
+  }
+}
+/* §6.3: Rangaufstieg — altes Outfit → neues Outfit, mit Rangname. */
+function momentRang(vonRang, zuRang){
+  momentVollbild('<div class="mv-kern"><div class="mv-titel">Rangaufstieg</div>'+
+    '<div class="mv-bilder"><img src="'+AVATAR_BILDER[vonRang-1]+'" alt="" class="alt"><span class="mv-pfeil">→</span>'+
+    '<img src="'+AVATAR_BILDER[zuRang-1]+'" alt="" class="neu"></div>'+
+    '<div class="mv-name">Rang '+zuRang+' · '+esc(rangName(zuRang))+'</div>'+
+    '<div class="mv-sub">Tippen zum Schließen</div></div>');
+}
+/* §4/§6.3: Kulissenwechsel nach einem Kauf — der Kauf ist ein Ortswechsel. */
+function momentKulisse(von, zu){
+  momentVollbild('<div class="mv-kern"><div class="mv-titel">Neue Kulisse</div>'+
+    '<div class="mv-kulisse"><img src="img/bg'+String(zu).padStart(2,'0')+'.jpg" alt=""></div>'+
+    '<div class="mv-name">Station '+zu+' von 10</div>'+
+    '<div class="mv-sub">Tippen zum Schließen</div></div>');
+}
+/* §5.3: Streak-Meilenstein-Feier. */
+function momentMeilenstein(tage){
+  momentVollbild('<div class="mv-kern"><div class="mv-flamme">🔥</div>'+
+    '<div class="mv-titel">'+tage+' Tage in Serie</div>'+
+    '<div class="mv-name">'+(tage>=365?'Ein ganzes Jahr.':(tage>=100?'Dreistellig.':(tage>=30?'Ein Monat — Joker freigeschaltet.':'Eine Woche.')))+'</div>'+
+    '<div class="mv-sub">Tippen zum Schließen</div></div>');
+}
+/* Zentrale Erkennung — läuft in renderStatusbar (nach jeder Aktion): erkennt
+   Rangaufstieg und neuen Stern aus der LIVE-Anzeige, egal aus welcher Quelle
+   (Buchung, Kauf-Bonus, Meilenstein). */
+function momentRangCheck(){
+  const sp=spielStand();
+  if(_spielMemo){
+    if(sp.rang>_spielMemo.rang){
+      // §8: Erreichensdatum stempeln (nur ab jetzt — Vergangenes wird nicht geschätzt)
+      S.meta.rangErreicht=Object.assign({}, S.meta.rangErreicht);
+      for(let n=_spielMemo.rang+1;n<=sp.rang;n++) if(!S.meta.rangErreicht[n]) S.meta.rangErreicht[n]=heuteApp();
+      saveMeta();
+      momentRang(_spielMemo.rang, sp.rang);
+    }
+    else if(sp.sterne>_spielMemo.sterne && momenteAn() && motionErlaubt()){
+      const d=document.createElement('div'); d.className='mom-stern';
+      d.textContent='✨ '+(sp.sternName||('Stern '+sp.sterne));
+      document.body.appendChild(d); setTimeout(()=>d.remove(), 1800);
+    }
+  }
+  _spielMemo={rang:sp.rang, sterne:sp.sterne};
+  // aufgeschobene Vollbilder + einmalige Ereignisse aus dem Abschluss
+  momentQueueFlush();
+  if(S.meta && S.meta.meilensteinMoment){ const t=S.meta.meilensteinMoment; delete S.meta.meilensteinMoment; saveMeta(); momentMeilenstein(t); }
+  if(S.meta && S.meta.jokerHinweis){ const n=S.meta.jokerHinweis; delete S.meta.jokerHinweis; saveMeta();
+    toast('♦ Joker eingesetzt — deine Serie von '+n+' Tagen steht.'); }
+}
 /* Level = volle Vielfache der Level-Kosten + 1. Start bei Level 1 mit 0 Punkten;
    jedes weitere Level kostet exakt punkteProLevel() (v1.5.1: 2000 → Level 2,
    20.000 → Level 11). Vorher war das ein ceil(), womit das erste Level einen
@@ -4984,10 +5367,14 @@ function avatarFortschritt(){
   return { anteil:Math.max(0,Math.min(1,imLevel/ppl)), rest:Math.max(0,ppl-imLevel), imLevel, lifetime:lt };
 }
 /* U4: zentrales Mapping Level → Darstellung. Paket 2 tauscht nur AVATAR_BILDER. */
+/* §3.4 (v1.9.0): Bild-Slot = RANG (1–20), Farbvariante = aktueller STERN.
+   Die Funktion nimmt weiterhin ein „Level"-Äquivalent (5·(Rang−1)+Stern) an,
+   damit Alt-Aufrufer (z. B. „nächster Name") funktionieren — die App ruft sie
+   über spielStand() mit Rang/Stern auf. */
 function avatarAssets(level){
   const lvl=Math.max(1, Math.min(AVATAR_MAX_LEVEL, Math.round(num(level,1))||1));
-  const bildSlot=Math.ceil(lvl/(AVATAR_MAX_LEVEL/AVATAR_SLOTS));   // 1…20
-  const bgVariante=((lvl-1)%5)+1;                                   // 1…5
+  const bildSlot=Math.ceil(lvl/(AVATAR_MAX_LEVEL/AVATAR_SLOTS));   // 1…20 = Rang
+  const bgVariante=((lvl-1)%5)+1;                                   // 1…5 = Stern
   const t=(lvl-1)/(AVATAR_MAX_LEVEL-1);                             // 0…1 über alle Level
   // Farbton wandert blau → violett → pink → rot/gold; Sättigung und Helligkeit
   // steigen mit dem Level, die Variante versetzt beides leicht.
@@ -4998,7 +5385,9 @@ function avatarAssets(level){
   const hsl=(hh,ss,ll)=>'hsl('+((hh%360)+360)%360+','+ss+'%,'+ll+'%)';
   const bgStyle='linear-gradient(180deg,'+hsl(h,s,l2)+' 0%,'+hsl(h,s,l1)+' 62%,'+hsl(h+18,s,l1+4)+' 100%)';
   // Funkel-Stufen (reines CSS, kein Dauer-Ticker)
-  const fx = lvl>=90?'fx-premium' : lvl>=75?'fx-funkeln' : lvl>=50?'fx-glitzer' : lvl>=25?'fx-schimmer' : '';
+  // §3.4 (v1.9.0): Funkel an Rang 19/15/10/5 (Level-Äquivalent 95/75/50/25)
+  const rangFx=Math.ceil(lvl/5);
+  const fx = rangFx>=19?'fx-premium' : rangFx>=15?'fx-funkeln' : rangFx>=10?'fx-glitzer' : rangFx>=5?'fx-schimmer' : '';
   return { level:lvl, bildSlot, bgVariante, name:AVATAR_NAMEN[lvl-1]||('Level '+lvl),
            bild:AVATAR_BILDER[bildSlot-1], bgStyle, fx, akzent:hsl(h, Math.min(90,s+30), 62) };
 }
@@ -5473,27 +5862,39 @@ function renderBelohnung(){
   belohnungInit();
   // U4 (v1.4.0): Level/Name/Hintergrund/Funkel-Stufe zentral aus avatarAssets;
   // Fortschrittsleiste zeigt den Weg zum nächsten Level (Lifetime-Punkte).
-  const lvl=avatarStufe(), av=avatarAssets(lvl), fort=avatarFortschritt();
+  // §3 (v1.9.0): Anzeige läuft über RANG und STERNE (spielStand) — avatarAssets
+  // bekommt das Level-Äquivalent 5·(Rang−1)+max(1,Stern), damit Bild-Slot=Rang
+  // und Farbvariante=Stern gilt.
+  const sp=spielStand();
+  const lvl=5*(sp.rang-1)+Math.max(1,sp.sterne), av=avatarAssets(lvl);
+  const fort={ anteil:sp.anteil, rest:sp.rest, lifetime:sp.rp };
   const vital=vitalitaet(), kontoP=konto();
+  const sterneHtml='★'.repeat(sp.sterne)+'☆'.repeat(5-sp.sterne);
   // v1.5.2 (UI-B): Die Szene zeigt nur noch Reise-Hintergrund (JPG über dem
   // HSL-Verlauf, der bei Ladefehler einspringt) + Avatar + Funkel-Layer. Die
   // Wohlstands-Objekte leben jetzt bei ihren Kategorien im Shop-Block (UI-C).
   const vs=vitalStufe();
   h+='<div class="avcard"><div class="avscene'+(vs?' '+vs:'')+'" style="background:'+av.bgStyle+'">'+
-    '<div class="avbg" style="background-image:url(\''+bgFuerLevel(lvl)+'\')"></div>'+
+    '<div class="avbg" style="background-image:url(\''+bgFuerAusgaben()+'\')"></div>'+
     '<img class="avfoto" src="'+avatarBild(lvl,vital)+'" alt="Avatar" loading="lazy" decoding="async"'+
       ' onerror="if(this.src.indexOf(\''+AVATAR_FALLBACK+'\')<0){this.src=\''+AVATAR_FALLBACK+'\';}else{this.style.display=\'none\';}">'+
     '<div class="avfx '+av.fx+'"></div>'+
     '</div>'+
-    '<div class="rankline"><div class="rankname" style="color:'+av.akzent+'">'+esc(av.name)+'</div>'+
-      '<div class="rankpts">Konto '+Math.round(kontoP)+' P</div></div>'+
-    '<div class="rankline" style="margin-top:2px"><div class="rankstufe">Level '+lvl+' / '+AVATAR_MAX_LEVEL+' · '+VITAL_LABEL[vs||'voll']+
-      ' · Bild-Slot '+av.bildSlot+'/'+AVATAR_SLOTS+'</div>'+
-      '<div class="rankstufe">'+Math.round(fort.lifetime)+' P gesamt</div></div>'+
-    '<div class="av-bar"><i style="width:'+Math.round(fort.anteil*100)+'%;background:'+av.akzent+'"></i></div>'+
-    '<div class="rankstufe" style="margin-top:4px">'+(lvl>=AVATAR_MAX_LEVEL
-      ? 'Maximallevel erreicht.'
-      : 'Noch '+Math.round(fort.rest)+' P bis Level '+(lvl+1)+' — „'+esc(avatarAssets(lvl+1).name)+'".')+'</div></div>';
+    '<div class="rankline"><div class="rankname" style="color:'+av.akzent+'">'+esc(sp.name)+'</div>'+
+      '<div class="rankpts">🪙 '+Math.round(kontoP)+'</div></div>'+
+    '<div class="rankline" style="margin-top:2px"><div class="rankstufe">Rang '+sp.rang+'/'+RANG_MAX+
+      ' <span style="color:'+av.akzent+';letter-spacing:2px">'+sterneHtml+'</span>'+
+      (sp.sternName?' · '+esc(sp.sternName):'')+'</div>'+
+      '<div class="rankstufe">'+VITAL_LABEL[vs||'voll']+'</div></div>'+
+    '<div class="av-bar" id="rangRing"><i style="width:'+Math.round(fort.anteil*100)+'%;background:'+av.akzent+'"></i></div>'+
+    '<div class="rankstufe" style="margin-top:4px">'+(sp.rang>=RANG_MAX
+      ? 'Höchster Rang erreicht — '+Math.round(sp.rp)+' Rang-P gesamt.'
+      : 'Noch '+Math.round(fort.rest)+' Rang-P bis Rang '+(sp.rang+1)+' — „'+esc(rangName(sp.rang+1))+'".')+'</div>'+
+    '<div class="rankline" style="margin-top:6px"><div class="rankstufe">🔥 Serie '+num(S.meta.tagesStreak)+' Tg · ×'+streakFaktor().toFixed(2).replace('.',',')+
+      (jokerVerfuegbar()?' · ♦ Joker bereit':(num(S.meta.tagesStreak)>=30?' · ♦ diesen Monat verbraucht':''))+'</div>'+
+      '<div class="rankstufe">'+(function(){ const st=bgStufeAus(ausgabenAnzeige());
+        return 'Reise: Kulisse '+st+'/10'+(st<10?' · noch '+Math.round(bgSchwelle(st+1)-ausgabenAnzeige())+' 🪙 ausgeben':''); })()+'</div></div>'+
+    '<button class="btn ghost sm" data-album="1" style="width:100%;margin-top:8px">🖼 Album — Ränge · Kulissen · Besitz</button></div>';
 
   // ── B1: Einstieg Detailanalyse ───────────────────────────────────
   h+='<button class="btn prim" data-analyse="1" style="width:100%;margin:0 0 14px;display:flex;align-items:center;justify-content:center;gap:8px">📊 Detailanalyse öffnen</button>';
@@ -5609,6 +6010,12 @@ el('pinFab').addEventListener('click', oeffnePins);   // §10 (1.8.0)
 // Sheet-Interaktionen der Schublade (Toggle, Gruppen, +1, Play)
 el('sheetBody').addEventListener('click', e=>{
   const t=e.target;
+  // §8 (1.9.0): Album-Tabs + Detailansicht
+  const at=t.closest('[data-albtab]'); if(at){ albumTab=at.dataset.albtab; renderAlbum(); return; }
+  const ab=t.closest('[data-albbild]'); if(ab){
+    const o=document.createElement('div'); o.className='albdetail';
+    o.innerHTML='<img src="'+ab.dataset.albbild+'" alt=""><div class="nm">'+ab.dataset.albname+'</div><div class="mv-sub">Tippen zum Schließen</div>';
+    o.addEventListener('click', ()=>o.remove()); document.body.appendChild(o); return; }
   // §10 (1.8.0): Im Pin-Sheet laufen die Karten über denselben karteRowClick wie
   // im Stapel-Tab — danach das Sheet nachziehen, damit Filter/Toggles sichtbar wirken.
   if(pinSheetOffen){
@@ -6074,6 +6481,7 @@ function stapelLiesEditor(){
 
 // Belohnung/Statistik: Diagramm-Umschalter (Zeitraum/Domäne/Tageswahl) + Shop-Kauf
 el('belohnungBody').addEventListener('click', e=>{
+  if(e.target.closest('[data-album]')){ oeffneAlbum(); return; }   // §8 (1.9.0)
   const zr=e.target.closest('[data-statzr]'); if(zr){ S.ui.statZeitraum=zr.dataset.statzr; saveUi(); renderBelohnung(); return; }
   const dm=e.target.closest('[data-statdom]'); if(dm){ S.ui.statDomain=dm.dataset.statdom; saveUi(); renderBelohnung(); if(!el('statChart').hidden) renderStatChart(); return; }
   const ut=e.target.closest('[data-urlaubtag]'); if(ut){ const iso=ut.dataset.urlaubtag;
@@ -6106,6 +6514,7 @@ el('einstBody').addEventListener('click', e=>{
   const gk=e.target.closest('[data-grpakt]'); if(gk){ oeffneGruppeAktion(gk.dataset.grpakt); return; }
   if(e.target.closest('[data-debugtap]')){ setDebugTap(!S.ui.debugTap); renderEinst(); return; }   // V3
   // §5 (v1.8.1): Urlaubsmodus an/aus
+  if(e.target.closest('[data-momenttoggle]')){ S.meta.momenteAus=!S.meta.momenteAus; saveMeta(); renderEinst(); return; }   // §6.4 (1.9.0)
   if(e.target.closest('[data-urlaubtoggle]')){ S.meta.urlaubsmodus=!S.meta.urlaubsmodus; saveMeta(); renderEinst(); renderStatusbar(); toast(S.meta.urlaubsmodus?'🏖 Urlaubsmodus AN':'Urlaubsmodus aus'); return; }
   // §4 (v1.8.1): Wohlstand-Reset + Rückgängig
   if(e.target.closest('[data-panoreset]')){ panoramaResetJetzt(); return; }
@@ -7010,6 +7419,7 @@ function init(){
   zeigeMigration160();   // §9.1: Protokoll einmalig anzeigen
   zeigeMigration161();   // §7 (1.6.1): Protokoll einmalig anzeigen
   zeigeMigration180();   // §9.5 (1.8.0): Protokoll einmalig anzeigen
+  zeigeMigration190();   // §7 (1.9.0): Protokoll einmalig anzeigen
   zeigeAutoPauseDialog();// §4: offene Rückfrage aus einer Auto-Pause nachholen
 }
 /* §9.1 (v1.6.0): Migrationsprotokoll genau einmal zeigen, danach abhaken. */
@@ -7064,6 +7474,23 @@ function zeigeMigration180(){
   if(L.whatsapp) h+='<p class="d" style="margin-top:8px">„WhatsApp" ist jetzt ein reiner Counter (Zeitanteile entfernt'+(L.whatsapp.timerFlagVorher?', timerFlag war gesetzt':'')+(L.whatsapp.sollMinVorher?(', Soll war '+L.whatsapp.sollMinVorher+'′'):'')+').</p>';
   openSheet('Update v1.8.0 — Migration', h, '<button class="btn prim" data-close="1">Verstanden</button>');
   S.meta.migration180Gezeigt=true; saveMeta();
+}
+/* §7 (v1.9.0): Migrationsprotokoll — welcher Rang, Stern, Kulisse sich ergibt. */
+function zeigeMigration190(){
+  const L=S.meta.gamify190Log;
+  if(!L || S.meta.gamify190Gezeigt) return;
+  const h='<p class="d"><b>Es wurde nichts gelöscht.</b> Sicherung unter <code>meta_bak190</code>/<code>belohnung_bak190</code>. '+
+    'Die Belohnungsseite läuft jetzt auf zwei Achsen: Leistung kleidet (Rang), Ausgeben reist (Kulisse), die Tages-Serie multipliziert Münzen.</p>'+
+    '<div class="kvblock">'+
+    '<div class="kv"><span>Rang-Punkte übernommen</span><b>'+Math.round(L.rangPunkte)+'</b></div>'+
+    '<div class="kv"><span>→ Rang</span><b>R'+L.rang+' '+('★'.repeat(L.sterne))+' · '+esc(rangName(L.rang))+'</b></div>'+
+    '<div class="kv"><span>Münzen-Zufluss · ausgegeben</span><b>'+Math.round(L.muenzen)+' · '+Math.round(L.ausgegeben)+'</b></div>'+
+    '<div class="kv"><span>→ Kulisse</span><b>Station '+L.kulisse+'/10</b></div>'+
+    '<div class="kv"><span>Tages-Serie rekonstruiert</span><b>'+L.streak+' Tg ('+esc(L.streakQuelle)+')</b></div>'+
+    '</div>'+
+    '<p class="d" style="margin-top:8px">Der Wohlstand-Reset in den Einstellungen setzt ab jetzt Rang, Kulisse und Konto gemeinsam zurück — und ist weiterhin umkehrbar.</p>';
+  openSheet('Update v1.9.0 — Rang, Reise, Serie', h, '<button class="btn prim" data-close="1">Los</button>');
+  S.meta.gamify190Gezeigt=true; saveMeta();
 }
 init();
 
