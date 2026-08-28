@@ -169,23 +169,36 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .kgruppe.zu .kgbody{display:none}
 
 /* ── Kartenreihe (universeller Karten-Kontrakt §7 D3) ────────────── */
-.krow{display:flex;align-items:stretch;gap:2px;background:var(--card2);border-radius:11px;margin-bottom:6px;overflow:hidden;border-left:4px solid var(--mut2)}
+/* v1.7.2 Hotfix: .krow ist ein BLOCK mit zwei Zeilen — Titel oben über die
+   volle Breite, alle Bedienelemente darunter. Umlaufende Umrandung in der
+   Kartenfarbe (border-color kommt inline aus karteFarbe(k)). */
+.krow{display:block;background:var(--card2);border-radius:11px;margin-bottom:8px;overflow:hidden;border:1.5px solid var(--mut2)}
 .krow:last-child{margin-bottom:0}
 .krow.erledigt{opacity:.55}
-.krow .kgriff{flex:none;width:26px;display:flex;align-items:center;justify-content:center;color:var(--mut2);font-size:15px;cursor:grab;touch-action:none}
-.krow .ksort{flex:none;width:40px;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:4px 4px}  /* A5/V1.2 Sortier-Pfeile — größere Tap-Ziele */
-.krow .ksort .sar{height:40px;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:14px;background:var(--bg);display:flex;align-items:center;justify-content:center;touch-action:manipulation}
-.krow .ksort .sar:active{background:var(--card2)}
+/* Zeile 2: drei Gruppen — Sortieren links, Toggles mittig, Aktion rechts.
+   Gruppen durch feine Trennlinien abgesetzt; alle Ziele 44×44. */
+/* flex-wrap: 8 Ziele à 44px (352px) + Trenner passen auf 375px-Geräten nicht in
+   EINE Zeile (≈360px netto) — die Aktionsgruppe rechts darf dann kontrolliert
+   in eine eigene Zeile umbrechen, statt abgeschnitten zu werden. Ab ~410px
+   Viewport steht alles nebeneinander. Kein Ziel schrumpft unter 44px. */
+.krow .ktools{display:flex;align-items:center;flex-wrap:wrap;gap:2px;row-gap:2px;padding:4px 6px 6px;border-top:1px solid var(--line)}
+.krow .tgrp{display:flex;align-items:center;gap:2px}
+.krow .tgrp+.tgrp{border-left:1px solid var(--line);padding-left:6px;margin-left:3px}
+.krow .tgrp.taktion{margin-left:auto}
+.krow .ksort{display:flex;flex-direction:row;gap:4px}  /* v1.7.2: Pfeile nebeneinander */
+.krow .ksort .sar{width:44px;height:44px;border:1px solid var(--line);border-radius:9px;color:var(--txt);font-size:14px;background:var(--bg);display:flex;align-items:center;justify-content:center;touch-action:manipulation}
 .krow .ksort .sar:active{background:var(--card2);color:var(--txt)}
 .krow .kcheck.ktick{font-size:22px;font-weight:800;color:var(--blue);background:transparent}  /* A3 Tick-Plus */
-.krow .kmain{flex:1;min-width:0;padding:9px 4px 9px 2px;cursor:pointer}
-.krow .ktitle{font-size:14px;font-weight:700;overflow-wrap:anywhere;line-height:1.25}  /* A2: voller Titel, mehrzeilig */
+/* Zeile 1: Titel+Meta allein. min-width als Rückfall-Schutz — wandert je wieder
+   etwas hierher, läuft die Zeile sichtbar über, statt den Titel zu zerbröseln. */
+.krow .kmain{display:block;min-width:8rem;padding:9px 12px 7px;cursor:pointer}
+.krow .ktitle{font-size:14px;font-weight:700;overflow-wrap:break-word;line-height:1.25}  /* A2 voller Titel · v1.7.2: break-word statt anywhere */
 .krow.erledigt .ktitle{text-decoration:line-through;color:var(--mut)}
 .krow .kmeta{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:10.5px;color:var(--mut);margin-top:3px;font-family:ui-monospace,monospace}
 .krow .kmeta .b{color:var(--txt)}
 .krow .kmeta .tag{color:var(--blue)}
 .krow .kmeta .pri-muss{color:var(--bad)}
-.krow .kschnell{flex:none;width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:15px;color:var(--mut2);background:transparent}  /* U2 ⚡ · v1.6.0 Touch 44px */
+.krow .kschnell{flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--mut2);background:transparent;border:none}  /* U2 ⚡ · v1.7.2: in der Werkzeugzeile */
 .krow .kschnell.on{color:#f2b84b}
 /* U3 (v1.4.0): Leiste trägt jetzt Domäne + Status + Richtung für JEDEN Stapel —
    Chips auf 44px Touch-Ziel gebracht, Zeile darf umbrechen. */
@@ -214,14 +227,14 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .schnellfilter .schnellf{border:1px solid var(--line);border-radius:9px;padding:5px 12px;font-size:12px;color:var(--mut);font-weight:700;background:var(--bg);min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center}
 .schnellfilter .schnellf.on{background:var(--purple);color:#0a0f1a;border-color:var(--purple)}
 .taufgabe .tedit.schnellon{color:#f2b84b;border-color:#f2b84b}
-.krow .kstart{flex:none;width:40px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:15px;color:var(--blue);background:transparent}
-.krow .kstart.laeuft{color:#0a0f1a;background:var(--warn)}
-.krow .kcheck{flex:none;width:46px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line)}
+.krow .kstart{flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--blue);background:transparent;border:1px solid var(--line);border-radius:9px}  /* v1.7.2: 44px, eigenes Feld */
+.krow .kstart.laeuft{color:#0a0f1a;background:var(--warn);border-color:var(--warn)}
+.krow .kcheck{flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:none}
 .krow .kcheck .box{width:24px;height:24px;border-radius:7px;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:15px;color:transparent;transition:all .15s}
 .krow.erledigt .kcheck .box{background:var(--ok);border-color:var(--ok);color:#0a0f1a}
 /* A8 Pin + A4 Freeze (Zeilen-Buttons) */
 .krow .kkette.on{filter:none;opacity:1;color:var(--blue)}
-.krow .kpin,.krow .kfreeze,.krow .kkette{flex:none;width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:13px;color:var(--mut2);background:transparent;filter:grayscale(1);opacity:.6}  /* v1.6.0 Touch 44px */
+.krow .kpin,.krow .kfreeze,.krow .kkette{flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--mut2);background:transparent;border:none;filter:grayscale(1);opacity:.6}  /* v1.7.2: in der Werkzeugzeile */
 .krow .kpin.on{filter:none;opacity:1}
 .krow .kfreeze.on{filter:none;opacity:1;color:#6dd3e0}
 .krow .kstart.auftau{color:#6dd3e0}
@@ -804,7 +817,7 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 .routgruppe .rg-kopf .n{margin-left:auto;color:var(--mut2);font-weight:700}
 .routzeile{display:flex;align-items:center;gap:10px;padding:7px 10px;border-top:1px solid var(--line);touch-action:pan-y}
 .routzeile .rz-main{flex:1;min-width:0}
-.routzeile .rz-titel{font-size:14px;font-weight:700;overflow-wrap:anywhere}
+.routzeile .rz-titel{font-size:14px;font-weight:700;overflow-wrap:break-word}  /* v1.7.2: wie .ktitle — bricht nur echte Überlängen, nicht mitten im Wort */
 .routzeile .rz-sub{font-size:11px;color:var(--mut2);font-family:ui-monospace,monospace}
 .routzeile .rz-fb{color:var(--ok);font-weight:800;margin-left:6px}
 .routzeile .rz-play,.routzeile .rz-plus{flex:none;width:44px;height:44px;border-radius:11px;border:1px solid var(--line);
@@ -938,9 +951,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.7.1';                    // Datenvertrag/Sync-appVersion — 1.7.1 (Import legt Karten an: domain, Bausteine, gruppen[]; Vertrag bleibt 1.x)
-const UI_VERSION = 'v1.7.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-27-6';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.7.2';                    // Datenvertrag/Sync-appVersion — 1.7.2 (UI-Hotfix Kartenzeile; keine Vertragsfelder geändert)
+const UI_VERSION = 'v1.7.2';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-28-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1965,18 +1978,22 @@ function kartenreiheHtml(k, stapelId){
   // §2.2 (v1.6.0): Karte manuell in die Tageskette „Heute" legen bzw. herausnehmen
   const ketteBtn = k.status==='offen'
     ? '<button class="kkette'+(ketteHat(k.id)?' on':'')+'" data-kette="'+k.id+'" aria-label="Zu Heute">▤</button>' : '';
-  return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+(k.freeze?'eingefroren ':'')+(istRout?'routinezeile ':'')+'" data-kid="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
-    sortCtrl+
+  // v1.7.2 Hotfix: Die Karte ist ein BLOCK mit zwei Zeilen. Zeile 1 = Titel+Meta
+  // über die volle Breite (acht 44px-Elemente daneben ließen dem Titel auf dem
+  // iPhone ~34px — er brach buchstabenweise um). Zeile 2 = ALLE Bedienelemente
+  // in drei Gruppen (Sortieren | Toggles | Start/Abhaken), dieselben
+  // data-Attribute und Handler, reine Umplatzierung. Umrandung umlaufend in
+  // karteFarbe(k) statt nur linker Kante.
+  return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+(k.freeze?'eingefroren ':'')+(istRout?'routinezeile ':'')+'" data-kid="'+k.id+'" style="border-color:'+karteFarbe(k)+'">'+
     '<div class="kmain" data-detail="'+k.id+'">'+
       '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
       '<div class="kmeta">'+meta.join('')+'</div>'+
     '</div>'+
-    ketteBtn+
-    pinBtn+
-    freezeBtn+
-    schnellBtn+
-    startBtn+
-    rechts+
+    '<div class="ktools">'+
+      '<div class="tgrp">'+sortCtrl+'</div>'+
+      '<div class="tgrp">'+ketteBtn+pinBtn+freezeBtn+schnellBtn+'</div>'+
+      '<div class="tgrp taktion">'+startBtn+rechts+'</div>'+
+    '</div>'+
   '</div>';
 }
 /* Karten eines Stapels rendern — Gruppen-Mitglieder als einklappbaren Block
