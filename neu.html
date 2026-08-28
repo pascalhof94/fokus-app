@@ -964,9 +964,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.8.0';                    // Datenvertrag/Sync-appVersion — 1.8.0 (Tick-Modell ticksAktiv+tickWert im Import; sonst 1.x-kompatibel)
-const UI_VERSION = 'v1.8.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-28-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.8.1';                    // Datenvertrag/Sync-appVersion — 1.8.1 (Urlaubsmodus, Wochenendregel-Analyse, Flow-Fix; 1.x-kompatibel)
+const UI_VERSION = 'v1.8.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-28-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1008,6 +1008,12 @@ function heuteApp(){ return (S.tag && S.tag.datum) ? S.tag.datum : heuteIso(); }
 function jetztIso(){ return new Date().toISOString(); }
 /* A7: Karte „berührt" (jede Interaktion) → Zeitstempel für „Bearbeitet heute". */
 function beruehre(k){ if(k) k.letzteBearbeitung=jetztIso(); }
+/* §5 (v1.8.1): Urlaubsmodus — globaler Schalter; fuer den LAUFENDEN Tag kann
+   die Markierung manuell uebersteuert werden (Schalter zu spaet umgelegt). Der
+   Zustand beim Tagesabschluss gilt fuer den ganzen Tag und wandert als
+   urlaub:true in den Snapshot — alle Auswertungen richten sich nach dem TAG. */
+function urlaubAktiv(){ return !!(S.meta && S.meta.urlaubsmodus); }
+function urlaubHeute(){ return (S.tag && S.tag.urlaubManuell!=null) ? !!S.tag.urlaubManuell : urlaubAktiv(); }
 /* A7: Minuten seit Zeitstempel + „vor X"-Kurzform. */
 function minSeit(iso){ if(!iso) return Infinity; const t=Date.parse(iso); if(isNaN(t)) return Infinity; return (Date.now()-t)/60000; }
 function fmtVor(iso){ const m=minSeit(iso); if(!isFinite(m)) return '–'; if(m<1) return 'gerade eben';
@@ -1402,6 +1408,33 @@ function ladeAlles(){
     });
     S.meta.migration180Log=log;
     S.meta.migration180=true;
+    saveKarten(); saveMeta();
+  }
+  // ══ §3 (v1.8.1) · Flow-Spike aus dem Neuaufbau glätten ═════════════════
+  // EINMALIGE rückwirkende Bereinigung: Tage mit >30 Zugängen/Erledigungen
+  // werden auf 30 gekappt — die Überzähligen werden als Bestandsübernahme
+  // markiert (flowBaseline bzw. flowDoneBaseline), NICHTS wird gelöscht.
+  // Für die Zukunft gilt KEINE Begrenzung; SYNC_BESTAND_SCHWELLE bleibt.
+  if(!S.meta.flowfix181){
+    DB.set('karten_bak181', S.karten);
+    const KAPPE=30, log={ ts:jetztIso(), tage:[] };
+    const byCreated={}, byDone={};
+    S.karten.forEach(k=>{
+      if(kartenArt(k)!=='Aufgabe') return;   // der Flow zählt nur Aufgaben
+      if(k.erstelltTs && !k.flowBaseline){ const d=String(k.erstelltTs).slice(0,10); (byCreated[d]=byCreated[d]||[]).push(k); }
+      if(k.status==='erledigt' && k.tagId){ const d=String(k.tagId).slice(0,10); (byDone[d]=byDone[d]||[]).push(k); }
+    });
+    Object.keys(byCreated).forEach(d=>{ const a=byCreated[d]; if(a.length<=KAPPE) return;
+      a.sort((x,y)=>String(x.erstelltTs)<String(y.erstelltTs)?-1:1);
+      a.slice(KAPPE).forEach(k=>{ k.flowBaseline=true; });
+      log.tage.push({ datum:d, art:'Zugänge', gesamt:a.length, markiert:a.length-KAPPE });
+    });
+    Object.keys(byDone).forEach(d=>{ const a=byDone[d]; if(a.length<=KAPPE) return;
+      a.slice(KAPPE).forEach(k=>{ k.flowDoneBaseline=true; });
+      log.tage.push({ datum:d, art:'Erledigungen', gesamt:a.length, markiert:a.length-KAPPE });
+    });
+    S.meta.flowfix181Log=log;
+    S.meta.flowfix181=true;
     saveKarten(); saveMeta();
   }
   // U3 (v1.4.0): bisher globaler „Bearbeitet heute"-Statusfilter wird zum
@@ -2476,7 +2509,7 @@ function fokusTacho(k){
 /* 3 Tages-Kacheln: Akku · Punkte heute/Ziel · Zeit heute/geplant. */
 function fokusStats(k){
   const a=akkuLive(); if(el('tAkku')) el('tAkku').textContent = a!=null?Math.round(a)+'%':'–%';
-  const istHeute=punkteHeuteAnzeige(), ziel=Math.max(1, tagesZielDomain('dfm')+tagesZielDomain('privat'));
+  const istHeute=punkteHeuteAnzeige(), ziel=Math.max(1, anZielDfmTag()+tagesZielDomain('privat'));   // §2 (1.8.1): Wochenendregel
   if(el('tPktW')){ el('tPktW').textContent=Math.round(istHeute)+'/'+Math.round(ziel); el('tPktSub').textContent=Math.round(istHeute/ziel*100)+'% · Pkt'; }
   let zeitIst=0, zeitPlan=0; S.karten.forEach(x=>{ if(!imTagesstrom(x)) return; zeitIst+=heuteInvestiertMin(x); zeitPlan+=num(x.sollMin); });
   if(el('tZeitW')){ el('tZeitW').textContent=tZeitKurz(zeitIst)+'/'+tZeitKurz(zeitPlan); el('tZeitSub').textContent='Aufg '+(zeitPlan>0?Math.round(num(k.sollMin)/zeitPlan*100):0)+'%'; }
@@ -2805,7 +2838,8 @@ function renderStatusbar(){
   el('sBarIstP').style.left=pctD.toFixed(1)+'%'; el('sBarIstP').style.width=pctP.toFixed(1)+'%';
   const istTotalPct=pctD+pctP, sollPct=Math.min(100, sbFensterAnteil()*100);
   const sollEl=el('sBarSoll'), sollMk=el('sBarSollMark');
-  if(istTotalPct>=sollPct){   // Vorsprung: nur schmaler Marker innerhalb der Ist-Füllung
+  if(urlaubHeute()){ sollEl.style.width='0%'; sollMk.style.display='none'; }   // §5 (1.8.1): keine Soll-Markierung
+  else if(istTotalPct>=sollPct){   // Vorsprung: nur schmaler Marker innerhalb der Ist-Füllung
     sollEl.style.width='0%';
     sollMk.style.left=sollPct.toFixed(1)+'%'; sollMk.style.display='block';
   } else {                    // Rückstand: rote Fläche vom Ist-Ende bis zur Soll-Position
@@ -2825,7 +2859,7 @@ function renderStatusbar(){
   // S2 (v1.3.2): Beschriftung unter der Leiste — Ist DFM/Privat (Punkte) + Soll-jetzt (rot)
   el('sPhDfm').textContent=Math.round(pDfm);
   el('sPhPrv').textContent=Math.round(pPriv);
-  el('sPhSoll').textContent=Math.round(zielGes*sbFensterAnteil());
+  el('sPhSoll').textContent=urlaubHeute()?'🏖':Math.round(zielGes*sbFensterAnteil());   // §5 (1.8.1): Hinweis statt Soll
   // Pace-Pfeil (7 Zonen relativ zum Soll) + Δ-P/Std-Anzeige (A2, unverändert)
   const pw=paceWerte();
   const z1=num(S.settings.pfeilZone1,5), z2=num(S.settings.pfeilZone2,15), z3=num(S.settings.pfeilZone3,40);
@@ -2834,10 +2868,14 @@ function renderStatusbar(){
     if(abw>=z3) idx=6; else if(abw>=z2) idx=5; else if(abw>=z1) idx=4;
     else if(abw<=-z3) idx=0; else if(abw<=-z2) idx=1; else if(abw<=-z1) idx=2;
     if(idx>3) farbe='var(--ok)'; if(idx<3) farbe='var(--bad)'; }
-  const pf=el('sPfeil'); pf.textContent=PACE_PFEILE[idx]; pf.style.color=farbe;
-  const dr=Math.round(pw.deltaRate);   // Δ Overall-Ist-Rate zur SOLL-Rate (Pfeil trackt nur Overall)
-  el('sPaceZahl').textContent=(dr>=0?'+':'')+dr+' P/h';
-  el('sPaceZahl').style.color=farbe;
+  const pf=el('sPfeil');
+  if(urlaubHeute()){ pf.textContent='🏖'; pf.style.color='var(--cyan)'; el('sPaceZahl').textContent='Urlaub'; el('sPaceZahl').style.color='var(--cyan)'; }
+  else {
+    pf.textContent=PACE_PFEILE[idx]; pf.style.color=farbe;
+    const dr=Math.round(pw.deltaRate);   // Δ Overall-Ist-Rate zur SOLL-Rate (Pfeil trackt nur Overall)
+    el('sPaceZahl').textContent=(dr>=0?'+':'')+dr+' P/h';
+    el('sPaceZahl').style.color=farbe;
+  }
   // S3 (v1.3.2): Level + Punktekonto statt Streak (Streak bleibt intern/in Historie erhalten)
   // F4 (v1.3.3): zweizeilig + gekürzte Punktzahl, damit der Chip die Batterie-Breite hält
   el('sLevel').innerHTML='<span class="lv">Lv '+avatarStufe()+'</span><span class="pk">'+fmtKurzP(konto())+'</span>';
@@ -2954,7 +2992,9 @@ function tagStundenVergangen(){
    SOLL-Rate (Gesamt-Tagesziel ÷ 16 h Wachfenster). ist/soll bleiben kumulativ
    (Balken/Pfeil-Zonen), istRate/sollRate/deltaRate treiben die Anzeige. */
 function paceWerte(){
-  const zielGes=tagesZielDomain('dfm')+tagesZielDomain('privat');
+  // §2 (v1.8.1): Wochenendregel auch in der Pace — Sa/So gilt das 1500er-
+  // DFM-Teilziel (Einzeltag-Abbildung des gemeinsamen 3000er-Wochenendziels).
+  const zielGes=anZielDfmTag()+tagesZielDomain('privat');
   const std=tagStundenVergangen(), ist=punkteHeuteAnzeige();
   const istRate = std>0.05 ? ist/std : 0;
   const sollRate = zielGes/16;
@@ -3144,6 +3184,7 @@ function routineErledigtBuchen(k){
 }
 /* Generierter Abzug-Vorschlag beim Schieben (§4): grob nach Priorität/Punkten. */
 function abzugVorschlag(k){
+  if(urlaubHeute()) return 0;   // §5 (1.8.1)
   const basis = Math.round(kartePunkte(Object.assign({},k,{istSek:0,ticksHeute:0})));
   const faktor = k.prioritaet==='muss' ? 1 : k.prioritaet==='soll' ? 0.5 : 0;
   return Math.round(Math.min(100, basis*faktor) / 10) * 10;   // auf 10 gerundet, max 100
@@ -3169,8 +3210,9 @@ function tagAbschlussFinalisieren(){
   S.tag.streak = bilanz>0 ? tagesStreakStand(false)+1 : 0;   // v1.1: Tages-Streak einfrieren
   S.meta.wohlstand = num(S.meta.wohlstand) + bilanz;     // §4: kumulativ, nie Reset
   // Snapshot für Statistiken (§9) + Belohnungs-Diagramme (v1.1: log/akkuVerlauf/streak)
+  S.tag.urlaub=urlaubHeute();   // §5.4 (1.8.1): Markierung gehoert an den TAG
   S.historie.push({
-    tagId:S.tag.tagId, datum:S.tag.datum, laufindex:S.tag.laufindex,
+    tagId:S.tag.tagId, datum:S.tag.datum, laufindex:S.tag.laufindex, urlaub:S.tag.urlaub,
     startTs:S.tag.startTs, endeTs:S.tag.endeTs, akku:S.tag.akku,
     punkteBilanz:S.tag.punkteBilanz, abzuege:num(S.tag.abzuegeBilanz),
     routinenBilanz:S.tag.routinenBilanz||[], zeit:tagesZeitAggregat(S.tag.tagId), luecke:false,
@@ -3184,7 +3226,7 @@ function tagAbschlussAuto(grund){
   if(!tagOffen()) return;
   // offene fällige Routinen = „Verpasst"
   const datum=S.tag.datum;
-  S.karten.forEach(k=>{ if(k.rhythmus && k.status==='offen' && !k.freeze && routineFaellig(k, datum)) routineBilanz(k, true); });   // A4: Eingefrorene nicht als „verpasst"
+  S.karten.forEach(k=>{ if(k.rhythmus && k.status==='offen' && !k.freeze && routineFaellig(k, datum)) routineBilanz(k, !urlaubHeute()); });   // A4 + §5 (1.8.1): am Urlaubstag entschuldigt, kein Streak-Bruch
   tagAbschlussFinalisieren();
 }
 /* Beim Öffnen: vergessenen Abschluss / Lücke erkennen (§6 Kanten). */
@@ -3265,6 +3307,7 @@ function tagStartPrioFinish(){
 /* ── Tagesabschluss (2 Durchgänge) ────────────────────────────────── */
 let abschlussTmp=null;
 function abraeumKarten(){
+  if(urlaubHeute()) return [];   // §5 (1.8.1): keine Abraeumpflicht im Urlaub
   const h=heuteApp();
   return S.karten.filter(k=>k.status==='offen' && !k.freeze && k.faelligkeit && (k.faelligkeit===h || k.faelligkeit<h));   // A4: Eingefrorene raus
 }
@@ -3647,7 +3690,8 @@ function karteTickMinus(k){
    × Rate), auf 5 gerundet, min. 10. */
 function datumPlus1(iso){ const d=new Date((iso||heuteApp())+'T12:00:00'); d.setDate(d.getDate()+1);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function schiebeVorschlag(k){ const prog=num(k.sollMin)/60*rate(k); return Math.max(10, Math.round(prog*0.1/5)*5); }
+function schiebeVorschlag(k){ if(urlaubHeute()) return 0;   // §5 (1.8.1): keine Minuspunkte im Urlaub
+  const prog=num(k.sollMin)/60*rate(k); return Math.max(10, Math.round(prog*0.1/5)*5); }
 function oeffneSchieben(kid){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
   const neu=datumPlus1(k.faelligkeit), v=schiebeVorschlag(k);
@@ -4671,8 +4715,49 @@ function renderEinst(){
       '<button class="chip '+(S.ui.debugTap?'on gruen':'')+'" data-debugtap="1">'+(S.ui.debugTap?'AN':'aus')+'</button></div>'+
     (S.ui.debugTap?'<div class="hint">Jede Tap-Fläche ist umrandet: <span style="color:#6dd3e0">Eingabefelder cyan</span>, <span style="color:#f2b84b">Chips amber</span>, <span style="color:#f66d6d">Buttons/Zonen rot</span>. Deckt sich der Rahmen nicht mit dem sichtbaren Feld, liegt dort der Fehler.</div>':'')+
   '</div>';
+  // §5 (v1.8.1): Urlaubsmodus — an/aus, kein Zeitraum, keine Automatik
+  h+='<div class="card"><h3>🏖 Urlaubsmodus</h3>'+
+    '<p class="d">Nichts ist verpflichtend, alles bleibt möglich: keine Streak-Brüche, kein Ziel, keine Schiebe-Minuspunkte, keine Abräumpflicht. Timer, Ticks und Punkte laufen normal weiter. Urlaubstage erscheinen in der Statistik, fließen aber nicht in Durchschnitte und Trends ein.</p>'+
+    '<div class="kv"><span>Urlaubsmodus</span><button class="chip '+(S.meta.urlaubsmodus?'on gruen':'')+'" data-urlaubtoggle="1">'+(S.meta.urlaubsmodus?'AN':'aus')+'</button></div>'+
+    (S.meta.urlaubsmodus?'<div class="hint">Läuft — sichtbar am 🏖 in der Statusleiste. Der Zustand beim Tagesabschluss gilt für den ganzen Tag.</div>':'')+
+  '</div>';
+  // §4 (v1.8.1): Eingriffe mit Tragweite — optisch abgesetzt, GANZ unten
+  h+='<div class="card" style="border-color:var(--bad);margin-top:18px"><h3 style="color:var(--bad)">⚠️ Eingriffe mit Tragweite</h3>'+
+    '<p class="d">Wohlstand zurücksetzen startet Avatar und Panorama wieder bei Level 1 — über die Offset-Mechanik. <b>Gelöscht wird nichts:</b> Historie, Intraday-Log, Streaks, Konto und alle Statistiken bleiben unangetastet.</p>'+
+    '<div class="btnrow"><button class="btn warn sm" data-panoreset="1">🔄 Wohlstand zurücksetzen</button>'+
+    (S.meta.panoramaResetBackup?'<button class="btn sm" data-panoundo="1">↩︎ Letzten Reset rückgängig</button>':'')+'</div>'+
+    '<div class="kv" style="margin-top:8px"><span>Aktueller Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
+  '</div>';
   h+='<div style="text-align:center;color:var(--mut2);font-size:11px;margin-top:6px">Fokus App '+UI_VERSION+' · neu.html · index.html bleibt Fallback</div>';
   el('einstBody').innerHTML=h;
+}
+/* §4 (v1.8.1): Wohlstand-Reset per Button — exakt die Offset-Mechanik der
+   151er-Migration, jetzt wiederholbar und mit Rückgängig (solange ein Backup
+   vorliegt). Es wird ausschließlich Anzeige-Zustand verschoben. */
+function panoramaResetJetzt(){
+  if(!confirm('Wohlstand zurücksetzen?\n\nAvatar und Panorama starten wieder bei Level 1, die sechs Zonen-Stufen gehen auf 0.\n\nNICHT angefasst werden: Historie, Intraday-Log, Streaks, Punkte-Konto und alle Statistiken. Der Schritt ist über „Rückgängig" umkehrbar, solange kein neuer Reset folgt.')) return;
+  if(!S.belohnung){ S.belohnung={ stufen:{}, ausgegeben:0, kaeufe:[] }; }
+  S.belohnung.stufen=S.belohnung.stufen||{};
+  const altStufen={}; KAT_KEYS.forEach(k=>{ altStufen[k]=num(S.belohnung.stufen[k],0); });
+  const rohVorher=lifetimePunkteRoh();
+  S.meta.panoramaResetBackup={
+    ts: jetztIso(), offset: num(S.meta.panoramaResetOffset),   // vorheriger Offset (nicht der neue!)
+    levelVorher: avatarStufe(), stufen: altStufen,
+    wohlstand: num(S.meta.wohlstand), ausgegeben: num(S.belohnung.ausgegeben),
+    lifetimeBasis: num(S.meta.lifetimeBasis)
+  };
+  S.meta.panoramaResetOffset=rohVorher;
+  KAT_KEYS.forEach(k=>{ S.belohnung.stufen[k]=0; });
+  saveMeta(); saveBelohnung(); renderEinst(); toast('Panorama zurückgesetzt — Level 1');
+}
+function panoramaResetUndo(){
+  const b=S.meta.panoramaResetBackup;
+  if(!b){ toast('Kein Reset-Backup vorhanden'); return; }
+  if(!confirm('Letzten Wohlstand-Reset rückgängig machen?\n\nOffset und Zonen-Stufen gehen auf den Stand von '+String(b.ts||'?').slice(0,10)+' zurück.')) return;
+  S.meta.panoramaResetOffset = (b.offset>0 ? b.offset : null);
+  KAT_KEYS.forEach(k=>{ S.belohnung.stufen[k]=num(b.stufen&&b.stufen[k],0); });
+  delete S.meta.panoramaResetBackup;
+  saveMeta(); saveBelohnung(); renderEinst(); toast('Reset rückgängig gemacht');
 }
 /* V3: Debug-Overlay für Tap-Flächen (Mehr → Info). Rein visuell, app-only. */
 function setDebugTap(on){ S.ui.debugTap=!!on; saveUi(); document.body.classList.toggle('debugtap', !!on); if(on) toast('🐞 Tap-Debug an'); }
@@ -4931,7 +5016,7 @@ function isoMinus(iso, tage){ const d=new Date(iso+'T12:00:00'); d.setDate(d.get
    werden zusammengefasst). */
 function tagSnapshot(iso){
   if(tagOffen() && S.tag.datum===iso){
-    return { datum:iso, istHeute:true, startTs:S.tag.startTs, endeTs:null, punkteBilanz:tagesPunkteLive(),
+    return { datum:iso, istHeute:true, urlaub:urlaubHeute(), startTs:S.tag.startTs, endeTs:null, punkteBilanz:tagesPunkteLive(),
       akku:S.tag.akku, log:(S.tag.log||[]).slice(), akkuVerlauf:(S.tag.akkuVerlauf||[]).slice(),
       zeit:tagesZeitAggregat(S.tag.tagId), erledigtHeute:num(S.tag.erledigtHeute) };
   }
@@ -4945,7 +5030,7 @@ function tagSnapshot(iso){
     if(!endeTs || (s.endeTs && s.endeTs>endeTs)) endeTs=s.endeTs;
     if(s.zeit){ zeit.dfm+=num(s.zeit.dfm); zeit.privat+=num(s.zeit.privat);
       Object.entries(s.zeit.projekte||{}).forEach(([k,v])=>zeit.projekte[k]=(zeit.projekte[k]||0)+num(v)); } });
-  return { datum:iso, istHeute:false, startTs, endeTs, punkteBilanz:p, akku:akkuN?akkuSum/akkuN:null,
+  return { datum:iso, istHeute:false, urlaub:snaps.some(x=>x.urlaub), startTs, endeTs, punkteBilanz:p, akku:akkuN?akkuSum/akkuN:null,
     log, akkuVerlauf:av, zeit, erledigtHeute:erl };
 }
 /* Punkte eines Snapshots unter Domänenfilter (aus log, sonst Bilanz für „alle"). */
@@ -4977,8 +5062,9 @@ function diagrammKurveTag(snap, dom){
   ev.forEach(e=>{ kum+=e.p; pts.push([Math.min(xEndMin,Math.max(0,e.min)),kum]); });
   if(snap.istHeute){ const ges=snapPunkte(snap,dom); if(ges>kum) kum=ges; pts.push([xEndMin,kum]); }  // Live-Endpunkt inkl. laufendem Fokus
   // A1/A7: Soll-Diagonale = Domänen-Tagesziel über den wachen Tag (16 h)
-  const visionTag = dom==='alle' ? (tagesZielDomain('dfm')+tagesZielDomain('privat')) : tagesZielDomain(dom);
-  const sollEnd=visionTag*Math.min(1, xEndMin/(16*60));
+  const visionTag = anZiel(dom, snap&&snap.datum);   // §2 (1.8.1): Wochenendregel je Datum
+  const urlaubTag = snap && snap.urlaub;   // §5 (1.8.1): Urlaubstag → keine Soll-Diagonale
+  const sollEnd = urlaubTag ? 0 : visionTag*Math.min(1, xEndMin/(16*60));
   const avgEnd=avgProStdVergangen(dom)*(xEndMin/60);
   const peak=pts.reduce((m,p)=>Math.max(m,p[1]),0);
   const maxY=Math.max(peak, sollEnd, avgEnd, 10)*1.15;
@@ -5008,15 +5094,15 @@ function diagrammKurveTag(snap, dom){
 function diagrammBalken(zeitraum, dom){
   const n=zeitraum==='woche'?7:30, heute=heuteApp(), sel=statDatum(), reihe=[];
   for(let i=n-1;i>=0;i--){ const iso=isoMinus(heute,i); const sn=tagSnapshot(iso);
-    reihe.push({iso, p: sn?snapPunkte(sn,dom):0, luecke:!sn && !(tagOffen()&&S.tag.datum===iso)}); }
+    reihe.push({iso, p: sn?snapPunkte(sn,dom):0, urlaub:!!(sn&&sn.urlaub), luecke:!sn && !(tagOffen()&&S.tag.datum===iso)}); }
   // A7: Vision-/Ziel-Linie (aus den Tageszielen) + Ø-Linie der gezeigten Tage
-  const vision = dom==='alle' ? (tagesZielDomain('dfm')+tagesZielDomain('privat')) : tagesZielDomain(dom);
+  const vision = urlaubAktiv() ? 0 : anZiel(dom);   // §2+§5 (1.8.1): Wochenendregel; im Urlaub keine Ziel-Linie
   const echte=reihe.filter(x=>!x.luecke); const avg = echte.length ? echte.reduce((a,x)=>a+x.p,0)/echte.length : 0;
   const maxP=Math.max(10, vision, ...reihe.map(x=>x.p)), bw=Math.max(3,Math.floor(288/n)-2);
   const Y=v=>90-(v/maxP)*80;
   let balken='';
   reihe.forEach((d,i)=>{ const hgt=Math.max(2,(d.p/maxP)*80), x=6+i*(288/n);
-    balken+='<rect x="'+x.toFixed(1)+'" y="'+(90-hgt).toFixed(1)+'" width="'+bw+'" height="'+hgt.toFixed(1)+'" rx="2" fill="'+(d.iso===sel?'var(--cyan)':d.luecke?'var(--line)':'var(--purple)')+'" data-statpick="'+d.iso+'"/>'; });
+    balken+='<rect x="'+x.toFixed(1)+'" y="'+(90-hgt).toFixed(1)+'" width="'+bw+'" height="'+hgt.toFixed(1)+'" rx="2" fill="'+(d.iso===sel?'var(--cyan)':d.luecke?'var(--line)':d.urlaub?'#6dd3e055':'var(--purple)')+'" data-statpick="'+d.iso+'"/>'; });
   const summe=reihe.reduce((a,d)=>a+d.p,0);
   const avgLine = avg>0 ? '<line x1="6" y1="'+Y(avg).toFixed(1)+'" x2="294" y2="'+Y(avg).toFixed(1)+'" stroke="#b58a2e" stroke-width="1.2" stroke-dasharray="3 3"/><text x="8" y="'+Math.max(8,Y(avg)-2).toFixed(1)+'" fill="#b58a2e" font-size="8">Ø '+Math.round(avg)+'</text>' : '';
   const visLine = vision>0 ? '<line x1="6" y1="'+Y(vision).toFixed(1)+'" x2="294" y2="'+Y(vision).toFixed(1)+'" stroke="var(--blue)" stroke-width="1.6"/><text x="252" y="'+Math.max(8,Y(vision)-2).toFixed(1)+'" fill="var(--blue)" font-size="8">Ziel '+Math.round(vision)+'</text>' : '';
@@ -5080,6 +5166,9 @@ function diagrammHtml(){
   if(zr==='tag') h+='<input type="date" id="statDatum2" value="'+sel+'" max="'+heuteIso()+'">';
   h+='</div>';
   const snap=tagSnapshot(sel);
+  // §5.4 (v1.8.1): Markierung am Tag — sichtbar und nachtraeglich umschaltbar
+  if(zr==='tag' && snap) h+='<div class="kv" style="margin:4px 0"><span>'+(snap.urlaub?'🏖 Urlaubstag — nicht in Ø/Trends':'Normaler Tag')+'</span>'+
+    '<button class="chip '+(snap.urlaub?'on gruen':'')+'" data-urlaubtag="'+sel+'">'+(snap.urlaub?'🏖 AN':'als Urlaub markieren')+'</button></div>';
   if(zr==='tag'){ h+=diagrammKurveTag(snap,dom)+kennzahlenHtml(snap,dom)+'<h4 class="auflh">Aufschlüsselung</h4>'+aufschluesselungHtml(snap,dom); }
   else { h+=diagrammBalken(zr,dom)+'<p class="stathint">Balken antippen wählt den Tag.</p>'+kennzahlenHtml(snap,dom); }
   return h+'</div>';
@@ -5987,6 +6076,11 @@ function stapelLiesEditor(){
 el('belohnungBody').addEventListener('click', e=>{
   const zr=e.target.closest('[data-statzr]'); if(zr){ S.ui.statZeitraum=zr.dataset.statzr; saveUi(); renderBelohnung(); return; }
   const dm=e.target.closest('[data-statdom]'); if(dm){ S.ui.statDomain=dm.dataset.statdom; saveUi(); renderBelohnung(); if(!el('statChart').hidden) renderStatChart(); return; }
+  const ut=e.target.closest('[data-urlaubtag]'); if(ut){ const iso=ut.dataset.urlaubtag;
+    if(tagOffen() && S.tag.datum===iso){ S.tag.urlaubManuell=!urlaubHeute(); saveTag(); }
+    else { let neu=null; (S.historie||[]).forEach(h2=>{ if(h2.datum===iso && !h2.luecke){ if(neu==null) neu=!h2.urlaub; h2.urlaub=neu; } }); saveHistorie(); }
+    renderBelohnung(); toast('Tag '+iso.slice(8)+'.'+iso.slice(5,7)+'. '+((tagOffen()&&S.tag.datum===iso?urlaubHeute():(S.historie.find(h2=>h2.datum===iso)||{}).urlaub)?'als Urlaub markiert':'als normaler Tag markiert'));
+    return; }
   const pk=e.target.closest('[data-statpick]'); if(pk){ S.ui.statDatum=pk.dataset.statpick; S.ui.statZeitraum='tag'; saveUi(); renderBelohnung(); return; }
   // F1 (v1.3.3): Tagesauswahl im Tagesverlauf — ‹ › schrittweise, „heute" zurück auf live
   const st=e.target.closest('[data-statstep]'); if(st){ const n=num(st.dataset.statstep);
@@ -6011,6 +6105,11 @@ el('einstBody').addEventListener('click', e=>{
   const ga=e.target.closest('[data-grpassign]'); if(ga){ oeffneGruppeZuordnen(ga.dataset.grpassign); return; }
   const gk=e.target.closest('[data-grpakt]'); if(gk){ oeffneGruppeAktion(gk.dataset.grpakt); return; }
   if(e.target.closest('[data-debugtap]')){ setDebugTap(!S.ui.debugTap); renderEinst(); return; }   // V3
+  // §5 (v1.8.1): Urlaubsmodus an/aus
+  if(e.target.closest('[data-urlaubtoggle]')){ S.meta.urlaubsmodus=!S.meta.urlaubsmodus; saveMeta(); renderEinst(); renderStatusbar(); toast(S.meta.urlaubsmodus?'🏖 Urlaubsmodus AN':'Urlaubsmodus aus'); return; }
+  // §4 (v1.8.1): Wohlstand-Reset + Rückgängig
+  if(e.target.closest('[data-panoreset]')){ panoramaResetJetzt(); return; }
+  if(e.target.closest('[data-panoundo]')){ panoramaResetUndo(); return; }
   // §3 (v1.6.1): Routinen-Gruppen verwalten
   const gt=e.target;
   if(gt.closest('[data-grpneu]')){ S.routinenGruppen.push({ id:uuid(), name:'Neue Gruppe', domain:'privat',
@@ -6166,7 +6265,7 @@ function analyseRohTage(){
   if(tagOffen() && S.tag){
     q.push({ datum:S.tag.datum, startTs:S.tag.startTs, endeTs:jetztIso(), akku:S.tag.akku,
       punkteBilanz:tagesPunkteLive(), abzuege:num(S.tag.abzuegeBilanz),
-      zeit:tagesZeitAggregat(S.tag.tagId), log:(S.tag.log||[]), routinenBilanz:(S.tag.routinenBilanz||[]), _heute:true });
+      zeit:tagesZeitAggregat(S.tag.tagId), log:(S.tag.log||[]), routinenBilanz:(S.tag.routinenBilanz||[]), urlaub:urlaubHeute(), _heute:true });
   }
   const map={};
   // §2 (v1.7.0): Domäne einer Routinen-Bilanz-Zeile über die Karte auflösen
@@ -6195,6 +6294,7 @@ function analyseRohTage(){
     if(e.akku==null && h.akku!=null) e.akku=num(h.akku);
     if(!e.startTs || (h.startTs&&h.startTs<e.startTs)) e.startTs=h.startTs;
     if(!e.endeTs || (h.endeTs&&h.endeTs>e.endeTs)) e.endeTs=h.endeTs;
+    if(h.urlaub) e.urlaub=true;   // §5 (1.8.1): Urlaubs-Markierung des Tages
     if(h._heute) e.heute=true;
   });
   // §2: Minuten je Art×Domäne aus dem Intraday-Log (existiert seit UP4-B 31.07.;
@@ -6248,7 +6348,20 @@ function anMin(e,dom){
   if(a!=='alle') return anArtSumme(e.artMin, a, dom);
   return dom==='dfm'?e.minDfm : dom==='privat'?e.minPrivat : e.min;
 }
-function anZiel(dom){ return dom==='dfm'?tagesZielDomain('dfm') : dom==='privat'?tagesZielDomain('privat') : (tagesZielDomain('dfm')+tagesZielDomain('privat')); }
+/* §2 (v1.8.1): anZiel kannte die Wochenendregel nicht — Sa/So erschienen in
+   Leistung und Kalibrierung systematisch als schlechte Tage (Ziel 5000 statt
+   des gemeinsamen 3000er-Wochenendziels). Abbildung auf EINZELTAGE: 1500 je
+   Wochenendtag — die Summe über Sa+So ergibt exakt die gemeinsamen 3000, und
+   die Module behalten ihre Tagesauflösung (das „Wochenende als Einheit" würde
+   jede Tages-Trendkurve brechen). Ohne Datum gilt heute. */
+function anZielDfmTag(datum){
+  const wt=new Date((datum||heuteApp())+'T12:00:00').getDay();
+  return (wt===0||wt===6) ? 1500 : tagesZielDomain('dfm');
+}
+function anZiel(dom, datum){
+  const dfm=anZielDfmTag(datum);
+  return dom==='dfm'?dfm : dom==='privat'?tagesZielDomain('privat') : (dfm+tagesZielDomain('privat'));
+}
 /* Fenster gemäß S.ui (Zeitraum-Preset / frei) inkl. Vorperiode gleicher Länge. */
 function analyseFenster(){
   const alle=analyseRohTage();
@@ -6257,10 +6370,14 @@ function analyseFenster(){
   if(zr==='frei'){ bis=S.ui.analyseBis||heuteApp(); von=S.ui.analyseVon||anVorTage(bis,6); span=anTageDiff(von,bis)+1; }
   else { span=num(zr,7); bis=heuteApp(); von=anVorTage(bis,span-1); }
   const inWin=d=> d>=von && d<=bis;
-  const cur=alle.filter(e=>inWin(e.datum));
+  // §5.3 (v1.8.1): Urlaubstage (Markierung AM TAG, nicht am Schalter) fliessen
+  // nicht in Durchschnitte, Trends, ACWR und Wochentagsprofile ein — sie werden
+  // aus cur/prev herausgehalten und im Kopf gezaehlt ausgewiesen.
+  const cur=alle.filter(e=>inWin(e.datum) && !e.urlaub);
+  const urlaubCur=alle.filter(e=>inWin(e.datum) && e.urlaub).length;
   const pBis=anVorTage(von,1), pVon=anVorTage(von,span);
-  const prev=alle.filter(e=>e.datum>=pVon && e.datum<=pBis);
-  return { alle, cur, prev, von, bis, span };
+  const prev=alle.filter(e=>e.datum>=pVon && e.datum<=pBis && !e.urlaub);
+  return { alle, cur, prev, von, bis, span, urlaubCur };
 }
 /* Lückenlose Kalender-Reihe (fehlende Tage = null) — für gleitende Mittel/ACWR. */
 function anKalenderReihe(alle, von, bis){
@@ -6382,7 +6499,11 @@ function anModLeistung(F,dom){
     // Domänen-Ziel-Erreichung (Bars)
     const doms= dom==='alle'?[['dfm','DFM','var(--warn)'],['privat','Privat','var(--ok)']]:[[dom,dom==='dfm'?'DFM':'Privat',dom==='dfm'?'var(--warn)':'var(--ok)']];
     let bars='<div class="an-bars">';
-    doms.forEach(function(d){ const avg=anMean(F.cur.map(e=>anPunkte(e,d[0]))), ziel=anZiel(d[0]); const pct=ziel?Math.max(0,Math.min(1.3,avg/ziel)):0;
+    doms.forEach(function(d){
+      // §2 (v1.8.1): Ø der TAGES-Quoten statt Ø-Punkte ÷ Ein-Ziel — so gilt an
+      // Wochenendtagen das 1500er-Teilziel und Sa/So erscheinen nicht mehr als
+      // systematisch schlechte Tage.
+      const pct=Math.max(0,Math.min(1.3, anMean(F.cur.map(e=>{ const z=anZiel(d[0], e.datum); return z?anPunkte(e,d[0])/z:null; }))||0));
       bars+='<div class="an-bar"><span class="nm">'+d[1]+'</span><span class="track"><i style="width:'+Math.min(100,pct*100/1.3).toFixed(0)+'%;background:'+d[2]+'"></i></span><span class="vv">'+Math.round(pct*100)+'% Ziel</span></div>'; });
     bars+='</div>';
     inner+=bars;
@@ -6472,12 +6593,12 @@ function anModKalibrierung(F,dom){
   }
   if(F.cur.length<3){ inner=anSammelt(F.cur.length,3); }
   else{
-    const ziel=anZiel(dom);
     const labels=F.cur.map(e=>e.datum);
-    const ratio=F.cur.map(e=> ziel? anPunkte(e,dom)/ziel : null);
+    // §2 (v1.8.1): Tagesziel je DATUM (Wochenendregel) statt ein Ziel für alle
+    const ratio=F.cur.map(e=>{ const z=anZiel(dom, e.datum); return z? anPunkte(e,dom)/z : null; });
     inner=anSvgLine(labels,[{vals:ratio,color:'var(--blue)'}],{yMin:0,yMax:Math.max(1.4,Math.max.apply(null,ratio.concat([1]))*1.1),height:132,hlines:[{y:1,color:'var(--ok)',dash:'4 3',label:'Ziel 1,0'}]});
-    const cur=anMean(ratio), prev=anMean(F.prev.map(e=>ziel?anPunkte(e,dom)/ziel:null).filter(x=>x!=null));
-    const treffer=F.cur.filter(e=>{ const r=ziel?anPunkte(e,dom)/ziel:0; return r>=0.8 && r<=1.2; }).length;
+    const cur=anMean(ratio), prev=anMean(F.prev.map(e=>{ const z=anZiel(dom, e.datum); return z?anPunkte(e,dom)/z:null; }).filter(x=>x!=null));
+    const treffer=ratio.filter(r=> r!=null && r>=0.8 && r<=1.2).length;
     inner+='<div class="anmod-kpis">'+
       anKpi(cur!=null?(Math.round(cur*100)/100):'—','Ø Ist÷Soll',anDeltaPct(cur,prev))+
       anKpi(treffer+'/'+F.cur.length,'Tage ±20%')+'</div>';
@@ -6498,8 +6619,11 @@ function anSvgFenster(series){
     g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--line)" stroke-width="0.5" opacity=".5"/>'+
        '<text x="'+x+'" y="'+(H-6)+'" text-anchor="middle" font-size="8" fill="var(--mut2)">'+h+'</text>'; });
   g+='<text x="'+(pL-3)+'" y="'+(yAt(yMax)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anFmt(yMax)+'</text>';
-  series.forEach(s=>{ let d=''; s.vals.forEach((v,i)=>{ d+=(i?'L':'M')+xAt(i).toFixed(1)+' '+yAt(v).toFixed(1)+' '; });
-    g+='<path d="'+d+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.width||2)+'"'+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+' stroke-linejoin="round" stroke-linecap="round"/>'; });
+  series.forEach(s=>{ let d=''; s.vals.forEach((v,i)=>{ if(v==null) return; d+=(d?'L':'M')+xAt(i).toFixed(1)+' '+yAt(v).toFixed(1)+' '; });
+    g+='<path d="'+d+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.width||2)+'"'+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+' stroke-linejoin="round" stroke-linecap="round"/>';
+    // §1 (v1.8.1): dezenter Endpunkt — markiert, wo eine gekürzte Kurve endet
+    if(s.endDot){ const li=s.vals.reduce((a,v,i)=>v!=null?i:a,-1);
+      if(li>=0) g+='<circle cx="'+xAt(li).toFixed(1)+'" cy="'+yAt(s.vals[li]).toFixed(1)+'" r="3" fill="'+s.color+'"/>'; } });
   return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>';
 }
 function anModVerhalten(F,dom){
@@ -6522,7 +6646,15 @@ function anModVerhalten(F,dom){
     const g14 = tage.filter(d=>d>=anVorTage(heute,13));
     if(hat14plus && g14.length){ const p14=profil(g14); if(p14) series.push({vals:p14,color:'var(--warn)',width:2,dash:'5 3'}); }
     const heuteHat=!!byDay[heute];
-    if(heuteHat) series.push({vals:anGlaett(anStundenBuckets(byDay[heute])),color:'var(--cyan)',width:2.4});
+    if(heuteHat){
+      // §1 (v1.8.1): Die Heute-Kurve endet an der AKTUELLEN Stunde — die Null-
+      // werte dahinter sahen wie ein Einbruch aus. Die Ø-Kurven laufen als
+      // Vergleichsmaßstab weiter über die volle Achse; ein Punkt markiert das Ende.
+      const jetztH=new Date().getHours();
+      const voll=anGlaett(anStundenBuckets(byDay[heute]));
+      const bisJetzt=voll.map((v,i)=> i<=jetztH ? v : null);
+      series.push({vals:bisJetzt,color:'var(--cyan)',width:2.4,endDot:true});
+    }
     chart=anSvgFenster(series)+
       '<div class="an-legend">'+
         (heuteHat?'<span><i style="background:var(--cyan)"></i>Heute</span>':'<span style="color:var(--mut2)">Heute: noch keine Buchung</span>')+
@@ -6564,7 +6696,7 @@ function anFlowReihe(dom){
     // F2: als Bestandsaufnahme markierte Karten sind KEIN Tageszugang (sie gehen
     // über anFlowStartBestand in den Anfangsbestand des Netto-Backlogs ein).
     if(k.erstelltTs && !k.flowBaseline){ const d=k.erstelltTs.slice(0,10); created[d]=(created[d]||0)+1; }
-    if(k.status==='erledigt' && k.tagId){ const d=String(k.tagId).slice(0,10); done[d]=(done[d]||0)+1; }
+    if(k.status==='erledigt' && k.tagId && !k.flowDoneBaseline){ const d=String(k.tagId).slice(0,10); done[d]=(done[d]||0)+1; }   // §3 (1.8.1)
   });
   (S.intraday||[]).forEach(e=>{ if(!e.ts) return; const k=byId[e.kartenId]; if(!k||kartenArt(k)!=='Aufgabe'||!ok(k)) return;
     const d=e.ts.slice(0,10);
@@ -6822,7 +6954,7 @@ function renderAnalyseBody(){
   const F=analyseFenster(), dom=S.ui.analyseDomain||'alle', art=analyseArt();
   const von=F.von, bis=F.bis;
   // §2: Kopfzeile nennt die aktive Art zusätzlich zu Zeitraum und Domäne
-  let h='<div class="anmod-sub" style="margin:0 2px 12px">Zeitraum '+anKurzDatum(von)+'–'+anKurzDatum(bis)+' · '+F.cur.length+' Tage mit Daten · Domäne '+(dom==='alle'?'Alle':dom==='dfm'?'DFM':'Privat')+' · Art '+analyseArtLabel()+' · Δ% ggü. Vorperiode.</div>';
+  let h='<div class="anmod-sub" style="margin:0 2px 12px">Zeitraum '+anKurzDatum(von)+'–'+anKurzDatum(bis)+' · '+F.cur.length+' Tage mit Daten · Domäne '+(dom==='alle'?'Alle':dom==='dfm'?'DFM':'Privat')+' · Art '+analyseArtLabel()+' · Δ% ggü. Vorperiode'+(F.urlaubCur?' · <span style="color:var(--cyan)">'+F.urlaubCur+' Urlaubstag(e) 🏖 ausgenommen</span>':'')+'.</div>';
   if(art!=='alle') h+='<div class="anmod-sub" style="margin:-6px 2px 12px;color:var(--mut2)">Kartenart-Filter aktiv: Punkte je Art aus dem Punkt-Log, Minuten je Art aus dem Intraday-Log (ab 31.07.) — ältere Tage tragen dort 0.</div>';
   if(!F.alle.length){ h+=anLeer('Noch keine abgeschlossenen Tage. Starte einen Tag und schließe ihn ab — dann füllt sich die Analyse.'); }
   else{

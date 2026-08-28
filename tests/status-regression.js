@@ -14,7 +14,7 @@ var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','b
   'tickSumme','punkteFuerZeit','zeitquelleMin','subBonusErreicht','pausenStrafe','pausenStrafeLive','kartePunkte','kartenArt','laufendeSek',
   'heuteInvestiertMin','akkuLive','aktuelleTagId','tagOffen','kartePunkteHeute','tagesPunkteDomain','tagesPunkteLive',
   'punkteHeuteAnzeige','tagesZielDomain','wachTagAnteil','punkteHeuteDomain','istTickKarte','tickPunkte',
-  'tagStundenVergangen','paceWerte','imTagesstrom','energieBatterie','tagesStreakStand',
+  'tagStundenVergangen','anZielDfmTag','paceWerte','imTagesstrom','energieBatterie','tagesStreakStand',
   'fokusKarte','untermenge'];
 /* §1 (v1.7.1): kartePunkte zieht die Pausentimer-Strafe live ab — die beiden
    Helfer werden mit extrahiert, die Konstante hier gespiegelt (Konstanten sind
@@ -53,7 +53,10 @@ S.tag.istMinutenStart={a:0}; k1.istSek=3600; // 60 min invest → zeitpunkte
 S.tag.startTs=new Date(Date.now()-2*3600000).toISOString();
 var pw=paceWerte();
 // A1: soll = (5000+3000) × wachTagAnteil; startTs 2h her → 2/16 = 0.125 → 1000
-ok('paceWerte.soll = anteiliges Gesamtziel (~1000)', Math.abs(pw.soll-1000)<1);
+/* §2 (v1.8.1): Wochenendregel — die Erwartung nutzt dieselbe Formel wie die
+   App (anZielDfmTag), damit die Suite an JEDEM Wochentag gruen ist. */
+var sollErwartet=(anZielDfmTag()+DEFAULT_SETTINGS.tagesZielPrivat)*2/16;
+ok('paceWerte.soll = anteiliges Gesamtziel (Wochenendregel)', Math.abs(pw.soll-sollErwartet)<1);
 ok('paceWerte.ist >= 0 endlich', pw.ist>=0 && isFinite(pw.ist));
 // A3: Tick-Karte-Erkennung + Tick-Punkte
 /* §7/§9 (v1.8.0): Tick-Modell — maßgeblich ist ticksAktiv, timerFlag ist nur
