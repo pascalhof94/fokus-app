@@ -1018,9 +1018,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.9.1';                    // Datenvertrag/Sync-appVersion — 1.9.1 (zeitmessung als optionales Import-Feld; sonst 1.x unveraendert)
-const UI_VERSION = 'v1.9.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-28-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.9.2';                    // Datenvertrag/Sync-appVersion — 1.9.2 (nur interne Erledigt-Logik; Vertrag 1.x unveraendert)
+const UI_VERSION = 'v1.9.2';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-28-6';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -4243,10 +4243,15 @@ const KOMPLETT_BONUS_DEFAULT = 200;
 function saveRoutGruppen(){ DB.set('routinenGruppen', S.routinenGruppen); }
 function gruppeVonKarte(kid){ return (S.routinenGruppen||[]).find(g=>(g.mitglieder||[]).indexOf(kid)>=0) || null; }
 /* „heute erledigt" — Routinen werden abgehakt, Counter getickt. */
+/* v1.9.2: Seit ＋ und ✓ nebeneinander stehen (v1.9.1 §4), gilt eine Tick-Karte
+   als heute erledigt, wenn sie heute ABGEHAKT wurde ODER mindestens einen Tick
+   hat — der Haken ist das stärkere Signal, die Ticks bleiben das schwächere
+   („Sport"/„WhatsApp" zählen weiterhin allein über den Tick). */
 function routErledigtHeute(k){
   if(!k) return false;
-  if(istTickKarte(k)) return num(k.ticksHeute)>0;
-  return k.status==='erledigt' && k.tagId===aktuelleTagId();
+  const abgehakt = k.status==='erledigt' && k.tagId===aktuelleTagId();
+  if(istTickKarte(k)) return abgehakt || num(k.ticksHeute)>0;
+  return abgehakt;
 }
 function gruppeStand(g){
   const ks=(g.mitglieder||[]).map(id=>S.karten.find(k=>k.id===id)).filter(Boolean);

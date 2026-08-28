@@ -72,6 +72,26 @@ ok('Migration: alle auf true ('+S.meta.zeit191Log.gesetzt+')', S.meta.zeit191Log
 ok('Migration: WhatsApp aus (Log lag vor)', S.karten[S.karten.length-1].zeitmessung===false && S.meta.zeit191Log.whatsappAus===true);
 ok('Migration: alle anderen true', S.karten.filter(function(k){return k.zeitmessung===true;}).length===S.karten.length-1);
 
+/* v1.9.2: Gruppen-Bonus — eine Counter-Routine, die NUR abgehakt (nicht
+   getickt) wird, macht die Gruppe komplett und loest den Bonus genau EINMAL. */
+S.karten.push(mk({id:'g1',domain:'privat',titel:'Tick-Routine',rhythmus:{typ:'taeglich'},ticksAktiv:true,tickWert:5,zeitmessung:false}));
+S.karten.push(mk({id:'g2',domain:'privat',titel:'Normale Routine',rhythmus:{typ:'taeglich'},sollMin:5}));
+S.routinenGruppen=[{id:'gr',name:'Runde',domain:'privat',mitglieder:['g1','g2'],komplettBonus:200,farbe:'#b98af7',bonusTag:null}];
+S.tag={ tagId:H+'-9', datum:H, laufindex:1, startTs:H+'T08:00:00', istMinutenStart:{}, abzuegeBilanz:0, log:[], akkuVerlauf:[], akku:80 };
+var g1=S.karten[S.karten.length-2], g2=S.karten[S.karten.length-1];
+karteAbhaken('g2', false); gruppeNachAenderung('g2');
+ok('v1.9.2: 1/2 — Bonus noch nicht', S.routinenGruppen[0].bonusTag==null);
+karteAbhaken('g1', false); gruppeNachAenderung('g1');   // NUR abgehakt, kein Tick
+ok('v1.9.2: nur-abgehakte Tick-Karte zaehlt als fertig', routErledigtHeute(g1)===true && num(g1.ticksHeute)===0);
+ok('v1.9.2: Gruppe komplett → Bonus faellt', S.routinenGruppen[0].bonusTag===aktuelleTagId());
+var bonusZeilen=S.tag.log.filter(function(e){return e.art==='Gruppenbonus';}).length;
+ok('v1.9.2: genau EINE Bonus-Zeile', bonusZeilen===1);
+karteTick('g1', false); gruppeNachAenderung('g1');   // zusaetzlich getickt → kein Doppelbonus
+ok('v1.9.2: Tick nach Abhaken bucht Bonus NICHT doppelt', S.tag.log.filter(function(e){return e.art==='Gruppenbonus';}).length===1);
+/* Wiederoeffnen einer abgehakten+getickten Karte: ueber Ticks weiter fertig → Bonus bleibt */
+karteAbhaken('g1', false); gruppeNachAenderung('g1');   // wieder oeffnen
+ok('v1.9.2: nach Wiederoeffnen ueber Ticks weiter fertig, Bonus bleibt', routErledigtHeute(g1)===true && S.routinenGruppen[0].bonusTag===aktuelleTagId());
+
 print('');
 if(fails){ print(fails+' FEHLGESCHLAGEN'); throw 'rot'; }
 print('alle Karten-Bedienelement-Tests gruen');
