@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fokus UI-Harness</title>
+<style>
+  html,body{margin:0;padding:0;background:#0b0f18;height:100%}
+  #app{border:0;width:375px;height:812px;display:block}
+  #result{position:fixed;left:-9999px;top:0;white-space:pre}
+</style>
+<script src="fixture.js"></script>
+</head>
+<body>
+<iframe id="app"></iframe>
+<pre id="result"></pre>
+<script>
+/* Same-origin-Harness: schreibt die Fixture in localStorage, lädt /neu.html im
+   iframe, führt je ?view= die nötigen Aktionen aus, fährt die Layout-Checks
+   und den Konsolen-Wächter und legt das Ergebnis als JSON in #result ab.
+   run.sh liest es über chrome --dump-dom. */
+(function(){
+  var Q=new URLSearchParams(location.search);
+  var VIEW=Q.get('view')||'stapel';
+  /* Headless-Chrome layoutet Fenster unter ~500px Breite trotzdem breiter —
+     darum bekommt das iframe die Zielgroesse HART per Query-Param. Der
+     Screenshot (window-size identisch) zeigt dann exakt das iframe. */
+  var FW=parseInt(Q.get('w')||'375',10), FH=parseInt(Q.get('h')||'812',10);
+  var ergebnis={ view:VIEW, fatal:[], findings:[], warnungen:[], checks:0, fertig:false };
+  function fatal(t){ ergebnis.fatal.push(t); }
+  function finding(t){ ergebnis.findings.push(t); }
+  function abschluss(){
+    ergebnis.fertig=true;
+    document.getElementById('result').textContent='UIRESULT:'+JSON.stringify(ergebnis)+':ENDRESULT';
+    document.title='HARNESS-FERTIG';
+  }
+
+  /* ── Tap-Ausnahmen: die EINZIGE Stelle für erlaubte Untergrößen ──
+     (Sekundärzeile 40px seit v1.8.0 §2.1; Unteraufgaben-Kästchen 34px seit
+     v1.10.0 §3.4; Chips 30px sind seit v1.0 der Dialog-/Detail-Standard;
+     Unteraufgaben-Inline-Felder und Karten-Streifen-Elemente sind Bestand.) */
+  var TAP_AUSNAHMEN=[
+    { sel:'.trow.tsek button, .trow.tsek .sar', min:40 },
+    { sel:'.uacheck, .uacheck .box',            min:32 },
+    { sel:'.chip',                              min:26 },
+    { sel:'.uamin, .uabonus, .uax, .uaneu button, .uaneu input', min:24 },
+    { sel:'.tstreifen *, #fkNav *, .pql-b, .pql-chip', min:0 },   // Karten-Streifen/Quick-Leiste: Bestand
+    { sel:'.st-edit, .st-groesse, .caret, .segmini button, .seg', min:24 },
+    { sel:'.minibtn, .kg-edit, .albtab, .albitem', min:24 },
+    { sel:'.tb-btn, .btn.sm, .btn.ghost.sm', min:30 },
+    { sel:'#fkPP', min:38 },      // Play/Pause der Fokus-Leiste: bewusst kompakt (Bestand)
+    { sel:'#sheetX, .x', min:34 } // Schliessen-X der Sheets: bewusst kompakt (Bestand)
+  ];
+  var TAP_MIN=44;
+
+  function sichtbar(elm){
+    if(!elm.getClientRects().length) return false;
+    var st=getComputedStyle(elm);
+    if(st.visibility==='hidden'||st.display==='none'||parseFloat(st.opacity||'1')===0) return false;
+    var r=elm.getBoundingClientRect();
+    return r.width>0.5 && r.height>0.5;
+  }
+  function tapMin(elm){
+    for(var i=0;i<TAP_AUSNAHMEN.length;i++){
+      try{ if(elm.matches(TAP_AUSNAHMEN[i].sel)) return TAP_AUSNAHMEN[i].min; }catch(e){}
+    }
+    return TAP_MIN;
+  }
+  function beschreibe(elm){
+    var id=elm.id?'#'+elm.id:'';
+    var cls=(elm.className&&elm.className.baseVal===undefined)?('.'+String(elm.className).trim().split(/\s+/).slice(0,2).join('.')):'';
+    var txt=(elm.textContent||'').trim().slice(0,26);
+    return elm.tagName.toLowerCase()+id+cls+(txt?' „'+txt+'“':'');
+  }
+
+  function layoutChecks(fw){
+    var doc=fw.document, W=fw.innerWidth;
+    /* 1) kein waagerechter Überlauf */
+    ergebnis.checks++;
+    if(doc.documentElement.scrollWidth>W+1)
+      fatal('Waagerechter Überlauf: scrollWidth '+doc.documentElement.scrollWidth+' > '+W);
+    var alle=doc.querySelectorAll('body *');
+    var geprueft=0;
+    for(var i=0;i<alle.length;i++){
+      var elm=alle[i];
+      if(!sichtbar(elm)) continue;
+      var r=elm.getBoundingClientRect();
+      geprueft++;
+      /* 2) kein Element ragt über den Viewport */
+      if(r.right>W+2 && r.left<W)
+        fatal('Ragt über den Viewport: '+beschreibe(elm)+' (right '+Math.round(r.right)+' > '+W+')');
+      /* 3) Tap-Ziele */
+      var istTap = elm.tagName==='BUTTON' ||
+        (elm.tagName!=='INPUT' && elm.tagName!=='TEXTAREA' && elm.tagName!=='SELECT' &&
+         ['check','detail','tickplus','fokusstart','sortup','sortdown','kette','pin','freeze','schnell','archiv','schieb','tagclose','tagstart','rcheck','rplus','rplay','sheetstart']
+           .some(function(a){ return elm.hasAttribute('data-'+a); }));
+      if(istTap){
+        var mn=tapMin(elm);
+        if(mn>0 && (r.width<mn-0.5 || r.height<mn-0.5))
+          finding('Tap-Ziel '+Math.round(r.width)+'×'+Math.round(r.height)+' < '+mn+': '+beschreibe(elm));
+      }
+      /* 5) sichtbares Element ohne Ausdehnung — über sichtbar() bereits raus;
+         hier der umgekehrte Fall: Layout-tragende Container mit 0-Größe und Inhalt */
+      if((r.width<0.5||r.height<0.5) && (elm.textContent||'').trim())
+        fatal('Sichtbares Element ohne Ausdehnung: '+beschreibe(elm));
+    }
+    /* 4) kein buchstabenweiser Umbruch: Elementbreite >= breitestes Wort */
+    var cv=doc.createElement('canvas'), cx=cv.getContext('2d');
+    var texte=doc.querySelectorAll('body *');
+    for(var j=0;j<texte.length;j++){
+      var t=texte[j];
+      if(!sichtbar(t)) continue;
+      var eigener='';
+      for(var c=0;c<t.childNodes.length;c++)
+        if(t.childNodes[c].nodeType===3) eigener+=t.childNodes[c].textContent;
+      eigener=eigener.trim();
+      if(eigener.length<4 || eigener.indexOf(' ')<0 && eigener.length<8) continue;
+      var st=getComputedStyle(t);
+      if(st.whiteSpace==='nowrap') continue;
+      cx.font=st.fontWeight+' '+st.fontSize+' '+st.fontFamily;
+      var worte=eigener.split(/\s+/), breitestes=0;
+      for(var w=0;w<worte.length;w++){ var b=cx.measureText(worte[w]).width; if(b>breitestes) breitestes=b; }
+      var innen=t.clientWidth-(parseFloat(st.paddingLeft)||0)-(parseFloat(st.paddingRight)||0);
+      if(innen>0 && breitestes>innen+2 && st.overflowWrap!=='anywhere' && st.wordBreak!=='break-all')
+        fatal('Wort breiter als Element (bricht buchstabenweise): '+beschreibe(t)+' — Wort '+Math.round(breitestes)+'px, Platz '+Math.round(innen)+'px');
+    }
+    ergebnis.geprueft=geprueft;
+  }
+
+  function konsoleWaechter(fw){
+    try{
+      fw.addEventListener('error', function(e){ fatal('JS-Fehler ['+VIEW+']: '+(e.message||e.type)); });
+      fw.addEventListener('unhandledrejection', function(e){ fatal('Unbehandelte Rejection ['+VIEW+']: '+String(e.reason).slice(0,200)); });
+      var origErr=fw.console.error, origWarn=fw.console.warn;
+      fw.console.error=function(){ fatal('console.error ['+VIEW+']: '+Array.prototype.join.call(arguments,' ').slice(0,200)); origErr.apply(fw.console, arguments); };
+      fw.console.warn=function(){ ergebnis.warnungen.push(Array.prototype.join.call(arguments,' ').slice(0,160)); origWarn.apply(fw.console, arguments); };
+    }catch(e){ fatal('Wächter-Installation fehlgeschlagen: '+e); }
+  }
+
+  /* ── View-Aktionen im iframe (same-origin) ── */
+  var AKTIONEN={
+    stapel:   function(fw){ fw.setTab('stapel'); fw.renderAlles(); },
+    fokus:    function(fw){ fw.setTab('fokus'); fw.fokusStarten('k-lang', null); fw.closeSheet(); },
+    leiste:   function(fw){ fw.setTab('fokus'); fw.renderAlles(); fw.closeSheet(); },
+    sheet:    function(fw){ fw.setTab('fokus'); fw.renderAlles(); fw.oeffneStatusSheet(); },
+    abschluss:function(fw){ fw.setTab('fokus'); fw.abhakDialog('k-lang', false); },
+    routinen: function(fw){ fw.setTab('fokus'); fw.renderAlles(); fw.oeffneRoutinen();
+                            var seg=fw.document.querySelector('[data-rdom="privat"]'); if(seg) seg.click(); },
+    pins:     function(fw){ ['k-lang','k-ticks','k-counter'].forEach(function(id){ fw.togglePin(id); });
+                            fw.setTab('fokus'); fw.renderAlles(); fw.oeffnePins(); },
+    belohnung:function(fw){ fw.setTab('belohnung'); fw.renderAlles(); fw.closeSheet(); },
+    albumR:   function(fw){ fw.setTab('belohnung'); fw.renderAlles(); fw.oeffneAlbum(); },
+    /* albumTab ist eine let-Variable im App-Scope (nicht auf window) —
+       der Reiterwechsel geht deshalb ueber den echten Button-Klick. */
+    albumK:   function(fw){ fw.setTab('belohnung'); fw.renderAlles(); fw.oeffneAlbum();
+                            var b=fw.document.querySelector('[data-albtab="kulissen"]'); if(b) b.click(); },
+    albumB:   function(fw){ fw.setTab('belohnung'); fw.renderAlles(); fw.oeffneAlbum();
+                            var b=fw.document.querySelector('[data-albtab="besitz"]'); if(b) b.click(); },
+    detail:   function(fw){ fw.setTab('fokus'); fw.oeffneDetail('k-ticks'); }
+  };
+
+  /* ── localStorage-Sequenz (view=storage): drei Punkte, die der Stub nie
+     zeigen konnte — Persistenz über Reload, Migration genau einmal, Timer
+     überlebt Reload. Läuft über zwei iframe-Generationen. ── */
+  function storageSequenz(){
+    /* Fixture OHNE Migrations-Flags → die App migriert beim 1. Laden. */
+    fixtureSchreiben();
+    var metaRoh=JSON.parse(localStorage.getItem('fokus2_meta'));
+    ['migration180','zeit191','gamify190','akku1100','flowfix181'].forEach(function(f){ delete metaRoh[f]; });
+    delete metaRoh.migration180Gezeigt; delete metaRoh.gamify190Gezeigt;
+    localStorage.setItem('fokus2_meta', JSON.stringify(metaRoh));
+    localStorage.setItem('fokus2_uiharness_probe', JSON.stringify({wert:'überlebt-reload'}));
+
+    ladeIframe(function(fw){
+      konsoleWaechter(fw);
+      ergebnis.checks++;
+      var meta1=JSON.parse(localStorage.getItem('fokus2_meta'));
+      if(meta1.zeit191!==true || meta1.gamify190!==true) fatal('Migrationen liefen beim 1. Laden nicht (zeit191/gamify190 fehlen)');
+      var bak1=localStorage.getItem('fokus2_karten_bak191');
+      if(!bak1) fatal('Migrations-Sicherung karten_bak191 fehlt nach dem 1. Laden');
+      var log1=JSON.stringify(meta1.zeit191Log||null);
+      /* Timer starten, dann Reload */
+      fw.fokusStarten('k-lang', null);
+      var fokus1=JSON.parse(localStorage.getItem('fokus2_fokus'));
+      ergebnis.checks++;
+      if(!fokus1 || fokus1.karteId!=='k-lang' || fokus1.laeuft!==true) fatal('Laufender Timer wurde nicht persistiert');
+
+      ladeIframe(function(fw2){
+        konsoleWaechter(fw2);
+        ergebnis.checks++;
+        var probe=JSON.parse(localStorage.getItem('fokus2_uiharness_probe')||'null');
+        if(!probe || probe.wert!=='überlebt-reload') fatal('localStorage-Wert hat den Reload NICHT überlebt');
+        var meta2=JSON.parse(localStorage.getItem('fokus2_meta'));
+        ergebnis.checks++;
+        if(JSON.stringify(meta2.zeit191Log||null)!==log1) fatal('Migration lief beim 2. Laden ERNEUT (zeit191Log verändert)');
+        if(localStorage.getItem('fokus2_karten_bak191')!==bak1) fatal('Migrations-Sicherung wurde beim 2. Laden überschrieben');
+        ergebnis.checks++;
+        /* const S liegt nicht auf window — Zustand über localStorage plus
+           laufendeSek() (Top-Level-Funktion, läuft im App-Scope) prüfen. */
+        var fokus2=JSON.parse(localStorage.getItem('fokus2_fokus')||'null');
+        if(!(fokus2 && fokus2.karteId==='k-lang' && fokus2.laeuft===true))
+          fatal('Laufender Timer hat den Reload nicht überlebt (fokus='+JSON.stringify(fokus2)+')');
+        var sek=fw2.laufendeSek?fw2.laufendeSek():null;
+        ergebnis.checks++;
+        if(sek==null || !(sek>0)) fatal('Timer im neuen Frame nicht aktiv (laufendeSek='+sek+')');
+        ergebnis.timerSekNachReload=sek;
+        localStorage.removeItem('fokus2_uiharness_probe');
+        abschluss();
+      });
+    });
+  }
+
+  var frame=document.getElementById('app');
+  function ladeIframe(cb){
+    var f=document.getElementById('app');
+    var neu=document.createElement('iframe'); neu.id='app';
+    neu.style.width=FW+'px'; neu.style.height=FH+'px';
+    f.parentNode.replaceChild(neu, f);
+    neu.addEventListener('load', function(){
+      /* der App etwas Zeit für init() geben (virtuelle Zeit im Headless) */
+      setTimeout(function(){
+        try{ cb(neu.contentWindow); }
+        catch(e){ fatal('Aktion fehlgeschlagen: '+e); abschluss(); }
+      }, 900);
+    });
+    neu.src='/neu.html';
+  }
+
+  if(VIEW==='storage'){ storageSequenz(); return; }
+
+  fixtureSchreiben();
+  ladeIframe(function(fw){
+    konsoleWaechter(fw);
+    /* const S liegt nicht auf window — Initialisierung über die
+       Top-Level-Funktionen und den gerenderten DOM feststellen. */
+    if(typeof fw.setTab!=='function' || typeof fw.laufendeSek!=='function')
+      fatal('App nicht initialisiert (Top-Level-Funktionen fehlen)');
+    if(!fw.document.body || fw.document.body.children.length===0)
+      fatal('App nicht initialisiert (leerer body)');
+    try{ (AKTIONEN[VIEW]||AKTIONEN.stapel)(fw); }
+    catch(e){ fatal('View-Aktion „'+VIEW+'“ fehlgeschlagen: '+e); }
+    setTimeout(function(){
+      try{ layoutChecks(fw); }catch(e){ fatal('Layout-Checks fehlgeschlagen: '+e); }
+      abschluss();
+    }, 700);
+  });
+})();
+</script>
+</body>
+</html>

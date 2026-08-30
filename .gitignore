@@ -7,3 +7,6 @@ CLAUDE.md
 .claude/
 .DS_Store
 *.rtf
+
+# UI-Testharness: Screenshots sind Werkzeug, kein Repo-Inhalt
+tests/ui/screens/
