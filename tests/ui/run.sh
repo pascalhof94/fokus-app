@@ -30,7 +30,7 @@ echo "Server: http://127.0.0.1:$PORT (PID $SERVER_PID)"
 rm -rf "$SCREENS"; mkdir -p "$SCREENS"
 
 # view name | fensterhoehe (375er-Basis; leiste klein, damit sie GROSS wirkt)
-VIEWS="stapel:812 fokus:812 leiste:250 sheet:812 abschluss:812 routinen:812 pins:812 belohnung:812 albumR:812 albumK:812 albumB:812 detail:812"
+VIEWS="stapel:812 fokus:812 leiste:250 sheet:812 abschluss:812 routinen:812 pins:812 belohnung:812 albumR:812 albumK:812 albumB:812 detail:812 statistik:812"
 
 CHROME_LIMIT=25   # Sekunden je Aufruf — Chrome beendet sich headless nicht immer selbst
 chrome_lauf(){ # $1=url $2=breite $3=hoehe $4=screenshot-datei ('' = dump-dom auf stdout)

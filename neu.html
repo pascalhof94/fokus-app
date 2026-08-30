@@ -233,6 +233,10 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .albitem img{width:100%;height:72px;object-fit:contain;border-radius:8px}
 .albitem.breit img{height:90px;object-fit:cover}
 .albitem.zu img{filter:brightness(0) opacity(.45)}
+/* §4 (v1.10.1, F6): gesperrte Kulissen (deckende JPGs) wurden mit brightness(0)
+   zur leeren Fläche — dieselbe Silhouetten-Sprache wie beim Besitz: stark
+   verdunkelt, Konturen erahnbar, Inhalt nicht erkennbar. Kein neues Bild. */
+.albitem.breit.zu img{filter:brightness(.16) saturate(.3)}
 .albitem .albn{font-size:10.5px;font-weight:700;color:var(--txt);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .albitem.zu .albn{color:var(--mut2)}
 .albitem .albs{font-size:9.5px;color:var(--mut2);font-family:ui-monospace,monospace}
@@ -412,16 +416,25 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .tpb-mark{position:absolute;top:0;bottom:0;width:2px;background:var(--purple);box-shadow:0 0 4px var(--purple)}
 .tpb-info{font-size:9px;color:var(--mut2);margin-top:4px;font-family:ui-monospace,monospace;text-align:center}
 /* Hotfix2: Aufgabentitel ganz oben in der Fokus-Karte (voll, mehrzeilig, A2) */
-#fokusAktiv .fk-haupttitel{font-size:19px;font-weight:900;line-height:1.25;overflow-wrap:anywhere;margin-bottom:12px}
-.taufgabe{display:flex;align-items:center;gap:8px;margin-top:12px}
-.taufgabe .tmain{flex:1;min-width:0}
-.taufgabe .ttitel{font-size:14px;font-weight:800;overflow-wrap:anywhere;line-height:1.3}
+#fokusAktiv .fk-haupttitel{font-size:19px;font-weight:900;line-height:1.25;overflow-wrap:break-word;margin-bottom:12px}
+/* §1 (v1.10.1, F1): Block mit zwei Zeilen — Meta volle Breite, darunter die
+   Bedienleiste (Play links, Erledigt/Tick rechts, Sekundäre dazwischen).
+   min-width 8rem: läuft künftig etwas über, soll es sichtbar überlaufen statt
+   den Text still wortweise zu zerbröseln. */
+.taufgabe{display:block;margin-top:12px}
+.taufgabe .tmain{min-width:8rem;min-height:44px;display:flex;align-items:center}  /* tappbar (öffnet Detail) → Tap-Norm */
+.taufgabe .ttitel{font-size:14px;font-weight:800;overflow-wrap:break-word;line-height:1.3}
+/* Breitenbudget bei 375px: 314px innen — 56 + 3×44 + 2×46 + 5×6 = 310 ≤ 314.
+   flex-wrap bleibt als Sicherheitsnetz, soll aber nie greifen. */
+.taufgabe .tzeile2{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px}
+.taufgabe .tgrp{display:flex;align-items:center;gap:6px}
+.taufgabe .tgrp.r{margin-left:auto}
 .taufgabe .tsub{font-size:11px;color:var(--mut)}
 .taufgabe .tpp{width:56px;height:56px;border-radius:50%;background:var(--blue);flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;color:#04122e}
 #fokusAktiv.laeuft .taufgabe .tpp{background:var(--warn)}
 .taufgabe .tcheck{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--ok);background:transparent}
 .taufgabe .tcheck.ttick{color:var(--blue);font-size:22px;font-weight:800}  /* A3 Tick-Plus im Fokus */
-.taufgabe .tedit{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--mut);background:transparent}
+.taufgabe .tedit{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--mut);background:transparent}  /* v1.10.1: 44 statt 46 — Zeile 2 passt bei 375px in eine Zeile */
 /* Unteraufgaben-Block unter dem Tacho (v0.38-Port) */
 .tacc{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:var(--s1);overflow:hidden}
 .tacc .tacckopf{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;font-size:12px;font-weight:700;color:var(--mut);cursor:pointer}
@@ -582,7 +595,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .katcard.mitbild{display:flex;gap:12px;align-items:center}
 .katcard .kobj{flex:none;width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))}
 .katcard .katinfo{flex:1;min-width:0}
-.rankline{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px}
+.rankline{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px}  /* §3 (v1.10.1, F4): Serie und Reise kleben nicht mehr aneinander */
 .rankname{font-size:15px;font-weight:900}
 .rankpts{font-size:12px;color:var(--purple);font-weight:800}
 .avcard .av-bar{height:6px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
@@ -611,7 +624,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .statpace .pl.gut{color:var(--ok)} .statpace .pl.schlecht{color:var(--warn)}
 .statpace .ps{font-size:12px;color:var(--mut);font-family:ui-monospace,monospace}
 .segmini{font-weight:400;font-size:11px;margin-left:8px}
-.segmini button{border:1px solid var(--line);border-radius:8px;padding:2px 9px;color:var(--mut);font-weight:700;margin-left:4px}
+/* §2 (v1.10.1, F2): 44px-Tap-Norm gilt auch für die Zeitraum-Segmente in der h3-Zeile */
+.segmini button{border:1px solid var(--line);border-radius:8px;padding:2px 9px;color:var(--mut);font-weight:700;margin-left:4px;min-width:44px;min-height:44px;vertical-align:middle}
 .segmini button.on{background:var(--blue);color:#0a0f1a;border-color:var(--blue)}
 .barchart{display:flex;align-items:flex-end;gap:3px;height:90px;margin:6px 0}
 .barchart .bcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
@@ -683,7 +697,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 #analyseOverlay[hidden]{display:none}
 .an-kopf{display:flex;align-items:center;gap:8px;padding:max(10px,env(safe-area-inset-top)) 12px 8px;border-bottom:1px solid var(--line)}
 .an-kopf h3{font-size:16px;font-weight:800}
-.an-back{background:transparent;border:none;color:var(--blue);font-size:15px;font-weight:700;padding:6px 4px}
+.an-back{background:transparent;border:none;color:var(--blue);font-size:15px;font-weight:700;padding:6px 4px;min-height:44px}  /* v1.10.1: Tap-Norm (Fund der neuen Statistik-Ansicht) */
 .an-filter{padding:8px 12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
 .an-frow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .an-frow .seg{border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700;color:var(--mut);background:var(--bg);min-height:44px;min-width:44px}  /* v1.7.0: Touch 44px */
@@ -899,7 +913,7 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 .routgruppe.zu .rg-body{display:none}
 .routgruppe .rg-kopf .n{margin-left:auto;color:var(--mut2);font-weight:700}
 .routzeile{display:flex;align-items:center;gap:10px;padding:7px 10px;border-top:1px solid var(--line);touch-action:pan-y}
-.routzeile .rz-main{flex:1;min-width:0}
+.routzeile .rz-main{flex:1;min-width:0;min-height:44px;display:flex;flex-direction:column;justify-content:center}  /* §2 (v1.10.1, F3): Tap-Norm */
 .routzeile .rz-titel{font-size:14px;font-weight:700;overflow-wrap:break-word}  /* v1.7.2: wie .ktitle — bricht nur echte Überlängen, nicht mitten im Wort */
 .routzeile .rz-sub{font-size:11px;color:var(--mut2);font-family:ui-monospace,monospace}
 .routzeile .rz-fb{color:var(--ok);font-weight:800;margin-left:6px}
@@ -1046,9 +1060,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.10.0';                   // Datenvertrag/Sync-appVersion — 1.10.0 (nur App-interne Groessen; Vertrag 1.x unveraendert)
-const UI_VERSION = 'v1.10.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-30-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.10.1';                   // Datenvertrag/Sync-appVersion — 1.10.1 (nur Optik-Hotfix; Vertrag 1.x unveraendert)
+const UI_VERSION = 'v1.10.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-30-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2603,16 +2617,22 @@ function renderFokus(){
     '<div class="tpb-marks" id="tpbMarks"></div></div><div class="tpb-info" id="tpbInfo"></div></div>';
   // Hotfix2: Titel ganz oben über der Zeit (voll, mehrzeilig, A2); unten nur Meta + Buttons.
   const titel='<div class="fk-haupttitel" data-detail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</div>';
+  // §1 (v1.10.1, F1): zwei Zeilen — Meta volle Breite, darunter die Bedienleiste
+  // (gleiche data-Attribute und Handler, reine Umplatzierung).
   const aufgabe='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'">'+
     '<div class="tsub">'+(k.domain==='dfm'?'DFM':'Privat')+(k.prioritaet==='muss'?' · <span style="color:var(--bad)">MUSS</span>':'')+
     ' · <span id="tGesamtP">'+Math.round(kartePunkteGeplant(k))+'</span> P gesamt</div></div>'+
+    '<div class="tzeile2">'+
+    '<button class="tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause">'+(laeuft?'⏸':'▶')+'</button>'+
+    '<span class="tgrp">'+
     '<button class="tedit'+(k.schnellauswahl?' schnellon':'')+'" data-schnell="'+k.id+'" aria-label="Schnellauswahl">⚡</button>'+
     '<button class="tedit" data-detail="'+k.id+'" aria-label="Bearbeiten">✎</button>'+
     '<button class="tedit" data-fkschieben="'+k.id+'" aria-label="Schieben">⏭</button>'+
-    '<button class="tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause">'+(laeuft?'⏸':'▶')+'</button>'+
+    '</span><span class="tgrp r">'+
     (istTickKarte(k)
       ? '<button class="tcheck ttick" data-tickplus="'+k.id+'" aria-label="Tick +">＋</button>' : '')+
-    '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button>'+'</div>';   // §4 (1.9.1): ＋ UND ✓
+    '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button>'+   // §4 (1.9.1): ＋ UND ✓
+    '</span></div></div>';
   // U2 (v1.4.0): Swipe-Zeitleiste — links = nächste Stapel-Karte, rechts = heutiger
   // Bearbeitungsverlauf rückwärts. Die Mitte zeigt, wo man gerade steht.
   const nav=fokusNav(), vlLen=fokusVerlaufHeute().length;

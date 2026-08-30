@@ -14,15 +14,22 @@ buchstabenweiser Umbruch, 0-Größen), `localStorage` (Persistenz über Reload,
 Migration genau einmal, Timer überlebt Reload) und lässt jeden Konsolen-Fehler
 den Lauf scheitern. Der Server wird in jedem Fall wieder beendet.
 
-## Die Regel für jedes Update mit UI-Anteil
+## Die Regel für jedes Update mit UI-Anteil (Sparregel, v1.10.1)
 
-1. **Lauf fahren** (`bash tests/ui/run.sh`).
-2. **Screenshots ANSEHEN** — mit dem Read-Tool öffnen, nicht nur den Exit-Code
-   lesen. Ein Lauf ohne Ansehen erfüllt den Zweck dieses Werkzeugs nicht.
-3. **Im Report benennen, was man sieht** — je Ansicht ein Satz.
+- **Der Lauf ist immer vollständig.** Alle Ansichten, beide Breiten, alle
+  Prüfpunkte. Er kostet fast nichts und schreibt alle Bilder auf die Platte.
+- **Angesehen wird nur, was der Auftrag angefasst hat** — in der Regel bei
+  375 px. Eine zweite Breite nur dort, wo der Befund selbst breitenabhängig war.
+- **Eine volle Runde über alle Ansichten** gibt es nur bei einem
+  Meilenstein-Release, nach einem Umbau am Layout-Gerüst, oder wenn eine
+  Prüfung etwas meldet, das man sehen muss.
+- **Im Report benennen, was man sieht** — je angesehener Ansicht ein Satz.
 
-**Ein Screenshot, der komisch aussieht, ist ein Befund — auch wenn alle
-Assertions grün sind.**
+Begründung: Bilder sind teuer, Prüfpunkte sind billig. Die Maschine soll alles
+messen und nur das Nötige ansehen.
+
+**Ein Screenshot, der komisch aussieht, bleibt ein Befund — auch wenn alle
+Assertions grün sind.** Daran ändert die Sparregel nichts.
 
 ## Bausteine
 

@@ -156,7 +156,10 @@
                             var b=fw.document.querySelector('[data-albtab="kulissen"]'); if(b) b.click(); },
     albumB:   function(fw){ fw.setTab('belohnung'); fw.renderAlles(); fw.oeffneAlbum();
                             var b=fw.document.querySelector('[data-albtab="besitz"]'); if(b) b.click(); },
-    detail:   function(fw){ fw.setTab('fokus'); fw.oeffneDetail('k-ticks'); }
+    detail:   function(fw){ fw.setTab('fokus'); fw.oeffneDetail('k-ticks'); },
+    /* v1.10.1: Statistik (Detailanalyse-Overlay) — ergänzt, weil F2 (Zeitraum-
+       Segmente) sonst ungeprüft bliebe. Einzige erlaubte Werkzeug-Änderung. */
+    statistik:function(fw){ fw.setTab('belohnung'); fw.renderAlles(); fw.oeffneAnalyse(); }
   };
 
   /* ── localStorage-Sequenz (view=storage): drei Punkte, die der Stub nie
