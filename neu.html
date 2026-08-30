@@ -71,18 +71,13 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #topbar .right .pt{font-size:14px;font-weight:800;color:var(--ok);line-height:1}
 #topbar .right .lbl{font-size:9px;color:var(--mut2)}
 /* Statusleiste (v1.1, v0.38-Port): Energie-Batterie · Tages-Fortschritt · Pace-Pfeil · Streak */
-#statusbar{display:flex;align-items:center;gap:8px;padding:3px var(--s2) 5px;border-top:1px solid var(--line);
+/* §1 (v1.10.0): Statusleiste zweizeilig — Zeile 1 Tagesbalken volle Breite
+   (kräftiger), Zeile 2 fünf gleich breite Zellen. EIN Tap-Ziel (Sheet §2). */
+#statusbar{display:block;padding:4px var(--s2) 5px;border-top:1px solid var(--line);
   font-family:ui-monospace,monospace;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #statusbar[hidden]{display:none}
-#statusbar .sb-batt{flex:none;display:flex;align-items:center;gap:5px}
-#statusbar .batt{position:relative;width:46px;height:15px;border:1.5px solid var(--mut2);border-radius:3px;overflow:hidden;background:#0a0f1a;display:flex}
-#statusbar .batt::after{content:"";position:absolute;right:-4px;top:4px;width:2.5px;height:7px;background:var(--mut2);border-radius:0 2px 2px 0}
-#statusbar .batt .seg{height:100%}
-#statusbar .batt .frei{background:var(--ok)}
-#statusbar .batt .verpl{background:var(--warn,#f2b84b)}
-#statusbar .sb-akku{font-size:11px;font-weight:800;color:var(--ok);min-width:30px}
-#statusbar .sb-mid{flex:1;min-width:0}
-#statusbar .sb-bar{position:relative;height:9px;border-radius:5px;background:#0a0f1a;overflow:hidden}
+#statusbar .sb-r1{display:flex;align-items:center;gap:6px}
+#statusbar .sb-bar{position:relative;flex:1;min-width:0;height:12px;border-radius:6px;background:#0a0f1a;overflow:hidden}
 /* S1 (v1.3.2): Ist zweifarbig gestapelt (DFM blau · Privat gelb), Soll-Layer
    8:30–22:00-Fenster in Rot — Fläche bei Rückstand, schmaler Marker bei Vorsprung */
 #statusbar .sb-bar .ist{position:absolute;top:0;bottom:0}
@@ -91,28 +86,21 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #statusbar .sb-bar .soll{position:absolute;top:0;bottom:0;background:rgba(246,109,109,.55)}
 #statusbar .sb-bar .sollmark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--bad)}
 #statusbar .sb-bar .mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--blue);opacity:.8}
-#statusbar .sb-info{display:flex;gap:8px;font-size:9.5px;color:var(--mut);margin-top:1px;white-space:nowrap;overflow:hidden}
-#statusbar .sb-info b{color:var(--ok)}
-/* S2 (v1.3.2): erreichte Punkte je Domäne (DFM blau · Privat gelb) + Soll-jetzt rot */
-#statusbar .sb-info .sbph{color:var(--mut2)}
-#statusbar .sb-info .sbph b{margin-left:2px;font-weight:800}
-#statusbar .sb-info .sbph.d b{color:var(--blue)}
-#statusbar .sb-info .sbph.p b{color:var(--warn)}
-#statusbar .sb-info .sbph.s b{color:var(--bad)}
-#statusbar .sb-info .wohl{color:var(--warn,#f2b84b)}
-#statusbar .sb-pace{flex:none;text-align:center;line-height:1}
-#statusbar .sb-pace .pf{font-size:16px;font-weight:800}
-#statusbar .sb-pace .z{font-size:8px;color:var(--mut2)}
-/* S3 (v1.3.2): ersetzt das bisherige Streak-Feld — Streak-Logik/-Daten bleiben
-   intern erhalten (S.tag.streak, tagesStreakStand), nur aus der Leiste entfernt.
-   F4 (v1.3.3): zweizeilig + auf die Breite des Batterie-Chips gedeckelt
-   (46px Zelle + 5px gap + 30px Prozent = 81px) — der Zielbalken gewinnt den Platz. */
-#statusbar .sb-level{flex:none;max-width:81px;display:flex;flex-direction:column;align-items:flex-end;
-  line-height:1.15;font-family:ui-monospace,monospace;white-space:nowrap;overflow:hidden}
-#statusbar .sb-level .lv{font-size:11px;font-weight:800;color:var(--purple)}
-#statusbar .sb-level .pk{font-size:9px;font-weight:700;color:var(--warn)}
-#statChart{padding:0 var(--s2) 6px}
-#statChart[hidden]{display:none}
+#statusbar .sbph{flex:none;font-size:9.5px;color:var(--mut2);white-space:nowrap}
+#statusbar .sbph b{margin-left:2px;font-weight:800}
+#statusbar .sbph.d b{color:var(--blue)}
+#statusbar .sbph.p b{color:var(--warn)}
+#statusbar .sbph.s b{color:var(--bad)}
+/* Zeile 2: fünf Zellen — Kopf, Wert, Zusatz */
+#statusbar .sb-r2{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-top:3px}
+#statusbar .sb-cell{min-width:0;text-align:center;line-height:1.15;overflow:hidden}
+#statusbar .sb-cell .k{display:block;font-size:8px;color:var(--mut2);text-transform:uppercase;letter-spacing:.4px}
+#statusbar .sb-cell .w{display:block;font-size:12px;font-weight:800;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#statusbar .sb-cell .z{display:block;font-size:8.5px;color:var(--mut2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#statusbar #sZAkku .w{color:var(--ok)}
+#statusbar #sZSerie .w{color:var(--warn)}
+#statusbar #sZKonto .w{color:var(--warn)}
+#statusbar #sZRang .w{color:var(--purple)}
 
 /* ── Views / Content ─────────────────────────────────────────────── */
 main{
@@ -208,6 +196,33 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
    Chips auf 44px Touch-Ziel gebracht, Zeile darf umbrechen. */
 /* ══ §2.5 (v1.6.0) · Navigationsleiste der drei Ebenen auf der Fokusseite ══
    Dauerhaft sichtbar, ein Tap je Ebene, alle Ziele ≥44px. */
+/* ══ §2 (v1.10.0) · Status-Sheet ══ */
+.stsh-teil{margin-bottom:16px}
+.stsh-kopf{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);margin-bottom:8px}
+.stsh-rang{display:flex;gap:12px;align-items:center}
+.stsh-ring{position:relative;flex:none;width:84px;height:84px}
+.stsh-ring img{position:absolute;left:12px;top:12px;width:60px;height:60px;border-radius:50%;object-fit:cover}
+.stsh-rtxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.stsh-rtxt b{font-size:15px}
+.stsh-rtxt .d{font-size:11.5px;color:var(--mut)}
+.stsh-kacheln{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.stsh-k{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+.stsh-k>span:first-child{font-size:9.5px;color:var(--mut2);text-transform:uppercase;letter-spacing:.5px}
+.stsh-k b{font-size:14px}
+.stsh-k>span:last-child{font-size:10.5px;color:var(--mut)}
+.stsh-bar{position:relative;height:16px;border-radius:8px;background:#0a0f1a;overflow:hidden}
+.stsh-bar .ist{position:absolute;top:0;bottom:0}
+.stsh-bar .ist.dfm{left:0;background:var(--blue)}
+.stsh-bar .ist.privat{background:var(--warn)}
+.stsh-bar .soll{position:absolute;top:0;bottom:0;background:rgba(246,109,109,.55)}
+.stsh-bar .sollmark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--bad)}
+.stsh-bar .qmark{position:absolute;top:-1px;bottom:-1px;width:1px;background:rgba(255,255,255,.3)}
+.stsh-legende{display:flex;gap:12px;font-size:10.5px;color:var(--mut);margin-top:5px}
+.stsh-legende i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.stsh-karte{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px;flex-wrap:wrap}
+.stsh-karte .t{flex:1 1 100%;font-size:13.5px;font-weight:700}
+.stsh-karte .m{flex:1;min-width:0;font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace}
+.stsh-karte .kstart{flex:none;width:44px;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--blue);font-size:16px}
 /* ══ §8 (v1.9.0) · Album ══ */
 .albtabs{display:flex;gap:6px;margin-bottom:10px}
 .albtab{flex:1;min-height:44px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--mut);font-size:13px;font-weight:800}
@@ -427,6 +442,9 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .uareihe .uapunkte{width:48px;flex:none;text-align:center;font-size:11px;color:var(--cyan);font-weight:700;padding-top:6px}
 .uareihe.fertig .uapunkte{color:var(--ok)}
 .uareihe .uax{width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--bad);font-size:13px;border-radius:7px;background:rgba(246,109,109,.12);border:1px solid rgba(246,109,109,.28)}
+.akkuslider{-webkit-appearance:none;height:10px;border-radius:5px;
+  background:linear-gradient(90deg,var(--bad) 0%,#5a3a3a 42%,var(--card2) 50%,#31513f 58%,var(--ok) 100%)}
+.akkuslider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--txt);border:2px solid var(--bg)}
 .uareihe.tickzeile{background:rgba(242,184,75,.07);border:1px solid rgba(242,184,75,.3);border-radius:9px;padding:4px 8px;margin-bottom:6px}
 .uareihe.tickzeile .tickstand{margin-left:auto;font-family:ui-monospace,monospace;font-size:12px;color:var(--warn);font-weight:700;white-space:nowrap}
 .uaneu{display:flex;gap:var(--s1);margin-top:6px}
@@ -889,6 +907,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
   background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px}
 .routzeile .rz-plus{background:var(--ok);border-color:var(--ok);color:#0a0f1a;font-size:22px;font-weight:800}
 .routzeile .rz-play{color:var(--blue)}
+.routzeile .rz-check{flex:none;width:44px;height:44px;border-radius:11px;border:1px solid var(--line);background:var(--bg);display:flex;align-items:center;justify-content:center}
+.routzeile .rz-check .box{width:24px;height:24px;border-radius:7px;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:15px;color:transparent}
+.routzeile .rz-check.on .box{background:var(--ok);border-color:var(--ok);color:#0a0f1a}
 .routzeile.fertig .rz-titel{color:var(--mut);text-decoration:line-through}
 .routzeile.fertig .rz-plus{background:var(--card2);border-color:var(--line);color:var(--ok)}
 .routsheet .leer{color:var(--mut2);font-size:12px;padding:10px 2px;text-align:center}
@@ -926,17 +947,24 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
   <div class="right" id="fkRight"></div>
   <button class="tb-search" id="btnSuche" aria-label="Suchen">🔍</button>
 </div>
+<!-- §1 (v1.10.0): Statusleiste in ZWEI Zeilen — Balken volle Breite, darunter
+     fünf gleich breite Zellen. Die ganze Leiste ist EIN Tap-Ziel (Sheet §2). -->
 <div id="statusbar" hidden>
-  <div class="sb-batt"><span class="batt"><span class="seg frei" id="sAkkuFrei"></span><span class="seg verpl" id="sAkkuVerplant"></span></span><span class="sb-akku" id="sAkkuPct">–%</span></div>
-  <div class="sb-mid">
+  <div class="sb-r1">
+    <span class="sbph d">DFM<b id="sPhDfm">0</b></span>
     <div class="sb-bar"><span class="ist dfm" id="sBarIstD"></span><span class="ist privat" id="sBarIstP"></span><span class="soll" id="sBarSoll"></span><span class="sollmark" id="sBarSollMark"></span><span id="sBarMarks"></span></div>
-    <div class="sb-info"><span class="sbph d">DFM<b id="sPhDfm">0</b></span><span class="sbph p">Pv<b id="sPhPrv">0</b></span><span class="sbph s">Soll<b id="sPhSoll">0</b></span><span class="wohl" id="sWohl"></span><span id="sZiel"></span></div>
+    <span class="sbph p">Pv<b id="sPhPrv">0</b></span>
+    <span class="sbph s">Soll<b id="sPhSoll">0</b></span>
   </div>
-  <div class="sb-pace"><div class="pf" id="sPfeil">→</div><div class="z" id="sPaceZahl">P/h</div></div>
-  <div class="sb-level" id="sLevel"><span class="lv">Lv 1</span><span class="pk">0 P</span></div>
+  <div class="sb-r2">
+    <div class="sb-cell" id="sZRang"><span class="k">Rang</span><b class="w">–</b><span class="z">–</span></div>
+    <div class="sb-cell" id="sZAkku"><span class="k">Akku</span><b class="w">–%</b><span class="z">–</span></div>
+    <div class="sb-cell" id="sZTempo"><span class="k">Tempo</span><b class="w">→</b><span class="z">P/Std</span></div>
+    <div class="sb-cell" id="sZSerie"><span class="k">Serie</span><b class="w">🔥 0</b><span class="z">×1,00</span></div>
+    <div class="sb-cell" id="sZKonto"><span class="k">Konto</span><b class="w">0</b><span class="z">–</span></div>
+  </div>
 </div>
 <div id="fkNav" hidden></div>
-<div id="statChart" hidden></div>
 </div>
 
 <main>
@@ -1018,9 +1046,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.9.2';                    // Datenvertrag/Sync-appVersion — 1.9.2 (nur interne Erledigt-Logik; Vertrag 1.x unveraendert)
-const UI_VERSION = 'v1.9.2';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-28-6';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.10.0';                   // Datenvertrag/Sync-appVersion — 1.10.0 (nur App-interne Groessen; Vertrag 1.x unveraendert)
+const UI_VERSION = 'v1.10.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-30-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1529,6 +1557,12 @@ function ladeAlles(){
     S.meta.gamify190=true;
     saveMeta();
   }
+  // ══ §4 (v1.10.0) · Akku-Messprotokoll anlegen ═══════════════════════════
+  if(!S.meta.akku1100){
+    DB.set('karten_bak1100', S.karten);
+    if(!Array.isArray(S.meta.akkuMessungen)) S.meta.akkuMessungen=[];
+    S.meta.akku1100=true; saveMeta();
+  }
   // ══ §2.1 (v1.9.1) · Zeitmessung als Schalter ═══════════════════════════
   // Default true für ALLE Karten (die Grundregel). Einzige Ausnahme steht in
   // den Daten: die v1.8.0-Migration hat WhatsApp ausdrücklich die Zeitanteile
@@ -1654,9 +1688,49 @@ function rate(k){
   return base * geldFaktor(k);
 }
 /* Akku %/Std dieser Karte (v0.38 akkuRate): Karten-Override sonst Settings. */
+/* ══ §4 (v1.10.0) · Der Akku wird GEMESSEN ══════════════════════════════
+   Jede Abschluss-Messung landet global in meta.akkuMessungen
+   {kid, kat, datum, delta, dauerMin, rate} — global, damit sie eine
+   Archivierung überlebt und Kategorie-Mediane möglich sind. Gelernt wird der
+   MEDIAN (je Karte, je Kategorie), wirksam ab AKKU_MIN_MESSUNGEN, gekappt auf
+   AKKU_RATE_MIN..MAX. Kategorie: DFM = Projekt (wie die Schätzfaktoren);
+   Privat = Tagesabschnitt — die Akku-Wirkung privater Karten hängt an ihrer
+   Tagesrolle (Morgenroutinen laden, Abendpflichten ziehen), und das Feld
+   existiert seit v1.6.0 an jeder Privat-Karte. */
+const AKKU_MIN_MESSUNGEN = 5;     // dieselbe Schwelle wie bei den Schätzfaktoren
+const AKKU_RATE_MIN = -40, AKKU_RATE_MAX = 20;   // %/Std-Kappung gegen Fehleingaben
+function akkuKategorie(k){
+  if(!k) return '?';
+  return k.domain==='dfm' ? 'dfm|'+(k.projekt||'?') : 'privat|'+(tagesabschnitteVon(k)[0]||'?');
+}
+function akkuMedian(werte){
+  if(!werte.length) return null;
+  const a=werte.slice().sort((x,y)=>x-y), m=Math.floor(a.length/2);
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+}
+function akkuGelernt(k){
+  const mess=(S.meta&&S.meta.akkuMessungen)||[];
+  const eigene=mess.filter(m=>m.kid===k.id).map(m=>num(m.rate));
+  if(eigene.length>=AKKU_MIN_MESSUNGEN)
+    return { rate:Math.max(AKKU_RATE_MIN,Math.min(AKKU_RATE_MAX,akkuMedian(eigene))), n:eigene.length, quelle:'Karte' };
+  const kat=akkuKategorie(k);
+  const katM=mess.filter(m=>m.kat===kat).map(m=>num(m.rate));
+  if(katM.length>=AKKU_MIN_MESSUNGEN)
+    return { rate:Math.max(AKKU_RATE_MIN,Math.min(AKKU_RATE_MAX,akkuMedian(katM))), n:katM.length, quelle:'Kategorie' };
+  return null;
+}
+/* §4.2: Rangfolge — ausdrücklicher Override → gelernte Karte → gelernte
+   Kategorie → Settings-Standard (konsistent zu punkteProStd). */
 function akkuRate(k){
-  return (k && k.akkuProStd!=null && Number.isFinite(Number(k.akkuProStd)))
-    ? Number(k.akkuProStd) : (S.settings.akkuProStd!=null?S.settings.akkuProStd:-8);
+  if(k && k.akkuProStd!=null && Number.isFinite(Number(k.akkuProStd))) return Number(k.akkuProStd);
+  const g=k?akkuGelernt(k):null;
+  if(g) return g.rate;
+  return S.settings.akkuProStd!=null?S.settings.akkuProStd:-8;
+}
+function akkuLetzteMessung(kid){
+  const mess=(S.meta&&S.meta.akkuMessungen)||[];
+  for(let i=mess.length-1;i>=0;i--) if(mess[i].kid===kid) return mess[i];
+  return null;
 }
 /* Zeit-Punkte, optional zeitgestaffelt (§4-Port punkteFuerZeit): bisMin aufsteigend,
    letzte Stufe bisMin=null = „danach". Ohne Staffel: flache Rate. */
@@ -1775,9 +1849,11 @@ function fokusZeitEinbuchen(){
   akkuSampleSchreiben();                                        // v1.1: Energie-Stichprobe
   saveKarten(); saveFokus(); saveTag();
 }
-function fokusStarten(kid){
+function fokusStarten(kid, quelle){
   const zk=S.karten.find(x=>x.id===kid);
-  if(zk && zk.freeze){ toast('Karte ist eingefroren — erst auftauen'); return; }   // A4: Freeze blockt Timer
+  // §3.1 (v1.10.0): eine eingefrorene Karte wird beim Start sofort aktiv —
+  // freeze fällt ohne Rückfrage (der alte „erst auftauen"-Toast entfällt).
+  if(zk && zk.freeze){ zk.freeze=false; saveKarten(); }
   // V1.3: Timer-Start auf einer erledigten Karte öffnet IMMER ein frisches Duplikat
   // (ersetzt das UP6b-„in-place wieder öffnen"). Ein Codepfad über karteNeuStarten.
   if(zk && zk.status==='erledigt'){ karteNeuStarten(kid, {starten:true}); return; }
@@ -1787,10 +1863,29 @@ function fokusStarten(kid){
   // Karte Zeit misst. Ohne Uhr: kein laeuft, keine Buchung, kein Intraday.
   if(hatZeitmessung(zk)){ S.fokus.laeuft=true; S.fokus.startMs=Date.now(); }
   else { S.fokus.laeuft=false; S.fokus.startMs=0; }
+  // §3.1 (v1.10.0): merken, aus welcher Liste die Karte kam — Quelle des
+  // Nachrückens nach einem Abschluss. Die Swipe-Navigation bleibt davon
+  // unberührt (sie läuft weiter über die Tageskette/fokusKandidaten).
+  if(quelle!==undefined) S.fokus.quelle=quelle||null;
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
   fokusNavReset();           // U2: aktive Auswahl beendet die Swipe-Navigation
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
   saveFokus(); saveUi(); if(S.fokus.laeuft) starteTicker(); renderAlles();
+}
+/* §3.1 (v1.10.0): Nach dem Abschluss der aktiven Fokus-Karte rückt die
+   nächste OFFENE Karte aus derselben Quelle nach (gewählt, Uhr aus —
+   gestartet wird bewusst per ▶). Quelle leer/unbekannt → altes Verhalten. */
+function fokusNachruecken(kid){
+  if(!(S.fokus && S.fokus.karteId===kid)) return false;
+  const q=S.fokus.quelle;
+  if(!q) return false;
+  let liste = (q==='sys-heute') ? ketteKarten() : ansichtsListe(q);
+  const next=(liste||[]).find(x=>x.id!==kid && x.status==='offen' && !x.freeze);
+  if(!next) return false;
+  S.fokus={ karteId:next.id, laeuft:false, startMs:0, sessionSek:0, quelle:q };
+  saveFokus();
+  toast('Nächste: '+(next.titel||'(ohne Titel)'));
+  return true;
 }
 /* U1: die Fokus-Karte an Position 1 des aktiven Stapels (echte Umsortierung —
    manueller Modus, aktuelle Reihenfolge festschreiben, Ziel-Karte sortIndex 0). */
@@ -2317,7 +2412,7 @@ function kartenreiheHtml(k, stapelId){
   // Elemente lassen die Zeile symmetrisch zusammenrücken.
   // §8 (v1.8.0): heute nicht Fälliges (Zukunfts-Deadline, Routine am freien
   // Tag) wird wie Wartendes ausgegraut — rein visuell, EIN Erscheinungsbild.
-  const gedimmt = k.freeze || istNichtFaellig(k);
+  const gedimmt = (k.freeze || istNichtFaellig(k)) && !(S.fokus && S.fokus.karteId===k.id);   // §3.1 (1.10.0): gestartete Karte nie gedimmt
   return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+(gedimmt?'eingefroren ':'')+(istRout?'routinezeile ':'')+'" data-kid="'+k.id+'" style="border-color:'+karteFarbe(k)+'">'+
     '<div class="kmain" data-detail="'+k.id+'">'+
       '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
@@ -2925,22 +3020,140 @@ function naechsterKaufHint(){
    Fortschrittsbalken (Ist DFM blau + Privat gelb gestapelt / Soll-Layer 8:30–22:00
    rot / blaue Kauf-Schwellen) · Pace-Pfeil (7 Zonen) · Level + Punktekonto.
    Punkte heute nie negativ. */
+/* §1.2 (v1.10.0): Reichweite — aus Akku-Stand und dem geplanten Netto-Verbrauch
+   der Rest-Arbeit im Tagesstrom (dieselbe Rechnung wie der gelbe Batterie-
+   Anteil), gleichmäßig über die Rest-Minuten verteilt → Uhrzeit, bis zu der
+   der Akku reicht. Über das 22:00-Tagesfenster hinaus (oder Netto-Ladung):
+   „reicht". */
+function akkuReichweite(eb){
+  if(!eb || eb.akku==null) return '–';
+  let verbrauch=0, laden=0, restMin=0;
+  S.karten.forEach(k=>{ if(!imTagesstrom(k)) return;
+    const r=Math.max(0, num(k.sollMin)-heuteInvestiertMin(k)); if(r<=0) return;
+    restMin+=r; const d=akkuRate(k)*r/60; if(d<0) verbrauch+=-d; else laden+=d; });
+  const netto=verbrauch-laden;
+  if(netto<=0 || restMin<=0 || eb.akku>=netto) return 'reicht';
+  const minBisLeer=restMin*(eb.akku/netto);
+  const t=new Date(Date.now()+minBisLeer*60000);
+  if(t.getDate()!==new Date().getDate() || t.getHours()>=22) return 'reicht';
+  return 'bis '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+}
+/* ══ §2 (v1.10.0) · Das Status-Sheet — „Wo du stehst · Wie der Tag läuft ·
+   Was jetzt". Ersetzt die alte Live-Kurve unter der Leiste. ══ */
+function sheetSortWahl(){ return ['meine','ph','geld'].indexOf(S.ui.sheetSort)>=0 ? S.ui.sheetSort : 'meine'; }
+/* Ø-Rang-Punkte-Zufluss der letzten 14 AKTIVEN Tage (Urlaubstage zählen nicht).
+   Nutzt das ab v1.10.0 im Snapshot mitgeschriebene spielZufluss-Feld; Alt-Tage
+   ohne das Feld werden übersprungen — nichts schätzen. */
+function rangTempo(){
+  const tage=(S.historie||[]).filter(h=>!h.luecke && !h.urlaub && h.spielZufluss!=null)
+    .sort((a,b)=>a.datum<b.datum?1:-1).slice(0,14);
+  if(tage.length<3) return null;
+  return tage.reduce((a,h)=>a+Math.max(0,num(h.spielZufluss)),0)/tage.length;
+}
+function oeffneStatusSheet(){
+  if(!tagOffen()) return;
+  renderStatusSheet();
+}
+function renderStatusSheet(){
+  const sp=spielStand(), eb=energieBatterie(), pw=paceWerte();
+  const lvlEq=5*(sp.rang-1)+Math.max(1,sp.sterne), av=avatarAssets(lvlEq);
+  let h='';
+  // ── 1 · Wo du stehst ──
+  const R=34, U=2*Math.PI*R, off=U*(1-sp.anteil);
+  h+='<div class="stsh-teil"><div class="stsh-kopf">Wo du stehst</div>'+
+    '<div class="stsh-rang">'+
+      '<div class="stsh-ring"><svg viewBox="0 0 84 84" width="84" height="84">'+
+        '<circle cx="42" cy="42" r="'+R+'" fill="none" stroke="var(--line)" stroke-width="6"/>'+
+        '<circle cx="42" cy="42" r="'+R+'" fill="none" stroke="'+av.akzent+'" stroke-width="6" stroke-linecap="round" stroke-dasharray="'+U.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 42 42)"/></svg>'+
+        '<img src="'+AVATAR_BILDER[sp.rang-1]+'" alt="" onerror="this.style.display=\'none\'"></div>'+
+      '<div class="stsh-rtxt"><b style="color:'+av.akzent+'">Rang '+sp.rang+' · '+esc(sp.name)+'</b>'+
+      '<span style="color:var(--warn);letter-spacing:2px">'+('★'.repeat(sp.sterne)+'☆'.repeat(5-sp.sterne))+'</span>'+
+      '<span class="d">'+(sp.rang>=RANG_MAX ? 'Höchster Rang — '+Math.round(sp.rp)+' P gesamt.'
+        : 'Noch '+Math.round(sp.rest)+' Rang-P bis Rang '+(sp.rang+1)+(function(){ const t=rangTempo();
+            return (t&&t>0) ? ' · ≈ '+Math.max(1,Math.ceil(sp.rest/t))+' Tage' : ''; })())+'</span></div></div>'+
+    '<div class="av-bar" style="margin-top:6px"><i style="width:'+Math.round(sp.anteil*100)+'%;background:'+av.akzent+'"></i></div>'+
+    '<div class="stsh-kacheln">'+
+      '<div class="stsh-k"><span>🔥 Serie</span><b>'+num(S.meta.tagesStreak)+' Tg · ×'+streakFaktor().toFixed(2).replace('.',',')+'</b>'+
+        (function(){ const st=num(S.meta.tagesStreak);
+          const naechster=[7,30,100,365].find(x=>x>st);
+          if(!naechster) return '<span>alle Meilensteine erreicht</span>';
+          const ms=STREAK_MEILENSTEINE[naechster];
+          return '<span>Tag '+naechster+' (+'+fmtKurzP(ms.m)+' 🪙'+(ms.r?' +'+fmtKurzP(ms.r)+' R':'')+') in '+(naechster-st)+' Tg'+(jokerVerfuegbar()?' · ♦ bereit':'')+'</span>'; })()+'</div>'+
+      '<div class="stsh-k"><span>🪙 Konto</span><b>'+Math.round(konto())+'</b>'+
+        (function(){ const st=bgStufeAus(ausgabenAnzeige());
+          return st<10 ? '<span>Kulisse '+(st+1)+' ab '+fmtKurzP(bgSchwelle(st+1))+' ausgegeben</span>' : '<span>Reise komplett</span>'; })()+'</div>'+
+    '</div></div>';
+  // ── 2 · Wie der Tag läuft ──
+  const zielGes=Math.max(1, belZielGesamt());
+  const pDfm=Math.max(0, belIstDfm()), pPriv=Math.max(0, tagesPunkteDomain('privat'));
+  let pctD=pDfm/zielGes*100, pctP=pPriv/zielGes*100;
+  if(pctD+pctP>100){ const sc=100/(pctD+pctP); pctD*=sc; pctP*=sc; }
+  const sollPct=urlaubHeute()?0:Math.min(100, sbFensterAnteil()*100);
+  const istPct=pctD+pctP;
+  h+='<div class="stsh-teil"><div class="stsh-kopf">Wie der Tag läuft</div>'+
+    '<div class="stsh-bar"><span class="ist dfm" style="width:'+pctD.toFixed(1)+'%"></span>'+
+      '<span class="ist privat" style="left:'+pctD.toFixed(1)+'%;width:'+pctP.toFixed(1)+'%"></span>'+
+      (sollPct>istPct?'<span class="soll" style="left:'+istPct.toFixed(1)+'%;width:'+(sollPct-istPct).toFixed(1)+'%"></span>':'')+
+      (sollPct>0&&sollPct<=istPct?'<span class="sollmark" style="left:'+sollPct.toFixed(1)+'%"></span>':'')+
+      '<span class="qmark" style="left:25%"></span><span class="qmark" style="left:50%"></span><span class="qmark" style="left:75%"></span></div>'+
+    '<div class="stsh-legende"><span><i style="background:var(--blue)"></i>DFM '+Math.round(pDfm)+'</span>'+
+      '<span><i style="background:var(--warn)"></i>Privat '+Math.round(pPriv)+'</span>'+
+      (urlaubHeute()?'<span>🏖 kein Soll</span>':'<span><i style="background:var(--bad)"></i>Soll jetzt '+Math.round(zielGes*sbFensterAnteil())+'</span>')+'</div>'+
+    '<div class="stsh-kacheln">'+
+      '<div class="stsh-k"><span>Tempo</span>'+(urlaubHeute()?'<b>🏖 Urlaub</b><span>kein Soll heute</span>':(function(){
+        const dr=Math.round(pw.deltaRate), abs=Math.round(pw.soll-pw.ist);
+        let z=abs>0 ? ('Rückstand '+abs+' P') : ('Vorsprung '+(-abs)+' P');
+        if(abs>0 && pw.deltaRate>0) z+=' · aufgeholt in ≈ '+Math.round(abs/pw.deltaRate*60)+' Min';
+        return '<b style="color:'+(dr>=0?'var(--ok)':'var(--bad)')+'">'+(dr>=0?'+':'')+dr+' P/Std</b><span>'+z+'</span>'; })())+'</div>'+
+      '<div class="stsh-k"><span>Akku</span><b>'+(eb.akku!=null?Math.round(eb.akku)+'%':'–')+'</b>'+
+        '<span>verplant '+Math.round(eb.gelb)+'% · '+akkuReichweite(eb)+'</span></div>'+
+    '</div>'+
+    (function(){ // Meilenstein-Hinweis: was zum nächsten ¼-Strich fehlt
+      const ist=pDfm+pPriv;
+      const naechsteQ=[0.25,0.5,0.75,1].map(q=>q*zielGes).find(x=>x>ist);
+      if(naechsteQ==null) return '<div class="d" style="margin-top:6px">Tagesziel erreicht. 🎉</div>';
+      const fehlt=Math.round(naechsteQ-ist);
+      const offene=fokusKandidaten().filter(x=>x.status==='offen');
+      const oe=offene.length?offene.reduce((a,x)=>a+Math.max(1,kartePunkteGeplant(x)),0)/offene.length:0;
+      return '<div class="d" style="margin-top:6px">Bis zum nächsten Meilenstein: <b>'+fehlt+' P</b>'+(oe>0?' — ≈ '+Math.max(1,Math.ceil(fehlt/oe))+' Karten':'')+'.</div>'; })()+
+  '</div>';
+  // ── 3 · Was jetzt ──
+  const sortWahl=sheetSortWahl();
+  const chips=[['meine','≡ Meine Reihenfolge'],['ph','⚡ P je Std'],['geld','💰 Geld je Std']];
+  h+='<div class="stsh-teil"><div class="stsh-kopf">Was jetzt</div>'+
+    '<div class="chips" style="margin-bottom:8px">'+chips.map(c=>'<button class="chip '+(sortWahl===c[0]?'on':'')+'" data-sheetsort="'+c[0]+'">'+c[1]+'</button>').join('')+'</div>';
+  let kand=fokusKandidaten().filter(x=>x.status==='offen');
+  const phVon=x=>{ const sm=num(x.sollMin); return sm>0 ? kartePunkteGeplant(x)/(sm/60) : -1; };
+  const geldVon=x=>{ const sm=num(x.sollMin), g=num(x.geldScore); return (g>0&&sm>0) ? g/(sm/60) : -1; };
+  if(sortWahl==='ph') kand=kand.slice().sort((a,b)=>phVon(b)-phVon(a));
+  else if(sortWahl==='geld') kand=kand.slice().sort((a,b)=>geldVon(b)-geldVon(a));
+  // §2.3: unter 40 % Akku rückt eine ladende Karte nach vorn
+  let ladehinweis='';
+  if(eb.akku!=null && eb.akku<40){
+    const i=kand.findIndex(x=>akkuRate(x)>0);
+    if(i>0){ const lk=kand.splice(i,1)[0]; kand.unshift(lk);
+      ladehinweis='<div class="hint" style="margin-bottom:6px">Akku unter 40 % — „'+esc(lk.titel||'?')+'" lädt ('+(akkuRate(lk)>0?'+':'')+Math.round(akkuRate(lk))+' %/Std) und steht deshalb vorn.</div>'; }
+  }
+  h+=ladehinweis;
+  if(!kand.length) h+='<div class="leer">Keine offenen Karten im aktiven Filter.</div>';
+  kand.slice(0,3).forEach(x=>{
+    const sm=num(x.sollMin), kw=(sortWahl==='geld')?(geldVon(x)>=0?Math.round(geldVon(x))+' €/h-Score':'–')
+      :(phVon(x)>=0?Math.round(phVon(x))+' P/Std':'–');
+    h+='<div class="stsh-karte"><div class="t">'+esc(x.titel||'(ohne Titel)')+'</div>'+
+      '<div class="m">'+(x.domain==='dfm'?'DFM':'Privat')+(sm>0?' · '+sm+'′':'')+' · '+Math.round(kartePunkteGeplant(x))+' P · '+kw+' · Akku '+(akkuRate(x)>=0?'+':'')+Math.round(akkuRate(x))+'/h</div>'+
+      '<button class="kstart" data-sheetstart="'+x.id+'" aria-label="Starten">▶</button></div>';
+  });
+  h+='</div>';
+  openSheet('Heute', h, '<button class="btn ghost sm" data-close="1">Schließen</button>');
+}
 function renderStatusbar(){
   const bar=el('statusbar'); if(!bar) return;
-  if(!tagOffen()){ bar.hidden=true; const c=el('statChart'); if(c){ c.hidden=true; } return; }
+  if(!tagOffen()){ bar.hidden=true; return; }
   bar.hidden=false;
   try{
-  // Energie-Batterie
   const eb=energieBatterie();
-  el('sAkkuFrei').style.width=eb.gruen.toFixed(1)+'%';
-  el('sAkkuVerplant').style.width=eb.gelb.toFixed(1)+'%';
-  el('sAkkuPct').textContent = eb.akku!=null ? Math.round(eb.akku)+'%' : '–%';
   const istHeute=punkteHeuteAnzeige();
-  el('sWohl').textContent='👛 '+Math.round(konto());   // M2: Kontostand (Saldo verdient−ausgegeben), konsistent zur Belohnungsseite
-  const nk=naechsterKaufHint(), k=(S.belohnung?konto():0);
-  el('sZiel').textContent = nk
-    ? (k>=nk.preis ? BELOHNUNG[nk.kat].icon+' Kauf frei!' : BELOHNUNG[nk.kat].icon+' noch '+Math.round(nk.preis-k))
-    : '';
+  const k=(S.belohnung?konto():0);
   // S1 (v1.3.2): Balkenlänge = Tagesziel (DFM+Privat, Wochenende via H4.3-Regel:
   // belZielGesamt/belIstDfm rechnen Sa/So kombiniert gg. 3000 DFM). Ist zweifarbig
   // gestapelt (DFM blau · Privat gelb). Soll-Layer = reines 8:30–22:00-Uhrfenster
@@ -2983,36 +3196,30 @@ function renderStatusbar(){
     if(abw>=z3) idx=6; else if(abw>=z2) idx=5; else if(abw>=z1) idx=4;
     else if(abw<=-z3) idx=0; else if(abw<=-z2) idx=1; else if(abw<=-z1) idx=2;
     if(idx>3) farbe='var(--ok)'; if(idx<3) farbe='var(--bad)'; }
-  const pf=el('sPfeil');
-  if(urlaubHeute()){ pf.textContent='🏖'; pf.style.color='var(--cyan)'; el('sPaceZahl').textContent='Urlaub'; el('sPaceZahl').style.color='var(--cyan)'; }
-  else {
-    pf.textContent=PACE_PFEILE[idx]; pf.style.color=farbe;
-    const dr=Math.round(pw.deltaRate);   // Δ Overall-Ist-Rate zur SOLL-Rate (Pfeil trackt nur Overall)
-    el('sPaceZahl').textContent=(dr>=0?'+':'')+dr+' P/h';
-    el('sPaceZahl').style.color=farbe;
-  }
-  // S3 (v1.3.2): Level + Punktekonto statt Streak (Streak bleibt intern/in Historie erhalten)
-  // F4 (v1.3.3): zweizeilig + gekürzte Punktzahl, damit der Chip die Batterie-Breite hält
-  // §3/§5 (v1.9.0): Rang + Sterne + Streak-Flamme (jederzeit sichtbar) + Joker
-  {
-    const sp=spielStand();
-    el('sLevel').innerHTML='<span class="lv">R'+sp.rang+'<span style="color:var(--warn)">'+('★'.repeat(Math.max(0,sp.sterne))||'')+'</span></span>'+
-      '<span class="pk">🔥'+num(S.meta.tagesStreak)+'·×'+streakFaktor().toFixed(2).replace('.',',')+(jokerVerfuegbar()?'♦':'')+' '+fmtKurzP(konto())+'</span>';
-  }
+  // §1.2 (v1.10.0): fünf Zellen — Kopf, Wert, Zusatz.
+  const sp=spielStand();
+  const zelle=(id,w,z,farb)=>{ const c=el(id); if(!c) return;
+    c.querySelector('.w').innerHTML=w; c.querySelector('.z').innerHTML=z;
+    if(farb) c.querySelector('.w').style.color=farb; };
+  zelle('sZRang', 'R'+sp.rang, '★'.repeat(sp.sterne)+'☆'.repeat(5-sp.sterne));
+  // Zelle 2: Akku + Reichweite (§1.2) — gekürzt auf die Uhrzeit („17:10" statt „bis 17:10")
+  const rw=akkuReichweite(eb);
+  zelle('sZAkku', (eb.akku!=null?Math.round(eb.akku)+'%':'–'), rw);
+  // Zelle 3: Tempo — Pfeil + Δ P/Std
+  if(urlaubHeute()) zelle('sZTempo','🏖','Urlaub','var(--cyan)');
+  else { const dr=Math.round(pw.deltaRate);
+    zelle('sZTempo', PACE_PFEILE[idx]+' '+(dr>=0?'+':'')+dr, (dr>=0?'über Soll':'unter Soll'), farbe); }
+  // Zelle 4: Serie
+  zelle('sZSerie', '🔥 '+num(S.meta.tagesStreak), '×'+streakFaktor().toFixed(2).replace('.',',')+(jokerVerfuegbar()?' ♦':''));
+  // Zelle 5: Konto + Abstand zur nächsten Kulisse (gekürzt: nur die Zahl)
+  const bgSt=bgStufeAus(ausgabenAnzeige());
+  zelle('sZKonto', fmtKurzP(k), bgSt<10 ? ('Kulisse '+Math.max(0,Math.round(bgSchwelle(bgSt+1)-ausgabenAnzeige()))+'') : 'Reise voll');
   momentRangCheck();   // §6 (1.9.0): Rang/Stern/Meilenstein/Joker zentral erkennen
-  // ausgeklappte Live-Kurve mitziehen
-  if(!el('statChart').hidden && typeof renderStatChart==='function') renderStatChart();
   }catch(e){ /* Statusleiste bleibt sichtbar, auch wenn ein Wert scheitert */ }
   layoutTopbar();
 }
 /* Tap auf die Statusleiste: bis die Live-Kurve (Punkt 2) da ist, in den
    Belohnungs-/Statistik-Tab springen (dort liegen die Diagramme). */
-function toggleStatChart(){
-  if(typeof renderStatChart==='function'){
-    const c=el('statChart'); c.hidden=!c.hidden; if(!c.hidden) renderStatChart();
-    layoutTopbar();
-  } else setTab('belohnung');
-}
 /* Der fixe Topbar wächst/schrumpft mit Statusleiste + Live-Kurve; main-Abstand
    dynamisch nachziehen (statt fixer 44px), damit nichts verdeckt wird. */
 let _tbH=0;
@@ -3268,7 +3475,9 @@ function naechsterLaufindex(datum){
 }
 /* Tag-Start (§6): neue tagId, Akku, fällige Routinen zurücksetzen. */
 function tagStarten(akkuProzent){
-  if(tagOffen()) tagAbschlussAuto('Start-Tap');   // Kante: neuer Start beendet alten Tag
+  // §3.2 (v1.10.0): KEIN Auto-Abschluss mehr — der Tag endet, wenn Pascal ihn
+  // beendet. Ein offener (auch gestriger) Tag blockiert den Neustart sichtbar.
+  if(tagOffen()){ toast('Der offene Tag ('+esc(S.tag.tagId)+') muss zuerst abgeschlossen werden'); oeffneTagAbschluss(); return; }
   const datum=heuteIso();
   S.tag = neuerTag(datum, naechsterLaufindex(datum));
   S.tag.akku = (akkuProzent==null?null:Math.round(akkuProzent));
@@ -3367,6 +3576,15 @@ function routineBilanz(k, verpasst){
    buchen, Snapshot in Historie. */
 function tagAbschlussFinalisieren(){
   if(S.fokus && S.fokus.laeuft) fokusZeitEinbuchen();   // laufenden Timer stoppen+buchen
+  // §3.2 (v1.10.0): Die Routinen-Bilanz („verpasst") lief bisher NUR im
+  // Auto-Abschluss — der ist weg. Jetzt beim Finalisieren, mit Dedup gegen den
+  // Abräum-Flow und OHNE erledigte/getickte Routinen als verpasst zu werten.
+  S.karten.forEach(k=>{
+    if(!(k.rhythmus && k.status==='offen' && !k.freeze && routineFaellig(k, S.tag.datum))) return;
+    if((S.tag.routinenBilanz||[]).some(b=>b.id===k.id)) return;
+    if(routErledigtHeute(k) || k.zuletztRoutine===S.tag.datum) return;
+    routineBilanz(k, !urlaubHeute());
+  });
   const bilanz = tagesPunkteLive();                      // erledigte heute − Abzüge (+ nichts Laufendes mehr)
   S.tag.punkteBilanz = Math.round(bilanz);
   S.tag.endeTs = jetztIso();
@@ -3387,7 +3605,7 @@ function tagAbschlussFinalisieren(){
     streakFortschreiben(S.tag.datum, S.tag.urlaub);
   }
   S.historie.push({
-    tagId:S.tag.tagId, datum:S.tag.datum, laufindex:S.tag.laufindex, urlaub:S.tag.urlaub,
+    tagId:S.tag.tagId, datum:S.tag.datum, laufindex:S.tag.laufindex, urlaub:S.tag.urlaub, spielZufluss:num(S.tag.spielZufluss),
     startTs:S.tag.startTs, endeTs:S.tag.endeTs, akku:S.tag.akku,
     punkteBilanz:S.tag.punkteBilanz, abzuege:num(S.tag.abzuegeBilanz),
     routinenBilanz:S.tag.routinenBilanz||[], zeit:tagesZeitAggregat(S.tag.tagId), luecke:false,
@@ -3396,22 +3614,14 @@ function tagAbschlussFinalisieren(){
   });
   saveTag(); saveHistorie(); saveMeta(); saveKarten();
 }
-/* Automatischer Abschluss (Kante §6: vergessen / Start-Tap / Lücke). */
-function tagAbschlussAuto(grund){
-  if(!tagOffen()) return;
-  // offene fällige Routinen = „Verpasst"
-  const datum=S.tag.datum;
-  S.karten.forEach(k=>{ if(k.rhythmus && k.status==='offen' && !k.freeze && routineFaellig(k, datum)) routineBilanz(k, !urlaubHeute()); });   // A4 + §5 (1.8.1): am Urlaubstag entschuldigt, kein Streak-Bruch
-  tagAbschlussFinalisieren();
-}
-/* Beim Öffnen: vergessenen Abschluss / Lücke erkennen (§6 Kanten). */
+/* §3.2 (v1.10.0): Beim Öffnen wird ein offener Vortag nur noch SICHTBAR
+   gemacht (Banner + Toast mit Abschluss-Knopf), nie mehr automatisch
+   abgeschlossen. */
 function pruefeTagKante(){
   if(!S.tag) return;
   if(!tagOffen()) return;                       // schon abgeschlossen
   if(S.tag.datum===heuteIso()) return;          // Tag über Mitternacht ok, gleicher Start-Tag
-  // Offener Tag + neues Kalenderdatum → Abschluss nachholen (Ende = letzte Aktivität).
-  tagAbschlussAuto('vergessen');
-  toast('Vergessener Tagesabschluss nachgeholt');
+  toast('⚠️ Der Tag vom '+S.tag.datum.slice(8)+'.'+S.tag.datum.slice(5,7)+'. ist noch offen — bitte abschließen');
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -3420,8 +3630,9 @@ function pruefeTagKante(){
 function tagBannerHtml(){
   if(tagOffen()){
     const akku = S.tag.akku!=null ? Math.round(S.tag.akku)+'%' : '—';
-    return '<div class="tagbanner offen">'+
-      '<div class="tb-info"><div class="tb-h">Tag läuft · '+esc(S.tag.tagId)+'</div>'+
+    const vortag = S.tag.datum<heuteIso();
+    return '<div class="tagbanner offen"'+(vortag?' style="border-color:var(--bad)"':'')+'>'+
+      '<div class="tb-info"><div class="tb-h">'+(vortag?'⚠️ Tag vom '+S.tag.datum.slice(8)+'.'+S.tag.datum.slice(5,7)+'. noch offen':'Tag läuft · '+esc(S.tag.tagId))+'</div>'+
         '<div class="tb-sub">🔋 Akku '+akku+' · Bilanz <b>'+Math.round(tagesPunkteLive())+'</b> P · Wohlstand '+Math.round(wohlstandLive())+'</div></div>'+
       '<button class="tb-btn" data-tagclose="1">Abschließen</button></div>';
   }
@@ -3724,6 +3935,15 @@ function renderDetail(){
         ? 'Karte erscheint in '+gesetzt.length+' Abschnitt(en) — eine Karte, eine Tick-Kurve, ein Streak.'
         : 'automatisch → „'+TA_LABEL[tagesabschnittAbleiten(k)]+'" (aus '+(k.uhrzeit?'Uhrzeit '+esc(k.uhrzeit):'fehlender Uhrzeit')+')')+'</div></div>';
   }
+  // §4.2 (v1.10.0): was die App über die Akku-Wirkung dieser Karte gelernt hat
+  {
+    const g=akkuGelernt(k), mess=((S.meta&&S.meta.akkuMessungen)||[]).filter(m=>m.kid===k.id).length;
+    const greift = (k.akkuProStd!=null) ? num(k.akkuProStd)+' %/Std (Override)'
+      : g ? Math.round(g.rate)+' %/Std (gelernt, '+g.quelle+')'
+      : (S.settings.akkuProStd!=null?S.settings.akkuProStd:-8)+' %/Std (Standard)';
+    h+='<div class="field"><label>Akku-Wirkung</label><div class="hint" style="margin-top:0">'+
+      'Es greift: <b>'+greift+'</b>'+(mess?' · '+mess+' Messung(en) an dieser Karte':' · noch keine Messung — beim Abschluss wird gefragt')+'</div></div>';
+  }
   // §5 (v1.6.1): Pausentimer-Sonderregel je Karte
   h+='<div class="field"><label>Pausentimer</label><div class="chips">'+
     '<button class="chip '+(k.keineAutoPause?'on lila':'')+'" data-dnoauto="1">'+(k.keineAutoPause?'✓ keine Auto-Pause':'normale Auto-Pause')+'</button></div>'+
@@ -3837,7 +4057,9 @@ function detailSpeichern(){
   beruehre(entwurf);                                     // A7: Edit zählt als Interaktion
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   closeSheet(); renderAlles();
-  toast(entwurfNeu?'Karte angelegt':'Gespeichert'); haptik(12);
+  // §3.1 (v1.10.0): eine neu angelegte Karte wird sofort gestartet und ist der Fokus
+  if(entwurfNeu){ fokusStarten(entwurf.id, null); setTab('fokus'); }
+  toast(entwurfNeu?'Karte angelegt & gestartet':'Gespeichert'); haptik(12);
 }
 /* A3: einen Tick buchen (Timer-/Counter-Karten). Erhöht ticksHeute; Punkte
    kommen über die Tick-Kurve (tickSumme) in tickPunkte/kartePunkte. */
@@ -3913,8 +4135,12 @@ function karteAbhaken(kid, fromDetail){
     k.status='offen'; k.tagId=null;
     if(k.rhythmus && k.zuletztRoutine===heuteApp()){ k.streak=Math.max(0,num(k.streak)-1); k.zuletztRoutine=null; }
   } else {
-    // Läuft der Timer auf dieser Karte → erst Zeit einbuchen, Fokus beenden (§6 Kante).
-    if(!fromDetail && S.fokus && S.fokus.karteId===k.id) fokusBeenden();
+    // Läuft der Timer auf dieser Karte → erst Zeit einbuchen; danach rückt die
+    // nächste Karte aus derselben Quelle nach (§3.1 1.10.0), sonst Fokus-Ende.
+    if(!fromDetail && S.fokus && S.fokus.karteId===k.id){
+      fokusZeitEinbuchen();
+      if(!fokusNachruecken(k.id)){ S.fokus=null; saveFokus(); if(S.fokusQuelleLeerToast!==false) toast('Liste leer — Fokus beendet'); }
+    }
     abschlussSnapshot(k);                                // §6.1: Stand VOR dem Abschluss sichern
     k.status='erledigt'; k.tagId=aktuelleTagId();
     if(k.rhythmus) routineErledigtBuchen(k);              // Streak + zuletztRoutine
@@ -4104,15 +4330,36 @@ function renderAbhakDialog(){
       '<div class="kv" style="font-size:15px"><span><b>Gesamt</b></span><b style="color:var(--ok)">'+(zeitP+bonusP)+' P</b></div>'+
     '</div>';
   }
+  // §4.1 (v1.10.0): „Wie viel Batterie hat es gekostet?" — GESAMTDELTA der
+  // Sitzung (kein Stundensatz!), Regler −50…+50 in 5ern + Zahlenfeld,
+  // bidirektional wie der Punkte-Regler. Default: letzte Messung dieser Karte,
+  // sonst die bisherige Annahme. „überspringen" = kein Lernen, keine Buchung.
+  {
+    if(t.akkuDelta===undefined){
+      const letzte=akkuLetzteMessung(k.id);
+      t.akkuDelta = letzte ? num(letzte.delta)
+        : Math.max(-50, Math.min(50, Math.round(akkuRate(k)*t.istMin/60/5)*5));
+      t.akkuSkip=false;
+    }
+    const rate = t.istMin>0 ? (num(t.akkuDelta)/(t.istMin/60)) : 0;
+    h+='<div class="field"><label>Wie viel Batterie hat es gekostet?</label>'+
+      '<div style="display:flex;gap:8px;align-items:center">'+
+      '<input type="range" id="abAkku" class="akkuslider" min="-50" max="50" step="5" value="'+Math.max(-50,Math.min(50,num(t.akkuDelta)))+'" style="flex:1">'+
+      '<input type="number" inputmode="numeric" step="5" id="abAkkuN" value="'+num(t.akkuDelta)+'" style="width:70px">'+
+      '<button class="chip '+(t.akkuSkip?'on':'')+'" data-abakkuskip="1">'+(t.akkuSkip?'übersprungen':'überspringen')+'</button></div>'+
+      '<div class="hint" id="abAkkuInfo">'+Math.round(t.istMin)+' Min → '+(rate>=0?'+':'')+Math.round(rate)+' %/Std · bisher angenommen '+(akkuRate(k)>=0?'+':'')+Math.round(akkuRate(k))+' %/Std · Gesamtdelta, kein Stundensatz</div></div>';
+  }
   // §6.2 (v1.8.0): Unteraufgaben direkt im Dialog — abhakbar und editierbar,
   // Invariante Parent-Soll = Σ Subs gilt weiter (Angleich beim Bestätigen).
   {
     const subs=untermenge(k.id);
     if(subs.length){
+      // §3.4 (v1.10.0): dieselbe Zeile wie in der Fokusansicht — Kästchen ≥34px,
+      // Titel als Text (editierbar bleibt er im Karten-Detail), Soll rechts.
       h+='<div class="field"><label>Unteraufgaben</label>'+subs.map(u=>
-        '<div class="uareihe"><button class="uacheck" data-absubdone="'+u.id+'">'+(u.done?'☑':'☐')+'</button>'+
-        '<input type="text" data-absubtitel="'+u.id+'" value="'+esc(u.titel||'')+'" style="flex:1;min-width:0">'+
-        '<input class="uamin" type="number" inputmode="numeric" data-absubmin="'+u.id+'" value="'+num(u.sollMin)+'" style="width:64px">'+
+        '<div class="uareihe'+(u.done?' fertig':'')+'"><button class="uacheck" data-absubdone="'+u.id+'"><span class="box">'+(u.done?'✓':'')+'</span></button>'+
+        '<div class="uatitel"><span class="uat">'+esc(u.titel||'Teilschritt')+'</span></div>'+
+        '<input class="uamin" type="number" inputmode="numeric" data-absubmin="'+u.id+'" value="'+num(u.sollMin)+'" style="width:64px" title="Soll-Minuten">'+
         '</div>').join('')+'</div>';
     }
   }
@@ -4162,6 +4409,16 @@ function renderAbhakDialog(){
     r.addEventListener('input',()=>{ n.value=r.value; });
     n.addEventListener('input',()=>{ const v=Math.max(0,Math.floor(num(n.value))); r.value=String(Math.min(v,t.max)); });
   }
+  // §4.1 (v1.10.0): Akku-Regler ↔ Zahlenfeld, Umrechnungszeile live
+  const ar=el('abAkku'), an=el('abAkkuN'), ai=el('abAkkuInfo');
+  const akkuInfo=()=>{ if(!ai) return; const k2=S.karten.find(x=>x.id===t.kid); const d=num(an?an.value:t.akkuDelta);
+    const istM=num(el('abIst')?el('abIst').value:t.istMin);
+    const rr=istM>0? d/(istM/60) : 0;
+    ai.textContent=Math.round(istM)+' Min → '+(rr>=0?'+':'')+Math.round(rr)+' %/Std · bisher angenommen '+(akkuRate(k2)>=0?'+':'')+Math.round(akkuRate(k2))+' %/Std · Gesamtdelta, kein Stundensatz'; };
+  if(ar&&an){
+    ar.addEventListener('input',()=>{ an.value=ar.value; t.akkuDelta=num(ar.value); akkuInfo(); });
+    an.addEventListener('input',()=>{ t.akkuDelta=num(an.value); ar.value=String(Math.max(-50,Math.min(50,Math.round(num(an.value))))); akkuInfo(); });
+  }
   el('sheetBody').querySelectorAll('input[type="number"]').forEach(x=>x.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); abhakDialogConfirm(); } }));
 }
 /* §5 (v1.6.0): Folgeaufgabe aus dem editierten Vorschlag anlegen. Die offenen
@@ -4206,9 +4463,26 @@ function abhakDialogConfirm(){
   const istMin=num(el('abIst')?el('abIst').value:t.istMin);
   const deltaMin=istMin-Math.round(istSekLive(k)/60);
   if(deltaMin!==0){ k.istSek=Math.max(0,num(k.istSek)+deltaMin*60); logIntraday(k,{minuten:deltaMin,typ:'nachtrag'}); }   // Zeit-Nachtrag auf heute
+  // §4.2/§4.3 (v1.10.0): Akku-Messung — protokollieren, lernen, Tagesstand
+  // geradeziehen (Differenz zum bereits mit der ANGENOMMENEN Rate Gebuchten).
+  if(!t.akkuSkip && t.akkuDelta!==undefined){
+    const delta=num(el('abAkkuN')?el('abAkkuN').value:t.akkuDelta);
+    const dauer=Math.max(1, istMin);
+    const angenommen=akkuRate(k);                        // VOR dem Protokollieren
+    const gebucht=angenommen*heuteInvestiertMin(k)/60;   // heute mit alter Rate gebucht
+    if(!Array.isArray(S.meta.akkuMessungen)) S.meta.akkuMessungen=[];
+    S.meta.akkuMessungen.push({ kid:k.id, kat:akkuKategorie(k), datum:heuteApp(),
+      delta:Math.round(delta), dauerMin:Math.round(dauer), rate:Math.round(delta/(dauer/60)*10)/10 });
+    if(S.meta.akkuMessungen.length>500) S.meta.akkuMessungen=S.meta.akkuMessungen.slice(-500);
+    if(S.tag && S.tag.akku!=null){
+      S.tag.akku=Math.max(0, Math.min(100, num(S.tag.akku) + (delta - gebucht)));   // live grob, beim Abschluss geradegezogen
+    }
+    saveMeta();
+  }
   k.abhakbonus=bonus;                                   // Wahl je Karte merken
   k.punkteOverride=Math.max(0, pkt+bonus);              // gebuchte Ist-Punkte (Slider + Bonus)
-  if(t.folge) folgeAufgabeAnlegen(k, {
+  let _folgeNeu=null;
+  if(t.folge) _folgeNeu=folgeAufgabeAnlegen(k, {
     titel:      el('abFolgeTitel') ? el('abFolgeTitel').value : '',
     projekt:    el('abFolgeProjekt') ? (el('abFolgeProjekt').value.trim()||null) : undefined,
     geldScore:  el('abFolgeGeld') ? num(el('abFolgeGeld').value) : undefined,
@@ -4222,6 +4496,8 @@ function abhakDialogConfirm(){
   });
   abhakTmp=null; closeSheet();
   karteAbhaken(k.id, false);                            // eigentliches Erledigen (Punkte=Override, Konfetti, Intraday, Speichern)
+  // §3.1 (v1.10.0): die Folgeaufgabe übernimmt sofort den Fokus (schlägt das Nachrücken)
+  if(_folgeNeu){ fokusStarten(_folgeNeu.id, S.fokus?S.fokus.quelle:null); setTab('fokus'); }
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -4376,7 +4652,8 @@ function routZeileHtml(k){
         (num(k.streak)>0?' · 🔥'+num(k.streak):'')+'</div>'+
     '</div>'+
     (zeit?'<button class="rz-play" data-rplay="'+k.id+'" aria-label="Timer">▶</button>':'')+
-    '<button class="rz-plus" data-rplus="'+k.id+'" aria-label="Tick +1">✓</button>'+
+    (istTickKarte(k)?'<button class="rz-plus" data-rplus="'+k.id+'" aria-label="Tick +1">＋</button>':'')+
+    '<button class="rz-check'+(k.status==='erledigt'&&k.tagId===aktuelleTagId()?' on':'')+'" data-rcheck="'+k.id+'" aria-label="Abhaken"><span class="box">'+(k.status==='erledigt'&&k.tagId===aktuelleTagId()?'✓':'')+'</span></button>'+
   '</div>';
 }
 /* +1 / −1 — nutzt die bestehende Tick-Logik, das Sheet bleibt offen. */
@@ -4392,13 +4669,12 @@ function routTick(kid, minus){
       karteTick(kid, true);
     }
   } else {
-    // Echte Routinen werden abgehakt, nicht getickt — sonst bleiben Status,
-    // Streak und Punkte-Log unberührt und die Gruppen-Vollständigkeit (§3)
-    // wird nie erreicht. karteAbhaken toggelt erledigt ↔ offen.
+    // §3.3 (v1.10.0): Nicht-Tick-Routinen laufen über das Kästchen (data-rcheck);
+    // der Swipe-links bleibt als „wieder öffnen".
     const erledigt=k.status==='erledigt';
     if(minus && !erledigt){ toast('Noch nicht erledigt'); return; }
     if(!minus && erledigt){ toast('Schon erledigt'); return; }
-    karteAbhaken(kid, true);   // fromDetail=true → wir speichern selbst
+    karteAbhaken(kid, true);
     saveKarten(); saveTag();
   }
   gruppeNachAenderung(kid);   // §3: Komplett-Bonus buchen bzw. zurücknehmen
@@ -5595,9 +5871,6 @@ function diagrammHtml(){
   else { h+=diagrammBalken(zr,dom)+'<p class="stathint">Balken antippen wählt den Tag.</p>'+kennzahlenHtml(snap,dom); }
   return h+'</div>';
 }
-/* Inline-Live-Kurve unter der Statusleiste (heute). */
-function renderStatChart(){ const c=el('statChart'); if(!c) return;
-  c.innerHTML='<div class="card" style="margin:0">'+diagrammKurveTag(tagSnapshot(heuteApp()), S.ui.statDomain||'alle')+'</div>'; }
 /* A1: ein Domänen-Score-Ring (heutige Punkte der Domäne ÷ Domänen-Tagesziel),
    Pace-Pfeil = liegt die Domäne über ihrem anteiligen Soll? */
 function scoreRingDomain(dom, label, farbe){
@@ -6043,6 +6316,9 @@ el('pinFab').addEventListener('click', oeffnePins);   // §10 (1.8.0)
 // Sheet-Interaktionen der Schublade (Toggle, Gruppen, +1, Play)
 el('sheetBody').addEventListener('click', e=>{
   const t=e.target;
+  // §2 (1.10.0): Status-Sheet — Sortierwahl (persistiert) + Direktstart
+  const shs=t.closest('[data-sheetsort]'); if(shs){ S.ui.sheetSort=shs.dataset.sheetsort; saveUi(); renderStatusSheet(); return; }
+  const sst=t.closest('[data-sheetstart]'); if(sst){ const kid=sst.dataset.sheetstart; closeSheet(); fokusStarten(kid); setTab('fokus'); return; }
   // §8 (1.9.0): Album-Tabs + Detailansicht
   const at=t.closest('[data-albtab]'); if(at){ albumTab=at.dataset.albtab; renderAlbum(); return; }
   const ab=t.closest('[data-albbild]'); if(ab){
@@ -6057,6 +6333,9 @@ el('sheetBody').addEventListener('click', e=>{
   const rd=t.closest('[data-rdom]');  if(rd){ if(routTmp){ routTmp.dom=rd.dataset.rdom; renderRoutinenSheet(); } return; }
   const rg=t.closest('[data-rgrp]');  if(rg){ if(routTmp){ const g=rg.dataset.rgrp; routTmp.auf=(routTmp.auf===g?null:g); renderRoutinenSheet(); } return; }
   const rp=t.closest('[data-rplus]'); if(rp){ routTick(rp.dataset.rplus, false); return; }
+  const rc=t.closest('[data-rcheck]'); if(rc){ const k=S.karten.find(x=>x.id===rc.dataset.rcheck); if(!k) return;
+    karteAbhaken(k.id, true); saveKarten(); saveTag(); gruppeNachAenderung(k.id);
+    renderRoutinenSheet(); renderStatusbar(); return; }
   const rl=t.closest('[data-rplay]'); if(rl){ closeSheet(); fokusStarten(rl.dataset.rplay); return; }
 });
 /* §3: Wischen nach links auf einer Routinen-Zeile = −1 (Negativ-Counter). */
@@ -6083,7 +6362,7 @@ el('sheetBody').addEventListener('click', e=>{
 // Fokus-Leiste: Play/Pause-Toggle + Mitte tippen → Fokus-Tab
 el('fkPP').addEventListener('click', ()=>{ if(S.fokus) fokusToggle(); else setTab('fokus'); });
 el('fkMid').addEventListener('click', ()=>setTab('fokus'));
-el('statusbar').addEventListener('click', ()=>toggleStatChart());
+el('statusbar').addEventListener('click', ()=>oeffneStatusSheet());   // §2 (1.10.0): Sheet statt Live-Kurve
 
 // Fokus-View: Toggle / Häkchen / Karussell / Farbstreifen / Unteraufgaben / Stapelwahl
 // Bug 2: Karussell-Pfeile im Topbar (außerhalb von #fokusView)
@@ -6232,8 +6511,7 @@ function karteRowClick(t, e){
   const fst=t.closest('[data-fokusstart]'); if(fst){ if(e) e.stopPropagation();
     const sid=fst.dataset.stapel, kid=fst.dataset.fokusstart;
     if(sid){ S.ui.aktivStapel=sid; saveUi(); }
-    const fk=S.karten.find(x=>x.id===kid); if(fk && fk.freeze){ fk.freeze=false; saveKarten(); }   // A4: „in den Fokus holen" taut auf
-    if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid);
+    if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid, sid||null);   // §3.1 (1.10.0): Quelle mitgeben
     setTab('fokus'); return true; }
   const su=t.closest('[data-sortup]'); if(su){ if(e) e.stopPropagation(); karteSortieren(su.dataset.sortup, -1, su.dataset.stapel); return true; }
   const sd=t.closest('[data-sortdown]'); if(sd){ if(e) e.stopPropagation(); karteSortieren(sd.dataset.sortdown, +1, sd.dataset.stapel); return true; }
@@ -6263,6 +6541,7 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-close]')){ closeSheet(); return; }
   // U6-A: Abhak-Dialog
   if(t.closest('[data-abfolge]')){ if(abhakTmp){ abhakTmp.folge=!abhakTmp.folge; renderAbhakDialog(); } return; }
+  if(t.closest('[data-abakkuskip]')){ if(abhakTmp){ abhakTmp.akkuSkip=!abhakTmp.akkuSkip; renderAbhakDialog(); } return; }   // §4.1 (1.10.0)
   // §6.2 (v1.8.0): Unteraufgabe im Abhak-Dialog abhaken → Bonus/Summe/Basis live
   const asd=t.closest('[data-absubdone]'); if(asd){ if(!abhakTmp) return;
     const u=S.unteraufgaben.find(x=>x.id===asd.dataset.absubdone); if(!u) return;
@@ -6517,7 +6796,7 @@ function stapelLiesEditor(){
 el('belohnungBody').addEventListener('click', e=>{
   if(e.target.closest('[data-album]')){ oeffneAlbum(); return; }   // §8 (1.9.0)
   const zr=e.target.closest('[data-statzr]'); if(zr){ S.ui.statZeitraum=zr.dataset.statzr; saveUi(); renderBelohnung(); return; }
-  const dm=e.target.closest('[data-statdom]'); if(dm){ S.ui.statDomain=dm.dataset.statdom; saveUi(); renderBelohnung(); if(!el('statChart').hidden) renderStatChart(); return; }
+  const dm=e.target.closest('[data-statdom]'); if(dm){ S.ui.statDomain=dm.dataset.statdom; saveUi(); renderBelohnung(); return; }
   const ut=e.target.closest('[data-urlaubtag]'); if(ut){ const iso=ut.dataset.urlaubtag;
     if(tagOffen() && S.tag.datum===iso){ S.tag.urlaubManuell=!urlaubHeute(); saveTag(); }
     else { let neu=null; (S.historie||[]).forEach(h2=>{ if(h2.datum===iso && !h2.luecke){ if(neu==null) neu=!h2.urlaub; h2.urlaub=neu; } }); saveHistorie(); }
