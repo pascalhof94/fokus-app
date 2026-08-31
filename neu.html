@@ -224,15 +224,23 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .stsh-karte .m{flex:1;min-width:0;font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace}
 .stsh-karte .kstart{flex:none;width:44px;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--blue);font-size:16px}
 /* ══ §8 (v1.11.0) · Sheet-Tagescockpit ══ */
+/* §2/§3 (v1.11.1): Der Ring ist ein conic-gradient-RAHMEN um die Figur —
+   Fortschritt in Akzent, Rest als gedämpfte Spur, nie ein Fragment. Die
+   Figur sitzt IM Rahmen, mittig, füllt vertikal; beide Spalten enden bündig. */
 .stsh-wo{display:flex;gap:10px;align-items:stretch}
-.stsh-figur{position:relative;flex:none;width:104px;min-height:176px;display:flex;align-items:flex-end;justify-content:center}
-.stsh-figur svg.rahmen{position:absolute;inset:0;width:100%;height:100%}
-.stsh-figur img{position:relative;max-width:86%;max-height:150px;object-fit:contain;margin-bottom:14px}
-.stsh-figur .of{position:absolute;top:7px;left:0;right:0;text-align:center;font-size:9.5px;font-weight:800;color:var(--mut);letter-spacing:.4px}
-.stsh-figur .vit{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:9px;color:var(--mut2)}
+.stsh-figur{flex:0 0 132px;align-self:stretch;border-radius:18px;padding:3px;display:flex;min-height:200px}
+.stsh-figin{flex:1;min-height:0;background:var(--card);border-radius:15px;display:flex;flex-direction:column;align-items:center;padding:8px 6px 10px}
+.stsh-figin img{flex:1;min-height:0;max-width:92%;object-fit:contain;margin:6px 0 10px}
+.stsh-figin .of{font-size:10px;font-weight:800;color:var(--txt);letter-spacing:.4px}
+.stsh-figin .vit{font-size:9.5px;color:var(--mut2)}
 .stsh-kx{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
 .stsh-kx .av-bar{margin-top:3px}
 .stsh-karte .pos{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:6px;background:var(--card);border:1px solid var(--line);font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace;vertical-align:1px}
+/* §5 (v1.11.1): Kettenzeile = normale Kartenzeile + Kettennummer davor */
+.stsh-kettenzeile{display:flex;gap:6px;align-items:flex-start;margin-bottom:6px}
+.stsh-kettenzeile .pos{flex:none;display:flex;align-items:center;justify-content:center;min-width:20px;height:44px;border-radius:8px;background:var(--card2);border:1px solid var(--line);font-size:11px;color:var(--mut);font-family:ui-monospace,monospace}
+.stsh-kettenzeile .kz{flex:1;min-width:0}
+.stsh-kettenzeile .kz .krow{margin-bottom:0}
 .stsh-sum{font-size:12px;color:var(--mut);background:var(--card2);border:1px dashed var(--line);border-radius:10px;padding:7px 10px;margin-top:2px}
 .stsh-zerleg{display:flex;height:14px;border-radius:7px;overflow:hidden;background:#0a0f1a;margin-top:8px}
 .stsh-zerleg .z{background:var(--blue)} .stsh-zerleg .a{background:var(--ok)} .stsh-zerleg .t{background:var(--purple)}
@@ -250,6 +258,9 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
    zur leeren Fläche — dieselbe Silhouetten-Sprache wie beim Besitz: stark
    verdunkelt, Konturen erahnbar, Inhalt nicht erkennbar. Kein neues Bild. */
 .albitem.breit.zu img{filter:brightness(.16) saturate(.3)}
+/* §8 (v1.11.1): noch nicht erreichte Rangstufen — dieselbe gedämpfte
+   Kulissen-Behandlung statt der schwarzen Besitz-Silhouette. */
+.albitem.rang.zu img{filter:brightness(.16) saturate(.3);opacity:1}
 .albitem .albn{font-size:10.5px;font-weight:700;color:var(--txt);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .albitem.zu .albn{color:var(--mut2)}
 .albitem .albs{font-size:9.5px;color:var(--mut2);font-family:ui-monospace,monospace}
@@ -305,6 +316,9 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
   border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--mut);font-size:13px;font-weight:800;
   padding:0 10px;touch-action:manipulation}
 .navchip.on{background:var(--blue);border-color:var(--blue);color:#0a0f1a}
+/* §9 (v1.11.1): übergreifender Heute-Filter — deutlich abgesetzt (lila) */
+.navchip.heute{border-color:var(--purple);color:var(--purple)}
+.navchip.heute.on{background:var(--purple);border-color:var(--purple);color:#0a0f1a}
 .navzeile.e3 .navchip{flex:none;font-size:12px;font-weight:700}
 /* Privat-Gruppierung — alle drei Abschnitte bleiben sichtbar (§2 Ebene 3) */
 .navgruppe{margin-bottom:10px}
@@ -826,7 +840,14 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 .sheetkopf{display:flex;align-items:center;gap:10px;padding:4px var(--s2) 10px;border-bottom:1px solid var(--line);flex:none}
 .sheetkopf h3{font-size:16px;font-weight:900;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sheetkopf .x{width:34px;height:34px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--mut);border-radius:9px;background:var(--bg)}
-.sheetbody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--s2);flex:1}
+/* §1 (v1.11.1): min-height:0 ist der eigentliche Fix — ohne ihn weigert sich
+   das Flex-Kind, unter seine Inhaltshöhe zu schrumpfen, das Sheet wächst über
+   max-height hinaus und das Ende (inkl. Einordnungssatz) ist unerreichbar,
+   während der Fuß-Balken über dem Inhalt zu schweben scheint. Betraf ALLE
+   Sheets (Status, Abhak-Dialog, Karten-Detail — ein gemeinsames Gerüst).
+   Dazu das geforderte Polster in Fußhöhe + Safe-Area am Scroll-Ende. */
+.sheetbody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--s2);flex:1;min-height:0;
+  padding-bottom:calc(var(--s2) + 64px + var(--sab))}
 .sheetfoot{flex:none;display:flex;gap:var(--s1);padding:10px var(--s2) calc(10px + var(--sab));border-top:1px solid var(--line)}
 
 /* Formular-Bausteine */
@@ -1079,9 +1100,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.11.0';                   // Datenvertrag/Sync-appVersion — 1.11.0 (Vertrag 1.x unveraendert)
-const UI_VERSION = 'v1.11.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-31-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.11.1';                   // Datenvertrag/Sync-appVersion — 1.11.1 (Vertrag 1.x unveraendert)
+const UI_VERSION = 'v1.11.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-01-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -3004,12 +3025,17 @@ function filterStapelDomain(st, ks){
 /* §2.5 (v1.6.0): Die drei Ebenen als dauerhaft sichtbare Leiste — ein Tap je
    Ebene, kein Menü, kein Seitenwechsel. Alle Tap-Ziele ≥44px (siehe .navchip). */
 function navLeisteHtml(){
-  const dom=navDomain(), art=navArt(), so=navSort();
+  const dom=navDomain(), art=navArt(), so=navSort(), heuteAn=!!S.ui.navHeute;
   const c=(aktiv,attr,wert,label,extra)=>'<button class="navchip'+(aktiv?' on':'')+'" data-'+attr+'="'+wert+'"'+(extra||'')+'>'+label+'</button>';
   let h='<div class="navleiste">';
-  h+='<div class="navzeile">'+c(dom==='dfm','navdom','dfm','DFM')+c(dom==='privat','navdom','privat','Privat')+'</div>';
-  h+='<div class="navzeile">'+c(art==='aufgabe','navart','aufgabe','Aufgaben')+c(art==='routine','navart','routine','Routinen')+'</div>';
-  if(dom==='dfm'){
+  // §9 (v1.11.1): übergreifender „Heute"-Filter — die Tageskette (sys-heute).
+  // Solange aktiv, überstimmt er Domäne und Art (die Zeilen sind gedämpft).
+  h+='<div class="navzeile"><button class="navchip heute'+(heuteAn?' on':'')+'" data-navheute="1">▤ Heute — deine Kette</button></div>';
+  const dim=heuteAn?' style="opacity:.4;pointer-events:none"':'';
+  h+='<div class="navzeile"'+dim+'>'+c(dom==='dfm','navdom','dfm','DFM')+c(dom==='privat','navdom','privat','Privat')+'</div>';
+  h+='<div class="navzeile"'+dim+'>'+c(art==='aufgabe','navart','aufgabe','Aufgaben')+c(art==='routine','navart','routine','Routinen')+'</div>';
+  if(heuteAn){ /* Ebene 3 entfällt — die Kette hat ihre eigene Reihenfolge */ }
+  else if(dom==='dfm'){
     h+='<div class="navzeile e3"><span class="navlab">Sortierung</span>'+
        c(so==='projekt','navsort','projekt','Projekt')+c(so==='deadline','navsort','deadline','Deadline')+c(so==='start','navsort','start','Start')+'</div>';
   } else {
@@ -3021,6 +3047,18 @@ function navLeisteHtml(){
    drei Ebenen. Die Swipe-Reihenfolge kommt weiterhin aus „Heute" (§2.2), diese
    Liste ist die Übersicht daneben. */
 function fokusListeHtml(){
+  // §9 (v1.11.1): „Heute" überstimmt Domäne/Art — Inhalt ist die Tageskette
+  // über den vorhandenen Sonderstapel sys-heute (Kettenreihenfolge, Pfeile
+  // ordnen die Kette um). Erledigte ans ENDE, ausgegraut: sichtbar als
+  // Fortschritt, aber nicht zwischen den nächsten Schritten.
+  if(S.ui.navHeute){
+    const st=S.stapel.find(s=>s.id==='sys-heute')||{id:'sys-heute'};
+    const alle=stapelKarten(st).filter(k=>k.status!=='archiviert');
+    const ks=alle.filter(k=>k.status==='offen').concat(alle.filter(k=>k.status==='erledigt'));
+    return '<div class="fk-liste">'+navLeisteHtml()+
+      '<div class="lab">Heute · Kette · '+ks.length+'</div>'+
+      (ks.length ? stapelRowsHtml({id:'sys-heute'}, ks) : '<div class="leer">Die Kette ist leer — Karten über ▤ aufnehmen.</div>')+'</div>';
+  }
   // Nur offene Karten — Abgeschlossenes lebt im Stapel „Erledigt" (§2.3).
   // §1.2 (v1.8.0): jede Ansicht trägt ihren eigenen Sortier-Schlüssel — die
   // Sortierpfeile schreiben und lesen darüber (Pseudo-Stapel {id: key}).
@@ -3137,32 +3175,44 @@ function renderStatusSheet(){
   const mess=Math.max(0, tagesPunkteLive()), bonus=tagOffen()?Math.max(0,num(S.tag.spielBonus)):0;
   const outfitBei=zusatz=>outfitVon(((mess+Math.max(0,zusatz))*faktor+bonus)/zielHeute);
   let h='';
-  // ── 1 · Wo du stehst — ganze Figur, Ring RAHMT, vier Kacheln daneben ──
-  const RW=104, RH=176, RU=2*(RW-6)+2*(RH-6);
+  // ── 1 · Wo du stehst — Figur IM Ring-Rahmen (conic: Fortschritt in Akzent,
+  // Rest als gedämpfte Spur), Spalten bündig, vier Kacheln daneben ──
+  const ringPct=Math.round((rm.rang!=null?rm.anteil:0)*100);
   h+='<div class="stsh-teil"><div class="stsh-kopf">Wo du stehst</div>'+
     '<div class="stsh-wo">'+
-      '<div class="stsh-figur"><span class="of">Outfit '+outfit+' / 20</span>'+
-        '<svg viewBox="0 0 '+RW+' '+RH+'" class="rahmen">'+
-          '<rect x="3" y="3" width="'+(RW-6)+'" height="'+(RH-6)+'" rx="14" fill="none" stroke="var(--line)" stroke-width="3"/>'+
-          '<rect x="3" y="3" width="'+(RW-6)+'" height="'+(RH-6)+'" rx="14" fill="none" stroke="'+av.akzent+'" stroke-width="3" stroke-linecap="round" stroke-dasharray="'+(RU*(rm.rang!=null?rm.anteil:0)).toFixed(0)+' '+RU.toFixed(0)+'"/></svg>'+
-        '<img src="'+AVATAR_BILDER[outfit-1]+'" alt="" onerror="this.style.display=\'none\'">'+
-        '<span class="vit">'+VITAL_LABEL[vitalStufe()||'voll']+'</span></div>'+
+      '<div class="stsh-figur" style="background:conic-gradient('+av.akzent+' 0 '+ringPct+'%, var(--line) '+ringPct+'% 100%)">'+
+        '<div class="stsh-figin">'+
+          '<span class="of">Outfit '+outfit+' / 20</span>'+
+          '<img src="'+AVATAR_BILDER[outfit-1]+'" alt="" onerror="this.style.display=\'none\'">'+
+          '<span class="vit">'+VITAL_LABEL[vitalStufe()||'voll']+'</span>'+
+        '</div></div>'+
       '<div class="stsh-kx">'+
-        '<div class="stsh-k"><span>Rang</span><b>'+(rm.rang!=null?rangAnzeigeText(rm):'sammelt '+rm.n+'/3')+'</b>'+
-          '<span>'+(rm.rang!=null?(Math.round(rm.median)+' P/Std · '+(stAkt!=null?'★'.repeat(stAkt)+'☆'.repeat(5-stAkt):'★ sammelt '+sternMass().n+'/14')
-            +(rm.naechste?' · R'+(rm.rang+1)+' ab '+Math.round(rm.naechste):'')):'P/Std-Median über 14 aktive Tage')+'</span>'+
-          '<span class="av-bar"><i style="width:'+Math.round((rm.rang!=null?rm.anteil:0)*100)+'%;background:'+av.akzent+'"></i></span></div>'+
+        '<div class="stsh-k"><span>Rang</span><b style="font-size:19px">'+(rm.rang!=null?rangAnzeigeText(rm):'–')+'</b>'+
+          '<span>'+(stAkt!=null?'<span style="color:var(--warn);letter-spacing:2px">'+'★'.repeat(stAkt)+'☆'.repeat(5-stAkt)+'</span>':'★ sammelt '+sternMass().n+'/14')+'</span>'+
+          '<span>'+(rm.rang!=null?(Math.round(rm.median)+' P/Std'+(rm.naechste?' · R'+(rm.rang+1)+' ab '+Math.round(rm.naechste):' · Spitze')):'sammelt '+rm.n+'/3 aktive Tage')+'</span>'+
+          '<span class="av-bar"><i style="width:'+ringPct+'%;background:'+av.akzent+'"></i></span></div>'+
         '<div class="stsh-k"><span>Heute</span><b>'+Math.round(mess)+' / '+Math.round(zielHeute)+' P</b>'+
           '<span>F '+F.toFixed(2).replace('.',',')+' → Outfit '+outfit+(urlaubHeute()?' · 🏖 Ersatzziel':'')+'</span>'+
           '<span class="av-bar"><i style="width:'+Math.round(Math.min(1,F)*100)+'%;background:var(--blue)"></i></span></div>'+
-        '<div class="stsh-k"><span>🔥 Serie</span><b>'+num(S.meta.tagesStreak)+' Tg · ×'+faktor.toFixed(2).replace('.',',')+'</b>'+
-          (function(){ const st=num(S.meta.tagesStreak); const naechster=[7,30,100,365].find(x=>x>st);
-            if(!naechster) return '<span>alle Meilensteine erreicht</span>';
-            const ms=STREAK_MEILENSTEINE[naechster];
-            return '<span>Tag '+naechster+' (+'+fmtKurzP(ms.m)+' 🪙) in '+(naechster-st)+' Tg'+(jokerVerfuegbar()?' · ♦ bereit':'')+'</span>'; })()+'</div>'+
-        '<div class="stsh-k"><span>🪙 Konto</span><b>'+Math.round(konto())+'</b>'+
-          (function(){ const st=bgStufeAus(ausgabenAnzeige());
-            return st<10 ? '<span>Kulisse '+(st+1)+' ab '+fmtKurzP(bgSchwelle(st+1))+' ausgegeben</span>' : '<span>Reise komplett</span>'; })()+'</div>'+
+        (function(){ // §7 (v1.11.1): Bild UND Zahl — Balken zum nächsten Meilenstein
+          const st=num(S.meta.tagesStreak); const stufen=[0,7,30,100,365];
+          const naechster=[7,30,100,365].find(x=>x>st);
+          let sub, pct=100;
+          if(!naechster){ sub='alle Meilensteine erreicht'; }
+          else { const vor=stufen[stufen.indexOf(naechster)-1], ms=STREAK_MEILENSTEINE[naechster];
+            pct=Math.round(Math.max(0,Math.min(1,(st-vor)/(naechster-vor)))*100);
+            sub='Tag '+naechster+' (+'+fmtKurzP(ms.m)+' 🪙) in '+(naechster-st)+' Tg'+(jokerVerfuegbar()?' · ♦ bereit':''); }
+          return '<div class="stsh-k"><span>🔥 Serie</span><b>'+st+' Tg · ×'+faktor.toFixed(2).replace('.',',')+'</b>'+
+            '<span>'+sub+'</span><span class="av-bar"><i style="width:'+pct+'%;background:var(--warn)"></i></span></div>'; })()+
+        (function(){ // §7 (v1.11.1): Konto mit Balken zur nächsten Kulisse
+          const st=bgStufeAus(ausgabenAnzeige());
+          if(st>=10) return '<div class="stsh-k"><span>🪙 Konto</span><b>'+Math.round(konto())+'</b><span>Reise komplett</span>'+
+            '<span class="av-bar"><i style="width:100%;background:var(--cyan)"></i></span></div>';
+          const von=st>1?bgSchwelle(st):0, bis=bgSchwelle(st+1);
+          const pct=Math.round(Math.max(0,Math.min(1,(ausgabenAnzeige()-von)/Math.max(1,bis-von)))*100);
+          return '<div class="stsh-k"><span>🪙 Konto</span><b>'+Math.round(konto())+'</b>'+
+            '<span>Kulisse '+(st+1)+' ab '+fmtKurzP(bis)+' ausgegeben</span>'+
+            '<span class="av-bar"><i style="width:'+pct+'%;background:var(--cyan)"></i></span></div>'; })()+
       '</div></div></div>';
   // ── 2 · Als nächstes · deine Kette ──
   const kIds=ketteState().ids||[], byId={}; S.karten.forEach(k=>byId[k.id]=k);
@@ -3174,14 +3224,15 @@ function renderStatusSheet(){
   h+='<div class="stsh-teil"><div class="stsh-kopf">Als nächstes · deine Kette</div>';
   if(fallback) h+='<div class="hint" style="margin-bottom:6px">Die Kette ist leer — das sind die Kandidaten deines aktiven Filters.</div>';
   if(!drei.length) h+='<div class="leer">Keine offene Karte.</div>';
+  // §5 (v1.11.1): dieselbe Kartenzeile wie in Stapel-/Fokusliste — gleiche
+  // Optik, Bedienelemente und Handler (karteRowClick läuft im Sheet-Handler
+  // über den #sheetKette-Container). Kettennummer bleibt links davor.
+  h+='<div id="sheetKette">';
   drei.forEach(x=>{
-    const sm=num(x.k.sollMin), gp=kartePunkteGeplant(x.k);
-    const ph=sm>0?Math.round(gp/(sm/60)):null, ar=akkuRate(x.k);
-    h+='<div class="stsh-karte"><div class="t"><span class="pos">'+x.pos+'</span> '+esc(x.k.titel||'(ohne Titel)')+'</div>'+
-      '<div class="m">'+(x.k.domain==='dfm'?'DFM':'Privat')+(sm>0?' · '+sm+'′':'')+' · '+Math.round(gp)+' P'+
-        (ph!=null?' · '+ph+' P/Std':'')+' · Akku '+(ar>=0?'+':'')+Math.round(ar)+'/h</div>'+
-      '<button class="kstart" data-sheetstart="'+x.k.id+'" aria-label="Starten">▶</button></div>';
+    h+='<div class="stsh-kettenzeile"><span class="pos">'+x.pos+'</span>'+
+      '<div class="kz">'+kartenreiheHtml(x.k,'sys-heute')+'</div></div>';
   });
+  h+='</div>';
   if(drei.length){
     const sP=drei.reduce((a,x)=>a+kartePunkteGeplant(x.k),0);
     const sMin=drei.reduce((a,x)=>a+Math.max(0,num(x.k.sollMin)),0);
@@ -3189,18 +3240,33 @@ function renderStatusSheet(){
   }
   h+='</div>';
   // ── 3 · Was heute noch geht ──
-  const fn=belTagFenster(heuteF), restStd=Math.max(0, fn.bis-nowX);
+  const fn=belTagFenster(heuteF);
+  // §4 (v1.11.1): Rest gegen DASSELBE Tagesfenster wie der Rest der App
+  // (sbFensterAnteil, 8:30–22:00) — nicht bis Mitternacht. Vorher: um 16:26
+  // „7h34 · bis 00:00" und ein um Stunden zu optimistisches „Noch drin".
+  const nowH=(function(){ const d=new Date(); return d.getHours()+d.getMinutes()/60; })();
+  const restStd=Math.max(0, 22 - Math.max(8.5, nowH));
+  const fensterPct=Math.round(sbFensterAnteil()*100);
   const tempo=rm.median;   // §8.3: Median-Tempo, nicht Bestwert
   const nochDrin=tempo!=null?restStd*tempo:null;
   const fNaechst=outfit<20?Math.round(outfitFehltBis(outfit+1)):null;
   const fFrack=outfit<20?Math.round(outfitFehltBis(20)):0;
   const frackGeht = outfit>=20 || (nochDrin!=null && fFrack<=nochDrin);
+  // §6 (v1.11.1): jede Kachel Balken UND Zahl
+  const fBei=o=> o<=15 ? (o-1)/14 : 1+(o-15)*0.07;
+  const stufePct=outfit>=20?100:Math.round(Math.max(0,Math.min(1,(F-fBei(outfit))/Math.max(0.0001,fBei(outfit+1)-fBei(outfit))))*100);
+  const frackPct=Math.round(Math.max(0,Math.min(1,F/1.35))*100);
+  const drinPct=nochDrin!=null?Math.round(mess/Math.max(1,mess+nochDrin)*100):0;
   h+='<div class="stsh-teil"><div class="stsh-kopf">Was heute noch geht</div>'+
     '<div class="stsh-kacheln">'+
-      '<div class="stsh-k"><span>Rest im Fenster</span><b>'+tZeitKurz(restStd*60)+'</b><span>bis '+belUhr(fn.bis)+'</span></div>'+
-      '<div class="stsh-k"><span>Noch drin</span><b>'+(nochDrin!=null?'≈ '+Math.round(nochDrin)+' P':'–')+'</b><span>'+(tempo!=null?'Median-Tempo '+Math.round(tempo)+' P/Std':'sammelt noch Daten')+'</span></div>'+
-      '<div class="stsh-k"><span>Nächstes Outfit</span><b>'+(fNaechst!=null?fNaechst+' P':'—')+'</b><span>'+(outfit<20?'bis Outfit '+(outfit+1):'Frack an 🤵')+'</span></div>'+
-      '<div class="stsh-k"><span>Der Frack</span><b>'+(outfit>=20?'an 🤵':(frackGeht?fFrack+' P':'morgen wieder'))+'</b><span>'+(outfit>=20?'Outfit 20 erreicht':(frackGeht?'bis Outfit 20':'heute rechnerisch nicht mehr drin'))+'</span></div>'+
+      '<div class="stsh-k"><span>Rest im Fenster</span><b>'+tZeitKurz(restStd*60)+'</b><span>bis 22:00</span>'+
+        '<span class="av-bar"><i style="width:'+fensterPct+'%;background:var(--mut2)"></i></span></div>'+
+      '<div class="stsh-k"><span>Noch drin</span><b>'+(nochDrin!=null?'≈ '+Math.round(nochDrin)+' P':'–')+'</b><span>'+(tempo!=null?'Median-Tempo '+Math.round(tempo)+' P/Std':'sammelt noch Daten')+'</span>'+
+        '<span class="av-bar"><i style="width:'+drinPct+'%;background:var(--blue)"></i></span></div>'+
+      '<div class="stsh-k"><span>Nächstes Outfit</span><b>'+(fNaechst!=null?fNaechst+' P':'—')+'</b><span>'+(outfit<20?'bis Outfit '+(outfit+1):'Frack an 🤵')+'</span>'+
+        '<span class="av-bar"><i style="width:'+stufePct+'%;background:'+av.akzent+'"></i></span></div>'+
+      '<div class="stsh-k"><span>Der Frack</span><b>'+(outfit>=20?'an 🤵':(frackGeht?fFrack+' P':'morgen wieder'))+'</b><span>'+(outfit>=20?'Outfit 20 erreicht':(frackGeht?'bis Outfit 20':'heute rechnerisch nicht mehr drin'))+'</span>'+
+        '<span class="av-bar"><i style="width:'+frackPct+'%;background:var(--purple);'+(frackGeht?'':'opacity:.4')+'"></i></span></div>'+
     '</div>'+
     (function(){ // Streak-Satz — macht den Faktor greifbar
       if(!(faktor>1)) return '<div class="d" style="margin-top:8px">Noch keine Serie — ab morgen schenkt dir jeder Tag in Folge 2 % obendrauf.</div>';
@@ -3283,11 +3349,21 @@ function renderStatusSheet(){
     const ticksN=heuteIv.filter(e=>e.typ==='tick').length;
     const fokusMin=heuteIv.filter(e=>e.typ==='timer'||e.typ==='autopause').reduce((a,e)=>a+num(e.minuten),0);
     const bloecke=heuteIv.filter(e=>(e.typ==='timer'||e.typ==='autopause') && num(e.minuten)>=1).length;
+    // §7 (v1.11.1): Bild UND Zahl — je Kachel ein Balken
+    const routOffen=S.karten.filter(k=>k.rhythmus && k.status==='offen' && !k.freeze
+      && routineFaellig(k, heuteApp()) && !routErledigtHeute(k)).length;
+    let restMinPlan=0; S.karten.forEach(k=>{ if(imTagesstrom(k)) restMinPlan+=Math.max(0,num(k.sollMin)-heuteInvestiertMin(k)); });
+    const pA=kettenGes?Math.round(Math.min(1,erlA/kettenGes)*100):(erlA?100:0);
+    const pR=Math.round(erlR/Math.max(1,erlR+routOffen)*100);
+    const pF=Math.round(fokusMin/Math.max(1,fokusMin+restMinPlan)*100);
     let s='<div class="stsh-teil"><div class="stsh-kopf">Was du heute schon geschafft hast</div>'+
       '<div class="stsh-kacheln" style="grid-template-columns:1fr 1fr 1fr">'+
-      '<div class="stsh-k"><span>Aufgaben</span><b>'+erlA+'</b><span>'+(kettenGes?erlA+' / '+kettenGes+' in der Kette':'erledigt')+'</span></div>'+
-      '<div class="stsh-k"><span>Routinen</span><b>'+erlR+'</b><span>+ '+ticksN+' Ticks</span></div>'+
-      '<div class="stsh-k"><span>Fokuszeit</span><b>'+tZeitKurz(fokusMin)+'</b><span>'+bloecke+' Blöcke</span></div></div>';
+      '<div class="stsh-k"><span>Aufgaben</span><b>'+erlA+'</b><span>'+(kettenGes?erlA+' / '+kettenGes+' in der Kette':'erledigt')+'</span>'+
+        '<span class="av-bar"><i style="width:'+pA+'%;background:var(--blue)"></i></span></div>'+
+      '<div class="stsh-k"><span>Routinen</span><b>'+erlR+'</b><span>+ '+ticksN+' Ticks · '+routOffen+' offen</span>'+
+        '<span class="av-bar"><i style="width:'+pR+'%;background:var(--ok)"></i></span></div>'+
+      '<div class="stsh-k"><span>Fokuszeit</span><b>'+tZeitKurz(fokusMin)+'</b><span>'+bloecke+' Blöcke</span>'+
+        '<span class="av-bar"><i style="width:'+pF+'%;background:var(--purple)"></i></span></div></div>';
     // Punkte-Zerlegung: Zeit · Abhaken · Ticks
     const tickP=heuteIv.filter(e=>e.typ==='tick').reduce((a,e)=>a+Math.max(0,num(e.punkte)),0);
     let boniP=0;
@@ -3329,13 +3405,21 @@ function renderStatusSheet(){
     } else {
       s+='<div class="leer">P/Std-Balken ab 3 aktiven Tagen ('+reihe.length+'/3).</div>';
     }
-    // 30-Tage-Zahlen
-    let p30=0, e30=0;
-    for(let i=0;i<30;i++){ const sn=tagSnapshot(anVorTage(heuteApp(),i)); if(sn){ p30+=Math.max(0,num(sn.punkteBilanz)); e30+=num(sn.erledigtHeute); } }
+    // 30-Tage-Zahlen — §7 (v1.11.1): mit Miniverlauf bzw. Balken
+    let p30=0, e30=0; const reihe30=[];
+    for(let i=29;i>=0;i--){ const sn=tagSnapshot(anVorTage(heuteApp(),i));
+      const v=sn?Math.max(0,num(sn.punkteBilanz)):0;
+      reihe30.push(v); if(sn){ p30+=v; e30+=num(sn.erledigtHeute); } }
+    const spark=(function(){ const mx=Math.max.apply(null,reihe30.concat([1]));
+      const pts=reihe30.map((v,i)=>( (i/(reihe30.length-1))*100 ).toFixed(1)+','+(18-(v/mx)*16).toFixed(1)).join(' ');
+      return '<svg viewBox="0 0 100 20" width="100%" height="20" preserveAspectRatio="none"><polyline points="'+pts+'" fill="none" stroke="var(--cyan)" stroke-width="1.6"/></svg>'; })();
+    const serieAkt=num(S.meta.tagesStreak), serieBest=Math.max(1,num(S.meta.tagesStreakBest));
     s+='<div class="stsh-kacheln" style="grid-template-columns:1fr 1fr 1fr;margin-top:8px">'+
-      '<div class="stsh-k"><span>30 Tage</span><b>'+fmtKurzP(p30)+'</b><span>Punkte gesamt</span></div>'+
-      '<div class="stsh-k"><span>Erledigt</span><b>'+e30+'</b><span>in 30 Tagen</span></div>'+
-      '<div class="stsh-k"><span>Beste Serie</span><b>'+num(S.meta.tagesStreakBest)+' Tg</b><span>🔥 Rekord</span></div></div>';
+      '<div class="stsh-k"><span>30 Tage</span><b>'+fmtKurzP(p30)+'</b><span>Punkte gesamt</span>'+spark+'</div>'+
+      '<div class="stsh-k"><span>Erledigt</span><b>'+e30+'</b><span>in 30 Tagen</span>'+
+        '<span class="av-bar"><i style="width:'+Math.round(Math.min(1,e30/90)*100)+'%;background:var(--ok)"></i></span></div>'+
+      '<div class="stsh-k"><span>Beste Serie</span><b>'+num(S.meta.tagesStreakBest)+' Tg</b><span>aktuell '+serieAkt+' Tg 🔥</span>'+
+        '<span class="av-bar"><i style="width:'+Math.round(Math.min(1,serieAkt/serieBest)*100)+'%;background:var(--warn)"></i></span></div></div>';
     // Wochentagsprofil (vorhandene Rechnung: Ø Tagespunkte je Wochentag, 30 Tage)
     (function(){
       const byWt=[[],[],[],[],[],[],[]];
@@ -5969,13 +6053,17 @@ function renderAlbum(){
       '<div class="albn" style="white-space:normal">P/Std-Median (14 aktive Tage): <b>'+
         (rm.median!=null?Math.round(rm.median)+' P/Std':'sammelt noch Daten ('+rm.n+'/3)')+'</b>'+
         (rm.rang!=null?' · Rang '+rangAnzeigeText(rm):'')+'</div></div>';
+    // §8 (v1.11.1): jede Stufe zeigt wieder ihr Outfit-Bild — erreichte in
+    // Farbe, aktueller Rang hervorgehoben, höhere gedämpft (Kulissen-Optik):
+    // nicht gesperrt, nur noch nicht erreicht.
     for(let n=1;n<=RANG_MAX;n++){
       const erreicht=rm.rang!=null && n<=rm.rang;
       const aktuell=rm.rang===n;
       const datum=(S.meta.rangErreicht&&S.meta.rangErreicht[n])||null;
-      h+='<div class="albitem'+(erreicht?'':' zu')+'"'+(aktuell?' style="border-color:var(--blue)"':'')+'>'+
-        '<div class="albn" style="margin-top:8px">'+(aktuell?'▶ ':'')+'Rang '+n+'</div>'+
-        '<div class="albn" style="white-space:normal;font-weight:400">'+esc(rangName(n))+'</div>'+
+      h+='<div class="albitem rang'+(erreicht?'':' zu')+'"'+(aktuell?' style="border-color:var(--blue)"':'')+
+        ' data-albbild="'+AVATAR_BILDER[n-1]+'" data-albname="Rang '+n+' · '+esc(rangName(n))+'">'+
+        '<img src="'+AVATAR_BILDER[n-1]+'" alt="" loading="lazy">'+
+        '<div class="albn">'+(aktuell?'▶ ':'')+'Rang '+n+'</div>'+
         '<div class="albs">ab '+Math.round(leistungsSchwelle(n))+' P/Std'+
           (erreicht&&datum?' · '+fmtDatum(datum):'')+'</div></div>';
     }
@@ -6831,6 +6919,8 @@ el('statusbar').addEventListener('click', ()=>oeffneStatusSheet());   // §2 (1.
 el('fokusView').addEventListener('click', e=>{
   const t=e.target;
   // §2.5 (v1.6.0): die drei Navigationsebenen — je ein Tap, Zustand in S.ui (reload-fest)
+  // §9 (v1.11.1): übergreifender Heute-Filter (persistiert wie die anderen)
+  const nh=t.closest('[data-navheute]'); if(nh){ S.ui.navHeute=!S.ui.navHeute; saveUi(); renderFokus(); return; }
   const nd=t.closest('[data-navdom]');  if(nd){ S.ui.navDomain=nd.dataset.navdom; saveUi(); renderFokus();
     const rf=el('routFab'); if(rf) rf.classList.toggle('privat', navDomain()==='privat'); return; }
   const na=t.closest('[data-navart]');  if(na){ S.ui.navArt=na.dataset.navart;   saveUi(); renderFokus(); return; }
@@ -7012,6 +7102,18 @@ el('sheet').addEventListener('click', e=>{
   const t=e.target;
   if(t.id==='sheetX') return;   // eigener Close-Handler
   if(t.closest('[data-close]')){ closeSheet(); return; }
+  // §5 (v1.11.1): Kettenzeilen im Status-Sheet = normale Kartenzeilen mit den
+  // gemeinsamen Handlern. Start schließt das Sheet; Detail/Abhaken ersetzen es
+  // ohnehin; alles andere (Pfeile, Pin, Tick, …) rendert das Sheet neu.
+  if(t.closest('#sheetKette')){
+    const warStart=!!t.closest('[data-fokusstart]');
+    const wechselt=!!t.closest('[data-detail],[data-check]');
+    if(karteRowClick(t, e)){
+      if(warStart) closeSheet();
+      else if(!wechselt) renderStatusSheet();
+      return;
+    }
+  }
   // U6-A: Abhak-Dialog
   if(t.closest('[data-abfolge]')){ if(abhakTmp){ abhakTmp.folge=!abhakTmp.folge; renderAbhakDialog(); } return; }
   if(t.closest('[data-abakkuskip]')){ if(abhakTmp){ abhakTmp.akkuSkip=!abhakTmp.akkuSkip; renderAbhakDialog(); } return; }   // §4.1 (1.10.0)

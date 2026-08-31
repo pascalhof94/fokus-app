@@ -165,7 +165,10 @@ var sheetHtml=_els['sheetBody']?_els['sheetBody'].innerHTML:'';
 // v1.10.0-Sortier-Filter ist per Auftrag entfallen (Kette statt Filter).
 ok('v1.11: Sheet hat 6 Abschnitte', (sheetHtml.match(/stsh-kopf/g)||[]).length===6);
 ok('v1.11: Sortier-Chips entfallen (Kette statt Filter)', sheetHtml.indexOf('data-sheetsort')<0);
-ok('v1.10: Direktstart-Knoepfe vorhanden', sheetHtml.indexOf('data-sheetstart')>=0);
+// §5 (v1.11.1): Die Ketten-Karten nutzen die normale Kartenzeile — Direktstart
+// laeuft ueber deren gemeinsames data-fokusstart im #sheetKette-Container.
+ok('v1.11.1: Kette nutzt normale Kartenzeile mit Direktstart',
+  sheetHtml.indexOf('sheetKette')>=0 && sheetHtml.indexOf('data-fokusstart')>=0);
 smokeTest2('Abhak-Dialog mit Akku-Regler', function(){ abhakDialog('q2', false); });
 var dlg=_els['sheetBody']?_els['sheetBody'].innerHTML:'';
 ok('v1.10: Akku-Regler im Dialog', dlg.indexOf('id="abAkku"')>=0 && dlg.indexOf('data-abakkuskip')>=0);
