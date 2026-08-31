@@ -161,8 +161,10 @@ S.tag={ tagId:H+'-79', datum:H, laufindex:1, startTs:H+'T08:00:00', istMinutenSt
 smokeTest2('renderStatusbar (5 Zellen)', function(){ renderStatusbar(); });
 smokeTest2('Status-Sheet (3 Abschnitte)', function(){ renderStatusSheet(); });
 var sheetHtml=_els['sheetBody']?_els['sheetBody'].innerHTML:'';
-ok('v1.10: Sheet hat 3 Abschnitte', (sheetHtml.match(/stsh-kopf/g)||[]).length===3);
-ok('v1.10: Sortier-Chips vorhanden', sheetHtml.indexOf('data-sheetsort')>=0);
+// §8 (v1.11.0): Das Sheet hat sechs Abschnitte in fester Reihenfolge; der
+// v1.10.0-Sortier-Filter ist per Auftrag entfallen (Kette statt Filter).
+ok('v1.11: Sheet hat 6 Abschnitte', (sheetHtml.match(/stsh-kopf/g)||[]).length===6);
+ok('v1.11: Sortier-Chips entfallen (Kette statt Filter)', sheetHtml.indexOf('data-sheetsort')<0);
 ok('v1.10: Direktstart-Knoepfe vorhanden', sheetHtml.indexOf('data-sheetstart')>=0);
 smokeTest2('Abhak-Dialog mit Akku-Regler', function(){ abhakDialog('q2', false); });
 var dlg=_els['sheetBody']?_els['sheetBody'].innerHTML:'';

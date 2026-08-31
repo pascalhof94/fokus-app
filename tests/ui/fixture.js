@@ -84,6 +84,9 @@
     hotfix133:true, flowfix152:true, migration160:true, migration160Gezeigt:true,
     migration161:true, migration161Gezeigt:true, migration180:true, migration180Gezeigt:true,
     flowfix181:true, zeit191:true, gamify190:true, gamify190Gezeigt:true, akku1100:true,
+    // v1.11.0: Rang-Migration gilt als gelaufen; Bestwert > aktuellem Rang,
+    // damit die „X · best Y"-Anzeige sichtbar wird. Sterne sammeln noch.
+    rang1110:true, rangBest:13, sternTage:{},
     /* stapelV4/V6/V8 fehlen absichtlich: seedStapel() legt die
        Standard-Stapel beim ersten Laden selbst an. */
     lifetimeQuelle:'wohlstand',
@@ -113,17 +116,38 @@
         { kat:'wohnen',    stufe:2, name:'Fixture-Kauf', datum:heute(-5),  preis:5000 },
         { kat:'reisen',    stufe:2, name:'Fixture-Kauf', datum:heute(-2),  preis:2500 }
       ] },
-    historie:[
-      { tagId:GESTERN+'-1', datum:GESTERN, laufindex:1, startTs:GESTERN+'T08:00:00', endeTs:GESTERN+'T21:00:00',
-        akku:65, punkteBilanz:4200, abzuege:0, routinenBilanz:[], zeit:{dfm:14400,privat:3600,projekte:{Fertigung:10800}},
-        luecke:false, log:[{itemId:'x',titel:'Gestern',domain:'dfm',art:'Aufgabe',punkte:4200,ts:GESTERN+'T12:00:00'}],
-        akkuVerlauf:[], streak:1, erledigtHeute:3, urlaub:false, spielZufluss:5100 }
-    ],
-    intraday:[
-      { ts:H+'T09:10:00', kartenId:'k-lang', domaene:'dfm', punkte:0, minuten:31, typ:'timer' },
-      { ts:H+'T10:00:00', kartenId:'k-fertig', domaene:'dfm', punkte:800, minuten:40, typ:'abhaken' },
-      { ts:H+'T11:00:00', kartenId:'k-privat-fertig', domaene:'privat', punkte:300, minuten:20, typ:'abhaken' }
-    ],
+    /* v1.11.0: zehn erfundene Vortage — Zeit- und Punkte-Buchungen getrennt
+       (wie die echte App bucht) plus je ein zeitloser Bonus, den die
+       Null-Minuten-Regel aussortiert. Ergibt einen rechenbaren Rang. */
+    historie:(function(){
+      const out=[];
+      for(let off=1; off<=10; off++){
+        const d=heute(-off);
+        const p=3600+((off*37)%9)*180;
+        out.push({ tagId:d+'-1', datum:d, laufindex:1, startTs:d+'T08:00:00', endeTs:d+'T21:00:00',
+          akku:60+(off%3)*8, punkteBilanz:p, abzuege:0, routinenBilanz:[],
+          zeit:{dfm:14400,privat:3600,projekte:{Fertigung:10800}}, luecke:false,
+          log:[{itemId:'fx-h'+off,titel:'Tagwerk',domain:'dfm',art:'Aufgabe',punkte:p,ts:d+'T12:00:00'}],
+          akkuVerlauf:[{ts:d+'T09:00:00',akku:70},{ts:d+'T15:00:00',akku:55},{ts:d+'T20:00:00',akku:45}],
+          streak:1, erledigtHeute:2+(off%3), urlaub:false, spielZufluss:Math.round(p*1.2) });
+      }
+      return out;
+    })(),
+    intraday:(function(){
+      const iv=[
+        { ts:H+'T09:10:00', kartenId:'k-lang', domaene:'dfm', punkte:0, minuten:31, typ:'timer' },
+        { ts:H+'T10:00:00', kartenId:'k-fertig', domaene:'dfm', punkte:800, minuten:40, typ:'abhaken' },
+        { ts:H+'T11:00:00', kartenId:'k-privat-fertig', domaene:'privat', punkte:300, minuten:20, typ:'abhaken' }
+      ];
+      for(let off=1; off<=10; off++){
+        const d=heute(-off), kid='fx-h'+off;
+        const min=100+((off*13)%5)*15, p=700+((off*29)%7)*90;
+        iv.push({ ts:d+'T09:00:00', kartenId:kid, domaene:'dfm', punkte:0, minuten:min, typ:'timer' });
+        iv.push({ ts:d+'T12:00:00', kartenId:kid, domaene:'dfm', punkte:p, minuten:0, typ:'abhaken' });
+        iv.push({ ts:d+'T16:00:00', kartenId:'fx-bonus'+off, domaene:'dfm', punkte:150, minuten:0, typ:'abhaken' });
+      }
+      return iv;
+    })(),
     ui:{ tab:'fokus', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', sheetSort:'meine',
       stapelOffen:{'sys-heute':true,'sys-schnell':true,'sys-erledigt':true} },
     fokus:null

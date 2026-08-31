@@ -223,6 +223,19 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .stsh-karte .t{flex:1 1 100%;font-size:13.5px;font-weight:700}
 .stsh-karte .m{flex:1;min-width:0;font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace}
 .stsh-karte .kstart{flex:none;width:44px;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--blue);font-size:16px}
+/* ══ §8 (v1.11.0) · Sheet-Tagescockpit ══ */
+.stsh-wo{display:flex;gap:10px;align-items:stretch}
+.stsh-figur{position:relative;flex:none;width:104px;min-height:176px;display:flex;align-items:flex-end;justify-content:center}
+.stsh-figur svg.rahmen{position:absolute;inset:0;width:100%;height:100%}
+.stsh-figur img{position:relative;max-width:86%;max-height:150px;object-fit:contain;margin-bottom:14px}
+.stsh-figur .of{position:absolute;top:7px;left:0;right:0;text-align:center;font-size:9.5px;font-weight:800;color:var(--mut);letter-spacing:.4px}
+.stsh-figur .vit{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:9px;color:var(--mut2)}
+.stsh-kx{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.stsh-kx .av-bar{margin-top:3px}
+.stsh-karte .pos{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:6px;background:var(--card);border:1px solid var(--line);font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace;vertical-align:1px}
+.stsh-sum{font-size:12px;color:var(--mut);background:var(--card2);border:1px dashed var(--line);border-radius:10px;padding:7px 10px;margin-top:2px}
+.stsh-zerleg{display:flex;height:14px;border-radius:7px;overflow:hidden;background:#0a0f1a;margin-top:8px}
+.stsh-zerleg .z{background:var(--blue)} .stsh-zerleg .a{background:var(--ok)} .stsh-zerleg .t{background:var(--purple)}
 /* ══ §8 (v1.9.0) · Album ══ */
 .albtabs{display:flex;gap:6px;margin-bottom:10px}
 .albtab{flex:1;min-height:44px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--mut);font-size:13px;font-weight:800}
@@ -369,8 +382,14 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 #fokusAktiv .fk-swipe{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;
   padding-top:8px;border-top:1px dashed var(--line);font-size:10px;font-family:ui-monospace,monospace;color:var(--mut2)}
 #fokusAktiv .fk-swipe .sw{white-space:nowrap}
+/* §9.2 (v1.11.0): die Richtungs-Beschriftungen sind echte Buttons (≥44px) */
+#fokusAktiv .fk-swipe button.sw{background:transparent;border:none;color:var(--blue);font:inherit;font-weight:700;min-height:44px;padding:0 6px}
 #fokusAktiv .fk-swipe .m{color:var(--mut);font-weight:700;overflow:hidden;text-overflow:ellipsis}
-#fokusAktiv .fk-swipe .aus{opacity:.35}
+#fokusAktiv .fk-swipe .aus{opacity:.35;color:var(--mut)}
+/* §9.3 (v1.11.0): Tageskurve unter der Fokus-Karte, einklappbar */
+.fkurve{margin-bottom:var(--s1)}
+.fkurve-kopf{display:flex;align-items:center;gap:6px;min-height:44px;width:100%;background:transparent;border:none;color:var(--mut);font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:0 2px;text-align:left}
+.fkurve-kopf .caret{color:var(--mut2)}
 #fokusAktiv.imverlauf .fk-swipe .m{color:var(--purple)}
 #fokusAktiv.tkern{border-left:4px solid var(--line);padding:12px}
 #fokusAktiv.tkern.laeuft{box-shadow:0 0 0 1px var(--blue) inset}
@@ -1060,9 +1079,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.10.1';                   // Datenvertrag/Sync-appVersion — 1.10.1 (nur Optik-Hotfix; Vertrag 1.x unveraendert)
-const UI_VERSION = 'v1.10.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-08-30-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.11.0';                   // Datenvertrag/Sync-appVersion — 1.11.0 (Vertrag 1.x unveraendert)
+const UI_VERSION = 'v1.11.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-08-31-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1576,6 +1595,25 @@ function ladeAlles(){
     DB.set('karten_bak1100', S.karten);
     if(!Array.isArray(S.meta.akkuMessungen)) S.meta.akkuMessungen=[];
     S.meta.akku1100=true; saveMeta();
+  }
+  // ══ §10 (v1.11.0) · „Der Tag kleidet dich" — Rang aus der vorhandenen
+  // Historie rechnen (Null-Minuten-Regel), Bestwert setzen, Stern-Messung
+  // leer starten. Keine Datenlöschung; rangPunkte/muenzen/ausgegeben/Serie/
+  // Joker/Kulissen/Konto bleiben unangetastet. ═══════════════════════════
+  if(!S.meta.rang1110){
+    DB.set('meta_bak1110', S.meta);
+    // aussortierte Buchungen im 14-Tage-Fenster: Punkte ohne beigetragene Zeit
+    let aussortiert=0, aussortiertP=0;
+    aktiveRateTage(14).forEach(d=>{ const dt=tagesRateDetail(d);
+      aussortiert+=dt.ohneZeitN; aussortiertP+=dt.ohneZeitP; });
+    const rm=rangMass();
+    S.meta.rangBest = rm.rang!=null ? rm.rang : 0;
+    if(!S.meta.sternTage) S.meta.sternTage={};
+    S.meta.rang1110Log={ ts:jetztIso(), aktiveTage:rm.n,
+      median: rm.median!=null?Math.round(rm.median*10)/10:null,
+      rang:rm.rang, aussortiert, aussortiertPunkte:Math.round(aussortiertP),
+      tage:(rm.tage||[]).map(t=>({d:t.datum, rate:Math.round(t.r.rate)})) };
+    S.meta.rang1110=true; saveMeta();
   }
   // ══ §2.1 (v1.9.1) · Zeitmessung als Schalter ═══════════════════════════
   // Default true für ALLE Karten (die Grundregel). Einzige Ausnahme steht in
@@ -2569,6 +2607,15 @@ function fokusSwipeSchritt(richtung){
   saveUi(); haptik(8); renderFokus();
   return true;
 }
+/* §9.3 (v1.11.0): Die Tageskurve kommt zurück — unter die Fokus-Karte,
+   oberhalb der Liste. Nutzt diagrammKurveTag (nicht neu gebaut), einklappbar,
+   Zustand persistiert. Ein Ort, nicht zwei: NICHT zusätzlich im Sheet. */
+function fokusKurveHtml(){
+  if(!tagOffen()) return '';
+  const zu=!!(S.ui && S.ui.fokusKurveZu);
+  return '<div class="fkurve"><button class="fkurve-kopf" data-fkurve="1"><span class="caret">'+(zu?'▸':'▾')+'</span> Tageskurve</button>'+
+    (zu?'':'<div class="fkurve-body">'+diagrammKurveTag(tagSnapshot(heuteApp()),'alle')+'</div>')+'</div>';
+}
 function renderFokus(){
   rangCacheBauen();
   const host=el('fokusView');
@@ -2576,16 +2623,16 @@ function renderFokus(){
   const kand=fokusKandidaten();
   if(!k){
     const stn=(S.stapel.find(s=>s.id===S.ui.aktivStapel)||{}).name||'Stapel';
-    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine offene Karte im Stapel „'+esc(stn)+'".<br>Stapel unten wechseln oder eine Karte im Stapel starten.</div>'+fokusListeHtml()+pinLeisteHtml();
+    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine offene Karte im Stapel „'+esc(stn)+'".<br>Stapel unten wechseln oder eine Karte im Stapel starten.</div>'+fokusKurveHtml()+fokusListeHtml()+pinLeisteHtml();
     renderFkNav();
     return;
   }
   const idx=Math.max(0, kand.findIndex(x=>x.id===k.id));
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
-  const lvl=(typeof avatarStufe==='function')?avatarStufe():1, vital=(typeof vitalitaet==='function')?vitalitaet():true;
-  // UI-A (v1.5.2): Clip-Kreis mit Kopf-Zoom; id tRingBg = Ziel der Pace-Färbung
+  // §5 (v1.11.0): Die Kleidung zeigt den Tag — Bild-Slot = heutiges Outfit.
+  const vital=(typeof vitalitaet==='function')?vitalitaet():true;
   const av = '<span class="avclip" id="tRingBg">'+
-             '<img class="avfoto" src="'+avatarBild(lvl,vital)+'" alt="Avatar" onerror="this.style.display=\'none\';var f=this.nextElementSibling;if(f)f.style.display=\'flex\'">'+
+             '<img class="avfoto" src="'+AVATAR_BILDER[(typeof outfitHeute==='function'?outfitHeute():1)-1]+'" alt="Avatar" onerror="this.style.display=\'none\';var f=this.nextElementSibling;if(f)f.style.display=\'flex\'">'+
              '<span class="avfallback" style="display:none">🧑</span></span>';
   // Tacho-Ring (SVG): äußerer Zeit-Ring + Überzug + innerer Fortschritts-Ring + Kopf-Punkt.
   const ring='<div class="tringwrap"><svg viewBox="0 0 132 132" width="132" height="132">'+
@@ -2639,13 +2686,20 @@ function renderFokus(){
   const navMitte = num(nav.hist)>0
     ? 'Verlauf '+nav.hist+'/'+vlLen+' · heute bearbeitet'
     : (idx+1)+'/'+kand.length+' im Stapel';
-  const swipeLeiste='<div class="fk-swipe"><span class="sw l">◀ nächste</span>'+
+  // §9.2 (v1.11.0): „◀ nächste" und „Verlauf ▶" sind echte Bedienelemente
+  // (≥44 px) und lösen dasselbe aus wie der Wisch. Nicht mögliche Richtung
+  // bleibt zurückgenommen und reagiert nicht.
+  const linksGeht = num(nav.hist)>0 || kand.length>=2;
+  const rechtsGeht = vlLen>0 && num(nav.hist)<vlLen;
+  const swipeLeiste='<div class="fk-swipe">'+
+    '<button class="sw l'+(linksGeht?'':' aus')+'" data-fkswipe="-1">◀ nächste</button>'+
     '<span class="sw m">'+esc(navMitte)+'</span>'+
-    '<span class="sw r'+(vlLen?'':' aus')+'">Verlauf ▶</span></div>';
+    '<button class="sw r'+(rechtsGeht?'':' aus')+'" data-fkswipe="1">Verlauf ▶</button></div>';
   host.innerHTML =
     '<div id="fokusAktiv" class="tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+(num(nav.hist)>0?'imverlauf ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
       titel+kopf+stats+kpis+planbar+aufgabe+swipeLeiste+'</div>'+
     fokusSubsHtml(k)+
+    fokusKurveHtml()+   // §9.3 (v1.11.0): Tageskurve unter dem Fokus, über der Liste
     fokusListeHtml()+
     pinLeisteHtml();   // A8: Quick-Leiste unter der Stapel-Liste
   renderFkNav();
@@ -3074,96 +3128,233 @@ function oeffneStatusSheet(){
   if(!tagOffen()) return;
   renderStatusSheet();
 }
+/* ══ §8 (v1.11.0) · Das Sheet — sechs Abschnitte, das Tagescockpit. ══ */
 function renderStatusSheet(){
-  const sp=spielStand(), eb=energieBatterie(), pw=paceWerte();
-  const lvlEq=5*(sp.rang-1)+Math.max(1,sp.sterne), av=avatarAssets(lvlEq);
+  const rm=rangMass(), eb=energieBatterie(), outfit=outfitHeute(), F=outfitF(), stAkt=sterneAktuell();
+  const av=avatarAssets(5*(outfit-1)+Math.max(1,stAkt||1));
+  const heuteF=belFensterDatum(jetztIso()), nowX=belX(jetztIso());
+  const faktor=streakFaktor(), zielHeute=outfitZielHeute();
+  const mess=Math.max(0, tagesPunkteLive()), bonus=tagOffen()?Math.max(0,num(S.tag.spielBonus)):0;
+  const outfitBei=zusatz=>outfitVon(((mess+Math.max(0,zusatz))*faktor+bonus)/zielHeute);
   let h='';
-  // ── 1 · Wo du stehst ──
-  const R=34, U=2*Math.PI*R, off=U*(1-sp.anteil);
+  // ── 1 · Wo du stehst — ganze Figur, Ring RAHMT, vier Kacheln daneben ──
+  const RW=104, RH=176, RU=2*(RW-6)+2*(RH-6);
   h+='<div class="stsh-teil"><div class="stsh-kopf">Wo du stehst</div>'+
-    '<div class="stsh-rang">'+
-      '<div class="stsh-ring"><svg viewBox="0 0 84 84" width="84" height="84">'+
-        '<circle cx="42" cy="42" r="'+R+'" fill="none" stroke="var(--line)" stroke-width="6"/>'+
-        '<circle cx="42" cy="42" r="'+R+'" fill="none" stroke="'+av.akzent+'" stroke-width="6" stroke-linecap="round" stroke-dasharray="'+U.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 42 42)"/></svg>'+
-        '<img src="'+AVATAR_BILDER[sp.rang-1]+'" alt="" onerror="this.style.display=\'none\'"></div>'+
-      '<div class="stsh-rtxt"><b style="color:'+av.akzent+'">Rang '+sp.rang+' · '+esc(sp.name)+'</b>'+
-      '<span style="color:var(--warn);letter-spacing:2px">'+('★'.repeat(sp.sterne)+'☆'.repeat(5-sp.sterne))+'</span>'+
-      '<span class="d">'+(sp.rang>=RANG_MAX ? 'Höchster Rang — '+Math.round(sp.rp)+' P gesamt.'
-        : 'Noch '+Math.round(sp.rest)+' Rang-P bis Rang '+(sp.rang+1)+(function(){ const t=rangTempo();
-            return (t&&t>0) ? ' · ≈ '+Math.max(1,Math.ceil(sp.rest/t))+' Tage' : ''; })())+'</span></div></div>'+
-    '<div class="av-bar" style="margin-top:6px"><i style="width:'+Math.round(sp.anteil*100)+'%;background:'+av.akzent+'"></i></div>'+
-    '<div class="stsh-kacheln">'+
-      '<div class="stsh-k"><span>🔥 Serie</span><b>'+num(S.meta.tagesStreak)+' Tg · ×'+streakFaktor().toFixed(2).replace('.',',')+'</b>'+
-        (function(){ const st=num(S.meta.tagesStreak);
-          const naechster=[7,30,100,365].find(x=>x>st);
-          if(!naechster) return '<span>alle Meilensteine erreicht</span>';
-          const ms=STREAK_MEILENSTEINE[naechster];
-          return '<span>Tag '+naechster+' (+'+fmtKurzP(ms.m)+' 🪙'+(ms.r?' +'+fmtKurzP(ms.r)+' R':'')+') in '+(naechster-st)+' Tg'+(jokerVerfuegbar()?' · ♦ bereit':'')+'</span>'; })()+'</div>'+
-      '<div class="stsh-k"><span>🪙 Konto</span><b>'+Math.round(konto())+'</b>'+
-        (function(){ const st=bgStufeAus(ausgabenAnzeige());
-          return st<10 ? '<span>Kulisse '+(st+1)+' ab '+fmtKurzP(bgSchwelle(st+1))+' ausgegeben</span>' : '<span>Reise komplett</span>'; })()+'</div>'+
-    '</div></div>';
-  // ── 2 · Wie der Tag läuft ──
-  const zielGes=Math.max(1, belZielGesamt());
-  const pDfm=Math.max(0, belIstDfm()), pPriv=Math.max(0, tagesPunkteDomain('privat'));
-  let pctD=pDfm/zielGes*100, pctP=pPriv/zielGes*100;
-  if(pctD+pctP>100){ const sc=100/(pctD+pctP); pctD*=sc; pctP*=sc; }
-  const sollPct=urlaubHeute()?0:Math.min(100, sbFensterAnteil()*100);
-  const istPct=pctD+pctP;
-  h+='<div class="stsh-teil"><div class="stsh-kopf">Wie der Tag läuft</div>'+
-    '<div class="stsh-bar"><span class="ist dfm" style="width:'+pctD.toFixed(1)+'%"></span>'+
-      '<span class="ist privat" style="left:'+pctD.toFixed(1)+'%;width:'+pctP.toFixed(1)+'%"></span>'+
-      (sollPct>istPct?'<span class="soll" style="left:'+istPct.toFixed(1)+'%;width:'+(sollPct-istPct).toFixed(1)+'%"></span>':'')+
-      (sollPct>0&&sollPct<=istPct?'<span class="sollmark" style="left:'+sollPct.toFixed(1)+'%"></span>':'')+
-      '<span class="qmark" style="left:25%"></span><span class="qmark" style="left:50%"></span><span class="qmark" style="left:75%"></span></div>'+
-    '<div class="stsh-legende"><span><i style="background:var(--blue)"></i>DFM '+Math.round(pDfm)+'</span>'+
-      '<span><i style="background:var(--warn)"></i>Privat '+Math.round(pPriv)+'</span>'+
-      (urlaubHeute()?'<span>🏖 kein Soll</span>':'<span><i style="background:var(--bad)"></i>Soll jetzt '+Math.round(zielGes*sbFensterAnteil())+'</span>')+'</div>'+
-    '<div class="stsh-kacheln">'+
-      '<div class="stsh-k"><span>Tempo</span>'+(urlaubHeute()?'<b>🏖 Urlaub</b><span>kein Soll heute</span>':(function(){
-        const dr=Math.round(pw.deltaRate), abs=Math.round(pw.soll-pw.ist);
-        let z=abs>0 ? ('Rückstand '+abs+' P') : ('Vorsprung '+(-abs)+' P');
-        if(abs>0 && pw.deltaRate>0) z+=' · aufgeholt in ≈ '+Math.round(abs/pw.deltaRate*60)+' Min';
-        return '<b style="color:'+(dr>=0?'var(--ok)':'var(--bad)')+'">'+(dr>=0?'+':'')+dr+' P/Std</b><span>'+z+'</span>'; })())+'</div>'+
-      '<div class="stsh-k"><span>Akku</span><b>'+(eb.akku!=null?Math.round(eb.akku)+'%':'–')+'</b>'+
-        '<span>verplant '+Math.round(eb.gelb)+'% · '+akkuReichweite(eb)+'</span></div>'+
-    '</div>'+
-    (function(){ // Meilenstein-Hinweis: was zum nächsten ¼-Strich fehlt
-      const ist=pDfm+pPriv;
-      const naechsteQ=[0.25,0.5,0.75,1].map(q=>q*zielGes).find(x=>x>ist);
-      if(naechsteQ==null) return '<div class="d" style="margin-top:6px">Tagesziel erreicht. 🎉</div>';
-      const fehlt=Math.round(naechsteQ-ist);
-      const offene=fokusKandidaten().filter(x=>x.status==='offen');
-      const oe=offene.length?offene.reduce((a,x)=>a+Math.max(1,kartePunkteGeplant(x)),0)/offene.length:0;
-      return '<div class="d" style="margin-top:6px">Bis zum nächsten Meilenstein: <b>'+fehlt+' P</b>'+(oe>0?' — ≈ '+Math.max(1,Math.ceil(fehlt/oe))+' Karten':'')+'.</div>'; })()+
-  '</div>';
-  // ── 3 · Was jetzt ──
-  const sortWahl=sheetSortWahl();
-  const chips=[['meine','≡ Meine Reihenfolge'],['ph','⚡ P je Std'],['geld','💰 Geld je Std']];
-  h+='<div class="stsh-teil"><div class="stsh-kopf">Was jetzt</div>'+
-    '<div class="chips" style="margin-bottom:8px">'+chips.map(c=>'<button class="chip '+(sortWahl===c[0]?'on':'')+'" data-sheetsort="'+c[0]+'">'+c[1]+'</button>').join('')+'</div>';
-  let kand=fokusKandidaten().filter(x=>x.status==='offen');
-  const phVon=x=>{ const sm=num(x.sollMin); return sm>0 ? kartePunkteGeplant(x)/(sm/60) : -1; };
-  const geldVon=x=>{ const sm=num(x.sollMin), g=num(x.geldScore); return (g>0&&sm>0) ? g/(sm/60) : -1; };
-  if(sortWahl==='ph') kand=kand.slice().sort((a,b)=>phVon(b)-phVon(a));
-  else if(sortWahl==='geld') kand=kand.slice().sort((a,b)=>geldVon(b)-geldVon(a));
-  // §2.3: unter 40 % Akku rückt eine ladende Karte nach vorn
-  let ladehinweis='';
-  if(eb.akku!=null && eb.akku<40){
-    const i=kand.findIndex(x=>akkuRate(x)>0);
-    if(i>0){ const lk=kand.splice(i,1)[0]; kand.unshift(lk);
-      ladehinweis='<div class="hint" style="margin-bottom:6px">Akku unter 40 % — „'+esc(lk.titel||'?')+'" lädt ('+(akkuRate(lk)>0?'+':'')+Math.round(akkuRate(lk))+' %/Std) und steht deshalb vorn.</div>'; }
-  }
-  h+=ladehinweis;
-  if(!kand.length) h+='<div class="leer">Keine offenen Karten im aktiven Filter.</div>';
-  kand.slice(0,3).forEach(x=>{
-    const sm=num(x.sollMin), kw=(sortWahl==='geld')?(geldVon(x)>=0?Math.round(geldVon(x))+' €/h-Score':'–')
-      :(phVon(x)>=0?Math.round(phVon(x))+' P/Std':'–');
-    h+='<div class="stsh-karte"><div class="t">'+esc(x.titel||'(ohne Titel)')+'</div>'+
-      '<div class="m">'+(x.domain==='dfm'?'DFM':'Privat')+(sm>0?' · '+sm+'′':'')+' · '+Math.round(kartePunkteGeplant(x))+' P · '+kw+' · Akku '+(akkuRate(x)>=0?'+':'')+Math.round(akkuRate(x))+'/h</div>'+
-      '<button class="kstart" data-sheetstart="'+x.id+'" aria-label="Starten">▶</button></div>';
+    '<div class="stsh-wo">'+
+      '<div class="stsh-figur"><span class="of">Outfit '+outfit+' / 20</span>'+
+        '<svg viewBox="0 0 '+RW+' '+RH+'" class="rahmen">'+
+          '<rect x="3" y="3" width="'+(RW-6)+'" height="'+(RH-6)+'" rx="14" fill="none" stroke="var(--line)" stroke-width="3"/>'+
+          '<rect x="3" y="3" width="'+(RW-6)+'" height="'+(RH-6)+'" rx="14" fill="none" stroke="'+av.akzent+'" stroke-width="3" stroke-linecap="round" stroke-dasharray="'+(RU*(rm.rang!=null?rm.anteil:0)).toFixed(0)+' '+RU.toFixed(0)+'"/></svg>'+
+        '<img src="'+AVATAR_BILDER[outfit-1]+'" alt="" onerror="this.style.display=\'none\'">'+
+        '<span class="vit">'+VITAL_LABEL[vitalStufe()||'voll']+'</span></div>'+
+      '<div class="stsh-kx">'+
+        '<div class="stsh-k"><span>Rang</span><b>'+(rm.rang!=null?rangAnzeigeText(rm):'sammelt '+rm.n+'/3')+'</b>'+
+          '<span>'+(rm.rang!=null?(Math.round(rm.median)+' P/Std · '+(stAkt!=null?'★'.repeat(stAkt)+'☆'.repeat(5-stAkt):'★ sammelt '+sternMass().n+'/14')
+            +(rm.naechste?' · R'+(rm.rang+1)+' ab '+Math.round(rm.naechste):'')):'P/Std-Median über 14 aktive Tage')+'</span>'+
+          '<span class="av-bar"><i style="width:'+Math.round((rm.rang!=null?rm.anteil:0)*100)+'%;background:'+av.akzent+'"></i></span></div>'+
+        '<div class="stsh-k"><span>Heute</span><b>'+Math.round(mess)+' / '+Math.round(zielHeute)+' P</b>'+
+          '<span>F '+F.toFixed(2).replace('.',',')+' → Outfit '+outfit+(urlaubHeute()?' · 🏖 Ersatzziel':'')+'</span>'+
+          '<span class="av-bar"><i style="width:'+Math.round(Math.min(1,F)*100)+'%;background:var(--blue)"></i></span></div>'+
+        '<div class="stsh-k"><span>🔥 Serie</span><b>'+num(S.meta.tagesStreak)+' Tg · ×'+faktor.toFixed(2).replace('.',',')+'</b>'+
+          (function(){ const st=num(S.meta.tagesStreak); const naechster=[7,30,100,365].find(x=>x>st);
+            if(!naechster) return '<span>alle Meilensteine erreicht</span>';
+            const ms=STREAK_MEILENSTEINE[naechster];
+            return '<span>Tag '+naechster+' (+'+fmtKurzP(ms.m)+' 🪙) in '+(naechster-st)+' Tg'+(jokerVerfuegbar()?' · ♦ bereit':'')+'</span>'; })()+'</div>'+
+        '<div class="stsh-k"><span>🪙 Konto</span><b>'+Math.round(konto())+'</b>'+
+          (function(){ const st=bgStufeAus(ausgabenAnzeige());
+            return st<10 ? '<span>Kulisse '+(st+1)+' ab '+fmtKurzP(bgSchwelle(st+1))+' ausgegeben</span>' : '<span>Reise komplett</span>'; })()+'</div>'+
+      '</div></div></div>';
+  // ── 2 · Als nächstes · deine Kette ──
+  const kIds=ketteState().ids||[], byId={}; S.karten.forEach(k=>byId[k.id]=k);
+  let kettenOffen=kIds.map((id,i)=>({k:byId[id], pos:i+1})).filter(x=>x.k && x.k.status==='offen');
+  let fallback=false;
+  if(!kettenOffen.length){ fallback=true;
+    kettenOffen=fokusKandidaten().filter(x=>x.status==='offen').map((k,i)=>({k, pos:i+1})); }
+  const drei=kettenOffen.slice(0,3);
+  h+='<div class="stsh-teil"><div class="stsh-kopf">Als nächstes · deine Kette</div>';
+  if(fallback) h+='<div class="hint" style="margin-bottom:6px">Die Kette ist leer — das sind die Kandidaten deines aktiven Filters.</div>';
+  if(!drei.length) h+='<div class="leer">Keine offene Karte.</div>';
+  drei.forEach(x=>{
+    const sm=num(x.k.sollMin), gp=kartePunkteGeplant(x.k);
+    const ph=sm>0?Math.round(gp/(sm/60)):null, ar=akkuRate(x.k);
+    h+='<div class="stsh-karte"><div class="t"><span class="pos">'+x.pos+'</span> '+esc(x.k.titel||'(ohne Titel)')+'</div>'+
+      '<div class="m">'+(x.k.domain==='dfm'?'DFM':'Privat')+(sm>0?' · '+sm+'′':'')+' · '+Math.round(gp)+' P'+
+        (ph!=null?' · '+ph+' P/Std':'')+' · Akku '+(ar>=0?'+':'')+Math.round(ar)+'/h</div>'+
+      '<button class="kstart" data-sheetstart="'+x.k.id+'" aria-label="Starten">▶</button></div>';
   });
+  if(drei.length){
+    const sP=drei.reduce((a,x)=>a+kartePunkteGeplant(x.k),0);
+    const sMin=drei.reduce((a,x)=>a+Math.max(0,num(x.k.sollMin)),0);
+    h+='<div class="stsh-sum">Zusammen: <b>'+Math.round(sP)+' P</b> · '+tZeitKurz(sMin)+' → Outfit <b>'+outfitBei(sP)+'</b></div>';
+  }
   h+='</div>';
+  // ── 3 · Was heute noch geht ──
+  const fn=belTagFenster(heuteF), restStd=Math.max(0, fn.bis-nowX);
+  const tempo=rm.median;   // §8.3: Median-Tempo, nicht Bestwert
+  const nochDrin=tempo!=null?restStd*tempo:null;
+  const fNaechst=outfit<20?Math.round(outfitFehltBis(outfit+1)):null;
+  const fFrack=outfit<20?Math.round(outfitFehltBis(20)):0;
+  const frackGeht = outfit>=20 || (nochDrin!=null && fFrack<=nochDrin);
+  h+='<div class="stsh-teil"><div class="stsh-kopf">Was heute noch geht</div>'+
+    '<div class="stsh-kacheln">'+
+      '<div class="stsh-k"><span>Rest im Fenster</span><b>'+tZeitKurz(restStd*60)+'</b><span>bis '+belUhr(fn.bis)+'</span></div>'+
+      '<div class="stsh-k"><span>Noch drin</span><b>'+(nochDrin!=null?'≈ '+Math.round(nochDrin)+' P':'–')+'</b><span>'+(tempo!=null?'Median-Tempo '+Math.round(tempo)+' P/Std':'sammelt noch Daten')+'</span></div>'+
+      '<div class="stsh-k"><span>Nächstes Outfit</span><b>'+(fNaechst!=null?fNaechst+' P':'—')+'</b><span>'+(outfit<20?'bis Outfit '+(outfit+1):'Frack an 🤵')+'</span></div>'+
+      '<div class="stsh-k"><span>Der Frack</span><b>'+(outfit>=20?'an 🤵':(frackGeht?fFrack+' P':'morgen wieder'))+'</b><span>'+(outfit>=20?'Outfit 20 erreicht':(frackGeht?'bis Outfit 20':'heute rechnerisch nicht mehr drin'))+'</span></div>'+
+    '</div>'+
+    (function(){ // Streak-Satz — macht den Faktor greifbar
+      if(!(faktor>1)) return '<div class="d" style="margin-top:8px">Noch keine Serie — ab morgen schenkt dir jeder Tag in Folge 2 % obendrauf.</div>';
+      const geschenk=Math.round(mess*(faktor-1));
+      const ohne=outfitVon((mess+bonus)/zielHeute);
+      return '<div class="d" style="margin-top:8px">Deine Serie schenkt dir heute <b>'+geschenk+' Punkte</b>. Ohne sie stündest du bei Outfit <b>'+ohne+'</b>.</div>'; })()+
+    (function(){ // Akku-Satz
+      const rw=akkuReichweite(eb);
+      if(rw==='reicht') return '<div class="d" style="margin-top:4px">🔋 Der Akku reicht für den Rest des Tages.</div>';
+      const lade=S.karten.filter(k=>k.status==='offen' && akkuRate(k)>0).sort((a,b)=>akkuRate(b)-akkuRate(a))[0];
+      return '<div class="d" style="margin-top:4px">🔋 Der Akku reicht '+rw+
+        (lade?' — ab dann wäre „'+esc(lade.titel||'?')+'" (+'+Math.round(akkuRate(lade))+' %/Std) dran.':'.')+'</div>'; })()+
+  '</div>';
+  // ── 4 · Wie du gerade liegst ──
+  const vglTage=aktiveRateTage(15).filter(d=>d!==heuteF).slice(0,14);
+  h+='<div class="stsh-teil"><div class="stsh-kopf">Wie du gerade liegst</div>';
+  h+=(function(){ // Punkte über den Tag: heute gegen den Normaltag (belTagKurve-Bausteine)
+    const von=fn.von, bis=fn.bis;
+    const kHeute=belTagKurve(heuteF,'alle',von);
+    { const live=belIstGesamt(); const last=kHeute[kHeute.length-1].p;
+      kHeute.push({x:Math.max(von,Math.min(nowX,bis)), p:Math.max(last,live)}); }
+    let kNorm=null;
+    if(vglTage.length>=3){
+      kNorm=[]; const schritt=Math.max(0.25,(bis-von)/40);
+      for(let x=von;x<=bis+0.001;x+=schritt){
+        const vals=vglTage.map(d=>belKurveWert(belTagKurve(d,'alle',von),x));
+        kNorm.push({x, p:vals.reduce((a,b)=>a+b,0)/vals.length});
+      }
+    }
+    const maxY=Math.max(10, kHeute[kHeute.length-1].p, kNorm?kNorm[kNorm.length-1].p:0)*1.12;
+    const W=320,Hh=110,pL=6,pR=6,pT=8,pB=14, span=Math.max(0.5,bis-von);
+    const X=x=>pL+((Math.max(von,Math.min(bis,x))-von)/span)*(W-pL-pR), Y=p=>pT+(1-p/maxY)*(Hh-pT-pB);
+    const pfad=pts=>pts.map((p,i)=>(i?'L':'M')+X(p.x).toFixed(1)+' '+Y(p.p).toFixed(1)).join(' ');
+    let s='<div class="akkukarte"><div class="lbl"><span>Heute gegen den Normaltag</span><span>'+Math.round(belIstGesamt())+' P</span></div>'+
+      '<svg viewBox="0 0 '+W+' '+Hh+'" width="100%" height="'+Hh+'">'+
+      '<line x1="'+pL+'" y1="'+(Hh-pB)+'" x2="'+(W-pR)+'" y2="'+(Hh-pB)+'" stroke="var(--line)"/>'+
+      (kNorm?'<path d="'+pfad(kNorm)+'" fill="none" stroke="var(--mut2)" stroke-width="1.6" stroke-dasharray="4 3" opacity=".8"/>':'')+
+      '<path d="'+pfad(kHeute.filter(p=>p.x<=nowX+0.001))+'" fill="none" stroke="var(--purple)" stroke-width="2.4" stroke-linejoin="round"/>'+
+      '<circle cx="'+X(Math.min(nowX,bis)).toFixed(1)+'" cy="'+Y(kHeute[kHeute.length-1].p).toFixed(1)+'" r="3" fill="var(--purple)"/>'+
+      '<text x="'+pL+'" y="'+(Hh-3)+'" fill="var(--mut2)" font-size="8">'+belUhr(von)+'</text>'+
+      '<text x="'+(W-34)+'" y="'+(Hh-3)+'" fill="var(--mut2)" font-size="8">'+belUhr(bis)+'</text></svg></div>';
+    // Einordnungssatz — beide Richtungen, entfällt bei dünner Datenlage
+    if(vglTage.length>=3){
+      const oJetzt=vglTage.map(d=>belKurveWert(belTagKurve(d,'alle',von),nowX)).reduce((a,b)=>a+b,0)/vglTage.length;
+      const ist=belIstGesamt();
+      if(oJetzt>=20){
+        const pct=Math.round((ist-oJetzt)/oJetzt*100);
+        if(pct>=0){
+          s+='<div class="d" style="margin-top:6px">Um '+belUhr(nowX)+' hattest du an einem normalen Tag '+Math.round(oJetzt)+' P. Heute sind es <b>'+Math.round(ist)+'</b> — du liegst <b>'+pct+' %</b> über deinem Schnitt.</div>';
+        } else {
+          const delta=oJetzt-ist;
+          const offene=fokusKandidaten().filter(x=>x.status==='offen');
+          const oe=offene.length?offene.reduce((a,x)=>a+Math.max(1,kartePunkteGeplant(x)),0)/offene.length:0;
+          const n=oe>0?Math.max(1,Math.ceil(delta/oe)):null;
+          s+='<div class="d" style="margin-top:6px">Um '+belUhr(nowX)+' hattest du an einem normalen Tag '+Math.round(oJetzt)+' P, heute sind es '+Math.round(ist)+' — du liegst '+Math.abs(pct)+' % darunter'+(n?' — mit den nächsten '+n+' Karte'+(n>1?'n':'')+' bist du wieder da.':'.')+'</div>';
+        }
+      }
+    }
+    return s; })();
+  h+='<div class="statringe" style="display:flex;gap:8px;margin-top:8px">'+scoreRingDomain('dfm','DFM','var(--blue)')+scoreRingDomain('privat','Privat','var(--warn)')+'</div>';
+  h+=(function(){ // Batterieverlauf des Tages
+    if(!(tagOffen() && S.tag)) return '';
+    const av2=(S.tag.akkuVerlauf||[]).map(e=>({x:belX(e.ts), p:num(e.akku)}));
+    const now=akkuLive(); if(now!=null) av2.push({x:nowX, p:now});
+    if(av2.length<2) return '<div class="d" style="margin-top:6px">🔋 Akku jetzt: '+(now!=null?Math.round(now)+'%':'–')+'</div>';
+    const von=fn.von, bis=Math.max(nowX,fn.von+0.5), W=320,Hh=64,pL=6,pR=6, span=Math.max(0.5,bis-von);
+    const X=x=>pL+((Math.max(von,Math.min(bis,x))-von)/span)*(W-pL-pR), Y=p=>6+(1-p/100)*50;
+    return '<div class="akkukarte" style="margin-top:8px"><div class="lbl"><span>Batterieverlauf</span><span>'+(now!=null?Math.round(now)+'%':'–')+'</span></div>'+
+      '<svg viewBox="0 0 '+W+' '+Hh+'" width="100%" height="'+Hh+'">'+
+      '<polyline points="'+av2.map(e=>X(e.x).toFixed(1)+','+Y(e.p).toFixed(1)).join(' ')+'" fill="none" stroke="var(--ok)" stroke-width="2" stroke-linejoin="round"/></svg></div>'; })();
+  h+='</div>';
+  // ── 5 · Was du heute schon geschafft hast ──
+  const tid=aktuelleTagId();
+  const heuteIv=(S.intraday||[]).filter(e=>e.ts && belFensterDatum(e.ts)===heuteF);
+  h+=(function(){
+    const erlA=S.karten.filter(k=>k.status==='erledigt' && k.tagId===tid && !k.rhythmus).length;
+    const kettenGes=kIds.filter(id=>byId[id]).length;
+    const logHeute=tagOffen()?(S.tag.log||[]):[];
+    const erlR=logHeute.filter(e=>e.art==='Routine' && num(e.punkte)>0).length;
+    const ticksN=heuteIv.filter(e=>e.typ==='tick').length;
+    const fokusMin=heuteIv.filter(e=>e.typ==='timer'||e.typ==='autopause').reduce((a,e)=>a+num(e.minuten),0);
+    const bloecke=heuteIv.filter(e=>(e.typ==='timer'||e.typ==='autopause') && num(e.minuten)>=1).length;
+    let s='<div class="stsh-teil"><div class="stsh-kopf">Was du heute schon geschafft hast</div>'+
+      '<div class="stsh-kacheln" style="grid-template-columns:1fr 1fr 1fr">'+
+      '<div class="stsh-k"><span>Aufgaben</span><b>'+erlA+'</b><span>'+(kettenGes?erlA+' / '+kettenGes+' in der Kette':'erledigt')+'</span></div>'+
+      '<div class="stsh-k"><span>Routinen</span><b>'+erlR+'</b><span>+ '+ticksN+' Ticks</span></div>'+
+      '<div class="stsh-k"><span>Fokuszeit</span><b>'+tZeitKurz(fokusMin)+'</b><span>'+bloecke+' Blöcke</span></div></div>';
+    // Punkte-Zerlegung: Zeit · Abhaken · Ticks
+    const tickP=heuteIv.filter(e=>e.typ==='tick').reduce((a,e)=>a+Math.max(0,num(e.punkte)),0);
+    let boniP=0;
+    S.karten.forEach(k=>{ (k.abschluesse||[]).forEach(a=>{ if(a.tagId===tid) boniP+=Math.max(0,num(a.bonusPunkte)); }); });
+    const zeitP=Math.max(0, mess-tickP-boniP);
+    const ges=Math.max(1, zeitP+boniP+tickP);
+    s+='<div class="stsh-zerleg"><span class="z" style="width:'+(zeitP/ges*100).toFixed(1)+'%"></span>'+
+       '<span class="a" style="width:'+(boniP/ges*100).toFixed(1)+'%"></span>'+
+       '<span class="t" style="width:'+(tickP/ges*100).toFixed(1)+'%"></span></div>'+
+      '<div class="stsh-legende"><span><i style="background:var(--blue)"></i>Zeit '+Math.round(zeitP)+'</span>'+
+      '<span><i style="background:var(--ok)"></i>Abhaken '+Math.round(boniP)+'</span>'+
+      '<span><i style="background:var(--purple)"></i>Ticks '+Math.round(tickP)+'</span></div>';
+    // Vergleichssatz aus echter Historie
+    if(vglTage.length>=3){
+      const werte=vglTage.map(d=>{ const sn=tagSnapshot(d); return sn?Math.max(0,num(sn.punkteBilanz)):null; }).filter(x=>x!=null);
+      if(werte.length>=3){
+        const n=werte.filter(w=>w<mess).length;
+        s+='<div class="d" style="margin-top:8px">Du hast heute schon mehr geschafft als an <b>'+n+' der letzten '+werte.length+'</b> Tage — und der Tag läuft noch.</div>';
+      }
+    }
+    return s+'</div>'; })();
+  // ── 6 · Der längere Blick ──
+  h+=(function(){
+    let s='<div class="stsh-teil"><div class="stsh-kopf">Der längere Blick</div>';
+    const reihe=(rm.tage||[]).slice().sort((a,b)=>a.datum<b.datum?-1:1);
+    if(reihe.length>=3){
+      const W=320,Hh=104,pL=6,pR=6,pB=14, n=reihe.length, bw=Math.max(6,Math.floor((W-pL-pR)/n)-3);
+      const maxR=Math.max.apply(null,reihe.map(x=>x.r.rate).concat([rm.median||10]))*1.1;
+      const Y=v=>6+(1-v/maxR)*(Hh-6-pB);
+      let b='';
+      reihe.forEach((t,i)=>{ const x=pL+i*((W-pL-pR)/n), hh=Math.max(2,(t.r.rate/maxR)*(Hh-6-pB));
+        b+='<rect x="'+x.toFixed(1)+'" y="'+(Hh-pB-hh).toFixed(1)+'" width="'+bw+'" height="'+hh.toFixed(1)+'" rx="2" fill="'+(t.datum===heuteF?'var(--cyan)':'var(--purple)')+'"/>'; });
+      s+='<div class="akkukarte"><div class="lbl"><span>P/Std je Tag · 14 aktive Tage</span><span>Median '+Math.round(rm.median)+'</span></div>'+
+        '<svg viewBox="0 0 '+W+' '+Hh+'" width="100%" height="'+Hh+'">'+b+
+        '<line x1="'+pL+'" y1="'+Y(rm.median).toFixed(1)+'" x2="'+(W-pR)+'" y2="'+Y(rm.median).toFixed(1)+'" stroke="var(--warn)" stroke-width="1.4" stroke-dasharray="4 3"/>'+
+        '<text x="'+pL+'" y="'+Math.max(8,Y(rm.median)-3).toFixed(1)+'" fill="var(--warn)" font-size="8">Median '+Math.round(rm.median)+'</text>'+
+        '<text x="'+pL+'" y="'+(Hh-3)+'" fill="var(--mut2)" font-size="8">'+reihe[0].datum.slice(5)+'</text>'+
+        '<text x="'+(W-40)+'" y="'+(Hh-3)+'" fill="var(--mut2)" font-size="8">'+reihe[n-1].datum.slice(5)+'</text></svg></div>';
+    } else {
+      s+='<div class="leer">P/Std-Balken ab 3 aktiven Tagen ('+reihe.length+'/3).</div>';
+    }
+    // 30-Tage-Zahlen
+    let p30=0, e30=0;
+    for(let i=0;i<30;i++){ const sn=tagSnapshot(anVorTage(heuteApp(),i)); if(sn){ p30+=Math.max(0,num(sn.punkteBilanz)); e30+=num(sn.erledigtHeute); } }
+    s+='<div class="stsh-kacheln" style="grid-template-columns:1fr 1fr 1fr;margin-top:8px">'+
+      '<div class="stsh-k"><span>30 Tage</span><b>'+fmtKurzP(p30)+'</b><span>Punkte gesamt</span></div>'+
+      '<div class="stsh-k"><span>Erledigt</span><b>'+e30+'</b><span>in 30 Tagen</span></div>'+
+      '<div class="stsh-k"><span>Beste Serie</span><b>'+num(S.meta.tagesStreakBest)+' Tg</b><span>🔥 Rekord</span></div></div>';
+    // Wochentagsprofil (vorhandene Rechnung: Ø Tagespunkte je Wochentag, 30 Tage)
+    (function(){
+      const byWt=[[],[],[],[],[],[],[]];
+      for(let i=1;i<=30;i++){ const d=anVorTage(heuteApp(),i); const sn=tagSnapshot(d);
+        if(sn && !sn.urlaub) byWt[belWochentag(d)].push(Math.max(0,num(sn.punkteBilanz))); }
+      const avgs=byWt.map(a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null);
+      const mitDaten=avgs.filter(x=>x!=null).length;
+      if(mitDaten<3) return;
+      const mx=Math.max.apply(null,avgs.map(x=>x||0).concat([1]));
+      const namen=['So','Mo','Di','Mi','Do','Fr','Sa'];
+      s+='<div class="an-bars" style="margin-top:8px">'+avgs.map((v,i)=>v==null?'':'<div class="an-bar"><span class="nm">'+namen[i]+'</span><span class="track"><i style="width:'+((v/mx)*100).toFixed(0)+'%;background:var(--purple)"></i></span><span class="vv">'+Math.round(v)+'</span></div>').join('')+'</div>';
+      let besterI=-1, besterV=-1; avgs.forEach((v,i)=>{ if(v!=null&&v>besterV){ besterV=v; besterI=i; } });
+      const heuteWt=belWochentag(heuteF), heuteAvg=avgs[heuteWt];
+      if(besterI>=0){
+        s+='<div class="d" style="margin-top:6px">'+AN_WT_LANG[besterI]+' ist dein stärkster Tag.'+
+          (heuteAvg!=null?' Heute ist '+AN_WT_LANG[heuteWt]+' — und du liegst '+(mess>=heuteAvg?'über':'unter')+' deinem '+AN_WT_LANG[heuteWt]+'s-Schnitt ('+Math.round(heuteAvg)+' P).':'')+'</div>';
+      }
+    })();
+    return s+'</div>'; })();
   openSheet('Heute', h, '<button class="btn ghost sm" data-close="1">Schließen</button>');
 }
 function renderStatusbar(){
@@ -3217,11 +3408,14 @@ function renderStatusbar(){
     else if(abw<=-z3) idx=0; else if(abw<=-z2) idx=1; else if(abw<=-z1) idx=2;
     if(idx>3) farbe='var(--ok)'; if(idx<3) farbe='var(--bad)'; }
   // §1.2 (v1.10.0): fünf Zellen — Kopf, Wert, Zusatz.
-  const sp=spielStand();
+  // §3/§4 (v1.11.0): Rang = P/Std-Median, Sterne = Geld-Score-Maß.
+  const rm=rangMass(), stAkt=sterneAktuell();
   const zelle=(id,w,z,farb)=>{ const c=el(id); if(!c) return;
     c.querySelector('.w').innerHTML=w; c.querySelector('.z').innerHTML=z;
     if(farb) c.querySelector('.w').style.color=farb; };
-  zelle('sZRang', 'R'+sp.rang, '★'.repeat(sp.sterne)+'☆'.repeat(5-sp.sterne));
+  zelle('sZRang', rm.rang!=null?('R'+rm.rang):'–',
+    rm.rang==null ? (rm.n+'/3 Tg')
+      : (stAkt!=null ? '★'.repeat(stAkt)+'☆'.repeat(5-stAkt) : sternMass().n+'/14 ★'));
   // Zelle 2: Akku + Reichweite (§1.2) — gekürzt auf die Uhrzeit („17:10" statt „bis 17:10")
   const rw=akkuReichweite(eb);
   zelle('sZAkku', (eb.akku!=null?Math.round(eb.akku)+'%':'–'), rw);
@@ -3618,11 +3812,24 @@ function tagAbschlussFinalisieren(){
   // Wirkt ausschließlich auf muenzenGesamt/rangPunkte, nie auf die Mess-Ebene.
   {
     const faktor=streakFaktor();
-    const zufluss=Math.round(Math.max(0, bilanz)*faktor);
+    const bonus=Math.max(0, num(S.tag.spielBonus));   // §6 (v1.11.0): Kauf-Tagespunkte
+    const zufluss=Math.round(Math.max(0, bilanz)*faktor + bonus);
     S.meta.muenzenGesamt=num(S.meta.muenzenGesamt)+zufluss;
-    S.meta.rangPunkte=num(S.meta.rangPunkte)+zufluss;
+    // rangPunkte ist seit v1.11.0 reine Lebenswerk-Summe (Statistik) — sie
+    // wächst mit dem echten Verdienst, der Kauf-Bonus zählt nicht hinein.
+    S.meta.rangPunkte=num(S.meta.rangPunkte)+Math.round(Math.max(0, bilanz)*faktor);
     S.tag.spielZufluss=zufluss; S.tag.spielFaktor=faktor;   // für die Abschluss-Abfolge (§6.2)
     streakFortschreiben(S.tag.datum, S.tag.urlaub);
+  }
+  // §4 (v1.11.0): Stern-Tageswert festschreiben — Geld-Score der heute
+  // abgeschlossenen DFM-Aufgaben + getrackte Minuten (Null-Minuten-Regel).
+  {
+    const r=tagesRate(belFensterDatum(S.tag.startTs||jetztIso()));
+    if(!S.meta.sternTage) S.meta.sternTage={};
+    S.meta.sternTage[S.tag.datum]={ geld:Math.round(sternGeldHeute()), min:r?Math.round(r.min):0 };
+    const keys=Object.keys(S.meta.sternTage).sort();
+    while(keys.length>60){ delete S.meta.sternTage[keys.shift()]; }   // Kappe: 60 Tage reichen für jedes 14er-Fenster
+    sternKalibrierenPruefen();
   }
   S.historie.push({
     tagId:S.tag.tagId, datum:S.tag.datum, laufindex:S.tag.laufindex, urlaub:S.tag.urlaub, spielZufluss:num(S.tag.spielZufluss),
@@ -3799,12 +4006,14 @@ function abschlussFinish(){
 function oeffneTagAbschlussPaket(paket){
   const txt=JSON.stringify(paket, null, 2);
   // §6.2 (v1.9.0): Bilanz als kurze ABFOLGE — Punkte → Faktor → Münzen → Rang.
-  const sp=spielStand();
+  // §3/§5 (v1.11.0): Rang-Zeile zeigt das P/Std-Maß, dazu das erreichte Outfit.
+  const rm=rangMass();
   const seq='<div class="abfolge">'+
     '<div class="ab-schritt" style="animation-delay:.05s"><span>Punkte heute</span><b>'+Math.round(num(S.tag&&S.tag.punkteBilanz))+'</b></div>'+
     '<div class="ab-schritt" style="animation-delay:.35s"><span>🔥 Serie '+num(S.meta.tagesStreak)+' Tg</span><b>×'+num(S.tag&&S.tag.spielFaktor,1).toFixed(2).replace('.',',')+'</b></div>'+
     '<div class="ab-schritt" style="animation-delay:.65s"><span>🪙 Münzen</span><b>+'+Math.round(num(S.tag&&S.tag.spielZufluss))+'</b></div>'+
-    '<div class="ab-schritt" style="animation-delay:.95s"><span>Rang '+sp.rang+' '+('★'.repeat(sp.sterne))+'</span><b>'+(sp.rang>=RANG_MAX?'MAX':('noch '+Math.round(sp.rest)+' bis R'+(sp.rang+1)))+'</b></div>'+
+    '<div class="ab-schritt" style="animation-delay:.95s"><span>👔 Outfit '+outfitHeute()+' / 20</span><b>'+
+      (rm.rang!=null?('Rang '+rangAnzeigeText(rm)):('Rang: '+rm.n+'/3 Tg'))+'</b></div>'+
   '</div>';
   const h=seq+'<p class="d">Tag abgeschlossen. Kopiere das Paket in den Claude-Chat — '+
     'der Download bleibt als Zusatzoption, wird auf dem iPhone aber oft unterdrückt.</p>'+
@@ -5196,7 +5405,9 @@ function renderEinst(){
     '<div class="kv"><span>Panorama-Reset-Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
     // FIX1 (v1.5.2): gefundene Sync-Spike-Tage nachvollziehbar machen
     '<div class="kv"><span>Flow-Fix Spike-Tage</span><b>'+(!Array.isArray(S.meta.flowfix152Log)||!S.meta.flowfix152Log.length?'keine':S.meta.flowfix152Log.map(s=>s.datum+' ('+s.anzahl+')').join(', '))+'</b></div>'+
-    '<div class="kv"><span>Rang (v1.9)</span><b>R'+spielStand().rang+'/'+RANG_MAX+' '+('★'.repeat(spielStand().sterne))+' · '+esc(spielStand().name)+'</b></div>'+
+    '<div class="kv"><span>Rang (v1.11, P/Std-Median)</span><b>'+(function(){ const rm=rangMass();
+      return rm.rang!=null ? 'R'+rangAnzeigeText(rm)+' · '+Math.round(rm.median)+' P/Std' : 'sammelt ('+rm.n+'/3)'; })()+'</b></div>'+
+    '<div class="kv"><span>Lebenswerk (Spiel-Punkte, ehem. Rang-P)</span><b>'+Math.round(rangPunkteAnzeige())+'</b></div>'+
     '<div class="kv"><span>Rang-P · Münzen · ausgegeben</span><b>'+Math.round(rangPunkteAnzeige())+' · '+Math.round(muenzenAnzeige())+' · '+Math.round(ausgabenAnzeige())+'</b></div>'+
     '<div class="kv"><span>Tages-Serie (best)</span><b>'+num(S.meta.tagesStreak)+' ('+num(S.meta.tagesStreakBest)+')</b></div>'+
     '<div class="kv"><span>Level (Altwert)</span><b>Lv '+avatarStufe()+'/'+AVATAR_MAX_LEVEL+'</b></div>'+
@@ -5219,9 +5430,19 @@ function renderEinst(){
     '<p class="d">Rangaufstieg, Kulissenwechsel und Serien-Meilensteine erscheinen als Vollbild (ein Tap schließt). Hier lassen sie sich abschalten — kleine Einblendungen beim Abhaken bleiben.</p>'+
     '<div class="kv"><span>Vollbild-Momente</span><button class="chip '+(!S.meta.momenteAus?'on gruen':'')+'" data-momenttoggle="1">'+(!S.meta.momenteAus?'AN':'aus')+'</button></div>'+
   '</div>';
+  // §4 (v1.11.0): Sternschwellen — einmal aus dem eigenen Verlauf gesetzt,
+  // hier bewusst neu kalibrierbar.
+  h+='<div class="card"><h3>⭐ Sternschwellen</h3>'+
+    (function(){ const m=sternMass();
+      if(Array.isArray(S.meta.sternSchwellen))
+        return '<p class="d">Kalibriert am '+esc(S.meta.sternKalibriertAm||'?')+' — Schwellen (Geld-Score/Std): '+
+          S.meta.sternSchwellen.map(x=>Math.round(x*10)/10).join(' · ')+'. Neukalibrieren setzt sie neu aus dem aktuellen Verlauf.</p>'+
+          '<div class="btnrow"><button class="btn sm" data-sternkalib="1">⭐ Neu kalibrieren</button></div>';
+      return '<p class="d">Die Sterne messen den Geld-Score je getrackter Stunde. Die Schwellen setzen sich nach 14 aktiven Messtagen selbst aus deinem Verlauf — aktuell '+m.n+'/14.</p>'; })()+
+  '</div>';
   // §4 (v1.8.1): Eingriffe mit Tragweite — optisch abgesetzt, GANZ unten
   h+='<div class="card" style="border-color:var(--bad);margin-top:18px"><h3 style="color:var(--bad)">⚠️ Eingriffe mit Tragweite</h3>'+
-    '<p class="d">Wohlstand zurücksetzen startet Avatar und Panorama wieder bei Level 1 — über die Offset-Mechanik. <b>Gelöscht wird nichts:</b> Historie, Intraday-Log, Streaks, Konto und alle Statistiken bleiben unangetastet.</p>'+
+    '<p class="d">Zurücksetzen betrifft Konto, Kulissen und die Spiel-Ebene (Lebenswerk-Anzeige) — über die Offset-Mechanik. <b>Gelöscht wird nichts:</b> Historie, Intraday-Log, Streaks und Statistiken bleiben unangetastet. Der Leistungs-Rang und sein Bestwert sind eine Messung und bleiben vom Reset unberührt (v1.11.0).</p>'+
     '<div class="btnrow"><button class="btn warn sm" data-panoreset="1">🔄 Wohlstand zurücksetzen</button>'+
     (S.meta.panoramaResetBackup?'<button class="btn sm" data-panoundo="1">↩︎ Letzten Reset rückgängig</button>':'')+'</div>'+
     '<div class="kv" style="margin-top:8px"><span>Aktueller Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
@@ -5233,7 +5454,7 @@ function renderEinst(){
    151er-Migration, jetzt wiederholbar und mit Rückgängig (solange ein Backup
    vorliegt). Es wird ausschließlich Anzeige-Zustand verschoben. */
 function panoramaResetJetzt(){
-  if(!confirm('Wohlstand zurücksetzen?\n\nRang, Kleidung, Kulisse und Konto-Anzeige starten wieder bei null (Rang 1, Startkulisse, Konto 0), die sechs Zonen-Stufen gehen auf 0.\n\nNICHT angefasst werden: Historie, Intraday-Log, Streaks (auch die Tages-Serie), Statistiken und die gekauften Objekte im Album. Der Schritt ist über „Rückgängig" umkehrbar, solange kein neuer Reset folgt.')) return;
+  if(!confirm('Wohlstand zurücksetzen?\n\nKonto, Kulisse und Lebenswerk-Anzeige starten wieder bei null (Startkulisse, Konto 0), die sechs Zonen-Stufen gehen auf 0.\n\nNICHT angefasst werden: Historie, Intraday-Log, Streaks (auch die Tages-Serie), Statistiken, die gekauften Objekte im Album — und der Leistungs-Rang samt Bestwert (er ist eine Messung, v1.11.0). Der Schritt ist über „Rückgängig" umkehrbar, solange kein neuer Reset folgt.')) return;
   if(!S.belohnung){ S.belohnung={ stufen:{}, ausgegeben:0, kaeufe:[] }; }
   S.belohnung.stufen=S.belohnung.stufen||{};
   const altStufen={}; KAT_KEYS.forEach(k=>{ altStufen[k]=num(S.belohnung.stufen[k],0); });
@@ -5303,12 +5524,14 @@ function belohnungInit(){
 /* §2.2 (v1.9.0): Konto = Münzen-Zufluss − Ausgaben (beide monoton, beide gegen
    ihre Reset-Offsets) + heutiger Live-Zufluss. Ersetzt wohlstandLive−ausgegeben. */
 function konto(){ return Math.max(0, muenzenAnzeige() - ausgabenAnzeige()); }
-/* Persönlicher Ø-Punktesatz der letzten 7 abgeschlossenen Tage (aus Historie). */
+/* Persönlicher Ø-Punktesatz der letzten 7 aktiven Tage.
+   §2 (v1.11.0): Null-Minuten-Regel — nur Buchungen mit Dauer ≥1 Min zählen,
+   im Zähler UND im Nenner (vorher: alle Punkte ÷ getrackte Zeit — Abhakboni
+   ohne Zeit haben die Rate und damit die Shop-Preise aufgebläht). */
 function oePStd7(){
-  const h=(S.historie||[]).slice(-7);
-  const punkte=h.reduce((s,d)=>s+num(d.punkteBilanz),0);
-  const sek=h.reduce((s,d)=>s+(d.zeit?(num(d.zeit.dfm)+num(d.zeit.privat)):0),0);
-  if(sek>=3600) return Math.max(5, punkte/(sek/3600));
+  let p=0, min=0;
+  aktiveRateTage(7).forEach(d=>{ const r=tagesRate(d); if(r){ p+=r.p; min+=r.min; } });
+  if(min>=60) return Math.max(5, p/(min/60));
   return num(S.settings.basisProStdPrivat,120)*1.5;   // Startwert, bis Historie da ist
 }
 /* Preis ≈ 4 Std Fokuszeit × 7-Tage-Ø × Settings-Faktor × Kategorie-Faktor. */
@@ -5336,7 +5559,12 @@ function kaufen(kat){
   S.belohnung.kaeufe.push({ kat, stufe:idx+1, name:stufe[0], datum:heuteApp(), preis });
   // §2.2 (v1.9.0): Kauf kostet Konto, nicht Biografie — er ERHÖHT sie.
   S.meta.ausgegebenGesamt=num(S.meta.ausgegebenGesamt)+preis;
-  S.meta.rangPunkte=num(S.meta.rangPunkte)+Math.round(preis*0.5);
+  // §6 (v1.11.0): Eine Rate lässt sich nicht kaufen — der Kauf-Bonus wandert
+  // vom Rang auf den TAG: 50 % des Preises als Spiel-Tagespunkte (zählen für
+  // F, Münzen und Anzeige — nie in Mess-Ebene, Statistik oder Raten).
+  const bonus=Math.round(preis*0.5);
+  if(tagOffen()){ S.tag.spielBonus=num(S.tag.spielBonus)+bonus; saveTag(); }
+  else { S.meta.muenzenGesamt=num(S.meta.muenzenGesamt)+bonus; }
   saveMeta();
   saveBelohnung(); konfetti(); haptik(25);
   toast('🎉 Freigeschaltet: '+BELOHNUNG[kat].icon+' '+stufe[0]);
@@ -5520,9 +5748,13 @@ function streakFaktor(){ return 1 + Math.min(0.5, Math.max(0,num(S.meta&&S.meta.
 function jokerVerfuegbar(){
   return num(S.meta&&S.meta.tagesStreak)>=30 && (S.meta.jokerVerbrauchtMonat||'')!==heuteApp().slice(0,7);
 }
-/* Live-Zufluss der Spiel-Ebene: heutige Punkte × Faktor (beim Abschluss wird
-   exakt derselbe Betrag festgeschrieben — Anzeige und Buchung springen nicht). */
-function spielLiveZufluss(){ return tagOffen() ? Math.max(0, tagesPunkteLive())*streakFaktor() : 0; }
+/* Live-Zufluss der Spiel-Ebene: heutige Punkte × Faktor + Kauf-Bonus des Tages
+   (§6 v1.11.0) — beim Abschluss wird exakt derselbe Betrag festgeschrieben. */
+function spielLiveZufluss(){
+  return tagOffen()
+    ? Math.max(0, tagesPunkteLive())*streakFaktor() + Math.max(0,num(S.tag.spielBonus))
+    : 0;
+}
 /* Anzeigen rechnen gegen Rohwert − Reset-Offset (§7.2). */
 function rangPunkteAnzeige(){ return Math.max(0, num(S.meta&&S.meta.rangPunkte) - num(S.meta&&S.meta.rangResetOffset) + spielLiveZufluss()); }
 function ausgabenAnzeige(){ return Math.max(0, num(S.meta&&S.meta.ausgegebenGesamt) - num(S.meta&&S.meta.ausgabenResetOffset)); }
@@ -5545,6 +5777,178 @@ function bgStufeAus(ausgegeben){
 }
 function bgFuerAusgaben(){ return 'img/bg'+String(bgStufeAus(ausgabenAnzeige())).padStart(2,'0')+'.jpg'; }
 /* ══════════════════════════════════════════════════════════════════════
+   §2–§6 (v1.11.0) · „Der Tag kleidet dich" — die Achsen drehen sich um:
+     Kleidung (20 Outfits) → Tagesfortschritt F, resettet morgens
+     Rang (1–20)           → P/Std-Median über 14 aktive Tage, resettet nie
+     Sterne (1–5)          → Geld-Score/Std-Median, Schwellen aus eigenem Verlauf
+   Kulissen, Konto, Serie: unverändert v1.9.0.
+   ══════════════════════════════════════════════════════════════════════ */
+/* §2 · Null-Minuten-Regel: eine P/Std-Rate zählt ausschließlich Buchungen mit
+   einer Dauer von mindestens einer Minute — im Zähler UND im Nenner. Summen
+   (Tagesscore, Statistik, Wohlstand) bleiben vollständig.
+   AUSLEGUNG für den App-Datenstrom: Die App bucht Zeit (typ timer, punkte 0)
+   und Punkte (typ abhaken/tick, minuten 0) GETRENNT. Wörtlich je Buchung
+   angewandt fiele der Zähler jedes normalen Tages auf ~0. Deshalb zählen die
+   Punkte einer 0-Minuten-Buchung genau dann, wenn DIESELBE KARTE am selben
+   Tag ≥1 Minute Zeit gebucht hat — ihre Punkte haben Zeit beigetragen. Die
+   Sync-Abhakboni vom 28.08. (Karten ohne jede Tages-Zeit) fallen damit raus,
+   ebenso künftige Nachbuchungen und Tick-Punkte zeitloser Karten. Abzüge
+   (typ schub) zählen nicht in die Leistungs-Rate. */
+function tagesRateDetail(fensterDatum, dom){
+  const alle=(S.intraday||[]).filter(e=>e.ts && belFensterDatum(e.ts)===fensterDatum
+    && (!dom || dom==='alle' || e.domaene===dom));
+  const zeitKarten={}; let min=0;
+  alle.forEach(e=>{ if(num(e.minuten)>=1){ min+=num(e.minuten); if(e.kartenId) zeitKarten[e.kartenId]=1; } });
+  let p=0, ohneZeitN=0, ohneZeitP=0;
+  alle.forEach(e=>{ const pe=num(e.punkte); if(pe<=0) return;
+    if(num(e.minuten)>=1 || (e.kartenId && zeitKarten[e.kartenId])) p+=pe;
+    else { ohneZeitN++; ohneZeitP+=pe; } });
+  return { p, min, ohneZeitN, ohneZeitP, rate: min>=1 ? p/(min/60) : null };
+}
+function tagesRate(fensterDatum){
+  const d=tagesRateDetail(fensterDatum);
+  return d.rate!=null ? { p:d.p, min:d.min, rate:d.rate } : null;
+}
+function medianVon(a){ if(!a||!a.length) return null;
+  const s=a.slice().sort((x,y)=>x-y), m=Math.floor(s.length/2);
+  return s.length%2 ? s[m] : (s[m-1]+s[m])/2; }
+function tagIstUrlaub(datum){
+  if(tagOffen() && S.tag.datum===datum) return urlaubHeute();
+  return (S.historie||[]).some(h=>h.datum===datum && !h.luecke && h.urlaub);
+}
+/* §3.1 · Aktiver Tag = ≥1 Buchung, die die Null-Minuten-Regel besteht;
+   Urlaubstage zählen nicht mit (analog zu den Schätzfaktoren). */
+function aktiveRateTage(maxN){
+  const tage={}; (S.intraday||[]).forEach(e=>{ if(e.ts && num(e.minuten)>=1) tage[belFensterDatum(e.ts)]=true; });
+  const heute=belFensterDatum(jetztIso());
+  const out=[];
+  Object.keys(tage).filter(d=>d<=heute).sort().reverse().some(d=>{
+    if(tagIstUrlaub(d)) return false;
+    out.push(d); return out.length>=maxN;
+  });
+  return out;
+}
+/* §3.2 · Die Leiter — Formel maßgeblich, Rang 20 ist die Kappe, Rang 1 der
+   Boden (unter 150 P/Std fällt niemand aus der Leiter). */
+function leistungsSchwelle(n){ return 150 + 46*(n-1) + 2.15*(n-1)*(n-1); }
+function leistungsRangVon(rate){
+  let n=1; for(let i=2;i<=RANG_MAX;i++){ if(rate>=leistungsSchwelle(i)) n=i; }
+  return n;
+}
+/* §3 · Rang-Maß = Median der Tages-P/Std über die letzten 14 aktiven Tage.
+   Memoisiert je Minute — tagesRate() läuft sonst 14× über das Intraday-Log. */
+let _rangMemo=null, _rangMemoKey='';
+function rangMass(){
+  const iv=(S.intraday||[]);
+  const key=iv.length+'|'+(iv.length?iv[iv.length-1].ts:'')+'|'+Math.floor(Date.now()/60000);
+  if(_rangMemo && _rangMemoKey===key) return _rangMemo;
+  const tage=aktiveRateTage(14).map(d=>({datum:d, r:tagesRate(d)})).filter(x=>x.r);
+  const n=tage.length;
+  const med=n>=3 ? medianVon(tage.map(x=>x.r.rate)) : null;
+  const rang=med!=null ? leistungsRangVon(med) : null;
+  let naechste=null, rest=null, anteil=1;
+  if(rang!=null && rang<RANG_MAX){
+    naechste=leistungsSchwelle(rang+1); rest=Math.max(0, naechste-med);
+    const basis=rang>1?leistungsSchwelle(rang):0;
+    anteil=Math.max(0, Math.min(1, (med-basis)/Math.max(1,(naechste-basis))));
+  }
+  _rangMemo={ n, median:med, rang, best:Math.max(num(S.meta&&S.meta.rangBest), rang||0)||null,
+    naechste, rest, anteil, tage };
+  _rangMemoKey=key;
+  return _rangMemo;
+}
+/* §3.3 · Bestwert fällt nie — Pflege zentral in spielMomentCheck(). */
+function rangAnzeigeText(rm){
+  rm=rm||rangMass();
+  if(rm.rang==null) return 'sammelt noch Daten ('+rm.n+'/3)';
+  return rm.best>rm.rang ? (rm.rang+' · best '+rm.best) : String(rm.rang);
+}
+/* §4 · Sterne — Geld-Score abgeschlossener DFM-Aufgaben je Tag ÷ getrackte
+   Stunden (Null-Minuten-Regel), Median über dieselben 14 aktiven Tage.
+   Historische Tageswerte sammelt meta.sternTage ab v1.11.0 (Abschluss). */
+function sternGeldHeute(){
+  const tid=aktuelleTagId();
+  return S.karten.filter(k=>k.domain==='dfm' && k.status==='erledigt' && k.tagId===tid)
+    .reduce((a,k)=>a+Math.max(0,num(k.geldScore)),0);
+}
+function sternMass(){
+  const werte=[];
+  aktiveRateTage(14).forEach(d=>{
+    let g=null, min=null;
+    if(tagOffen() && S.tag.datum===d){ g=sternGeldHeute(); const r=tagesRate(d); min=r?r.min:null; }
+    else { const e=S.meta.sternTage && S.meta.sternTage[d]; if(e){ g=num(e.geld); min=num(e.min); } }
+    if(g!=null && min>=1) werte.push(g/(min/60));
+  });
+  return { n:werte.length, median: werte.length?medianVon(werte):null, werte };
+}
+/* §4 · Schwellen aus dem eigenen Verlauf: Stern 3 = Median, 1/5 = Quartile,
+   2/4 interpoliert — EINMAL gesetzt und festgehalten. */
+function sternSchwellenAus(werte){
+  const s=werte.slice().sort((a,b)=>a-b);
+  const q=p=>{ const i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i); return s[lo]+(s[hi]-s[lo])*(i-lo); };
+  const q1=q(0.25), q2=q(0.5), q3=q(0.75);
+  return [q1,(q1+q2)/2,q2,(q2+q3)/2,q3].map(x=>Math.round(x*10)/10);
+}
+function sternKalibrierenPruefen(){
+  if(Array.isArray(S.meta.sternSchwellen)) return;
+  const m=sternMass(); if(m.n<14) return;
+  S.meta.sternSchwellen=sternSchwellenAus(m.werte);
+  S.meta.sternKalibriertAm=heuteApp(); saveMeta();
+  toast('⭐ Sternschwellen aus deinem Verlauf kalibriert');
+}
+function sterneAktuell(){
+  if(!Array.isArray(S.meta.sternSchwellen)) return null;
+  const m=sternMass(); if(m.median==null) return null;
+  let st=0; S.meta.sternSchwellen.forEach(x=>{ if(m.median>=x) st++; });
+  return Math.max(0, Math.min(5, st));
+}
+function sterneAnzeigeText(){
+  const st=sterneAktuell();
+  if(st!=null) return '★'.repeat(st)+'☆'.repeat(5-st);
+  return 'sammelt ('+sternMass().n+'/14)';
+}
+/* §5 · Kleidung — Tagesleiter. F = (Tagespunkte × Streakfaktor + Kauf-Bonus)
+   ÷ Tagesziel. Der Kauf-Bonus (§6) ist bereits Spiel-Währung und wird deshalb
+   NICHT erneut mit dem Streakfaktor multipliziert. */
+function outfitZielHeute(){
+  if(!urlaubHeute()) return Math.max(1, belZielGesamt());
+  // Urlaubsvorschlag (§5): Ersatzziel = eigener Normaltag — Median der
+  // Tagespunkte der letzten 14 aktiven Tage. Der eigene Schnitt ist nie
+  // unfair; ein Urlaubstag mit Arbeit kleidet gegen den Normaltag statt
+  // gegen ein künstliches Soll. Fallback: reguläres Tagesziel.
+  const tage=aktiveRateTage(14).filter(d=>!(tagOffen() && S.tag.datum===d));
+  const pkt=tage.map(d=>{ const sn=tagSnapshot(d); return sn?Math.max(0,num(sn.punkteBilanz)):null; })
+    .filter(x=>x!=null);
+  const med=medianVon(pkt);
+  return Math.max(1, med!=null?med:belZielGesamt());
+}
+function outfitF(){
+  const mess=Math.max(0, tagesPunkteLive());
+  const bonus=tagOffen()?Math.max(0,num(S.tag.spielBonus)):0;
+  return (mess*streakFaktor()+bonus)/outfitZielHeute();
+}
+function outfitVon(F){
+  if(!(F>0)) return 1;
+  return F<=1 ? Math.min(15, 1+Math.floor(14*F))
+              : Math.min(20, 15+Math.floor((F-1)/0.07+1e-9));
+}
+/* §5 · Das Outfit fällt im Tagesverlauf nicht — Höchststand des Tages
+   (S.tag.outfitMax, gepflegt in spielMomentCheck). Morgens startet ein
+   frisches S.tag ohne outfitMax → Stufe 1. */
+function outfitHeute(){
+  const roh=outfitVon(outfitF());
+  return Math.max(1, roh, tagOffen()?num(S.tag&&S.tag.outfitMax,1):1);
+}
+/* Punkte, die bis zur nächsten Outfit-Stufe bzw. bis Stufe 20 fehlen —
+   in MESS-Punkten (der Streakfaktor ist herausgerechnet). */
+function outfitFehltBis(stufe){
+  const ziel=outfitZielHeute(), f=streakFaktor();
+  const bonus=tagOffen()?Math.max(0,num(S.tag.spielBonus)):0;
+  const Fnoetig = stufe<=15 ? (stufe-1)/14 : 1+(stufe-15)*0.07;
+  const messNoetig=(Fnoetig*ziel-bonus)/f;
+  return Math.max(0, messNoetig - Math.max(0,tagesPunkteLive()));
+}
+/* ══════════════════════════════════════════════════════════════════════
    §8 (v1.9.0) · Das Album — vorhandenes Material zum ersten Mal als
    Sammlung. Gesperrtes als Silhouette (CSS-Filter, keine zweite Datei) mit
    fehlendem Betrag; die Lücke ist der Antrieb. Gesperrte BESITZ-Stücke
@@ -5553,18 +5957,27 @@ function bgFuerAusgaben(){ return 'img/bg'+String(bgStufeAus(ausgabenAnzeige()))
 let albumTab='raenge';
 function oeffneAlbum(){ albumTab='raenge'; renderAlbum(); }
 function renderAlbum(){
-  const sp=spielStand(), ausg=ausgabenAnzeige();
+  const ausg=ausgabenAnzeige();
   const tabs=[['raenge','Ränge'],['kulissen','Kulissen'],['besitz','Besitz']];
   let h='<div class="albtabs">'+tabs.map(t=>'<button class="albtab'+(albumTab===t[0]?' on':'')+'" data-albtab="'+t[0]+'">'+t[1]+'</button>').join('')+'</div>';
   h+='<div class="albgrid">';
   if(albumTab==='raenge'){
+    // §7 (v1.11.0): Die Rangleiter mit ihren P/Std-Schwellen — erreicht,
+    // aktuell, was als nächstes kommt. Outfits sind nichts zum Sammeln mehr.
+    const rm=rangMass();
+    h+='<div class="albitem breit" style="text-align:left;padding:10px">'+
+      '<div class="albn" style="white-space:normal">P/Std-Median (14 aktive Tage): <b>'+
+        (rm.median!=null?Math.round(rm.median)+' P/Std':'sammelt noch Daten ('+rm.n+'/3)')+'</b>'+
+        (rm.rang!=null?' · Rang '+rangAnzeigeText(rm):'')+'</div></div>';
     for(let n=1;n<=RANG_MAX;n++){
-      const frei=n<=sp.rang;
+      const erreicht=rm.rang!=null && n<=rm.rang;
+      const aktuell=rm.rang===n;
       const datum=(S.meta.rangErreicht&&S.meta.rangErreicht[n])||null;
-      h+='<div class="albitem'+(frei?'':' zu')+'"'+(frei?' data-albbild="'+AVATAR_BILDER[n-1]+'" data-albname="Rang '+n+' · '+esc(rangName(n))+'"':'')+'>'+
-        '<img src="'+AVATAR_BILDER[n-1]+'" alt="" loading="lazy">'+
-        '<div class="albn">'+(frei?esc(rangName(n)):'Rang '+n)+'</div>'+
-        '<div class="albs">'+(frei?(datum?fmtDatum(datum):'freigeschaltet'):('noch '+Math.round(rangSchwelle(n)-sp.rp)+' P'))+'</div></div>';
+      h+='<div class="albitem'+(erreicht?'':' zu')+'"'+(aktuell?' style="border-color:var(--blue)"':'')+'>'+
+        '<div class="albn" style="margin-top:8px">'+(aktuell?'▶ ':'')+'Rang '+n+'</div>'+
+        '<div class="albn" style="white-space:normal;font-weight:400">'+esc(rangName(n))+'</div>'+
+        '<div class="albs">ab '+Math.round(leistungsSchwelle(n))+' P/Std'+
+          (erreicht&&datum?' · '+fmtDatum(datum):'')+'</div></div>';
     }
   } else if(albumTab==='kulissen'){
     for(let n=1;n<=10;n++){
@@ -5632,13 +6045,28 @@ function momentQueueFlush(){
     q.forEach(h=>momentVollbild(h));
   }
 }
-/* §6.3: Rangaufstieg — altes Outfit → neues Outfit, mit Rangname. */
+/* §7 (v1.11.0): Der Vollbild-Moment feiert den RANGAUFSTIEG — selten, echt.
+   Der Rang ist eine Messung (P/Std-Median), keine Outfit-Stufe mehr. */
 function momentRang(vonRang, zuRang){
   momentVollbild('<div class="mv-kern"><div class="mv-titel">Rangaufstieg</div>'+
-    '<div class="mv-bilder"><img src="'+AVATAR_BILDER[vonRang-1]+'" alt="" class="alt"><span class="mv-pfeil">→</span>'+
-    '<img src="'+AVATAR_BILDER[zuRang-1]+'" alt="" class="neu"></div>'+
-    '<div class="mv-name">Rang '+zuRang+' · '+esc(rangName(zuRang))+'</div>'+
+    '<div class="mv-bilder"><span class="mv-pfeil" style="font-size:44px;font-weight:900">R'+zuRang+'</span></div>'+
+    '<div class="mv-name">Rang '+zuRang+' · '+esc(rangName(zuRang))+' — ab '+Math.round(leistungsSchwelle(zuRang))+' P/Std</div>'+
     '<div class="mv-sub">Tippen zum Schließen</div></div>');
+}
+/* §7 (v1.11.0): Outfit-Wechsel im Tagesverlauf = KLEINER Moment (Aufblitzen);
+   nur der Sprung auf Outfit 20 darf ein Vollbild sein. */
+function momentOutfit(von, zu){
+  if(zu>=20){
+    momentVollbild('<div class="mv-kern"><div class="mv-titel">Outfit 20</div>'+
+      '<div class="mv-bilder"><img src="'+AVATAR_BILDER[19]+'" alt="" class="neu"></div>'+
+      '<div class="mv-name">Tagesziel weit übertroffen — der Frack.</div>'+
+      '<div class="mv-sub">Tippen zum Schließen</div></div>');
+    return;
+  }
+  if(!momenteAn() || !motionErlaubt()) return;
+  const d=document.createElement('div'); d.className='mom-stern';
+  d.textContent='👔 Outfit '+zu;
+  document.body.appendChild(d); setTimeout(()=>d.remove(), 1800);
 }
 /* §4/§6.3: Kulissenwechsel nach einem Kauf — der Kauf ist ein Ortswechsel. */
 function momentKulisse(von, zu){
@@ -5658,22 +6086,30 @@ function momentMeilenstein(tage){
    Rangaufstieg und neuen Stern aus der LIVE-Anzeige, egal aus welcher Quelle
    (Buchung, Kauf-Bonus, Meilenstein). */
 function momentRangCheck(){
-  const sp=spielStand();
+  // §3/§5/§7 (v1.11.0): zentral erkannt werden Leistungs-Rangaufstieg (Vollbild),
+  // Outfit-Wechsel (klein; Stufe 20 Vollbild) und Sternwechsel (klein).
+  const rm=rangMass(), st=sterneAktuell();
+  // Bestwert fällt nie (§3.3)
+  if(rm.rang!=null && rm.rang>num(S.meta.rangBest)){ S.meta.rangBest=rm.rang; saveMeta(); }
+  // Outfit-Höchststand des Tages fortschreiben (§5) + Momente
+  if(tagOffen()){
+    const alt=num(S.tag.outfitMax,1), neu=outfitHeute();
+    if(neu>alt){ S.tag.outfitMax=neu; saveTag(); momentOutfit(alt, neu); }
+  }
   if(_spielMemo){
-    if(sp.rang>_spielMemo.rang){
-      // §8: Erreichensdatum stempeln (nur ab jetzt — Vergangenes wird nicht geschätzt)
+    if(rm.rang!=null && _spielMemo.rang!=null && rm.rang>_spielMemo.rang){
       S.meta.rangErreicht=Object.assign({}, S.meta.rangErreicht);
-      for(let n=_spielMemo.rang+1;n<=sp.rang;n++) if(!S.meta.rangErreicht[n]) S.meta.rangErreicht[n]=heuteApp();
+      for(let n=_spielMemo.rang+1;n<=rm.rang;n++) if(!S.meta.rangErreicht[n]) S.meta.rangErreicht[n]=heuteApp();
       saveMeta();
-      momentRang(_spielMemo.rang, sp.rang);
+      momentRang(_spielMemo.rang, rm.rang);
     }
-    else if(sp.sterne>_spielMemo.sterne && momenteAn() && motionErlaubt()){
+    else if(st!=null && _spielMemo.sterne!=null && st>_spielMemo.sterne && momenteAn() && motionErlaubt()){
       const d=document.createElement('div'); d.className='mom-stern';
-      d.textContent='✨ '+(sp.sternName||('Stern '+sp.sterne));
+      d.textContent='✨ Stern '+st;
       document.body.appendChild(d); setTimeout(()=>d.remove(), 1800);
     }
   }
-  _spielMemo={rang:sp.rang, sterne:sp.sterne};
+  _spielMemo={rang:rm.rang, sterne:st};
   // aufgeschobene Vollbilder + einmalige Ereignisse aus dem Abschluss
   momentQueueFlush();
   if(S.meta && S.meta.meilensteinMoment){ const t=S.meta.meilensteinMoment; delete S.meta.meilensteinMoment; saveMeta(); momentMeilenstein(t); }
@@ -5843,10 +6279,14 @@ function kennzahlenHtml(snap, dom){
   const erlA=log.filter(e=>e.art==='Aufgabe').length;
   const erlR=log.filter(e=>e.art==='Routine').length;
   const erlTxt=(snap.log&&snap.log.length)?(erlA+' · '+erlR):String(num(snap.erledigtHeute));
+  // §2 (v1.11.0): Die getrackte Rate (P/Std getrackt) folgt der Null-Minuten-
+  // Regel — Zähler und Nenner nur aus Buchungen mit Dauer ≥1 Min. Die
+  // Fenster-Rate (P/Std über die Tageslänge) bleibt eine Uhrzeit-Kennzahl.
+  const rr=tagesRateDetail(snap.datum, dom).rate;
   return '<div class="kennz">'+
     '<div><b>'+Math.round(p)+'</b><span>Punkte</span></div>'+
-    '<div><b>'+(hrs>0.05?(p/hrs).toFixed(0):'0')+'</b><span>P/Std</span></div>'+
-    '<div><b>'+(zeitSek>60?(p/(zeitSek/60)).toFixed(1):'0')+'</b><span>P/min</span></div>'+
+    '<div><b>'+(hrs>0.05?(p/hrs).toFixed(0):'0')+'</b><span>P/Std Fenster</span></div>'+
+    '<div><b>'+(rr!=null?rr.toFixed(0):'–')+'</b><span>P/Std getrackt</span></div>'+
     '<div><b>'+fmtMin(zeitSek)+'</b><span>Zeit</span></div>'+
     '<div><b>'+erlTxt+'</b><span>erledigt A · R</span></div>'+
     '<div><b>'+(snap.akku!=null?Math.round(snap.akku)+'%':'–')+'</b><span>Ø Akku</span></div></div>';
@@ -6191,31 +6631,33 @@ function renderBelohnung(){
   // §3 (v1.9.0): Anzeige läuft über RANG und STERNE (spielStand) — avatarAssets
   // bekommt das Level-Äquivalent 5·(Rang−1)+max(1,Stern), damit Bild-Slot=Rang
   // und Farbvariante=Stern gilt.
-  const sp=spielStand();
-  const lvl=5*(sp.rang-1)+Math.max(1,sp.sterne), av=avatarAssets(lvl);
-  const fort={ anteil:sp.anteil, rest:sp.rest, lifetime:sp.rp };
+  // §1/§3–§5 (v1.11.0): Die Kleidung zeigt den TAG (Outfit aus F), der Rang
+  // ist das P/Std-Maß, die Sterne das Geld-Maß. Kulisse/Konto unverändert.
+  const rm=rangMass(), outfit=outfitHeute(), F=outfitF(), stAkt=sterneAktuell();
+  const lvl=5*(outfit-1)+Math.max(1, stAkt||1), av=avatarAssets(lvl);
   const vital=vitalitaet(), kontoP=konto();
-  const sterneHtml='★'.repeat(sp.sterne)+'☆'.repeat(5-sp.sterne);
-  // v1.5.2 (UI-B): Die Szene zeigt nur noch Reise-Hintergrund (JPG über dem
-  // HSL-Verlauf, der bei Ladefehler einspringt) + Avatar + Funkel-Layer. Die
-  // Wohlstands-Objekte leben jetzt bei ihren Kategorien im Shop-Block (UI-C).
+  const sterneHtml = stAkt!=null ? '★'.repeat(stAkt)+'☆'.repeat(5-stAkt) : ('sammelt '+sternMass().n+'/14');
   const vs=vitalStufe();
   h+='<div class="avcard"><div class="avscene'+(vs?' '+vs:'')+'" style="background:'+av.bgStyle+'">'+
     '<div class="avbg" style="background-image:url(\''+bgFuerAusgaben()+'\')"></div>'+
-    '<img class="avfoto" src="'+avatarBild(lvl,vital)+'" alt="Avatar" loading="lazy" decoding="async"'+
+    '<img class="avfoto" src="'+AVATAR_BILDER[outfit-1]+'" alt="Avatar" loading="lazy" decoding="async"'+
       ' onerror="if(this.src.indexOf(\''+AVATAR_FALLBACK+'\')<0){this.src=\''+AVATAR_FALLBACK+'\';}else{this.style.display=\'none\';}">'+
-    '<div class="avfx '+av.fx+'"></div>'+
+    '<div class="avfx '+avatarAssets(5*((rm.rang||1)-1)+1).fx+'"></div>'+   // §7: Funkel bleibt am RANG (5/10/15/19)
     '</div>'+
-    '<div class="rankline"><div class="rankname" style="color:'+av.akzent+'">'+esc(sp.name)+'</div>'+
+    '<div class="rankline"><div class="rankname" style="color:'+av.akzent+'">Outfit '+outfit+' / 20</div>'+
       '<div class="rankpts">🪙 '+Math.round(kontoP)+'</div></div>'+
-    '<div class="rankline" style="margin-top:2px"><div class="rankstufe">Rang '+sp.rang+'/'+RANG_MAX+
-      ' <span style="color:'+av.akzent+';letter-spacing:2px">'+sterneHtml+'</span>'+
-      (sp.sternName?' · '+esc(sp.sternName):'')+'</div>'+
+    '<div class="rankline" style="margin-top:2px"><div class="rankstufe">'+
+      (rm.rang==null ? 'Rang: sammelt noch Daten ('+rm.n+'/3)'
+        : 'Rang '+rangAnzeigeText(rm)+' · '+esc(rangName(rm.rang))+' · '+Math.round(rm.median)+' P/Std')+
+      ' <span style="color:'+av.akzent+';letter-spacing:2px">'+sterneHtml+'</span></div>'+
       '<div class="rankstufe">'+VITAL_LABEL[vs||'voll']+'</div></div>'+
-    '<div class="av-bar" id="rangRing"><i style="width:'+Math.round(fort.anteil*100)+'%;background:'+av.akzent+'"></i></div>'+
-    '<div class="rankstufe" style="margin-top:4px">'+(sp.rang>=RANG_MAX
-      ? 'Höchster Rang erreicht — '+Math.round(sp.rp)+' Rang-P gesamt.'
-      : 'Noch '+Math.round(fort.rest)+' Rang-P bis Rang '+(sp.rang+1)+' — „'+esc(rangName(sp.rang+1))+'".')+'</div>'+
+    '<div class="av-bar" id="rangRing"><i style="width:'+Math.round((rm.rang!=null?rm.anteil:0)*100)+'%;background:'+av.akzent+'"></i></div>'+
+    '<div class="rankstufe" style="margin-top:4px">'+(rm.rang==null
+      ? 'Der Rang misst deinen P/Std-Median über 14 aktive Tage.'
+      : (rm.rang>=RANG_MAX ? 'Höchster Rang — Median '+Math.round(rm.median)+' P/Std.'
+        : 'Noch '+Math.round(rm.rest)+' P/Std bis Rang '+(rm.rang+1)+' — „'+esc(rangName(rm.rang+1))+'".'))+'</div>'+
+    '<div class="rankstufe" style="margin-top:2px">Heute: '+Math.round(Math.max(0,tagesPunkteLive()))+' P · F '+F.toFixed(2).replace('.',',')+
+      (outfit<20 ? ' · Outfit '+(outfit+1)+' in '+Math.round(outfitFehltBis(outfit+1))+' P' : ' · Frack an 🤵')+'</div>'+
     '<div class="rankline" style="margin-top:6px"><div class="rankstufe">🔥 Serie '+num(S.meta.tagesStreak)+' Tg · ×'+streakFaktor().toFixed(2).replace('.',',')+
       (jokerVerfuegbar()?' · ♦ Joker bereit':(num(S.meta.tagesStreak)>=30?' · ♦ diesen Monat verbraucht':''))+'</div>'+
       '<div class="rankstufe">'+(function(){ const st=bgStufeAus(ausgabenAnzeige());
@@ -6399,6 +6841,10 @@ el('fokusView').addEventListener('click', e=>{
   const ck=t.closest('[data-fkcheck]'); if(ck){ karteAbhakenAuto(ck.dataset.fkcheck, false); return; }
   const tpf=t.closest('[data-tickplus]'); if(tpf){ karteTick(tpf.dataset.tickplus, false); return; }   // A3
   const sch=t.closest('[data-fkschieben]'); if(sch){ oeffneSchieben(sch.dataset.fkschieben); return; }  // A4
+  // §9.2 (v1.11.0): tappbare Swipe-Zeile — nicht mögliche Richtung reagiert nicht
+  const fsw=t.closest('[data-fkswipe]'); if(fsw){ if(!fsw.classList.contains('aus')) fokusSwipeSchritt(parseInt(fsw.dataset.fkswipe,10)); return; }
+  // §9.3 (v1.11.0): Tageskurve ein-/ausklappen (persistiert)
+  const fku=t.closest('[data-fkurve]'); if(fku){ S.ui.fokusKurveZu=!S.ui.fokusKurveZu; saveUi(); renderFokus(); return; }
   const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
   if(karteRowClick(t, e)) return;   // U1: Fokus-Liste = gleiche Karten-Zeilen-Aktionen wie der Stapel
   const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
@@ -6453,9 +6899,16 @@ el('fokusView').addEventListener('pointermove', e=>{
   if(_swId===null || e.pointerId!==_swId || !_swKarte) return;
   const dx=e.clientX-_swX, dy=e.clientY-_swY;
   if(!_swAktiv){
-    if(Math.abs(dy)>Math.abs(dx) && Math.abs(dy)>SWIPE_START){ swipeEnde(); return; }   // vertikal → Scrollen gewinnt
-    if(Math.abs(dx)<SWIPE_START || Math.abs(dx)<=Math.abs(dy)*SWIPE_WINKEL) return;
+    // §9.1 (v1.11.0): Die Richtungs-Entscheidung fällt beim ERSTEN erkennbaren
+    // Move (4 px), nicht erst bei SWIPE_START (10 px). Ursache des Wisch-Bugs:
+    // der Scroll-Container `main` (touch-action:pan-y) übernahm auf iOS die
+    // Geste und feuerte pointercancel, BEVOR die App bei 10 px ihr
+    // preventDefault setzen konnte — die Kette riss vor swipeAbschluss.
+    // Jetzt: horizontal-dominant → sofort aktiv + preventDefault + Capture.
+    if(Math.abs(dx)<4 && Math.abs(dy)<4) return;              // noch kein Urteil
+    if(Math.abs(dy)>=Math.abs(dx)){ swipeEnde(); return; }    // vertikal → Scrollen gewinnt
     _swAktiv=true; _swKarte.style.transition='none';
+    try{ el('fokusView').setPointerCapture(e.pointerId); }catch(err){}
   }
   const zug=Math.max(-SWIPE_MAX_ZUG, Math.min(SWIPE_MAX_ZUG, dx*0.55));   // gedämpftes Mitziehen
   _swKarte.style.transform='translateX('+zug.toFixed(1)+'px)';
@@ -6852,6 +7305,16 @@ el('einstBody').addEventListener('click', e=>{
   // §4 (v1.8.1): Wohlstand-Reset + Rückgängig
   if(e.target.closest('[data-panoreset]')){ panoramaResetJetzt(); return; }
   if(e.target.closest('[data-panoundo]')){ panoramaResetUndo(); return; }
+  // §4 (v1.11.0): Sternschwellen neu kalibrieren (nur auf ausdrücklichen Tap)
+  if(e.target.closest('[data-sternkalib]')){
+    const m=sternMass();
+    if(m.n<14){ toast('Erst ab 14 Messtagen ('+m.n+'/14)'); return; }
+    if(!confirm('Sternschwellen neu aus dem aktuellen Verlauf setzen?')) return;
+    S.meta.sternSchwellen=sternSchwellenAus(m.werte);
+    S.meta.sternKalibriertAm=heuteApp(); saveMeta(); renderEinst();
+    toast('⭐ Sternschwellen neu kalibriert');
+    return;
+  }
   // §3 (v1.6.1): Routinen-Gruppen verwalten
   const gt=e.target;
   if(gt.closest('[data-grpneu]')){ S.routinenGruppen.push({ id:uuid(), name:'Neue Gruppe', domain:'privat',
@@ -7234,7 +7697,12 @@ function anModLeistung(F,dom){
   if(F.cur.length<3){ inner=anSammelt(F.cur.length,3); }
   else{
     const labels=F.cur.map(e=>e.datum);
-    const ph=F.cur.map(e=>{ const m=anMin(e,dom); return m>2?anPunkte(e,dom)/(m/60):null; });
+    // §2 (v1.11.0): Null-Minuten-Regel — die P/Std-Reihe zählt nur Buchungen
+    // mit Dauer ≥1 Min (Zähler UND Nenner, aus dem Intraday-Log). Vorher gingen
+    // alle Tagespunkte (inkl. zeitloser Abhakboni) durch die getrackte Zeit —
+    // genau so kam der 4.487er-Ausreißer vom 28.08. zustande.
+    const anRate=datum=>tagesRateDetail(datum, dom).rate;
+    const ph=F.cur.map(e=>anRate(e.datum));
     const avg7=anGleitend(ph,7);
     inner=anSvgLine(labels,[{vals:ph,color:'var(--cyan)'},{vals:avg7,color:'var(--warn)',dots:false,dash:'5 3'}],{y0:true,height:132});
     inner+='<div class="an-legend"><span><i style="background:var(--cyan)"></i>P/Std täglich</span><span><i style="background:var(--warn)"></i>7-Tage-Ø</span></div>';
@@ -7249,12 +7717,13 @@ function anModLeistung(F,dom){
       bars+='<div class="an-bar"><span class="nm">'+d[1]+'</span><span class="track"><i style="width:'+Math.min(100,pct*100/1.3).toFixed(0)+'%;background:'+d[2]+'"></i></span><span class="vv">'+Math.round(pct*100)+'% Ziel</span></div>'; });
     bars+='</div>';
     inner+=bars;
-    const phCur=anMean(ph.filter(x=>x!=null)), phPrev=anMean(F.prev.map(e=>{const m=anMin(e,dom); return m>2?anPunkte(e,dom)/(m/60):null;}).filter(x=>x!=null));
+    const phCur=anMean(ph.filter(x=>x!=null)), phPrev=anMean(F.prev.map(e=>anRate(e.datum)).filter(x=>x!=null));
     const scCur=anMean(F.cur.map(e=>anPunkte(e,dom))), scPrev=anMean(F.prev.map(e=>anPunkte(e,dom)));
     const best=Math.max.apply(null,F.cur.map(e=>anPunkte(e,dom)).concat([0]));
     inner+='<div class="anmod-kpis">'+anKpi(anFmt(phCur||0),'Ø P/Std',anDeltaPct(phCur,phPrev))+
       anKpi(anFmt(scCur||0),'Ø Score',anDeltaPct(scCur,scPrev))+
-      anKpi(anFmt(best),'Bestleistung')+'</div>';
+      anKpi(anFmt(best),'Bestleistung')+
+      anKpi(fmtKurzP(rangPunkteAnzeige()),'Lebenswerk 🪙')+'</div>';   // §7 (v1.11.0): rangPunkte lebt hier weiter
   }
   return anModul('🏆','Leistung','Punkte pro Stunde als Effizienz-Trend mit 7-Tage-Schnitt, plus Zielerreichung je Domäne (DFM 5000 / Privat 3000).',inner);
 }
@@ -7753,6 +8222,7 @@ function init(){
   zeigeMigration161();   // §7 (1.6.1): Protokoll einmalig anzeigen
   zeigeMigration180();   // §9.5 (1.8.0): Protokoll einmalig anzeigen
   zeigeMigration190();   // §7 (1.9.0): Protokoll einmalig anzeigen
+  zeigeMigration1110();  // §10 (1.11.0): Rang-Protokoll einmalig anzeigen
   zeigeAutoPauseDialog();// §4: offene Rückfrage aus einer Auto-Pause nachholen
 }
 /* §9.1 (v1.6.0): Migrationsprotokoll genau einmal zeigen, danach abhaken. */
@@ -7824,6 +8294,23 @@ function zeigeMigration190(){
     '<p class="d" style="margin-top:8px">Der Wohlstand-Reset in den Einstellungen setzt ab jetzt Rang, Kulisse und Konto gemeinsam zurück — und ist weiterhin umkehrbar.</p>';
   openSheet('Update v1.9.0 — Rang, Reise, Serie', h, '<button class="btn prim" data-close="1">Los</button>');
   S.meta.gamify190Gezeigt=true; saveMeta();
+}
+/* §10 (v1.11.0): Migrationsprotokoll — aktive Tage, Median, Rang, aussortierte
+   Buchungen. Einmalig beim ersten Start nach dem Update. */
+function zeigeMigration1110(){
+  const L=S.meta.rang1110Log;
+  if(!L || S.meta.rang1110Gezeigt) return;
+  const h='<p class="d"><b>Es wurde nichts gelöscht.</b> Sicherung unter <code>meta_bak1110</code>. '+
+    'Die Kleidung zeigt ab jetzt deinen TAG, der Rang misst deinen P/Std-Median über 14 aktive Tage.</p>'+
+    '<div class="kvblock">'+
+    '<div class="kv"><span>Aktive Tage gefunden</span><b>'+num(L.aktiveTage)+'</b></div>'+
+    '<div class="kv"><span>P/Std-Median</span><b>'+(L.median!=null?Math.round(L.median)+' P/Std':'sammelt noch ('+num(L.aktiveTage)+'/3)')+'</b></div>'+
+    '<div class="kv"><span>→ Start-Rang</span><b>'+(L.rang!=null?'R'+L.rang+' · '+esc(rangName(L.rang)):'—')+'</b></div>'+
+    '<div class="kv"><span>Null-Minuten-Regel aussortiert</span><b>'+num(L.aussortiert)+' Buchungen · '+Math.round(num(L.aussortiertPunkte))+' P</b></div>'+
+    '</div>'+
+    '<p class="d" style="margin-top:8px">Die aussortierten Punkte sind nicht weg — sie zählen nur nicht in Raten, zu denen sie keine Zeit beigetragen haben. Die Sterne sammeln ab heute (14 Messtage), dann setzen sich ihre Schwellen aus deinem eigenen Verlauf.</p>';
+  openSheet('Update v1.11.0 — Der Tag kleidet dich', h, '<button class="btn prim" data-close="1">Los</button>');
+  S.meta.rang1110Gezeigt=true; saveMeta();
 }
 init();
 
