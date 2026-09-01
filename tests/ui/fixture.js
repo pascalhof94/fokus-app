@@ -150,7 +150,7 @@
       return iv;
     })(),
     ui:{ tab:'fokus', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', sheetSort:'meine',
-      stapelOffen:{'sys-heute':true,'sys-schnell':true,'sys-erledigt':true} },
+      stapelOffen:{'sys-dfm':true,'sys-privat':true,'sys-erledigt':true} },
     fokus:null
   };
 

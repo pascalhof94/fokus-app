@@ -213,6 +213,127 @@
     });
   }
 
+  /* ── §8 (v1.13.0) · Diagnose-Sequenz (view=diag): synthetische Klicks plus
+     Zustandsvergleich für §1.3 (Verschieben in der Stapelansicht), §3.2
+     (Rein/Raus-Bilanz) und §6.1 (Akku-Schnellzugriff). Kein Screenshot —
+     der Harness ist hier Diagnosewerkzeug, nicht Abnahmeinstrument. ── */
+  function diagSequenz(){
+    fixtureSchreiben();
+    ladeIframe(function(fw){
+      konsoleWaechter(fw);
+      var d=fw.document;
+      function lsGet(k){ return JSON.parse(localStorage.getItem('fokus2_'+k)||'null'); }
+      var heute=(function(){ var t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); })();
+      try{
+        /* ══ §1.3 · Verschieben in der Stapelansicht (privater Liste) ══ */
+        fw.setTab('stapel'); fw.renderAlles();
+        var schieb=d.querySelector('#stapelListe [data-schieb="k-routine"]') || d.querySelector('#stapelListe [data-schieb]');
+        ergebnis.checks++;
+        if(!schieb){ fatal('diag §1.3: kein Schieben-Knopf in der Stapelansicht'); }
+        else {
+          var kid=schieb.dataset.schieb;
+          schieb.click();   // öffnet den Date-Picker-Sheet
+          var chips=d.querySelectorAll('[data-schiebziel]');
+          ergebnis.checks++;
+          if(chips.length<3) fatal('diag §1.2: Schnellziele fehlen ('+chips.length+'/3)');
+          if(chips[1]) chips[1].click();   // „nächster Montag"
+          var inp=d.getElementById('schiebDatum');
+          var ziel=inp?inp.value:null;
+          var wt=d.getElementById('schiebWt');
+          ergebnis.checks++;
+          if(!(wt && wt.textContent==='Montag')) fatal('diag §1.2: Wochentag nicht erkennbar ('+(wt&&wt.textContent)+')');
+          var ohne=d.querySelector('[data-schiebohne]');
+          ergebnis.checks++;
+          if(!ohne){ fatal('diag §1.3: Bestätigungs-Knopf fehlt'); }
+          else {
+            ohne.click();
+            var k=(lsGet('karten')||[]).filter(function(x){ return x.id===kid; })[0];
+            ergebnis.checks++;
+            if(!(k && ziel && k.faelligkeit===ziel && ziel>heute))
+              fatal('diag §1.3: Fälligkeit nicht aufs Zieldatum gesetzt (ist '+(k&&k.faelligkeit)+', erwartet '+ziel+' > '+heute+')');
+            var meta=lsGet('meta')||{};
+            var kette=(meta.ketten && meta.ketten.privat)||{};
+            ergebnis.checks++;
+            if((kette.ids||[]).indexOf(kid)>=0 || (kette.entfernt||[]).indexOf(kid)<0)
+              fatal('diag §1.3: Karte nicht aus der heutigen Kette entfernt');
+            var iv=lsGet('intraday')||[];
+            var schub=iv.filter(function(e){ return e.typ==='schub' && e.kartenId===kid; }).pop();
+            ergebnis.checks++;
+            if(!(schub && schub.ziel===ziel)) fatal('diag §3.2: Schub-Ereignis ohne Zieltag ('+JSON.stringify(schub)+')');
+            var bil=((lsGet('tag')||{}).routinenBilanz)||[];
+            ergebnis.checks++;
+            if(!bil.some(function(b){ return b.id===kid && b.geschoben; }))
+              fatal('diag §3.1: geschobene Routine nicht in der Tagesbilanz (Kategorie geschoben)');
+          }
+        }
+        /* ══ §3.2 · raus (Abhaken) und rein (Wiedereröffnen) zählen ══ */
+        var rrVor=fw.reinRausTag(fw.anFlowReihe('alle'), heute);
+        var chk=d.querySelector('#stapelListe [data-check="k-morgen"]');
+        ergebnis.checks++;
+        if(!chk){ fatal('diag §3.2: Abhak-Kästchen k-morgen fehlt'); }
+        else {
+          chk.click();   // Abhak-Dialog
+          var go=d.querySelector('[data-abgo]');
+          if(go) go.click(); else fatal('diag §3.2: Abhak-Dialog ohne Erledigen-Knopf');
+          var rr1=fw.reinRausTag(fw.anFlowReihe('alle'), heute);
+          ergebnis.checks++;
+          if(rr1.raus!==rrVor.raus+1) fatal('diag §3.2: Abhaken zählt nicht als raus ('+rrVor.raus+' → '+rr1.raus+')');
+          /* Wiedereröffnen über den §8-Dialog = rein */
+          fw.renderAlles();
+          var chk2=d.querySelector('#stapelListe [data-check="k-morgen"]');
+          if(chk2){ chk2.click();
+            var wo=d.querySelector('[data-woeffnen]');
+            ergebnis.checks++;
+            if(!wo){ fatal('diag §3.2: Wiederholen-Dialog fehlt auf erledigter Karte'); }
+            else { wo.click();
+              var rr2=fw.reinRausTag(fw.anFlowReihe('alle'), heute);
+              ergebnis.checks++;
+              if(rr2.rein!==rr1.rein+1) fatal('diag §3.2: Wiedereröffnung zählt nicht als rein ('+rr1.rein+' → '+rr2.rein+')');
+            }
+          }
+        }
+        /* ══ §6.1 · Akku-Schnellzugriff — Tag-Fall und Karten-Fall ══ */
+        fw.setTab('fokus'); fw.renderAlles(); fw.closeSheet();
+        if(fw.fokusBeenden) fw.fokusBeenden();
+        var aq=d.querySelector('[data-akkuquick]');
+        ergebnis.checks++;
+        if(!aq){ fatal('diag §6.1: Akku-Schnellzugriff nicht erreichbar'); }
+        else {
+          aq.click();
+          var slider=d.getElementById('akkuQ'), komm=d.getElementById('akkuQk');
+          ergebnis.checks++;
+          if(!slider || !komm){ fatal('diag §6.1: Dialog ohne Regler/Kommentarfeld'); }
+          else {
+            slider.value='120'; komm.value='Harness: schlecht geschlafen';
+            var goA=d.querySelector('[data-akkuqgo]'); if(goA) goA.click();
+            var eintraege=(lsGet('meta')||{}).akkuEintraege||[];
+            var e1=eintraege[eintraege.length-1];
+            ergebnis.checks++;
+            if(!(e1 && e1.nachher===120 && e1.kid===null && e1.kommentar.indexOf('schlecht geschlafen')>=0))
+              fatal('diag §6.1: Tag-Eintrag falsch ('+JSON.stringify(e1)+')');
+            ergebnis.checks++;
+            var tagAkku=(lsGet('tag')||{}).akku;
+            if(!(tagAkku>100)) fatal('diag §6.2: Akku über 100 nicht gespeichert ('+tagAkku+')');
+            /* Karten-Fall: laufende Karte → Eintrag hängt an ihr */
+            fw.fokusStarten('k-lang', null); fw.closeSheet();
+            var aq2=d.querySelector('[data-akkuquick]');
+            if(aq2){ aq2.click();
+              var s2=d.getElementById('akkuQ'), k2=d.getElementById('akkuQk');
+              if(s2){ s2.value='90'; if(k2) k2.value='Harness: Karte zieht';
+                var goB=d.querySelector('[data-akkuqgo]'); if(goB) goB.click();
+                var ein2=((lsGet('meta')||{}).akkuEintraege||[]);
+                var e2=ein2[ein2.length-1];
+                ergebnis.checks++;
+                if(!(e2 && e2.kid==='k-lang')) fatal('diag §6.1: Karten-Eintrag hängt nicht an der laufenden Karte ('+JSON.stringify(e2)+')');
+              }
+            }
+          }
+        }
+      }catch(err){ fatal('diag-Sequenz abgebrochen: '+err); }
+      abschluss();
+    });
+  }
+
   var frame=document.getElementById('app');
   function ladeIframe(cb){
     var f=document.getElementById('app');
@@ -230,6 +351,7 @@
   }
 
   if(VIEW==='storage'){ storageSequenz(); return; }
+  if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   fixtureSchreiben();
   ladeIframe(function(fw){

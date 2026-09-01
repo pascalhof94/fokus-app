@@ -30,6 +30,10 @@ var SYNC_BESTAND_SCHWELLE = 10;
 var KOMPLETT_BONUS_DEFAULT = 200;
 function esc(s){ return String(s==null?'':s); }
 function saveKarten(){} function saveRoutGruppen(){} function ketteSetzen(){}
+function saveMeta(){} function saveHistorie(){}   // §5.6/§5.7 (v1.13.0)
+function tagOffen(){ return false; }
+function jetztStunde(){ return 13; }
+function tagesKette(){ return []; }
 var DB = { get:function(k,f){ return f; }, set:function(){}, del:function(){}, list:function(){ return []; } };
 var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnteraufgabe','settingsMerge','syncImport'];
 eval(NAMES.map(extract).join('\n'));
@@ -39,7 +43,7 @@ function imp(p){ return syncImport(JSON.stringify(p)); }
 
 /* 1) §2.1: Neuanlage mit domain — privat wird privat, fehlend bleibt dfm. */
 S.karten=[]; S.unteraufgaben=[]; S.routinenGruppen=[];
-var r1=imp({ appVersion:'1.12.0', karten:[
+var r1=imp({ appVersion:'1.13.0', karten:[
   { id:'n-dfm', titel:'DFM-Aufgabe', sollMin:30 },
   { id:'n-prv', domain:'privat', titel:'Private Routine', rhythmus:{typ:'taeglich'}, tickKurve:[10],
     tagesabschnitt:['morgens','abends'], abhakbonus:-25, punkteProStd:0, timerFlag:true, keineAutoPause:true },
@@ -59,21 +63,21 @@ ok('timerFlag + keineAutoPause gesetzt', prv.timerFlag===true && prv.keineAutoPa
    ticksAktiv + tickWert (erster Wert), negative Werte zulässig. */
 ok('Negativ-Counter: tickKurve → ticksAktiv + tickWert(-15)', cnt.ticksAktiv===true && cnt.tickWert===-15);
 /* 3) Fehlende Felder ändern nichts (Re-Import derselben Karte ohne Bausteine). */
-imp({ appVersion:'1.12.0', karten:[{ id:'n-prv', titel:'Private Routine v2' }] });
+imp({ appVersion:'1.13.0', karten:[{ id:'n-prv', titel:'Private Routine v2' }] });
 ok('Re-Import: nur 1 Karte (kein Duplikat)', S.karten.filter(function(k){return k.id==='n-prv';}).length===1);
 ok('Re-Import: rhythmus unangetastet', prv.rhythmus && prv.rhythmus.typ==='taeglich');
 ok('Re-Import: abhakbonus unangetastet', prv.abhakbonus===-25);
 /* 4) §2.1: domain einer BEKANNTEN Karte wird ignoriert. */
-imp({ appVersion:'1.12.0', karten:[{ id:'n-dfm', domain:'privat', titel:'DFM bleibt DFM' }] });
+imp({ appVersion:'1.13.0', karten:[{ id:'n-dfm', domain:'privat', titel:'DFM bleibt DFM' }] });
 ok('bekannte Karte: domain-Wechsel ignoriert', dfm.domain==='dfm');
 /* 5) §2.3: Gruppen — Auflösung per Titel UND App-ID, Unauflösbares gemeldet. */
-var r5=imp({ appVersion:'1.12.0', karten:[{ id:'n-prv' }],
+var r5=imp({ appVersion:'1.13.0', karten:[{ id:'n-prv' }],
   gruppen:[{ id:'g1', name:'Runde', domain:'privat', mitglieder:['Private Routine v2','n-cnt','Fehlt'], komplettBonus:150 }] });
 ok('Gruppe angelegt', r5.gruppenNeu===1 && S.routinenGruppen.length===1);
 ok('Mitglieder per Titel + ID aufgelöst', JSON.stringify(S.routinenGruppen[0].mitglieder)==='["n-prv","n-cnt"]');
 ok('Unauflösbares Mitglied gemeldet, nicht verschluckt',
   r5.uebersprungen.some(function(u){ return u.was.indexOf('Fehlt')>=0; }));
-var r5b=imp({ appVersion:'1.12.0', karten:[{ id:'n-prv' }],
+var r5b=imp({ appVersion:'1.13.0', karten:[{ id:'n-prv' }],
   gruppen:[{ id:'g1', name:'Runde v2', mitglieder:['n-prv'], komplettBonus:300 }] });
 ok('gleiche Gruppen-id → aktualisiert, nicht dupliziert', r5b.gruppenUpd===1 && S.routinenGruppen.length===1 && S.routinenGruppen[0].komplettBonus===300);
 /* 6) Gate unverändert: ohne appVersion / Array / 0.x abgelehnt. */
