@@ -223,7 +223,9 @@
       konsoleWaechter(fw);
       var d=fw.document;
       function lsGet(k){ return JSON.parse(localStorage.getItem('fokus2_'+k)||'null'); }
-      var heute=(function(){ var t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); })();
+      /* v1.13.1: „heute" = App-TAGESFENSTER (belFensterDatum), nicht der rohe
+         Kalendertag — sonst laufen Nachtläufe gegen den falschen Tag. */
+      var heute=fw.belFensterDatum(fw.jetztIso());
       try{
         /* ══ §1.3 · Verschieben in der Stapelansicht (privater Liste) ══ */
         fw.setTab('stapel'); fw.renderAlles();
@@ -277,7 +279,9 @@
           if(go) go.click(); else fatal('diag §3.2: Abhak-Dialog ohne Erledigen-Knopf');
           var rr1=fw.reinRausTag(fw.anFlowReihe('alle'), heute);
           ergebnis.checks++;
-          if(rr1.raus!==rrVor.raus+1) fatal('diag §3.2: Abhaken zählt nicht als raus ('+rrVor.raus+' → '+rr1.raus+')');
+          if(rr1.raus!==rrVor.raus+1) fatal('diag §3.2: Abhaken zählt nicht als raus ('+rrVor.raus+' → '+rr1.raus+') heute='+heute
+            +' iv='+JSON.stringify((lsGet('intraday')||[]).slice(-3))
+            +' sheet='+(d.getElementById('sheetBody')?d.getElementById('sheetBody').innerHTML.slice(0,80):'?'));
           /* Wiedereröffnen über den §8-Dialog = rein */
           fw.renderAlles();
           var chk2=d.querySelector('#stapelListe [data-check="k-morgen"]');
@@ -328,6 +332,41 @@
               }
             }
           }
+        }
+        /* ══ v1.13.1 · Import-Sequenz: ketteDfm ersetzt KOMPLETT, Historie
+           trägt dfm, rec-id wird airtableId, Export trägt Sitzungen ══ */
+        var vorherK=fw.tagesKetteDom('dfm').slice();
+        fw.oeffneSync();
+        var ta=d.getElementById('syncIn');
+        ergebnis.checks++;
+        if(!ta){ fatal('diag v1.13.1: Sync-Sheet ohne Importfeld'); }
+        else {
+          ta.value=JSON.stringify({ appVersion:'1.13.1',
+            karten:[{ id:'recDiagAAAABBBBCC', titel:'Diag rec-Karte' },{ id:'k-lang' }],
+            ketteDfm:['k-lang'] });
+          var goI=d.querySelector('[data-syncimport]'); if(goI) goI.click();
+          var nachK=fw.tagesKetteDom('dfm').slice();
+          ergebnis.checks++;
+          if(!(nachK.length===1 && nachK[0]==='k-lang'))
+            fatal('diag §1 (1.13.1): ketteDfm ersetzt nicht komplett (vorher '+vorherK.length+' → nachher '+JSON.stringify(nachK)+')');
+          ergebnis.checks++;
+          if(fw.tagesKetteDom('dfm').length!==1)
+            fatal('diag §1 (1.13.1): Auto-Nachzug holt bewusst Entferntes zurück');
+          var metaK=lsGet('meta')||{};
+          var histKeys=Object.keys(metaK.kettenHistorie||{}).sort();
+          var histHeute=histKeys.length?metaK.kettenHistorie[histKeys[histKeys.length-1]]:[];
+          ergebnis.checks++;
+          if(!histHeute.some(function(x){ return x.dom==='dfm'; }))
+            fatal('diag §2 (1.13.1): kein dfm-Eintrag in der Kettenhistorie');
+          var recK=(lsGet('karten')||[]).filter(function(x){ return x.id==='recDiagAAAABBBBCC'; })[0];
+          ergebnis.checks++;
+          if(!(recK && recK.airtableId==='recDiagAAAABBBBCC'))
+            fatal('diag §3 (1.13.1): rec-id nicht zur airtableId geworden ('+JSON.stringify(recK&&recK.airtableId)+')');
+          var ex=fw.syncExport('sync');
+          var exK=(ex.karten||[]).filter(function(x){ return x.id==='k-lang'; })[0];
+          ergebnis.checks++;
+          if(!(exK && exK.sitzungen && exK.sitzungen.length>=1 && exK.sitzungen[0].von && exK.sitzungen[0].bis && exK.sitzungen[0].min>0))
+            fatal('diag §4 (1.13.1): Export ohne Sitzungszeiten ('+JSON.stringify(exK&&exK.sitzungen)+')');
         }
       }catch(err){ fatal('diag-Sequenz abgebrochen: '+err); }
       abschluss();

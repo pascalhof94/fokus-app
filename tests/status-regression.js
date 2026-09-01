@@ -27,7 +27,9 @@ var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','b
   'routinenQuoteHeute','routineFaellig','routErledigtHeute','anFlowReihe','reinRausTag',
   // Zahlenbeleg 22: Mess-Ebene rechnet roh
   'belFensterDatum','tagesRateDetail','tagesRate','aktiveRateTage','tagIstUrlaub','medianVon','oePStd7',
-  'leistungsSchwelle','leistungsRangVon','rangMass'];
+  'leistungsSchwelle','leistungsRangVon','rangMass',
+  // §4 (v1.13.1): Sitzungszeiten aus dem Intraday-Log
+  'kartenSitzungenHeute'];
 /* §1 (v1.7.1): kartePunkte zieht die Pausentimer-Strafe live ab — die beiden
    Helfer werden mit extrahiert, die Konstante hier gespiegelt (Konstanten sind
    nicht extrahierbar). Mit S.fokus=null liefert pausenStrafeLive stets 0. */
@@ -225,6 +227,26 @@ ok('§4.3 BELEG (F=2): Rang-Median unverändert ('+Math.round(medianRoh)+' P/Std
 ok('§4.3 BELEG (F=2): oePStd7 unverändert ('+Math.round(oeRoh)+')', Math.abs(oeRoh-oeF2)<0.001);
 ok('§4.3 BELEG (F=2): Anzeige-Soll verdoppelt sich ('+Math.round(sollF1)+' → '+Math.round(sollF2)+')', Math.abs(sollF2-2*sollF1)<1);
 S.meta.upgradeFaktor=1;
+
+// ══ 11) §4 (v1.13.1): Sitzungen des Tages — von = Ende − Dauer, laufende mit ══
+var hf=belFensterDatum(jetztIso());
+S.intraday=[
+  { ts:hf+'T10:30:00', kartenId:'z1', domaene:'dfm', punkte:0, minuten:45, typ:'timer' },
+  { ts:hf+'T14:00:00', kartenId:'z1', domaene:'dfm', punkte:0, minuten:20, typ:'nachtrag' },
+  { ts:hf+'T15:00:00', kartenId:'anders', domaene:'dfm', punkte:0, minuten:30, typ:'timer' },
+  { ts:hf+'T16:00:00', kartenId:'z1', domaene:'dfm', punkte:100, minuten:0, typ:'abhaken' }
+];
+S.fokus=null;
+var sz=kartenSitzungenHeute('z1');
+ok('§4.1.13.1: zwei Sitzungen der Karte (Timer + Nachtrag), fremde/zeitlose raus', sz.length===2);
+ok('§4.1.13.1 BELEG: von = bis − Dauer (45 Min exakt)',
+  Math.round((Date.parse(sz[0].bis)-Date.parse(sz[0].von))/60000)===45 && sz[0].min===45);
+ok('§4.1.13.1: Nachtrag als solcher gekennzeichnet', sz[1].nachtrag===true && sz[1].min===20);
+S.fokus={ karteId:'z1', laeuft:true, startMs:Date.now()-10*60000, sessionSek:0 };
+var sz2=kartenSitzungenHeute('z1');
+ok('§4.1.13.1: laufende Sitzung reist mit (laufend:true, ~10 Min)',
+  sz2.length===3 && sz2[2].laufend===true && Math.abs(sz2[2].min-10)<=1);
+S.fokus=null; S.intraday=[];
 
 print('');
 if(fails){ print(fails+' FEHLGESCHLAGEN'); throw 'Test rot'; }

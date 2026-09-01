@@ -1120,9 +1120,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.13.0';                   // Datenvertrag/Sync-appVersion — Vertrag 1.6 (Tagesrahmen, Korrekturblock, Rein/Raus, Akku-Einträge, Upgrade-Faktor)
-const UI_VERSION = 'v1.13.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-01-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.13.1';                   // Datenvertrag/Sync-appVersion — Vertrag 1.6 (Tagesrahmen, Korrekturblock, Rein/Raus, Akku-Einträge, Upgrade-Faktor; 1.13.1: Vertragstreue-Hotfix)
+const UI_VERSION = 'v1.13.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-02-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1746,6 +1746,20 @@ function ladeAlles(){
     DB.set('settings', S.settings);
     S.meta.migration1130Log=log;
     S.meta.migration1130=true;
+    saveKarten(); saveMeta();
+  }
+  // ══ §3 (v1.13.1) · Bestands-Heilung: DFM-Karten, die per Import mit einer
+  // rec…-id angelegt wurden, aber keine airtableId tragen (Vertrag 1.6:
+  // „id = recId wird automatisch zur airtableId"). ══
+  if(!S.meta.hotfix1131){
+    let geheilt=0;
+    S.karten.forEach(k=>{
+      if(k.domain==='dfm' && !k.airtableId && /^rec[A-Za-z0-9]{14}$/.test(String(k.id||''))){
+        k.airtableId=k.id; geheilt++;
+      }
+    });
+    S.meta.hotfix1131Log={ ts:jetztIso(), geheilt };
+    S.meta.hotfix1131=true;
     saveKarten(); saveMeta();
   }
   // ══ §2.1 (v1.9.1) · Zeitmessung als Schalter ═══════════════════════════
@@ -2500,10 +2514,12 @@ function tagesKetteDom(dom){
     const uebrig=(st.ids||[]).filter(id=>{ const k=S.karten.find(x=>x.id===id); return k && k.status==='offen'; });
     const auto=ketteAutoIds(d).filter(id=>uebrig.indexOf(id)<0);
     st.datum=h; st.ids=uebrig.concat(auto); st.entfernt=[]; saveMeta();
+    ketteHistLog(d);   // §2 (v1.13.1): auch der Rollover ist eine Kettenänderung
   } else {
     const bekannt=new Set(st.ids), entfernt=new Set(st.entfernt||[]);
     const neu=ketteAutoIds(d).filter(id=>!bekannt.has(id) && !entfernt.has(id));
     if(neu.length){ st.ids=st.ids.concat(neu); saveMeta();
+      ketteHistLog(d);   // §2 (v1.13.1): der Auto-Nachzug schrieb NIE Historie — genau er hat die 4→41-Änderung unprotokolliert gelassen
       // §5.5 (v1.13.0): Nachzug WÄHREND des laufenden Tages = ungeplante Last
       if(tagOffen()){ let dirty=false;
         neu.forEach(id=>{ const k=S.karten.find(x=>x.id===id); if(k && !k.ungeplant){ k.ungeplant=true; dirty=true; } });
@@ -2539,7 +2555,12 @@ function ketteSetzen(ids, dom){
     const d=(dom==='privat')?'privat':'dfm', st=ketteState(d);
     st.datum=heuteApp();
     st.ids=(ids||[]).filter((id,i,a)=>a.indexOf(id)===i && S.karten.some(k=>k.id===id && k.domain===d));
-    st.entfernt=[]; saveMeta(); ketteHistLog(d); return;
+    // §1 (v1.13.1): Explizites Setzen ERSETZT die Kette wirklich — alles
+    // Fällige, das NICHT genannt ist, gilt als bewusst draußen. Vorher wurde
+    // entfernt geleert und der Auto-Nachzug (tagesKetteDom) holte jede
+    // fällige Karte sofort zurück (DFM: 4 gesetzt → 41 in der Kette).
+    st.entfernt=ketteAutoIds(d).filter(id=>st.ids.indexOf(id)<0);
+    saveMeta(); ketteHistLog(d); return;
   }
   const by={}; S.karten.forEach(k=>by[k.id]=k);
   ketteSetzen((ids||[]).filter(id=>by[id] && by[id].domain!=='privat'), 'dfm');
@@ -5738,6 +5759,32 @@ function stapelLoeschen(){
    13b · Sync Stufe 1 (§8, Copy-Paste) — EIN Button in D6.
         Export: nur domain=dfm. Import: Hoheitsregeln, Unteraufgaben nur per id.
    ══════════════════════════════════════════════════════════════════════ */
+/* ══ §4 (v1.13.1) · Sitzungen des Tages je Karte — OHNE Umbau der Zeitmessung:
+   fokusZeitEinbuchen schreibt beim Pausieren GENAU eine Intraday-Zeile mit
+   Endzeitpunkt (ts) und Dauer (minuten) → der Start ist exakt rückrechenbar
+   (von = ts − minuten). Damit liefert der Export ALLE Sitzungen des Tages,
+   nicht nur die letzte. Nachträge haben keinen echten Zeitraum — sie werden
+   mit nachtrag:true gekennzeichnet (von = bis − min als Konvention); eine
+   gerade LAUFENDE Sitzung reist mit laufend:true. ══ */
+function kartenSitzungenHeute(kid){
+  const hf=belFensterDatum(jetztIso());
+  const out=[];
+  (S.intraday||[]).forEach(e=>{
+    if(e.kartenId!==kid || !e.ts) return;
+    if(belFensterDatum(e.ts)!==hf) return;
+    if(e.typ!=='timer' && e.typ!=='autopause' && e.typ!=='nachtrag') return;
+    const m=num(e.minuten); if(m<0.5) return;
+    const bis=new Date(e.ts);
+    const s={ von:new Date(bis.getTime()-m*60000).toISOString(), bis:bis.toISOString(), min:Math.round(m) };
+    if(e.typ==='nachtrag') s.nachtrag=true;
+    out.push(s);
+  });
+  if(S.fokus && S.fokus.karteId===kid && S.fokus.laeuft && S.fokus.startMs){
+    const min=(Date.now()-S.fokus.startMs)/60000;
+    if(min>=0.5) out.push({ von:new Date(S.fokus.startMs).toISOString(), bis:jetztIso(), min:Math.round(min), laufend:true });
+  }
+  return out;
+}
 function syncExport(typ){
   // §13 (v1.12.0) · Vertrag 1.5: Der Export trägt jetzt AUCH private Karten
   // (Kennzeichnung über domain; private Karten tragen KEINE airtableId).
@@ -5766,6 +5813,10 @@ function syncExport(typ){
       if(k.vorgaengerAppId)      o.vorgaengerAppId=k.vorgaengerAppId;
       if(k.vorgaengerAirtableId) o.vorgaengerAirtableId=k.vorgaengerAirtableId;
       if(k.ungeplant) o.ungeplant=true;   // §5.5 (v1.13.0)
+      // §4 (v1.13.1): Sitzungen des Tages {von,bis,min} — Quelle für Von/Bis
+      // in den Zeit-Records (nur wenn vorhanden, Pakete sind schon groß)
+      const sitz=kartenSitzungenHeute(k.id);
+      if(sitz.length) o.sitzungen=sitz;
       // §13: Kettenzugehörigkeit und Position je Karte
       const ki=(k.domain==='privat'?kp:kd).indexOf(k.id);
       if(ki>=0){ o.kette=k.domain==='privat'?'privat':'dfm'; o.kettenPosition=ki+1; }
@@ -5846,17 +5897,23 @@ function syncImport(text){
     // Anker: App-id; sekundär airtableId (§8: airtableId→id-Match)
     let lok = (inc.id && S.karten.find(k=>k.id===inc.id)) ||
               (inc.airtableId && S.karten.find(k=>k.airtableId===inc.airtableId)) || null;
+    // §3 (v1.13.1) · Vertrag 1.6: „id = recId wird in der App automatisch zur
+    // airtableId" — der Zweitanker darf nie fehlen (sonst reißt der Match,
+    // sobald die Karte umbenannt oder dupliziert wird).
+    const recId=/^rec[A-Za-z0-9]{14}$/.test(String(inc.id||'')) ? String(inc.id) : null;
     if(!lok){
       // §2.1 (v1.7.1): domain wirkt NUR bei Neuanlage — 'privat' legt eine
       // private Karte an, alles andere (auch fehlend) bleibt beim bisherigen dfm.
       const dom = inc.domain==='privat' ? 'privat' : 'dfm';
-      lok=neueKarte({ id: inc.id||uuid(), domain:dom, airtableId: inc.airtableId||null });
+      lok=neueKarte({ id: inc.id||uuid(), domain:dom,
+        airtableId: inc.airtableId || (dom==='dfm'?recId:null) });
       S.karten.push(lok); neu++; if(dom==='dfm') neuDfm++; else neuPrivat++;
       neuAngelegt.push(lok);
     }
     else upd++;   // §2.1: bei bekannter Karte wird ein mitgeschicktes domain IGNORIERT
     // Airtable-Hoheit → übernehmen
     if(inc.airtableId!=null) lok.airtableId=inc.airtableId;
+    else if(!lok.airtableId && recId && lok.domain==='dfm') lok.airtableId=recId;   // §3 (v1.13.1): Bestand heilen
     if(inc.titel!=null) lok.titel=inc.titel;
     if(inc.projekt!==undefined) lok.projekt=inc.projekt;
     if(inc.geldScore!=null) lok.geldScore=num(inc.geldScore);
@@ -8402,8 +8459,8 @@ el('sheet').addEventListener('click', e=>{
     karteSchieben(k, dt?dt.value:null, tm&&tm.value?tm.value:null, abzug);
     // §12.2 (v1.12.0): das Zieldatum steuert die Ketten — bis dahin raus aus
     // der heutigen Kette (die Auto-Befuellung des Zieltags holt sie zurueck).
-    if(k){ const st=ketteState(k.domain); const i=st.ids.indexOf(k.id);
-      if(i>=0){ st.ids.splice(i,1); if(!Array.isArray(st.entfernt)) st.entfernt=[]; if(st.entfernt.indexOf(k.id)<0) st.entfernt.push(k.id); saveMeta(); } }
+    // §2 (v1.13.1): über ketteRausHeute — der Inline-Splice schrieb keine Historie.
+    if(k) ketteRausHeute(k);
     abschlussTmp.schiebenFor=null; saveKarten(); saveTag(); renderAbschluss(); return; }
   const aba=t.closest('[data-abarchiv]'); if(aba){ const k=S.karten.find(x=>x.id===aba.dataset.abarchiv); if(k){ k.status='archiviert'; saveKarten(); } renderAbschluss(); return; }
   const abe=t.closest('[data-abedit]'); if(abe){ oeffneDetail(abe.dataset.abedit); return; }
@@ -9310,14 +9367,17 @@ function anFlowReihe(dom){
   const ok=k=>dom==='alle'||k.domain===dom, byId={};
   S.karten.forEach(k=>byId[k.id]=k);
   const created={}, done={}, geschoben={}, ankunft={}, wieder={}, abhaken={}, trackedBy={};
+  // (v1.13.1, Harness-Diagnosefund): Tageszuordnung über das TAGESFENSTER
+  // (belFensterDatum: lokal + 5-Uhr-Grenze) statt rohem UTC-slice — sonst
+  // landen Buchungen nach Mitternacht/UTC-Kante im falschen Rein/Raus-Tag.
   S.karten.forEach(k=>{ if(kartenArt(k)!=='Aufgabe'||!ok(k)) return;
     // F2: als Bestandsaufnahme markierte Karten sind KEIN Tageszugang (sie gehen
     // über anFlowStartBestand in den Anfangsbestand des Netto-Backlogs ein).
-    if(k.erstelltTs && !k.flowBaseline){ const d=k.erstelltTs.slice(0,10); created[d]=(created[d]||0)+1; }
-    if(k.status==='erledigt' && k.tagId && !k.flowDoneBaseline){ const d=String(k.tagId).slice(0,10); done[d]=(done[d]||0)+1; }   // §3 (1.8.1)
+    if(k.erstelltTs && !k.flowBaseline){ const d=belFensterDatum(k.erstelltTs); created[d]=(created[d]||0)+1; }
+    if(k.status==='erledigt' && k.tagId && !k.flowDoneBaseline){ const d=String(k.tagId).slice(0,10); done[d]=(done[d]||0)+1; }   // §3 (1.8.1): tagId ist bereits der App-Tag
   });
   (S.intraday||[]).forEach(e=>{ if(!e.ts) return; const k=byId[e.kartenId]; if(!k||kartenArt(k)!=='Aufgabe'||!ok(k)) return;
-    const d=e.ts.slice(0,10);
+    const d=belFensterDatum(e.ts);
     if(e.typ==='schub'){ geschoben[d]=(geschoben[d]||0)+1;
       if(e.ziel) ankunft[e.ziel]=(ankunft[e.ziel]||0)+1;
       return; }

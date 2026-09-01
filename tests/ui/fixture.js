@@ -3,7 +3,11 @@
    (Präfix fokus2_). Erweiterbar: einfach Karten/Felder ergänzen. */
 (function(global){
   function heute(off){
-    var d=new Date(); d.setDate(d.getDate()+(off||0));
+    // v1.13.1: Die Fixture simuliert einen LAUFENDEN Tag — nach Mitternacht
+    // (vor 5 Uhr) ist das laufende Tagesfenster das GESTRIGE Datum, exakt wie
+    // belFensterDatum in der App. Sonst zeigen Nachtläufe Phantom-Differenzen.
+    var d=new Date(); if(d.getHours()<5) d.setDate(d.getDate()-1);
+    d.setDate(d.getDate()+(off||0));
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   }
   var H=heute(0), MORGEN=heute(1), GESTERN=heute(-1);
