@@ -6,6 +6,20 @@
 bash tests/ui/run.sh
 ```
 
+## Flags (§16.3, v1.12.0)
+
+- `--views fokus,sheet,routinen` — rendert nur die genannten Ansichten
+  (Kommaliste; `storage` zählt als eigene Ansicht). Ohne Angabe: alle —
+  das ist der Abschlusslauf.
+- **Stiller Modus ist Default:** Der Lauf gibt Prüfpunkte, Findings,
+  Konsolenfehler und die Screenshot-Pfade zurück — kein DOM, keine
+  Volltextausgabe. `--verbose` liefert zusätzlich die Warnungen, und nur
+  für Ansichten, die ein Finding gemeldet haben.
+
+Budget-Regel: höchstens drei Harness-Läufe je Auftrag (Basisaufnahme der
+berührten Ansichten · Zwischenstand · Abschlusslauf über alles); die
+textbasierten jsc-Suiten laufen dagegen nach jedem Abschnitt.
+
 Startet selbst einen lokalen HTTP-Server (`python3 -m http.server`), lädt die
 App über `http://localhost` (echter Origin → echtes `localStorage`), fährt mit
 dem System-Chrome (headless) alle Ansichten durch, schreibt Screenshots bei

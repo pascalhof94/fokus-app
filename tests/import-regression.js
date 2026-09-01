@@ -38,7 +38,7 @@ function imp(p){ return syncImport(JSON.stringify(p)); }
 /* 1) App-Hoheit: der Import setzt NIE Status/tagId/Ist/Punkte — auch wenn das
       Paket sie mitschickt (historischer Konverter-Bug „offen → erledigt/heute"). */
 S.karten=[]; S.unteraufgaben=[];
-imp({ appVersion:'1.4', karten:[{ id:'k1', titel:'Probefahrt vereinbaren', faelligkeit:'2026-07-21',
+imp({ appVersion:'1.12.0', karten:[{ id:'k1', titel:'Probefahrt vereinbaren', faelligkeit:'2026-07-21',
   status:'erledigt', tagId:'2026-08-27-1', istMin:99, punkteIst:500,
   unteraufgaben:[{ id:'s1', titel:'A', sollMin:10 },{ id:'s2', titel:'B', sollMin:20 }] }] });
 var k=S.karten[0];
@@ -50,7 +50,7 @@ ok('Faelligkeit = ueberfaellige Deadline uebernommen', k.faelligkeit==='2026-07-
 
 /* 2) Unteraufgaben: Match NUR per App-id; done ist App-Hoheit. */
 S.unteraufgaben.forEach(function(u){ if(u.id==='s1') u.done=true; });
-imp({ appVersion:'1.4', karten:[{ id:'k1',
+imp({ appVersion:'1.12.0', karten:[{ id:'k1',
   unteraufgaben:[{ id:'s1', titel:'A neu', sollMin:15, done:false },{ id:'s3', titel:'C', sollMin:5 }] }] });
 var s1=S.unteraufgaben.filter(function(u){return u.id==='s1';})[0];
 ok('Sub per id gematcht, Titel/Soll aktualisiert', s1.titel==='A neu' && s1.sollMin===15);
@@ -60,19 +60,19 @@ ok('kein Titel-Match: gleicher Titel woanders erzeugt KEINE Verknuepfung',
   S.unteraufgaben.filter(function(u){return u.parentId==='k1';}).length===3);
 
 /* 3) No-delete: Archivierung ist der einzige Status-Einfluss des Imports. */
-var r3=imp({ appVersion:'1.4', karten:[{ id:'k1', status:'archiviert' }] });
+var r3=imp({ appVersion:'1.12.0', karten:[{ id:'k1', status:'archiviert' }] });
 ok('archiviert wird uebernommen (No-delete: nie loeschen)', k.status==='archiviert' && r3.arch===1);
 ok('Karte existiert weiter', S.karten.length===1);
 
 /* 4) Idempotenz: derselbe Re-Import erzeugt keine Duplikate. */
-imp({ appVersion:'1.4', karten:[{ id:'k1', titel:'Probefahrt vereinbaren' }] });
+imp({ appVersion:'1.12.0', karten:[{ id:'k1', titel:'Probefahrt vereinbaren' }] });
 ok('Re-Import: weiterhin genau 1 Karte', S.karten.length===1);
 
 /* 5) airtableId-Match als Zweitanker. */
 S.karten=[]; S.unteraufgaben=[];
-imp({ appVersion:'1.4', karten:[{ airtableId:'recX', titel:'Via Airtable' }] });
+imp({ appVersion:'1.12.0', karten:[{ airtableId:'recX', titel:'Via Airtable' }] });
 var vorher=S.karten.length;
-imp({ appVersion:'1.4', karten:[{ airtableId:'recX', titel:'Via Airtable v2' }] });
+imp({ appVersion:'1.12.0', karten:[{ airtableId:'recX', titel:'Via Airtable v2' }] });
 ok('airtableId-Match: Update statt Duplikat', S.karten.length===vorher && S.karten[0].titel==='Via Airtable v2');
 
 print('');

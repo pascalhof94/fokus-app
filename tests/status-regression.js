@@ -15,7 +15,10 @@ var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','b
   'heuteInvestiertMin','akkuLive','aktuelleTagId','tagOffen','kartePunkteHeute','tagesPunkteDomain','tagesPunkteLive',
   'punkteHeuteAnzeige','tagesZielDomain','wachTagAnteil','punkteHeuteDomain','istTickKarte','tickPunkte',
   'tagStundenVergangen','anZielDfmTag','paceWerte','imTagesstrom','energieBatterie','tagesStreakStand',
-  'fokusKarte','untermenge'];
+  'fokusKarte','untermenge',
+  // §2 (v1.12.0): die Soll-Treppen-Familie
+  'istWochenendTag','fensterAnteil','sollFensterStunden','restFensterStd','jetztStunde',
+  'zielTag','zielTagGesamt','sollStand','sollStandGesamt','weIstDomain','zielUndIstHeute','sollFensterAktiv'];
 /* §1 (v1.7.1): kartePunkte zieht die Pausentimer-Strafe live ab — die beiden
    Helfer werden mit extrahiert, die Konstante hier gespiegelt (Konstanten sind
    nicht extrahierbar). Mit S.fokus=null liefert pausenStrafeLive stets 0. */
@@ -27,6 +30,13 @@ function untermengeStub(){ return []; }
 eval(extract('num'));
 eval(NAMES.filter(function(n){return n!=='num'&&n!=='untermenge';}).map(extract).join('\n'));
 function untermenge(id){ return S.unteraufgaben.filter(function(u){return u.parentId===id;}); }
+// §2 (v1.12.0): weIstDomain braucht am Sonntag den Samstags-Snapshot — hier
+// gestubbt (kein Historien-Aufbau in dieser Suite; die Treppe selbst wird
+// direkt geprueft).
+function tagSnapshot(){ return null; }
+function anVorTage(iso,n){ return iso; }
+function snapPunkte(){ return 0; }
+// §3 (v1.12.0): das aktive Profil kommt aus den Settings (Default 9-18+21-23)
 
 var fails=0; function ok(n,c){ print((c?'OK   ':'FAIL ')+n); if(!c) fails++; }
 function karte(f){ return Object.assign({ id:'x', domain:'privat', status:'offen', titel:'T',
@@ -51,12 +61,21 @@ ok('akkuLive null wenn akku null', (function(){ S.tag.akku=null; var r=akkuLive(
 S.tag.istMinutenStart={a:0}; k1.istSek=3600; // 60 min invest → zeitpunkte
 // startTs 2h her:
 S.tag.startTs=new Date(Date.now()-2*3600000).toISOString();
+// §2 (v1.12.0): Ziel-Settings der neuen Welt setzen (Punkteformel-Tests oben
+// laufen bewusst weiter mit den alten Gewichten aus DEFAULT_SETTINGS).
+S.settings.tagesZielDfm=7000; S.settings.tagesZielPrivat=5000;
+S.settings.zielWeDfm=2500; S.settings.zielWePrivat=10000;
 var pw=paceWerte();
-// A1: soll = (5000+3000) × wachTagAnteil; startTs 2h her → 2/16 = 0.125 → 1000
-/* §2 (v1.8.1): Wochenendregel — die Erwartung nutzt dieselbe Formel wie die
-   App (anZielDfmTag), damit die Suite an JEDEM Wochentag gruen ist. */
-var sollErwartet=(anZielDfmTag()+DEFAULT_SETTINGS.tagesZielPrivat)*2/16;
-ok('paceWerte.soll = anteiliges Gesamtziel (Wochenendregel)', Math.abs(pw.soll-sollErwartet)<1);
+/* §2 (v1.12.0): Soll folgt der TREPPE (aktive Fenster 9-18 + 21-23) — am
+   Wochenende gilt das gemeinsame Kontingent und pw.we ist gesetzt. */
+if(istWochenendTag(heuteApp())){
+  ok('paceWerte am WE: gemeinsames Kontingent, we-Flag', pw.we===true && Math.abs(pw.ziel-12500)<1);
+} else {
+  var sollErwartet=(7000+5000)*fensterAnteil();
+  ok('paceWerte.soll folgt der Soll-Treppe', Math.abs(pw.soll-sollErwartet)<1);
+  ok('Plateau: Soll um 19:30 = Soll um 18:00', Math.abs(sollStandGesamt(null,19.5)-sollStandGesamt(null,18))<0.001);
+  ok('Treppe: Soll um 12:00 = Ziel × 3/11', Math.abs(sollStandGesamt(null,12)-(12000*3/11))<1);
+}
 ok('paceWerte.ist >= 0 endlich', pw.ist>=0 && isFinite(pw.ist));
 // A3: Tick-Karte-Erkennung + Tick-Punkte
 /* §7/§9 (v1.8.0): Tick-Modell — maßgeblich ist ticksAktiv, timerFlag ist nur

@@ -36,7 +36,8 @@
       geldScore:60, faelligkeit:MORGEN, sollMin:45 }),
     // 4) private Routine OHNE Zeitmessung
     karte({ id:'k-routine', domain:'privat', titel:'Gesicht waschen', rhythmus:{typ:'taeglich'},
-      zeitmessung:false, tagesabschnitt:['morgens','abends'], streak:12, faelligkeit:H }),
+      zeitmessung:false, tagesabschnitt:['morgens','abends'], streak:12, faelligkeit:H,
+      abhakbonus:50 }),   // v1.12.0: Beleg-Fall Abhakbonus privater Morgen-Routine
     // 5) private Routine MIT Ticks
     karte({ id:'k-ticks', domain:'privat', titel:'Wasser trinken', rhythmus:{typ:'taeglich'},
       ticksAktiv:true, tickWert:10, ticksHeute:2, tickWerteHeute:[10,10], zeitmessung:false,

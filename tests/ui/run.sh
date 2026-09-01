@@ -1,12 +1,22 @@
 #!/bin/bash
-# UI-Testharness der Fokus App — EIN Befehl, keine Argumente:
-#   bash tests/ui/run.sh
-# Startet einen lokalen HTTP-Server auf dem Repo, faehrt alle Ansichten mit
-# System-Chrome (headless) durch, schreibt Screenshots (375px + 430px) nach
-# tests/ui/screens/, fuehrt Layout-/Storage-/Konsolen-Pruefungen aus und
-# beendet den Server in jedem Fall. Exit-Code 0 = alles gruen.
+# UI-Testharness der Fokus App:
+#   bash tests/ui/run.sh [--views fokus,sheet,...] [--verbose]
+# §16.3 (v1.12.0): --views rendert nur die genannten Ansichten (ohne Angabe:
+# alle — der Abschlusslauf). Stiller Modus ist DEFAULT: Prüfpunkte, Findings,
+# Konsolenfehler, Screenshot-Pfade — kein DOM, keine Volltextausgabe.
+# --verbose liefert Details (Warnungen), nur für Ansichten mit Finding.
 set -u
 cd "$(dirname "$0")/../.."   # Repo-Wurzel
+
+NUR_VIEWS=""; VERBOSE=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --views) NUR_VIEWS="$2"; shift 2;;
+    --views=*) NUR_VIEWS="${1#--views=}"; shift;;
+    --verbose) VERBOSE=1; shift;;
+    *) echo "Unbekanntes Argument: $1"; exit 2;;
+  esac
+done
 
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 SCREENS="tests/ui/screens"
@@ -30,7 +40,19 @@ echo "Server: http://127.0.0.1:$PORT (PID $SERVER_PID)"
 rm -rf "$SCREENS"; mkdir -p "$SCREENS"
 
 # view name | fensterhoehe (375er-Basis; leiste klein, damit sie GROSS wirkt)
-VIEWS="stapel:812 fokus:812 leiste:250 sheet:812 abschluss:812 routinen:812 pins:812 belohnung:812 albumR:812 albumK:812 albumB:812 detail:812 statistik:812"
+VIEWS_ALLE="stapel:812 fokus:812 leiste:250 sheet:812 abschluss:812 routinen:812 kette:812 belohnung:812 albumR:812 albumK:812 albumB:812 detail:812 statistik:812"
+STORAGE_LAUF=1
+if [ -n "$NUR_VIEWS" ]; then
+  VIEWS=""
+  STORAGE_LAUF=0
+  for w in $(echo "$NUR_VIEWS" | tr ',' ' '); do
+    [ "$w" = "storage" ] && { STORAGE_LAUF=1; continue; }
+    for e in $VIEWS_ALLE; do [ "${e%%:*}" = "$w" ] && VIEWS="$VIEWS $e"; done
+  done
+  [ -z "$VIEWS$([ $STORAGE_LAUF -eq 1 ] && echo x)" ] && { echo "FEHLER: keine bekannte Ansicht in --views $NUR_VIEWS"; exit 2; }
+else
+  VIEWS="$VIEWS_ALLE"
+fi
 
 CHROME_LIMIT=25   # Sekunden je Aufruf — Chrome beendet sich headless nicht immer selbst
 chrome_lauf(){ # $1=url $2=breite $3=hoehe $4=screenshot-datei ('' = dump-dom auf stdout)
@@ -51,6 +73,7 @@ chrome_lauf(){ # $1=url $2=breite $3=hoehe $4=screenshot-datei ('' = dump-dom au
 }
 
 FEHLER=0; CHECKS=0; SHOTS=0; FINDINGS=""; WARNUNGEN=""
+export UI_VERBOSE=$VERBOSE
 
 for eintrag in $VIEWS; do
   view="${eintrag%%:*}"; hoehe="${eintrag##*:}"
@@ -76,7 +99,10 @@ fat=r.get('fatal',[]); fnd=r.get('findings',[]); wrn=r.get('warnungen',[])
 print(('FATAL' if fat else 'OK')+'|'+str(r.get('checks',0)+r.get('geprueft',0))+'|'+str(len(fnd)))
 for f in fat: print('  FEHLER ['+r.get('view','?')+'] '+f)
 for f in fnd: print('  finding ['+r.get('view','?')+'] '+f)
-for w in wrn[:5]: print('  warnung ['+r.get('view','?')+'] '+w)
+# §16.3: Warnungen nur im --verbose-Modus und nur bei Ansichten mit Finding
+import os
+if os.environ.get('UI_VERBOSE')=='1' and (fat or fnd):
+    for w in wrn[:5]: print('  warnung ['+r.get('view','?')+'] '+w)
 ")"
   status="$(printf '%s' "$auswertung" | head -1 | cut -d'|' -f1)"
   n="$(printf '%s' "$auswertung" | head -1 | cut -d'|' -f2)"
@@ -86,7 +112,9 @@ for w in wrn[:5]: print('  warnung ['+r.get('view','?')+'] '+w)
   [ "$status" = "FATAL" ] && FEHLER=$((FEHLER+1))
 done
 
-# localStorage-Sequenz (eigener View, ohne Screenshot)
+# localStorage-Sequenz (eigener View, ohne Screenshot) — bei --views nur, wenn
+# 'storage' ausdruecklich genannt ist
+if [ $STORAGE_LAUF -eq 1 ]; then
 dom="$(chrome_lauf "http://127.0.0.1:$PORT/tests/ui/harness.html?view=storage" 375 812 "")"
 storage="$(printf '%s' "$dom" | python3 -c "
 import sys,html,re,json
@@ -101,11 +129,13 @@ for f in fat: print('  FEHLER [storage] '+f)
 printf '%-10s %s\n' "storage" "$(printf '%s' "$storage" | head -1 | sed 's/|/ — /')"
 printf '%s\n' "$storage" | tail -n +2 | tee -a "$LOG"
 [ "$(printf '%s' "$storage" | head -1 | cut -d'|' -f1)" = "FATAL" ] && FEHLER=$((FEHLER+1))
+fi
 
 echo ""
 echo "──────────────────────────────────────────────"
-echo "Screenshots: $SHOTS unter $SCREENS/"
+echo "Screenshots ($SHOTS):"
+ls "$SCREENS" 2>/dev/null | sed "s|^|  $SCREENS/|"
 echo "Pruefpunkte: $CHECKS · Ansichten mit Fehlern: $FEHLER"
 if [ $FEHLER -gt 0 ]; then echo "ERGEBNIS: ROT"; exit 1; fi
-echo "ERGEBNIS: GRUEN — jetzt die Screenshots ANSEHEN."
+echo "ERGEBNIS: GRUEN"
 exit 0

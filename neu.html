@@ -227,13 +227,20 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 /* §2/§3 (v1.11.1): Der Ring ist ein conic-gradient-RAHMEN um die Figur —
    Fortschritt in Akzent, Rest als gedämpfte Spur, nie ein Fragment. Die
    Figur sitzt IM Rahmen, mittig, füllt vertikal; beide Spalten enden bündig. */
-.stsh-wo{display:flex;gap:10px;align-items:stretch}
-.stsh-figur{flex:0 0 132px;align-self:stretch;border-radius:18px;padding:3px;display:flex;min-height:200px}
-.stsh-figin{flex:1;min-height:0;background:var(--card);border-radius:15px;display:flex;flex-direction:column;align-items:center;padding:8px 6px 10px}
-.stsh-figin img{flex:1;min-height:0;max-width:92%;object-fit:contain;margin:6px 0 10px}
+.stsh-wo{display:grid;grid-template-columns:132px 1fr;gap:10px;align-items:stretch}
+/* §14.1 (v1.12.0): Die RECHTE Kachelspalte gibt die Hoehe vor — die Figur
+   liegt absolut im Rahmen und kann ihn nie mehr aufziehen (die Avatar-PNGs
+   sind 720px hoch bei variierender Breite; Steuerung immer ueber die Hoehe). */
+.stsh-figur{position:relative;border-radius:18px;min-height:180px}
+.stsh-figin{position:absolute;inset:3px;background:var(--card);border-radius:15px;display:flex;flex-direction:column;align-items:center;padding:8px 6px 10px}
+.stsh-figin img{flex:1 1 0;min-height:0;height:100%;width:auto;max-width:100%;object-fit:contain;margin:6px 0 10px}
 .stsh-figin .of{font-size:10px;font-weight:800;color:var(--txt);letter-spacing:.4px}
 .stsh-figin .vit{font-size:9.5px;color:var(--mut2)}
 .stsh-kx{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+/* §14.1 (v1.12.0): Die Sheet-Balken waren nie gestylt (.av-bar galt nur in
+   .avcard) — deshalb „nicht wahrnehmbar". Jetzt eigene, kräftige Regel. */
+.stsh-teil .av-bar{display:block;height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:5px}
+.stsh-teil .av-bar i{display:block;height:100%;border-radius:4px;background:var(--blue)}
 .stsh-kx .av-bar{margin-top:3px}
 .stsh-karte .pos{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:6px;background:var(--card);border:1px solid var(--line);font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace;vertical-align:1px}
 /* §5 (v1.11.1): Kettenzeile = normale Kartenzeile + Kettennummer davor */
@@ -631,7 +638,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .rankline{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px}  /* §3 (v1.10.1, F4): Serie und Reise kleben nicht mehr aneinander */
 .rankname{font-size:15px;font-weight:900}
 .rankpts{font-size:12px;color:var(--purple);font-weight:800}
-.avcard .av-bar{height:6px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
+.avcard .av-bar{height:8px;border-radius:4px;background:var(--line);margin-top:8px;overflow:hidden}   /* §14.1: kräftiger */
 .avcard .av-bar i{display:block;height:100%;background:var(--purple)}
 /* Shop-Karten (Etappe 2) */
 .katcard{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
@@ -934,11 +941,15 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
   box-shadow:0 8px 22px rgba(0,0,0,.45);border:none}
 #routFab[hidden]{display:none}
 /* §10 (v1.8.0): zweiter Schnellzugriff — 📌 links neben ↻, beide ≥56px im Daumenbogen */
-#pinFab{position:fixed;right:calc(16px + 56px + 12px);bottom:calc(64px + var(--sab) + 10px);z-index:70;width:56px;height:56px;border-radius:50%;
+#ketteFab{position:fixed;right:calc(16px + 56px + 12px);bottom:calc(64px + var(--sab) + 10px);z-index:70;width:56px;height:56px;border-radius:50%;
   background:var(--card2);color:var(--txt);font-size:22px;display:flex;align-items:center;justify-content:center;
   box-shadow:0 8px 22px rgba(0,0,0,.45);border:1px solid var(--line)}
-#pinFab[hidden]{display:none}
+#ketteFab[hidden]{display:none}
 #routFab.privat{background:var(--warn)}
+/* §9.4 (v1.12.0): FABs ziehen beim Herunterscrollen ein (nicht ausgeblendet) */
+#fab,#routFab,#ketteFab{transition:transform .22s ease}
+body.fabsEin #fab{transform:translateY(calc(100% + 74px + var(--sab)))}
+body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74px + var(--sab)))}
 /* Halbhohes Sheet — die Fokuskarte bleibt dahinter sichtbar */
 .routsheet .rs-kopf{display:flex;gap:8px;margin-bottom:10px}
 .routsheet .rs-kopf button{flex:1;min-height:44px;border-radius:11px;border:1px solid var(--line);background:var(--bg);
@@ -1054,7 +1065,7 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 <!-- §3 (v1.6.0): Routinen-Schublade — runder Auslöser unten RECHTS im Daumenbogen -->
 <button id="routFab" hidden>↻</button>
 <!-- §10 (v1.8.0): Pin-Schublade — zweiter Schnellzugriff links daneben -->
-<button id="pinFab" hidden>📌</button>
+<button id="ketteFab" hidden>▤</button>
 
 <nav id="nav">
   <button data-tab="fokus"><span class="ic">🎯</span>Fokus</button>
@@ -1100,9 +1111,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.11.1';                   // Datenvertrag/Sync-appVersion — 1.11.1 (Vertrag 1.x unveraendert)
-const UI_VERSION = 'v1.11.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-01-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.12.0';                   // Datenvertrag/Sync-appVersion — Vertrag 1.5 (zwei Ketten, private Karten im Export)
+const UI_VERSION = 'v1.12.0';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-01-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1190,13 +1201,15 @@ const DEFAULT_SETTINGS = {
   abhakbonusPrivat: 0,
   subBonusDfm: 100,            // U6-C: Punkte pro Unteraufgabe je Domäne (bisher hart 100)
   subBonusPrivat: 100,
-  zeitGewicht: 1.15,           // Gewicht des Zeit-Terms (Kalibrierung 30.07.: 1→1,15)
-  tickGewicht: 1,              // Gewicht des Tick-Terms
+  zeitGewicht: 1.5,            // §2.2 (v1.12.0): Gewicht des Zeit-Terms (1,15→1,5)
+  tickGewicht: 0.8,            // §2.2 (v1.12.0): Gewicht des Tick-Terms (1→0,8)
   geldGewicht: 0.5,            // geldFaktor = 1 + geldScoreNorm × geldGewicht (nur dfm)
   geldDeckel: 1.5,            // Faktor-Obergrenze (~1,5)
   geldScoreRef: 200,           // Referenz für geldScoreNorm = geldScore / Ref  (siehe Rückfrage)
-  tagesZielDfm: 5000,          // A1: getrenntes Tagesziel DFM (Punkte)
-  tagesZielPrivat: 3000,       // A1: getrenntes Tagesziel Privat (Punkte)
+  tagesZielDfm: 7000,          // §2.2 (v1.12.0): Werktagsziel DFM
+  tagesZielPrivat: 5000,       // §2.2 (v1.12.0): Werktagsziel Privat
+  zielWeDfm: 2500,             // §2.2 (v1.12.0): Wochenend-Kontingent DFM (Sa+So gemeinsam)
+  zielWePrivat: 10000,         // §2.2 (v1.12.0): Wochenend-Kontingent Privat (Sa+So gemeinsam)
   tageszielPunkteProStd: 100,  // ALT (M3-Pace) — durch tagesZielDfm/Privat ersetzt, intern belassen
   pfeilZone1: 5, pfeilZone2: 15, pfeilZone3: 40,  // v1.1: Pace-Pfeil-Zonen (% Abw. vom Soll) — v0.38-Port
   preisFaktor: 15,             // Shop-Preis-Faktor (§7 D7) — Neukalibrierung 30.07. (1,0→15)
@@ -1276,9 +1289,7 @@ function neueKarte(f={}){
     tickWerteHeute: [],               // §9 (1.8.0): heutige Einzel-Tickwerte (je Tick überschreibbar)
     ticksHeute: 0,
     timerFlag: false,
-    schnellauswahl: false,            // U2: manuell kuratierte Schnellauswahl (Toggle ⚡)
     freeze: false,                    // A4: eingefroren (pausiert, keine Abräumpflicht, Timer gesperrt)
-    pin: false,                       // A8: Quick-Leiste (Counter/Routinen)
     punkteOverride: null,             // U6-A: beim Abhaken gewählte Ist-Punkte (null = automatisch berechnet)
     abhakbonus: null,                 // U6-A/D: Abhakbonus dieser Karte (null = Domänen-Default, 0 = keiner)
     letzteBearbeitung: null,          // A7: Timestamp der letzten Interaktion
@@ -1333,7 +1344,7 @@ const S = {
   settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
   tag:null, fokus:null, historie:[], belohnung:null,
   meta:{ wohlstand:0, seeded:false },
-  ui:{ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', fokusIdx:0, statTage:7 }
+  ui:{ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', fokusIdx:0, statTage:7 }
 };
 function settingsMerge(gespeichert){
   const s=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
@@ -1363,7 +1374,7 @@ function ladeAlles(){
   S.routinenGruppen = DB.get('routinenGruppen', []);   // §3 (1.6.1): Routinen-Gruppen mit Komplett-Bonus
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
-  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-heute', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', analyseArt:'alle', debugTap:false }, DB.get('ui', {}));
+  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', analyseArt:'alle', debugTap:false }, DB.get('ui', {}));
   // U6-B: Erstell-Zeitstempel für Altkarten guarded nachrüsten (VOR der Härtung,
   // damit der Fallback greift statt der neueKarte-Default-Jetztzeit). Idempotent.
   S.karten.forEach(k=>{ if(k && !k.erstelltTs) k.erstelltTs = k.letzteBearbeitung || jetztIso(); });
@@ -1471,8 +1482,9 @@ function ladeAlles(){
     S.ui.stapelDomain={}; S.ui.stapelStatus={}; S.ui.stapelOffen={};
     syncStandardStapel();
     // 4) Tageskette einmalig aus den heute fälligen Karten vorbefüllen
-    const st=ketteState();
-    if(!st.ids.length){ ketteSetzen(ketteAutoIds()); log.ketteStart=ketteState().ids.length; }
+    // v1.12.0: parameterlose Alt-Aufrufe auf die Zwei-Ketten-API gehoben
+    if(!tagesKette().length){ ketteSetzen(ketteAutoIds('dfm').concat(ketteAutoIds('privat')));
+      log.ketteStart=tagesKette().length; }
     S.meta.migration160Log=log;
     S.meta.migration160=true;
     saveKarten(); saveMeta(); saveUi();
@@ -1635,6 +1647,59 @@ function ladeAlles(){
       rang:rm.rang, aussortiert, aussortiertPunkte:Math.round(aussortiertP),
       tage:(rm.tage||[]).map(t=>({d:t.datum, rate:Math.round(t.r.rate)})) };
     S.meta.rang1110=true; saveMeta();
+  }
+  // ══ §1.4 (v1.12.0) · Zwei Ketten, Pin und Schnellauswahl entfallen ═════
+  if(!S.meta.migration1120){
+    DB.set('karten_bak1120', S.karten);
+    DB.set('meta_bak1120', S.meta);
+    const log={ ts:jetztIso(), uebernommen:[], dubletten:0, ohneDomain:[] };
+    const by={}; S.karten.forEach(k=>by[k.id]=k);
+    // 4) Bestehende Tageskette nach Domäne aufteilen, Reihenfolge erhalten
+    S.meta.ketten={ dfm:{datum:(S.meta.kette&&S.meta.kette.datum)||null, ids:[], entfernt:[]},
+                    privat:{datum:(S.meta.kette&&S.meta.kette.datum)||null, ids:[], entfernt:[]} };
+    if(S.meta.kette && Array.isArray(S.meta.kette.ids)){
+      S.meta.kette.ids.forEach(id=>{ const k=by[id]; if(!k) return;
+        const d=k.domain==='privat'?'privat':'dfm';
+        if(S.meta.ketten[d].ids.indexOf(id)<0){
+          S.meta.ketten[d].ids.push(id);
+          log.uebernommen.push({ id, titel:String(k.titel||'').slice(0,40), quelle:'tageskette', kette:d });
+        } else log.dubletten++;
+      });
+    }
+    // 2)+3) Gepinnte und Schnellauswahl-Karten ans Ende der Kette ihrer
+    // Domäne; Dubletten überspringen. Karte ohne domain: nicht raten —
+    // Protokoll + DFM-Kette (Default der App).
+    const anhaengen=(k, quelle)=>{
+      let d=k.domain==='privat'?'privat':'dfm';
+      if(k.domain!=='dfm' && k.domain!=='privat'){
+        log.ohneDomain.push({ id:k.id, titel:String(k.titel||'').slice(0,40), quelle });
+        d='dfm';
+      }
+      if(S.meta.ketten[d].ids.indexOf(k.id)>=0){ log.dubletten++; return; }
+      S.meta.ketten[d].ids.push(k.id);
+      log.uebernommen.push({ id:k.id, titel:String(k.titel||'').slice(0,40), quelle, kette:d });
+    };
+    S.karten.filter(k=>k.pin===true && k.status!=='archiviert').forEach(k=>anhaengen(k,'pin'));
+    S.karten.filter(k=>k.schnellauswahl===true && k.status!=='archiviert').forEach(k=>anhaengen(k,'schnellauswahl'));
+    // 5) Felder und Alt-Ansichtsschlüssel entfernen
+    S.karten.forEach(k=>{
+      delete k.pin; delete k.schnellauswahl; delete k.schnellTs;
+      if(k.sortIndex){ delete k.sortIndex['sys-pins']; delete k.sortIndex['sys-schnell']; delete k.sortIndex['sys-heute']; }
+    });
+    delete S.meta.kette;
+    if(S.ui && S.ui.navHeute!=null){ S.ui.navKette=!!S.ui.navHeute; delete S.ui.navHeute; }
+    syncStandardStapel();   // §10: Geplant DFM / Geplant Privat / Erledigt
+    // §2.2: neue Zielwerte und Gewichte setzen (Altwerte im Protokoll)
+    log.ziele={ vorher:{ dfm:num(S.settings.tagesZielDfm,5000), privat:num(S.settings.tagesZielPrivat,3000),
+        zeitGewicht:num(S.settings.zeitGewicht,1.15), tickGewicht:num(S.settings.tickGewicht,1) },
+      nachher:{ dfm:7000, privat:5000, weDfm:2500, wePrivat:10000, zeitGewicht:1.5, tickGewicht:0.8 } };
+    S.settings.tagesZielDfm=7000; S.settings.tagesZielPrivat=5000;
+    S.settings.zielWeDfm=2500; S.settings.zielWePrivat=10000;
+    S.settings.zeitGewicht=1.5; S.settings.tickGewicht=0.8;
+    DB.set('settings', S.settings);
+    S.meta.migration1120Log=log;
+    S.meta.migration1120=true;
+    saveKarten(); saveMeta(); saveUi();
   }
   // ══ §2.1 (v1.9.1) · Zeitmessung als Schalter ═══════════════════════════
   // Default true für ALLE Karten (die Grundregel). Einzige Ausnahme steht in
@@ -1887,6 +1952,14 @@ function kartenArt(k){
   if(Array.isArray(k.tickKurve) && k.tickKurve.length>1) return 'Counter';   // Altbestand vor Migration
   return 'Aufgabe';
 }
+/* §11.1 (v1.12.0, F5): Die BESCHRIFTUNG folgt der Grundart — eine Aufgabe mit
+   Ticks bleibt „Aufgabe" (die Tick-Flaeche haengt allein an ticksAktiv).
+   kartenArt() selbst bleibt unveraendert (Streak, Quote, Flow, Filter). */
+function kartenArtLabel(k){
+  const a=kartenArt(k);
+  if(a!=='Counter') return a;
+  return (num(k.sollMin)>0 || k.faelligkeit || untermenge(k.id).length) ? 'Aufgabe' : 'Counter';
+}
 /* §7 (v1.8.0) BUGFIX: istTickKarte war an kartenArt gekoppelt — und weil dort
    der Rhythmus VOR der Tick-Kurve geprüft wird, wurde eine Routine mit Kurve
    nie als tickbar erkannt (Zähne putzen, Sport, WhatsApp … bekamen ein
@@ -1952,7 +2025,7 @@ function fokusNachruecken(kid){
   if(!(S.fokus && S.fokus.karteId===kid)) return false;
   const q=S.fokus.quelle;
   if(!q) return false;
-  let liste = (q==='sys-heute') ? ketteKarten() : ansichtsListe(q);
+  let liste = (q==='sys-heute'||q==='kette') ? ketteKarten() : ansichtsListe(q);
   const next=(liste||[]).find(x=>x.id!==kid && x.status==='offen' && !x.freeze);
   if(!next) return false;
   S.fokus={ karteId:next.id, laeuft:false, startMs:0, sessionSek:0, quelle:q };
@@ -2067,9 +2140,7 @@ const FELDER = {
   blockade:   {label:'Blockade',  typ:'zahl'},
   prioritaet: {label:'Priorität', typ:'select', opt:()=>[['muss','muss'],['soll','soll'],['idee','idee']]},
   timerFlag:  {label:'Timer',     typ:'select', wert:k=>k.timerFlag?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
-  schnellauswahl:{label:'Schnellauswahl', typ:'select', wert:k=>k.schnellauswahl?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
   freeze:     {label:'Freeze',    typ:'select', wert:k=>k.freeze?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
-  pin:        {label:'Gepinnt',   typ:'select', wert:k=>k.pin?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
   letzteBearbeitung:{label:'Bearbeitet', typ:'datum', wert:k=>k.letzteBearbeitung?String(k.letzteBearbeitung).slice(0,10):null},
   rhythmus:   {label:'Wiederholung',typ:'select', wert:k=>k.rhythmus?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
   status:     {label:'Status',    typ:'select', opt:()=>[['offen','offen'],['erledigt','erledigt'],['archiviert','archiviert']]},
@@ -2125,9 +2196,17 @@ function filterEinzel(k, f){
   return String(v==null?'':v).toLowerCase().includes(String(f.wert||'').toLowerCase());
 }
 function stapelKarten(st){
-  // §2.2/§2.3 (v1.6.0) + §4 (v1.8.0): die Sonderstapel kommen nicht aus der Filter-Engine.
-  if(st && st.id==='sys-heute')    return ketteKarten();
-  if(st && st.id==='sys-schnell')  return schnellKarten();
+  // §10 (v1.12.0): „Geplant DFM/Privat" = alle offenen Karten der Domäne,
+  // sortiert nach Fälligkeit; „Erledigt" chronologisch. (Alt-IDs sys-heute/
+  // sys-schnell existieren nach der Migration nicht mehr.)
+  if(st && (st.id==='sys-dfm' || st.id==='sys-privat')){
+    const d=st.id==='sys-privat'?'privat':'dfm';
+    let ks=S.karten.filter(k=>k.status==='offen' && k.domain===d);
+    const art=(S.ui.stapelArt&&S.ui.stapelArt[st.id])||'alle';   // §10: Art-Filter bleibt
+    if(art==='aufgabe') ks=ks.filter(k=>kartenArt(k)==='Aufgabe');
+    else if(art==='routine') ks=ks.filter(k=>{ const a=kartenArt(k); return a==='Routine'||a==='Counter'; });
+    return sortiereStapel(ks, st);
+  }
   if(st && st.id==='sys-erledigt') return erledigtKarten();
   const byFeld={};
   (st.filter||[]).forEach(f=>{ (byFeld[f.feld]=byFeld[f.feld]||[]).push(f); });
@@ -2194,15 +2273,13 @@ function sortiereStapel(ks, st){
    hat keine Pfeile (Chronologie). */
 function karteSortieren(kid, dir, kontext){
   if(kontext==='sys-erledigt') return;
-  if(kontext==='sys-heute'){
-    const st=ketteState(); tagesKette();
-    const i=st.ids.indexOf(kid), j=i+dir;
-    if(i<0 || j<0 || j>=st.ids.length) return;
-    const t=st.ids[i]; st.ids[i]=st.ids[j]; st.ids[j]=t;
-    saveMeta(); renderAlles(); return;
+  // §1 (v1.12.0): Ketten-Kontexte ordnen die Kette der Karten-Domäne um.
+  if(kontext==='kette' || kontext==='sys-heute'){
+    if(ketteBewegen(kid, dir)) renderAlles();
+    return;
   }
   const key=String(kontext||'');
-  if(key!=='sys-schnell' && key!=='sys-pins' && key.indexOf('fl|')!==0) return;
+  if(key.indexOf('fl|')!==0) return;
   const ks=ansichtsListe(key);
   const i=ks.findIndex(k=>k.id===kid), j=i+dir;
   if(i<0 || j<0 || j>=ks.length) return;
@@ -2233,10 +2310,14 @@ function stapelKpi(ks){
    Filter-Engine gespeist, sondern in stapelKarten() gesondert behandelt.
    Eigene Stapel sind nicht mehr anlegbar; die Filterung läuft über die drei
    Navigationsebenen auf der Fokusseite. */
+/* §10 (v1.12.0): Drei Stapel — „Geplant DFM" und „Geplant Privat" (verfestigte
+   Ebene 1, Karten außerhalb der Kette erscheinen an ihrem Fälligkeitsdatum)
+   plus „Erledigt" (chronologisch). „Heute" ist in den beiden Ketten
+   aufgegangen; die Schnellauswahl ist entfallen (§1.3). */
 function standardStapelDefs(){
   return [
-    {id:'sys-heute',    name:'Heute',    farbe:'#4f8ef7', filter:[], sortierung:{feld:'kette',   richtung:'asc'}},
-    {id:'sys-schnell',  name:'Schnellauswahl', farbe:'#f2b84b', filter:[], sortierung:{feld:'schnell',richtung:'desc'}},   // §4 (1.8.0)
+    {id:'sys-dfm',      name:'Geplant DFM',    farbe:'#4f8ef7', filter:[], sortierung:{feld:'faelligkeit', richtung:'asc'}},
+    {id:'sys-privat',   name:'Geplant Privat', farbe:'#f2b84b', filter:[], sortierung:{feld:'faelligkeit', richtung:'asc'}},
     {id:'sys-erledigt', name:'Erledigt', farbe:'#3ecf8e', filter:[], sortierung:{feld:'abschluss',richtung:'desc'}}
   ];
 }
@@ -2263,8 +2344,6 @@ function anwendenManuell(ks, key){
 /* Render-Reihenfolge einer Ansicht — dieselbe Funktion nutzt karteSortieren
    als LESESEITE, damit Schreiben und Lesen nie wieder auseinanderlaufen. */
 function ansichtsListe(key){
-  if(key==='sys-schnell') return schnellKarten();
-  if(key==='sys-pins') return pinListe();   // §10 (1.8.0)
   if(String(key).indexOf('fl|')===0){
     const t=String(key).split('|');
     const basis=navFilter(S.karten.filter(k=>k.status==='offen'));
@@ -2276,65 +2355,105 @@ function ansichtsListe(key){
   }
   return [];
 }
-/* §4: Schnellauswahl — zuletzt hinzugefügte zuerst, Pfeile greifen darüber. */
-function schnellKarten(){
-  const ks=S.karten.filter(k=>k.schnellauswahl && k.status!=='archiviert')
-    .slice().sort((a,b)=>(a.schnellTs||'')<(b.schnellTs||'')?1:-1);
-  return anwendenManuell(ks, 'sys-schnell');
-}
+/* §1.3 (v1.12.0): Die Schnellauswahl ist entfallen — die Migration hat ihre
+   Karten in die Ketten übernommen. */
 /* ══════════════════════════════════════════════════════════════════════
    §2.2 (v1.6.0) · Tageskette „Heute" — ein Array von App-IDs je Kalendertag
    mit Rollover nicht erledigter Einträge auf den Folgetag. Sie ist die
    einzige Kette der App und bestimmt die Swipe-Reihenfolge im Fokus.
    ══════════════════════════════════════════════════════════════════════ */
-function ketteState(){
-  if(!S.meta.kette || typeof S.meta.kette!=='object' || !Array.isArray(S.meta.kette.ids))
-    S.meta.kette={ datum:null, ids:[] };
-  return S.meta.kette;
+/* §1 (v1.12.0) · ZWEI Ketten statt einer — ketteDfm und kettePrivat, beide mit
+   Rollover, Umsortierung und Entfernen wie die bisherige Tageskette. Persistenz
+   in meta.ketten={dfm:{datum,ids,entfernt}, privat:{...}}. */
+function ketteState(dom){
+  const d=(dom==='privat')?'privat':'dfm';
+  if(!S.meta.ketten || typeof S.meta.ketten!=='object') S.meta.ketten={};
+  if(!S.meta.ketten[d] || !Array.isArray(S.meta.ketten[d].ids))
+    S.meta.ketten[d]={ datum:null, ids:[], entfernt:[] };
+  return S.meta.ketten[d];
 }
-/* Auto-Vorschlag: offene Karten, die heute (oder überfällig) dran sind. */
-function ketteAutoIds(){
-  const h=heuteApp();
-  return S.karten.filter(k=>k.status==='offen' && k.faelligkeit && k.faelligkeit<=h).map(k=>k.id);
+/* Auto-Vorschlag: offene Karten DER DOMÄNE, die heute (oder überfällig) dran
+   sind. §12.1: privat stehen die Morgenroutinen vorn. */
+function ketteAutoIds(dom){
+  const d=(dom==='privat')?'privat':'dfm', h=heuteApp();
+  let ks=S.karten.filter(k=>k.status==='offen' && k.domain===d && k.faelligkeit && k.faelligkeit<=h);
+  if(d==='privat') ks=ks.slice().sort((a,b)=>{
+    const ma=tagesabschnittHat(a,'morgens')?0:1, mb=tagesabschnittHat(b,'morgens')?0:1;
+    return ma-mb;
+  });
+  return ks.map(k=>k.id);
 }
-/* Liefert die Kette für heute. Beim Tageswechsel: nicht erledigte Einträge
-   rollen mit, danach werden neue fällige Karten hinten angehängt (Auto-
-   Befüllung; manuell entfernte Karten kommen am selben Tag nicht zurück). */
-function tagesKette(){
-  const st=ketteState(), h=heuteApp();
+/* Kette einer Domäne für heute — Rollover offener Einträge, Auto-Nachzug ans
+   Ende, verwaiste/fremddomänige IDs still aussortiert. */
+function tagesKetteDom(dom){
+  const d=(dom==='privat')?'privat':'dfm';
+  const st=ketteState(d), h=heuteApp();
   if(st.datum!==h){
     const uebrig=(st.ids||[]).filter(id=>{ const k=S.karten.find(x=>x.id===id); return k && k.status==='offen'; });
-    const auto=ketteAutoIds().filter(id=>uebrig.indexOf(id)<0);
-    st.datum=h; st.ids=uebrig.concat(auto); saveMeta();
+    const auto=ketteAutoIds(d).filter(id=>uebrig.indexOf(id)<0);
+    st.datum=h; st.ids=uebrig.concat(auto); st.entfernt=[]; saveMeta();
   } else {
-    // Auto-Nachzug für heute neu fällig gewordene Karten (nur additiv, ans Ende)
     const bekannt=new Set(st.ids), entfernt=new Set(st.entfernt||[]);
-    const neu=ketteAutoIds().filter(id=>!bekannt.has(id) && !entfernt.has(id));
+    const neu=ketteAutoIds(d).filter(id=>!bekannt.has(id) && !entfernt.has(id));
     if(neu.length){ st.ids=st.ids.concat(neu); saveMeta(); }
   }
-  // verwaiste IDs (gelöschte Karten) still aussortieren
-  const lebt=st.ids.filter(id=>S.karten.some(k=>k.id===id));
+  const lebt=st.ids.filter(id=>{ const k=S.karten.find(x=>x.id===id); return k && k.domain===d; });
   if(lebt.length!==st.ids.length){ st.ids=lebt; saveMeta(); }
   return st.ids;
 }
-function ketteKarten(){ const by={}; S.karten.forEach(k=>by[k.id]=k); return tagesKette().map(id=>by[id]).filter(Boolean); }
+/* Beide Ketten in einer Reihe (DFM zuerst) — für Sheet, Export, Übersichten. */
+function tagesKette(){ return tagesKetteDom('dfm').concat(tagesKetteDom('privat')); }
+function ketteKarten(dom){
+  const by={}; S.karten.forEach(k=>by[k.id]=k);
+  return (dom?tagesKetteDom(dom):tagesKette()).map(id=>by[id]).filter(Boolean);
+}
 function ketteHat(id){ return tagesKette().indexOf(id)>=0; }
-/* Manuelles Ergänzen/Entfernen. Entfernte Karten merkt sich der Tag, damit die
-   Auto-Befüllung sie nicht sofort wieder einsammelt. */
+/* Manuelles Ergänzen/Entfernen — immer in der Kette der Karten-Domäne. */
 function ketteToggle(id){
-  const st=ketteState(); tagesKette();
+  const k=S.karten.find(x=>x.id===id); if(!k) return false;
+  const st=ketteState(k.domain); tagesKetteDom(k.domain);
   const i=st.ids.indexOf(id);
   if(!Array.isArray(st.entfernt)) st.entfernt=[];
   if(i>=0){ st.ids.splice(i,1); if(st.entfernt.indexOf(id)<0) st.entfernt.push(id); }
   else { st.ids.push(id); st.entfernt=st.entfernt.filter(x=>x!==id); }
-  saveMeta(); return i<0;
+  saveMeta(); ketteHistLog(k.domain); return i<0;
 }
-/* Reihenfolge setzen (Tagesplanung / Sync-Import). */
-function ketteSetzen(ids){
-  const st=ketteState();
-  st.datum=heuteApp();
-  st.ids=(ids||[]).filter((id,i,a)=>a.indexOf(id)===i && S.karten.some(k=>k.id===id));
-  st.entfernt=[]; saveMeta();
+/* Reihenfolge setzen. Mit dom: genau diese Kette. Ohne dom (Tagesplanung,
+   Alt-Import): IDs nach Karten-Domäne aufteilen, Reihenfolge erhalten. */
+function ketteSetzen(ids, dom){
+  if(dom){
+    const d=(dom==='privat')?'privat':'dfm', st=ketteState(d);
+    st.datum=heuteApp();
+    st.ids=(ids||[]).filter((id,i,a)=>a.indexOf(id)===i && S.karten.some(k=>k.id===id && k.domain===d));
+    st.entfernt=[]; saveMeta(); ketteHistLog(d); return;
+  }
+  const by={}; S.karten.forEach(k=>by[k.id]=k);
+  ketteSetzen((ids||[]).filter(id=>by[id] && by[id].domain!=='privat'), 'dfm');
+  ketteSetzen((ids||[]).filter(id=>by[id] && by[id].domain==='privat'), 'privat');
+}
+/* §9.2: Karte in ihrer Kette bewegen. dir −1/+1 = eine Position, 'top' = ganz
+   nach oben (startet gem. §6 die Uhr — Uhr folgt der Handlung des Aufrufers). */
+function ketteBewegen(id, dir){
+  const k=S.karten.find(x=>x.id===id); if(!k) return false;
+  const st=ketteState(k.domain); tagesKetteDom(k.domain);
+  const i=st.ids.indexOf(id); if(i<0) return false;
+  if(dir==='top'){ st.ids.splice(i,1); st.ids.unshift(id); }
+  else { const j=i+dir; if(j<0||j>=st.ids.length) return false;
+    const t=st.ids[i]; st.ids[i]=st.ids[j]; st.ids[j]=t; }
+  saveMeta(); ketteHistLog(k.domain); return true;
+}
+/* §13: Kettenhistorie des laufenden Tages — jede Umsortierung wird lokal
+   festgehalten (unbegrenzt; ins Sync-Paket reist nur der aktuelle Tag). */
+function ketteHistLog(dom){
+  try{
+    if(!S.meta.kettenHistorie) S.meta.kettenHistorie={};
+    const h=heuteApp();
+    if(!Array.isArray(S.meta.kettenHistorie[h])) S.meta.kettenHistorie[h]=[];
+    S.meta.kettenHistorie[h].push({ ts:jetztIso(), dom:(dom==='privat')?'privat':'dfm',
+      ids:ketteState(dom).ids.slice() });
+    if(S.meta.kettenHistorie[h].length>500) S.meta.kettenHistorie[h]=S.meta.kettenHistorie[h].slice(-500);
+    saveMeta();
+  }catch(e){}
 }
 const STD_STAPEL_IDS = standardStapelDefs().map(d=>d.id);
 /* Standardstapel-Set herstellen: Reihenfolge fix, eigene Stapel bleiben darunter,
@@ -2344,7 +2463,7 @@ const STD_STAPEL_IDS = standardStapelDefs().map(d=>d.id);
    Stapel fallen aus der Konfiguration (Sicherung liegt in stapel_bak160). */
 function syncStandardStapel(){
   S.stapel = standardStapelDefs().map(d=>neuerStapel(Object.assign({}, d, { vorangelegt:true })));
-  if(STD_STAPEL_IDS.indexOf(S.ui.aktivStapel)<0) S.ui.aktivStapel='sys-heute';
+  if(STD_STAPEL_IDS.indexOf(S.ui.aktivStapel)<0) S.ui.aktivStapel='sys-dfm';
   saveStapel(); saveUi();
 }
 function seedStapel(){
@@ -2417,7 +2536,7 @@ function istBadge(k){
 }
 function kartenreiheHtml(k, stapelId){
   const meta=[];
-  meta.push('<span class="art">'+esc(kartenArt(k))+'</span>');
+  meta.push('<span class="art">'+esc(kartenArtLabel(k))+'</span>');   // §11.1: Label folgt Grundart
   if(k.faelligkeit) meta.push('<span class="tag">'+esc(fmtDatum(k.faelligkeit))+'</span>');
   if(k.uhrzeit) meta.push('<span class="tag">🕐 '+esc(k.uhrzeit)+'</span>');
   // §5 (v1.8.0): Ist/Soll-Zeit kombiniert, Punkte ist/geplant, P/h-Pfeil gegen
@@ -2464,15 +2583,12 @@ function kartenreiheHtml(k, stapelId){
     ? '<button class="kstart kschieb" data-schieb="'+k.id+'" aria-label="Schieben">⏭</button>' : '';
   const archivBtn = k.status!=='archiviert'
     ? '<button class="karchiv" data-archiv="'+k.id+'" aria-label="Archivieren">🗑</button>' : '';
-  // U2: Schnellauswahl-Toggle ⚡ (aktiv hervorgehoben)
-  const schnellBtn = '<button class="kschnell'+(k.schnellauswahl?' on':'')+'" data-schnell="'+k.id+'" aria-label="Schnellauswahl">⚡</button>';
-  // A8 · §10 (v1.8.0): Pin-Toggle 📌 jetzt für ALLE Kartenarten (Pin-Schublade)
-  const pinBtn = '<button class="kpin'+(k.pin?' on':'')+'" data-pin="'+k.id+'" aria-label="Anpinnen">📌</button>';
+  // §1.2/§1.3 (v1.12.0): Pin- und Schnellauswahl-Toggles sind entfallen.
   // A4: Freeze-Toggle ❄︎ (eingefroren hervorgehoben)
   const freezeBtn = '<button class="kfreeze'+(k.freeze?' on':'')+'" data-freeze="'+k.id+'" aria-label="Einfrieren">❄︎</button>';
-  // §2.2 (v1.6.0): Karte manuell in die Tageskette „Heute" legen bzw. herausnehmen
+  // §9.2 (v1.12.0): Ketten-Knopf mit voller Funktion (Aktions-Sheet)
   const ketteBtn = k.status==='offen'
-    ? '<button class="kkette'+(ketteHat(k.id)?' on':'')+'" data-kette="'+k.id+'" aria-label="Zu Heute">▤</button>' : '';
+    ? '<button class="kkette'+(ketteHat(k.id)?' on':'')+'" data-kette="'+k.id+'" aria-label="Kette">▤</button>' : '';
   // v1.7.2 Hotfix: Die Karte ist ein BLOCK mit zwei Zeilen. Zeile 1 = Titel+Meta
   // über die volle Breite (acht 44px-Elemente daneben ließen dem Titel auf dem
   // iPhone ~34px — er brach buchstabenweise um). Zeile 2 = ALLE Bedienelemente
@@ -2493,7 +2609,7 @@ function kartenreiheHtml(k, stapelId){
     '</div>'+
     '<div class="ktools">'+
       '<div class="trow tprim">'+startBtn+schiebBtn+rechts+'</div>'+
-      '<div class="trow tsek">'+sortCtrl+ketteBtn+pinBtn+freezeBtn+schnellBtn+archivBtn+'</div>'+
+      '<div class="trow tsek">'+sortCtrl+ketteBtn+freezeBtn+archivBtn+'</div>'+   // §1 (v1.12.0): Pin/Schnellauswahl entfallen
     '</div>'+
   '</div>';
 }
@@ -2551,7 +2667,7 @@ function stapelHtml(st){
 function renderStapel(){
   rangCacheBauen();
   const host=el('stapelListe');
-  let html=tagBannerHtml()+pinLeisteHtml();   // A8: Quick-Leiste über den Stapeln
+  let html=tagBannerHtml();
   html += S.stapel.map(stapelHtml).join('');
   if(!S.stapel.length) html='<div class="placeholder" style="margin-top:14vh"><span class="big">🗂</span>Noch keine Stapel</div>';
   host.innerHTML=html;
@@ -2568,8 +2684,12 @@ function renderStapel(){
    die Liste darunter). Ist die Kette leer, greift ersatzweise die aktuelle
    Navigationsauswahl, damit die Fokusseite nie leer dasteht. */
 function fokusKandidaten(){
-  const kette=ketteKarten().filter(k=>k.status==='offen');
-  if(kette.length) return kette;
+  // §9.1 (v1.12.0): Das Fliessband folgt der Kette der AKTIVEN Domaene,
+  // ersatzweise beiden Ketten, zuletzt dem Filter.
+  const eigene=ketteKarten(navDomain()).filter(k=>k.status==='offen');
+  if(eigene.length) return eigene;
+  const beide=ketteKarten().filter(k=>k.status==='offen');
+  if(beide.length) return beide;
   return navSortiere(navFilter(S.karten.filter(k=>k.status==='offen')));
 }
 /* U2 (v1.4.0): heute bearbeitete Karten, zuletzt bearbeitete zuerst —
@@ -2644,7 +2764,7 @@ function renderFokus(){
   const kand=fokusKandidaten();
   if(!k){
     const stn=(S.stapel.find(s=>s.id===S.ui.aktivStapel)||{}).name||'Stapel';
-    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine offene Karte im Stapel „'+esc(stn)+'".<br>Stapel unten wechseln oder eine Karte im Stapel starten.</div>'+fokusKurveHtml()+fokusListeHtml()+pinLeisteHtml();
+    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine offene Karte im Stapel „'+esc(stn)+'".<br>Stapel unten wechseln oder eine Karte im Stapel starten.</div>'+fokusKurveHtml()+fokusListeHtml();
     renderFkNav();
     return;
   }
@@ -2685,6 +2805,16 @@ function renderFokus(){
     '<div class="tpb-marks" id="tpbMarks"></div></div><div class="tpb-info" id="tpbInfo"></div></div>';
   // Hotfix2: Titel ganz oben über der Zeit (voll, mehrzeilig, A2); unten nur Meta + Buttons.
   const titel='<div class="fk-haupttitel" data-detail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</div>';
+  // §7 (v1.12.0): ERLEDIGTE Karte im Verlauf — ausgegraut, gebuchte Zeit und
+  // Punkte direkt sichtbar, zwei Aktionen: Punkte anpassen · Wiederholen.
+  // Nie automatisch neu erstellt, nie automatisch wieder geöffnet.
+  const aufgabeErledigt='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'">'+
+    '<div class="tsub">✓ erledigt'+(k.tagId?' am '+esc(String(k.tagId).slice(0,10)):'')+
+    ' · ⏱ <b>'+tZeitKurz(istSekLive(k)/60)+'</b> · <b>'+Math.round(kartePunkte(k))+' P</b> gebucht</div></div>'+
+    '<div class="tzeile2">'+
+    '<button class="tedit" style="width:auto;padding:0 14px;border-radius:22px" data-detail="'+k.id+'">✎ Punkte anpassen</button>'+
+    '<span class="tgrp r"><button class="tedit" style="width:auto;padding:0 14px;border-radius:22px" data-wiederholen="'+k.id+'">↻ Wiederholen</button></span>'+
+    '</div></div>';
   // §1 (v1.10.1, F1): zwei Zeilen — Meta volle Breite, darunter die Bedienleiste
   // (gleiche data-Attribute und Handler, reine Umplatzierung).
   const aufgabe='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'">'+
@@ -2693,7 +2823,6 @@ function renderFokus(){
     '<div class="tzeile2">'+
     '<button class="tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause">'+(laeuft?'⏸':'▶')+'</button>'+
     '<span class="tgrp">'+
-    '<button class="tedit'+(k.schnellauswahl?' schnellon':'')+'" data-schnell="'+k.id+'" aria-label="Schnellauswahl">⚡</button>'+
     '<button class="tedit" data-detail="'+k.id+'" aria-label="Bearbeiten">✎</button>'+
     '<button class="tedit" data-fkschieben="'+k.id+'" aria-label="Schieben">⏭</button>'+
     '</span><span class="tgrp r">'+
@@ -2718,11 +2847,10 @@ function renderFokus(){
     '<button class="sw r'+(rechtsGeht?'':' aus')+'" data-fkswipe="1">Verlauf ▶</button></div>';
   host.innerHTML =
     '<div id="fokusAktiv" class="tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+(num(nav.hist)>0?'imverlauf ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
-      titel+kopf+stats+kpis+planbar+aufgabe+swipeLeiste+'</div>'+
+      titel+kopf+stats+kpis+planbar+(k.status==='erledigt'?aufgabeErledigt:aufgabe)+swipeLeiste+'</div>'+
     fokusSubsHtml(k)+
     fokusKurveHtml()+   // §9.3 (v1.11.0): Tageskurve unter dem Fokus, über der Liste
-    fokusListeHtml()+
-    pinLeisteHtml();   // A8: Quick-Leiste unter der Stapel-Liste
+    fokusListeHtml();
   renderFkNav();
   fokusTacho(k);   // Ring, Timer, Kennzahlen, Balken befüllen
 }
@@ -2796,13 +2924,14 @@ function fokusTacho(k){
       if(ziel>0){
         if(rest<=0){ bg='hsl(135,48%,24%)'; }             // Ziel erreicht
         else{
-          const fn=belTagFenster(belFensterDatum(jetztIso())), nowX=belX(jetztIso());
-          const restStd=fn.bis-nowX;
+          // §2 (v1.12.0): Restzeit = aktive Fensterstunden (Treppe), benötigte
+          // Rate gegen das eigene Median-Tempo (rangMass) statt der Uhrzeit-Rate.
+          const restStd=restFensterStd();
           if(restStd>0.05){
-            const need=rest/restStd;
-            const ratio=Math.max(0, Math.min(1, need>0 ? paceWerte().istRate/need : 1));
+            const need=rest/restStd, med=rangMass().median;
+            const ratio=Math.max(0, Math.min(1, (need>0 && med!=null) ? med/need : 1));
             bg='hsl('+Math.round(ratio*120)+',48%,'+(20+Math.round(ratio*5))+'%)';   // 0 rot · 0,5 gelb · 1 grün
-          }                                               // keine Restzeit → neutral
+          }                                               // WE/keine Restzeit → neutral
         }
       }
     }
@@ -2814,8 +2943,9 @@ function fokusTacho(k){
 /* 3 Tages-Kacheln: Akku · Punkte heute/Ziel · Zeit heute/geplant. */
 function fokusStats(k){
   const a=akkuLive(); if(el('tAkku')) el('tAkku').textContent = a!=null?Math.round(a)+'%':'–%';
-  const istHeute=punkteHeuteAnzeige(), ziel=Math.max(1, anZielDfmTag()+tagesZielDomain('privat'));   // §2 (1.8.1): Wochenendregel
-  if(el('tPktW')){ el('tPktW').textContent=Math.round(istHeute)+'/'+Math.round(ziel); el('tPktSub').textContent=Math.round(istHeute/ziel*100)+'% · Pkt'; }
+  // §2 (v1.12.0): Konsument 3 — Kachel „Punkte heute / Ziel" ueber zielUndIstHeute()
+  const zi=zielUndIstHeute(), istHeute=zi.we?zi.ist:punkteHeuteAnzeige(), ziel=zi.ziel;
+  if(el('tPktW')){ el('tPktW').textContent=Math.round(istHeute)+'/'+fmtKurzP(ziel); el('tPktSub').textContent=Math.round(istHeute/ziel*100)+'% · Pkt'; }   // §2 (v1.12.0): 12k statt 12000 — passt in die Kachel
   let zeitIst=0, zeitPlan=0; S.karten.forEach(x=>{ if(!imTagesstrom(x)) return; zeitIst+=heuteInvestiertMin(x); zeitPlan+=num(x.sollMin); });
   if(el('tZeitW')){ el('tZeitW').textContent=tZeitKurz(zeitIst)+'/'+tZeitKurz(zeitPlan); el('tZeitSub').textContent='Aufg '+(zeitPlan>0?Math.round(num(k.sollMin)/zeitPlan*100):0)+'%'; }
 }
@@ -2907,12 +3037,8 @@ function fokusSubAnlegen(kid){
    Aufnehmen ans Ende der manuellen Reihenfolge. */
 /* §4 (v1.8.0): ⚡ legt die Karte in den Schnellauswahl-Stapel bzw. nimmt sie
    heraus. Der Zeitstempel sorgt dafür, dass zuletzt Hinzugefügtes oben steht. */
-function toggleSchnell(kid){
-  const k=S.karten.find(x=>x.id===kid); if(!k) return;
-  k.schnellauswahl=!k.schnellauswahl;
-  if(k.schnellauswahl) k.schnellTs=jetztIso();
-  saveKarten(); renderAlles(); toast(k.schnellauswahl?'⚡ Zur Schnellauswahl':'Aus Schnellauswahl'); haptik(10);
-}
+/* §1.3 (v1.12.0): Die Schnellauswahl (toggleSchnell/⚡) ist ersatzlos
+   entfallen — ihre Karten liegen seit der Migration in den Ketten. */
 /* A4: Einfrieren/Auftauen. Eingefroren = pausiert (raus aus Abräumpflicht,
    Timer nicht startbar); bleibt in allen Stapeln ausgegraut sichtbar. */
 function toggleFreeze(kid){
@@ -2923,29 +3049,9 @@ function toggleFreeze(kid){
   toast(k.freeze?'❄︎ Eingefroren':'Aufgetaut'); haptik(12);
 }
 /* A8: Karte an-/abpinnen (Quick-Leiste). Nur sinnvoll auf Counter/Routine. */
-function togglePin(kid){
-  const k=S.karten.find(x=>x.id===kid); if(!k) return;
-  k.pin=!k.pin; saveKarten(); renderAlles();
-  toast(k.pin?'📌 Angepinnt':'Losgelöst'); haptik(10);
-}
-/* A8: Quick-Leiste der angepinnten Counter/Routinen mit Direktaktionen
-   (abhaken/ticken/Timer) — ohne Ansichtswechsel. */
-function pinLeisteHtml(){
-  const pins=S.karten.filter(k=>k.pin && k.status!=='archiviert');
-  if(!pins.length) return '';
-  const chip=k=>{
-    const laeuft=S.fokus&&S.fokus.karteId===k.id&&S.fokus.laeuft;
-    const akt = istTickKarte(k)
-      ? '<button class="pql-b" data-pqtick="'+k.id+'" aria-label="Tick +">＋</button>'
-      : '<button class="pql-b'+(k.status==='erledigt'?' done':'')+'" data-pqcheck="'+k.id+'" aria-label="Abhaken">✓</button>';
-    const cnt = istTickKarte(k) && num(k.ticksHeute)>0 ? '<span class="pql-n">'+num(k.ticksHeute)+'</span>' : '';
-    return '<div class="pql-chip'+(laeuft?' laeuft':'')+(k.freeze?' frost':'')+'">'+
-      '<span class="pql-t" data-pqdetail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</span>'+cnt+
-      '<button class="pql-b" data-pqstart="'+k.id+'" aria-label="Timer">'+(laeuft?'⏸':'▶')+'</button>'+akt+
-    '</div>';
-  };
-  return '<div class="pinleiste" aria-label="Angepinnt">'+pins.map(chip).join('')+'</div>';
-}
+/* §1.2 (v1.12.0): Pin ist ersatzlos entfallen — die Migration hat gepinnte
+   Karten in die Kette ihrer Domäne übernommen. Die Quick-Leiste (A8) fällt
+   mit; ihre Direktaktionen leben in der Ketten-Schublade weiter. */
 /* ══════════════════════════════════════════════════════════════════════
    §2 (v1.6.0) · Drei Navigationsebenen — ersetzen die 11 Standardstapel.
      Ebene 1  Domäne  dfm | privat                → Filter
@@ -3008,6 +3114,18 @@ function stapelFilterHtml(st){
   const c=(v,l)=>'<button class="schnellf'+(d===v?' on':'')+'" data-stapeldom="'+v+'" data-stapelid="'+st.id+'">'+l+'</button>';
   const s=(v,l)=>'<button class="schnellf'+(bs===v?' on':'')+'" data-stapelstatus="'+v+'" data-stapelid="'+st.id+'">'+l+'</button>';
   const ab=(st.sortierung&&st.sortierung.richtung==='desc')?'↓':'↑';
+  // §10 (v1.12.0): die Geplant-Stapel sind domänenfest — statt der Domänen-Chips
+  // tragen sie den Art-Filter (Aufgaben/Routinen); Erledigt behält Domäne+Status.
+  if(st.id==='sys-dfm' || st.id==='sys-privat'){
+    const art=(S.ui.stapelArt&&S.ui.stapelArt[st.id])||'alle';
+    const a=(v,l)=>'<button class="schnellf'+(art===v?' on':'')+'" data-stapelart="'+v+'" data-stapelid="'+st.id+'">'+l+'</button>';
+    return '<div class="schnellbar"><span class="schnellfilter">'+a('alle','Alle')+a('aufgabe','Aufgaben')+a('routine','Routinen')+
+      '<button class="schnellf" data-stapelricht="1" data-stapelid="'+st.id+'" aria-label="Sortierrichtung">⇅'+ab+'</button></span></div>';
+  }
+  // §10: Erledigt chronologisch — keine Sortierpfeile/-richtung.
+  if(st.id==='sys-erledigt'){
+    return '<div class="schnellbar"><span class="schnellfilter">'+c('alle','Alle')+c('dfm','DFM')+c('privat','Privat')+'</span></div>';
+  }
   return '<div class="schnellbar"><span class="schnellfilter">'+c('alle','Alle')+c('dfm','DFM')+c('privat','Privat')+'</span>'+
     ' <span class="schnellfilter">'+s('alle','alle')+s('offen','offen')+s('erledigt','erledigt')+
     '<button class="schnellf" data-stapelricht="1" data-stapelid="'+st.id+'" aria-label="Sortierrichtung">⇅'+ab+'</button></span></div>';
@@ -3024,40 +3142,41 @@ function filterStapelDomain(st, ks){
    der Stapel-Tab (stapelRowsHtml + kartenreiheHtml), inkl. Pfeile/Detail/Check/+. */
 /* §2.5 (v1.6.0): Die drei Ebenen als dauerhaft sichtbare Leiste — ein Tap je
    Ebene, kein Menü, kein Seitenwechsel. Alle Tap-Ziele ≥44px (siehe .navchip). */
+/* §9.1 (v1.12.0): Vier Ebenen — 1 Domäne · 2 Art (funktional, visuell zweite
+   Reihe) · 3 Sortierung/Gruppierung · 4 KETTE der aktiven Domäne (neu). Die
+   aktive Kette überstimmt Art und Ebene 3; kartenArt bleibt im Datenmodell
+   unverändert (Streak, Quote, Flow, Analyse-Filter). */
 function navLeisteHtml(){
-  const dom=navDomain(), art=navArt(), so=navSort(), heuteAn=!!S.ui.navHeute;
+  const dom=navDomain(), art=navArt(), so=navSort(), ketteAn=!!S.ui.navKette;
   const c=(aktiv,attr,wert,label,extra)=>'<button class="navchip'+(aktiv?' on':'')+'" data-'+attr+'="'+wert+'"'+(extra||'')+'>'+label+'</button>';
   let h='<div class="navleiste">';
-  // §9 (v1.11.1): übergreifender „Heute"-Filter — die Tageskette (sys-heute).
-  // Solange aktiv, überstimmt er Domäne und Art (die Zeilen sind gedämpft).
-  h+='<div class="navzeile"><button class="navchip heute'+(heuteAn?' on':'')+'" data-navheute="1">▤ Heute — deine Kette</button></div>';
-  const dim=heuteAn?' style="opacity:.4;pointer-events:none"':'';
-  h+='<div class="navzeile"'+dim+'>'+c(dom==='dfm','navdom','dfm','DFM')+c(dom==='privat','navdom','privat','Privat')+'</div>';
-  h+='<div class="navzeile"'+dim+'>'+c(art==='aufgabe','navart','aufgabe','Aufgaben')+c(art==='routine','navart','routine','Routinen')+'</div>';
-  if(heuteAn){ /* Ebene 3 entfällt — die Kette hat ihre eigene Reihenfolge */ }
-  else if(dom==='dfm'){
-    h+='<div class="navzeile e3"><span class="navlab">Sortierung</span>'+
-       c(so==='projekt','navsort','projekt','Projekt')+c(so==='deadline','navsort','deadline','Deadline')+c(so==='start','navsort','start','Start')+'</div>';
-  } else {
-    h+='<div class="navzeile e3"><span class="navlab">Gruppiert nach Tagesabschnitt</span></div>';
+  h+='<div class="navzeile">'+c(dom==='dfm','navdom','dfm','DFM')+c(dom==='privat','navdom','privat','Privat')+'</div>';
+  const dim=ketteAn?' style="opacity:.4;pointer-events:none"':'';
+  h+='<div class="navzeile e2"'+dim+'>'+c(art==='aufgabe','navart','aufgabe','Aufgaben')+c(art==='routine','navart','routine','Routinen')+'</div>';
+  if(!ketteAn){
+    if(dom==='dfm'){
+      h+='<div class="navzeile e3"><span class="navlab">Sortierung</span>'+
+         c(so==='projekt','navsort','projekt','Projekt')+c(so==='deadline','navsort','deadline','Deadline')+c(so==='start','navsort','start','Start')+'</div>';
+    } else {
+      h+='<div class="navzeile e3"><span class="navlab">Gruppiert nach Tagesabschnitt</span></div>';
+    }
   }
+  h+='<div class="navzeile"><button class="navchip heute'+(ketteAn?' on':'')+'" data-navkette="1">▤ Kette '+(dom==='dfm'?'DFM':'Privat')+'</button></div>';
   return h+'</div>';
 }
 /* Kartenliste unter der Fokuskarte — gefiltert/sortiert bzw. gruppiert nach den
    drei Ebenen. Die Swipe-Reihenfolge kommt weiterhin aus „Heute" (§2.2), diese
    Liste ist die Übersicht daneben. */
 function fokusListeHtml(){
-  // §9 (v1.11.1): „Heute" überstimmt Domäne/Art — Inhalt ist die Tageskette
-  // über den vorhandenen Sonderstapel sys-heute (Kettenreihenfolge, Pfeile
-  // ordnen die Kette um). Erledigte ans ENDE, ausgegraut: sichtbar als
-  // Fortschritt, aber nicht zwischen den nächsten Schritten.
-  if(S.ui.navHeute){
-    const st=S.stapel.find(s=>s.id==='sys-heute')||{id:'sys-heute'};
-    const alle=stapelKarten(st).filter(k=>k.status!=='archiviert');
+  // §9.1 (v1.12.0): Ebene 4 „Kette" — die Kette der AKTIVEN Domäne in
+  // Kettenreihenfolge (Pfeile ordnen die Kette um, Kontext 'kette').
+  // Erledigte ans Ende, ausgegraut.
+  if(S.ui.navKette){
+    const alle=ketteKarten(navDomain()).filter(k=>k.status!=='archiviert');
     const ks=alle.filter(k=>k.status==='offen').concat(alle.filter(k=>k.status==='erledigt'));
     return '<div class="fk-liste">'+navLeisteHtml()+
-      '<div class="lab">Heute · Kette · '+ks.length+'</div>'+
-      (ks.length ? stapelRowsHtml({id:'sys-heute'}, ks) : '<div class="leer">Die Kette ist leer — Karten über ▤ aufnehmen.</div>')+'</div>';
+      '<div class="lab">Kette '+(navDomain()==='dfm'?'DFM':'Privat')+' · '+ks.length+'</div>'+
+      (ks.length ? stapelRowsHtml({id:'kette'}, ks) : '<div class="leer">Die Kette ist leer — Karten über ▤ aufnehmen.</div>')+'</div>';
   }
   // Nur offene Karten — Abgeschlossenes lebt im Stapel „Erledigt" (§2.3).
   // §1.2 (v1.8.0): jede Ansicht trägt ihren eigenen Sortier-Schlüssel — die
@@ -3215,7 +3334,7 @@ function renderStatusSheet(){
             '<span class="av-bar"><i style="width:'+pct+'%;background:var(--cyan)"></i></span></div>'; })()+
       '</div></div></div>';
   // ── 2 · Als nächstes · deine Kette ──
-  const kIds=ketteState().ids||[], byId={}; S.karten.forEach(k=>byId[k.id]=k);
+  const kIds=tagesKette(), byId={}; S.karten.forEach(k=>byId[k.id]=k);
   let kettenOffen=kIds.map((id,i)=>({k:byId[id], pos:i+1})).filter(x=>x.k && x.k.status==='offen');
   let fallback=false;
   if(!kettenOffen.length){ fallback=true;
@@ -3230,7 +3349,7 @@ function renderStatusSheet(){
   h+='<div id="sheetKette">';
   drei.forEach(x=>{
     h+='<div class="stsh-kettenzeile"><span class="pos">'+x.pos+'</span>'+
-      '<div class="kz">'+kartenreiheHtml(x.k,'sys-heute')+'</div></div>';
+      '<div class="kz">'+kartenreiheHtml(x.k,'kette')+'</div></div>';
   });
   h+='</div>';
   if(drei.length){
@@ -3241,12 +3360,11 @@ function renderStatusSheet(){
   h+='</div>';
   // ── 3 · Was heute noch geht ──
   const fn=belTagFenster(heuteF);
-  // §4 (v1.11.1): Rest gegen DASSELBE Tagesfenster wie der Rest der App
-  // (sbFensterAnteil, 8:30–22:00) — nicht bis Mitternacht. Vorher: um 16:26
-  // „7h34 · bis 00:00" und ein um Stunden zu optimistisches „Noch drin".
-  const nowH=(function(){ const d=new Date(); return d.getHours()+d.getMinutes()/60; })();
-  const restStd=Math.max(0, 22 - Math.max(8.5, nowH));
-  const fensterPct=Math.round(sbFensterAnteil()*100);
+  // §2 (v1.12.0): Konsumenten 6+7 — Rest und „Noch drin" laufen ueber die
+  // Soll-Treppe (restFensterStd: aktive Fenster 9-18 + 21-23). WE: kein Fenster.
+  const weHeute=istWochenendTag(heuteApp());
+  const restStd=restFensterStd();
+  const fensterPct=Math.round(fensterAnteil()*100);
   const tempo=rm.median;   // §8.3: Median-Tempo, nicht Bestwert
   const nochDrin=tempo!=null?restStd*tempo:null;
   const fNaechst=outfit<20?Math.round(outfitFehltBis(outfit+1)):null;
@@ -3259,9 +3377,12 @@ function renderStatusSheet(){
   const drinPct=nochDrin!=null?Math.round(mess/Math.max(1,mess+nochDrin)*100):0;
   h+='<div class="stsh-teil"><div class="stsh-kopf">Was heute noch geht</div>'+
     '<div class="stsh-kacheln">'+
-      '<div class="stsh-k"><span>Rest im Fenster</span><b>'+tZeitKurz(restStd*60)+'</b><span>bis 22:00</span>'+
-        '<span class="av-bar"><i style="width:'+fensterPct+'%;background:var(--mut2)"></i></span></div>'+
-      '<div class="stsh-k"><span>Noch drin</span><b>'+(nochDrin!=null?'≈ '+Math.round(nochDrin)+' P':'–')+'</b><span>'+(tempo!=null?'Median-Tempo '+Math.round(tempo)+' P/Std':'sammelt noch Daten')+'</span>'+
+      (weHeute
+        ? '<div class="stsh-k"><span>Wochenende</span><b>'+fmtKurzP(zielUndIstHeute().ist)+'</b><span>von '+fmtKurzP(zielTagGesamt())+' · Sa+So gemeinsam</span>'+
+          '<span class="av-bar"><i style="width:'+Math.round(Math.min(1,zielUndIstHeute().ist/Math.max(1,zielTagGesamt()))*100)+'%;background:var(--cyan)"></i></span></div>'
+        : '<div class="stsh-k"><span>Rest im Fenster</span><b>'+tZeitKurz(restStd*60)+'</b><span>aktiv 9–18 · 21–23</span>'+
+          '<span class="av-bar"><i style="width:'+fensterPct+'%;background:var(--mut2)"></i></span></div>')+
+      '<div class="stsh-k"><span>Noch drin</span><b>'+(weHeute?(fmtKurzP(Math.max(0,zielTagGesamt()-zielUndIstHeute().ist))+' P'):(nochDrin!=null?'≈ '+Math.round(nochDrin)+' P':'–'))+'</b><span>'+(weHeute?'Rest im WE-Budget':(tempo!=null?'Median-Tempo '+Math.round(tempo)+' P/Std':'sammelt noch Daten'))+'</span>'+
         '<span class="av-bar"><i style="width:'+drinPct+'%;background:var(--blue)"></i></span></div>'+
       '<div class="stsh-k"><span>Nächstes Outfit</span><b>'+(fNaechst!=null?fNaechst+' P':'—')+'</b><span>'+(outfit<20?'bis Outfit '+(outfit+1):'Frack an 🤵')+'</span>'+
         '<span class="av-bar"><i style="width:'+stufePct+'%;background:'+av.akzent+'"></i></span></div>'+
@@ -3459,9 +3580,12 @@ function renderStatusbar(){
   if(pctD+pctP>100){ const sc=100/(pctD+pctP); pctD*=sc; pctP*=sc; }   // Balken bleibt bei Überschuss voll, Anteil bleibt gewahrt
   el('sBarIstD').style.width=pctD.toFixed(1)+'%';
   el('sBarIstP').style.left=pctD.toFixed(1)+'%'; el('sBarIstP').style.width=pctP.toFixed(1)+'%';
-  const istTotalPct=pctD+pctP, sollPct=Math.min(100, sbFensterAnteil()*100);
+  // §2 (v1.12.0): Soll-Layer folgt der Treppe (sollStandGesamt/Ziel); am
+  // Wochenende gibt es kein Fenster und keine Soll-Markierung.
+  const istWe=istWochenendTag(heuteApp());
+  const istTotalPct=pctD+pctP, sollPct=Math.min(100, sollStandGesamt()/zielGes*100);
   const sollEl=el('sBarSoll'), sollMk=el('sBarSollMark');
-  if(urlaubHeute()){ sollEl.style.width='0%'; sollMk.style.display='none'; }   // §5 (1.8.1): keine Soll-Markierung
+  if(urlaubHeute() || istWe){ sollEl.style.width='0%'; sollMk.style.display='none'; }
   else if(istTotalPct>=sollPct){   // Vorsprung: nur schmaler Marker innerhalb der Ist-Füllung
     sollEl.style.width='0%';
     sollMk.style.left=sollPct.toFixed(1)+'%'; sollMk.style.display='block';
@@ -3482,12 +3606,14 @@ function renderStatusbar(){
   // S2 (v1.3.2): Beschriftung unter der Leiste — Ist DFM/Privat (Punkte) + Soll-jetzt (rot)
   el('sPhDfm').textContent=Math.round(pDfm);
   el('sPhPrv').textContent=Math.round(pPriv);
-  el('sPhSoll').textContent=urlaubHeute()?'🏖':Math.round(zielGes*sbFensterAnteil());   // §5 (1.8.1): Hinweis statt Soll
+  el('sPhSoll').textContent=urlaubHeute()?'🏖':(istWe?'WE':Math.round(sollStandGesamt()));
   // Pace-Pfeil (7 Zonen relativ zum Soll) + Δ-P/Std-Anzeige (A2, unverändert)
   const pw=paceWerte();
   const z1=num(S.settings.pfeilZone1,5), z2=num(S.settings.pfeilZone2,15), z3=num(S.settings.pfeilZone3,40);
   let idx=3, farbe='var(--mut)';
-  if(pw.sollRate>0){ const abw=(pw.istRate-pw.sollRate)/pw.sollRate*100;   // konsistent zur angezeigten Δ-Rate (Overall)
+  // §2 (v1.12.0): Pfeil-Zonen STAND-basiert (ist−soll relativ zum Soll) —
+  // im 18–21-Plateau steigt das Soll nicht, der Pfeil dreht dort nicht ins Rote.
+  if(!pw.we && pw.soll>0){ const abw=(pw.ist-pw.soll)/pw.soll*100;
     if(abw>=z3) idx=6; else if(abw>=z2) idx=5; else if(abw>=z1) idx=4;
     else if(abw<=-z3) idx=0; else if(abw<=-z2) idx=1; else if(abw<=-z1) idx=2;
     if(idx>3) farbe='var(--ok)'; if(idx<3) farbe='var(--bad)'; }
@@ -3503,9 +3629,10 @@ function renderStatusbar(){
   // Zelle 2: Akku + Reichweite (§1.2) — gekürzt auf die Uhrzeit („17:10" statt „bis 17:10")
   const rw=akkuReichweite(eb);
   zelle('sZAkku', (eb.akku!=null?Math.round(eb.akku)+'%':'–'), rw);
-  // Zelle 3: Tempo — Pfeil + Δ P/Std
+  // Zelle 3: Tempo — Δ-Punkte gegen die Soll-Treppe; WE: gemeinsames Budget
   if(urlaubHeute()) zelle('sZTempo','🏖','Urlaub','var(--cyan)');
-  else { const dr=Math.round(pw.deltaRate);
+  else if(pw.we) zelle('sZTempo', fmtKurzP(pw.ist), 'WE von '+fmtKurzP(pw.ziel), 'var(--cyan)');
+  else { const dr=Math.round(pw.delta);
     zelle('sZTempo', PACE_PFEILE[idx]+' '+(dr>=0?'+':'')+dr, (dr>=0?'über Soll':'unter Soll'), farbe); }
   // Zelle 4: Serie
   zelle('sZSerie', '🔥 '+num(S.meta.tagesStreak), '×'+streakFaktor().toFixed(2).replace('.',',')+(jokerVerfuegbar()?' ♦':''));
@@ -3570,7 +3697,107 @@ function tagesPunkteLive(){
 }
 /* A1: getrenntes Tagesziel je Domäne (Punkte) + Anteil des wachen Tages (16 h
    linear ab Tagesstart) für die Pace. */
-function tagesZielDomain(dom){ return dom==='dfm' ? num(S.settings.tagesZielDfm,5000) : num(S.settings.tagesZielPrivat,3000); }
+function tagesZielDomain(dom){ return dom==='dfm' ? num(S.settings.tagesZielDfm,7000) : num(S.settings.tagesZielPrivat,5000); }
+/* ══ §2 (v1.12.0) · DIE Soll-Funktion — eine Treppe statt der Linie. ══════
+   Werktag: aktive Fenster 9–18 und 21–23 (dazwischen Plateau, davor/danach
+   Bonus). Wochenende: KEIN Fenster — Sa+So teilen sich ein gemeinsames
+   Kontingent (DFM 2.500 · Privat 10.000), keine Pace, kein Pfeil.
+   ALLE Soll-Konsumenten laufen über diese Familie: sollStand()/zielTag(). */
+/* §3 (v1.12.0): Das aktive Werktagsprofil liegt in den Einstellungen
+   (sichtbar, von Hand editierbar). Gelernt wird NUR die Verteilung über den
+   Tag — die Zielhöhe (zielTag) bleibt davon vollständig unberührt. */
+function sollFensterAktiv(){
+  const p=S.settings && S.settings.sollProfilWerktag;
+  return (Array.isArray(p) && p.length && p.every(f=>Array.isArray(f)&&f.length===2)) ? p : [[9,18],[21,23]];
+}
+function sollFensterStunden(){ return sollFensterAktiv().reduce((a,f)=>a+(f[1]-f[0]),0); }
+function jetztStunde(){ const d=new Date(); return d.getHours()+d.getMinutes()/60+d.getSeconds()/3600; }
+function istWochenendTag(datum){ const d=new Date((datum||heuteApp())+'T12:00:00').getDay(); return d===0||d===6; }
+function fensterAnteil(stunde){
+  const h=(stunde==null)?jetztStunde():stunde;
+  let v=0; sollFensterAktiv().forEach(f=>{ v+=Math.max(0, Math.min(h,f[1])-f[0]); });
+  return Math.max(0, Math.min(1, v/sollFensterStunden()));
+}
+function restFensterStd(stunde){
+  if(istWochenendTag(heuteApp())) return 0;
+  const h=(stunde==null)?jetztStunde():stunde;
+  let r=0; sollFensterAktiv().forEach(f=>{ r+=Math.max(0, f[1]-Math.max(f[0],h)); });
+  return r;
+}
+/* §3 · Gemessenes Verteilungsprofil je Tagestyp (werktag/wochenende) aus dem
+   Intraday-Log: Punkteanteil je Stunde ueber die letzten aktiven Tage. */
+function profilGemessen(typ){
+  const we=(typ==='wochenende');
+  const tage=aktiveRateTage(60).filter(d=>istWochenendTag(d)===we).slice(0,28);
+  const b=new Array(24).fill(0); let ges=0;
+  tage.forEach(d=>{
+    (S.intraday||[]).forEach(e=>{
+      if(!e.ts || belFensterDatum(e.ts)!==d) return;
+      const pe=Math.max(0,num(e.punkte)); if(pe<=0) return;
+      b[new Date(e.ts).getHours()]+=pe; ges+=pe;
+    });
+  });
+  return { n:tage.length, anteile: ges>0 ? b.map(x=>x/ges) : b, gesamt:ges };
+}
+/* Fenster aus der Messung ableiten: Stunden mit >=3 % der Punkte sind aktiv,
+   Ein-Stunden-Luecken werden ueberbrueckt. */
+function profilFenster(anteile){
+  const aktiv=anteile.map(a=>a>=0.03);
+  for(let h=1;h<23;h++){ if(!aktiv[h] && aktiv[h-1] && aktiv[h+1]) aktiv[h]=true; }
+  const out=[]; let start=null;
+  for(let h=0;h<=24;h++){
+    const an=h<24 && aktiv[h];
+    if(an && start==null) start=h;
+    if(!an && start!=null){ out.push([start,h]); start=null; }
+  }
+  return out;
+}
+/* §3 · Abweichung aktives vs. gemessenes Profil (Jaccard-Distanz der
+   Stundenmengen). Schwelle 0,25 und Mindeststichprobe 14 aktive Werktage —
+   dieselbe Groessenordnung wie Rang-Fenster und Sternschwellen; Kappung:
+   hoechstens ein Vorschlag je 7 Tage. */
+function profilVorschlag(){
+  const m=profilGemessen('werktag');
+  if(m.n<14) return null;
+  const gemessen=profilFenster(m.anteile);
+  if(!gemessen.length) return null;
+  const setVon=fs=>{ const st=new Set(); fs.forEach(f=>{ for(let h=f[0];h<f[1];h++) st.add(h); }); return st; };
+  const A=setVon(sollFensterAktiv()), B=setVon(gemessen);
+  let schnitt=0; A.forEach(h=>{ if(B.has(h)) schnitt++; });
+  const vereinigung=new Set([...A,...B]).size;
+  const distanz=vereinigung>0 ? 1-(schnitt/vereinigung) : 0;
+  if(distanz<0.25) return null;
+  return { gemessen, distanz, n:m.n, anteile:m.anteile };
+}
+/* Zielhöhe eines Tages: Werktag je Tag; Wochenende = das GEMEINSAME Kontingent. */
+function zielTag(dom, datum){
+  if(istWochenendTag(datum||heuteApp()))
+    return dom==='dfm' ? num(S.settings.zielWeDfm,2500) : num(S.settings.zielWePrivat,10000);
+  return tagesZielDomain(dom);
+}
+function zielTagGesamt(datum){ return zielTag('dfm',datum)+zielTag('privat',datum); }
+/* DIE Funktion: Soll-Stand einer Domäne zu einer Uhrzeit (Treppe). Am
+   Wochenende ist der Soll-Stand das volle Kontingent (kein Zeitverlauf). */
+function sollStand(dom, datum, stunde){
+  const d=datum||heuteApp();
+  if(istWochenendTag(d)) return zielTag(dom,d);
+  return zielTag(dom,d)*fensterAnteil(stunde);
+}
+function sollStandGesamt(datum, stunde){ return sollStand('dfm',datum,stunde)+sollStand('privat',datum,stunde); }
+/* Wochenend-Ist: Sa+So gemeinsam — am Sonntag zählt der Samstag dazu. */
+function weIstDomain(dom){
+  let s=Math.max(0, tagesPunkteDomain(dom));
+  if(new Date().getDay()===0){ const sn=tagSnapshot(anVorTage(heuteApp(),1)); if(sn) s+=Math.max(0,snapPunkte(sn,dom)); }
+  return s;
+}
+/* Ziel und Ist des heutigen Rahmens (Werktag: Tag · WE: gemeinsames Budget). */
+function zielUndIstHeute(dom){
+  const we=istWochenendTag(heuteApp());
+  if(dom) return { ziel:Math.max(1,zielTag(dom)), ist: we?weIstDomain(dom):Math.max(0,tagesPunkteDomain(dom)), we };
+  return { ziel:Math.max(1,zielTagGesamt()),
+    ist: we ? (weIstDomain('dfm')+weIstDomain('privat'))
+            : (Math.max(0,tagesPunkteDomain('dfm'))+Math.max(0,tagesPunkteDomain('privat'))), we };
+}
 function wachTagAnteil(){ return Math.max(0, Math.min(1, tagStundenVergangen()/16)); }
 /* S1 (v1.3.2): Soll-Kurve der Statusleiste läuft rein nach Uhrzeit 8:30–22:00 Uhr
    (unabhängig vom manuellen Tagesstart) — nur für die Anzeige der Soll-Linie im
@@ -3582,10 +3809,9 @@ function fmtKurzP(v){ v=Math.round(num(v));
   if(v<10000) return (Math.round(v/100)/10).toString().replace('.',',')+'k';
   return Math.round(v/1000)+'k';
 }
-function sbFensterAnteil(){
-  const d=new Date(), h=d.getHours()+d.getMinutes()/60+d.getSeconds()/3600;
-  return Math.max(0, Math.min(1, (h-8.5)/(22-8.5)));
-}
+/* §2 (v1.12.0): Alt-Wrapper — das lineare 8:30–22:00-Fenster ist durch die
+   Soll-Treppe ersetzt; verbleibende Aufrufer bekommen den Treppen-Anteil. */
+function sbFensterAnteil(){ return istWochenendTag(heuteApp()) ? 0 : fensterAnteil(); }
 function punkteHeuteDomain(dom){ return Math.max(0, tagesPunkteDomain(dom)); }
 /* Wohlstand live = eingefrorener Stand + heutiger (noch offener) Tag. */
 function wohlstandLive(){ return num(S.meta.wohlstand) + (tagOffen() ? tagesPunkteLive() : 0); }
@@ -3617,20 +3843,26 @@ function tagStundenVergangen(){
 /* Pace (A2): Ø IST-Punkte/Stunde (Tagespunkte ÷ Stunden seit Tagesstart) vs.
    SOLL-Rate (Gesamt-Tagesziel ÷ 16 h Wachfenster). ist/soll bleiben kumulativ
    (Balken/Pfeil-Zonen), istRate/sollRate/deltaRate treiben die Anzeige. */
+/* §2 (v1.12.0): Konsument 1 — Pace über sollStand (Treppe). Der Pfeil
+   rechnet STAND-basiert (ist − soll): im 18–21-Plateau steigt das Soll
+   nicht, also dreht dort nichts ins Rote. Wochenende: keine Pace. */
 function paceWerte(){
-  // §2 (v1.8.1): Wochenendregel auch in der Pace — Sa/So gilt das 1500er-
-  // DFM-Teilziel (Einzeltag-Abbildung des gemeinsamen 3000er-Wochenendziels).
-  const zielGes=anZielDfmTag()+tagesZielDomain('privat');
-  const std=tagStundenVergangen(), ist=punkteHeuteAnzeige();
-  const istRate = std>0.05 ? ist/std : 0;
-  const sollRate = zielGes/16;
-  return { ist, soll: zielGes*wachTagAnteil(), istRate, sollRate, deltaRate: istRate-sollRate };
+  const zi=zielUndIstHeute();
+  if(zi.we) return { we:true, ist:zi.ist, ziel:zi.ziel, soll:zi.ziel, delta:0, deltaRate:0, istRate:0, sollRate:0 };
+  const soll=sollStandGesamt();
+  const ist=punkteHeuteAnzeige();
+  const rest=restFensterStd();
+  const sollRate=zielTagGesamt()/sollFensterStunden();
+  return { we:false, ist, ziel:zi.ziel, soll, delta:ist-soll,
+    deltaRate:(ist-soll), istRate: rest>0?(zi.ziel-ist)/rest:0, sollRate };
 }
-/* Pace je Domäne: Ø IST-P/Std vs. Domänen-SOLL-Rate (Domänen-Ziel ÷ 16 h). */
+/* §2 (v1.12.0): Konsument 2 — Pace je Domäne, ebenfalls Stand-basiert. */
 function paceDomain(dom){
-  const ziel=tagesZielDomain(dom), std=tagStundenVergangen(), ist=punkteHeuteDomain(dom);
-  const istRate = std>0.05 ? ist/std : 0, sollRate = ziel/16;
-  return { ist, soll: ziel*wachTagAnteil(), ziel, istRate, sollRate, deltaRate: istRate-sollRate };
+  const zi=zielUndIstHeute(dom);
+  if(zi.we) return { we:true, ist:zi.ist, ziel:zi.ziel, soll:zi.ziel, delta:0, istRate:0, sollRate:0 };
+  const soll=sollStand(dom);
+  return { we:false, ist:zi.ist, ziel:zi.ziel, soll, delta:zi.ist-soll,
+    istRate: zi.ist, sollRate: soll };
 }
 /* Karte gehört in den heutigen Energie-/Pace-Horizont: offen + heute fällig
    oder überfällig, oder die aktuell laufende Fokus-Karte. */
@@ -3855,9 +4087,8 @@ function routineErledigtBuchen(k){
 /* Generierter Abzug-Vorschlag beim Schieben (§4): grob nach Priorität/Punkten. */
 function abzugVorschlag(k){
   if(urlaubHeute()) return 0;   // §5 (1.8.1)
-  const basis = Math.round(kartePunkte(Object.assign({},k,{istSek:0,ticksHeute:0})));
-  const faktor = k.prioritaet==='muss' ? 1 : k.prioritaet==='soll' ? 0.5 : 0;
-  return Math.round(Math.min(100, basis*faktor) / 10) * 10;   // auf 10 gerundet, max 100
+  // §12.2 (v1.12.0): Vorschlag = 10 % der Prognose (auf 10 gerundet)
+  return Math.max(10, Math.round(Math.max(0,kartePunkteGeplant(k))*0.1/10)*10);
 }
 /* Karte im Abschluss schieben — mit sofort gebuchtem Punkteabzug. */
 function karteSchieben(k, datum, uhrzeit, abzug){
@@ -3974,10 +4205,11 @@ function renderTagStart(){
    in Wunschreihenfolge antippen (früher Tagesabschluss-Durchgang 2). */
 function renderTagStartPrio(){
   rangCacheBauen();
-  const st=S.stapel.find(s=>s.id==='sys-heute');
-  // §2.4 (v1.6.0): Freeze steuert keine Aufnahme in „Heute" mehr — eingefrorene
-  // Karten erscheinen hier mit, nur optisch zurückgenommen.
-  const ks=(st?stapelKarten(st):[]).filter(k=>k.status==='offen');
+  // §12.1 (v1.12.0): Grundlage sind die beiden Ketten (Auto-Befuellung baut
+  // sie aus Morgenroutinen + faelligen Aufgaben zusammen). Der STATUS der
+  // Karten wird dabei nicht veraendert — Kettenzugehoerigkeit heisst
+  // „heute dran", nicht „in Arbeit".
+  const ks=ketteKarten().filter(k=>k.status==='offen');
   const order=tagStartTmp.sortOrder||(tagStartTmp.sortOrder=[]);
   ks.sort((a,b)=>{ const ia=order.indexOf(a.id), ib=order.indexOf(b.id); return (ia<0?9e9:ia)-(ib<0?9e9:ib); });
   let h='<p class="d"><b>Heute priorisieren.</b> Tippe die Karten in der Reihenfolge an, in der du sie heute angehen willst. (Optional — „Fertig" reicht auch ohne.)</p>';
@@ -4021,25 +4253,25 @@ function renderAbschlussAbraeumen(){
   let h='<p class="d"><b>Abräumen.</b> Fällige/überfällige Karten abhaken, schieben, archivieren. Routinen: verpasst oder heute nicht nötig. <span style="color:var(--mut2)">(Eingefrorene Karten sind ausgenommen — kein Abzug.)</span></p>';
   if(!karten.length){ h+='<div class="card"><p class="d" style="text-align:center">Alles abgeräumt 🎉</p></div>'; }
   karten.forEach(k=>{
-    const istRoutine=!!k.rhythmus, tickartig=istTickKarte(k), ueberf=k.faelligkeit<heuteApp();
-    h+='<div class="abcard" style="border-left-color:'+karteFarbe(k)+'">'+
-      '<div class="abtitel">'+esc(k.titel)+'</div>'+
-      '<div class="abmeta">'+(ueberf?'<span class="pri-muss">überfällig</span>':'heute')+' · '+num(k.sollMin)+'′ · '+Math.round(kartePunkte(k))+'P'+(istRoutine?' · 🔥'+num(k.streak):'')+'</div>';
+    // §12.2 (v1.12.0): Standard-Kartenzeile; TAEGLICHE Routinen sind nicht
+    // schiebbar (nur „fertig"), alles andere schon. Datum direkt sichtbar.
+    const istRoutine=!!k.rhythmus, tickartig=istTickKarte(k);
+    const taeglich=istRoutine && k.rhythmus.typ==='taeglich';
+    h+='<div class="abzeile">'+kartenreiheHtml(k,'abschluss');
     if(abschlussTmp.schiebenFor===k.id){
       const vor=abzugVorschlag(k);
       h+='<div class="schiebe">'+
         '<div class="row2"><input type="date" id="ab-date" value="'+morgenIso()+'"><input type="time" id="ab-time" value="'+esc(k.uhrzeit||'')+'"></div>'+
-        '<div class="abzugsel">Abzug: '+
-          [['0','ohne'],['50','−50'],['100','−100'],[String(vor),'Vorschlag −'+vor]].map(([v,t])=>'<button class="chip '+(num(abschlussTmp.abzug)===num(v)?'on rot':'')+'" data-abzug="'+v+'">'+t+'</button>').join('')+
+        '<div class="abzugsel">Punkteverlust: '+
+          [['0','ohne'],[String(vor),'Vorschlag −'+vor]].map(([v,t])=>'<button class="chip '+(num(abschlussTmp.abzug)===num(v)&&!abschlussTmp.abzugSelbst?'on rot':'')+'" data-abzug="'+v+'">'+t+'</button>').join('')+
+          '<input type="number" inputmode="numeric" id="ab-abzug" placeholder="selbst" style="width:76px" value="'+(abschlussTmp.abzugSelbst?num(abschlussTmp.abzug):'')+'">'+
         '</div>'+
         '<div class="abbtns"><button class="abbtn" data-abschiebenab="1">✕</button><button class="abbtn ok" data-abschiebengo="'+k.id+'">→ Schieben</button></div>'+
       '</div>';
     } else {
       h+='<div class="abbtns">'+
-        (!tickartig?'<button class="abbtn ok" data-abfertig="'+k.id+'">✓ Fertig</button>':'')+   // A3: Timer/Counter nie „erledigt"
-        '<button class="abbtn" data-abschieben="'+k.id+'">→ Schieben</button>'+
-        '<button class="abbtn" data-abarchiv="'+k.id+'">🗄</button>'+
-        '<button class="abbtn" data-abedit="'+k.id+'">✎</button>'+
+        (!tickartig?'<button class="abbtn ok" data-abfertig="'+k.id+'">✓ Fertig</button>':'')+
+        (!taeglich?'<button class="abbtn" data-abschieben="'+k.id+'">→ Schieben</button>':'')+
         (istRoutine?'<button class="abbtn warn" data-abverpasst="'+k.id+'">😴 Verpasst</button><button class="abbtn" data-abnicht="'+k.id+'">🆗 nicht nötig</button>'
           : tickartig?'<button class="abbtn" data-abnicht="'+k.id+'">🆗 weg</button>':'')+
       '</div>';
@@ -4070,11 +4302,13 @@ function renderAbschlussSortieren(){
   openSheet('Tagesabschluss (2/2)', h, foot);
 }
 function abschlussFinish(){
+  // §12.2 (v1.12.0): Die Morgen-Reihenfolge schreibt direkt die Ketten —
+  // getappte Karten zuerst, der Rest bleibt dahinter; beim Tageswechsel
+  // rollt die Reihenfolge mit.
   const order=abschlussTmp.sortOrder;
   if(order.length){
-    order.forEach((id,i)=>{ const k=S.karten.find(x=>x.id===id); if(k){ k.sortIndex=k.sortIndex||{}; k.sortIndex['sys-heute']=i+1; } });
-    const st=S.stapel.find(s=>s.id==='sys-heute'); if(st) st.sortierung={feld:'manuell',richtung:'asc'};
-    saveKarten(); saveStapel();
+    const rest=tagesKette().filter(id=>order.indexOf(id)<0);
+    ketteSetzen(order.concat(rest));
   }
   tagAbschlussFinalisieren();
   const paket=tagBackupPaket();
@@ -4139,7 +4373,7 @@ function openSheet(titel, bodyHtml, footHtml, saveFn){
   el('sheet').classList.add('on');
 }
 function closeSheet(){
-  pinSheetOffen=false;   // §10 (1.8.0)
+  ketteSheetOffen=false;   // §9.3 (v1.12.0)
   el('sheet').classList.remove('on');
   el('backdrop').classList.remove('on');
   sheetSaveFn=null; entwurf=null; stapelEntwurf=null;
@@ -4305,8 +4539,7 @@ function renderDetail(){
     '<div class="field"><label>Einfrieren</label><div class="chips">'+
       '<button class="chip '+(k.freeze?'on rot':'')+'" data-dfreeze="1">'+(k.freeze?'❄︎ eingefroren':'❄︎ einfrieren')+'</button></div>'+
       '<div class="hint">pausiert: kein Abräum-Zwang, Timer gesperrt</div></div>'+
-    '<div class="field"><label>Quick-Leiste</label><div class="chips">'+
-      '<button class="chip '+(k.pin?'on lila':'')+'" data-dpin="1">📌 '+(k.pin?'angepinnt':'anpinnen')+'</button></div>'+
+    '<div class="field"><label>Quick-Leiste</label><div class="chips">'+'</div>'+
       '<div class="hint">Schnellzugriff oben/unten</div></div>'+
   '</div>';
   h+='<div class="field"><label>Karten-Gruppe</label><div class="chips">'+
@@ -4359,8 +4592,17 @@ function detailSpeichern(){
     if(delta!==0){ entwurf.istSek=Math.max(0, num(entwurf.istSek)+delta*60); if(delta>0) logIntraday(entwurf,{minuten:delta,typ:'nachtrag'}); }
   }
   delete entwurf._istMinEdit;
+  // §8 (v1.12.0): „Neu anlegen" aus dem Wiederholen-Dialog — die neue Karte
+  // wandert OBEN in die Kette ihrer Domäne (Flag aus der Vorbelegung).
+  const kettenOben=!!entwurf.kettenOben; delete entwurf.kettenOben;
   const idx=S.karten.findIndex(k=>k.id===entwurf.id);
   if(idx>=0) S.karten[idx]=entwurf; else S.karten.push(entwurf);
+  if(kettenOben && idx<0){
+    const st=ketteState(entwurf.domain); tagesKetteDom(entwurf.domain);
+    st.ids=st.ids.filter(x=>x!==entwurf.id); st.ids.unshift(entwurf.id);
+    st.entfernt=(st.entfernt||[]).filter(x=>x!==entwurf.id);
+    saveMeta(); ketteHistLog(entwurf.domain);
+  }
   // Unteraufgaben ersetzen
   S.unteraufgaben = S.unteraufgaben.filter(u=>u.parentId!==entwurf.id).concat(
     entwurfSubs.map(u=>Object.assign(neueUnteraufgabe(entwurf.id), u, {parentId:entwurf.id}))
@@ -4610,7 +4852,28 @@ function karteAbhakenAuto(kid, fromDetail){
   if(!k) return;
   // §4 (v1.9.1): ✓ heißt Abschließen — auch bei Tick-Karten (＋ tickt separat).
   if(k.status==='offen'){ abhakDialog(k.id, fromDetail); return; }
-  karteAbhaken(kid, fromDetail);   // Un-Abhaken direkt
+  // §8 (v1.12.0): ✓ auf einer ERLEDIGTEN Karte öffnet den Wiederholen-Dialog —
+  // überall identisch (Verlauf, Suche, Erledigt-Stapel). Das entschärft auch
+  // die Duplikat-Falle: vorher reaktivierte der Tap sofort, und ein zweiter
+  // Tap öffnete den Abhak-Dialog mit VORBELEGTER Folgeaufgabe (offene Subs) —
+  // „Erledigen" legte dann unbemerkt eine neue Karte an.
+  oeffneWiederholen(k.id);
+}
+/* ══ §8 (v1.12.0) · Dialog „Karte wiederholen" ══════════════════════════ */
+function oeffneWiederholen(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k || k.status!=='erledigt') return;
+  const min=Math.round(istSekLive(k)/60);
+  const h='<p class="d">„<b>'+esc(k.titel||'(ohne Titel)')+'</b>"'+
+    (k.tagId?' · erledigt am '+esc(String(k.tagId).slice(0,10)):'')+
+    '<br>⏱ '+tZeitKurz(min)+' gebucht · <b>'+Math.round(kartePunkte(k))+' P</b>'+(num(k.ticksHeute)>0?' · '+num(k.ticksHeute)+' Ticks heute':'')+'</p>'+
+    '<div class="btnrow" style="flex-wrap:wrap;gap:8px">'+
+    '<button class="btn prim sm" data-woeffnen="'+kid+'">↩︎ Wieder öffnen</button>'+
+    '<button class="btn sm" data-wneu="'+kid+'">＋ Neu anlegen</button>'+
+    '<button class="btn sm" data-wverschieben="'+kid+'">📅 Verschieben</button></div>'+
+    '<p class="d" style="margin-top:8px">Wieder öffnen nimmt Abhakbonus und Abschlusspunkte zurück — '+
+    'getrackte Zeit, Ticks und Boni erledigter Unteraufgaben bleiben. „Neu anlegen" öffnet die volle '+
+    'Bearbeitung; „Verschieben" fragt nur das Datum. Beide lassen diese Karte unberührt und setzen den Vorgänger-Link.</p>';
+  openSheet('Karte wiederholen', h, '<button class="btn ghost sm" data-close="1">Abbrechen</button>');
 }
 function abhakbonusDefault(k){ return k.abhakbonus!=null ? num(k.abhakbonus)
   : (k.domain==='dfm' ? num(S.settings.abhakbonusDfm,0) : num(S.settings.abhakbonusPrivat,0)); }
@@ -4839,7 +5102,10 @@ function gruppeVonKarte(kid){ return (S.routinenGruppen||[]).find(g=>(g.mitglied
 function routErledigtHeute(k){
   if(!k) return false;
   const abgehakt = k.status==='erledigt' && k.tagId===aktuelleTagId();
-  if(istTickKarte(k)) return abgehakt || num(k.ticksHeute)>0;
+  // §8 (v1.12.0): Die v1.9.2-Sonderregel („abgehakt und getickt bleibt nach
+  // dem Wiederöffnen fertig") entfällt — eine heute wieder geöffnete Karte
+  // ist OFFEN, ihre Ticks bleiben aber gebucht (Streak/Quote unberührt).
+  if(istTickKarte(k)) return abgehakt || (num(k.ticksHeute)>0 && k.wiederOffenTag!==heuteApp());
   return abgehakt;
 }
 function gruppeStand(g){
@@ -4875,31 +5141,53 @@ function gruppeBonusPruefen(g){
 function gruppeNachAenderung(kid){
   const g=gruppeVonKarte(kid); if(g) gruppeBonusPruefen(g);
 }
-/* ══ §10 (v1.8.0) · Pin-Schublade — zweiter Schnellzugriff ══════════════
-   Bottom-Sheet mit ALLEN angepinnten Karten, quer zu Domäne/Art/Fälligkeit.
-   Darstellung = dieselbe .krow wie im Stapel-Tab (volle Bedienzeile), Kopf =
-   dieselben Filter (Domäne/Status/Richtung) mit derselben Persistenz über die
-   Pseudo-Stapel-id 'sys-pins'. */
-let pinSheetOffen=false;
-const PIN_ST={ id:'sys-pins', name:'Angepinnt' };
-function pinListe(){
-  let ks=S.karten.filter(k=>k.pin && k.status!=='archiviert');
-  ks=filterStapelDomain(PIN_ST, ks);
-  if(S.ui.pinsRicht==='desc') ks=ks.slice().reverse();
-  return anwendenManuell(ks, 'sys-pins');
-}
-function oeffnePins(){ pinSheetOffen=true; renderPinSheet(); }
-function renderPinSheet(){
-  if(!pinSheetOffen) return;
-  const ks=pinListe();
-  const alle=S.karten.filter(k=>k.pin && k.status!=='archiviert').length;
-  let h='<div class="routsheet">'+stapelFilterHtml(PIN_ST);
-  h+= ks.length ? stapelRowsHtml(PIN_ST, ks)
-    : (alle
-      ? '<div class="leer">Kein Pin passt zum Filter — Filter oben lockern.</div>'
-      : '<div class="leer">Noch nichts angepinnt.<br>Tippe auf einer Karte das 📌 in der unteren Werkzeugzeile — sie erscheint dann hier, egal aus welcher Domäne oder Liste.</div>');
+/* ══ §9.3 (v1.12.0) · Ketten-Schublade — übernimmt den Pin-FAB-Slot ══════
+   DFM/Privat-Umschaltung oben, darunter die Kette der gewählten Domäne in
+   Standard-Kartenzeilen (Kontext 'kette' → Pfeile ordnen die Kette um).
+   „Ganz nach oben" startet die Uhr (§6: die Uhr folgt der Handlung). */
+let ketteSheetOffen=false;
+function oeffneKetteSheet(){ ketteSheetOffen=true;
+  if(!S.ui.ketteSheetDom) S.ui.ketteSheetDom=navDomain();
+  renderKetteSheet(); }
+function renderKetteSheet(){
+  if(!ketteSheetOffen) return;
+  const dom=(S.ui.ketteSheetDom==='privat')?'privat':'dfm';
+  const ks=ketteKarten(dom);
+  const kopf='<div class="rs-kopf">'+
+    ['dfm','privat'].map(d=>'<button class="'+(dom===d?'on '+(d==='privat'?'privat':''):'')+'" data-ksdom="'+d+'">'+
+      (d==='dfm'?'DFM':'Privat')+'</button>').join('')+'</div>';
+  let h='<div class="routsheet" id="ketteSheetListe">'+kopf;
+  h+= ks.length ? stapelRowsHtml({id:'kette'}, ks)
+    : '<div class="leer">Die '+(dom==='dfm'?'DFM':'Privat')+'-Kette ist leer — Karten über ▤ aufnehmen.</div>';
   h+='</div>';
-  openSheet('📌 Angepinnt'+(alle?' · '+alle:''), h, '<button class="btn ghost sm" data-close="1">Schließen</button>');
+  openSheet('▤ Kette · '+(dom==='dfm'?'DFM':'Privat')+(ks.length?' · '+ks.length:''), h,
+    '<button class="btn ghost sm" data-close="1">Schließen</button>');
+}
+/* §9.2 (v1.12.0): Ketten-Aktions-Sheet des ▤-Knopfs — anzeigen, abhaken,
+   starten, hoch, runter, ganz nach oben (Uhr läuft sofort), ganz raus. */
+function oeffneKetteAktion(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  const dom=k.domain==='privat'?'privat':'dfm';
+  const ids=tagesKetteDom(dom), pos=ids.indexOf(kid);
+  const drin=pos>=0;
+  let h='<p class="d"><b>'+esc(k.titel||'(ohne Titel)')+'</b><br>'+
+    (drin ? 'Position <b>'+(pos+1)+' / '+ids.length+'</b> in der '+(dom==='dfm'?'DFM':'Privat')+'-Kette.'
+          : 'Nicht in der '+(dom==='dfm'?'DFM':'Privat')+'-Kette.')+'</p>';
+  h+='<div class="btnrow" style="flex-wrap:wrap;gap:8px">';
+  if(drin){
+    h+='<button class="btn prim sm" data-kaTop="'+kid+'">⤒ Ganz nach oben · ▶ Start</button>'+
+       '<button class="btn sm" data-kaStart="'+kid+'">▶ Starten</button>'+
+       '<button class="btn sm" data-kaCheck="'+kid+'">✓ Abhaken</button>'+
+       '<button class="btn sm" data-kaHoch="'+kid+'">↑ hoch</button>'+
+       '<button class="btn sm" data-kaRunter="'+kid+'">↓ runter</button>'+
+       '<button class="btn warn sm" data-kaRaus="'+kid+'">✕ ganz raus</button>';
+  } else {
+    h+='<button class="btn prim sm" data-kaRein="'+kid+'">▤ In die Kette aufnehmen</button>'+
+       '<button class="btn sm" data-kaStart="'+kid+'">▶ Starten</button>'+
+       '<button class="btn sm" data-kaCheck="'+kid+'">✓ Abhaken</button>';
+  }
+  h+='</div><p class="d" style="margin-top:8px">„Ganz raus" entfernt nur aus der Kette — gelöscht wird nichts.</p>';
+  openSheet('▤ Kette', h, '<button class="btn ghost sm" data-close="1">Schließen</button>');
 }
 let routTmp=null;
 /* Aktueller Tagesabschnitt nach Uhrzeit — bestimmt die offene Gruppe. */
@@ -4910,12 +5198,17 @@ function jetztAbschnitt(){
   return 'abends';
 }
 function oeffneRoutinen(){
-  routTmp={ dom:navDomain(), auf:jetztAbschnitt(), fb:{} };
+  // §5.3 (v1.12.0): kein automatisches Aufklappen nach Uhrzeit mehr — der
+  // manuell gesetzte Zustand persistiert (S.ui.routAuf, Muster navKette).
+  routTmp={ dom:navDomain(), fb:{} };
   renderRoutinenSheet();
 }
 function routinenDerDomaene(dom){
+  // §12.2 (v1.12.0): eine auf spaeter geschobene Routine taucht bis zum
+  // Zieltag weder hier noch im Fokus auf — nur ueber Suche oder Stapel.
   return S.karten.filter(k=>k.domain===dom && k.status!=='archiviert'
-    && (kartenArt(k)==='Routine' || kartenArt(k)==='Counter'));
+    && (kartenArt(k)==='Routine' || kartenArt(k)==='Counter')
+    && !(k.faelligkeit && k.faelligkeit>heuteApp()));
 }
 function renderRoutinenSheet(){
   const t=routTmp; if(!t) return;
@@ -4926,7 +5219,7 @@ function renderRoutinenSheet(){
   let body='';
   TAGESABSCHNITTE.forEach(ta=>{
     const grp=ks.filter(k=>tagesabschnittHat(k,ta));
-    const zu=(t.auf!==ta);
+    const zu=(S.ui.routAuf!==ta);   // §5.3: persistierter manueller Zustand
     body+='<div class="routgruppe'+(zu?' zu':'')+'"><div class="rg-kopf" data-rgrp="'+ta+'">'+
       '<span class="caret">▾</span>'+TA_LABEL[ta]+'<span class="n">'+grp.length+'</span></div><div class="rg-body">'+
       (grp.length ? routBlockHtml(grp) : '<div class="leer">—</div>')+'</div></div>';
@@ -4938,6 +5231,15 @@ function renderRoutinenSheet(){
 /* §3 (v1.6.1): Karten einer Routinen-Gruppe stehen als Block zusammen — in der
    Array-Reihenfolge, gemeinsame Umrahmung, Gruppenfarbe, Kopfzeile mit Zähler.
    Karten ohne Gruppe erscheinen einzeln wie bisher. */
+/* §5 (v1.12.0): routZeileHtml ist entfallen — die Routinen-Ansicht nutzt die
+   Standard-Kartenzeile (kartenreiheHtml, gleiche Optik/Bedienung/Handler).
+   Damit verschwinden die beiden Altfehler: das grüne ＋ des alten rz-plus
+   buchte den TICK-Pfad (tickWert, nie abhakbonus) und wirkte durch die
+   v1.9.2-Regel „getickt = fertig" wie ein Abhaken — der Abhakbonus privater
+   Morgen-Routinen kam deshalb nie an. In der Standard-Zeile sind ＋ (Tick)
+   und ✓ (karteAbhaken, MIT Abhakbonus) sauber getrennt.
+   §5.2: Die Gruppen-Umrahmung (Aufräumrunde) samt Komplettbonus-Anzeige
+   wandert mit — gruppeStand() bleibt die Quelle. */
 function routBlockHtml(ks){
   const rest=ks.slice(), out=[], erledigt=new Set();
   (S.routinenGruppen||[]).forEach(g=>{
@@ -4949,25 +5251,10 @@ function routBlockHtml(ks){
       '<div class="rgruppe-kopf"><span class="nm">'+esc(g.name)+'</span>'+
         '<span class="z">'+st.fertig+'/'+st.gesamt+'</span>'+
         '<span class="b">+'+num(g.komplettBonus,KOMPLETT_BONUS_DEFAULT)+' P</span></div>'+
-      drin.map(k=>routZeileHtml(k)).join('')+'</div>');
+      drin.map(k=>kartenreiheHtml(k,'routinen')).join('')+'</div>');
   });
   const einzeln=rest.filter(k=>!erledigt.has(k.id));
-  return out.join('')+einzeln.map(k=>routZeileHtml(k)).join('');
-}
-function routZeileHtml(k){
-  const t=routTmp, fb=t&&t.fb[k.id];
-  const zeit=true;   // §3 (1.9.1): ▶ bedingungslos — er heißt „in den Fokus", die Uhr entscheidet die Karte
-  const fertig=routErledigtHeute(k);
-  return '<div class="routzeile'+(fertig?' fertig':'')+'" data-rzeile="'+k.id+'">'+
-    '<div class="rz-main" data-detail="'+k.id+'">'+
-      '<div class="rz-titel">'+esc(k.titel||'(ohne Titel)')+(fb?'<span class="rz-fb">'+fb+'</span>':'')+'</div>'+
-      '<div class="rz-sub">'+(istTickKarte(k)?'Ticks heute: <b>'+num(k.ticksHeute)+'</b>':(fertig?'✓ heute erledigt':'offen'))+
-        (num(k.streak)>0?' · 🔥'+num(k.streak):'')+'</div>'+
-    '</div>'+
-    (zeit?'<button class="rz-play" data-rplay="'+k.id+'" aria-label="Timer">▶</button>':'')+
-    (istTickKarte(k)?'<button class="rz-plus" data-rplus="'+k.id+'" aria-label="Tick +1">＋</button>':'')+
-    '<button class="rz-check'+(k.status==='erledigt'&&k.tagId===aktuelleTagId()?' on':'')+'" data-rcheck="'+k.id+'" aria-label="Abhaken"><span class="box">'+(k.status==='erledigt'&&k.tagId===aktuelleTagId()?'✓':'')+'</span></button>'+
-  '</div>';
+  return out.join('')+einzeln.map(k=>kartenreiheHtml(k,'routinen')).join('');
 }
 /* +1 / −1 — nutzt die bestehende Tick-Logik, das Sheet bleibt offen. */
 function routTick(kid, minus){
@@ -5100,31 +5387,40 @@ function stapelLoeschen(){
         Export: nur domain=dfm. Import: Hoheitsregeln, Unteraufgaben nur per id.
    ══════════════════════════════════════════════════════════════════════ */
 function syncExport(typ){
-  // §2.2 (v1.8.0): archivierte Karten bleiben im Export — seit die App selbst
-  // archivieren kann (🗑), muss der Status den Chat/Airtable erreichen können;
-  // vorher hätte eine App-Archivierung die Gegenseite nie erfahren.
-  const dfm=S.karten.filter(k=>k.domain==='dfm');
+  // §13 (v1.12.0) · Vertrag 1.5: Der Export trägt jetzt AUCH private Karten
+  // (Kennzeichnung über domain; private Karten tragen KEINE airtableId).
+  // tagesKette ist durch ketteDfm[]/kettePrivat[] ersetzt; jede Karte trägt
+  // ihre Kettenzugehörigkeit und Position mit. Die Kettenhistorie reist nur
+  // für den laufenden Tag (lokal unbegrenzt — Pakete sind schon groß).
+  const alle=S.karten.filter(k=>k.domain==='dfm' || k.domain==='privat');
+  const kd=tagesKetteDom('dfm'), kp=tagesKetteDom('privat');
   return {
     typ: typ||'sync', appVersion:VERSION, tagId: aktuelleTagId(), exportZeit:jetztIso(),
-    karten: dfm.map(k=>{
+    karten: alle.map(k=>{
       const o={
-        id:k.id, airtableId:k.airtableId||null, titel:k.titel, projekt:k.projekt||null, geldScore:num(k.geldScore),
+        id:k.id, domain:k.domain,
+        airtableId: k.domain==='dfm' ? (k.airtableId||null) : undefined,
+        titel:k.titel, projekt:k.domain==='dfm'?(k.projekt||null):null, geldScore:num(k.geldScore),
         faelligkeit:k.faelligkeit||null, uhrzeit:k.uhrzeit||null, sollMin:num(k.sollMin), istMin:Math.round(num(k.istSek)/60),
         komplex:num(k.komplex,1), energie:num(k.energie,1), blockade:num(k.blockade,1),
         prioritaet:k.prioritaet, status:k.status, punkteIst:Math.round(kartePunkte(k)),
         notiz:k.notiz||'',
         unteraufgaben: untermenge(k.id).map(u=>({ id:u.id, titel:u.titel, sollMin:num(u.sollMin), done:!!u.done }))
       };
+      if(o.airtableId===undefined) delete o.airtableId;
       if(k.freeze) o.freeze=true;                          // M1 (1.1.0): nur eingefrorene Karten senden das Feld
       if(k.kommentarClaude) o.kommentarClaude=k.kommentarClaude;   // U6-F (1.2.0): nur wenn nicht leer
-      // §8.3 (1.4): neue Felder — nur senden, wenn belegt bzw. zutreffend
       if(k.domain==='privat') o.tagesabschnitt=tagesabschnitteVon(k);
       if(k.vorgaengerAppId)      o.vorgaengerAppId=k.vorgaengerAppId;
       if(k.vorgaengerAirtableId) o.vorgaengerAirtableId=k.vorgaengerAirtableId;
+      // §13: Kettenzugehörigkeit und Position je Karte
+      const ki=(k.domain==='privat'?kp:kd).indexOf(k.id);
+      if(ki>=0){ o.kette=k.domain==='privat'?'privat':'dfm'; o.kettenPosition=ki+1; }
       return o;
     }),
-    // §8.2 (1.4): aktuelle Tageskette in Reihenfolge — NUR nicht erledigte Einträge
-    tagesKette: ketteKarten().filter(k=>k.status!=='erledigt').map(k=>k.airtableId||k.id)
+    ketteDfm: kd.map(id=>{ const k=S.karten.find(x=>x.id===id); return (k&&k.airtableId)||id; }),
+    kettePrivat: kp.slice(),
+    kettenHistorieHeute: (S.meta.kettenHistorie && S.meta.kettenHistorie[heuteApp()]) ? S.meta.kettenHistorie[heuteApp()] : []
   };
 }
 function syncExportText(typ){ return JSON.stringify(syncExport(typ), null, 2); }
@@ -5143,6 +5439,13 @@ function syncImport(text){
   const av=paket && paket.appVersion;
   if(av==null || av==='') return {fehler:'Paket ohne appVersion — bitte im Chat ein Paket nach Vertrag 1.x anfordern.'};
   if(/^0\./.test(String(av)))  return {fehler:'Altformat appVersion '+av+' — dieses Paket wird nicht mehr verarbeitet (Vertrag ab 1.0).'};
+  // §13 (v1.12.0): Gate auf App-Version 1.12.0 hochgezogen — ältere Pakete
+  // kennen die zwei Ketten nicht; bitte ein frisches Paket (Vertrag 1.5) holen.
+  {
+    const teile=String(av).split('.').map(x=>num(x));
+    const wert=(teile[0]||0)*10000+(teile[1]||0)*100+(teile[2]||0);
+    if(wert<11200) return {fehler:'Paket-appVersion '+av+' ist älter als 1.12.0 — bitte im Chat ein Paket nach Vertrag 1.5 anfordern (zwei Ketten statt tagesKette).'};
+  }
   const arr = (paket && paket.karten) || null;
   if(!Array.isArray(arr) || !arr.length) return {fehler:'Keine Karten im Paket'};
   let neu=0, neuDfm=0, neuPrivat=0, upd=0, arch=0;
@@ -5229,19 +5532,24 @@ function syncImport(text){
   // kein Tageszugang — sofort markieren, bevor sie in einer Flow-Auswertung
   // als Spike auftauchen. Unter der Schwelle bleiben es normale neue Aufgaben.
   if(neuAngelegt.length>=SYNC_BESTAND_SCHWELLE) neuAngelegt.forEach(k=>{ k.flowBaseline=true; });
-  // §8.2 (v1.6.0): Top-Level kette[] ersetzt die Tageskette für heute KOMPLETT.
-  // Einträge sind App-IDs und/oder Airtable-Record-IDs (über airtableId aufgelöst).
-  // Unauflösbare IDs werden übersprungen UND gemeldet — nicht still verschluckt.
+  // §13 (v1.12.0) · Vertrag 1.5: Top-Level ketteDfm[]/kettePrivat[] ersetzen
+  // tagesKette. Der Import setzt eine Kette NUR, wenn das Paket sie trägt —
+  // fehlt das Feld, bleibt die Reihenfolge unberührt (App behält die Hoheit).
+  // Alt-Pakete mit kette[] werden weiterhin angenommen (nach Domäne verteilt).
   let ketteGesetzt=null, ketteUnbekannt=[];
-  if(paket && !Array.isArray(paket) && Array.isArray(paket.kette)){
+  const ketteAufloesen=(arr)=>{
     const ids=[];
-    paket.kette.forEach(ref=>{
+    (arr||[]).forEach(ref=>{
       const s=String(ref||'').trim(); if(!s) return;
       const k=S.karten.find(x=>x.id===s) || S.karten.find(x=>x.airtableId===s);
       if(k) ids.push(k.id); else ketteUnbekannt.push(s);
     });
-    ketteSetzen(ids);
-    ketteGesetzt=ids.length;
+    return ids;
+  };
+  if(paket && !Array.isArray(paket)){
+    if(Array.isArray(paket.ketteDfm)){ const ids=ketteAufloesen(paket.ketteDfm); ketteSetzen(ids,'dfm'); ketteGesetzt=(ketteGesetzt||0)+ids.length; }
+    if(Array.isArray(paket.kettePrivat)){ const ids=ketteAufloesen(paket.kettePrivat); ketteSetzen(ids,'privat'); ketteGesetzt=(ketteGesetzt||0)+ids.length; }
+    if(ketteGesetzt==null && Array.isArray(paket.kette)){ const ids=ketteAufloesen(paket.kette); ketteSetzen(ids); ketteGesetzt=ids.length; }
     ketteUnbekannt.forEach(s=>uebersprungen.push({was:'Ketten-Eintrag „'+s+'"', grund:'keine Karte mit dieser ID'}));
   }
   // §2.3 (v1.7.1): Top-Level gruppen[] — Routinen-Gruppen anlegen/aktualisieren.
@@ -5452,8 +5760,10 @@ function renderEinst(){
 
   h+='<div class="card"><h3>Punktesystem</h3><p class="d">Alle Sätze live (§3.8). Farbe/Timer/Fokus (M2), Tageslogik (M3) und Sync (M4) laufen.</p>';
   const regler=[
-    ['tagesZielDfm','Tagesziel DFM','Punkte/Tag',100],
-    ['tagesZielPrivat','Tagesziel Privat','Punkte/Tag',100],
+    ['tagesZielDfm','Werktagsziel DFM','Punkte/Tag',100],
+    ['tagesZielPrivat','Werktagsziel Privat','Punkte/Tag',100],
+    ['zielWeDfm','Wochenende DFM','Sa+So gemeinsam',100],
+    ['zielWePrivat','Wochenende Privat','Sa+So gemeinsam',100],
     ['zeitGewicht','Zeit-Gewicht','',0.05],
     ['tickGewicht','Tick-Gewicht','',0.1],
     ['geldGewicht','Geld-Gewicht','nur DFM',0.1],
@@ -5524,6 +5834,46 @@ function renderEinst(){
           '<div class="btnrow"><button class="btn sm" data-sternkalib="1">⭐ Neu kalibrieren</button></div>';
       return '<p class="d">Die Sterne messen den Geld-Score je getrackter Stunde. Die Schwellen setzen sich nach 14 aktiven Messtagen selbst aus deinem Verlauf — aktuell '+m.n+'/14.</p>'; })()+
   '</div>';
+  // §3 (v1.12.0): Tagesprofil — aktives Profil sichtbar/editierbar,
+  // gemessenes Profil daneben, Übernahme NUR nach ausdrücklicher Freigabe.
+  h+=(function(){
+    const aktiv=sollFensterAktiv();
+    const fmtF=fs=>fs.map(f=>f[0]+'–'+f[1]).join(' · ');
+    const m=profilGemessen('werktag');
+    const vs=profilVorschlag();
+    const balken=(anteile,farbe)=>{ const mx=Math.max.apply(null,anteile.concat([0.001]));
+      return '<svg viewBox="0 0 240 26" width="100%" height="26" preserveAspectRatio="none">'+
+        anteile.map((a,i)=>'<rect x="'+(i*10)+'" y="'+(24-(a/mx)*22).toFixed(1)+'" width="8" height="'+((a/mx)*22).toFixed(1)+'" rx="1" fill="'+farbe+'"/>').join('')+'</svg>'; };
+    let x='<div class="card"><h3>🕘 Tagesprofil (Werktag)</h3>'+
+      '<div class="kv"><span>Aktive Fenster</span><b>'+fmtF(aktiv)+' Uhr</b></div>'+
+      '<div class="field" style="margin-top:6px"><label>Von Hand ändern (z. B. „9-18, 21-23")</label>'+
+      '<input type="text" id="profilEdit" value="'+esc(aktiv.map(f=>f[0]+'-'+f[1]).join(', '))+'">'+
+      '<div class="btnrow"><button class="btn sm" data-profilsetzen="1">Profil setzen</button></div></div>';
+    if(m.n>=3){
+      x+='<div class="kv" style="margin-top:6px"><span>Gemessen ('+m.n+' aktive Werktage)</span><b>'+fmtF(profilFenster(m.anteile))+' Uhr</b></div>'+balken(m.anteile,'var(--cyan)');
+    } else {
+      x+='<p class="d" style="color:var(--mut2)">Messung sammelt noch ('+m.n+'/14 aktive Werktage).</p>';
+    }
+    if(vs){
+      x+='<div class="hinweisbox" style="margin-top:8px">Dein gemessenes Profil weicht deutlich vom aktiven ab ('+Math.round(vs.distanz*100)+' % der Stunden anders, '+vs.n+' Tage Stichprobe).<br>'+
+        'Vorschlag: <b>'+fmtF(vs.gemessen)+' Uhr</b>. Übernahme nur per Knopf — ohne Freigabe rechnet die App unverändert weiter. <b>Die Zielhöhe ändert sich dadurch nie.</b></div>'+
+        '<div class="btnrow"><button class="btn prim sm" data-profiluebernehmen="1">Gemessenes Profil übernehmen</button></div>';
+    }
+    return x+'</div>'; })();
+  // §1.4 (v1.12.0): Migrationsprotokoll einsehbar
+  if(S.meta.migration1120Log){
+    const L=S.meta.migration1120Log;
+    h+='<div class="card"><h3>▤ Migration v1.12.0 — zwei Ketten</h3>'+
+      '<div class="kv"><span>Übernommen (Tageskette · Pin · Schnellauswahl)</span><b>'+
+        (L.uebernommen||[]).filter(u=>u.quelle==='tageskette').length+' · '+
+        (L.uebernommen||[]).filter(u=>u.quelle==='pin').length+' · '+
+        (L.uebernommen||[]).filter(u=>u.quelle==='schnellauswahl').length+'</b></div>'+
+      '<div class="kv"><span>Dubletten übersprungen</span><b>'+num(L.dubletten)+'</b></div>'+
+      ((L.ohneDomain||[]).length?'<div class="kv"><span style="color:var(--warn)">Ohne Domäne → DFM-Kette</span><b>'+L.ohneDomain.map(o=>esc(o.titel)).join(', ')+'</b></div>':'')+
+      ((L.uebernommen||[]).slice(0,12).map(u=>'<div class="kv"><span>'+esc(u.titel)+'</span><b>'+u.quelle+' → '+u.kette+'</b></div>').join(''))+
+      ((L.uebernommen||[]).length>12?'<p class="d" style="color:var(--mut2)">… und '+((L.uebernommen||[]).length-12)+' weitere.</p>':'')+
+    '</div>';
+  }
   // §4 (v1.8.1): Eingriffe mit Tragweite — optisch abgesetzt, GANZ unten
   h+='<div class="card" style="border-color:var(--bad);margin-top:18px"><h3 style="color:var(--bad)">⚠️ Eingriffe mit Tragweite</h3>'+
     '<p class="d">Zurücksetzen betrifft Konto, Kulissen und die Spiel-Ebene (Lebenswerk-Anzeige) — über die Offset-Mechanik. <b>Gelöscht wird nichts:</b> Historie, Intraday-Log, Streaks und Statistiken bleiben unangetastet. Der Leistungs-Rang und sein Bestwert sind eine Messung und bleiben vom Reset unberührt (v1.11.0).</p>'+
@@ -6007,7 +6357,10 @@ function outfitZielHeute(){
   return Math.max(1, med!=null?med:belZielGesamt());
 }
 function outfitF(){
-  const mess=Math.max(0, tagesPunkteLive());
+  // §2.3 (v1.12.0): Am Wochenende teilt sich die Kleidung das Sa+So-Budget —
+  // der Sonntag startet auf dem Samstags-Stand (ein Rahmen, ein Ereignis).
+  const zi=zielUndIstHeute();
+  const mess=zi.we ? zi.ist : Math.max(0, tagesPunkteLive());
   const bonus=tagOffen()?Math.max(0,num(S.tag.spielBonus)):0;
   return (mess*streakFaktor()+bonus)/outfitZielHeute();
 }
@@ -6304,9 +6657,11 @@ function diagrammKurveTag(snap, dom){
   ev.forEach(e=>{ kum+=e.p; pts.push([Math.min(xEndMin,Math.max(0,e.min)),kum]); });
   if(snap.istHeute){ const ges=snapPunkte(snap,dom); if(ges>kum) kum=ges; pts.push([xEndMin,kum]); }  // Live-Endpunkt inkl. laufendem Fokus
   // A1/A7: Soll-Diagonale = Domänen-Tagesziel über den wachen Tag (16 h)
-  const visionTag = anZiel(dom, snap&&snap.datum);   // §2 (1.8.1): Wochenendregel je Datum
-  const urlaubTag = snap && snap.urlaub;   // §5 (1.8.1): Urlaubstag → keine Soll-Diagonale
-  const sollEnd = urlaubTag ? 0 : visionTag*Math.min(1, xEndMin/(16*60));
+  // §2 (v1.12.0): Konsument 4 — die Soll-Linie ist die TREPPE aus sollStand().
+  const urlaubTag = snap && snap.urlaub;
+  const weTag = istWochenendTag(snap&&snap.datum);
+  const sollBei=min=>{ const t=new Date(startMs+min*60000); return sollStand(dom==='alle'?null:dom, snap&&snap.datum, t.getHours()+t.getMinutes()/60); };
+  const sollEnd = (urlaubTag||weTag) ? 0 : (dom==='alle'?sollStandGesamt(snap&&snap.datum, new Date(startMs+xEndMin*60000).getHours()+new Date(startMs+xEndMin*60000).getMinutes()/60):sollBei(xEndMin));
   const avgEnd=avgProStdVergangen(dom)*(xEndMin/60);
   const peak=pts.reduce((m,p)=>Math.max(m,p[1]),0);
   const maxY=Math.max(peak, sollEnd, avgEnd, 10)*1.15;
@@ -6323,7 +6678,16 @@ function diagrammKurveTag(snap, dom){
   return '<div class="akkukarte"><div class="lbl"><span>'+(snap.istHeute?'Tagesverlauf':'Verlauf '+snap.datum.slice(5))+'</span><span>'+Math.round(kum)+' P</span></div>'+
     '<svg viewBox="0 0 300 108" width="100%" height="108">'+
     '<line x1="6" y1="98" x2="294" y2="98" stroke="var(--line)"/>'+
-    (sollEnd>0?'<line x1="'+X(0)+'" y1="'+Y(0)+'" x2="'+X(xEndMin).toFixed(1)+'" y2="'+Y(sollEnd).toFixed(1)+'" stroke="#c23a3a" stroke-width="1.3" stroke-dasharray="4 4"/><text x="'+(X(xEndMin)-54).toFixed(1)+'" y="'+Math.max(9,Y(sollEnd)-3).toFixed(1)+'" fill="#c23a3a" font-size="8">Soll '+Math.round(sollEnd)+'</text>':'')+
+    (sollEnd>0?(function(){
+      // Treppen-Polyline: Abtastung an den Fensterkanten (9/18/21/23 Uhr)
+      const pts2=[]; const startH=new Date(startMs).getHours()+new Date(startMs).getMinutes()/60;
+      const kantenStd=[]; sollFensterAktiv().forEach(f=>{ kantenStd.push(f[0],f[1]); });
+      const kanten=[0].concat(kantenStd.map(k=>(k-startH)*60).filter(m=>m>0&&m<xEndMin)).concat([xEndMin]);
+      kanten.forEach(m=>{ const t=new Date(startMs+m*60000), h=t.getHours()+t.getMinutes()/60;
+        const p=(dom==='alle')?sollStandGesamt(snap&&snap.datum,h):sollStand(dom,snap&&snap.datum,h);
+        pts2.push(X(m).toFixed(1)+','+Y(p).toFixed(1)); });
+      return '<polyline points="'+pts2.join(' ')+'" fill="none" stroke="#c23a3a" stroke-width="1.3" stroke-dasharray="4 4"/><text x="'+(X(xEndMin)-54).toFixed(1)+'" y="'+Math.max(9,Y(sollEnd)-3).toFixed(1)+'" fill="#c23a3a" font-size="8">Soll '+Math.round(sollEnd)+'</text>';
+    })():'')+
     (avgEnd>0?'<line x1="'+X(0)+'" y1="'+Y(0)+'" x2="'+X(xEndMin).toFixed(1)+'" y2="'+Y(avgEnd).toFixed(1)+'" stroke="#b58a2e" stroke-width="1.3" stroke-dasharray="4 4"/><text x="'+(X(xEndMin)-54).toFixed(1)+'" y="'+Math.max(9,Y(avgEnd)-3).toFixed(1)+'" fill="#b58a2e" font-size="8">Ø '+Math.round(avgEnd)+'</text>':'')+
     (akkuLinie?'<polyline points="'+akkuLinie+'" fill="none" stroke="var(--ok)" stroke-width="1.6" stroke-linejoin="round" opacity=".8"/><text x="273" y="'+(YA(aJetzt!=null?aJetzt:50)-4).toFixed(1)+'" fill="var(--ok)" font-size="8">'+(aJetzt!=null?Math.round(aJetzt)+'%':'')+'</text>':'')+
     '<polyline points="'+linie+'" fill="none" stroke="var(--purple)" stroke-width="2.4" stroke-linejoin="round"/>'+
@@ -6422,8 +6786,9 @@ function diagrammHtml(){
 /* A1: ein Domänen-Score-Ring (heutige Punkte der Domäne ÷ Domänen-Tagesziel),
    Pace-Pfeil = liegt die Domäne über ihrem anteiligen Soll? */
 function scoreRingDomain(dom, label, farbe){
-  const ist=Math.round(punkteHeuteDomain(dom)), ziel=tagesZielDomain(dom), p=paceDomain(dom);
-  const imSoll = p.ist>=p.soll;
+  const p=paceDomain(dom);
+  const ist=Math.round(p.ist), ziel=Math.round(p.ziel);
+  const imSoll = p.we ? true : p.ist>=p.soll;
   const pct=Math.max(0,Math.min(1, ziel? ist/ziel : 0));
   const R=42, U=2*Math.PI*R, off=U*(1-pct);
   return '<div class="statring-dom"><svg viewBox="0 0 104 104" width="104" height="104">'+
@@ -6432,7 +6797,7 @@ function scoreRingDomain(dom, label, farbe){
       '<text x="52" y="48" text-anchor="middle" fill="var(--txt)" font-size="19" font-weight="800">'+ist+'</text>'+
       '<text x="52" y="67" text-anchor="middle" fill="var(--mut)" font-size="9">von '+ziel+'</text></svg>'+
     '<div class="srd-lab">'+label+' <span class="'+(imSoll?'gut':'schlecht')+'">'+(imSoll?'▲':'▼')+'</span></div>'+
-    '<div class="srd-sub">'+Math.round(pct*100)+'% · '+Math.round(p.istRate)+'/'+Math.round(p.sollRate)+' P/h</div></div>';   // A2
+    '<div class="srd-sub">'+Math.round(pct*100)+'%'+(p.we?' · Wochenende':' · Soll jetzt '+Math.round(p.soll))+'</div></div>';
 }
 /* ══════════════════════════════════════════════════════════════════════
    V2 · Belohnungsseite neu — Tages-Diagramm 5→5, KPI-Felder mit Farbverlauf,
@@ -6483,14 +6848,11 @@ function belGrad(v){ v=Math.max(-1,Math.min(1,isFinite(v)?v:0));
 /* H4.3: Wochenend-Regel — DFM-Ziel Sa+So gemeinsam 3000 (kombinierte DFM-Punkte
    des Wochenendes zählen gegen 3000). Privat-Ziel bleibt normales Tagesziel. */
 function belIstWochenende(){ const d=new Date().getDay(); return d===0||d===6; }
-function belZielDfm(){ return belIstWochenende() ? 3000 : tagesZielDomain('dfm'); }
-function belIstDfm(){
-  let s=Math.max(0, tagesPunkteDomain('dfm'));
-  if(new Date().getDay()===0){ const sn=tagSnapshot(anVorTage(heuteApp(),1)); if(sn) s+=Math.max(0,snapPunkte(sn,'dfm')); }   // Sonntag: Samstag dazu
-  return s;
-}
-function belZielGesamt(){ return belZielDfm()+tagesZielDomain('privat'); }
-function belIstGesamt(){ return belIstDfm()+Math.max(0, tagesPunkteDomain('privat')); }
+/* §2 (v1.12.0): duenne Wrapper — die Rechnung lebt in zielTag()/weIstDomain(). */
+function belZielDfm(){ return zielTag('dfm'); }
+function belIstDfm(){ return istWochenendTag(heuteApp()) ? weIstDomain('dfm') : Math.max(0, tagesPunkteDomain('dfm')); }
+function belZielGesamt(){ return zielTagGesamt(); }
+function belIstGesamt(){ return zielUndIstHeute().ist; }
 
 /* V2.1: Tages-Diagramm 5:00→5:00 mit 3 Heute- + 3 Wochentags-Ø-Linien + Ziel-Linie. */
 function belTagesDiagramm(){
@@ -6698,12 +7060,16 @@ function belStapelBalken(){
       bar+='<i style="width:'+pct.toFixed(1)+'%;background:'+s[1]+'" title="'+s[2]+': '+n+'">'+(pct>=8?Math.round(pct)+'%':'')+'</i>'; });
     h+='<div class="stbar-row"><div class="stbar-nm">'+esc(name)+' <span>'+tot+'</span></div><div class="stbar">'+bar+'</div></div>';
   };
+  // §10 (v1.12.0): Die Balken folgen den KETTEN — Gesamtbalken „Heute = alles",
+  // darunter DFM- und Privat-Kette, darunter die feineren Filter.
   const aktiv=S.karten.filter(k=>k.status!=='archiviert');
   const istArt=(k,art)=>{ const a=kartenArt(k); return art==='aufgabe' ? a==='Aufgabe' : (a==='Routine'||a==='Counter'); };
+  zeile('Heute · beide Ketten', ketteKarten());
+  zeile('Kette DFM', ketteKarten('dfm'));
+  zeile('Kette Privat', ketteKarten('privat'));
   [['dfm','aufgabe','DFM · Aufgaben'],['dfm','routine','DFM · Routinen'],
    ['privat','aufgabe','Privat · Aufgaben'],['privat','routine','Privat · Routinen']]
     .forEach(([d,a,name])=>zeile(name, aktiv.filter(k=>k.domain===d && istArt(k,a))));
-  zeile('Heute', ketteKarten());
   zeile('Erledigt', erledigtKarten());
   return h+'</div>';
 }
@@ -6818,7 +7184,7 @@ function setTab(tab){
   // §3 (v1.6.0): Routinen-Schublade nur auf der Fokusseite, Farbe = aktive Domäne
   const rf=el('routFab');
   if(rf){ rf.hidden = (tab!=='fokus'); rf.classList.toggle('privat', navDomain()==='privat'); }
-  const pf=el('pinFab'); if(pf) pf.hidden=(tab!=='fokus');   // §10 (1.8.0)
+  const kf=el('ketteFab'); if(kf) kf.hidden=(tab!=='fokus');   // §9.3 (v1.12.0): Ketten-Schublade im Pin-Slot
   renderFokusleiste();
   if(tab==='einst') renderEinst();
   else if(tab==='stapel') renderStapel();
@@ -6862,7 +7228,20 @@ el('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-t
 el('fab').addEventListener('click', ()=>oeffneDetail(null));
 // §3 (v1.6.0): Routinen-Schublade öffnen (Farbe folgt der aktiven Domäne)
 el('routFab').addEventListener('click', oeffneRoutinen);
-el('pinFab').addEventListener('click', oeffnePins);   // §10 (1.8.0)
+el('ketteFab').addEventListener('click', oeffneKetteSheet);   // §9.3 (v1.12.0)
+// §9.4 (v1.12.0): FABs ziehen beim Herunterscrollen ein, kommen beim
+// Hochscrollen zurück — sie werden nicht ausgeblendet.
+(function(){
+  let letztY=0;
+  const scroller=document.querySelector('main');
+  if(!scroller) return;
+  scroller.addEventListener('scroll', ()=>{
+    const y=scroller.scrollTop;
+    if(Math.abs(y-letztY)<24) return;
+    document.body.classList.toggle('fabsEin', y>letztY && y>80);
+    letztY=y;
+  }, {passive:true});
+})();
 // Sheet-Interaktionen der Schublade (Toggle, Gruppen, +1, Play)
 el('sheetBody').addEventListener('click', e=>{
   const t=e.target;
@@ -6875,13 +7254,16 @@ el('sheetBody').addEventListener('click', e=>{
     const o=document.createElement('div'); o.className='albdetail';
     o.innerHTML='<img src="'+ab.dataset.albbild+'" alt=""><div class="nm">'+ab.dataset.albname+'</div><div class="mv-sub">Tippen zum Schließen</div>';
     o.addEventListener('click', ()=>o.remove()); document.body.appendChild(o); return; }
-  // §10 (1.8.0): Im Pin-Sheet laufen die Karten über denselben karteRowClick wie
-  // im Stapel-Tab — danach das Sheet nachziehen, damit Filter/Toggles sichtbar wirken.
-  if(pinSheetOffen){
-    if(karteRowClick(t, e)){ renderPinSheet(); return; }
-  }
   const rd=t.closest('[data-rdom]');  if(rd){ if(routTmp){ routTmp.dom=rd.dataset.rdom; renderRoutinenSheet(); } return; }
-  const rg=t.closest('[data-rgrp]');  if(rg){ if(routTmp){ const g=rg.dataset.rgrp; routTmp.auf=(routTmp.auf===g?null:g); renderRoutinenSheet(); } return; }
+  // §5.3 (v1.12.0): Aufklapp-Zustand persistiert (S.ui.routAuf)
+  const rg=t.closest('[data-rgrp]');  if(rg){ if(routTmp){ const g=rg.dataset.rgrp; S.ui.routAuf=(S.ui.routAuf===g?null:g); saveUi(); renderRoutinenSheet(); } return; }
+  // §5 (v1.12.0): Standard-Kartenzeilen im Routinen-Sheet — gemeinsame Handler.
+  // ✓/Titel oeffnen Abhak-Dialog bzw. Detail (Sheet-Wechsel) — dann NICHT
+  // sofort neu rendern, sonst wird der Dialog wieder ueberschrieben.
+  if(routTmp && t.closest('.routsheet')){
+    const wechselt=!!t.closest('[data-check],[data-detail]');
+    if(karteRowClick(t, e)){ if(!wechselt){ renderRoutinenSheet(); renderStatusbar(); } return; }
+  }
   const rp=t.closest('[data-rplus]'); if(rp){ routTick(rp.dataset.rplus, false); return; }
   const rc=t.closest('[data-rcheck]'); if(rc){ const k=S.karten.find(x=>x.id===rc.dataset.rcheck); if(!k) return;
     karteAbhaken(k.id, true); saveKarten(); saveTag(); gruppeNachAenderung(k.id);
@@ -6919,8 +7301,8 @@ el('statusbar').addEventListener('click', ()=>oeffneStatusSheet());   // §2 (1.
 el('fokusView').addEventListener('click', e=>{
   const t=e.target;
   // §2.5 (v1.6.0): die drei Navigationsebenen — je ein Tap, Zustand in S.ui (reload-fest)
-  // §9 (v1.11.1): übergreifender Heute-Filter (persistiert wie die anderen)
-  const nh=t.closest('[data-navheute]'); if(nh){ S.ui.navHeute=!S.ui.navHeute; saveUi(); renderFokus(); return; }
+  // §9.1 (v1.12.0): Ebene 4 — Kette der aktiven Domäne (persistiert)
+  const nk=t.closest('[data-navkette]'); if(nk){ S.ui.navKette=!S.ui.navKette; saveUi(); renderFokus(); return; }
   const nd=t.closest('[data-navdom]');  if(nd){ S.ui.navDomain=nd.dataset.navdom; saveUi(); renderFokus();
     const rf=el('routFab'); if(rf) rf.classList.toggle('privat', navDomain()==='privat'); return; }
   const na=t.closest('[data-navart]');  if(na){ S.ui.navArt=na.dataset.navart;   saveUi(); renderFokus(); return; }
@@ -6935,6 +7317,8 @@ el('fokusView').addEventListener('click', e=>{
   const fsw=t.closest('[data-fkswipe]'); if(fsw){ if(!fsw.classList.contains('aus')) fokusSwipeSchritt(parseInt(fsw.dataset.fkswipe,10)); return; }
   // §9.3 (v1.11.0): Tageskurve ein-/ausklappen (persistiert)
   const fku=t.closest('[data-fkurve]'); if(fku){ S.ui.fokusKurveZu=!S.ui.fokusKurveZu; saveUi(); renderFokus(); return; }
+  // §7/§8 (v1.12.0): Wiederholen-Dialog aus dem Verlauf
+  const wdh=t.closest('[data-wiederholen]'); if(wdh){ oeffneWiederholen(wdh.dataset.wiederholen); return; }
   const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
   if(karteRowClick(t, e)) return;   // U1: Fokus-Liste = gleiche Karten-Zeilen-Aktionen wie der Stapel
   const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
@@ -7049,14 +7433,13 @@ function karteRowClick(t, e){
     S.ui.stapelStatus=Object.assign({}, S.ui.stapelStatus); S.ui.stapelStatus[sts.dataset.stapelid]=sts.dataset.stapelstatus;
     saveUi(); renderAlles(); return true; }
   const sri=t.closest('[data-stapelricht]'); if(sri){ if(e) e.stopPropagation();
-    if(sri.dataset.stapelid==='sys-pins'){ S.ui.pinsRicht=(S.ui.pinsRicht==='desc')?'asc':'desc'; saveUi(); return true; }   // §10 (1.8.0)
     const bst=S.stapel.find(s=>s.id===sri.dataset.stapelid);
     if(bst){ const so=bst.sortierung||{feld:'auto',richtung:'asc'};
       bst.sortierung={feld:so.feld||'auto', richtung:(so.richtung==='asc'||!so.richtung)?'desc':'asc'}; saveStapel(); renderAlles(); }
     return true; }
-  // §2.2 (v1.6.0): „▤" legt die Karte in die Tageskette „Heute" bzw. nimmt sie heraus
-  const ket=t.closest('[data-kette]'); if(ket){ if(e) e.stopPropagation();
-    const drin=ketteToggle(ket.dataset.kette); toast(drin?'▤ zu Heute':'aus Heute entfernt'); renderAlles(); return true; }
+  // §9.2 (v1.12.0): „▤" öffnet das Ketten-Aktions-Sheet (anzeigen, abhaken,
+  // starten, hoch, runter, ganz nach oben mit Uhrstart, ganz raus/aufnehmen)
+  const ket=t.closest('[data-kette]'); if(ket){ if(e) e.stopPropagation(); oeffneKetteAktion(ket.dataset.kette); return true; }
   // §2 (v1.8.0): Schieben-Dialog + Archivieren (mit Sicherheitsabfrage, No-delete)
   const scb=t.closest('[data-schieb]'); if(scb){ if(e) e.stopPropagation(); oeffneSchieben(scb.dataset.schieb); return true; }
   const arc=t.closest('[data-archiv]'); if(arc){ if(e) e.stopPropagation();
@@ -7065,7 +7448,6 @@ function karteRowClick(t, e){
       ak.status='archiviert'; beruehre(ak); saveKarten(); renderAlles(); toast('Archiviert'); }
     return true; }
   const frz=t.closest('[data-freeze]'); if(frz){ if(e) e.stopPropagation(); toggleFreeze(frz.dataset.freeze); return true; }   // A4
-  const pin=t.closest('[data-pin]'); if(pin){ if(e) e.stopPropagation(); togglePin(pin.dataset.pin); return true; }   // A8
   // A8: Quick-Leiste-Direktaktionen (ohne Ansichtswechsel)
   const pqs=t.closest('[data-pqstart]'); if(pqs){ if(e) e.stopPropagation(); const kid=pqs.dataset.pqstart; if(S.fokus&&S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid); return true; }
   const pqt=t.closest('[data-pqtick]'); if(pqt){ if(e) e.stopPropagation(); karteTick(pqt.dataset.pqtick, false); return true; }
@@ -7078,7 +7460,6 @@ function karteRowClick(t, e){
     setTab('fokus'); return true; }
   const su=t.closest('[data-sortup]'); if(su){ if(e) e.stopPropagation(); karteSortieren(su.dataset.sortup, -1, su.dataset.stapel); return true; }
   const sd=t.closest('[data-sortdown]'); if(sd){ if(e) e.stopPropagation(); karteSortieren(sd.dataset.sortdown, +1, sd.dataset.stapel); return true; }
-  const sq=t.closest('[data-schnell]'); if(sq){ if(e) e.stopPropagation(); toggleSchnell(sq.dataset.schnell); return true; }   // U2
   const tp=t.closest('[data-tickplus]'); if(tp){ if(e) e.stopPropagation(); karteTick(tp.dataset.tickplus, false); return true; }
   const det=t.closest('[data-detail]'); if(det){ oeffneDetail(det.dataset.detail); return true; }
   const chk=t.closest('[data-check]'); if(chk){ karteAbhakenAuto(chk.dataset.check, false); return true; }
@@ -7102,6 +7483,48 @@ el('sheet').addEventListener('click', e=>{
   const t=e.target;
   if(t.id==='sheetX') return;   // eigener Close-Handler
   if(t.closest('[data-close]')){ closeSheet(); return; }
+  // §9.2 (v1.12.0): Ketten-Aktions-Sheet — Uhr folgt der Handlung (§6):
+  // „ganz nach oben" startet die Fokuszeit sofort, alles andere nicht.
+  const kaT=t.closest('[data-kaTop]'); if(kaT){ const kid=kaT.dataset.katop;
+    ketteBewegen(kid,'top'); closeSheet(); fokusNavReset(); fokusStarten(kid); setTab('fokus'); return; }
+  const kaS=t.closest('[data-kaStart]'); if(kaS){ closeSheet(); fokusStarten(kaS.dataset.kastart); setTab('fokus'); return; }
+  const kaC=t.closest('[data-kaCheck]'); if(kaC){ karteAbhakenAuto(kaC.dataset.kacheck, false); return; }
+  const kaH=t.closest('[data-kaHoch]'); if(kaH){ ketteBewegen(kaH.dataset.kahoch,-1); oeffneKetteAktion(kaH.dataset.kahoch); renderAlles(); return; }
+  const kaR=t.closest('[data-kaRunter]'); if(kaR){ ketteBewegen(kaR.dataset.karunter,1); oeffneKetteAktion(kaR.dataset.karunter); renderAlles(); return; }
+  const kaX=t.closest('[data-kaRaus]'); if(kaX){ ketteToggle(kaX.dataset.karaus); closeSheet(); renderAlles(); toast('Aus der Kette entfernt'); return; }
+  const kaI=t.closest('[data-kaRein]'); if(kaI){ ketteToggle(kaI.dataset.karein); oeffneKetteAktion(kaI.dataset.karein); renderAlles(); return; }
+  // §8 (v1.12.0): Wiederholen-Dialog — drei Wege, überall identisch.
+  const wo=t.closest('[data-woeffnen]'); if(wo){ const k=S.karten.find(x=>x.id===wo.dataset.woeffnen);
+    if(k && k.status==='erledigt'){
+      karteAbhaken(k.id, false);                       // in-place: Bonus+Abschlusspunkte zurück, Zeit/Ticks/Sub-Boni bleiben
+      k.wiederOffenTag=heuteApp(); saveKarten();       // §8: die v1.9.2-Sonderregel entfällt — offen ist offen
+      closeSheet(); renderAlles(); toast('↩︎ Wieder geöffnet — Zeit, Ticks und Sub-Boni bleiben');
+    } return; }
+  const wn=t.closest('[data-wneu]'); if(wn){ const k=S.karten.find(x=>x.id===wn.dataset.wneu);
+    if(k){ // volle Bearbeitung VOR dem Anlegen: Detail-Editor mit Vorlage + Vorgänger-Link;
+           // gespeichert wird über den normalen Speichern-Pfad, danach oben in die Kette.
+      oeffneDetail(null);
+      Object.assign(entwurf, { domain:k.domain, titel:k.titel, prioritaet:k.prioritaet, projekt:k.projekt,
+        geldScore:num(k.geldScore), komplex:num(k.komplex,1), energie:num(k.energie,1), blockade:num(k.blockade,1),
+        sollMin:num(k.sollMin), abhakbonus:k.abhakbonus, tagesabschnitt:k.tagesabschnitt, rhythmus:k.rhythmus?JSON.parse(JSON.stringify(k.rhythmus)):null,
+        ticksAktiv:!!k.ticksAktiv, tickWert:num(k.tickWert), zeitmessung:k.zeitmessung,
+        faelligkeit:heuteApp(), vorgaengerAppId:k.id, vorgaengerAirtableId:k.airtableId||null, kettenOben:true });
+      renderDetail();
+    } return; }
+  const wv=t.closest('[data-wverschieben]'); if(wv){ const k=S.karten.find(x=>x.id===wv.dataset.wverschieben);
+    if(k){ const d=prompt('Neues Datum (JJJJ-MM-TT):', anVorTage(heuteApp(),-1));
+      if(d && /^\d{4}-\d{2}-\d{2}$/.test(d)){
+        const neu=folgeAufgabeAnlegen(k, { faelligkeit:d, titel:k.titel, sollMin:num(k.sollMin) });
+        saveKarten(); closeSheet(); renderAlles();
+        toast('📅 Verschoben auf '+d+' — Altkarte bleibt erledigt');
+      } else if(d!=null) toast('Format: JJJJ-MM-TT');
+    } return; }
+  // §9.3: Ketten-Schublade — Domänen-Umschaltung + Kartenzeilen-Aktionen
+  const ksd=t.closest('[data-ksdom]'); if(ksd){ S.ui.ketteSheetDom=ksd.dataset.ksdom; saveUi(); renderKetteSheet(); return; }
+  if(ketteSheetOffen && t.closest('#ketteSheetListe')){
+    const ksWechselt=!!t.closest('[data-check],[data-detail]');
+    if(karteRowClick(t, e)){ if(!ksWechselt) renderKetteSheet(); return; }
+  }
   // §5 (v1.11.1): Kettenzeilen im Status-Sheet = normale Kartenzeilen mit den
   // gemeinsamen Handlern. Start schließt das Sheet; Detail/Abhaken ersetzen es
   // ohnehin; alles andere (Pfeile, Pin, Tick, …) rendert das Sheet neu.
@@ -7192,7 +7615,15 @@ el('sheet').addEventListener('click', e=>{
   const abs=t.closest('[data-abschieben]'); if(abs){ abschlussTmp.schiebenFor=abs.dataset.abschieben; const k=S.karten.find(x=>x.id===abs.dataset.abschieben); abschlussTmp.abzug=abzugVorschlag(k); renderAbschluss(); return; }
   if(t.closest('[data-abschiebenab]')){ abschlussTmp.schiebenFor=null; renderAbschluss(); return; }
   const abz=t.closest('[data-abzug]'); if(abz){ abschlussTmp.abzug=num(abz.dataset.abzug); renderAbschluss(); return; }
-  const abg=t.closest('[data-abschiebengo]'); if(abg){ const k=S.karten.find(x=>x.id===abg.dataset.abschiebengo); const dt=el('ab-date'), tm=el('ab-time'); karteSchieben(k, dt?dt.value:null, tm&&tm.value?tm.value:null, abschlussTmp.abzug); abschlussTmp.schiebenFor=null; saveKarten(); saveTag(); renderAbschluss(); return; }
+  const abg=t.closest('[data-abschiebengo]'); if(abg){ const k=S.karten.find(x=>x.id===abg.dataset.abschiebengo);
+    const dt=el('ab-date'), tm=el('ab-time'), selbst=el('ab-abzug');
+    const abzug=(selbst && selbst.value!=='')?Math.max(0,Math.round(num(selbst.value))):abschlussTmp.abzug;
+    karteSchieben(k, dt?dt.value:null, tm&&tm.value?tm.value:null, abzug);
+    // §12.2 (v1.12.0): das Zieldatum steuert die Ketten — bis dahin raus aus
+    // der heutigen Kette (die Auto-Befuellung des Zieltags holt sie zurueck).
+    if(k){ const st=ketteState(k.domain); const i=st.ids.indexOf(k.id);
+      if(i>=0){ st.ids.splice(i,1); if(!Array.isArray(st.entfernt)) st.entfernt=[]; if(st.entfernt.indexOf(k.id)<0) st.entfernt.push(k.id); saveMeta(); } }
+    abschlussTmp.schiebenFor=null; saveKarten(); saveTag(); renderAbschluss(); return; }
   const aba=t.closest('[data-abarchiv]'); if(aba){ const k=S.karten.find(x=>x.id===aba.dataset.abarchiv); if(k){ k.status='archiviert'; saveKarten(); } renderAbschluss(); return; }
   const abe=t.closest('[data-abedit]'); if(abe){ oeffneDetail(abe.dataset.abedit); return; }
   const abv=t.closest('[data-abverpasst]'); if(abv){ const k=S.karten.find(x=>x.id===abv.dataset.abverpasst); if(k){ routineBilanz(k,true); k.faelligkeit=null; saveKarten(); saveTag(); } renderAbschluss(); return; }
@@ -7224,7 +7655,6 @@ el('sheet').addEventListener('click', e=>{
   const gr=t.closest('[data-gruppe]'); if(gr){ entwurf.gruppeId = gr.dataset.gruppe || null; renderDetail(); return; }
   if(t.closest('[data-gruppeneu]')){ const n=(prompt('Name der Gruppe:')||'').trim(); if(n){ const g=neueGruppe({name:n}); S.gruppen.push(g); saveGruppen(); entwurf.gruppeId=g.id; } renderDetail(); return; }
   if(t.closest('[data-dfreeze]')){ entwurf.freeze=!entwurf.freeze; renderDetail(); return; }   // A4
-  if(t.closest('[data-dpin]')){ entwurf.pin=!entwurf.pin; renderDetail(); return; }   // A8
   if(t.closest('[data-dabhak]')){ entwurf.abhakbonus = (entwurf.abhakbonus===0) ? null : 0; renderDetail(); return; }   // U6-D: Abhakbonus an/aus (null=Domänen-Default)
   // §1 (v1.6.1): Tagesabschnitte umschalten (Mehrfachauswahl, leer = automatisch)
   const dta=t.closest('[data-dta]'); if(dta){ const ta=dta.dataset.dta;
@@ -7408,6 +7838,25 @@ el('einstBody').addEventListener('click', e=>{
   if(e.target.closest('[data-panoreset]')){ panoramaResetJetzt(); return; }
   if(e.target.closest('[data-panoundo]')){ panoramaResetUndo(); return; }
   // §4 (v1.11.0): Sternschwellen neu kalibrieren (nur auf ausdrücklichen Tap)
+  // §3 (v1.12.0): Tagesprofil von Hand setzen / gemessenes übernehmen —
+  // beides ausdrücklich, nie automatisch. Die Zielhöhe bleibt unberührt.
+  if(e.target.closest('[data-profilsetzen]')){
+    const roh=String((el('profilEdit')||{}).value||'');
+    const fs=roh.split(',').map(t=>t.trim().split(/[-–]/).map(Number))
+      .filter(f=>f.length===2 && isFinite(f[0]) && isFinite(f[1]) && f[0]>=0 && f[1]<=24 && f[1]>f[0]);
+    if(!fs.length){ toast('Format: „9-18, 21-23"'); return; }
+    S.settings.sollProfilWerktag=fs; DB.set('settings', S.settings);
+    renderEinst(); renderStatusbar(); toast('🕘 Profil gesetzt: '+fs.map(f=>f[0]+'–'+f[1]).join(' · '));
+    return;
+  }
+  if(e.target.closest('[data-profiluebernehmen]')){
+    const vs=profilVorschlag(); if(!vs){ toast('Kein Vorschlag (mehr) da'); renderEinst(); return; }
+    if(!confirm('Gemessenes Profil übernehmen?\n\nNeue aktive Fenster: '+vs.gemessen.map(f=>f[0]+'–'+f[1]).join(' · ')+' Uhr.\nDie Zielhöhe ändert sich dadurch NICHT.')) return;
+    S.settings.sollProfilWerktag=vs.gemessen; DB.set('settings', S.settings);
+    S.meta.profilUebernommenTs=jetztIso(); saveMeta();
+    renderEinst(); renderStatusbar(); toast('🕘 Profil übernommen');
+    return;
+  }
   if(e.target.closest('[data-sternkalib]')){
     const m=sternMass();
     if(m.n<14){ toast('Erst ab 14 Messtagen ('+m.n+'/14)'); return; }
@@ -7480,7 +7929,17 @@ function sucheTreffer(q){
     if(ok){ const k=(S.karten||[]).find(x=>x.id===e.id); if(k && k.status!=='archiviert') res.push({k,sc}); }
   });
   res.sort((a,b)=> b.sc-a.sc || String(a.k.titel||'').localeCompare(String(b.k.titel||'')));
-  return res.slice(0,25);
+  // §11 (v1.12.0): je Karte hoechstens die JUENGSTE erledigte Instanz — bei
+  // taeglichen Routinen ist die Version von vor drei Tagen Rauschen.
+  const gesehen={}, out=[];
+  res.forEach(o=>{
+    if(o.k.status!=='erledigt'){ out.push(o); return; }
+    const key=normSuche(o.k.titel||'')+'|'+o.k.domain;
+    const alt=gesehen[key];
+    if(!alt){ gesehen[key]=o; out.push(o); return; }
+    if(abschlussZeit(o.k)>abschlussZeit(alt.k)){ alt.k=o.k; alt.sc=o.sc; }
+  });
+  return out.slice(0,25);
 }
 function oeffneSuche(){
   baueSuchIndex();
@@ -7501,7 +7960,8 @@ function renderSuchTreffer(){
     const extra=(k.status==='erledigt'?' · ✓':'')+(k.freeze?' · ❄︎':'');
     return '<div class="such-row">'+
       '<div class="such-main" data-suchdetail="'+k.id+'"><div class="such-t">'+esc(k.titel||'(ohne Titel)')+'</div>'+
-      '<div class="such-m">'+esc(kartenArt(k))+' · '+dom+' · '+esc(fa)+extra+'</div></div>'+
+      '<div class="such-m">'+esc(kartenArtLabel(k))+' · '+dom+' · '+esc(fa)+extra+'</div></div>'+
+      (k.status==='offen'?'<button class="such-b" data-suchkette="'+k.id+'" aria-label="Kette">▤</button>':'')+
       '<button class="such-b" data-suchstart="'+k.id+'" aria-label="Fokus starten">▶</button>'+
       '<button class="such-b" data-suchdetail="'+k.id+'" aria-label="Detail öffnen">≡</button>'+
     '</div>';
@@ -7521,8 +7981,19 @@ el('suchClose').addEventListener('click', schliesseSuche);
 el('suchInput').addEventListener('input', ()=>{ if(_suchDeb) clearTimeout(_suchDeb); _suchDeb=setTimeout(renderSuchTreffer, 90); });   // minimaler Debounce
 el('suchInput').addEventListener('keydown', e=>{ if(e.key==='Escape'){ e.preventDefault(); schliesseSuche(); } });
 el('suchList').addEventListener('click', e=>{
-  const st=e.target.closest('[data-suchstart]'); if(st){ suchFokusStarten(st.dataset.suchstart); return; }
-  const de=e.target.closest('[data-suchdetail]'); if(de){ schliesseSuche(); oeffneDetail(de.dataset.suchdetail); return; }
+  // §11 (v1.12.0): Kettenfunktionen wie §9.2 (inkl. Uhrstart bei „ganz nach
+  // oben" im Aktions-Sheet); Tap auf eine ERLEDIGTE Karte oeffnet den
+  // Wiederholen-Dialog (§8).
+  const kb=e.target.closest('[data-suchkette]'); if(kb){ schliesseSuche(); oeffneKetteAktion(kb.dataset.suchkette); return; }
+  const st=e.target.closest('[data-suchstart]'); if(st){
+    const k=(S.karten||[]).find(x=>x.id===st.dataset.suchstart);
+    if(k && k.status==='erledigt'){ schliesseSuche(); oeffneWiederholen(k.id); return; }
+    suchFokusStarten(st.dataset.suchstart); return; }
+  const de=e.target.closest('[data-suchdetail]'); if(de){
+    const k=(S.karten||[]).find(x=>x.id===de.dataset.suchdetail);
+    schliesseSuche();
+    if(k && k.status==='erledigt'){ oeffneWiederholen(k.id); return; }
+    oeffneDetail(de.dataset.suchdetail); return; }
 });
 el('suchOverlay').addEventListener('click', e=>{ if(e.target.id==='suchOverlay') schliesseSuche(); });   // Tap-außen
 /* Pull-down bei scrollTop 0 (Fokus/Stapel) öffnet die Suche — ohne pan-y zu
@@ -7661,13 +8132,35 @@ function anMin(e,dom){
    Wochenendtag — die Summe über Sa+So ergibt exakt die gemeinsamen 3000, und
    die Module behalten ihre Tagesauflösung (das „Wochenende als Einheit" würde
    jede Tages-Trendkurve brechen). Ohne Datum gilt heute. */
-function anZielDfmTag(datum){
-  const wt=new Date((datum||heuteApp())+'T12:00:00').getDay();
-  return (wt===0||wt===6) ? 1500 : tagesZielDomain('dfm');
-}
+/* §2 (v1.12.0): Analyse-Ziele laufen ueber zielTag() — die v1.8.1-Regel
+   (1500 je WE-Tag) ist durch das gemeinsame Sa+So-Kontingent ersetzt.
+   Je-Tag-Quoten am WE wertet zielQuoten() als EIN Ereignis pro Wochenende. */
+function anZielDfmTag(datum){ return zielTag('dfm', datum); }
 function anZiel(dom, datum){
-  const dfm=anZielDfmTag(datum);
-  return dom==='dfm'?dfm : dom==='privat'?tagesZielDomain('privat') : (dfm+tagesZielDomain('privat'));
+  return dom==='dfm'?zielTag('dfm',datum) : dom==='privat'?zielTag('privat',datum) : zielTagGesamt(datum);
+}
+/* §2.3: Zielerreichungs-Quoten einer Tagesliste — Werktage einzeln; Sa+So
+   werden zu EINEM Ereignis gebuendelt (Summe beider Tage / Kontingent). */
+function zielQuoten(tage, dom, punkteVon){
+  const out=[]; const byDatum={}; (tage||[]).forEach(e=>byDatum[e.datum]=e);
+  const gesehen={};
+  (tage||[]).forEach(e=>{
+    if(gesehen[e.datum]) return;
+    if(!istWochenendTag(e.datum)){
+      const z=zielTag(dom==='alle'?null:dom, e.datum);
+      const zz=dom==='alle'?zielTagGesamt(e.datum):z;
+      out.push(zz>0?punkteVon(e)/zz:null); gesehen[e.datum]=1; return;
+    }
+    // Wochenend-Paar: Samstag suchen (Sa=6, So=0)
+    const wt=new Date(e.datum+'T12:00:00').getDay();
+    const partnerDatum=wt===6?anVorTage(e.datum,-1):anVorTage(e.datum,1);
+    const partner=byDatum[partnerDatum];
+    let p=punkteVon(e); if(partner){ p+=punkteVon(partner); gesehen[partner.datum]=1; }
+    gesehen[e.datum]=1;
+    const zz=dom==='alle'?zielTagGesamt(e.datum):zielTag(dom,e.datum);
+    out.push(zz>0?p/zz:null);
+  });
+  return out.filter(x=>x!=null);
 }
 /* Fenster gemäß S.ui (Zeitraum-Preset / frei) inkl. Vorperiode gleicher Länge. */
 function analyseFenster(){
@@ -7815,7 +8308,8 @@ function anModLeistung(F,dom){
       // §2 (v1.8.1): Ø der TAGES-Quoten statt Ø-Punkte ÷ Ein-Ziel — so gilt an
       // Wochenendtagen das 1500er-Teilziel und Sa/So erscheinen nicht mehr als
       // systematisch schlechte Tage.
-      const pct=Math.max(0,Math.min(1.3, anMean(F.cur.map(e=>{ const z=anZiel(d[0], e.datum); return z?anPunkte(e,d[0])/z:null; }))||0));
+      // §2.3 (v1.12.0): Ø der Zielerreichungs-Quoten — WE zaehlt als EIN Ereignis
+      const pct=Math.max(0,Math.min(1.3, anMean(zielQuoten(F.cur, d[0], e=>anPunkte(e,d[0])))||0));
       bars+='<div class="an-bar"><span class="nm">'+d[1]+'</span><span class="track"><i style="width:'+Math.min(100,pct*100/1.3).toFixed(0)+'%;background:'+d[2]+'"></i></span><span class="vv">'+Math.round(pct*100)+'% Ziel</span></div>'; });
     bars+='</div>';
     inner+=bars;
@@ -7907,10 +8401,16 @@ function anModKalibrierung(F,dom){
   if(F.cur.length<3){ inner=anSammelt(F.cur.length,3); }
   else{
     const labels=F.cur.map(e=>e.datum);
-    // §2 (v1.8.1): Tagesziel je DATUM (Wochenendregel) statt ein Ziel für alle
-    const ratio=F.cur.map(e=>{ const z=anZiel(dom, e.datum); return z? anPunkte(e,dom)/z : null; });
+    // §2.3 (v1.12.0): WE-Tage werden zu EINEM Ereignis gebuendelt — die Kurve
+    // zeigt je Tag die zugehoerige Quote (WE-Tage tragen die Paar-Quote).
+    const ratio=F.cur.map(e=>{
+      if(!istWochenendTag(e.datum)){ const z=anZiel(dom, e.datum); return z? anPunkte(e,dom)/z : null; }
+      const q=zielQuoten([e].concat(F.cur.filter(x=>x!==e)), dom==='alle'?'alle':dom, x=>anPunkte(x,dom));
+      return q.length?q[0]:null;
+    });
     inner=anSvgLine(labels,[{vals:ratio,color:'var(--blue)'}],{yMin:0,yMax:Math.max(1.4,Math.max.apply(null,ratio.concat([1]))*1.1),height:132,hlines:[{y:1,color:'var(--ok)',dash:'4 3',label:'Ziel 1,0'}]});
-    const cur=anMean(ratio), prev=anMean(F.prev.map(e=>{ const z=anZiel(dom, e.datum); return z?anPunkte(e,dom)/z:null; }).filter(x=>x!=null));
+    const cur=anMean(zielQuoten(F.cur, dom==='alle'?'alle':dom, e=>anPunkte(e,dom)));
+    const prev=anMean(zielQuoten(F.prev, dom==='alle'?'alle':dom, e=>anPunkte(e,dom)));
     const treffer=ratio.filter(r=> r!=null && r>=0.8 && r<=1.2).length;
     inner+='<div class="anmod-kpis">'+
       anKpi(cur!=null?(Math.round(cur*100)/100):'—','Ø Ist÷Soll',anDeltaPct(cur,prev))+

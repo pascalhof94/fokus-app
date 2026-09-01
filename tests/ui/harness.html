@@ -146,8 +146,8 @@
     abschluss:function(fw){ fw.setTab('fokus'); fw.abhakDialog('k-lang', false); },
     routinen: function(fw){ fw.setTab('fokus'); fw.renderAlles(); fw.oeffneRoutinen();
                             var seg=fw.document.querySelector('[data-rdom="privat"]'); if(seg) seg.click(); },
-    pins:     function(fw){ ['k-lang','k-ticks','k-counter'].forEach(function(id){ fw.togglePin(id); });
-                            fw.setTab('fokus'); fw.renderAlles(); fw.oeffnePins(); },
+    /* v1.12.0: Die Pin-Schublade ist der Ketten-Schublade gewichen. */
+    kette:    function(fw){ fw.setTab('fokus'); fw.renderAlles(); fw.oeffneKetteSheet(); },
     belohnung:function(fw){ fw.setTab('belohnung'); fw.renderAlles(); fw.closeSheet(); },
     albumR:   function(fw){ fw.setTab('belohnung'); fw.renderAlles(); fw.oeffneAlbum(); },
     /* albumTab ist eine let-Variable im App-Scope (nicht auf window) —
