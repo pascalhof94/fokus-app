@@ -29,7 +29,10 @@ var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','b
   'belFensterDatum','tagesRateDetail','tagesRate','aktiveRateTage','tagIstUrlaub','medianVon','oePStd7',
   'leistungsSchwelle','leistungsRangVon','rangMass',
   // §4 (v1.13.1): Sitzungszeiten aus dem Intraday-Log
-  'kartenSitzungenHeute'];
+  'kartenSitzungenHeute',
+  // Nachtrag v1.13.1 §5: Plankurve zieht NUR ueber die Ketten
+  'planKurveInfo','ketteKarten','tagesKette','tagesKetteDom','ketteState','ketteAutoIds',
+  'ketteHistLog','ketteSetzen','kartePunkteGeplant','kartePunkteBei','subBonusOffen'];
 /* §1 (v1.7.1): kartePunkte zieht die Pausentimer-Strafe live ab — die beiden
    Helfer werden mit extrahiert, die Konstante hier gespiegelt (Konstanten sind
    nicht extrahierbar). Mit S.fokus=null liefert pausenStrafeLive stets 0. */
@@ -52,6 +55,8 @@ function tagSnapshot(){ return null; }
 function anVorTage(iso,n){ return iso; }
 function snapPunkte(){ return 0; }
 function saveMeta(){}
+function saveKarten(){}
+function tagesabschnittHat(){ return false; }
 // §5.1 (v1.13.0): Uhrzeit fixieren (14:00) — die Treppe hängt am Tagesstart,
 // die Erwartungen unten sind damit laufzeitunabhängig. Zuweisung NACH dem
 // eval, damit sie die extrahierte Fassung ersetzt.
@@ -247,6 +252,29 @@ var sz2=kartenSitzungenHeute('z1');
 ok('§4.1.13.1: laufende Sitzung reist mit (laufend:true, ~10 Min)',
   sz2.length===3 && sz2[2].laufend===true && Math.abs(sz2[2].min-10)<=1);
 S.fokus=null; S.intraday=[];
+
+// ══ 12) NACHTRAG v1.13.1 §5: Die Plankurve enthaelt AUSSCHLIESSLICH die
+// Ketten — keine Stapel, keine ueberfaelligen ohne Ketteneintrag, keine
+// Deadline-Treffer. Guard gegen ein spaeteres Verbreitern der Quelle. ══
+S.settings.zeitGewicht=1;   // glatte Zahlen: 60 min × 400 P/Std = 400 P je Karte
+S.karten=[]; S.unteraufgaben=[]; S.meta.ketten=null; S.meta.kettenHistorie={};
+S.tag={ tagId:HEUTE+'-1', datum:heuteIso(), startTs:heuteIso()+'T09:00:00', endeTs:null, akku:75, istMinutenStart:{}, abzuegeBilanz:0, log:[] };
+for(var pi=1; pi<=6; pi++) S.karten.push(karte({ id:'pl'+pi, domain:'dfm', sollMin:60, punkteProStd:400, istSek:0, ticksHeute:0 }));
+// faellig, aber bewusst NICHT in der Kette (10.000 P Prognose)
+S.karten.push(karte({ id:'plFremd', domain:'dfm', sollMin:600, punkteProStd:1000, istSek:0, ticksHeute:0 }));
+// reiner Stapelbestand ohne Faelligkeit (5.000 P Prognose)
+S.karten.push(karte({ id:'plBestand', domain:'dfm', sollMin:300, punkteProStd:1000, istSek:0, ticksHeute:0, faelligkeit:null }));
+tagesKetteDom('dfm');   // Auto-Befuellung (6 + plFremd)
+ketteSetzen(['pl1','pl2','pl3','pl4','pl5','pl6'],'dfm');   // explizit: nur die 6
+ok('Nachtrag §5: Kette traegt exakt die 6 geplanten Karten',
+  JSON.stringify(tagesKetteDom('dfm'))==='["pl1","pl2","pl3","pl4","pl5","pl6"]');
+var plan12=planKurveInfo();
+var planEnde=Math.round(plan12.wert(23));
+ok('Nachtrag §5 BELEG: 6 × 400 P geplant → Plan endet bei 2400 (nicht 17.400)',
+  planEnde===2400);
+ok('Nachtrag §5: entfernte Faellige (10.000 P) und Stapelbestand (5.000 P) fliessen NICHT ein',
+  planEnde===2400 && Math.round(kartePunkteGeplant(S.karten[6]))===10000 && Math.round(kartePunkteGeplant(S.karten[7]))===5000);
+ok('Nachtrag §5: Quelle ist Profil × Kette (kein Rahmen aktiv)', plan12.quelle==='Profil × Kette');
 
 print('');
 if(fails){ print(fails+' FEHLGESCHLAGEN'); throw 'Test rot'; }
