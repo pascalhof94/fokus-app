@@ -1120,9 +1120,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.13.1';                   // Datenvertrag/Sync-appVersion — Vertrag 1.6 (Tagesrahmen, Korrekturblock, Rein/Raus, Akku-Einträge, Upgrade-Faktor; 1.13.1: Vertragstreue-Hotfix)
-const UI_VERSION = 'v1.13.1';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-02-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.13.2';                   // Datenvertrag/Sync-appVersion — Vertrag 1.6 (1.13.2: Start setzt immer den Fokus)
+const UI_VERSION = 'v1.13.2';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-02-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2097,7 +2097,11 @@ function fokusNachruecken(kid){
   if(!(S.fokus && S.fokus.karteId===kid)) return false;
   const q=S.fokus.quelle;
   if(!q) return false;
-  let liste = (q==='sys-heute'||q==='kette') ? ketteKarten() : ansichtsListe(q);
+  // v1.13.2 (Diagnose-Nebenfund): die v1.12-Stapel (sys-dfm/sys-privat)
+  // kannten keinen Nachrück-Weg — Starts aus dem Stapel-Tab gingen leer aus.
+  let liste = (q==='sys-heute'||q==='kette') ? ketteKarten()
+    : (q==='sys-dfm'||q==='sys-privat') ? stapelKarten(S.stapel.find(s=>s.id===q)||{id:q, filter:[]})
+    : ansichtsListe(q);
   const next=(liste||[]).find(x=>x.id!==kid && x.status==='offen' && !x.freeze);
   if(!next) return false;
   S.fokus={ karteId:next.id, laeuft:false, startMs:0, sessionSek:0, quelle:q };
@@ -2846,17 +2850,25 @@ function fokusNav(){
 /* U2: Navigation zurücksetzen, sobald wieder aktiv eine Karte gewählt/gestartet wird. */
 function fokusNavReset(){ S.ui.fokusNav={hist:0, stapel:null}; }
 function aktiveFokusKarte(){
-  // U1: Fokus-Karte = laufende Karte (falls im aktiven Stapel), sonst Position 1.
-  // U2: eine aktive Swipe-Navigation (Verlauf zurück / Stapel vor) hat Vorrang.
+  // U2: eine aktive Swipe-Navigation (Verlauf zurück / Stapel vor) hat Vorrang
+  // (bewusstes Blättern; endet mit jedem Start über fokusNavReset).
   const nav=fokusNav(), kand=fokusKandidaten();
   if(num(nav.hist)>0){
     const vl=fokusVerlaufHeute(), k=vl[nav.hist-1];
     if(k) return k;
     nav.hist=0;   // Verlauf ist kürzer geworden → zurück auf den Stapel
   }
+  if(nav.stapel!=null && kand.length){ const k=kand[Math.min(num(nav.stapel), kand.length-1)]; if(k) return k; }
+  // v1.13.2: Die (laufende) Fokus-Karte gilt AUSNAHMSLOS — auch wenn sie in
+  // keiner Kette und keiner Kandidatenliste steht. Vorher wurde S.fokus nur
+  // INNERHALB von fokusKandidaten() gesucht; eine außerhalb der Kette
+  // gestartete Karte fiel still auf kand[0] zurück → Uhr lief auf A, die
+  // Ansicht zeigte B (Befund 02.09., 09:42).
+  if(S.fokus){
+    const fk=S.karten.find(k=>k.id===S.fokus.karteId);
+    if(fk && fk.status!=='archiviert') return fk;
+  }
   if(!kand.length) return null;
-  if(nav.stapel!=null){ const k=kand[Math.min(num(nav.stapel), kand.length-1)]; if(k) return k; }
-  if(S.fokus){ const fk=kand.find(k=>k.id===S.fokus.karteId); if(fk) return fk; }
   return kand[0];
 }
 /* U2: ein Navigationsschritt. richtung −1 = links (vorwärts im Stapel bzw. aus dem
@@ -2896,7 +2908,20 @@ function fokusKurveHtml(){
 function renderFokus(){
   rangCacheBauen();
   const host=el('fokusView');
-  const k=aktiveFokusKarte();
+  let k=aktiveFokusKarte();
+  // v1.13.2: Divergenz-Schutz — beim Rendern gilt die LAUFENDE Uhr als
+  // Wahrheit. Zeigt die Ansicht eine andere Karte, obwohl der Nutzer nicht
+  // bewusst blättert, zieht der Fokus nach — und meldet es, damit eine
+  // etwaige neue Ursache nicht wieder unsichtbar bleibt.
+  if(S.fokus && S.fokus.laeuft && k && k.id!==S.fokus.karteId){
+    const nav0=fokusNav();
+    if(!(num(nav0.hist)>0 || nav0.stapel!=null)){
+      console.warn('Fokus-Divergenz nachgezogen: Uhr läuft auf '+S.fokus.karteId+', Ansicht zeigte '+k.id);
+      fokusNavReset(); saveUi();
+      const fk=S.karten.find(x=>x.id===S.fokus.karteId);
+      if(fk && fk.status!=='archiviert') k=fk;
+    }
+  }
   const kand=fokusKandidaten();
   if(!k){
     const stn=(S.stapel.find(s=>s.id===S.ui.aktivStapel)||{}).name||'Stapel';

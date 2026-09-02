@@ -368,6 +368,77 @@
           if(!(exK && exK.sitzungen && exK.sitzungen.length>=1 && exK.sitzungen[0].von && exK.sitzungen[0].bis && exK.sitzungen[0].min>0))
             fatal('diag §4 (1.13.1): Export ohne Sitzungszeiten ('+JSON.stringify(exK&&exK.sitzungen)+')');
         }
+        /* ══ v1.13.2 · Start setzt IMMER den Fokus — je Startpfad ein
+           synthetischer Klick, danach: laufende Karte == angezeigte Karte.
+           (Die dfm-Kette steht nach dem Import-Test auf [k-lang] — Starts
+           außerhalb der Kette sind exakt der Befund-Fall vom 02.09.) ══ */
+        var fokusGleich=function(pfad){
+          var fok=lsGet('fokus');
+          ergebnis.checks++;
+          if(!fok || !fok.karteId){ fatal('diag v1.13.2 ['+pfad+']: kein S.fokus nach Start'); return; }
+          var ang=fw.aktiveFokusKarte();
+          ergebnis.checks++;
+          if(!(ang && ang.id===fok.karteId))
+            fatal('diag v1.13.2 ['+pfad+']: Fokus/Uhr auf '+fok.karteId+', Ansicht zeigt '+(ang&&ang.id));
+        };
+        fw.closeSheet();
+        // 1) Kartenzeile im Stapel — Karte AUSSERHALB jeder Kette (Befund-Fall)
+        fw.setTab('stapel'); fw.renderAlles();
+        var s1=d.querySelector('#stapelListe [data-fokusstart="k-counter"]');
+        ergebnis.checks++;
+        if(!s1){ fatal('diag v1.13.2: ▶ auf k-counter fehlt im Stapel'); } else { s1.click(); fokusGleich('Kartenzeile Stapel · außerhalb der Kette'); }
+        // 2) Fokusliste der Fokusansicht
+        fw.renderAlles();
+        var s2=d.querySelector('#fokusView [data-fokusstart="k-timer"]');
+        if(s2){ s2.click(); fokusGleich('Fokusliste'); }
+        // 3) Ketten-Schublade
+        fw.oeffneKetteSheet();
+        var s3=d.querySelector('#ketteSheetListe [data-fokusstart]');
+        if(s3){ s3.click(); fokusGleich('Ketten-Schublade'); } else fw.closeSheet();
+        // 4) Ketten-Aktions-Sheet ▶ (Karte außerhalb der Kette)
+        fw.setTab('stapel'); fw.renderAlles();
+        var s4=d.querySelector('#stapelListe [data-kette="k-morgen"]');
+        if(s4){ s4.click();
+          var s4b=d.querySelector('[data-kaStart="k-morgen"]');
+          if(s4b){ s4b.click(); fokusGleich('Ketten-Aktions-Sheet ▶'); } else fw.closeSheet(); }
+        // 5) Routinen-Ansicht
+        fw.setTab('fokus'); fw.oeffneRoutinen();
+        var s5a=d.querySelector('[data-rdom="privat"]'); if(s5a) s5a.click();
+        var s5=d.querySelector('.routsheet [data-fokusstart="k-ticks"]');
+        if(s5){ s5.click(); fokusGleich('Routinen-Ansicht'); } else fw.closeSheet();
+        // 6) Suche (eingefrorene Karte — Start taut auf)
+        fw.oeffneSuche();
+        var si=d.getElementById('suchInput'); si.value='Lieferant'; fw.renderSuchTreffer();
+        var s6=d.querySelector('[data-suchstart="k-frost"]');
+        if(s6){ s6.click(); fokusGleich('Suche'); } else { fw.schliesseSuche(); fatal('diag v1.13.2: Suchtreffer k-frost fehlt'); }
+        // 7) Status-Sheet-Kettenzeile
+        fw.oeffneStatusSheet();
+        var s7=d.querySelector('#sheetKette [data-fokusstart]');
+        if(s7){ s7.click(); fokusGleich('Status-Sheet-Kette'); } else fw.closeSheet();
+        // 8) Nachrücken nach Abhaken der laufenden Karte (Quelle = Kette)
+        fw.setTab('stapel'); fw.renderAlles();
+        var s8=d.querySelector('#stapelListe [data-fokusstart="k-timer"]');
+        if(!s8){ fatal('diag v1.13.2 [Nachrücken]: ▶ k-timer fehlt im Stapel'); }
+        else { s8.click();
+          fw.renderAlles();
+          var s8b=d.querySelector('#fokusView [data-fkcheck="k-timer"]');
+          if(!s8b){ fatal('diag v1.13.2 [Nachrücken]: ✓ auf der Fokus-Karte fehlt'); }
+          else { s8b.click();
+            var s8c=d.querySelector('[data-abgo]');
+            if(!s8c){ fatal('diag v1.13.2 [Nachrücken]: Abhak-Dialog ohne Erledigen'); }
+            else { s8c.click();
+              var fok8=lsGet('fokus');
+              ergebnis.checks++;
+              // Quelle 'sys-dfm' hat keine Ansichts-Liste → Nachrücken darf
+              // leer ausgehen (Fokus beendet) ODER nachrücken — aber wenn ein
+              // Fokus da ist, muss die Ansicht ihn zeigen.
+              if(fok8) fokusGleich('Nachrücken nach Abhaken');
+            }
+          }
+        }
+        // 9) Play/Pause der Fokus-Leiste (Toggle) — vorher definierten Fokus herstellen
+        fw.fokusStarten('k-lang', null); fw.closeSheet();
+        var s9=d.getElementById('fkPP'); if(s9){ s9.click(); fokusGleich('Fokus-Leiste ▶/⏸'); }
       }catch(err){ fatal('diag-Sequenz abgebrochen: '+err); }
       abschluss();
     });
