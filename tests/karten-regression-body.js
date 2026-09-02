@@ -217,6 +217,42 @@ ok('v1.13.3 §3: unterste und oberste Stufe tragen die neuen Texte',
   BELOHNUNG.mobilitaet.stufen[0][0]==='BVG-Monatskarte' &&
   BELOHNUNG.mobilitaet.stufen[11][0]==='Erde, Wasser, Luft an einem Tag');
 
+/* ══ v1.13.4: Speicher-Diagnose, Bak-Aufraeumen, Quota-Schutz ══ */
+_store={};   // sauberer Speicher fuer die Messung
+localStorage.setItem('fokus2_karten', JSON.stringify(S.karten));
+localStorage.setItem('fokus2_karten_bak160', JSON.stringify({gross:'x'.repeat(4096)}));
+localStorage.setItem('fokus2_karten_bak1120', JSON.stringify({gross:'x'.repeat(4096)}));
+localStorage.setItem('fokus2_karten_bak1130', JSON.stringify({klein:1}));
+localStorage.setItem('fokus2_besitz_bak1133', JSON.stringify({einzig:1}));
+localStorage.setItem('fokus2_meta_bak190', JSON.stringify({gross:'x'.repeat(2048)}));
+localStorage.setItem('fokus2_meta_bak1130', JSON.stringify({klein:1}));
+var beleg=speicherBelegung();
+ok('v1.13.4 §1: Diagnose listet Keys mit Groesse, absteigend',
+  beleg.rows.length>=7 && beleg.kb>10 && beleg.rows[0].kb>=beleg.rows[beleg.rows.length-1].kb);
+var weg=speicherBaks();
+ok('v1.13.4 §2: loeschbar = aeltere je Art (karten_bak160+1120, meta_bak190) — juengste + Einzige bleiben',
+  weg.length===3 && weg.indexOf('karten_bak160')>=0 && weg.indexOf('karten_bak1120')>=0 && weg.indexOf('meta_bak190')>=0
+  && weg.indexOf('karten_bak1130')<0 && weg.indexOf('besitz_bak1133')<0 && weg.indexOf('meta_bak1130')<0);
+var vorherKb=beleg.kb;
+var resErg=speicherAufraeumen(true);
+ok('v1.13.4 §2 BELEG: Aufraeumen entfernt ~10 KB Sicherungen ('+Math.round(vorherKb)+' → '+Math.round(resErg.nachher)+' KB)',
+  resErg.nachher<vorherKb-9 && localStorage.getItem('fokus2_karten_bak160')===null
+  && localStorage.getItem('fokus2_karten_bak1130')!==null && localStorage.getItem('fokus2_besitz_bak1133')!==null);
+ok('v1.13.4 §2: Protokoll traegt die geloeschten Keys mit Groesse',
+  S.meta.speicherAufraeumLog && S.meta.speicherAufraeumLog.geloescht.length===3);
+/* §3: Quota-Schutz — kein Popup-Sturm */
+var toasts=0, echteToast=toast;
+toast=function(){ toasts++; };
+var origSetItem=localStorage.setItem;
+localStorage.setItem=function(){ var e2=new Error('quota'); e2.name='QuotaExceededError'; throw e2; };
+DB._quotaCleanup=false; DB._quotaWarnTs=0;
+var werfFehler=false;
+try{ for(var qi=0; qi<6; qi++) DB.set('quotatest', {i:qi}); }catch(eq){ werfFehler=true; }
+localStorage.setItem=origSetItem; toast=echteToast;
+ok('v1.13.4 §3 BELEG: 6 Quota-Fehlversuche → kein Uncaught, hoechstens 1 Hinweis (waren '+toasts+')',
+  werfFehler===false && toasts<=1);
+ok('v1.13.4 §3: Auto-Aufraeumen lief genau einmal', DB._quotaCleanup===true);
+
 print('');
 if(fails){ print(fails+' FEHLGESCHLAGEN'); throw 'rot'; }
 print('alle Karten-Bedienelement-Tests gruen');

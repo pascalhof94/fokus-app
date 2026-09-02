@@ -1120,9 +1120,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.13.3';                   // Datenvertrag/Sync-appVersion — Vertrag 1.6 (1.13.3: Shop-Reset + Preiskalibrierung)
-const UI_VERSION = 'v1.13.3';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-02-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.13.4';                   // Datenvertrag/Sync-appVersion — Vertrag 1.6 (1.13.4: Speicher-Diagnose, Aufraeumen, Quota-Schutz)
+const UI_VERSION = 'v1.13.4';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-02-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1135,7 +1135,24 @@ const DB = {
   },
   set(key, wert){
     try{ localStorage.setItem(PREFIX+key, JSON.stringify(wert)); return true; }
-    catch(e){ console.warn('DB.set', key, e); toast('⚠️ Speicher voll?'); return false; }
+    catch(e){
+      // §3 (v1.13.4): Quota — EINMAL still aufräumen und erneut versuchen,
+      // statt den Nutzer mit einem Popup je Schreibversuch zu bombardieren.
+      try{
+        if(!DB._quotaCleanup){
+          DB._quotaCleanup=true;
+          try{ speicherAufraeumen(true); }catch(e2){}
+          try{ localStorage.setItem(PREFIX+key, JSON.stringify(wert));
+            toast('💾 Speicher war voll — automatisch aufgeräumt'); return true; }catch(e3){}
+        }
+        const now=Date.now();
+        if(!(DB._quotaWarnTs && DB._quotaWarnTs>now-60000)){
+          DB._quotaWarnTs=now;
+          toast('⚠️ Speicher voll — Einstellungen → 💾 Speicher → Aufräumen');
+        }
+      }catch(e4){}
+      console.warn('DB.set', key, e); return false;
+    }
   },
   list(){
     const out=[];
@@ -1146,6 +1163,57 @@ const DB = {
   del(key){ try{ localStorage.removeItem(PREFIX+key); }catch(e){} }
 };
 /* Alt-Speicher: strikt read-only (§10 „Alt-Keys bleiben unangetastet") */
+
+/* ══ (v1.13.4) · Speicher-Diagnose & -Aufräumen ══════════════════════════
+   iOS-Safari-Quota ≈ 5 MB. MESSEN statt raten: jeden fokus2_-Schlüssel mit
+   Größe listen. AUFRÄUMEN: (a) Migrations-Sicherungen — je Art bleibt NUR
+   die jüngste (die älteren sind Vollkopien, die nie jemand liest);
+   (b) Kettenhistorie auf die letzten Tage kappen (der Export trägt ohnehin
+   nur den aktuellen Tag). Zeit- und Punktehistorie werden NIE angefasst. */
+function speicherBelegung(){
+  const rows=[]; let sum=0;
+  DB.list().forEach(k=>{
+    let n=0; try{ n=(localStorage.getItem(PREFIX+k)||'').length; }catch(e){}
+    sum+=n; rows.push({ key:k, kb:n/1024 });
+  });
+  rows.sort((a,b)=>b.kb-a.kb);
+  return { rows, kb:sum/1024 };
+}
+/* Löschbare Sicherungen: fokus2_<art>_bak<nr> — je Art bleibt die höchste Nr. */
+function speicherBaks(){
+  const re=/^(.+)_bak(\d+)$/, byArt={};
+  DB.list().forEach(k=>{ const m=re.exec(k); if(!m) return;
+    (byArt[m[1]]=byArt[m[1]]||[]).push({ key:k, nr:num(m[2]) }); });
+  const weg=[];
+  Object.keys(byArt).forEach(art=>{
+    byArt[art].sort((a,b)=>b.nr-a.nr).slice(1).forEach(x=>weg.push(x.key));
+  });
+  return weg;
+}
+const KETTENHIST_TAGE=7;        // §2: lokale Kettenhistorie-Tage (Export trägt nur heute; 7 Tage puffern eine Sync-Pause von einer Woche)
+const KETTENHIST_ENTPRELL_S=10; // §2: Umsortierungen derselben Kette binnen 10 s = EIN Eintrag (der Endstand zählt)
+function kettenHistKappen(){
+  if(!(S.meta && S.meta.kettenHistorie)) return 0;
+  const keys=Object.keys(S.meta.kettenHistorie).sort();
+  let weg=0;
+  while(keys.length>KETTENHIST_TAGE){ delete S.meta.kettenHistorie[keys.shift()]; weg++; }
+  return weg;
+}
+function speicherAufraeumen(still){
+  const vorher=speicherBelegung().kb;
+  const geloescht=[];
+  speicherBaks().forEach(k=>{
+    let kb=0; try{ kb=(localStorage.getItem(PREFIX+k)||'').length/1024; }catch(e){}
+    DB.del(k); geloescht.push({ key:k, kb:Math.round(kb*10)/10 });
+  });
+  const histWeg=kettenHistKappen();
+  const nachher=speicherBelegung().kb;
+  S.meta.speicherAufraeumLog={ ts:jetztIso(), geloescht, histTageWeg:histWeg,
+    vorherKb:Math.round(vorher), nachherKb:Math.round(nachher) };
+  DB.set('meta', S.meta);
+  if(!still) toast('💾 Aufgeräumt: '+Math.round(vorher)+' → '+Math.round(nachher)+' KB');
+  return { vorher, nachher, geloescht, histWeg };
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    2 · Helfer
@@ -2588,9 +2656,20 @@ function ketteHistLog(dom){
     if(!S.meta.kettenHistorie) S.meta.kettenHistorie={};
     const h=heuteApp();
     if(!Array.isArray(S.meta.kettenHistorie[h])) S.meta.kettenHistorie[h]=[];
-    S.meta.kettenHistorie[h].push({ ts:jetztIso(), dom:(dom==='privat')?'privat':'dfm',
-      ids:ketteState(dom).ids.slice() });
-    if(S.meta.kettenHistorie[h].length>500) S.meta.kettenHistorie[h]=S.meta.kettenHistorie[h].slice(-500);
+    const arr=S.meta.kettenHistorie[h];
+    const eintrag={ ts:jetztIso(), dom:(dom==='privat')?'privat':'dfm', ids:ketteState(dom).ids.slice() };
+    // §2 (v1.13.4) ENTPRELLUNG: schnelle Folge-Umsortierungen derselben Kette
+    // (binnen 10 s) ersetzen den letzten Eintrag — der ENDSTAND zählt, nicht
+    // jeder Zwischenschritt (belegt: 5 Einträge à 21 IDs in 10 s am 01.09.).
+    const letzt=arr[arr.length-1];
+    if(letzt && letzt.dom===eintrag.dom
+       && (Date.parse(eintrag.ts)-Date.parse(letzt.ts))<KETTENHIST_ENTPRELL_S*1000){
+      arr[arr.length-1]=eintrag;
+    } else {
+      arr.push(eintrag);
+    }
+    if(arr.length>500) S.meta.kettenHistorie[h]=arr.slice(-500);
+    kettenHistKappen();   // §2: lokal nur die letzten 7 Tage (Export trägt nur heute)
     saveMeta();
   }catch(e){}
 }
@@ -6365,6 +6444,21 @@ function renderEinst(){
       '<button class="chip '+(S.ui.debugTap?'on gruen':'')+'" data-debugtap="1">'+(S.ui.debugTap?'AN':'aus')+'</button></div>'+
     (S.ui.debugTap?'<div class="hint">Jede Tap-Fläche ist umrandet: <span style="color:#6dd3e0">Eingabefelder cyan</span>, <span style="color:#f2b84b">Chips amber</span>, <span style="color:#f66d6d">Buttons/Zonen rot</span>. Deckt sich der Rahmen nicht mit dem sichtbaren Feld, liegt dort der Fehler.</div>':'')+
   '</div>';
+  // (v1.13.4): Speicher — Belegung sichtbar, Aufräumen per Knopf
+  h+=(function(){
+    const b=speicherBelegung(), baks=speicherBaks();
+    const histTage=Object.keys((S.meta&&S.meta.kettenHistorie)||{}).length;
+    let x='<div class="card"><h3>💾 Speicher</h3>'+
+      '<p class="d">iOS gibt ~5 MB. Aufräumen entfernt nur alte Migrations-Sicherungen (je Art bleibt die jüngste) und kappt die Kettenhistorie auf '+KETTENHIST_TAGE+' Tage — Zeit- und Punktehistorie bleiben vollständig.</p>'+
+      '<div class="kv"><span>Belegung gesamt</span><b>'+Math.round(b.kb)+' KB</b></div>';
+    b.rows.slice(0,8).forEach(r=>{
+      x+='<div class="kv"><span style="font-family:ui-monospace,monospace;font-size:11px">'+esc(r.key)+'</span><b>'+(r.kb>=1?Math.round(r.kb)+' KB':'&lt;1')+'</b></div>'; });
+    if(baks.length) x+='<p class="d" style="color:var(--warn);margin-top:6px">'+baks.length+' alte Sicherung(en) löschbar.</p>';
+    x+='<div class="btnrow"><button class="btn sm" data-speicheraufraeumen="1">🧹 Aufräumen</button></div>';
+    if(S.meta.speicherAufraeumLog){ const L=S.meta.speicherAufraeumLog;
+      x+='<div class="kv" style="margin-top:6px"><span>Zuletzt aufgeräumt ('+esc(String(L.ts||'').slice(0,10))+')</span><b>'+num(L.vorherKb)+' → '+num(L.nachherKb)+' KB</b></div>'; }
+    x+='<div class="kv"><span>Kettenhistorie lokal</span><b>'+histTage+' Tag(e)</b></div>';
+    return x+'</div>'; })();
   // §5 (v1.8.1): Urlaubsmodus — an/aus, kein Zeitraum, keine Automatik
   h+='<div class="card"><h3>🏖 Urlaubsmodus</h3>'+
     '<p class="d">Nichts ist verpflichtend, alles bleibt möglich: keine Streak-Brüche, kein Ziel, keine Schiebe-Minuspunkte, keine Abräumpflicht. Timer, Ticks und Punkte laufen normal weiter. Urlaubstage erscheinen in der Statistik, fließen aber nicht in Durchschnitte und Trends ein.</p>'+
@@ -8798,6 +8892,20 @@ el('einstBody').addEventListener('click', e=>{
   if(e.target.closest('[data-panoundo]')){ panoramaResetUndo(); return; }
   // §1 (v1.13.3): Shop zurücksetzen — Bestätigungs-Sheet
   if(e.target.closest('[data-shopreset]')){ oeffneShopReset(); return; }
+  // (v1.13.4): Speicher aufräumen — die zu löschenden Sicherungen werden
+  // VOR dem Entfernen mit Größe benannt.
+  if(e.target.closest('[data-speicheraufraeumen]')){
+    const baks=speicherBaks();
+    const det=baks.map(k=>{ let kb=0; try{ kb=(localStorage.getItem(PREFIX+k)||'').length/1024; }catch(err){}
+      return '· '+k+' ('+Math.round(kb)+' KB)'; }).join('\n');
+    if(!confirm('Speicher aufräumen?\n\n'+(baks.length
+        ? 'Entfernt '+baks.length+' alte Migrations-Sicherung(en) — je Art bleibt die jüngste:\n'+det+'\n\n'
+        : 'Keine alten Sicherungen vorhanden.\n\n')+
+      'Die Kettenhistorie wird auf '+KETTENHIST_TAGE+' Tage gekappt.\nZeit- und Punktehistorie bleiben vollständig erhalten.')) return;
+    speicherAufraeumen(false);
+    DB._quotaCleanup=false;   // §3: nach MANUELLEM Aufräumen darf der Auto-Schutz wieder greifen
+    renderEinst();
+    return; }
   // §4 (v1.11.0): Sternschwellen neu kalibrieren (nur auf ausdrücklichen Tap)
   // §3 (v1.12.0): Tagesprofil von Hand setzen / gemessenes übernehmen —
   // beides ausdrücklich, nie automatisch. Die Zielhöhe bleibt unberührt.

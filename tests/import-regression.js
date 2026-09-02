@@ -22,7 +22,9 @@ function extract(name){
 // §1/§2 (v1.13.1): die ECHTEN Ketten-Funktionen laufen mit — der Ersetzen-
 // vs.-Auto-Nachzug-Bug lag genau im Zusammenspiel ketteSetzen/tagesKetteDom.
 var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnteraufgabe','syncImport',
-  'ketteState','ketteAutoIds','tagesKetteDom','ketteSetzen','ketteBewegen','ketteHistLog'];
+  'ketteState','ketteAutoIds','tagesKetteDom','ketteSetzen','ketteBewegen','ketteHistLog','kettenHistKappen'];
+// (v1.13.4): Konstanten der Kettenhistorie gespiegelt (nicht extrahierbar)
+var KETTENHIST_TAGE = 7, KETTENHIST_ENTPRELL_S = 10;
 // Stubs fuer die Laufzeit-Abhaengigkeiten (keine echten Daten)
 var crypto = {};
 var S = { karten: [], unteraufgaben: [], routinenGruppen: [], tag: null, historie: [], meta: { wohlstand: 0 }, settings: {} };
@@ -149,9 +151,28 @@ ok('§1: nicht Genanntes gilt als bewusst draussen (4 in entfernt)',
 var histD1=(S.meta.kettenHistorie[heuteApp()]||[]).filter(function(e){return e.dom==='dfm';}).length;
 ok('§2 BELEG: Kettenaenderungen erzeugen dfm-Historie-Eintraege', histD1>=1);
 ketteBewegen('d4',-1);
-var histD2=(S.meta.kettenHistorie[heuteApp()]||[]).filter(function(e){return e.dom==='dfm';}).length;
-ok('§2 BELEG: DFM-Umsortierung → weiterer Eintrag mit dom "dfm"',
-  histD2===histD1+1 && JSON.stringify(tagesKetteDom('dfm'))==='["d3","d4","d1","d2"]');
+/* (v1.13.4): Die Entprellung ersetzt einen <10-s-Folgeeintrag derselben
+   Domaene — massgeblich ist, dass der JUENGSTE dfm-Eintrag den ENDSTAND traegt. */
+var histD2arr=(S.meta.kettenHistorie[heuteApp()]||[]).filter(function(e){return e.dom==='dfm';});
+ok('§2 BELEG: DFM-Umsortierung → juengster dfm-Eintrag traegt den Endstand',
+  histD2arr.length>=1 && JSON.stringify(histD2arr[histD2arr.length-1].ids)==='["d3","d4","d1","d2"]'
+  && JSON.stringify(tagesKetteDom('dfm'))==='["d3","d4","d1","d2"]');
+
+/* (v1.13.4) §2 ENTPRELLUNG + TAGES-KAPPE der Kettenhistorie */
+(function(){
+  var arr=S.meta.kettenHistorie[heuteApp()];
+  var vorherN=arr.length;
+  ketteBewegen('d1',-1); ketteBewegen('d1',-1); ketteBewegen('d1',1); ketteBewegen('d1',1);
+  ok('v1.13.4 BELEG Entprellung: 4 schnelle Umsortierungen → KEIN neuer Eintrag (Endstand ersetzt)',
+    arr.length===vorherN);
+  ok('v1.13.4 Entprellung: der Eintrag traegt den Endstand',
+    JSON.stringify(arr[arr.length-1].ids)===JSON.stringify(tagesKetteDom('dfm')));
+  // Tages-Kappe: 9 Alt-Tage + heute → nach dem naechsten Log bleiben 7 Tage
+  for(var kt=1; kt<=9; kt++) S.meta.kettenHistorie['2026-01-0'+kt]=[{ts:'2026-01-0'+kt+'T10:00:00', dom:'dfm', ids:[]}];
+  ketteBewegen('d1',-1);
+  ok('v1.13.4 BELEG Kappe: Kettenhistorie lokal auf 7 Tage begrenzt',
+    Object.keys(S.meta.kettenHistorie).length<=7 && !!S.meta.kettenHistorie[heuteApp()]);
+})();
 
 /* 10) §3 (v1.13.1): id = recId wird automatisch zur airtableId. */
 imp({ appVersion:'1.13.1', karten:[{ id:'recRbePrcQt821Rgv', titel:'Aus Airtable' }] });

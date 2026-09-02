@@ -29,6 +29,7 @@ function setInterval(){ return 0; } function clearInterval(){} function setTimeo
 function requestAnimationFrame(){ return 0; }
 function confirm(){ return true; } function prompt(){ return null; } function alert(){}
 var crypto={};
+var console={ warn:function(){}, log:function(){}, error:function(){} };   // jsc hat kein console (v1.13.4: Quota-Pfad nutzt warn)
 function getComputedStyle(){ return { getPropertyValue:function(){return '';}, width:'0px', gap:'0px', opacity:'1', textDecorationLine:'none' }; }
 var history={replaceState:function(){}};
 var screen={};

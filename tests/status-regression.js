@@ -32,13 +32,14 @@ var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','b
   'kartenSitzungenHeute',
   // Nachtrag v1.13.1 §5: Plankurve zieht NUR ueber die Ketten
   'planKurveInfo','ketteKarten','tagesKette','tagesKetteDom','ketteState','ketteAutoIds',
-  'ketteHistLog','ketteSetzen','kartePunkteGeplant','kartePunkteBei','subBonusOffen'];
+  'ketteHistLog','kettenHistKappen','ketteSetzen','kartePunkteGeplant','kartePunkteBei','subBonusOffen'];
 /* §1 (v1.7.1): kartePunkte zieht die Pausentimer-Strafe live ab — die beiden
    Helfer werden mit extrahiert, die Konstante hier gespiegelt (Konstanten sind
    nicht extrahierbar). Mit S.fokus=null liefert pausenStrafeLive stets 0. */
 var PAUSENTIMER_MAX_MIN = 120;
 var RANG_MAX = 20;
 var AKKU_MAX = 150;   // §6.2 (v1.13.0)
+var KETTENHIST_TAGE = 7, KETTENHIST_ENTPRELL_S = 10;   // (v1.13.4)
 var DEFAULT_SETTINGS = { basisProStd:120, zeitGewicht:1.15, tickGewicht:1, geldGewicht:0.5, geldDeckel:1.5,
   geldScoreRef:200, tagesZielDfm:5000, tagesZielPrivat:3000, tageszielPunkteProStd:100, akkuProStd:-8,
   basisProStdPrivat:120, standardWertDfm:0, standardWertPrivat:0, sollFormWerktag:[[0,5],[6,9]] };

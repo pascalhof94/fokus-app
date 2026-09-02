@@ -474,6 +474,30 @@
             }
           }
         }
+        /* ══ v1.13.4 · Speicher: MESSEN (Tabelle in den Report), dann
+           Aufräumen per Klick, dann erneut messen ══ */
+        fw.setTab('einst'); fw.renderAlles();
+        var mess1=fw.speicherBelegung();
+        ergebnis.speicher={ vorherKb:Math.round(mess1.kb),
+          top:mess1.rows.slice(0,10).map(function(r){ return r.key+'='+(Math.round(r.kb*10)/10)+'KB'; }) };
+        var spBtn=d.querySelector('[data-speicheraufraeumen]');
+        ergebnis.checks++;
+        if(!spBtn){ fatal('diag v1.13.4: Aufräumen-Knopf fehlt'); }
+        else {
+          fw.confirm=function(){ return true; };   // Bestätigung im Headless
+          spBtn.click();
+          var mess2=fw.speicherBelegung();
+          ergebnis.speicher.nachherKb=Math.round(mess2.kb);
+          ergebnis.speicher.geloescht=((lsGet('meta')||{}).speicherAufraeumLog||{}).geloescht||[];
+          ergebnis.checks++;
+          if(!(mess2.kb<=mess1.kb)) fatal('diag v1.13.4: Aufräumen hat die Belegung nicht verringert');
+          ergebnis.checks++;
+          if(lsGet('karten_bak1120')!==null || lsGet('meta_bak1120')!==null)
+            fatal('diag v1.13.4: ältere Sicherungen (bak1120) nicht entfernt');
+          ergebnis.checks++;
+          if(lsGet('karten_bak1130')===null || lsGet('meta_bak1130')===null)
+            fatal('diag v1.13.4: JÜNGSTE Sicherung (bak1130) wurde fälschlich entfernt');
+        }
       }catch(err){ fatal('diag-Sequenz abgebrochen: '+err); }
       abschluss();
     });

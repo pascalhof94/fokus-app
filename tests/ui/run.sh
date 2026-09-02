@@ -128,6 +128,11 @@ r=json.loads(html.unescape(m.group(1)))
 fat=r.get('fatal',[])
 print(('FATAL' if fat else 'OK')+'|checks '+str(r.get('checks',0)))
 for f in fat: print('  FEHLER [diag] '+f)
+sp=r.get('speicher')
+if sp:
+    print('  speicher: '+str(sp.get('vorherKb'))+' KB -> '+str(sp.get('nachherKb'))+' KB')
+    for t in sp.get('top',[]): print('    '+t)
+    for g in sp.get('geloescht',[]): print('    geloescht: '+str(g.get('key'))+' ('+str(g.get('kb'))+' KB)')
 ")"
 printf '%-10s %s\n' "diag" "$(printf '%s' "$diag" | head -1 | sed 's/|/ — /')"
 printf '%s\n' "$diag" | tail -n +2 | tee -a "$LOG"
