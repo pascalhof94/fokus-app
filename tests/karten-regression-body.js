@@ -175,6 +175,48 @@ ok('v1.10: Akku-Regler im Dialog', dlg.indexOf('id="abAkku"')>=0 && dlg.indexOf(
 ok('v1.10: Umrechnungszeile mit Gesamtdelta-Hinweis', dlg.indexOf('Gesamtdelta, kein Stundensatz')>=0);
 function smokeTest2(name, fn){ try{ fn(); ok('Smoke: '+name, true); }catch(e){ ok('Smoke: '+name+' — '+e, false); } }
 
+/* ══ v1.13.3 §1 ZAHLENBELEG: Shop-Reset setzt NUR den Besitz zurueck ══ */
+S.belohnung={ stufen:{fahrzeuge:12,wohnen:12,reisen:12,mobilitaet:12,begleiter:12,soziales:12},
+  ausgegeben:24500, kaeufe:[{kat:'fahrzeuge',stufe:2,name:'x',datum:'2026-08-01',preis:9000}] };
+S.meta.muenzenGesamt=30000; S.meta.ausgegebenGesamt=24500;
+S.meta.rangResetOffset=0; S.meta.muenzenResetOffset=0; S.meta.ausgabenResetOffset=0;
+S.meta.rangBest=13; S.meta.tagesStreak=12; S.meta.tagesStreakBest=18; S.meta.upgradeFaktor=1.04;
+S.tag=null; S.intraday=[];
+var kontoVor=konto(), kulisseVor=bgStufeAus(ausgabenAnzeige()), ausgVor=ausgabenAnzeige();
+shopResetJetzt();
+ok('v1.13.3 §1: alle Objektstufen auf 0',
+  ['fahrzeuge','wohnen','reisen','mobilitaet','begleiter','soziales'].every(function(k){ return S.belohnung.stufen[k]===0; }));
+ok('v1.13.3 §1 BELEG: Konto unveraendert ('+kontoVor+')', konto()===kontoVor);
+ok('v1.13.3 §1 BELEG: muenzenGesamt 30000 · ausgegebenGesamt 24500 unveraendert',
+  S.meta.muenzenGesamt===30000 && S.meta.ausgegebenGesamt===24500 && ausgabenAnzeige()===ausgVor);
+ok('v1.13.3 §1 BELEG: Kulisse bleibt ('+kulisseVor+'/10)', bgStufeAus(ausgabenAnzeige())===kulisseVor);
+ok('v1.13.3 §1 BELEG: Rang-Bestwert 13 · Serie 12/18 · Upgrade-Faktor 1,04 unveraendert',
+  S.meta.rangBest===13 && S.meta.tagesStreak===12 && S.meta.tagesStreakBest===18 && S.meta.upgradeFaktor===1.04);
+ok('v1.13.3 §1: Kauf-Historie bleibt (Statistik)', S.belohnung.kaeufe.length===1);
+ok('v1.13.3 §1: Sicherung besitz_bak1133 mit Vorher-Stand',
+  (function(){ var b=JSON.parse(localStorage.getItem('fokus2_besitz_bak1133')||'null');
+    return b && b.stufen && b.stufen.fahrzeuge===12 && b.kaeufe.length===1; })());
+ok('v1.13.3 §1: Protokoll in meta', S.meta.shopReset1133Log && S.meta.shopReset1133Log.vorher.wohnen===12);
+ok('v1.13.3 §5: Wohlstand-Reset existiert weiterhin getrennt', typeof panoramaResetJetzt==='function' && typeof oeffneShopReset==='function');
+/* §2: Kalibrierung — Vorschlag >= aktueller Faktor, Dialog traegt Rate + Feld */
+S.settings.preisFaktor=15;
+var kal=shopKalibrierungVorschlag();
+ok('v1.13.3 §2: Vorschlag ist Zahl >= aktueller Faktor', isFinite(kal.vorschlag) && kal.vorschlag>=15);
+smokeTest2('Shop-Kalibrierungs-Dialog', function(){ renderShopKalibrierung(); });
+var kalHtml=_els['sheetBody']?_els['sheetBody'].innerHTML:'';
+ok('v1.13.3 §2: Dialog zeigt Oe-Rate und ueberschreibbares Faktor-Feld',
+  kalHtml.indexOf('P/Std')>=0 && kalHtml.indexOf('id="shopPf"')>=0 && kalHtml.indexOf('Vorschlag')>=0);
+/* §3: Stufentexte ersetzt, Struktur/Reqs unangetastet */
+ok('v1.13.3 §3: 12 Stufen je Kategorie erhalten',
+  Object.keys(BELOHNUNG).every(function(k){ return BELOHNUNG[k].stufen.length===12; }));
+ok('v1.13.3 §3: Cross-Voraussetzungen unveraendert',
+  JSON.stringify(BELOHNUNG.fahrzeuge.stufen[6][2])==='["wohnen",4]' &&
+  JSON.stringify(BELOHNUNG.wohnen.stufen[3][2])==='["fahrzeuge",3]' &&
+  JSON.stringify(BELOHNUNG.reisen.stufen[7][2])==='["mobilitaet",6]');
+ok('v1.13.3 §3: unterste und oberste Stufe tragen die neuen Texte',
+  BELOHNUNG.mobilitaet.stufen[0][0]==='BVG-Monatskarte' &&
+  BELOHNUNG.mobilitaet.stufen[11][0]==='Erde, Wasser, Luft an einem Tag');
+
 print('');
 if(fails){ print(fails+' FEHLGESCHLAGEN'); throw 'rot'; }
 print('alle Karten-Bedienelement-Tests gruen');

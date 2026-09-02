@@ -1120,9 +1120,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.13.2';                   // Datenvertrag/Sync-appVersion — Vertrag 1.6 (1.13.2: Start setzt immer den Fokus)
-const UI_VERSION = 'v1.13.2';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-02-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.13.3';                   // Datenvertrag/Sync-appVersion — Vertrag 1.6 (1.13.3: Shop-Reset + Preiskalibrierung)
+const UI_VERSION = 'v1.13.3';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-02-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -6464,9 +6464,16 @@ function renderEinst(){
       ((L.uebernommen||[]).length>12?'<p class="d" style="color:var(--mut2)">… und '+((L.uebernommen||[]).length-12)+' weitere.</p>':'')+
     '</div>';
   }
+  // §1 (v1.13.3): Shop zurücksetzen — das GEGENTEIL des Wohlstand-Resets,
+  // bewusst als eigene Karte klar davon getrennt.
+  h+='<div class="card"><h3>🛍 Shop zurücksetzen (nur Besitz)</h3>'+
+    '<p class="d">Setzt ausschließlich die gekauften Objektstufen auf 0 — der Shop ist neu spielbar. Konto, Münzen, Ausgegebenes (und damit die Kulisse), Rang, Bestwert, Serie, Punkte und Statistik bleiben unangetastet. Danach folgt die Preiskalibrierung.</p>'+
+    '<div class="btnrow"><button class="btn sm" data-shopreset="1">🛍 Shop zurücksetzen …</button></div>'+
+    (S.meta.shopReset1133Log?'<div class="kv" style="margin-top:6px"><span>Zuletzt zurückgesetzt</span><b>'+esc(String(S.meta.shopReset1133Log.ts||'').slice(0,10))+' · Sicherung besitz_bak1133</b></div>':'')+
+  '</div>';
   // §4 (v1.8.1): Eingriffe mit Tragweite — optisch abgesetzt, GANZ unten
   h+='<div class="card" style="border-color:var(--bad);margin-top:18px"><h3 style="color:var(--bad)">⚠️ Eingriffe mit Tragweite</h3>'+
-    '<p class="d">Zurücksetzen betrifft Konto, Kulissen und die Spiel-Ebene (Lebenswerk-Anzeige) — über die Offset-Mechanik. <b>Gelöscht wird nichts:</b> Historie, Intraday-Log, Streaks und Statistiken bleiben unangetastet. Der Leistungs-Rang und sein Bestwert sind eine Messung und bleiben vom Reset unberührt (v1.11.0).</p>'+
+    '<p class="d">Zurücksetzen betrifft Konto, Kulissen und die Spiel-Ebene (Lebenswerk-Anzeige) — über die Offset-Mechanik. <b>Gelöscht wird nichts:</b> Historie, Intraday-Log, Streaks und Statistiken bleiben unangetastet. Der Leistungs-Rang und sein Bestwert sind eine Messung und bleiben vom Reset unberührt (v1.11.0). Für „nur den Besitz leeren" gibt es die eigene Karte 🛍 oben.</p>'+
     '<div class="btnrow"><button class="btn warn sm" data-panoreset="1">🔄 Wohlstand zurücksetzen</button>'+
     (S.meta.panoramaResetBackup?'<button class="btn sm" data-panoundo="1">↩︎ Letzten Reset rückgängig</button>':'')+'</div>'+
     '<div class="kv" style="margin-top:8px"><span>Aktueller Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
@@ -6514,6 +6521,66 @@ function panoramaResetUndo(){
   delete S.meta.panoramaResetBackup;
   saveMeta(); saveBelohnung(); renderEinst(); toast('Reset rückgängig gemacht');
 }
+/* ══ §1/§2 (v1.13.3) · „Shop zurücksetzen" — das GEGENTEIL des Wohlstand-
+   Resets: NUR der Besitz (Objektstufen) geht auf 0, damit der Shop neu
+   spielbar ist. Konto, muenzenGesamt, ausgegebenGesamt (und damit die
+   Kulisse), Rang, Bestwert, Serie, Punkte, Statistik und Schätzfaktoren
+   bleiben unangetastet. Danach: Preiskalibrierung. ══ */
+function oeffneShopReset(){
+  belohnungInit();
+  const gekauft=KAT_KEYS.reduce((a,k)=>a+Math.max(0,num(S.belohnung.stufen[k],0)),0);
+  const h='<p class="d"><b>Nur der Besitz wird zurückgesetzt</b> — alle gekauften Objektstufen ('+gekauft+') gehen auf 0, der Shop ist neu spielbar.</p>'+
+    '<div class="kvblock">'+
+    '<div class="kv"><span>Verschwindet</span><b>Besitz-Stufen (Objekte in Shop &amp; Album → „???")</b></div>'+
+    '<div class="kv"><span>Bleibt</span><b>Konto '+fmtKurzP(konto())+' · Münzen · Ausgegebenes '+fmtKurzP(ausgabenAnzeige())+'</b></div>'+
+    '<div class="kv"><span>Bleibt</span><b>Kulisse '+bgStufeAus(ausgabenAnzeige())+'/10 · Rang · Bestwert · Serie 🔥'+num(S.meta.tagesStreak)+'</b></div>'+
+    '<div class="kv"><span>Bleibt</span><b>alle Punkte, Statistik, Schätzfaktoren, Upgrade-Faktor</b></div></div>'+
+    '<p class="d" style="margin-top:8px">Sicherung vorher unter <code>besitz_bak1133</code>. Danach folgt die Preiskalibrierung (§2) — wenn alles gekauft war, waren die Preise zu niedrig.</p>';
+  openSheet('🛍 Shop zurücksetzen', h,
+    '<button class="btn ghost sm" data-close="1">Abbrechen</button>'+
+    '<button class="btn warn" data-shopresetgo="1">Besitz auf 0 zurücksetzen</button>');
+}
+function shopResetJetzt(){
+  belohnungInit();
+  const vorher={}; KAT_KEYS.forEach(k=>{ vorher[k]=num(S.belohnung.stufen[k],0); });
+  DB.set('besitz_bak1133', { ts:jetztIso(), stufen:vorher, kaeufe:(S.belohnung.kaeufe||[]).slice() });
+  KAT_KEYS.forEach(k=>{ S.belohnung.stufen[k]=0; });
+  S.meta.shopReset1133Log={ ts:jetztIso(), vorher };
+  saveBelohnung(); saveMeta();
+}
+/* §2 · Preiskalibrierung: Preis = 4 × Ø-P/Std (7 Tage) × preisFaktor ×
+   Kategoriefaktor. Vorschlag so, dass die TEUERSTE Kategorie (fahrzeuge,
+   Faktor 1,3, 12 Stufen) bei aktuellem Ø-Zufluss rund 60 Tage braucht —
+   „nicht in wenigen Tagen erreichbar". Feld überschreibbar. */
+function shopKalibrierungVorschlag(){
+  const rate=oePStd7();
+  const f=num(S.settings.preisFaktor,15);
+  const nTeuer=(BELOHNUNG.fahrzeuge&&BELOHNUNG.fahrzeuge.stufen.length)||12;
+  const zufluss=rangTempo()!=null ? rangTempo() : zielTagGesamt()*streakFaktor();   // Ø Münzen/Tag; Fallback: Zieltag
+  const ZIEL_TAGE=60;
+  const roh=ZIEL_TAGE*zufluss/(nTeuer*4*rate*(KAT_PREISFAKTOR.fahrzeuge||1.3));
+  const vorschlag=Math.max(f, Math.round(roh/5)*5);
+  return { rate, f, nTeuer, zufluss, zielTage:ZIEL_TAGE, vorschlag };
+}
+function renderShopKalibrierung(){
+  const v=shopKalibrierungVorschlag();
+  const preisJetzt=preisFuer('fahrzeuge');
+  const preisNeu=Math.max(20, Math.round(4*v.rate*v.vorschlag*(KAT_PREISFAKTOR.fahrzeuge||1.3)/5)*5);
+  const tageJetzt=v.zufluss>0?Math.round(v.nTeuer*preisJetzt/v.zufluss):null;
+  const tageNeu=v.zufluss>0?Math.round(v.nTeuer*preisNeu/v.zufluss):null;
+  const h='<p class="d"><b>Besitz zurückgesetzt.</b> Jetzt die Preise kalibrieren — wenn alles gekauft war, waren sie für deine aktuelle Leistung zu niedrig.</p>'+
+    '<div class="kvblock">'+
+    '<div class="kv"><span>Ø-Rate (letzte 7 aktive Tage)</span><b>'+Math.round(v.rate)+' P/Std</b></div>'+
+    '<div class="kv"><span>Ein Fahrzeuge-Kauf heute (Faktor '+String(v.f).replace('.',',')+')</span><b>'+fmtKurzP(preisJetzt)+'</b></div>'+
+    '<div class="kv"><span>Teuerste Kategorie komplett ('+v.nTeuer+' Stufen)</span><b>'+fmtKurzP(v.nTeuer*preisJetzt)+(tageJetzt!=null?' ≈ '+tageJetzt+' Tage':'')+'</b></div>'+
+    '<div class="kv"><span>Ø-Zufluss</span><b>'+fmtKurzP(v.zufluss)+' 🪙/Tag'+(rangTempo()==null?' (Zieltag-Schätzung)':'')+'</b></div></div>'+
+    '<div class="field" style="margin-top:8px"><label>Preisfaktor (Vorschlag: '+v.vorschlag+')</label>'+
+    '<input type="number" inputmode="decimal" step="0.5" id="shopPf" value="'+v.vorschlag+'">'+
+    '<div class="hint">Vorschlag so gewählt, dass die teuerste Kategorie ≈ '+v.zielTage+' Tage braucht (dann ≈ '+fmtKurzP(preisNeu)+' je Kauf'+(tageNeu!=null?', komplett ≈ '+tageNeu+' Tage':'')+'). Überschreibbar — Kategoriefaktoren bleiben (1,3 · 1,2 · 1,1 · 1,0 · 0,9 · 0,8).</div></div>';
+  openSheet('§2 · Preise kalibrieren', h,
+    '<button class="btn ghost sm" data-close="1">Faktor so lassen ('+String(v.f).replace('.',',')+')</button>'+
+    '<button class="btn prim" data-shoppfgo="1">Faktor übernehmen</button>');
+}
 /* V3: Debug-Overlay für Tap-Flächen (Mehr → Info). Rein visuell, app-only. */
 function setDebugTap(on){ S.ui.debugTap=!!on; saveUi(); document.body.classList.toggle('debugtap', !!on); if(on) toast('🐞 Tap-Debug an'); }
 function backupHtml(){
@@ -6529,7 +6596,7 @@ function backupHtml(){
 /* ── Belohnung/Shop (§7 D7) — voller Port aus v0.38. Kategorien + Stufen
    sind base64-kodiert; der Inhalt der nächsten Stufe bleibt „???" bis zum
    Freischalten (Überraschung erst live in der App). ── */
-const BELOHNUNG_B64 = 'eyJmYWhyemV1Z2UiOnsiaWNvbiI6IvCfmpciLCJuYW1lIjoiRmFocnpldWdlIiwic3R1ZmVuIjpbWyJGYWhycmFkIChBbGx0YWdzcmFkKSIsMF0sWyJFLUJpa2UiLDgwMF0sWyJHZWJyYXVjaHR3YWdlbiAoS2xlaW53YWdlbikiLDIyMDBdLFsiS29tcGFrdGtsYXNzZSAoZ2VwZmxlZ3QpIiw0NTAwXSxbIkVyc3RlcyBDb3Vww6kgKGdlYnJhdWNodCkiLDc1MDBdLFsiTmV1d2FnZW4gS29tcGFrdC1Db3Vww6kiLDExMDAwXSxbIkJNVyBNNCAoZ2VicmF1Y2h0KSIsMTYwMDAsWyJ3b2huZW4iLDRdXSxbIkJNVyBNNCAobmV1LCBWb2xsYXVzc3RhdHR1bmcpIiwyMjAwMF0sWyJFeG90aXNjaGVzIENvdXDDqSAvIFNhbW1sZXJzdMO8Y2siLDI5MDAwXSxbIlp3ZWl0d2FnZW4gKEFsbHRhZyArIFNwYcOfLUNvdXDDqSkiLDM3MDAwXSxbIktsZWluZSBTYW1tbHVuZyAoMuKAkzMgYmVzb25kZXJlIEZhaHJ6ZXVnZSkiLDQ2MDAwXSxbIlJlZmVyZW56LVNhbW1sZXJzdMO8Y2sgKGdlbGJlcyBDb3Vww6ksIFNob3dyb29tKSIsNTYwMDBdXX0sIndvaG5lbiI6eyJpY29uIjoi8J+Pme+4jyIsIm5hbWUiOiJEYWNodGVycmFzc2UgLyBXb2huZW4iLCJzdHVmZW4iOltbIldHLVppbW1lciIsMF0sWyJFaWdlbmUga2xlaW5lIFdvaG51bmciLDkwMF0sWyJXb2hudW5nIG1pdCBCYWxrb24iLDI0MDBdLFsiV29obnVuZyBtaXQga2xlaW5lciBEYWNodGVycmFzc2UiLDQ4MDAsWyJmYWhyemV1Z2UiLDNdXSxbIkRhY2h0ZXJyYXNzZSBtaXQgU2l0emVja2UiLDc4MDBdLFsiRGFjaHRlcnJhc3NlIG1pdCBHcmlsbCArIExvdW5nZSIsMTE1MDBdLFsiRGFjaHRlcnJhc3NlIG1pdCBXaGlybHBvb2wiLDE2NTAwXSxbIlBlbnRob3VzZS1UZXJyYXNzZSBtaXQgU3RhZHRibGljayIsMjMwMDBdLFsiVGVycmFzc2UgbWl0IEZsdXNzLS9XYXNzZXJibGljayIsMzAwMDBdLFsiV2hpcmxwb29sICsgV2Fzc2VyYmxpY2sgKFRyYXVtLUtvbWJpKSIsMzkwMDBdLFsiWndlaXR3b2huc2l0eiwgbWVkaXRlcnJhbmVzIEtsaW1hIiw0ODAwMF0sWyJTaWduYXR1cmUtUGVudGhvdXNlIChXaGlybHBvb2wgKyBTa3lsaW5lICsgV2Fzc2VyKSIsNTgwMDBdXX0sInJlaXNlbiI6eyJpY29uIjoi8J+MjSIsIm5hbWUiOiJMYW5kc2NoYWZ0ZW4gLyBSZWlzZW4iLCJzdHVmZW4iOltbIldvY2hlbmVuZHRyaXAgbmFoZXMgQXVzbGFuZCIsMF0sWyJTdMOkZHRldHJpcCAoYmVlaW5kcnVja2VuZGUgU3RhZHQpIiwxMDAwXSxbIkVyc3RlIEZlcm5yZWlzZSIsMjgwMF0sWyJCZXJndXJsYXViIiw1MjAwXSxbIkluc2VsLS9NZWVyLVVybGF1YiIsODIwMF0sWyJNZWRpdGVycmFuZXMgWmllbCIsMTIwMDBdLFsiVHJvcGlzY2hlcyBaaWVsIiwxNzAwMF0sWyJEc2NodW5nZWwtVHJpcCIsMjM1MDAsWyJtb2JpbGl0YWV0Iiw2XV0sWyJLb21iaS1SZWlzZSBCZXJnZSArIE1lZXIiLDMwNTAwXSxbIktvbWJpLVJlaXNlIEJlcmdlICsgRHNjaHVuZ2VsICsgTWVlciIsMzk1MDBdLFsiTWVocnfDtmNoaWdlIEt1bHR1cnJlaXNlLCBuZXVlciBLb250aW5lbnQiLDQ5MDAwXSxbIlNpZ25hdHVyZS1UcmlwIChCZXJnZSwgRHNjaHVuZ2VsLCBNZWVyLCBuZXVlIEt1bHR1cikiLDU5MDAwXV19LCJtb2JpbGl0YWV0Ijp7Imljb24iOiLinIjvuI8iLCJuYW1lIjoiTW9iaWxpdMOkdCAoYW5kZXJlIEZvcm1lbikiLCJzdHVmZW4iOltbIlp1IEZ1w58gLyDDllBOViIsMF0sWyJGYWhycmFkLUxhbmdzdHJlY2tlIiw3MDBdLFsiRXJzdGUgTW90b3JyYWQtL1JvbGxlci1GYWhydCIsMjAwMF0sWyJCb290c3RvdXIgKFBhc3NhZ2llcikiLDM4MDBdLFsiS2xlaW5lcyBTZWdlbGJvb3QgLyBBdXNmbHVnc2Jvb3QiLDY1MDBdLFsiTW90b3Jib290LUNoYXJ0ZXIiLDEwMDAwXSxbIkVyc3RlciBSdW5kZmx1ZyAoUGFzc2FnaWVyKSIsMTQ1MDBdLFsiU2VnZWxmbHVnIC8gS2xlaW5mbHVnemV1ZyAoUGFzc2FnaWVyKSIsMjAwMDBdLFsiRmx1Z3N0dW5kZSAoc2VsYnN0IGFtIFN0ZXVlcikiLDI2NTAwXSxbIkJvb3RzY2hhcnRlciDDvGJlciBtZWhyZXJlIFRhZ2UiLDM0MDAwXSxbIktvbWJpbmllcnRlciBXYXNzZXItK0x1ZnQtVHJpcCIsNDMwMDBdLFsiU2lnbmF0dXJlLU1vYmlsaXTDpHRzdGFnIChCb290ICsgRmx1ZyBhbiBlaW5lbSBUYWcpIiw1MzAwMF1dfSwiYmVnbGVpdGVyIjp7Imljb24iOiLwn5C+IiwibmFtZSI6IkJlZ2xlaXRlciIsInN0dWZlbiI6W1siRXJzdGUgZWlnZW5lIEthdHplIiwwXSxbIkthdHplIGd1dCBlaW5nZWxlYnQgKFJvdXRpbmUgc3RlaHQpIiw2MDBdLFsiWndlaXRlIEthdHplIC8gSHVuZCBhbHMgSWRlZSIsMTgwMF0sWyJIdW5kIGRhenUiLDM2MDBdLFsiQmVpZGUgZ3V0IGVpbmdlc3BpZWx0Iiw2MDAwXSxbIkdyw7bDn2VyZXIgV29obnJhdW0gZsO8ciBUaWVyZSIsOTUwMF0sWyJHYXJ0ZW4gLyBBdXNsYXVmIGbDvHIgVGllcmUiLDE0MDAwXSxbIlJlaXNlbiBtaXQgVGllcmVuIG3DtmdsaWNoIiwxOTUwMF0sWyJUaWVycGVuc2lvbiAvIEJldHJldXVuZyBvcmdhbmlzaWVydCIsMjYwMDBdLFsiRHJpdHRlcyBUaWVyIiwzMzUwMF0sWyJUaWVyZnJldW5kbGljaGVzIFp3ZWl0d29obnNpdHotU2V0dXAiLDQyMDAwXSxbIlNpZ25hdHVyZS1TZXR1cCAoYWxsZSBUaWVyZSwgdmllbCBQbGF0eiwgR2FydGVuKSIsNTIwMDBdXX0sInNvemlhbGVzIjp7Imljb24iOiLwn5GlIiwibmFtZSI6IkZyZXVuZGUgLyBTb3ppYWxlcyIsInN0dWZlbiI6W1siU3BpZWxlYWJlbmQgenVoYXVzZSIsMF0sWyJLbGVpbmVyIEF1c2ZsdWcgbWl0IEZyZXVuZGVuIiw1MDBdLFsiVGVubmlzLS9TcG9ydC1NYXRjaCIsMTYwMF0sWyJSb2FkdHJpcCB6dSB6d2VpdC9kcml0dCIsMzIwMF0sWyJHcnVwcGVucmVpc2UgKEZyZXVuZGUpIiw1NTAwXSxbIkV2ZW50IC8gRmVpZXIgYXVzcmljaHRlbiIsODgwMF0sWyJHcsO2w59lcmUgRmVpZXIgKExpbW8sIGJlc29uZGVyZXIgQW5sYXNzKSIsMTMwMDBdLFsiRnJldW5kZSBhdXMgZGVtIEF1c2xhbmQgYmVzdWNoZW4iLDE4MDAwXSxbIlJldW5pb24tVHJpcCAoYWx0ZSBGcmV1bmRlLCBuZXVlcyBaaWVsKSIsMjQ1MDBdLFsiR3Jvw59lcyBHcnVwcGVuZXZlbnQgb3JnYW5pc2llcmVuIiwzMjAwMF0sWyJNZWhydMOkZ2lnZXIgRnJldW5kZXMtVHJpcCBpbnMgQXVzbGFuZCIsNDEwMDBdLFsiU2lnbmF0dXJlLU1vbWVudCAoZ3Jvw59lciBLcmVpcywgYmVzb25kZXJlciBPcnQpIiw1MTAwMF1dfX0=';
+const BELOHNUNG_B64 = 'eyJmYWhyemV1Z2UiOnsiaWNvbiI6IvCfmpciLCJuYW1lIjoiRmFocnpldWdlIiwic3R1ZmVuIjpbWyJGYWhycmFkLCBmcmlzY2ggZ2XDtmx0IiwwXSxbIkZhaHJyYWQsIGZyaXNjaCBnZcO2bHQiLDgwMF0sWyJFaW4gQXV0bywgZGFzIGltbWVyIGFuc3ByaW5ndCIsMjIwMF0sWyJFaW4gQXV0bywgZGFzIGltbWVyIGFuc3ByaW5ndCIsNDUwMF0sWyJCTVcgTTQiLDc1MDBdLFsiQk1XIE00IiwxMTAwMF0sWyJDTEEgZGFuZWJlbiwgZsO8ciBkaWUgYW5kZXJlbiBUYWdlIiwxNjAwMCxbIndvaG5lbiIsNF1dLFsiQ0xBIGRhbmViZW4sIGbDvHIgZGllIGFuZGVyZW4gVGFnZSIsMjIwMDBdLFsiQ291cMOpLUdhcmFnZSBtaXQgSGViZWLDvGhuZSIsMjkwMDBdLFsiQ291cMOpLUdhcmFnZSBtaXQgSGViZWLDvGhuZSIsMzcwMDBdLFsiRGllIGVpbmUgS8O8c3RlbnN0cmHDn2UsIGRlaW4gV2FnZW4sIGtlaW4gVGVybWluIiw0NjAwMF0sWyJEaWUgZWluZSBLw7xzdGVuc3RyYcOfZSwgZGVpbiBXYWdlbiwga2VpbiBUZXJtaW4iLDU2MDAwXV19LCJ3b2huZW4iOnsiaWNvbiI6IvCfj5nvuI8iLCJuYW1lIjoiRGFjaHRlcnJhc3NlIC8gV29obmVuIiwic3R1ZmVuIjpbWyJCYWxrb25zdHVobCBtaXQgQmxpY2sgYXVmIGRpZSBTdHJhw59lIiwwXSxbIkJhbGtvbnN0dWhsIG1pdCBCbGljayBhdWYgZGllIFN0cmHDn2UiLDkwMF0sWyJEYWNodGVycmFzc2UgbWl0IEJsaWNrIMO8YmVyIGRpZSBEw6RjaGVyIiwyNDAwXSxbIkRhY2h0ZXJyYXNzZSBtaXQgQmxpY2sgw7xiZXIgZGllIETDpGNoZXIiLDQ4MDAsWyJmYWhyemV1Z2UiLDNdXSxbIkRhY2h0ZXJyYXNzZSBhbSBXYXNzZXIiLDc4MDBdLFsiRGFjaHRlcnJhc3NlIGFtIFdhc3NlciIsMTE1MDBdLFsiRGFjaHRlcnJhc3NlIG1pdCBXaGlybHBvb2wiLDE2NTAwXSxbIkRhY2h0ZXJyYXNzZSBtaXQgV2hpcmxwb29sIiwyMzAwMF0sWyJQZW50aG91c2Ugw7xiZXIgZWluZW0gRmx1c3MsIFdoaXJscG9vbCBhdWYgZGVyIEthbnRlIiwzMDAwMF0sWyJQZW50aG91c2Ugw7xiZXIgZWluZW0gRmx1c3MsIFdoaXJscG9vbCBhdWYgZGVyIEthbnRlIiwzOTAwMF0sWyJIYXVzIGFtIEhhbmc6IEJlcmdlIGltIFLDvGNrZW4sIERzY2h1bmdlbCBsaW5rcywgTWVlciB2b3JhdXMiLDQ4MDAwXSxbIkhhdXMgYW0gSGFuZzogQmVyZ2UgaW0gUsO8Y2tlbiwgRHNjaHVuZ2VsIGxpbmtzLCBNZWVyIHZvcmF1cyIsNTgwMDBdXX0sInJlaXNlbiI6eyJpY29uIjoi8J+MjSIsIm5hbWUiOiJMYW5kc2NoYWZ0ZW4gLyBSZWlzZW4iLCJzdHVmZW4iOltbIldvY2hlbmVuZGUgaW4gRXVyb3BhIiwwXSxbIldvY2hlbmVuZGUgaW4gRXVyb3BhIiwxMDAwXSxbIlp3ZWkgV29jaGVuIE1pdHRlbG1lZXIiLDI4MDBdLFsiWndlaSBXb2NoZW4gTWl0dGVsbWVlciIsNTIwMF0sWyJUcm9wZW4genVtIGVyc3RlbiBNYWwiLDgyMDBdLFsiVHJvcGVuIHp1bSBlcnN0ZW4gTWFsIiwxMjAwMF0sWyJFaW4gTGFuZCBwcm8gUXVhcnRhbCwga2VpbnMgendlaW1hbCIsMTcwMDBdLFsiRWluIExhbmQgcHJvIFF1YXJ0YWwsIGtlaW5zIHp3ZWltYWwiLDIzNTAwLFsibW9iaWxpdGFldCIsNl1dLFsiU2VnZWx0w7ZybiwgS8O8c3RlIGltIFLDvGNrZW4iLDMwNTAwXSxbIlNlZ2VsdMO2cm4sIEvDvHN0ZSBpbSBSw7xja2VuIiwzOTUwMF0sWyJTZWNocyBNb25hdGUgdW50ZXJ3ZWdzLCBSw7xja2ZsdWcgb2ZmZW4iLDQ5MDAwXSxbIlNlY2hzIE1vbmF0ZSB1bnRlcndlZ3MsIFLDvGNrZmx1ZyBvZmZlbiIsNTkwMDBdXX0sIm1vYmlsaXRhZXQiOnsiaWNvbiI6IuKciO+4jyIsIm5hbWUiOiJNb2JpbGl0w6R0IChhbmRlcmUgRm9ybWVuKSIsInN0dWZlbiI6W1siQlZHLU1vbmF0c2thcnRlIiwwXSxbIkJWRy1Nb25hdHNrYXJ0ZSIsNzAwXSxbIkpldHNraSBmw7xyIGVpbmVuIFRhZyIsMjAwMF0sWyJKZXRza2kgZsO8ciBlaW5lbiBUYWciLDM4MDBdLFsiVGF1Y2hzY2hlaW4iLDY1MDBdLFsiVGF1Y2hzY2hlaW4iLDEwMDAwXSxbIkZsdWdzdHVuZGUiLDE0NTAwXSxbIkZsdWdzdHVuZGUiLDIwMDAwXSxbIkh1YnNjaHJhdWJlciDDvGJlciBkZXIgS8O8c3RlIiwyNjUwMF0sWyJIdWJzY2hyYXViZXIgw7xiZXIgZGVyIEvDvHN0ZSIsMzQwMDBdLFsiRXJkZSwgV2Fzc2VyLCBMdWZ0IGFuIGVpbmVtIFRhZyIsNDMwMDBdLFsiRXJkZSwgV2Fzc2VyLCBMdWZ0IGFuIGVpbmVtIFRhZyIsNTMwMDBdXX0sImJlZ2xlaXRlciI6eyJpY29uIjoi8J+QviIsIm5hbWUiOiJCZWdsZWl0ZXIiLCJzdHVmZW4iOltbIk5ldWVyIEtyYXR6YmF1bSIsMF0sWyJOZXVlciBLcmF0emJhdW0iLDYwMF0sWyJLYXR6ZW4gbWl0IEdhcnRlbiIsMTgwMF0sWyJLYXR6ZW4gbWl0IEdhcnRlbiIsMzYwMF0sWyJIdW5kIGRhenUiLDYwMDBdLFsiSHVuZCBkYXp1Iiw5NTAwXSxbIldvaG51bmcsIGluIGRlciBkcmVpIFRpZXJlIFBsYXR6IGhhYmVuIiwxNDAwMF0sWyJXb2hudW5nLCBpbiBkZXIgZHJlaSBUaWVyZSBQbGF0eiBoYWJlbiIsMTk1MDBdLFsiQWxsZSB6dXNhbW1lbiBhdWYgZGVyIERhY2h0ZXJyYXNzZSIsMjYwMDBdLFsiQWxsZSB6dXNhbW1lbiBhdWYgZGVyIERhY2h0ZXJyYXNzZSIsMzM1MDBdLFsiRWluIEhhdXMsIGRhcyBuYWNoIFJ1ZGVsIGtsaW5ndCIsNDIwMDBdLFsiRWluIEhhdXMsIGRhcyBuYWNoIFJ1ZGVsIGtsaW5ndCIsNTIwMDBdXX0sInNvemlhbGVzIjp7Imljb24iOiLwn5GlIiwibmFtZSI6IkZyZXVuZGUgLyBTb3ppYWxlcyIsInN0dWZlbiI6W1siRnJldW5kZSBhdWYgZWluZW4gS2FmZmVlIiwwXSxbIkZyZXVuZGUgYXVmIGVpbmVuIEthZmZlZSIsNTAwXSxbIkdyaWxsYWJlbmQgYmVpIGRpciIsMTYwMF0sWyJHcmlsbGFiZW5kIGJlaSBkaXIiLDMyMDBdLFsiUm9hZHRyaXAgbWl0IHZpZXIgTGV1dGVuIiw1NTAwXSxbIlJvYWR0cmlwIG1pdCB2aWVyIExldXRlbiIsODgwMF0sWyJBbGxlIGVpbmxhZGVuLCBkdSB6YWhsc3QiLDEzMDAwXSxbIkFsbGUgZWlubGFkZW4sIGR1IHphaGxzdCIsMTgwMDBdLFsiRWluIEhhdXMgdm9sbGVyIEZyZXVuZGUsIGVpbiBXb2NoZW5lbmRlIGxhbmciLDI0NTAwXSxbIkVpbiBIYXVzIHZvbGxlciBGcmV1bmRlLCBlaW4gV29jaGVuZW5kZSBsYW5nIiwzMjAwMF0sWyJEZXIgT3J0LCBhbiBkZW0gYWxsZSB3aWVkZXIgenVzYW1tZW5rb21tZW4iLDQxMDAwXSxbIkRlciBPcnQsIGFuIGRlbSBhbGxlIHdpZWRlciB6dXNhbW1lbmtvbW1lbiIsNTEwMDBdXX19';
 const BELOHNUNG = JSON.parse(decodeURIComponent(escape(atob(BELOHNUNG_B64))));
 const KAT_KEYS = Object.keys(BELOHNUNG);
 const KAT_PREISFAKTOR = { fahrzeuge:1.3, wohnen:1.2, reisen:1.1, mobilitaet:1.0, begleiter:0.9, soziales:0.8 };
@@ -8444,6 +8511,20 @@ el('sheet').addEventListener('click', e=>{
     return; }
   // §6.1 (v1.13.0): Akku-Dialog — Speichern (Sheet-Fuß) + Öffnen-Knöpfe
   if(t.closest('[data-akkuqgo]')){ akkuQuickSpeichern(); return; }
+  // §1/§2 (v1.13.3): Shop-Reset bestätigen → Reset + Kalibrierungs-Dialog;
+  // Faktor übernehmen (beide Knöpfe liegen im Sheet-FUSS → dieser Handler)
+  if(t.closest('[data-shopresetgo]')){
+    shopResetJetzt();
+    toast('🛍 Besitz auf 0 — Konto, Kulisse, Rang und Serie unverändert');
+    renderShopKalibrierung();
+    return; }
+  if(t.closest('[data-shoppfgo]')){
+    const inp=el('shopPf');
+    const v=Math.max(0.1, num(inp?inp.value:S.settings.preisFaktor, num(S.settings.preisFaktor,15)));
+    S.settings.preisFaktor=v; saveSettings();
+    closeSheet(); renderEinst(); if(S.ui.tab==='belohnung') renderBelohnung();
+    toast('Preisfaktor auf '+String(v).replace('.',',')+' gesetzt');
+    return; }
   // §6.4 (v1.13.0): Blockade-Vorschlag — Übernahme nur per Freigabe-Knopf
   const blh=t.closest('[data-blockadeheben]'); if(blh){
     const k=S.karten.find(x=>x.id===blh.dataset.blockadeheben);
@@ -8715,6 +8796,8 @@ el('einstBody').addEventListener('click', e=>{
   // §4 (v1.8.1): Wohlstand-Reset + Rückgängig
   if(e.target.closest('[data-panoreset]')){ panoramaResetJetzt(); return; }
   if(e.target.closest('[data-panoundo]')){ panoramaResetUndo(); return; }
+  // §1 (v1.13.3): Shop zurücksetzen — Bestätigungs-Sheet
+  if(e.target.closest('[data-shopreset]')){ oeffneShopReset(); return; }
   // §4 (v1.11.0): Sternschwellen neu kalibrieren (nur auf ausdrücklichen Tap)
   // §3 (v1.12.0): Tagesprofil von Hand setzen / gemessenes übernehmen —
   // beides ausdrücklich, nie automatisch. Die Zielhöhe bleibt unberührt.

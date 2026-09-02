@@ -439,6 +439,41 @@
         // 9) Play/Pause der Fokus-Leiste (Toggle) — vorher definierten Fokus herstellen
         fw.fokusStarten('k-lang', null); fw.closeSheet();
         var s9=d.getElementById('fkPP'); if(s9){ s9.click(); fokusGleich('Fokus-Leiste ▶/⏸'); }
+        /* ══ v1.13.3 · Shop-Reset + Preiskalibrierung als Klickpfad ══ */
+        fw.setTab('einst'); fw.renderAlles();
+        var srBtn=d.querySelector('[data-shopreset]');
+        ergebnis.checks++;
+        if(!srBtn){ fatal('diag v1.13.3: Shop-Reset-Knopf fehlt in den Einstellungen'); }
+        else {
+          var metaVor=lsGet('meta')||{}, belVor=lsGet('belohnung')||{};
+          srBtn.click();   // Bestätigungs-Sheet
+          var srGo=d.querySelector('[data-shopresetgo]');
+          ergebnis.checks++;
+          if(!srGo){ fatal('diag v1.13.3: Bestätigungs-Knopf fehlt (Sheet-Fuß?)'); }
+          else {
+            srGo.click();   // Reset + Kalibrierungs-Dialog
+            var belN=lsGet('belohnung')||{}, metaN=lsGet('meta')||{};
+            ergebnis.checks++;
+            var alle0=Object.keys(belN.stufen||{}).length && Object.keys(belN.stufen).every(function(k){ return belN.stufen[k]===0; });
+            if(!alle0) fatal('diag v1.13.3 §1: Stufen nicht auf 0 ('+JSON.stringify(belN.stufen)+')');
+            ergebnis.checks++;
+            if(!(metaN.muenzenGesamt===metaVor.muenzenGesamt && metaN.ausgegebenGesamt===metaVor.ausgegebenGesamt
+                 && metaN.tagesStreak===metaVor.tagesStreak && metaN.rangBest===metaVor.rangBest))
+              fatal('diag v1.13.3 §1: Währung/Rang/Serie verändert (Münzen '+metaVor.muenzenGesamt+'→'+metaN.muenzenGesamt+', ausg '+metaVor.ausgegebenGesamt+'→'+metaN.ausgegebenGesamt+')');
+            ergebnis.checks++;
+            if(!lsGet('besitz_bak1133')) fatal('diag v1.13.3 §1: Sicherung besitz_bak1133 fehlt');
+            var pf=d.getElementById('shopPf');
+            ergebnis.checks++;
+            if(!pf){ fatal('diag v1.13.3 §2: Kalibrierungs-Dialog ohne Faktor-Feld'); }
+            else {
+              pf.value='42';
+              var pfGo=d.querySelector('[data-shoppfgo]'); if(pfGo) pfGo.click();
+              var setN=lsGet('settings')||{};
+              ergebnis.checks++;
+              if(setN.preisFaktor!==42) fatal('diag v1.13.3 §2: überschriebener Faktor nicht übernommen ('+setN.preisFaktor+')');
+            }
+          }
+        }
       }catch(err){ fatal('diag-Sequenz abgebrochen: '+err); }
       abschluss();
     });
