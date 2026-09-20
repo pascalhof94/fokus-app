@@ -1465,9 +1465,13 @@ const DEFAULT_SETTINGS = {
   // Privat ist eine Setzung (Privat_Zeit existiert erst seit 01.09.) und
   // wird nach zwei Wochen Tracking geprüft.
   tagesZielDfm: 5000,          // war 7000
-  tagesZielPrivat: 3000,       // war 5000 — Setzung, Prüfung nach 2 Wochen
+  // Privat korrigiert (2. Nachtrag): 3.000 wären 22 % gewesen und hätten
+  // Privat dauerhaft rot aussehen lassen. 800 liegt knapp über dem
+  // gerechneten Routinentag (669 P): ein normaler Tag verfehlt es leicht,
+  // ein guter übertrifft es.
+  tagesZielPrivat: 800,        // war 5000 → 3000 → 800
   zielWeDfm: 1800,             // Wochenend-Kontingent DFM (Sa+So gemeinsam), war 2500
-  zielWePrivat: 6000,          // Wochenend-Kontingent Privat (Sa+So gemeinsam), war 10000
+  zielWePrivat: 1600,          // Wochenend-Kontingent Privat (Sa+So), war 10000 → 6000 → 1600
   tageszielPunkteProStd: 100,  // ALT (M3-Pace) — durch tagesZielDfm/Privat ersetzt, intern belassen
   pfeilZone1: 5, pfeilZone2: 15, pfeilZone3: 40,  // v1.1: Pace-Pfeil-Zonen (% Abw. vom Soll) — v0.38-Port
   preisFaktor: 15,             // Shop-Preis-Faktor (§7 D7) — Neukalibrierung 30.07. (1,0→15)
@@ -2168,6 +2172,24 @@ function ladeAlles(){
     }
     DB.set('settings', S.settings);
     S.meta.nachtrag200Log=log; S.meta.nachtrag200=true; saveMeta();
+  }
+  // ══ 2. Nachtrag (v2.0.0) · Privat-Ziel korrigiert ════════════════════
+  // 3.000 war eine Setzung ohne Daten und lag weit über dem, was ein
+  // Routinentag hergibt (669 P = 22 %). Die Liste kennt BEIDE bisherigen
+  // Defaults, damit sowohl ein frisch migrierter (3.000) als auch ein nie
+  // migrierter Bestand (5.000) richtig landet. Ein eigener Wert bleibt
+  // unberührt — er steht in keiner der Listen.
+  if(!S.meta.nachtrag200b){
+    const altPrv=[5000,3000], altPrvWe=[10000,6000];
+    const log={ ts:jetztIso() };
+    if(altPrv.indexOf(num(S.settings.tagesZielPrivat))>=0){
+      log.werktag=num(S.settings.tagesZielPrivat)+' → 800'; S.settings.tagesZielPrivat=800;
+    } else log.werktag='eigener Wert '+num(S.settings.tagesZielPrivat)+' — unberührt';
+    if(altPrvWe.indexOf(num(S.settings.zielWePrivat))>=0){
+      log.we=num(S.settings.zielWePrivat)+' → 1600'; S.settings.zielWePrivat=1600;
+    } else log.we='eigener Wert '+num(S.settings.zielWePrivat)+' — unberührt';
+    DB.set('settings', S.settings);
+    S.meta.nachtrag200bLog=log; S.meta.nachtrag200b=true; saveMeta();
   }
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
@@ -4745,7 +4767,7 @@ function tagesPunkteLive(){
 }
 /* A1: getrenntes Tagesziel je Domäne (Punkte) + Anteil des wachen Tages (16 h
    linear ab Tagesstart) für die Pace. */
-function tagesZielDomain(dom){ return dom==='dfm' ? num(S.settings.tagesZielDfm,7000) : num(S.settings.tagesZielPrivat,5000); }
+function tagesZielDomain(dom){ return dom==='dfm' ? num(S.settings.tagesZielDfm,5000) : num(S.settings.tagesZielPrivat,800); }
 /* ══ §2 (v1.12.0) · DIE Soll-Funktion — eine Treppe statt der Linie. ══════
    Werktag: aktive Fenster 9–18 und 21–23 (dazwischen Plateau, davor/danach
    Bonus). Wochenende: KEIN Fenster — Sa+So teilen sich ein gemeinsames
@@ -4881,7 +4903,7 @@ function profilVorschlag(){
 /* Zielhöhe eines Tages: Werktag je Tag; Wochenende = das GEMEINSAME Kontingent. */
 function zielTag(dom, datum){
   if(istWochenendTag(datum||heuteApp()))
-    return dom==='dfm' ? num(S.settings.zielWeDfm,2500) : num(S.settings.zielWePrivat,10000);
+    return dom==='dfm' ? num(S.settings.zielWeDfm,1800) : num(S.settings.zielWePrivat,1600);
   return tagesZielDomain(dom);
 }
 function zielTagGesamt(datum){ return zielTag('dfm',datum)+zielTag('privat',datum); }
@@ -6705,8 +6727,8 @@ function syncExport(typ){
     matrixSpur: (S.tag && Array.isArray(S.tag.matrixSpur)) ? S.tag.matrixSpur.slice() : [],
     matrixAbfragen: num(S.tag&&S.tag.matrixAbfragen),
     matrixUebersprungen: num(S.tag&&S.tag.matrixUebersprungen),
-    ziele: { dfm:num(S.settings.tagesZielDfm,7000), privat:num(S.settings.tagesZielPrivat,5000),
-      weDfm:num(S.settings.zielWeDfm,2500), wePrivat:num(S.settings.zielWePrivat,10000) },
+    ziele: { dfm:num(S.settings.tagesZielDfm,5000), privat:num(S.settings.tagesZielPrivat,800),
+      weDfm:num(S.settings.zielWeDfm,1800), wePrivat:num(S.settings.zielWePrivat,1600) },
     tagesRahmen: tagesRahmen() || null,
     kurvenHeute: (function(){
       try{
@@ -7912,7 +7934,7 @@ function albumPrognose(rest){
   if(!(rest>0)) return { fertig:true };
   const real=rangTempo();
   const zielRate=((tagesZielDomain('dfm')+tagesZielDomain('privat'))*5
-    + num(S.settings.zielWeDfm,2500)+num(S.settings.zielWePrivat,10000))/7;
+    + num(S.settings.zielWeDfm,1800)+num(S.settings.zielWePrivat,1600))/7;
   return { fertig:false,
     real: real!=null && real>0 ? Math.ceil(rest/real) : null,
     ziel: zielRate>0 ? Math.ceil(rest/zielRate) : null };

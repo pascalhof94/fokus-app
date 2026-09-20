@@ -126,11 +126,35 @@ ok('N2 Die Defaults sind Settings, keine Konstanten', (function(){
      var r=abhakbonusDefault(neueKarte({matrixFeld:'werkzeug'}))===222;
      S.settings.abhakbonusFeld.werkzeug=100; return r; })());
 /* ══ NACHTRAG §3 · Neue Ziele als Settings-Defaults (Abnahme N3) ══ */
-ok('N3 Werktag DFM 5.000 · Privat 3.000',
-   num(S.settings.tagesZielDfm)===5000 && num(S.settings.tagesZielPrivat)===3000);
-ok('N3 Wochenende DFM 1.800 · Privat 6.000',
-   num(S.settings.zielWeDfm)===1800 && num(S.settings.zielWePrivat)===6000);
-ok('N3 zielTag liefert die neuen Werte', zielTag('dfm','2026-09-21')===5000);
+ok('N3 Werktag DFM 5.000 · Privat 800 (2. Nachtrag)',
+   num(S.settings.tagesZielDfm)===5000 && num(S.settings.tagesZielPrivat)===800);
+ok('N3 Wochenende DFM 1.800 · Privat 1.600',
+   num(S.settings.zielWeDfm)===1800 && num(S.settings.zielWePrivat)===1600);
+ok('N3 zielTag liefert die neuen Werte',
+   zielTag('dfm','2026-09-21')===5000 && zielTag('privat','2026-09-21')===800);
+/* Die Migration muss BEIDE bisherigen Defaults kennen — den nie migrierten
+   Bestand (5.000/10.000) UND den einmal migrierten (3.000/6.000) — und einen
+   eigenen Wert in Ruhe lassen. */
+(function(){
+  /* migration1120 (v1.12.0) setzt die Ziele HART auf 7.000/5.000/2.500/10.000.
+     Sie ist auf jedem lebenden Bestand laengst gelaufen — deshalb steht ihr
+     Flag in allen drei Faellen, sonst prueft der Test nicht das, was er soll. */
+  function migPruef(meta, vorherW, vorherWe, erwartetW, erwartetWe, txt){
+    var keep=S.meta, keepS=S.settings;
+    var st=settingsMerge({ tagesZielPrivat:vorherW, zielWePrivat:vorherWe });
+    DB.set('settings', st); DB.set('meta', meta); DB.set('karten', []);
+    ladeAlles();
+    ok('N3 Migration: '+txt,
+       num(S.settings.tagesZielPrivat)===erwartetW && num(S.settings.zielWePrivat)===erwartetWe);
+    S.meta=keep; S.settings=keepS;
+  }
+  migPruef({migration1120:true}, 5000, 10000, 800, 1600,
+           'Stand v1.12 (5.000/10.000) → 800/1.600 in einem Durchlauf');
+  migPruef({migration1120:true, migration200:true, nachtrag200:true}, 3000, 6000, 800, 1600,
+           '1. Nachtrag gelaufen (3.000/6.000) → 800/1.600');
+  migPruef({migration1120:true, migration200:true, nachtrag200:true}, 2222, 4444, 2222, 4444,
+           'eigener Wert bleibt unberuehrt');
+})();
 ok('6 komplex/energie/blockade sind aus dem Kartenmodell verschwunden', (function(){
      var k=neueKarte({}); return k.komplex===undefined && k.energie===undefined && k.blockade===undefined; })());
 ok('6 ... und werden auch vom Import nicht mehr gesetzt', (function(){
