@@ -29,17 +29,16 @@ var htmlNorm=kartenreiheHtml(S.karten[0], 'x');
 ok('ohne Ticks: kein data-tickplus', htmlNorm.indexOf('data-tickplus')<0);
 ok('ohne Ticks: data-check vorhanden', htmlNorm.indexOf('data-check')>=0);
 
-/* §3: ▶ ohne Zeitmessung oeffnet den Fokus OHNE Uhr, ohne Intraday */
-var intrVor=S.intraday.length;
+/* §4 (v2.0.0): zeitmessung ist ENTFALLEN — jede Karte darf die Uhr tragen.
+   Der alte Vertrag ("Routine ohne Zeitmessung startet ohne Uhr") gilt nicht
+   mehr; die Punkte kommen ohnehin aus den Soll-Minuten, nicht aus der Uhr.
+   Getestet wird deshalb jetzt das Gegenteil: die Uhr laeuft bei JEDER Art. */
 fokusStarten('t2');
 ok('Fokus gewaehlt (t2)', S.fokus && S.fokus.karteId==='t2');
-ok('Stoppuhr laeuft NICHT', S.fokus.laeuft===false);
+ok('v2.0 §4: Uhr laeuft auch ohne frueheres zeitmessung-Flag', S.fokus.laeuft===true);
 fokusZeitEinbuchen();
-ok('keine Zeit gebucht', num(S.karten[1].istSek)===0);
-ok('kein Intraday-Eintrag', S.intraday.length===intrVor);
-/* mit Zeitmessung: Uhr laeuft an */
 fokusStarten('t3');
-ok('mit Zeitmessung: Uhr laeuft', S.fokus.laeuft===true);
+ok('v2.0 §4: Uhr laeuft auch bei der zweiten Routine', S.fokus.laeuft===true);
 fokusZeitEinbuchen();
 
 /* §4: ✓ auf einer Tick-Karte schliesst AB (tickt nicht) */

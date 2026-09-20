@@ -108,6 +108,53 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #statusbar #sZKonto .w{color:var(--warn)}
 #statusbar #sZRang .w{color:var(--purple)}
 
+/* ══ §6 (v2.0.0) · Suchseite — Freitext oben, fünf wischbare Sichten ══ */
+.su-kopf{display:flex;align-items:center;gap:8px;padding:8px 12px 6px;position:sticky;top:0;z-index:5;background:var(--bg)}
+.su-kopf .su-ic{opacity:.5;font-size:15px}
+#suFreitext{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--li);border-radius:10px;
+  color:var(--fg);font:inherit;font-size:15px;padding:10px 12px;-webkit-appearance:none}
+#suFreitext::-webkit-search-cancel-button{display:none}
+.su-x{background:none;border:0;color:var(--fg);opacity:.6;font-size:15px;min-width:44px;min-height:44px}
+.su-sichten{display:flex;gap:6px;padding:0 12px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.su-sichten::-webkit-scrollbar{display:none}
+.su-s{flex:0 0 auto;background:var(--bg2);border:1px solid var(--li);border-radius:999px;color:var(--fg);
+  font:inherit;font-size:12px;padding:8px 13px;min-height:40px;opacity:.72;white-space:nowrap}
+.su-s.on{background:var(--ac);border-color:var(--ac);color:#fff;opacity:1;font-weight:600}
+.su-neu{flex:0 0 auto;background:var(--bg2);border:1px solid var(--li);border-radius:999px;color:var(--fg);
+  font:inherit;font-size:17px;min-width:44px;min-height:40px;line-height:1}
+.su-swipe{touch-action:pan-y}
+.su-kopfzeile{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.5;padding:12px 12px 6px}
+.su-kopfzeile.warn{color:var(--bad);opacity:.9}
+/* Matrix-Sicht: vier Felder als Raster, eigene Position als Punkt darüber */
+.su-mxgrid{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px 12px 8px}
+.su-mxq{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  background:var(--bg2);border:1px solid var(--li);border-radius:12px;padding:10px;min-height:84px;
+  color:var(--fg);font:inherit;text-align:left}
+.su-mxq .ic{font-size:18px}
+.su-mxq b{font-size:12px}
+.su-mxq .sub{font-size:9px;opacity:.45}
+.su-mxq .n{position:absolute;right:9px;top:8px;font-size:15px;font-weight:700;opacity:.55}
+.su-mxq.q1{background:rgba(246,109,109,.09)}
+.su-mxq.q3{background:rgba(62,207,142,.09)}
+.su-mxq.q2{background:rgba(242,184,75,.09)}
+.su-mxq.q4{background:rgba(79,142,247,.11)}
+.su-mxq.on{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}
+.su-mxdot{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;
+  background:var(--ac);border:2px solid var(--bg);box-shadow:0 0 0 2px var(--ac);pointer-events:none}
+/* Kettenzeile mit Positionsnummer */
+.kettenzeile{display:flex;align-items:stretch;gap:0}
+.kettenzeile>.kn{flex:0 0 26px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;opacity:.4}
+.kettenzeile>.krow{flex:1;min-width:0}
+/* Kopfzeilen-Buttons: Figur (Shop) und Zahnrad (Einstellungen) */
+.tb-figur{background:none;border:0;padding:0;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
+.tb-figur img{width:32px;height:32px;border-radius:50%;object-fit:cover;object-position:top center;
+  border:1.5px solid var(--li);background:var(--bg2)}
+.tb-zahn{background:none;border:0;color:var(--fg);opacity:.6;font-size:17px;min-width:44px;min-height:44px}
+/* §6: Die laufende Karte liegt ÜBER der Suche */
+#fokusLayer{position:fixed;inset:0 0 calc(56px + var(--sab)) 0;z-index:200;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+#fokusLayer[hidden]{display:none}
+.mx-tag{font-size:10px;opacity:.7}
 /* ── Views / Content ─────────────────────────────────────────────── */
 main{
   flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y;  /* U3: nur vertikal, kein seitliches Driften */
@@ -865,6 +912,38 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
   padding-bottom:calc(var(--s2) + 64px + var(--sab))}
 .sheetfoot{flex:none;display:flex;gap:var(--s1);padding:10px var(--s2) calc(10px + var(--sab));border-top:1px solid var(--line)}
 
+/* ══ §1 (v2.0.0) · Matrix-Pad — 2×2 beschriftet, Punkt liegt FREI ══════
+   Quadratisch über aspect-ratio (nicht über feste px), damit es bei 375 px
+   und 430 px gleich funktioniert. Die Quadranten sind reine Beschriftung;
+   getroffen wird die Fläche, nicht die Kachel. */
+.mxpad{position:relative;width:100%;aspect-ratio:1/1;max-width:320px;margin:4px auto 6px;
+  border-radius:14px;background:var(--bg2);border:1px solid var(--li);overflow:hidden;touch-action:none;cursor:crosshair}
+.mxq{position:absolute;width:50%;height:50%;display:flex;flex-direction:column;justify-content:center;
+  align-items:center;gap:2px;text-align:center;padding:4px;pointer-events:none}
+.mxq b{font-size:11px;font-weight:700;opacity:.85}
+.mxq span{font-size:9px;opacity:.45}
+.mxq.q1{left:0;top:0;background:rgba(246,109,109,.07)}
+.mxq.q3{right:0;top:0;background:rgba(62,207,142,.07)}
+.mxq.q2{left:0;bottom:0;background:rgba(242,184,75,.07)}
+.mxq.q4{right:0;bottom:0;background:rgba(79,142,247,.09)}
+.mxax{position:absolute;background:var(--li);pointer-events:none}
+.mxax-v{left:50%;top:0;bottom:0;width:1px}
+.mxax-h{top:50%;left:0;right:0;height:1px}
+.mxlbl{position:absolute;font-size:9px;opacity:.5;pointer-events:none;letter-spacing:.04em}
+.mxl-l{left:6px;top:50%;transform:translateY(-50%)}
+.mxl-r{right:6px;top:50%;transform:translateY(-50%)}
+.mxl-t{top:4px;left:50%;transform:translateX(-50%)}
+.mxl-b{bottom:4px;left:50%;transform:translateX(-50%)}
+.mxdot{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;
+  background:var(--ac);border:3px solid var(--bg);box-shadow:0 0 0 2px var(--ac),0 2px 10px rgba(0,0,0,.5);
+  pointer-events:none;transition:left .12s ease,top .12s ease}
+.mxread{text-align:center;font-size:12px;opacity:.8;margin:0 0 8px}
+.mx-akku{margin-top:10px}
+/* §9 · Vorschlag direkt nach dem Matrix-Tap */
+.vsBox{border:1px solid var(--li);border-radius:12px;padding:10px 12px;background:var(--bg2);margin:2px 0 8px}
+.vsBox .vs-k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.5}
+.vsBox .vs-t{font-size:15px;font-weight:700;margin:3px 0 2px}
+.vsBox .vs-w{font-size:11px;opacity:.7}
 /* Formular-Bausteine */
 .field{margin-bottom:14px}
 .field>label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);font-weight:800;margin-bottom:5px}
@@ -1019,7 +1098,11 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
     <div class="sub" id="fkSub" hidden><span class="timer" id="fkTimer">0:00</span><span class="ppm" id="fkPts"></span></div>
   </div>
   <div class="right" id="fkRight"></div>
-  <button class="tb-search" id="btnSuche" aria-label="Suchen">🔍</button>
+  <!-- §13 (v2.0.0): Der Shop hängt hinter der FIGUR, nicht in der Leiste. -->
+  <button class="tb-figur" id="btnFigur" aria-label="Belohnung und Shop"><img id="tbFigurImg" alt=""></button>
+  <!-- Einstellungen sind kein Navigationsziel mehr (§6: zwei Ziele) — sie
+       bleiben über das Zahnrad erreichbar. -->
+  <button class="tb-zahn" id="btnEinst" aria-label="Einstellungen">⚙︎</button>
 </div>
 <!-- §1 (v1.10.0): Statusleiste in ZWEI Zeilen — Balken volle Breite, darunter
      fünf gleich breite Zellen. Die ganze Leiste ist EIN Tap-Ziel (Sheet §2). -->
@@ -1042,45 +1125,50 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 </div>
 
 <main>
-  <!-- D1 Fokus -->
-  <section class="view" id="v-fokus">
-    <div id="fokusView"></div>
-  </section>
+  <!-- ══ §6 (v2.0.0) · ZWEI ZIELE: Suche und Statistik ══════════════════
+       Vier Tabs, drei Stapel, zwei Schubladen, vier Filterebenen und beide
+       FABs sind entfallen. Was bleibt, sind zwei Orte — und der Shop hängt
+       hinter der Figur, nicht in der Leiste. -->
 
-  <!-- D2 Stapelübersicht -->
-  <section class="view on" id="v-stapel">
-    <div class="headbar">
-      <h2>Stapel</h2>
-      <span class="sp"></span>
-      <!-- v1.6.0: eigene Stapel entfallen — nur noch „Heute" und „Erledigt" -->
+  <!-- Suche: Freitext oben, darunter fünf wischbare Sichten -->
+  <section class="view on" id="v-suche">
+    <div class="su-kopf">
+      <span class="su-ic">🔍</span>
+      <input id="suFreitext" type="search" inputmode="search" enterkeyhint="search"
+             autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="Alles finden — auch Erledigtes …">
+      <button id="suClear" class="su-x" hidden>✕</button>
     </div>
-    <div id="stapelListe"></div>
+    <div class="su-sichten" id="suSichten"></div>
+    <div class="su-swipe" id="suSwipe"><div id="suBody"></div></div>
   </section>
 
-  <!-- D7 Belohnung + Statistiken -->
-  <section class="view" id="v-belohnung">
-    <div class="headbar"><h2>Belohnung &amp; Statistik</h2></div>
-    <div id="belohnungBody"></div>
+  <!-- Statistik -->
+  <section class="view" id="v-statistik">
+    <div class="headbar"><h2>Statistik</h2></div>
+    <div id="statistikBody"></div>
   </section>
 
-  <!-- D6 Einstellungen -->
+  <!-- Einstellungen — kein Navigationsziel mehr, erreichbar über ⚙︎ im Kopf -->
   <section class="view" id="v-einst">
     <div class="headbar"><h2>Einstellungen</h2></div>
     <div id="einstBody"></div>
   </section>
+
+  <!-- Belohnung/Shop — kein Tab mehr (§13: Tap auf die Figur) -->
+  <section class="view" id="v-belohnung">
+    <div class="headbar"><h2>Belohnung &amp; Shop</h2></div>
+    <div id="belohnungBody"></div>
+  </section>
 </main>
 
-<button id="fab">＋</button>
-<!-- §3 (v1.6.0): Routinen-Schublade — runder Auslöser unten RECHTS im Daumenbogen -->
-<button id="routFab" hidden>↻</button>
-<!-- §10 (v1.8.0): Pin-Schublade — zweiter Schnellzugriff links daneben -->
-<button id="ketteFab" hidden>▤</button>
+<!-- §6: „Läuft eine Karte, liegt sie ÜBER der Suche" — bis sie geschlossen
+     wird (erledigt, pausiert oder geschoben). -->
+<div id="fokusLayer" hidden><div id="fokusView"></div></div>
 
 <nav id="nav">
-  <button data-tab="fokus"><span class="ic">🎯</span>Fokus</button>
-  <button data-tab="stapel" class="on"><span class="ic">🗂</span>Stapel</button>
-  <button data-tab="belohnung"><span class="ic">🏆</span>Belohnung</button>
-  <button data-tab="einst"><span class="ic">⚙️</span>Mehr</button>
+  <button data-tab="suche" class="on"><span class="ic">🔍</span>Suche</button>
+  <button data-tab="statistik"><span class="ic">📊</span>Statistik</button>
 </nav>
 
 <div id="backdrop"></div>
@@ -1120,9 +1208,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.13.4';                   // Datenvertrag/Sync-appVersion — Vertrag 1.6 (1.13.4: Speicher-Diagnose, Aufraeumen, Quota-Schutz)
-const UI_VERSION = 'v1.13.4';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-02-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.0.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (Matrix, eine Kette, Delta-Export)
+const UI_VERSION = 'v2.0.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-16-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1285,6 +1373,19 @@ const DEFAULT_SETTINGS = {
   standardWertDfm: 0,          // §2 (v1.13.0): EIN Standardwert je Domäne — speist Abhakbonus UND Tick-Wert
   standardWertPrivat: 0,
   sollFormWerktag: [[0,5],[6,9]],   // §5.1 (v1.13.0): Soll-FORM relativ zum Tagesstart — ~5 h Fokus · 1 h Senke · ~3 h Fokus, danach Bonus
+  // ══ §2 (v2.0.0) · Die Matrix speist die Punkte ══════════════════════════
+  // Grundwert = Soll-Minuten × Basis-Rate × zeitGewicht × MATRIXFELD-FAKTOR × Geld-Impact.
+  // komplex/energie/blockade sind ersatzlos entfallen — sie standen im Bestand
+  // fast überall auf 1,0. Der Feld-Faktor tritt EXAKT an ihre Stelle, deshalb
+  // ist „Ziele" = 1,0: ein Tag aus reiner Zielarbeit landet auf den Punkt dort,
+  // wo er unter v1.13.4 landete (Kalibrier-Beleg in der Abnahme).
+  matrixFaktor: { ziel:1.0, zustand:0.9, werkzeug:0.8, ablenkung:0 },
+  // §2: Bonus für Bewegung nach rechts. Voller Ausschlag (ganz links → ganz
+  // rechts) = dieser Wert; wer schon rechts stand, bekommt fast nichts.
+  bewegungsBonus: 500,
+  // §9: ab so vielen ausgewerteten Matrix-Taps schlägt die App das GELERNTE
+  // Werkzeug vor statt des Akku-Startwerts.
+  vorschlagLernSchwelle: 12,
   geldGewicht: 0.5,            // geldFaktor = 1 + geldScoreNorm × geldGewicht (nur dfm)
   geldDeckel: 1.5,            // Faktor-Obergrenze (~1,5)
   geldScoreRef: 200,           // Referenz für geldScoreNorm = geldScore / Ref  (siehe Rückfrage)
@@ -1309,36 +1410,58 @@ const DEFAULT_SETTINGS = {
    an EINER Stelle, nicht verstreut. Ein manuell gesetzter Wert wird von der
    Ableitung nie überschrieben.
    ══════════════════════════════════════════════════════════════════════ */
-const TAGESABSCHNITTE = ['morgens','tagsueber','abends'];
-const TA_LABEL = { morgens:'Morgens', tagsueber:'Tagsüber', abends:'Abends' };
-const TA_BIS_MORGENS = 11;   // Deadline-Uhrzeit < 11:00  → morgens
-const TA_AB_ABENDS   = 17;   // Deadline-Uhrzeit ≥ 17:00  → abends (dazwischen tagsueber)
-/* Ableitung NUR aus der Deadline-Uhrzeit; ohne Uhrzeit → tagsueber (§2.1). */
-function tagesabschnittAbleiten(k){
-  const m=/^(\d{1,2}):(\d{2})$/.exec(String((k&&k.uhrzeit)||''));
-  if(!m) return 'tagsueber';
-  const h=num(m[1])+num(m[2])/60;
-  if(h<TA_BIS_MORGENS) return 'morgens';
-  if(h<TA_AB_ABENDS)   return 'tagsueber';
-  return 'abends';
+/* ══════════════════════════════════════════════════════════════════════
+   §1 (v2.0.0) · DIE MOTIVATIONSMATRIX — zwei Achsen, vier Felder.
+
+                    weg von  ←            → hin zu
+        außen    1 Ablenkungen        3 Werkzeuge
+        innen    2 Zustände           4 Ziele
+
+   Oben stehen die HANDLUNGEN (außen), unten das, worauf sie einzahlen
+   (innen). Links kostet keine Energie — dort biegt der Tag falsch ab.
+   Rechts erzeugt Stolz.
+
+   Zwei getrennte Dinge teilen sich diese Fläche, und sie dürfen NIE
+   vermischt werden:
+   · Die KARTE trägt ein Feld (1..4, diskret) — sie ist eingeordnet.
+   · Die EIGENE POSITION ist ein freier Punkt x/y in der Fläche, kein Feld.
+     Zwischenstufen sind die Realität („eher rechts, aber müde").
+
+   Achsen-Konvention, an EINER Stelle festgelegt:
+     x = −1 ganz „weg von" (links)  …  +1 ganz „hin zu" (rechts)
+     y = −1 „innen"                 …  +1 „außen"
+   ══════════════════════════════════════════════════════════════════════ */
+const MATRIX_FELDER = ['ablenkung','zustand','werkzeug','ziel'];
+const MATRIX_META = {
+  ablenkung:{ nr:1, name:'Ablenkungen', achse:'außen', richtung:'weg von', x:-1, y:+1, icon:'📵',
+              hint:'Kostet keine Energie — und genau deshalb gefährlich.' },
+  zustand:  { nr:2, name:'Zustände',    achse:'innen', richtung:'weg von', x:-1, y:-1, icon:'🌀',
+              hint:'Der innere Zustand, aus dem du herauswillst.' },
+  werkzeug: { nr:3, name:'Werkzeuge',   achse:'außen', richtung:'hin zu',  x:+1, y:+1, icon:'🔧',
+              hint:'Bringt dich zurück nach rechts.' },
+  ziel:     { nr:4, name:'Ziele',       achse:'innen', richtung:'hin zu',  x:+1, y:-1, icon:'🎯',
+              hint:'Die Arbeit, auf die alles einzahlt.' }
+};
+/* Feld einer Karte — tolerant (Altbestand, Zahlen 1..4, Unbekanntes → ziel). */
+function matrixFeldVon(k){
+  const f=k&&k.matrixFeld;
+  if(MATRIX_FELDER.indexOf(f)>=0) return f;
+  const n=Number(f);
+  if(Number.isFinite(n)&&n>=1&&n<=4) return MATRIX_FELDER[n-1];
+  return 'ziel';
 }
-/* §1 (v1.6.1): tagesabschnitt ist ein ARRAY — eine Routine kann in mehreren
-   Abschnitten Pflicht sein („Gesicht waschen" morgens UND abends). Sie erscheint
-   dann in jeder Gruppe, bleibt aber EINE Karte mit EINER Tick-Kurve, EINEM
-   Streak und EINEM Zeitkonto. Leeres/fehlendes Array → Ableitung aus der
-   Uhrzeit; ein manuell gesetztes Array wird nie überschrieben. Ein einzelner
-   String wird tolerant als einelementiges Array gelesen. */
-function tagesabschnitteVon(k){
-  const a=k&&k.tagesabschnitt;
-  if(Array.isArray(a)){
-    const f=a.filter(x=>TAGESABSCHNITTE.indexOf(x)>=0);
-    if(f.length) return f;
-  } else if(typeof a==='string' && TAGESABSCHNITTE.indexOf(a)>=0){
-    return [a];
-  }
-  return [tagesabschnittAbleiten(k)];
+function matrixName(f){ return (MATRIX_META[f]||MATRIX_META.ziel).name; }
+function matrixIcon(f){ return (MATRIX_META[f]||MATRIX_META.ziel).icon; }
+/* §1.1: Tap auf ein Feld setzt VORSCHLAGSWERTE — nie Automatik. Der Nutzer
+   prüft sie und speichert. Werkzeuge sind typisch kurz, Ziele lang. */
+function matrixVorschlag(feld, dom){
+  const v={ matrixFeld:feld };
+  if(feld==='werkzeug'){ v.sollMin=10; }
+  else if(feld==='ablenkung'){ v.sollMin=0; v.ticksAktiv=true; v.tickWert=-25; }
+  else if(feld==='zustand'){ v.sollMin=15; }
+  else { v.sollMin=(dom==='dfm')?45:30; }
+  return v;
 }
-function tagesabschnittHat(k, ta){ return tagesabschnitteVon(k).indexOf(ta)>=0; }
 /* §4/§5 (v1.6.1): Zeitgrenzen an EINER Stelle. */
 const AUTOPAUSE_MIN        = 90;    // Timer ohne jede Interaktion → Auto-Pause + Rückfrage
 const PAUSENTIMER_MAX_MIN  = 120;   // Dauerlauf ohne Pause → ab hier negative Rate (nur keineAutoPause-Karten)
@@ -1351,20 +1474,26 @@ function neueKarte(f={}){
     notiz: '',
     kommentarClaude: '',              // U6-E: Hinweis an Claude für den nächsten Sync (Freitext, keine App-Logik)
     projekt: null,                    // nur dfm
-    geldScore: 0,                     // nur dfm
-    faelligkeit: null,                // "YYYY-MM-DD" | null (null = Warteschlange)
-    uhrzeit: null,                    // "HH:MM" | null — Startzeitpunkt ⇒ Termin
-    tagesabschnitt: null,             // §1 (1.6.1): ARRAY aus morgens|tagsueber|abends — null/leer = aus Uhrzeit ableiten
-    zeitmessung: true,                // §2 (1.9.1): Karte misst Zeit, außer ausdrücklich abgeschaltet
+    geldScore: 0,                     // nur dfm — der Geld-Impact aus §2
+    // §4 (v2.0.0): Deadline und Planung sind ZWEI Dinge. Die Deadline sagt,
+    // bis wann es fertig sein MUSS (Sicht „Fällig"); geplantFuer sagt, an
+    // welchem Tag es drankommen SOLL (speist die Kette). Vorher war beides
+    // dasselbe Feld, und deshalb war „überfällig" nie vom „heute dran"
+    // zu unterscheiden.
+    faelligkeit: null,                // "YYYY-MM-DD" | null — DEADLINE
+    uhrzeit: null,                    // "HH:MM" | null — Uhrzeit der Deadline ⇒ Termin
+    geplantFuer: null,                // "YYYY-MM-DD" | null — GEPLANT FÜR
     keineAutoPause: false,            // §5 (1.6.1): Pausentimer — keine Auto-Pause, dafür negative Rate ab PAUSENTIMER_MAX_MIN
     strafPunkte: 0,                   // §5 (1.6.1): aufgelaufene Dauerlauf-Strafe (app-only, mindert kartePunkte)
     sollMin: 0,
-    istSek: 0,                        // getrackte Zeit (nur am Parent)
-    komplex: 1, energie: 1, blockade: 1,   // Rate-Treiber (stufenlose Faktoren)
-    punkteProStd: null,               // v1.1: Raten-Override P/Std (null = aus Treibern) — v0.38-Port §4
-    akkuProStd: null,                 // v1.1: Akku %/Std dieser Karte (null = Settings-Standard) — v0.38-Port
-    zeitStufen: null,                 // v1.1: [{bisMin|null, punkteProStd}] zeitgestaffelte Rate (null = flach) — v0.38-Port §4
-    prioritaet: 'soll',               // muss | soll | idee
+    istSek: 0,                        // getrackte Zeit (nur am Parent) — misst, speist die Punkte aber NICHT mehr (§2)
+    // §1 (v2.0.0): Die Einordnung in die Matrix. Ersetzt komplex/energie/
+    // blockade (standen fast überall auf 1,0) UND den Tagesabschnitt (war die
+    // Lern-Kategorie der privaten Akku-Mediane, §4).
+    matrixFeld: 'ziel',               // ablenkung | zustand | werkzeug | ziel
+    punkteProStd: null,               // Raten-Override P/Std (null = Basis-Rate der Domäne)
+    akkuProStd: null,                 // Akku %/Std dieser Karte (null = gelernt/Settings-Standard)
+    zeitStufen: null,                 // [{bisMin|null, punkteProStd}] zeitgestaffelte Rate (null = flach)
     tickKurve: [0],                   // ALT (§9 1.8.0: wird nicht mehr gelesen; bleibt für kartenArt-Altbestand)
     ticksAktiv: false,                // §9 (1.8.0): Karte wird getickt statt abgehakt
     tickWert: null,                   // §2 (1.13.0): null = erbt den Domänen-STANDARDWERT; Zahl = dauerhafter Override (negativ zulässig)
@@ -1374,6 +1503,11 @@ function neueKarte(f={}){
     freeze: false,                    // A4: eingefroren (pausiert, keine Abräumpflicht, Timer gesperrt)
     punkteOverride: null,             // U6-A: beim Abhaken gewählte Ist-Punkte (null = automatisch berechnet)
     abhakbonus: null,                 // U6-A/D: Abhakbonus dieser Karte (null = Domänen-Default, 0 = keiner)
+    // §2 (v2.0.0): Bewegungsbonus, den DIESE Karte heute schon eingespielt hat.
+    // Wird beim Verlassen der Karte festgeschrieben (Position vorher gegen
+    // Position nachher) und beim Tagesstart zurückgesetzt — wie ticksHeute.
+    bewegungsBonus: 0,
+    posVorher: null,                  // {x,y} — eigene Position, als die Karte zuletzt aufgenommen wurde
     letzteBearbeitung: null,          // A7: Timestamp der letzten Interaktion
     rhythmus: null,                   // null | {typ:"taeglich"} | {typ:"alleNTage",n} | {typ:"wochentage",tage:[1..7]}
     gruppeId: null,
@@ -1390,6 +1524,7 @@ function neueKarte(f={}){
   }, f);
   if(!Array.isArray(k.tickKurve) || !k.tickKurve.length) k.tickKurve=[0];
   if(k.domain!=='dfm'){ k.projekt=null; k.geldScore=0; }
+  k.matrixFeld=matrixFeldVon(k);
   return k;
 }
 /* §3.2 Unteraufgabe — kein eigener Geld-Score, keine eigene Uhr. */
@@ -1426,7 +1561,7 @@ const S = {
   settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
   tag:null, fokus:null, historie:[], belohnung:null,
   meta:{ wohlstand:0, seeded:false },
-  ui:{ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', fokusIdx:0, statTage:7 }
+  ui:{ tab:'suche', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', fokusIdx:0, statTage:7 }
 };
 function settingsMerge(gespeichert){
   const s=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
@@ -1456,7 +1591,7 @@ function ladeAlles(){
   S.routinenGruppen = DB.get('routinenGruppen', []);   // §3 (1.6.1): Routinen-Gruppen mit Komplett-Bonus
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
-  S.ui       = Object.assign({ tab:'stapel', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', analyseArt:'alle', debugTap:false }, DB.get('ui', {}));
+  S.ui       = Object.assign({ tab:'suche', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', analyseArt:'alle', debugTap:false }, DB.get('ui', {}));
   // U6-B: Erstell-Zeitstempel für Altkarten guarded nachrüsten (VOR der Härtung,
   // damit der Fallback greift statt der neueKarte-Default-Jetztzeit). Idempotent.
   S.karten.forEach(k=>{ if(k && !k.erstelltTs) k.erstelltTs = k.letzteBearbeitung || jetztIso(); });
@@ -1544,16 +1679,8 @@ function ladeAlles(){
     DB.set('stapel_bak160', S.stapel);
     const log={ ts:jetztIso(), tagesabschnitt:0, abschluesse:0, stapelEntfernt:0, ketteStart:0 };
     S.karten.forEach(k=>{
-      // 1) tagesabschnitt für Privat-Karten setzen (Ableitung §2.1; ein bereits
-      //    gesetzter Wert bleibt unangetastet). Ein vorhandenes tageszeit-Feld
-      //    wird als Vorgabe übernommen, wo es eindeutig ist — sonst Uhrzeit-Regel.
-      // v1.6.1: schreibt bereits das ARRAY-Format (§1), damit nie ein Einzelwert
-      // im Datenmodell landet — die 161er-Migration muss dann nichts umformen.
-      if(k.domain==='privat' && !(Array.isArray(k.tagesabschnitt) && k.tagesabschnitt.length)){
-        const alt={morgens:'morgens', mittags:'tagsueber', abends:'abends'}[k.tageszeit];
-        k.tagesabschnitt = [alt || tagesabschnittAbleiten(k)];
-        log.tagesabschnitt++;
-      }
+      // 1) (v2.0.0) Der tagesabschnitt-Schritt ist entfallen — das Feld gibt es
+      //    seit §4 nicht mehr; die Matrix hat seine Rolle übernommen.
       // 2) leeres Abschluss-Stack-Feld anlegen (§6.1 nutzt es ab jetzt)
       if(!Array.isArray(k.abschluesse)){ k.abschluesse=[]; log.abschluesse++; }
     });
@@ -1579,19 +1706,7 @@ function ladeAlles(){
     DB.set('meta_bak161', S.meta);
     const log={ ts:jetztIso(), arrayUmstellung:0, ausTageszeit:0, tageszeitEntfernt:0, gruppeAngelegt:0, gruppeFehlend:[] };
     S.karten.forEach(k=>{
-      // §1: Einzelwert → einelementiges Array
-      if(typeof k.tagesabschnitt==='string' && TAGESABSCHNITTE.indexOf(k.tagesabschnitt)>=0){
-        k.tagesabschnitt=[k.tagesabschnitt]; log.arrayUmstellung++;
-      } else if(k.tagesabschnitt!=null && !Array.isArray(k.tagesabschnitt)){
-        k.tagesabschnitt=null;
-      }
-      // §2: leeres tagesabschnitt einmalig aus tageszeit ableiten (tagesabschnitt gewinnt)
-      const leer=!Array.isArray(k.tagesabschnitt) || !k.tagesabschnitt.length;
-      if(leer && k.tageszeit){
-        const map={morgens:'morgens', abends:'abends', mittags:'tagsueber', beliebig:'tagsueber'};
-        const ta=map[k.tageszeit];
-        if(ta){ k.tagesabschnitt=[ta]; log.ausTageszeit++; }
-      }
+      // (v2.0.0) Die tagesabschnitt-Umformung ist entfallen — siehe §4.
       // §2: tageszeit vollständig aus dem Datenmodell entfernen
       if('tageszeit' in k){ delete k.tageszeit; log.tageszeitEntfernt++; }
     });
@@ -1837,13 +1952,8 @@ function ladeAlles(){
   if(!S.meta.zeit191){
     DB.set('karten_bak191', S.karten);
     const log={ ts:jetztIso(), gesetzt:0, whatsappAus:false, whatsappLogVorhanden:!!(S.meta.migration180Log&&S.meta.migration180Log.whatsapp) };
-    S.karten.forEach(k=>{
-      if(k.zeitmessung==null){ k.zeitmessung=true; log.gesetzt++; }
-    });
-    if(log.whatsappLogVorhanden){
-      const wa=S.karten.find(k=>String(k.titel||'').trim().toLowerCase()==='whatsapp' && k.rhythmus);
-      if(wa){ wa.zeitmessung=false; log.whatsappAus=true; }
-    }
+    // (v2.0.0) zeitmessung ist entfallen (§4) — jede Karte darf die Uhr
+    // tragen; die Punkte kommen ohnehin aus den Soll-Minuten.
     S.meta.zeit191Log=log;
     S.meta.zeit191=true;
     saveKarten(); saveMeta();
@@ -1901,6 +2011,73 @@ function ladeAlles(){
     S.meta.panoramaReset151=true;
     saveMeta(); saveBelohnung();
   }
+  // ══════════════════════════════════════════════════════════════════════
+  //  §0 (v2.0.0) · VOR ALLEM ANDEREN: DATENSICHERUNG
+  //  In den Ist-Zeiten und Punkten steckt Historie, die nirgendwo sonst
+  //  liegt. Diese Migration ist deshalb strikt ZWEISTUFIG:
+  //    Stufe 1 (hier, sofort): sichern + Felder umschreiben. NICHTS wird
+  //            gelöscht, keine Karte, kein Punktestand, kein Wohlstand.
+  //    Stufe 2 (zeigeV200Gate): die Leerung des Kartenbestands nach §5.
+  //            Sie läuft NUR nach einem bestätigten Vollexport.
+  //  Ohne bestätigten Export keine Leerung. Lieber ein Schritt mehr als
+  //  verlorene Historie.
+  // ══════════════════════════════════════════════════════════════════════
+  if(!S.meta.migration200){
+    // Die Sicherung liegt in JEDEM Fall — und zwar VOR jeder Umschreibung,
+    // damit der Vollexport unten den echten Vertrag-1.6-Stand tragen kann.
+    DB.set('karten_bak200', S.karten);
+    DB.set('meta_bak200', S.meta);
+    DB.set('settings_bak200', DB.get('settings', {}));
+    DB.set('unteraufgaben_bak200', S.unteraufgaben||[]);
+    const log={ ts:jetztIso(), felder:{ablenkung:0,zustand:0,werkzeug:0,ziel:0}, entfernt:0, geplant:0 };
+    S.karten.forEach(k=>{
+      // §1.1-Vorschlag für den Bestand. Es bleibt ein VORSCHLAG: jede Karte
+      // ist danach im Detail änderbar, und das Protokoll zeigt die Verteilung,
+      // damit sie geprüft werden kann statt still zu gelten.
+      if(!k.matrixFeld){
+        let f;
+        if(k.ticksAktiv && num(k.tickWert)<0) f='ablenkung';       // negative Counter sind Ablenkungen
+        else if(k.rhythmus && k.domain!=='dfm') f='werkzeug';      // private Routinen aktivieren
+        else f='ziel';                                             // alles andere ist Zielarbeit
+        k.matrixFeld=f;
+      }
+      log.felder[matrixFeldVon(k)]=num(log.felder[matrixFeldVon(k)])+1;
+      // §4: Deadline und Planung trennen. Der Bestand kannte nur EIN Feld —
+      // es wird zur Deadline, und der Planungstag erbt denselben Wert, damit
+      // die Kette am ersten Tag exakt so aussieht wie vorher.
+      if(k.geplantFuer===undefined || k.geplantFuer===null){ k.geplantFuer=k.faelligkeit||null; if(k.geplantFuer) log.geplant++; }
+      // §4: die sechs entfallenen Felder — restlos.
+      ['prioritaet','zeitmessung','tagesabschnitt','komplex','energie','blockade'].forEach(f=>{
+        if(k[f]!==undefined){ delete k[f]; log.entfernt++; }
+      });
+      if(k.bewegungsBonus==null) k.bewegungsBonus=0;
+      if(k.posVorher===undefined) k.posVorher=null;
+    });
+    // §3: Sterne und Upgrade-Faktor entfallen restlos.
+    log.sterneWeg=(S.meta.sterne!=null || S.meta.sternSchwellen!=null);
+    log.upgradeVorher=num(S.meta.upgradeFaktor,1);
+    delete S.meta.sterne; delete S.meta.sternSchwellen; delete S.meta.sternKalibriert;
+    delete S.meta.upgradeFaktor; delete S.meta.upgradeHerkunft;
+    // §11: Delta-Export braucht einen Startzeitpunkt. Der erste Delta-Export
+    // nach dem Umbau trägt sicherheitshalber ALLES (letzterSyncTs = null).
+    if(S.meta.letzterSyncBestaetigtTs===undefined) S.meta.letzterSyncBestaetigtTs=null;
+    if(!Array.isArray(S.meta.matrixWirkung)) S.meta.matrixWirkung=[];
+    // Die EINE Kette (§7) aus den beiden alten zusammenführen — DFM zuerst,
+    // Reihenfolge innerhalb der Domänen erhalten.
+    if(S.meta.ketten && (S.meta.ketten.dfm || S.meta.ketten.privat)){
+      const d=(S.meta.ketten.dfm&&S.meta.ketten.dfm.ids)||[], pv=(S.meta.ketten.privat&&S.meta.ketten.privat.ids)||[];
+      const datum=(S.meta.ketten.dfm&&S.meta.ketten.dfm.datum)||(S.meta.ketten.privat&&S.meta.ketten.privat.datum)||null;
+      S.meta.ketten={ alle:{ datum, ids:d.concat(pv),
+        entfernt:((S.meta.ketten.dfm&&S.meta.ketten.dfm.entfernt)||[]).concat((S.meta.ketten.privat&&S.meta.ketten.privat.entfernt)||[]) } };
+      log.ketteZusammen=d.length+pv.length;
+    }
+    // §5-Leerung steht noch AUS — sie wartet auf den bestätigten Vollexport.
+    S.meta.v200LeerungOffen=true;
+    S.meta.migration200Log=log;
+    S.meta.migration200=true;
+    DB.set('settings', S.settings);
+    saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
+  }
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
              if(!S.tag.istMinutenStart) S.tag.istMinutenStart={};
@@ -1948,11 +2125,25 @@ function geldFaktor(k){
 function basisRate(k){   // A9: Basis-Rate je Domäne
   return k.domain==='dfm' ? num(S.settings.basisProStdDfm,180) : num(S.settings.basisProStdPrivat,120);
 }
+/* ══ §2 (v2.0.0) · Der Matrixfeld-Faktor ═══════════════════════════════
+   Er tritt EXAKT an die Stelle von komplex × energie × blockade. Weil diese
+   drei im Bestand fast überall auf 1,0 standen, ist der Faktor des Felds
+   „Ziele" mit 1,0 belegt: ein Tag aus reiner Zielarbeit rechnet sich auf den
+   Punkt wie unter v1.13.4. Alles andere bewegt sich RELATIV dazu.
+   Werkzeuge sind bewusst billig (0,8) — ihr Lohn ist der Bewegungsbonus, nicht
+   der Grundwert; sonst ließen sie sich farmen. Ablenkungen tragen 0: Zeit in
+   einer Ablenkung verdient nichts, der negative Tickwert bleibt die Kosten. */
+function matrixFaktor(k){
+  const tab=(S.settings && S.settings.matrixFaktor) || {};
+  const f=matrixFeldVon(k);
+  const v=tab[f];
+  return Number.isFinite(Number(v)) ? Number(v) : (f==='ziel'?1:0);
+}
 function rate(k){
   const base = (k.punkteProStd!=null && Number.isFinite(Number(k.punkteProStd)))
     ? Number(k.punkteProStd)
-    : basisRate(k) * num(k.komplex,1) * num(k.energie,1) * num(k.blockade,1);
-  return base * geldFaktor(k);
+    : basisRate(k);
+  return base * matrixFaktor(k) * geldFaktor(k);
 }
 /* Akku %/Std dieser Karte (v0.38 akkuRate): Karten-Override sonst Settings. */
 /* ══ §4 (v1.10.0) · Der Akku wird GEMESSEN ══════════════════════════════
@@ -1967,9 +2158,13 @@ function rate(k){
 const AKKU_MIN_MESSUNGEN = 5;     // dieselbe Schwelle wie bei den Schätzfaktoren
 const AKKU_RATE_MIN = -40, AKKU_RATE_MAX = 20;   // %/Std-Kappung gegen Fehleingaben — §6.2 (1.13.0): bleibt (kappt die RATE, nie den Stand)
 const AKKU_MAX = 150;             // §6.2 (v1.13.0): Anzeige deckelt nicht mehr bei 100 — Sanity-Kappe gegen Ausreißer
+/* §4 (v2.0.0): Die Lern-Kategorie der privaten Akku-Mediane war der
+   Tagesabschnitt — der ist entfallen. Ersatz ist das MATRIXFELD: Werkzeug und
+   Zielarbeit verhalten sich energetisch unterschiedlich, und zwar unabhängig
+   von der Uhrzeit. DFM lernt unverändert über das Projekt. */
 function akkuKategorie(k){
   if(!k) return '?';
-  return k.domain==='dfm' ? 'dfm|'+(k.projekt||'?') : 'privat|'+(tagesabschnitteVon(k)[0]||'?');
+  return k.domain==='dfm' ? 'dfm|'+(k.projekt||'?') : 'privat|'+matrixFeldVon(k);
 }
 function akkuMedian(werte){
   if(!werte.length) return null;
@@ -2017,14 +2212,15 @@ function istSekLive(k){
   if(S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft) s += (Date.now()-S.fokus.startMs)/1000;
   return s;
 }
-/* Zeitquelle: Ist (inkl. Live-Timer) wenn Uhr lief, sonst Soll;
-   Ausnahme idee → Ist gedeckelt auf Soll. */
-function zeitquelleMin(k){
-  const ist = istSekLive(k);
-  let z = (ist>0) ? ist/60 : num(k.sollMin);
-  if(k.prioritaet==='idee') z = Math.min(z, num(k.sollMin));
-  return z;
-}
+/* ══ §2 (v2.0.0) · Der Grundwert rechnet auf SOLL-Minuten ══════════════
+   Bis v1.13.4 speiste die IST-Zeit die Punkte, sobald die Uhr lief. Das
+   belohnte Sitzen. Ab 2.0 steht der Wert einer Karte VORHER fest — das ist die
+   Voraussetzung dafür, dass die Fokusansicht „Was diese Karte einbringt"
+   überhaupt anzeigen kann (§8), und es trifft das eigentliche Problem:
+   Aktivierung, nicht Ausführung.
+   Die Ist-Zeit wird weiter gemessen und gesendet (Airtable, Schätzfaktoren,
+   Akku-Lernen, Sitzungen) — sie zahlt nur nicht mehr auf die Punkte ein. */
+function zeitquelleMin(k){ return num(k.sollMin); }
 /* §9 (v1.8.0): Die mehrstufige tickKurve ist abgelöst. Jeder Tick bucht den
    Kartenwert tickWert — je Tick überschreibbar (§9.4), deshalb hält
    tickWerteHeute die heutigen Einzelwerte (Reset beim Tagesstart wie
@@ -2074,10 +2270,13 @@ function kartePunkte(k){
   // §1 (v1.7.1): festgeschriebene + live wachsende Pausentimer-Strafe. Der
   // 1-Sekunden-Ticker rendert kartePunkte-basierte Anzeigen ohnehin sekündlich —
   // damit wächst der Abzug ab Minute 120 sichtbar auf Fokusseite/Statusleiste.
-  return zeitTerm + tickTerm + subBonusErreicht(k) - num(k.strafPunkte) - pausenStrafeLive(k);   // + gebuchte Unteraufgaben-Boni
+  // §2 (v2.0.0): der Bewegungsbonus dieser Karte — festgeschrieben beim
+  // Verlassen (Position vorher gegen Position nachher), nie live geschätzt.
+  return zeitTerm + tickTerm + subBonusErreicht(k) + num(k.bewegungsBonus)
+         - num(k.strafPunkte) - pausenStrafeLive(k);
 }
 /* Prognose inkl. ALLER Unteraufgaben-Boni (erledigt + offen) — für „geplant". */
-function kartePunkteGeplant(k){ return kartePunkteBei(k, num(k.sollMin)||istSekLive(k)/60) + subBonusOffen(k); }
+function kartePunkteGeplant(k){ return kartePunkte(k) + subBonusOffen(k); }
 /* A3: nur der Tick-Anteil (gebuchte Ticks) — für Counter/Timer, die heute
    getickt, aber weder erledigt noch als Fokus laufend sind. */
 function tickPunkte(k){ return tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k); }
@@ -2112,7 +2311,10 @@ function istTickKarte(k){ return !!k.ticksAktiv; }
    abgeleitetes Rätsel (genau diese Ableitung hat in v1.8.0 den Play-Knopf der
    Routinen gekostet). Steuert AUSSCHLIESSLICH, ob die Stoppuhr läuft — nie,
    ob ein Knopf existiert. ▶ heißt „in den Fokus". Punkt. */
-function hatZeitmessung(k){ return !(k && k.zeitmessung===false); }
+/* §4 (v2.0.0): zeitmessung ist entfallen — JEDE Karte darf die Uhr tragen.
+   Die Funktion bleibt als eine Stelle stehen, damit die Aufrufer nicht
+   einzeln umgebaut werden mussten. */
+function hatZeitmessung(k){ return true; }
 
 /* ── Timer-Engine (§7 D1: EIN Play/Pause-Toggle) ──────────────────────
    S.fokus = { karteId, laeuft, startMs } — bei Pause/Wechsel/Abschluss
@@ -2266,6 +2468,292 @@ function akkuQuickSpeichern(){
   saveMeta(); saveTag(); closeSheet(); renderAlles();
   toast('🔋 '+Math.round(neu)+' %'+(kom?' · Kommentar gespeichert':''));
 }
+/* ══════════════════════════════════════════════════════════════════════
+   §1.2/§1.3 (v2.0.0) · DIE EIGENE POSITION
+   Kein Feld, sondern ein freier Punkt x/y in der Fläche. Die vier Felder
+   bleiben Beschriftung, nicht Speichereinheit — „eher rechts, aber müde" ist
+   die Realität, und nur ein freier Punkt ergibt eine Bewegungsspur.
+
+   Akku und Position sind ORTHOGONAL: der Akku misst Energie, die Matrix
+   Richtung. Man kann mit vollem Akku links kreisen. Beide werden getrennt
+   gespeichert und getrennt ausgewertet — sie teilen sich nur den Dialog.
+   ══════════════════════════════════════════════════════════════════════ */
+function matrixSpur(){ if(!S.tag) return []; if(!Array.isArray(S.tag.matrixSpur)) S.tag.matrixSpur=[]; return S.tag.matrixSpur; }
+/* Aktuelle Position = letzter NICHT übersprungener Spur-Punkt des Tages. */
+function matrixPos(){
+  const sp=matrixSpur();
+  for(let i=sp.length-1;i>=0;i--) if(!sp[i].uebersprungen) return { x:num(sp[i].x), y:num(sp[i].y) };
+  return null;
+}
+function matrixPosOderMitte(){ return matrixPos() || {x:0,y:0}; }
+/* §2: Bonus für Bewegung nach rechts. dx wird auf [0..1] normiert (volle
+   Breite = 2), und das Gewicht sinkt linear mit der Ausgangslage: wer ganz
+   links stand, bekommt den vollen Satz, wer schon rechts stand, fast nichts.
+     vorher −1 → nachher +1 : 500 P   (die Rettung)
+     vorher +0,5 → +1       :  31 P   (dieselbe Karte, schon rechts) */
+function bewegungsBonusBerechnen(vorher, nachher){
+  if(!vorher || !nachher) return 0;
+  const dx=num(nachher.x)-num(vorher.x);
+  if(!(dx>0)) return 0;
+  const gewicht=Math.max(0, Math.min(1, (1-num(vorher.x))/2));
+  return num(S.settings&&S.settings.bewegungsBonus,500) * Math.min(1,dx/2) * gewicht;
+}
+/* Position setzen + Spur schreiben. Gibt den gebuchten Bewegungsbonus zurück. */
+function matrixPosSetzen(x, y, kid, anlass){
+  if(!S.tag) return 0;
+  x=Math.max(-1,Math.min(1,num(x))); y=Math.max(-1,Math.min(1,num(y)));
+  const vorher=matrixPos();
+  matrixSpur().push({ ts:jetztIso(), x:Math.round(x*100)/100, y:Math.round(y*100)/100,
+                      kid:kid||null, anlass:anlass||null });
+  if(matrixSpur().length>400) S.tag.matrixSpur=matrixSpur().slice(-400);
+  // Bonus hängt an der Karte, die gerade verlassen wird — gegen die Position,
+  // mit der sie aufgenommen wurde (posVorher), sonst gegen die Vorposition.
+  let bonus=0;
+  const k=kid?S.karten.find(c=>c.id===kid):null;
+  if(k){
+    const basis=k.posVorher||vorher;
+    bonus=bewegungsBonusBerechnen(basis, {x,y});
+    if(bonus>0){ k.bewegungsBonus=num(k.bewegungsBonus)+bonus; beruehre(k); saveKarten(); }
+    k.posVorher=null;
+  }
+  // §9-Lernspur: welche Karte hat WIE weit nach rechts gezogen. Global (nicht
+  // am Tag), damit das Lernen eine Archivierung und den Tageswechsel überlebt.
+  if(k){
+    const basis=vorher||{x:0,y:0};
+    if(!Array.isArray(S.meta.matrixWirkung)) S.meta.matrixWirkung=[];
+    S.meta.matrixWirkung.push({ kid:k.id, feld:matrixFeldVon(k), ts:jetztIso(),
+      vonX:Math.round(num(basis.x)*100)/100, dx:Math.round((x-num(basis.x))*100)/100 });
+    if(S.meta.matrixWirkung.length>600) S.meta.matrixWirkung=S.meta.matrixWirkung.slice(-600);
+    saveMeta();
+  }
+  S.tag.matrixAbfragen=num(S.tag.matrixAbfragen)+1;
+  saveTag();
+  return bonus;
+}
+/* §1.2: Überspringen bleibt möglich — aber die App zählt mit und zeigt es in
+   der Statistik. Die alte Akku-Abfrage wurde faktisch immer übersprungen
+   (akkuEintraege war im Live-Export leer); das darf nicht unsichtbar bleiben. */
+function matrixUeberspringen(kid, anlass){
+  if(!S.tag) return;
+  matrixSpur().push({ ts:jetztIso(), uebersprungen:true, kid:kid||null, anlass:anlass||null });
+  S.tag.matrixAbfragen=num(S.tag.matrixAbfragen)+1;
+  S.tag.matrixUebersprungen=num(S.tag.matrixUebersprungen)+1;
+  const k=kid?S.karten.find(c=>c.id===kid):null;
+  if(k){ k.posVorher=null; saveKarten(); }
+  saveTag();
+}
+function matrixSkipQuote(){
+  const a=num(S.tag&&S.tag.matrixAbfragen), u=num(S.tag&&S.tag.matrixUebersprungen);
+  return a>0 ? u/a : 0;
+}
+
+/* ══ §1.2 · EIN Dialog für Matrix UND Akku ═════════════════════════════
+   Ausdrücklich nicht zwei nacheinander — das ist das erste der beiden
+   verbindlichen Gegenmittel gegen Abfrage-Müdigkeit (das zweite ist das
+   gezählte Überspringen). Der Dialog erscheint bei JEDEM Verlassen einer
+   Karte: Abhaken, Pausieren, Wegwischen, Wechsel auf eine andere Karte. ══ */
+let matrixTmp=null;
+function oeffneMatrixDialog(kid, anlass, danach){
+  if(!tagOffen()){ if(danach) danach(); return; }
+  const k=kid?S.karten.find(c=>c.id===kid):null;
+  const p=matrixPosOderMitte();
+  const a=akkuLive();
+  matrixTmp={ kid:kid||null, anlass:anlass||null, x:p.x, y:p.y, akku:(a==null?null:Math.round(a)), danach:danach||null };
+  renderMatrixDialog();
+}
+function renderMatrixDialog(){
+  const t=matrixTmp; if(!t) return;
+  const k=t.kid?S.karten.find(c=>c.id===t.kid):null;
+  const ANLASS={abhaken:'abgehakt', pause:'pausiert', schieben:'geschoben', wechsel:'gewechselt', ende:'beendet'};
+  let h='';
+  h+='<p class="d">'+(k?('„<b>'+esc(String(k.titel||'?').slice(0,48))+'</b>" '+esc(ANLASS[t.anlass]||'verlassen')+'. ')
+                      :'')+'<b>Wo stehst du gerade?</b> Ein Punkt, keine Schublade.</p>';
+  h+=matrixPadHtml(t.x, t.y);
+  if(t.akku!=null){
+    h+='<div class="field mx-akku"><label>🔋 Akku jetzt <b id="mxAkkuV">'+Math.round(t.akku)+'%</b></label>'+
+       '<input type="range" min="0" max="'+AKKU_MAX+'" step="5" id="mxAkku" value="'+Math.round(t.akku)+'">'+
+       '<div class="hint">Energie und Richtung sind zwei verschiedene Dinge — mit vollem Akku kann man links kreisen.</div></div>';
+  }
+  h+='<div class="field"><label>Kommentar (reist im Export mit)</label>'+
+     '<textarea id="mxKom" placeholder="z. B. „Anruf hat mich zerlegt" · „Spaziergang hat geladen"></textarea></div>';
+  const foot='<button class="btn ghost sm" data-mxskip="1">Überspringen</button>'+
+             '<button class="btn prim" data-mxgo="1">Übernehmen</button>';
+  openSheet('Wo stehst du?', h, foot);
+}
+/* Das Pad: 2×2 beschriftet, aber der Punkt liegt frei. */
+function matrixPadHtml(x, y){
+  const px=((num(x)+1)/2*100), py=((1-num(y))/2*100);   // y:+1 außen = OBEN
+  return '<div class="mxpad" id="mxPad">'+
+    '<div class="mxq q1"><b>1 · Ablenkungen</b><span>außen · weg von</span></div>'+
+    '<div class="mxq q3"><b>3 · Werkzeuge</b><span>außen · hin zu</span></div>'+
+    '<div class="mxq q2"><b>2 · Zustände</b><span>innen · weg von</span></div>'+
+    '<div class="mxq q4"><b>4 · Ziele</b><span>innen · hin zu</span></div>'+
+    '<div class="mxax mxax-v"></div><div class="mxax mxax-h"></div>'+
+    '<div class="mxlbl mxl-l">← weg von</div><div class="mxlbl mxl-r">hin zu →</div>'+
+    '<div class="mxlbl mxl-t">außen</div><div class="mxlbl mxl-b">innen</div>'+
+    '<div class="mxdot" id="mxDot" style="left:'+px.toFixed(1)+'%;top:'+py.toFixed(1)+'%"></div>'+
+    '</div>'+
+    '<div class="mxread" id="mxRead">'+matrixLesart(x,y)+'</div>';
+}
+function matrixLesart(x,y){
+  const rx=num(x)<-0.33?'links':(num(x)>0.33?'rechts':'mittig');
+  const ry=num(y)>0.33?'außen':(num(y)<-0.33?'innen':'dazwischen');
+  const t=num(x)<-0.33?'Du drehst dich weg — ein Werkzeug wäre jetzt dran.'
+        :(num(x)>0.33?'Du ziehst nach vorn.':'Kippt in beide Richtungen.');
+  return '<b>'+rx+' · '+ry+'</b> — '+t;
+}
+function matrixDialogSpeichern(){
+  const t=matrixTmp; if(!t){ closeSheet(); return; }
+  const kom=((el('mxKom')||{}).value||'').trim();
+  // Akku getrennt buchen (orthogonal) — derselbe Weg wie der alte Schnellzugriff.
+  const inp=el('mxAkku');
+  if(inp && t.akku!=null && S.tag && S.tag.akku!=null){
+    const vorher=akkuLive();
+    const neuA=Math.max(0, Math.min(AKKU_MAX, num(inp.value,vorher)));
+    const pending=vorher-num(S.tag.akku);
+    const fk=t.kid?S.karten.find(c=>c.id===t.kid):null;
+    const delta=Math.round((neuA-vorher)*10)/10;
+    S.tag.akku=Math.max(0, Math.min(AKKU_MAX, neuA-pending));
+    akkuSampleSchreiben();
+    if(!Array.isArray(S.meta.akkuEintraege)) S.meta.akkuEintraege=[];
+    S.meta.akkuEintraege.push({ ts:jetztIso(), datum:heuteApp(), kid:fk?fk.id:null,
+      titel:fk?(fk.titel||''):null, vorher:Math.round(vorher), nachher:Math.round(neuA),
+      delta, kommentar:kom });
+    if(S.meta.akkuEintraege.length>300) S.meta.akkuEintraege=S.meta.akkuEintraege.slice(-300);
+    if(fk && Math.abs(delta)>0.05){
+      const dauer=heuteInvestiertMin(fk);
+      if(dauer>=5){
+        if(!Array.isArray(S.meta.akkuMessungen)) S.meta.akkuMessungen=[];
+        S.meta.akkuMessungen.push({ kid:fk.id, kat:akkuKategorie(fk), datum:heuteApp(),
+          delta:Math.round(delta), dauerMin:Math.round(dauer), rate:Math.round(delta/(dauer/60)*10)/10 });
+        if(S.meta.akkuMessungen.length>500) S.meta.akkuMessungen=S.meta.akkuMessungen.slice(-500);
+      }
+    }
+    saveMeta();
+  }
+  const bonus=matrixPosSetzen(t.x, t.y, t.kid, t.anlass);
+  const danach=t.danach; matrixTmp=null;
+  closeSheet(); renderAlles();
+  if(bonus>=1){ toast('↗︎ Bewegung nach rechts · +'+Math.round(bonus)+' P'); momentBuchung(bonus); }
+  // §9: DIREKT nach dem Matrix-Tap kommt der Vorschlag — genau einmal je
+  // Karte, im Moment, in dem der Kopf ohnehin gehoben ist.
+  if(danach) danach(); else zeigeVorschlag();
+}
+function matrixDialogSkip(){
+  const t=matrixTmp; if(!t){ closeSheet(); return; }
+  matrixUeberspringen(t.kid, t.anlass);
+  const danach=t.danach; matrixTmp=null;
+  closeSheet(); renderAlles();
+  if(danach) danach();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   §9 (v2.0.0) · DER VORSCHLAG
+   Direkt nach dem Matrix-Tap — genau einmal je Karte und Tag, im Moment, in
+   dem der Kopf ohnehin gehoben ist. Übernahme bleibt ein Vorschlag, nie
+   Automatik; das ist das Muster der ganzen App.
+
+   Links  → ein WERKZEUG statt der nächsten Zielaufgabe.
+   Rechts → die nächste Karte aus der Kette.
+
+   Welches Werkzeug, hängt vom Wissensstand ab:
+   · Startwert (nichts gelernt): nach AKKU. Voller Akku → das kürzeste
+     Werkzeug reicht; leerer Akku → das ladende (längste) Werkzeug.
+   · Gelernt: das Werkzeug mit dem besten MEDIAN-dx — also das, das Pascal
+     tatsächlich von links nach rechts gebracht hat.
+
+   Lernschwelle (vorgeschlagen, begründet): VORSCHLAG_MIN_JE_WERKZEUG = 3
+   Messungen für dieses eine Werkzeug UND settings.vorschlagLernSchwelle = 12
+   Messungen insgesamt. Begründung: Ein Median aus 3 Werten ist gegen einen
+   einzelnen Ausreißer robust (der mittlere Wert kann nicht der Ausreißer
+   sein) — dieselbe Logik, mit der die App schon die Schätzfaktoren stützt.
+   Die Gesamtschwelle von 12 verhindert, dass das erste zufällig dreimal
+   benutzte Werkzeug das Feld besetzt, bevor die Alternativen überhaupt
+   Gelegenheit hatten. Bei ~4 Werkzeugen sind 12 Messungen rund drei Runden —
+   knapp genug, dass es in der ersten Woche greift, groß genug, dass es nicht
+   Rauschen abbildet.
+   ══════════════════════════════════════════════════════════════════════ */
+const VORSCHLAG_MIN_JE_WERKZEUG = 3;
+function werkzeugKarten(){
+  return S.karten.filter(k=>k.status==='offen' && !k.freeze && matrixFeldVon(k)==='werkzeug');
+}
+/* Median-dx je Werkzeug aus der Lernspur. */
+function werkzeugWirkung(kid){
+  const w=(S.meta&&S.meta.matrixWirkung)||[];
+  const dx=w.filter(e=>e.kid===kid).map(e=>num(e.dx));
+  if(dx.length<VORSCHLAG_MIN_JE_WERKZEUG) return null;
+  return { median:akkuMedian(dx), n:dx.length };
+}
+function werkzeugMessungenGesamt(){
+  const w=(S.meta&&S.meta.matrixWirkung)||[];
+  return w.filter(e=>e.feld==='werkzeug').length;
+}
+function vorschlagGelernt(){ return werkzeugMessungenGesamt() >= num(S.settings&&S.settings.vorschlagLernSchwelle,12); }
+/* Das vorgeschlagene Werkzeug + die Begründung, die der Dialog zeigt. */
+function werkzeugVorschlag(){
+  const ws=werkzeugKarten();
+  if(!ws.length) return null;
+  if(vorschlagGelernt()){
+    let best=null;
+    ws.forEach(k=>{ const w=werkzeugWirkung(k.id);
+      if(w && w.median>0 && (!best || w.median>best.w.median)) best={k, w}; });
+    if(best) return { karte:best.k, grund:'hat dich '+best.w.n+'× im Schnitt um '+
+      (Math.round(best.w.median*100)/100)+' nach rechts gebracht', quelle:'gelernt' };
+  }
+  // Startwert: nach Akku. Leer → das ladende (längste) Werkzeug, voll → das kürzeste.
+  const a=akkuLive();
+  const leer = (a==null) ? false : (a<50);
+  const sort=ws.slice().sort((x,y)=>num(x.sollMin)-num(y.sollMin));
+  const k= leer ? sort[sort.length-1] : sort[0];
+  return { karte:k, quelle:'akku',
+    grund: (a==null) ? 'noch nichts gelernt — Startwert'
+         : (leer ? ('Akku bei '+Math.round(a)+' % — das ladende Werkzeug')
+                 : ('Akku bei '+Math.round(a)+' % — das kurze reicht')) };
+}
+/* Die nächste Karte aus der EINEN Kette (§7), die noch offen ist. */
+function naechsteKetteKarte(ausser){
+  const ids=tagesKette();
+  for(const id of ids){
+    if(id===ausser) continue;
+    const k=S.karten.find(c=>c.id===id);
+    if(k && k.status==='offen' && !k.freeze) return k;
+  }
+  return null;
+}
+function zeigeVorschlag(kid){
+  if(!tagOffen()) return;
+  if(!S.tag) return;
+  if(!Array.isArray(S.tag.vorschlagGezeigt)) S.tag.vorschlagGezeigt=[];
+  const marke=kid||'_frei';
+  if(S.tag.vorschlagGezeigt.indexOf(marke)>=0) return;   // genau EINMAL je Karte
+  const p=matrixPos(); if(!p) return;
+  const links = num(p.x) < 0;
+  let v=null, kopf='', warum='';
+  if(links){
+    v=werkzeugVorschlag();
+    kopf='Du stehst links'; warum=v?('Werkzeug — '+v.grund):'';
+    if(!v){
+      // Kein Werkzeug angelegt — das ist eine ehrliche Auskunft, kein Ersatzvorschlag.
+      const k2=naechsteKetteKarte(kid);
+      if(!k2) return;
+      v={karte:k2}; kopf='Du stehst links'; warum='Noch kein Werkzeug eingeordnet — lege eins an (Matrixfeld 3).';
+    }
+  } else {
+    const k2=naechsteKetteKarte(kid);
+    if(!k2) return;
+    v={karte:k2}; kopf='Du ziehst nach vorn'; warum='Die nächste Karte aus der Kette.';
+  }
+  S.tag.vorschlagGezeigt.push(marke); saveTag();
+  const k=v.karte;
+  const h='<div class="vsBox"><div class="vs-k">'+esc(kopf)+'</div>'+
+    '<div class="vs-t">'+matrixIcon(matrixFeldVon(k))+' '+esc(String(k.titel||'?').slice(0,60))+'</div>'+
+    '<div class="vs-w">'+esc(warum)+'</div></div>'+
+    '<p class="d">Vorschlag, keine Automatik — du entscheidest.</p>';
+  openSheet('Was jetzt?', h,
+    '<button class="btn ghost sm" data-close="1">Später</button>'+
+    '<button class="btn prim" data-vsgo="'+esc(k.id)+'">Starten</button>');
+}
+
 /* Heute in eine Karte investierte Minuten (ab Tagesbasis, gedeckelt 16 h). */
 function heuteInvestiertMin(k){
   const basis = (S.tag && S.tag.istMinutenStart && S.tag.istMinutenStart[k.id]!=null) ? num(S.tag.istMinutenStart[k.id]) : 0;
@@ -2329,10 +2817,8 @@ const FELDER = {
   uhrzeit:    {label:'Termin',    typ:'select', wert:k=>k.uhrzeit?'ja':'nein', opt:()=>[['ja','hat Uhrzeit'],['nein','ohne']]},
   sollMin:    {label:'Soll-Min',  typ:'zahl'},
   istSek:     {label:'Ist-Min',   typ:'zahl', wert:k=>Math.round(num(k.istSek)/60)},
-  komplex:    {label:'Komplexität',typ:'zahl'},
-  energie:    {label:'Energie',   typ:'zahl'},
-  blockade:   {label:'Blockade',  typ:'zahl'},
-  prioritaet: {label:'Priorität', typ:'select', opt:()=>[['muss','muss'],['soll','soll'],['idee','idee']]},
+  matrixFeld: {label:'Matrixfeld', typ:'select', wert:k=>matrixFeldVon(k),
+               opt:()=>MATRIX_FELDER.map(f=>[f, MATRIX_META[f].nr+' · '+MATRIX_META[f].name])},
   timerFlag:  {label:'Timer',     typ:'select', wert:k=>k.timerFlag?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
   freeze:     {label:'Freeze',    typ:'select', wert:k=>k.freeze?'ja':'nein', opt:()=>[['ja','ja'],['nein','nein']]},
   letzteBearbeitung:{label:'Bearbeitet', typ:'datum', wert:k=>k.letzteBearbeitung?String(k.letzteBearbeitung).slice(0,10):null},
@@ -2425,7 +2911,11 @@ function erledigtKarten(){
 function filterNenntArchiv(st){
   return (st.filter||[]).some(f=>f.feld==='status' && (f.werte||[]).includes('archiviert'));
 }
-const PRI_RANK={muss:0, soll:1, idee:2};
+/* §4 (v2.0.0): prioritaet ist entfallen. Die Rangfolge kommt jetzt aus dem
+   MATRIXFELD — Werkzeuge zuerst (sie aktivieren, und Aktivierung ist das
+   Problem), dann Zielarbeit, dann Zustände, Ablenkungen zuletzt. */
+const MATRIX_RANK={werkzeug:0, ziel:1, zustand:2, ablenkung:3};
+function matrixRang(k){ return num(MATRIX_RANK[matrixFeldVon(k)], 1); }
 function sortiereStapel(ks, st){
   const so=st.sortierung||{feld:'auto',richtung:'asc'};
   const dir=(so.richtung==='desc')?-1:1;
@@ -2451,7 +2941,7 @@ function sortiereStapel(ks, st){
       const fa=(a.faelligkeit||'9999-99-99')+'T'+(a.uhrzeit||'99:99');
       const fb=(b.faelligkeit||'9999-99-99')+'T'+(b.uhrzeit||'99:99');
       if(fa!==fb) return (fa<fb?-1:1)*dir;      // U3: Richtungs-Toggle wirkt auch auf die Auto-Sortierung
-      const pa=PRI_RANK[a.prioritaet]??1, pb=PRI_RANK[b.prioritaet]??1;
+      const pa=matrixRang(a), pb=matrixRang(b);
       if(pa!==pb) return (pa-pb)*dir;
     }
     return String(a.titel).localeCompare(String(b.titel));
@@ -2559,117 +3049,122 @@ function ansichtsListe(key){
 /* §1 (v1.12.0) · ZWEI Ketten statt einer — ketteDfm und kettePrivat, beide mit
    Rollover, Umsortierung und Entfernen wie die bisherige Tageskette. Persistenz
    in meta.ketten={dfm:{datum,ids,entfernt}, privat:{...}}. */
-function ketteState(dom){
-  const d=(dom==='privat')?'privat':'dfm';
+/* ══════════════════════════════════════════════════════════════════════
+   §7 (v2.0.0) · EINE KETTE
+   ketteDfm und kettePrivat sind zu EINER kette verschmolzen. Die Domäne
+   bleibt an der Karte — für Auswertung, Ziele und die Trennung in Airtable.
+   Der Tagesrahmen behält seine dfm- und privat-Segmente: er sagt, WANN welche
+   Art Arbeit dran ist, und das ist etwas anderes als die Reihenfolge.
+
+   Der dom-Parameter ist überall entfallen; wo Aufrufer noch einen mitgeben,
+   wird er ignoriert statt zu einer zweiten Kette zu führen.
+   ══════════════════════════════════════════════════════════════════════ */
+function ketteState(){
   if(!S.meta.ketten || typeof S.meta.ketten!=='object') S.meta.ketten={};
-  if(!S.meta.ketten[d] || !Array.isArray(S.meta.ketten[d].ids))
-    S.meta.ketten[d]={ datum:null, ids:[], entfernt:[] };
-  return S.meta.ketten[d];
+  if(!S.meta.ketten.alle || !Array.isArray(S.meta.ketten.alle.ids))
+    S.meta.ketten.alle={ datum:null, ids:[], entfernt:[] };
+  return S.meta.ketten.alle;
 }
-/* Auto-Vorschlag: offene Karten DER DOMÄNE, die heute (oder überfällig) dran
-   sind. §12.1: privat stehen die Morgenroutinen vorn. */
-function ketteAutoIds(dom){
-  const d=(dom==='privat')?'privat':'dfm', h=heuteApp();
-  let ks=S.karten.filter(k=>k.status==='offen' && k.domain===d && k.faelligkeit && k.faelligkeit<=h);
-  if(d==='privat') ks=ks.slice().sort((a,b)=>{
-    const ma=tagesabschnittHat(a,'morgens')?0:1, mb=tagesabschnittHat(b,'morgens')?0:1;
-    return ma-mb;
-  });
-  return ks.map(k=>k.id);
+/* Auto-Vorschlag: offene Karten, die heute geplant oder überfällig sind.
+   §4 (v2.0.0): geplantFuer ist der Planungstag, faelligkeit die Deadline —
+   beide ziehen in die Kette, aber aus verschiedenen Gründen.
+   Werkzeuge stehen vorn: sie aktivieren, und Aktivierung ist das Problem. */
+function ketteAutoIds(){
+  const h=heuteApp();
+  const ks=S.karten.filter(k=>k.status==='offen' &&
+    ((k.geplantFuer && k.geplantFuer<=h) || (k.faelligkeit && k.faelligkeit<=h)));
+  const rang={werkzeug:0, ziel:1, zustand:2, ablenkung:3};
+  return ks.slice().sort((a,b)=>num(rang[matrixFeldVon(a)],9)-num(rang[matrixFeldVon(b)],9)).map(k=>k.id);
 }
-/* Kette einer Domäne für heute — Rollover offener Einträge, Auto-Nachzug ans
-   Ende, verwaiste/fremddomänige IDs still aussortiert. */
-function tagesKetteDom(dom){
-  const d=(dom==='privat')?'privat':'dfm';
-  const st=ketteState(d), h=heuteApp();
+/* Die Kette für heute — Rollover offener Einträge, Auto-Nachzug ans Ende,
+   verwaiste IDs still aussortiert. */
+function tagesKette(){
+  const st=ketteState(), h=heuteApp();
   if(st.datum!==h){
     const uebrig=(st.ids||[]).filter(id=>{ const k=S.karten.find(x=>x.id===id); return k && k.status==='offen'; });
-    const auto=ketteAutoIds(d).filter(id=>uebrig.indexOf(id)<0);
+    const auto=ketteAutoIds().filter(id=>uebrig.indexOf(id)<0);
     st.datum=h; st.ids=uebrig.concat(auto); st.entfernt=[]; saveMeta();
-    ketteHistLog(d);   // §2 (v1.13.1): auch der Rollover ist eine Kettenänderung
+    ketteHistLog();
   } else {
     const bekannt=new Set(st.ids), entfernt=new Set(st.entfernt||[]);
-    const neu=ketteAutoIds(d).filter(id=>!bekannt.has(id) && !entfernt.has(id));
+    const neu=ketteAutoIds().filter(id=>!bekannt.has(id) && !entfernt.has(id));
     if(neu.length){ st.ids=st.ids.concat(neu); saveMeta();
-      ketteHistLog(d);   // §2 (v1.13.1): der Auto-Nachzug schrieb NIE Historie — genau er hat die 4→41-Änderung unprotokolliert gelassen
-      // §5.5 (v1.13.0): Nachzug WÄHREND des laufenden Tages = ungeplante Last
+      ketteHistLog();
       if(tagOffen()){ let dirty=false;
         neu.forEach(id=>{ const k=S.karten.find(x=>x.id===id); if(k && !k.ungeplant){ k.ungeplant=true; dirty=true; } });
         if(dirty) saveKarten(); }
     }
   }
-  const lebt=st.ids.filter(id=>{ const k=S.karten.find(x=>x.id===id); return k && k.domain===d; });
+  const lebt=st.ids.filter(id=>S.karten.some(x=>x.id===id));
   if(lebt.length!==st.ids.length){ st.ids=lebt; saveMeta(); }
   return st.ids;
 }
-/* Beide Ketten in einer Reihe (DFM zuerst) — für Sheet, Export, Übersichten. */
-function tagesKette(){ return tagesKetteDom('dfm').concat(tagesKetteDom('privat')); }
+/* Rückwärtskompatible Sicht „nur diese Domäne" — die Kette bleibt EINE,
+   das hier ist ein FILTER auf ihr, keine zweite Kette. */
+function tagesKetteDom(dom){
+  const d=(dom==='privat')?'privat':'dfm';
+  return tagesKette().filter(id=>{ const k=S.karten.find(x=>x.id===id); return k && k.domain===d; });
+}
 function ketteKarten(dom){
   const by={}; S.karten.forEach(k=>by[k.id]=k);
   return (dom?tagesKetteDom(dom):tagesKette()).map(id=>by[id]).filter(Boolean);
 }
 function ketteHat(id){ return tagesKette().indexOf(id)>=0; }
-/* Manuelles Ergänzen/Entfernen — immer in der Kette der Karten-Domäne. */
+/* Manuelles Ergänzen/Entfernen. */
 function ketteToggle(id){
   const k=S.karten.find(x=>x.id===id); if(!k) return false;
-  const st=ketteState(k.domain); tagesKetteDom(k.domain);
+  const st=ketteState(); tagesKette();
   const i=st.ids.indexOf(id);
   if(!Array.isArray(st.entfernt)) st.entfernt=[];
   if(i>=0){ st.ids.splice(i,1); if(st.entfernt.indexOf(id)<0) st.entfernt.push(id); }
   else { st.ids.push(id); st.entfernt=st.entfernt.filter(x=>x!==id);
-    if(tagOffen() && !k.ungeplant){ k.ungeplant=true; saveKarten(); } }   // §5.5 (v1.13.0)
-  saveMeta(); ketteHistLog(k.domain); return i<0;
+    if(tagOffen() && !k.ungeplant){ k.ungeplant=true; saveKarten(); } }
+  saveMeta(); ketteHistLog(); return i<0;
 }
-/* Reihenfolge setzen. Mit dom: genau diese Kette. Ohne dom (Tagesplanung,
-   Alt-Import): IDs nach Karten-Domäne aufteilen, Reihenfolge erhalten. */
-function ketteSetzen(ids, dom){
-  if(dom){
-    const d=(dom==='privat')?'privat':'dfm', st=ketteState(d);
-    st.datum=heuteApp();
-    st.ids=(ids||[]).filter((id,i,a)=>a.indexOf(id)===i && S.karten.some(k=>k.id===id && k.domain===d));
-    // §1 (v1.13.1): Explizites Setzen ERSETZT die Kette wirklich — alles
-    // Fällige, das NICHT genannt ist, gilt als bewusst draußen. Vorher wurde
-    // entfernt geleert und der Auto-Nachzug (tagesKetteDom) holte jede
-    // fällige Karte sofort zurück (DFM: 4 gesetzt → 41 in der Kette).
-    st.entfernt=ketteAutoIds(d).filter(id=>st.ids.indexOf(id)<0);
-    saveMeta(); ketteHistLog(d); return;
-  }
-  const by={}; S.karten.forEach(k=>by[k.id]=k);
-  ketteSetzen((ids||[]).filter(id=>by[id] && by[id].domain!=='privat'), 'dfm');
-  ketteSetzen((ids||[]).filter(id=>by[id] && by[id].domain==='privat'), 'privat');
+/* Reihenfolge setzen. Explizites Setzen ERSETZT die Kette wirklich — alles
+   Fällige, das NICHT genannt ist, gilt als bewusst draußen (Hotfix 1.13.1,
+   hier auf die eine Kette übertragen). */
+function ketteSetzen(ids){
+  const st=ketteState();
+  st.datum=heuteApp();
+  st.ids=(ids||[]).filter((id,i,a)=>a.indexOf(id)===i && S.karten.some(k=>k.id===id));
+  st.entfernt=ketteAutoIds().filter(id=>st.ids.indexOf(id)<0);
+  saveMeta(); ketteHistLog();
 }
-/* §9.2: Karte in ihrer Kette bewegen. dir −1/+1 = eine Position, 'top' = ganz
-   nach oben (startet gem. §6 die Uhr — Uhr folgt der Handlung des Aufrufers). */
-function ketteBewegen(id, dir){
+/* §6 (v2.0.0): Sortieren geschieht aus der SUCHE heraus — Karte antippen, an
+   Position n schieben. Keine Pfeile in der Kartenzeile, kein Ketten-Tab.
+   Position ist 1-basiert; 'top' bleibt als Kurzform erhalten. */
+function ketteBewegen(id, ziel){
   const k=S.karten.find(x=>x.id===id); if(!k) return false;
-  const st=ketteState(k.domain); tagesKetteDom(k.domain);
+  const st=ketteState(); tagesKette();
   const i=st.ids.indexOf(id); if(i<0) return false;
-  if(dir==='top'){ st.ids.splice(i,1); st.ids.unshift(id); }
-  else { const j=i+dir; if(j<0||j>=st.ids.length) return false;
-    const t=st.ids[i]; st.ids[i]=st.ids[j]; st.ids[j]=t; }
-  saveMeta(); ketteHistLog(k.domain); return true;
+  let j;
+  if(ziel==='top') j=0;
+  else if(ziel===-1||ziel===1) j=i+ziel;
+  else j=Math.max(0, Math.min(st.ids.length-1, num(ziel)-1));
+  if(j<0||j>=st.ids.length) return false;
+  st.ids.splice(i,1); st.ids.splice(j,0,id);
+  saveMeta(); ketteHistLog(); return true;
 }
 /* §13: Kettenhistorie des laufenden Tages — jede Umsortierung wird lokal
-   festgehalten (unbegrenzt; ins Sync-Paket reist nur der aktuelle Tag). */
-function ketteHistLog(dom){
+   festgehalten (ins Sync-Paket reist nur der aktuelle Tag). */
+function ketteHistLog(){
   try{
     if(!S.meta.kettenHistorie) S.meta.kettenHistorie={};
     const h=heuteApp();
     if(!Array.isArray(S.meta.kettenHistorie[h])) S.meta.kettenHistorie[h]=[];
     const arr=S.meta.kettenHistorie[h];
-    const eintrag={ ts:jetztIso(), dom:(dom==='privat')?'privat':'dfm', ids:ketteState(dom).ids.slice() };
-    // §2 (v1.13.4) ENTPRELLUNG: schnelle Folge-Umsortierungen derselben Kette
-    // (binnen 10 s) ersetzen den letzten Eintrag — der ENDSTAND zählt, nicht
-    // jeder Zwischenschritt (belegt: 5 Einträge à 21 IDs in 10 s am 01.09.).
+    const eintrag={ ts:jetztIso(), ids:ketteState().ids.slice() };
+    // ENTPRELLUNG (v1.13.4): schnelle Folge-Umsortierungen binnen 10 s
+    // ersetzen den letzten Eintrag — der ENDSTAND zählt.
     const letzt=arr[arr.length-1];
-    if(letzt && letzt.dom===eintrag.dom
-       && (Date.parse(eintrag.ts)-Date.parse(letzt.ts))<KETTENHIST_ENTPRELL_S*1000){
+    if(letzt && (Date.parse(eintrag.ts)-Date.parse(letzt.ts))<KETTENHIST_ENTPRELL_S*1000){
       arr[arr.length-1]=eintrag;
     } else {
       arr.push(eintrag);
     }
     if(arr.length>500) S.meta.kettenHistorie[h]=arr.slice(-500);
-    kettenHistKappen();   // §2: lokal nur die letzten 7 Tage (Export trägt nur heute)
+    kettenHistKappen();
     saveMeta();
   }catch(e){}
 }
@@ -2701,7 +3196,9 @@ function hms(sek){ sek=Math.max(0,Math.round(sek)); const h=Math.floor(sek/3600)
 /* Kompakte Dauer „3h00" / „45m" für KPI-Subtexte. */
 function tZeitKurz(min){ min=Math.max(0,Math.round(min)); return min>=60 ? Math.floor(min/60)+'h'+String(min%60).padStart(2,'0') : min+'m'; }
 /* Punkte-Prognose der Karte bei genau `min` investierten Minuten (Engine 1:1). */
-function kartePunkteBei(k, min){ return kartePunkte(Object.assign({}, k, { istSek: Math.max(0,min)*60 })); }
+/* §2 (v2.0.0): „Was brächte die Karte bei n Minuten Soll?" — die Zeitquelle
+   ist jetzt sollMin, also wird SIE gesetzt, nicht mehr istSek. */
+function kartePunkteBei(k, min){ return kartePunkte(Object.assign({}, k, { sollMin: Math.max(0,min) })); }
 const RING_C = 2*Math.PI*58;    // Umfang Timer-Ring
 const RING_CP = 2*Math.PI*48;   // Umfang Fortschritts-Ring
 /* ══ §5.1 (v1.8.0) · P/h-Pfeil gegen den Gruppenschnitt ══════════════════
@@ -2772,7 +3269,7 @@ function kartenreiheHtml(k, stapelId){
     else if(pIst>0 || !istRout) meta.push('<span><b>'+pIst+'</b> P</span>');
   }
   const phb=phBadge(k); if(phb) meta.push(phb);
-  if(k.prioritaet==='muss') meta.push('<span class="pri-muss">muss</span>');
+  { const mf=matrixFeldVon(k); if(mf!=='ziel') meta.push('<span class="mx-tag">'+MATRIX_META[mf].icon+'</span>'); }
   if(k.domain==='dfm' && k.projekt) meta.push('<span>'+esc(k.projekt)+'</span>');
   if(k.rhythmus && num(k.streak)>0) meta.push('<span>🔥'+num(k.streak)+'</span>');
   const subCount = untermenge(k.id).length;
@@ -2883,7 +3380,10 @@ function stapelHtml(st){
 /* §2 (v1.6.0): Der Stapel-Tab zeigt nur noch die beiden festen Stapel „Heute"
    und „Erledigt". Eigene Stapel sind nicht mehr anlegbar, der Stapel-Editor und
    die Ordner-Gruppierung entfallen damit aus der Ansicht (Daten bleiben liegen). */
+/* §6 (v2.0.0): Die Stapelseite ist entfallen. Die Funktion bleibt als
+   Schutzklausel stehen, damit Alt-Aufrufer (Stapel-Editor) nicht werfen. */
 function renderStapel(){
+  if(!el('stapelListe')) return;
   rangCacheBauen();
   const host=el('stapelListe');
   let html=tagBannerHtml();
@@ -3058,7 +3558,7 @@ function renderFokus(){
   // §1 (v1.10.1, F1): zwei Zeilen — Meta volle Breite, darunter die Bedienleiste
   // (gleiche data-Attribute und Handler, reine Umplatzierung).
   const aufgabe='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'">'+
-    '<div class="tsub">'+(k.domain==='dfm'?'DFM':'Privat')+(k.prioritaet==='muss'?' · <span style="color:var(--bad)">MUSS</span>':'')+
+    '<div class="tsub">'+(k.domain==='dfm'?'DFM':'Privat')+' · '+matrixIcon(matrixFeldVon(k))+' '+esc(matrixName(matrixFeldVon(k)))+
     ' · <span id="tGesamtP">'+Math.round(kartePunkteGeplant(k))+'</span> P gesamt</div></div>'+
     '<div class="tzeile2">'+
     '<button class="tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause">'+(laeuft?'⏸':'▶')+'</button>'+
@@ -3331,18 +3831,20 @@ function navSortiere(ks){
       const da=(a.faelligkeit||'9999-99-99'), db=(b.faelligkeit||'9999-99-99');
       if(da!==db) return da<db?-1:1;
     }
-    const pr=(PRI_RANK[a.prioritaet]??1)-(PRI_RANK[b.prioritaet]??1);
+    const pr=matrixRang(a)-matrixRang(b);
     if(pr) return pr;
     return String(a.titel).localeCompare(String(b.titel));
   });
 }
-/* Ebene 3 für Privat: Gruppierung in drei Abschnitte — alle bleiben sichtbar. */
+/* §4 (v2.0.0): Gruppiert wird nach MATRIXFELD statt nach Tagesabschnitt —
+   Werkzeug und Zielarbeit verhalten sich unterschiedlich, unabhängig von der
+   Uhrzeit. Leere Felder fallen weg. */
 function navGruppen(ks){
-  return TAGESABSCHNITTE.map(ta=>({
-    key:ta, label:TA_LABEL[ta],
-    karten:ks.filter(k=>tagesabschnittHat(k,ta))
+  return MATRIX_FELDER.slice().sort((a,b)=>num(MATRIX_RANK[a])-num(MATRIX_RANK[b])).map(f=>({
+    key:f, label:MATRIX_META[f].icon+' '+MATRIX_META[f].name,
+    karten:ks.filter(k=>matrixFeldVon(k)===f)
              .sort((a,b)=>((a.uhrzeit||'99:99')<(b.uhrzeit||'99:99')?-1:1))
-  }));
+  })).filter(g=>g.karten.length);
 }
 /* A5: DFM/Privat/Alle-Filterchips je Stapel (eigener Zustand pro Stapel). */
 function stapelDomainOf(stId){ return (S.ui.stapelDomain&&S.ui.stapelDomain[stId])||'alle'; }
@@ -4288,9 +4790,11 @@ function renderAlles(){
   _phCache=null;   // §5 (1.8.0): P/h-Schnitte je Render frisch
   rangCacheBauen();
   renderFokusleiste();
-  if(S.ui.tab==='stapel') renderStapel();
-  else if(S.ui.tab==='fokus') renderFokus();
+  if(S.ui.tab==='statistik') renderStatistik();
   else if(S.ui.tab==='einst') renderEinst();
+  else if(S.ui.tab==='belohnung') renderBelohnung();
+  else renderSuche();
+  fokusLayerPflegen();
 }
 /* 1-Sekunden-Ticker nur solange der Timer läuft — aktualisiert Text in-place. */
 /* ══════════════════════════════════════════════════════════════════════
@@ -4822,11 +5326,20 @@ function renderDetail(){
     h+='<div class="field"><label>Aus Vorlage</label><div class="chips">'+
       S.vorlagen.map(v=>'<button class="chip" data-ausvorlage="'+v.id+'">📄 '+esc(v.name)+'</button>').join('')+'</div></div>';
   }
-  // U6-D · 1 Domäne · 2 Priorität
-  h+='<div class="grid2">'+
-    '<div class="field"><label>Domäne</label>'+chipGroup('domain',k.domain,[['privat','Privat'],['dfm','DFM']], k.domain==='privat'?'gruen':'')+'</div>'+
-    '<div class="field"><label>Priorität</label>'+chipGroup('prioritaet',k.prioritaet,[['muss','muss'],['soll','soll'],['idee','idee']], k.prioritaet==='muss'?'rot':'')+'</div>'+
-  '</div>';
+  // §4 (v2.0.0) · Beim Anlegen sind es FÜNF Entscheidungen statt neun:
+  // Titel, Domäne, Matrixfeld, Soll-Minuten, Geld-Impact. Priorität ist
+  // entfallen — die Matrix ordnet.
+  h+='<div class="field"><label>Domäne</label>'+chipGroup('domain',k.domain,[['privat','Privat'],['dfm','DFM']], k.domain==='privat'?'gruen':'')+'</div>';
+  // §1.1: Ein Tap auf ein Feld setzt VORSCHLAGSWERTE — der Nutzer prüft sie
+  // und speichert. Vorschlag, nie Automatik.
+  {
+    const mf=matrixFeldVon(k);
+    h+='<div class="field"><label>Matrixfeld</label><div class="chips">'+
+      MATRIX_FELDER.map(f=>'<button class="chip '+(mf===f?'on':'')+'" data-dmx="'+f+'">'+
+        MATRIX_META[f].icon+' '+MATRIX_META[f].nr+' · '+MATRIX_META[f].name+'</button>').join('')+
+      '</div><div class="hint">'+esc(MATRIX_META[mf].achse)+' · '+esc(MATRIX_META[mf].richtung)+
+      ' — '+esc(MATRIX_META[mf].hint)+' · Faktor ×'+String(matrixFaktor(k)).replace('.',',')+'</div></div>';
+  }
   // 3 Titel
   h+='<div class="field"><label>Titel</label><input data-bind="titel" value="'+esc(k.titel)+'" placeholder="Was ist zu tun?"></div>';
   // 4 Unteraufgaben (inline)
@@ -4881,17 +5394,6 @@ function renderDetail(){
       '<div class="field"><label>Geld-Impact (Score)</label><input type="number" inputmode="numeric" data-bind="geldScore" value="'+num(k.geldScore)+'"></div>'+
     '</div>';
   }
-  // §1 (v1.6.1): Tagesabschnitte als MEHRFACHAUSWAHL — eine Karte kann in
-  // mehreren Abschnitten Pflicht sein und erscheint dann in jeder Gruppe.
-  // Keine Auswahl = automatisch aus der Deadline-Uhrzeit ableiten.
-  {
-    const gesetzt=Array.isArray(k.tagesabschnitt)?k.tagesabschnitt:[];
-    h+='<div class="field"><label>Tagesabschnitte (Gruppierung + Routinen-Schublade)</label><div class="chips">'+
-      TAGESABSCHNITTE.map(ta=>'<button class="chip '+(gesetzt.indexOf(ta)>=0?'on':'')+'" data-dta="'+ta+'">'+TA_LABEL[ta]+'</button>').join('')+
-      '</div><div class="hint">'+(gesetzt.length
-        ? 'Karte erscheint in '+gesetzt.length+' Abschnitt(en) — eine Karte, eine Tick-Kurve, ein Streak.'
-        : 'automatisch → „'+TA_LABEL[tagesabschnittAbleiten(k)]+'" (aus '+(k.uhrzeit?'Uhrzeit '+esc(k.uhrzeit):'fehlender Uhrzeit')+')')+'</div></div>';
-  }
   // §4.2 (v1.10.0): was die App über die Akku-Wirkung dieser Karte gelernt hat
   {
     const g=akkuGelernt(k), mess=((S.meta&&S.meta.akkuMessungen)||[]).filter(m=>m.kid===k.id).length;
@@ -4907,13 +5409,15 @@ function renderDetail(){
     '<div class="hint">'+(k.keineAutoPause
       ? 'Läuft bewusst unbeaufsichtigt. Ab '+PAUSENTIMER_MAX_MIN+' Min am Stück ohne Pause kippt die Rate ins Negative.'
       : 'Nach '+AUTOPAUSE_MIN+' Min ohne Interaktion pausiert der Timer automatisch und fragt nach der echten Dauer.')+'</div></div>';
-  h+='<div class="field"><label>Rate-Treiber (Komplexität · Energie · Blockade)</label><div class="grid3">'+
-    '<div>'+chipGroup('komplex',k.komplex,[[1,'1,0'],[1.5,'1,5'],[2,'2,0']])+'</div>'+
-    '<div>'+chipGroup('energie',k.energie,[[0.8,'0,8'],[1,'1,0'],[1.3,'1,3']])+'</div>'+
-    '<div>'+chipGroup('blockade',k.blockade,[[1,'1,0'],[1.5,'1,5'],[2,'2,0']])+'</div>'+
-  '</div><div class="hint">Rate ≈ '+Math.round(rate(k))+' P/Std · Prognose '+Math.round(kartePunkte(Object.assign({},k,{ticksHeute:0,punkteOverride:null})))+' P</div></div>';
+  // §2 (v2.0.0): Was die Karte bringt — offen gerechnet, damit der Wert
+  // VORHER feststeht statt sich aus der Uhr zu ergeben.
+  h+='<div class="field"><label>Was diese Karte einbringt</label><div class="hint" style="margin-top:0">'+
+    num(k.sollMin)+'′ × '+Math.round(basisRate(k))+' P/Std × '+String(matrixFaktor(k)).replace('.',',')+' ('+esc(matrixName(matrixFeldVon(k)))+')'+
+    (k.domain==='dfm'?(' × '+(Math.round(geldFaktor(k)*100)/100).toString().replace('.',',')+' (Geld)'):'')+
+    ' → <b>'+Math.round(kartePunkte(Object.assign({},k,{ticksHeute:0,punkteOverride:null,bewegungsBonus:0})))+' P</b>'+
+    '</div><div class="hint">Dazu kommt der Bewegungsbonus (bis '+num(S.settings.bewegungsBonus,500)+' P), wenn dich diese Karte nach rechts bringt.</div></div>';
   h+='<div class="field"><label>Override: Rate &amp; Akku (v1.1)</label><div class="grid2">'+
-    '<div><input type="number" inputmode="decimal" data-bind="punkteProStd" value="'+(k.punkteProStd==null?'':num(k.punkteProStd))+'" placeholder="P/Std"><div class="hint">leer = aus Treibern</div></div>'+
+    '<div><input type="number" inputmode="decimal" data-bind="punkteProStd" value="'+(k.punkteProStd==null?'':num(k.punkteProStd))+'" placeholder="P/Std"><div class="hint">leer = Basis-Rate der Domäne</div></div>'+
     '<div><input type="number" inputmode="decimal" data-bind="akkuProStd" value="'+(k.akkuProStd==null?'':num(k.akkuProStd))+'" placeholder="Akku %/Std"><div class="hint">leer = Standard '+(S.settings.akkuProStd||-8)+'</div></div>'+
   '</div></div>';
   const zs = Array.isArray(k.zeitStufen)?k.zeitStufen:[];
@@ -5008,11 +5512,11 @@ function detailSpeichern(){
   const idx=S.karten.findIndex(k=>k.id===entwurf.id);
   if(idx>=0) S.karten[idx]=entwurf; else S.karten.push(entwurf);
   if(kettenOben && idx<0){
-    const st=ketteState(entwurf.domain); tagesKetteDom(entwurf.domain);
+    const st=ketteState(); tagesKette();
     st.ids=st.ids.filter(x=>x!==entwurf.id); st.ids.unshift(entwurf.id);
     st.entfernt=(st.entfernt||[]).filter(x=>x!==entwurf.id);
     if(tagOffen()) entwurf.ungeplant=true;   // §5.5 (v1.13.0)
-    saveMeta(); ketteHistLog(entwurf.domain);
+    saveMeta(); ketteHistLog();
   }
   // Unteraufgaben ersetzen
   S.unteraufgaben = S.unteraufgaben.filter(u=>u.parentId!==entwurf.id).concat(
@@ -5117,10 +5621,10 @@ function schubProtokoll(k, ziel, abzug){
    die Ketten — raus aus der heutigen, die Auto-Befüllung des Zieltags holt
    die Karte zurück. */
 function ketteRausHeute(k){
-  const st=ketteState(k.domain);
+  const st=ketteState();
   const i=st.ids.indexOf(k.id);
   if(i>=0){ st.ids.splice(i,1); if(!Array.isArray(st.entfernt)) st.entfernt=[];
-    if(st.entfernt.indexOf(k.id)<0) st.entfernt.push(k.id); saveMeta(); ketteHistLog(k.domain); }
+    if(st.entfernt.indexOf(k.id)<0) st.entfernt.push(k.id); saveMeta(); ketteHistLog(); }
 }
 function karteSchiebenA4(kid, mitAbzug, abzug){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
@@ -5132,25 +5636,14 @@ function karteSchiebenA4(kid, mitAbzug, abzug){
   beruehre(k);                                                    // A7
   saveKarten(); saveTag(); closeSheet(); renderAlles();
   toast('Auf '+fmtDatum(k.faelligkeit)+' ('+wochentagLang(k.faelligkeit)+') geschoben'+(ab>0?' · −'+ab+' P':'')); haptik(15);
-  blockadeVorschlagPruefen(k);   // §6.4
 }
 /* ══ §6.4 (v1.13.0) · Blockade aus dem Schieben LERNEN — Vorschlag ab der
    dritten Verschiebung derselben Karte, Übernahme NUR nach Freigabe (eine
    automatische Hebung hieße mehr P/Std für aufgeschobene Arbeit). ══ */
-const BLOCKADE_VORSCHLAG_AB=3;
-function blockadeVorschlagPruefen(k){
-  if(!k || k.status!=='offen') return;
-  const n=num(k.schiebeZaehler);
-  if(n<BLOCKADE_VORSCHLAG_AB || n%BLOCKADE_VORSCHLAG_AB!==0) return;
-  const cur=num(k.blockade,1);
-  const next=[1,1.5,2].find(x=>x>cur+0.01);
-  if(!next) return;
-  openSheet('Blockade heben?',
-    '<p class="d">„<b>'+esc(k.titel||'(ohne Titel)')+'</b>" wurde zum <b>'+n+'.</b> Mal geschoben — das deutet auf eine echte Blockade hin.</p>'+
-    '<p class="d">Vorschlag: Blockade von <b>'+String(cur).replace('.',',')+'</b> auf <b>'+String(next).replace('.',',')+'</b> heben. Die Punkterate der Karte steigt dadurch (Rate = Basis × Komplexität × Energie × Blockade). <b>Ohne Freigabe ändert sich nichts.</b></p>',
-    '<button class="btn ghost sm" data-close="1">So lassen</button>'+
-    '<button class="btn prim" data-blockadeheben="'+k.id+'" data-neu="'+next+'">Auf '+String(next).replace('.',',')+' heben</button>');
-}
+/* §4 (v2.0.0): Der Blockade-Vorschlag ist mit dem Feld „blockade" entfallen.
+   Was er leisten sollte — merken, dass eine Karte klemmt — leistet jetzt die
+   Matrix: eine Karte, die dich wiederholt nach links zieht, fällt in der
+   Matrix-Spur auf (§12, Modul „Belastung"). */
 function karteAbhaken(kid, fromDetail){
   const k = kid ? S.karten.find(x=>x.id===kid) : entwurf;
   if(!k) return;
@@ -5300,8 +5793,8 @@ function karteNeuStarten(kid, opts){
   opts=opts||{};
   const o=S.karten.find(k=>k.id===kid); if(!o) return;
   const kopie=neueKarte({
-    domain:o.domain, titel:o.titel, prioritaet:o.prioritaet, projekt:o.projekt, geldScore:num(o.geldScore),
-    sollMin:num(o.sollMin), komplex:o.komplex, energie:o.energie, blockade:o.blockade,
+    domain:o.domain, titel:o.titel, matrixFeld:matrixFeldVon(o), projekt:o.projekt, geldScore:num(o.geldScore),
+    sollMin:num(o.sollMin),
     punkteProStd:o.punkteProStd, akkuProStd:o.akkuProStd, abhakbonus:o.abhakbonus,
     zeitStufen:o.zeitStufen?JSON.parse(JSON.stringify(o.zeitStufen)):null,
     tickKurve:Array.isArray(o.tickKurve)?o.tickKurve.slice():[0], timerFlag:o.timerFlag,
@@ -5442,14 +5935,10 @@ function renderAbhakDialog(){
          '<div class="field"><label>Soll-Min</label><input type="number" inputmode="numeric" id="abFolgeSoll" value="'+restMin+'"'+(t.offeneSubs>0?' readonly style="opacity:.6"':'')+'>'+
            (t.offeneSubs>0?'<div class="hint">= Σ mitwandernder Unteraufgaben</div>':'')+'</div>'+
        '</div>'+
-       '<div class="field"><label>Priorität</label>'+
-         '<div class="chips" id="abFolgePri">'+['muss','soll','idee'].map(p=>
-           '<button class="chip '+(p===k.prioritaet?'on':'')+'" data-abfpri="'+p+'">'+p+'</button>').join('')+'</div></div>'+
-       '<div class="grid3">'+
-         '<div class="field"><label>Komplex</label><input type="number" step="0.5" id="abFolgeKx" value="'+num(k.komplex,1)+'"></div>'+
-         '<div class="field"><label>Energie</label><input type="number" step="0.5" id="abFolgeEn" value="'+num(k.energie,1)+'"></div>'+
-         '<div class="field"><label>Blockade</label><input type="number" step="0.5" id="abFolgeBl" value="'+num(k.blockade,1)+'"></div>'+
-       '</div>'+
+       '<div class="field"><label>Matrixfeld</label>'+
+         '<div class="chips" id="abFolgeMx">'+MATRIX_FELDER.map(f=>
+           '<button class="chip '+((t.folgeMx||matrixFeldVon(k))===f?'on':'')+'" data-abfmx="'+f+'">'+
+           MATRIX_META[f].icon+' '+MATRIX_META[f].name+'</button>').join('')+'</div></div>'+
        '<div class="field"><label>Notiz</label><textarea id="abFolgeNotiz" style="min-height:54px"></textarea></div>'+
        '<div class="hint">'+t.offeneSubs+' offene Unteraufgabe(n) wandern mit neuen App-IDs mit; abgehakte bleiben bei der alten Karte. Neue Karte ohne airtableId, Vorgängerin wird vermerkt.</div></div>';
   }
@@ -5483,12 +5972,11 @@ function folgeAufgabeAnlegen(k, f){
   const titel=(f.titel||'').trim() || (k.titel||'');
   const neu=neueKarte({
     domain:k.domain, titel,
-    prioritaet: f.prioritaet || k.prioritaet,
+    matrixFeld: f.matrixFeld || matrixFeldVon(k),
     projekt:    (f.projekt!==undefined ? f.projekt : k.projekt),
     geldScore:  num(f.geldScore!==undefined ? f.geldScore : k.geldScore),
     notiz:      (f.notiz!==undefined ? f.notiz : ''),
-    komplex: num(f.komplex, k.komplex), energie: num(f.energie, k.energie), blockade: num(f.blockade, k.blockade),
-    abhakbonus:k.abhakbonus, tagesabschnitt:k.tagesabschnitt,
+    abhakbonus:k.abhakbonus,
     faelligkeit: (f.faelligkeit!==undefined ? (f.faelligkeit||null) : heuteApp()),
     vorgaengerAppId: k.id,
     vorgaengerAirtableId: k.airtableId || null
@@ -5541,10 +6029,7 @@ function abhakDialogConfirm(){
     geldScore:  el('abFolgeGeld') ? num(el('abFolgeGeld').value) : undefined,
     faelligkeit:el('abFolgeDl') ? el('abFolgeDl').value : undefined,
     sollMin:    num(el('abFolgeSoll') ? el('abFolgeSoll').value : 0),
-    prioritaet: t.folgePri || k.prioritaet,
-    komplex:    el('abFolgeKx') ? num(el('abFolgeKx').value, k.komplex) : k.komplex,
-    energie:    el('abFolgeEn') ? num(el('abFolgeEn').value, k.energie) : k.energie,
-    blockade:   el('abFolgeBl') ? num(el('abFolgeBl').value, k.blockade) : k.blockade,
+    matrixFeld: t.folgeMx || matrixFeldVon(k),
     notiz:      el('abFolgeNotiz') ? el('abFolgeNotiz').value : ''
   });
   abhakTmp=null; closeSheet();
@@ -5695,7 +6180,7 @@ function renderRoutinenSheet(){
       (d==='dfm'?'DFM':'Privat')+'</button>').join('')+'</div>';
   let body='';
   TAGESABSCHNITTE.forEach(ta=>{
-    const grp=ks.filter(k=>tagesabschnittHat(k,ta));
+    const grp=ks.filter(k=>matrixFeldVon(k)===ta);
     const zu=(S.ui.routAuf!==ta);   // §5.3: persistierter manueller Zustand
     body+='<div class="routgruppe'+(zu?' zu':'')+'"><div class="rg-kopf" data-rgrp="'+ta+'">'+
       '<span class="caret">▾</span>'+TA_LABEL[ta]+'<span class="n">'+grp.length+'</span></div><div class="rg-body">'+
@@ -5889,56 +6374,86 @@ function kartenSitzungenHeute(kid){
   }
   return out;
 }
-function syncExport(typ){
-  // §13 (v1.12.0) · Vertrag 1.5: Der Export trägt jetzt AUCH private Karten
-  // (Kennzeichnung über domain; private Karten tragen KEINE airtableId).
-  // tagesKette ist durch ketteDfm[]/kettePrivat[] ersetzt; jede Karte trägt
-  // ihre Kettenzugehörigkeit und Position mit. Die Kettenhistorie reist nur
-  // für den laufenden Tag (lokal unbegrenzt — Pakete sind schon groß).
+/* ══════════════════════════════════════════════════════════════════════
+   §11 (v2.0.0) · VERTRAG 2.0
+   DELTA-EXPORT IST DER STANDARD. Die App merkt sich den Zeitpunkt des letzten
+   BESTÄTIGTEN Syncs und schickt nur, was sich seither geändert hat — aus 120
+   Karten werden 10 bis 20.
+
+   Der Zeitstempel wird erst NACH Bestätigung fortgeschrieben. Geht ein Sync
+   verloren, sammelt sich alles an, bis es wirklich angekommen ist; ein
+   abgebrochener Kopiervorgang darf keine Änderung verschlucken.
+
+   Gegenüber 1.6 geändert: EINE kette statt zweier · matrixFeld je Karte ·
+   die Positions-Spur des Tages · prioritaet/zeitmessung/tagesabschnitt/
+   komplex/energie/blockade entfallen · Sterne und upgradeFaktor entfallen.
+   Unverändert: ein Paket trägt IMMER ein karten-Array, auch wenn nur die
+   Kette oder ein Tagesrahmen gesetzt werden soll. sitzungen bleiben.
+   ══════════════════════════════════════════════════════════════════════ */
+function syncKarteAbbild(k){
+  const o={
+    id:k.id, domain:k.domain,
+    airtableId: k.domain==='dfm' ? (k.airtableId||null) : undefined,
+    titel:k.titel, projekt:k.domain==='dfm'?(k.projekt||null):null, geldScore:num(k.geldScore),
+    matrixFeld: matrixFeldVon(k),
+    faelligkeit:k.faelligkeit||null, uhrzeit:k.uhrzeit||null, geplantFuer:k.geplantFuer||null,
+    sollMin:num(k.sollMin), istMin:Math.round(num(k.istSek)/60),
+    status:k.status, punkteIst:Math.round(kartePunkte(k)),
+    notiz:k.notiz||'',
+    unteraufgaben: untermenge(k.id).map(u=>({ id:u.id, titel:u.titel, sollMin:num(u.sollMin), done:!!u.done }))
+  };
+  if(o.airtableId===undefined) delete o.airtableId;
+  if(k.freeze) o.freeze=true;
+  if(k.kommentarClaude) o.kommentarClaude=k.kommentarClaude;
+  if(k.vorgaengerAppId)      o.vorgaengerAppId=k.vorgaengerAppId;
+  if(k.vorgaengerAirtableId) o.vorgaengerAirtableId=k.vorgaengerAirtableId;
+  if(k.ungeplant) o.ungeplant=true;
+  if(num(k.bewegungsBonus)) o.bewegungsBonus=Math.round(num(k.bewegungsBonus));
+  const sitz=kartenSitzungenHeute(k.id);
+  if(sitz.length) o.sitzungen=sitz;
+  const ki=tagesKette().indexOf(k.id);
+  if(ki>=0) o.kettenPosition=ki+1;
+  return o;
+}
+/* Welche Karten reisen? Delta = alles, was sich seit dem letzten BESTÄTIGTEN
+   Sync geändert hat, plus alles, was in der Kette liegt (der Chat muss die
+   Kette immer vollständig auflösen können). Voll = der ganze Bestand. */
+function syncKartenAuswahl(voll){
   const alle=S.karten.filter(k=>k.domain==='dfm' || k.domain==='privat');
-  const kd=tagesKetteDom('dfm'), kp=tagesKetteDom('privat');
+  if(voll) return alle;
+  const seit=S.meta && S.meta.letzterSyncBestaetigtTs;
+  if(!seit) return alle;                       // erster Sync nach dem Umbau: alles
+  const inKette=new Set(tagesKette());
+  const t0=Date.parse(seit);
+  return alle.filter(k=>{
+    if(inKette.has(k.id)) return true;
+    const lb=Date.parse(k.letzteBearbeitung||k.erstelltTs||'');
+    return !isFinite(lb) || lb>t0;
+  });
+}
+function syncExport(typ){
+  const voll = (typ==='voll' || typ==='vollexport');
+  const gewaehlt=syncKartenAuswahl(voll);
+  const kette=tagesKette();
   return {
-    typ: typ||'sync', appVersion:VERSION, tagId: aktuelleTagId(), exportZeit:jetztIso(),
-    karten: alle.map(k=>{
-      const o={
-        id:k.id, domain:k.domain,
-        airtableId: k.domain==='dfm' ? (k.airtableId||null) : undefined,
-        titel:k.titel, projekt:k.domain==='dfm'?(k.projekt||null):null, geldScore:num(k.geldScore),
-        faelligkeit:k.faelligkeit||null, uhrzeit:k.uhrzeit||null, sollMin:num(k.sollMin), istMin:Math.round(num(k.istSek)/60),
-        komplex:num(k.komplex,1), energie:num(k.energie,1), blockade:num(k.blockade,1),
-        prioritaet:k.prioritaet, status:k.status, punkteIst:Math.round(kartePunkte(k)),
-        notiz:k.notiz||'',
-        unteraufgaben: untermenge(k.id).map(u=>({ id:u.id, titel:u.titel, sollMin:num(u.sollMin), done:!!u.done }))
-      };
-      if(o.airtableId===undefined) delete o.airtableId;
-      if(k.freeze) o.freeze=true;                          // M1 (1.1.0): nur eingefrorene Karten senden das Feld
-      if(k.kommentarClaude) o.kommentarClaude=k.kommentarClaude;   // U6-F (1.2.0): nur wenn nicht leer
-      if(k.domain==='privat') o.tagesabschnitt=tagesabschnitteVon(k);
-      if(k.vorgaengerAppId)      o.vorgaengerAppId=k.vorgaengerAppId;
-      if(k.vorgaengerAirtableId) o.vorgaengerAirtableId=k.vorgaengerAirtableId;
-      if(k.ungeplant) o.ungeplant=true;   // §5.5 (v1.13.0)
-      // §4 (v1.13.1): Sitzungen des Tages {von,bis,min} — Quelle für Von/Bis
-      // in den Zeit-Records (nur wenn vorhanden, Pakete sind schon groß)
-      const sitz=kartenSitzungenHeute(k.id);
-      if(sitz.length) o.sitzungen=sitz;
-      // §13: Kettenzugehörigkeit und Position je Karte
-      const ki=(k.domain==='privat'?kp:kd).indexOf(k.id);
-      if(ki>=0){ o.kette=k.domain==='privat'?'privat':'dfm'; o.kettenPosition=ki+1; }
-      return o;
-    }),
-    ketteDfm: kd.map(id=>{ const k=S.karten.find(x=>x.id===id); return (k&&k.airtableId)||id; }),
-    kettePrivat: kp.slice(),
+    typ: voll?'vollexport':'delta', appVersion:VERSION, tagId: aktuelleTagId(), exportZeit:jetztIso(),
+    // §11: Ein Paket trägt IMMER ein karten-Array — auch ein reines
+    // Ketten- oder Rahmen-Paket. Das bleibt unverändert gegenüber 1.6.
+    karten: gewaehlt.map(syncKarteAbbild),
+    // §11: Delta-Kennzahlen, damit im Chat sichtbar ist, was NICHT mitkam.
+    delta: voll ? null : { seit: (S.meta&&S.meta.letzterSyncBestaetigtTs)||null,
+                           gesendet: gewaehlt.length, bestand: S.karten.length },
+    // §7: EINE Kette. DFM-Karten reisen mit ihrer airtableId, private mit der App-ID.
+    kette: kette.map(id=>{ const k=S.karten.find(x=>x.id===id); return (k&&k.domain==='dfm'&&k.airtableId)||id; }),
     kettenHistorieHeute: (S.meta.kettenHistorie && S.meta.kettenHistorie[heuteApp()]) ? S.meta.kettenHistorie[heuteApp()] : [],
-    // ══ §7 (v1.13.0) · Vertrag 1.6 ══
-    // Upgrade-Faktor + gehobene Ziele — sonst plant der Chat mit anderen Zahlen
-    upgradeFaktor: upgradeFaktor(),
+    // §1.2 (v2.0.0): die Positions-Spur des Tages — x/y mit Zeitstempel,
+    // inklusive der übersprungenen Abfragen (sie sind selbst ein Befund).
+    matrixSpur: (S.tag && Array.isArray(S.tag.matrixSpur)) ? S.tag.matrixSpur.slice() : [],
+    matrixAbfragen: num(S.tag&&S.tag.matrixAbfragen),
+    matrixUebersprungen: num(S.tag&&S.tag.matrixUebersprungen),
     ziele: { dfm:num(S.settings.tagesZielDfm,7000), privat:num(S.settings.tagesZielPrivat,5000),
-      weDfm:num(S.settings.zielWeDfm,2500), wePrivat:num(S.settings.zielWePrivat,10000),
-      effektivDfm:Math.round(num(S.settings.tagesZielDfm,7000)*upgradeFaktor()),
-      effektivPrivat:Math.round(num(S.settings.tagesZielPrivat,5000)*upgradeFaktor()) },
-    // aktiver Tagesrahmen (Echo) — der Chat sieht, womit die App rechnet
+      weDfm:num(S.settings.zielWeDfm,2500), wePrivat:num(S.settings.zielWePrivat,10000) },
     tagesRahmen: tagesRahmen() || null,
-    // Plan- und Ist-Kurve des heutigen Tages in Stundenauflösung
     kurvenHeute: (function(){
       try{
         const hf=belFensterDatum(jetztIso());
@@ -5951,9 +6466,7 @@ function syncExport(typ){
         return { quelle:plan.quelle, stunden:out };
       }catch(e){ return null; }
     })(),
-    // Akku-Einträge samt Kommentar (letzte 7 Tage) — Gründe für die Planung
     akkuEintraege: (S.meta.akkuEintraege||[]).filter(a=>a && a.datum>=anVorTage(heuteApp(),6)),
-    // Rein/Raus/Geschoben je Tag (Aufgaben, letzte 7 Tage inkl. heute)
     reinRaus: (function(){
       try{
         const fl=anFlowReihe('alle'), out=[];
@@ -5962,9 +6475,29 @@ function syncExport(typ){
         return out;
       }catch(e){ return []; }
     })(),
-    // Routinen-Quote heute in vier Kategorien (Summe = 100 %)
     routinenQuote: (function(){ try{ return routinenQuoteHeute('alle'); }catch(e){ return null; } })()
   };
+}
+/* §11 · Bestätigung. ERST hier wird der Zeitstempel fortgeschrieben — und
+   erst hier werden erledigte Karten abgeräumt (sie sind jetzt in Airtable).
+   Routinen bleiben, auch wenn sie heute erledigt sind. */
+function syncBestaetigen(){
+  const vorher=S.karten.length;
+  const inKette=new Set(tagesKette());
+  const bleibt=S.karten.filter(k=>{
+    if(k.rhythmus) return true;                       // Routinen bleiben dauerhaft
+    if(k.status!=='erledigt' && k.status!=='archiviert') return true;
+    if(inKette.has(k.id)) return true;                // noch in der heutigen Kette sichtbar
+    return false;
+  });
+  const weg=vorher-bleibt.length;
+  const ids=new Set(bleibt.map(k=>k.id));
+  S.karten=bleibt;
+  S.unteraufgaben=(S.unteraufgaben||[]).filter(u=>ids.has(u.parentId));
+  S.meta.letzterSyncBestaetigtTs=jetztIso();
+  saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
+  baueSuchIndex();
+  return { abgeraeumt:weg, bestand:bleibt.length, ts:S.meta.letzterSyncBestaetigtTs };
 }
 function syncExportText(typ){ return JSON.stringify(syncExport(typ), null, 2); }
 
@@ -5978,16 +6511,18 @@ function syncImport(text){
   let paket; try{ paket=JSON.parse(text); }catch(e){ return {fehler:'Ungültiges JSON'}; }
   // §6.1 (v1.6.1): Das appVersion-Gate gilt jetzt AUSNAHMSLOS — auch für
   // Array-Pakete. Der v0.38-Konverter wird nicht mehr gebraucht.
-  if(Array.isArray(paket)) return {fehler:'Array-Paket ohne appVersion — seit v1.6.1 nicht mehr zulässig. Bitte ein Paket nach Vertrag 1.x anfordern.'};
+  if(Array.isArray(paket)) return {fehler:'Array-Paket ohne appVersion — nicht zulässig. Bitte ein Paket nach Vertrag 2.0 anfordern.'};
   const av=paket && paket.appVersion;
-  if(av==null || av==='') return {fehler:'Paket ohne appVersion — bitte im Chat ein Paket nach Vertrag 1.x anfordern.'};
-  if(/^0\./.test(String(av)))  return {fehler:'Altformat appVersion '+av+' — dieses Paket wird nicht mehr verarbeitet (Vertrag ab 1.0).'};
+  if(av==null || av==='') return {fehler:'Paket ohne appVersion — bitte im Chat ein Paket nach Vertrag 2.0 anfordern.'};
+  if(/^0\./.test(String(av)))  return {fehler:'Altformat appVersion '+av+' — dieses Paket wird nicht mehr verarbeitet (Vertrag ab 2.0).'};
   // §7 (v1.13.0): Gate auf App-Version 1.13.0 hochgezogen — Vertrag 1.6
   // (Tagesrahmen, Korrekturblock, Rein/Raus, Akku-Einträge, Upgrade-Faktor).
+  // §11 (v2.0.0): Gate auf 2.0 hochgezogen — Vertrag 2.0 (eine Kette,
+  // matrixFeld, Positions-Spur; die sechs Alt-Felder gibt es nicht mehr).
   {
     const teile=String(av).split('.').map(x=>num(x));
     const wert=(teile[0]||0)*10000+(teile[1]||0)*100+(teile[2]||0);
-    if(wert<11300) return {fehler:'Paket-appVersion '+av+' ist älter als 1.13.0 — bitte im Chat ein Paket nach Vertrag 1.6 anfordern (Tagesrahmen + Korrekturblock).'};
+    if(wert<20000) return {fehler:'Paket-appVersion '+av+' ist älter als 2.0.0 — bitte im Chat ein Paket nach Vertrag 2.0 anfordern (eine Kette, matrixFeld, Positions-Spur).'};
   }
   const arr = (paket && paket.karten) || null;
   if(!Array.isArray(arr) || !arr.length) return {fehler:'Keine Karten im Paket'};
@@ -6028,15 +6563,12 @@ function syncImport(text){
     if(inc.status==='archiviert' && lok.status!=='archiviert'){ lok.status='archiviert'; arch++; }
     // Beidseitige Felder → letzter Stand (Import bringt den abgestimmten Stand)
     if(inc.sollMin!=null) lok.sollMin=num(inc.sollMin);
-    if(inc.prioritaet!=null) lok.prioritaet=inc.prioritaet;
+    // §1 (v2.0.0): das Matrixfeld reist mit. Unbekannte Werte werden still
+    // auf „ziel" normalisiert (matrixFeldVon), nie geraten.
+    if(inc.matrixFeld!=null) lok.matrixFeld=matrixFeldVon({matrixFeld:inc.matrixFeld});
     // §8.3 (1.4): neue Felder auch beim Import übernehmen
     // §1 (1.6.1): Array — ein einzelner String wird tolerant gelesen. §2: ein
     // mitgeschicktes tageszeit wird still ignoriert.
-    if(inc.tagesabschnitt!=null){
-      const roh=Array.isArray(inc.tagesabschnitt)?inc.tagesabschnitt:[inc.tagesabschnitt];
-      const f=roh.filter(x=>TAGESABSCHNITTE.indexOf(x)>=0);
-      if(f.length) lok.tagesabschnitt=TAGESABSCHNITTE.filter(x=>f.indexOf(x)>=0);
-    }
     if(inc.vorgaengerAppId!=null)      lok.vorgaengerAppId=inc.vorgaengerAppId;
     if(inc.vorgaengerAirtableId!=null) lok.vorgaengerAirtableId=inc.vorgaengerAirtableId;
     // §2.2 (v1.7.1): Karten-Bausteine — jeweils NUR wenn mitgeschickt; fehlende
@@ -6055,14 +6587,10 @@ function syncImport(text){
     if(inc.punkteProStd!==undefined)   lok.punkteProStd = inc.punkteProStd==null?null:num(inc.punkteProStd);
     if(inc.akkuProStd!==undefined)     lok.akkuProStd   = inc.akkuProStd==null?null:num(inc.akkuProStd);
     if(inc.abhakbonus!==undefined)     lok.abhakbonus   = inc.abhakbonus==null?null:num(inc.abhakbonus);   // auch negativ
-    if(inc.timerFlag!==undefined){     lok.timerFlag=!!inc.timerFlag;
-                                       if(inc.zeitmessung===undefined) lok.zeitmessung=!!inc.timerFlag || kartenArt(lok)==='Aufgabe' || num(lok.sollMin)>0; }
-    if(inc.zeitmessung!==undefined)    lok.zeitmessung=!!inc.zeitmessung;   // §2 (1.9.1): expliziter Schalter gewinnt
+    if(inc.timerFlag!==undefined)      lok.timerFlag=!!inc.timerFlag;
     if(inc.keineAutoPause!==undefined) lok.keineAutoPause=!!inc.keineAutoPause;
-    if(inc.komplex!=null) lok.komplex=num(inc.komplex);
-    if(inc.energie!=null) lok.energie=num(inc.energie);
-    if(inc.blockade!=null) lok.blockade=num(inc.blockade);
-    if(inc.faelligkeit!==undefined) lok.faelligkeit=inc.faelligkeit;   // Deadline↔Fälligkeit
+    if(inc.faelligkeit!==undefined) lok.faelligkeit=inc.faelligkeit;   // DEADLINE
+    if(inc.geplantFuer!==undefined) lok.geplantFuer=inc.geplantFuer;   // §4: GEPLANT FÜR (getrennt von der Deadline)
     if(inc.uhrzeit!==undefined) lok.uhrzeit=inc.uhrzeit;               // Uhrzeit↔Airtable-Deadline
     if(inc.freeze!==undefined) lok.freeze=!!inc.freeze;               // M1 (v1.1.0): freeze true setzt / false löst; fehlend = unverändert
     // App-Hoheit (Status offen/erledigt, Ist, Punkte) wird NIE vom Import überschrieben.
@@ -6096,13 +6624,12 @@ function syncImport(text){
     return ids;
   };
   if(paket && !Array.isArray(paket)){
-    const traegtKette=Array.isArray(paket.ketteDfm)||Array.isArray(paket.kettePrivat)||Array.isArray(paket.kette);
+    const traegtKette=Array.isArray(paket.kette);
     // §5.5 (v1.13.0): Karten, die der Import WÄHREND des Tages neu in eine
     // Kette bringt, tragen das ungeplant-Flag.
     const vorherKette=(traegtKette && tagOffen()) ? new Set(tagesKette()) : null;
-    if(Array.isArray(paket.ketteDfm)){ const ids=ketteAufloesen(paket.ketteDfm); ketteSetzen(ids,'dfm'); ketteGesetzt=(ketteGesetzt||0)+ids.length; }
-    if(Array.isArray(paket.kettePrivat)){ const ids=ketteAufloesen(paket.kettePrivat); ketteSetzen(ids,'privat'); ketteGesetzt=(ketteGesetzt||0)+ids.length; }
-    if(ketteGesetzt==null && Array.isArray(paket.kette)){ const ids=ketteAufloesen(paket.kette); ketteSetzen(ids); ketteGesetzt=ids.length; }
+    // §7 (v2.0.0): EINE Kette. Die Domäne bleibt an der Karte.
+    if(Array.isArray(paket.kette)){ const ids=ketteAufloesen(paket.kette); ketteSetzen(ids); ketteGesetzt=ids.length; }
     if(vorherKette){ let dirty=false;
       tagesKette().forEach(id=>{ if(vorherKette.has(id)) return;
         const k=S.karten.find(x=>x.id===id); if(k && !k.ungeplant){ k.ungeplant=true; dirty=true; } });
@@ -8023,10 +8550,10 @@ function belStapelBalken(){
   h+='<div class="stbar-leg">'+seg.map(s=>'<span><i style="background:'+s[1]+'"></i>'+s[2]+'</span>').join('')+'</div>';
   const zeile=(name, ks)=>{
     if(!ks.length) return;
-    const c={erl:0,muss:0,sk:0,freeze:0,idee:0};
+    const c={erl:0,werkzeug:0,ziel:0,freeze:0,rest:0};
     ks.forEach(k=>{ if(k.status==='erledigt' || (k.letzteBearbeitung&&String(k.letzteBearbeitung).slice(0,10)===heuteApp() && k.status!=='offen')) { c.erl++; return; }
       if(k.freeze){ c.freeze++; return; }
-      const pr=k.prioritaet; if(pr==='muss') c.muss++; else if(pr==='idee') c.idee++; else c.sk++; });
+      const mf=matrixFeldVon(k); if(mf==='werkzeug') c.werkzeug++; else if(mf==='ziel') c.ziel++; else c.rest++; });
     const tot=ks.length;
     let bar=''; seg.forEach(s=>{ const n=c[s[0]]; if(!n) return; const pct=n/tot*100;
       bar+='<i style="width:'+pct.toFixed(1)+'%;background:'+s[1]+'" title="'+s[2]+': '+n+'">'+(pct>=8?Math.round(pct)+'%':'')+'</i>'; });
@@ -8162,22 +8689,184 @@ function renderBelohnung(){
 /* ══════════════════════════════════════════════════════════════════════
    15 · Navigation
    ══════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════
+   §6 (v2.0.0) · NAVIGATION — zwei Ziele
+   Entfallen: vier Tabs · drei Stapel · zwei Schubladen · vier Filterebenen ·
+   beide FABs · der Erledigt-Stapel (Erledigtes findet der Freitext).
+   ══════════════════════════════════════════════════════════════════════ */
+const SU_SICHTEN = [
+  ['heute',  'Heute',   '▤'],
+  ['matrix', 'Matrix',  '⊞'],
+  ['oft',    'Zuletzt', '↻'],
+  ['faellig','Fällig',  '⏱'],
+  ['art',    'Art',     '◇']
+];
+function suSicht(){ const v=S.ui.suSicht; return SU_SICHTEN.some(x=>x[0]===v)?v:'heute'; }
+function suFrage(){ return String(S.ui.suFrage||'').trim(); }
+
 function setTab(tab){
+  if(tab!=='suche' && tab!=='statistik' && tab!=='einst' && tab!=='belohnung') tab='suche';
   S.ui.tab=tab; saveUi();
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
-  el('v-'+tab).classList.add('on');
+  const v=el('v-'+tab); if(v) v.classList.add('on');
+  // Nur die zwei echten Ziele markieren; ⚙︎ und Figur sind keine Tabs.
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
-  el('fab').style.display = (tab==='stapel'||tab==='fokus') ? 'flex' : 'none';   // FAB unten-links, im Fokus + Stapel
-  // §3 (v1.6.0): Routinen-Schublade nur auf der Fokusseite, Farbe = aktive Domäne
-  const rf=el('routFab');
-  if(rf){ rf.hidden = (tab!=='fokus'); rf.classList.toggle('privat', navDomain()==='privat'); }
-  const kf=el('ketteFab'); if(kf) kf.hidden=(tab!=='fokus');   // §9.3 (v1.12.0): Ketten-Schublade im Pin-Slot
   renderFokusleiste();
   if(tab==='einst') renderEinst();
-  else if(tab==='stapel') renderStapel();
-  else if(tab==='fokus') renderFokus();
+  else if(tab==='statistik') renderStatistik();
   else if(tab==='belohnung') renderBelohnung();
+  else renderSuche();
+  fokusLayerPflegen();
 }
+/* §6: „Läuft eine Karte, liegt sie über der Suche" — und bleibt dort, bis sie
+   geschlossen wird (erledigt, pausiert oder geschoben). Der Layer ist bewusst
+   an den LAUF gekoppelt, nicht an eine Seite: er verschwindet in dem Moment,
+   in dem die Karte geschlossen wird, nicht beim Wegnavigieren. */
+function fokusLayerPflegen(){
+  const lay=el('fokusLayer'); if(!lay) return;
+  const laeuft = !!(S.fokus && S.fokus.karteId && S.fokus.laeuft);
+  lay.hidden = !laeuft;
+  document.body.classList.toggle('fokusOffen', laeuft);
+  if(laeuft) renderFokus();
+}
+function renderSuche(){
+  // Kopf: Sicht-Umschalter
+  const sv=suSicht();
+  const sw=el('suSichten');
+  if(sw) sw.innerHTML = SU_SICHTEN.map(([k,l,ic])=>
+    '<button class="su-s'+(sv===k?' on':'')+'" data-susicht="'+k+'">'+ic+' '+esc(l)+'</button>').join('')+
+    '<button class="su-neu" data-suneu="1">＋</button>';
+  const q=suFrage();
+  const body=el('suBody'); if(!body) return;
+  // §6: Der Freitext schlägt JEDE Sicht — und er findet alles, was in der App
+  // liegt, auch Erledigtes.
+  body.innerHTML = q ? suFreitextHtml(q) : suSichtHtml(sv);
+  const cl=el('suClear'); if(cl) cl.hidden=!q;
+}
+/* Freitext über den gesamten Bestand — inklusive erledigter Karten. */
+function suFreitextHtml(q){
+  const tr=sucheTreffer(q);
+  if(!tr.length) return '<div class="leer">Nichts gefunden zu „'+esc(q)+'".</div>';
+  return '<div class="su-kopfzeile">'+tr.length+' Treffer · Freitext</div>'+
+    tr.map(k=>kartenreiheHtml(k,'su-frei')).join('');
+}
+function suSichtHtml(sv){
+  if(sv==='matrix')  return suMatrixHtml();
+  if(sv==='oft')     return suOftHtml();
+  if(sv==='faellig') return suFaelligHtml();
+  if(sv==='art')     return suArtHtml();
+  return suHeuteHtml();
+}
+/* 1 · Heute — die Kette in ihrer Reihenfolge (Standardsicht). */
+function suHeuteHtml(){
+  const ids=tagesKette(), by={}; S.karten.forEach(k=>by[k.id]=k);
+  const ks=ids.map(id=>by[id]).filter(Boolean);
+  if(!ks.length) return '<div class="leer">Die Kette ist leer. Ein Sync aus dem Chat füllt sie — oder leg selbst eine Karte an (＋).</div>';
+  const offen=ks.filter(k=>k.status==='offen').length;
+  let h='<div class="su-kopfzeile">'+ks.length+' in der Kette · '+offen+' offen</div>';
+  h+=ks.map((k,i)=>'<div class="kettenzeile"><span class="kn">'+(i+1)+'</span>'+kartenreiheHtml(k,'kette')+'</div>').join('');
+  return h;
+}
+/* 2 · Matrix — die vier Felder als Raster; Tap zeigt die Karten des Felds. */
+function suMatrixHtml(){
+  const off=S.karten.filter(k=>k.status==='offen');
+  const gewaehlt=S.ui.suMatrixFeld && MATRIX_FELDER.indexOf(S.ui.suMatrixFeld)>=0 ? S.ui.suMatrixFeld : null;
+  const p=matrixPos();
+  let h='<div class="su-mxgrid">';
+  [['ablenkung','q1'],['werkzeug','q3'],['zustand','q2'],['ziel','q4']].forEach(([f,q])=>{
+    const n=off.filter(k=>matrixFeldVon(k)===f).length;
+    h+='<button class="su-mxq '+q+(gewaehlt===f?' on':'')+'" data-sumx="'+f+'">'+
+      '<span class="ic">'+MATRIX_META[f].icon+'</span>'+
+      '<b>'+MATRIX_META[f].nr+' · '+esc(MATRIX_META[f].name)+'</b>'+
+      '<span class="sub">'+esc(MATRIX_META[f].achse)+' · '+esc(MATRIX_META[f].richtung)+'</span>'+
+      '<span class="n">'+n+'</span></button>';
+  });
+  if(p){
+    const px=((p.x+1)/2*100), py=((1-p.y)/2*100);
+    h+='<div class="su-mxdot" style="left:'+px.toFixed(1)+'%;top:'+py.toFixed(1)+'%" title="deine Position"></div>';
+  }
+  h+='</div>';
+  h+='<div class="hint" style="padding:0 12px 6px">'+(p
+      ? 'Dein Punkt liegt im Raster — '+esc(matrixLesart(p.x,p.y).replace(/<[^>]+>/g,''))
+      : 'Noch keine Position heute. Sie wird beim Verlassen einer Karte abgefragt.')+'</div>';
+  if(gewaehlt){
+    const ks=off.filter(k=>matrixFeldVon(k)===gewaehlt);
+    h+='<div class="su-kopfzeile">'+MATRIX_META[gewaehlt].icon+' '+esc(MATRIX_META[gewaehlt].name)+' · '+ks.length+'</div>';
+    h+= ks.length ? ks.map(k=>kartenreiheHtml(k,'su-mx')).join('') : '<div class="leer">Kein Eintrag in diesem Feld.</div>';
+  }
+  return h;
+}
+/* 3 · Zuletzt und oft genutzt. */
+function suOftHtml(){
+  const ks=S.karten.filter(k=>k.status!=='archiviert');
+  const zuletzt=ks.filter(k=>k.letzteBearbeitung).sort((a,b)=>String(b.letzteBearbeitung).localeCompare(String(a.letzteBearbeitung))).slice(0,12);
+  // „oft" = Häufigkeit im Abschluss-Stack plus Ticks — das ist das, was die
+  // App über tatsächliche Nutzung weiß, ohne einen neuen Zähler zu erfinden.
+  const oft=ks.slice().map(k=>({k, n:(Array.isArray(k.abschluesse)?k.abschluesse.length:0)+num(k.streak)}))
+    .filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,12);
+  let h='';
+  h+='<div class="su-kopfzeile">Zuletzt angefasst</div>';
+  h+= zuletzt.length ? zuletzt.map(k=>kartenreiheHtml(k,'su-oft')).join('') : '<div class="leer">Noch nichts angefasst.</div>';
+  if(oft.length){
+    h+='<div class="su-kopfzeile">Am häufigsten genutzt</div>';
+    h+=oft.map(x=>kartenreiheHtml(x.k,'su-oft2')).join('');
+  }
+  return h;
+}
+/* 4 · Fällig — nach Deadline, überfällige zuerst. */
+function suFaelligHtml(){
+  const h0=heuteApp();
+  const ks=S.karten.filter(k=>k.status==='offen' && k.faelligkeit)
+    .sort((a,b)=>String(a.faelligkeit).localeCompare(String(b.faelligkeit))
+      || String(a.uhrzeit||'99:99').localeCompare(String(b.uhrzeit||'99:99')));
+  if(!ks.length) return '<div class="leer">Keine Karte mit Deadline.</div>';
+  const ueber=ks.filter(k=>k.faelligkeit<h0), rest=ks.filter(k=>k.faelligkeit>=h0);
+  let h='';
+  if(ueber.length){
+    h+='<div class="su-kopfzeile warn">Überfällig · '+ueber.length+'</div>';
+    h+=ueber.map(k=>kartenreiheHtml(k,'su-ueber')).join('');
+  }
+  if(rest.length){
+    h+='<div class="su-kopfzeile">Kommt · '+rest.length+'</div>';
+    h+=rest.map(k=>kartenreiheHtml(k,'su-faellig')).join('');
+  }
+  return h;
+}
+/* 5 · Art — Aufgaben, Routinen, Counter. */
+function suArtHtml(){
+  const off=S.karten.filter(k=>k.status==='offen');
+  let h='';
+  [['Aufgabe','Aufgaben'],['Routine','Routinen'],['Counter','Counter']].forEach(([a,l])=>{
+    const ks=off.filter(k=>kartenArt(k)===a);
+    if(!ks.length) return;
+    h+='<div class="su-kopfzeile">'+esc(l)+' · '+ks.length+'</div>';
+    h+=ks.map(k=>kartenreiheHtml(k,'su-art')).join('');
+  });
+  return h || '<div class="leer">Keine offene Karte.</div>';
+}
+/* ══ §6 · Sortieren der Kette geschieht AUS DER SUCHE heraus ═══════════
+   Karte antippen → Position frei wählbar. Keine Pfeile in der Kartenzeile,
+   kein Ketten-Tab. ══ */
+function oeffneKettePosition(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  const ids=tagesKette(), pos=ids.indexOf(kid), n=ids.length;
+  let h='<p class="d"><b>'+esc(k.titel||'(ohne Titel)')+'</b><br>'+
+    (pos>=0 ? 'Steht auf Position <b>'+(pos+1)+'</b> von '+n+'.' : 'Liegt nicht in der Kette.')+'</p>';
+  if(pos>=0){
+    h+='<div class="field"><label>An welche Position?</label><div class="chips">';
+    const ziele=[];
+    for(let i=1;i<=Math.min(n,8);i++) ziele.push(i);
+    if(n>8 && ziele.indexOf(n)<0) ziele.push(n);
+    h+=ziele.map(i=>'<button class="chip '+(i===pos+1?'on':'')+'" data-kpos="'+kid+'" data-n="'+i+'">'+i+'</button>').join('');
+    h+='</div><div class="hint">Position frei wählbar — die Kette rückt entsprechend nach.</div></div>';
+  }
+  const foot=(pos>=0
+      ? '<button class="btn ghost sm" data-kraus="'+kid+'">Aus der Kette</button>'
+      : '<button class="btn sm" data-krein="'+kid+'">In die Kette</button>')+
+    '<button class="btn prim" data-kstart="'+kid+'">▶ Starten</button>';
+  openSheet('Position in der Kette', h, foot);
+}
+function renderStatistik(){ /* §12 — siehe Statistik-Abschnitt */ renderStatistikBody(); }
 
 /* ══════════════════════════════════════════════════════════════════════
    16 · Toast / Konfetti
@@ -8212,10 +8901,10 @@ function konfetti(){
    ══════════════════════════════════════════════════════════════════════ */
 // Nav
 el('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-tab]'); if(b) setTab(b.dataset.tab); });
-el('fab').addEventListener('click', ()=>oeffneDetail(null));
+/* §6 (v2.0.0): Neuanlage sitzt jetzt im ＋ der Sicht-Leiste. */
 // §3 (v1.6.0): Routinen-Schublade öffnen (Farbe folgt der aktiven Domäne)
-el('routFab').addEventListener('click', oeffneRoutinen);
-el('ketteFab').addEventListener('click', oeffneKetteSheet);   // §9.3 (v1.12.0)
+
+
 // §9.4 (v1.12.0): FABs ziehen beim Herunterscrollen ein, kommen beim
 // Hochscrollen zurück — sie werden nicht ausgeblendet.
 (function(){
@@ -8504,10 +9193,10 @@ el('sheet').addEventListener('click', e=>{
     if(k){ // volle Bearbeitung VOR dem Anlegen: Detail-Editor mit Vorlage + Vorgänger-Link;
            // gespeichert wird über den normalen Speichern-Pfad, danach oben in die Kette.
       oeffneDetail(null);
-      Object.assign(entwurf, { domain:k.domain, titel:k.titel, prioritaet:k.prioritaet, projekt:k.projekt,
-        geldScore:num(k.geldScore), komplex:num(k.komplex,1), energie:num(k.energie,1), blockade:num(k.blockade,1),
-        sollMin:num(k.sollMin), abhakbonus:k.abhakbonus, tagesabschnitt:k.tagesabschnitt, rhythmus:k.rhythmus?JSON.parse(JSON.stringify(k.rhythmus)):null,
-        ticksAktiv:!!k.ticksAktiv, tickWert:(k.tickWert==null?null:num(k.tickWert)), zeitmessung:k.zeitmessung,
+      Object.assign(entwurf, { domain:k.domain, titel:k.titel, matrixFeld:matrixFeldVon(k), projekt:k.projekt,
+        geldScore:num(k.geldScore),
+        sollMin:num(k.sollMin), abhakbonus:k.abhakbonus, rhythmus:k.rhythmus?JSON.parse(JSON.stringify(k.rhythmus)):null,
+        ticksAktiv:!!k.ticksAktiv, tickWert:(k.tickWert==null?null:num(k.tickWert)),
         faelligkeit:heuteApp(), vorgaengerAppId:k.id, vorgaengerAirtableId:k.airtableId||null, kettenOben:true });
       renderDetail();
     } return; }
@@ -8559,7 +9248,8 @@ el('sheet').addEventListener('click', e=>{
     const nP=el('abPktN'); if(nP && abhakTmp.userPkt!=null){ nP.value=abhakTmp.userPkt; const r=el('abPkt'); if(r) r.value=String(Math.min(num(abhakTmp.userPkt),abhakTmp.max)); }
     return; }
   // §5: Priorität im Folgeaufgaben-Vorschlag (Auswahl über Render-Zyklus halten)
-  const afp=t.closest('[data-abfpri]'); if(afp){ if(abhakTmp){ abhakTmp.folgePri=afp.dataset.abfpri;
+  const afm=t.closest('[data-abfmx]'); if(afm){ abhakTmp.folgeMx=matrixFeldVon({matrixFeld:afm.dataset.abfmx}); renderAbhakDialog(); return; }
+  const afp=null; if(afp){ if(abhakTmp){ abhakTmp.folgePri=afp.dataset.abfpri;
     const box=el('abFolgePri'); if(box) box.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on', c===afp)); } return; }
   if(t.closest('[data-abgo]')){ abhakDialogConfirm(); return; }
   // §4 (v1.6.1): Rückfrage nach der Auto-Pause
@@ -8605,6 +9295,27 @@ el('sheet').addEventListener('click', e=>{
     return; }
   // §6.1 (v1.13.0): Akku-Dialog — Speichern (Sheet-Fuß) + Öffnen-Knöpfe
   if(t.closest('[data-akkuqgo]')){ akkuQuickSpeichern(); return; }
+  // ══ §1.2 (v2.0.0) · Der EINE Dialog für Matrix und Akku ══
+  if(t.closest('[data-mxgo]')){ matrixDialogSpeichern(); return; }
+  if(t.closest('[data-mxskip]')){ matrixDialogSkip(); return; }
+  // §9: Vorschlag übernehmen — Vorschlag, nie Automatik.
+  const vsg=t.closest('[data-vsgo]'); if(vsg){
+    const kid=vsg.dataset.vsgo; closeSheet(); fokusNavReset(); fokusStarten(kid, 'vorschlag');
+    setTab('suche'); renderAlles(); return; }
+  // ══ §0 (v2.0.0) · Export-Gate ══
+  if(t.closest('[data-v200copy]')){ const ta=el('v200Ex');
+    if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){}
+      if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{});
+      const cb=el('v200Ok'); if(cb) cb.checked=true;
+      toast(okc?'Kopiert — Haken gesetzt':'Markiert — ⌘C'); } return; }
+  if(t.closest('[data-v200dl]')){ backupDownload(vollexport16AusSicherung(), 'fokus-vollsicherung-v16'); 
+    const cb=el('v200Ok'); if(cb) cb.checked=true; return; }
+  if(t.closest('[data-v200spaeter]')){ closeSheet();
+    toast('Später — die App bleibt bis dahin vollständig'); return; }
+  if(t.closest('[data-v200go]')){
+    const cb=el('v200Ok');
+    if(!cb || !cb.checked){ toast('⚠︎ Erst den Vollexport bestätigen'); return; }
+    v200LeerungAusfuehren(); return; }
   // §1/§2 (v1.13.3): Shop-Reset bestätigen → Reset + Kalibrierungs-Dialog;
   // Faktor übernehmen (beide Knöpfe liegen im Sheet-FUSS → dieser Handler)
   if(t.closest('[data-shopresetgo]')){
@@ -8620,9 +9331,7 @@ el('sheet').addEventListener('click', e=>{
     toast('Preisfaktor auf '+String(v).replace('.',',')+' gesetzt');
     return; }
   // §6.4 (v1.13.0): Blockade-Vorschlag — Übernahme nur per Freigabe-Knopf
-  const blh=t.closest('[data-blockadeheben]'); if(blh){
-    const k=S.karten.find(x=>x.id===blh.dataset.blockadeheben);
-    if(k){ k.blockade=num(blh.dataset.neu, k.blockade); saveKarten(); toast('Blockade auf '+String(k.blockade).replace('.',',')+' gehoben'); }
+  const blh=null; if(blh){
     closeSheet(); renderAlles(); return; }
   // A4: Schieben-Dialog (ohne / mit Punktverlust)
   const schO=t.closest('[data-schiebohne]'); if(schO){ karteSchiebenA4(schO.dataset.schiebohne, false, 0); return; }
@@ -8680,7 +9389,7 @@ el('sheet').addEventListener('click', e=>{
       entwurf.rhythmus = val==='keine'?null : val==='taeglich'?{typ:'taeglich'} : val==='alleNTage'?{typ:'alleNTage',n:num(entwurf.rhythmus&&entwurf.rhythmus.n,2)} : {typ:'wochentage',tage:(entwurf.rhythmus&&entwurf.rhythmus.tage)||[]};
     }
     else if(feld==='timerFlag'){ entwurf.timerFlag = (val==='ja'); }
-    else if(['komplex','energie','blockade'].includes(feld)){ entwurf[feld]=num(val); }
+    else if(feld==='matrixFeld'){ entwurf.matrixFeld=matrixFeldVon({matrixFeld:val}); }
     else { entwurf[feld]=val; }
     renderDetail(); return;
   }
@@ -8696,11 +9405,14 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-dabhak]')){ entwurf.abhakbonus = (entwurf.abhakbonus===0) ? null : 0; renderDetail(); return; }   // U6-D: Abhakbonus an/aus (null=Domänen-Default)
   // §2 (v1.13.0): Rückweg je Karte — beide Overrides auf „erbt Standard"
   if(t.closest('[data-dstandard]')){ entwurf.abhakbonus=null; entwurf.tickWert=null; renderDetail(); toast('↺ erbt wieder den Domänen-Standard'); return; }
-  // §1 (v1.6.1): Tagesabschnitte umschalten (Mehrfachauswahl, leer = automatisch)
-  const dta=t.closest('[data-dta]'); if(dta){ const ta=dta.dataset.dta;
-    const cur=Array.isArray(entwurf.tagesabschnitt)?entwurf.tagesabschnitt.slice():[];
-    const i=cur.indexOf(ta); if(i>=0) cur.splice(i,1); else cur.push(ta);
-    entwurf.tagesabschnitt = cur.length ? TAGESABSCHNITTE.filter(x=>cur.indexOf(x)>=0) : null;   // stabile Reihenfolge
+  // §1.1 (v2.0.0): Matrixfeld im Detail wechseln. Ein Tap setzt die
+  // VORSCHLAGSWERTE des Felds mit — aber nur bei einer NEUEN Karte und nur,
+  // solange der Nutzer sie nicht selbst gesetzt hat. Bei einer bestehenden
+  // Karte wird ausschließlich das Feld umgestellt, nie ihre Soll-Zeit.
+  const dmx=t.closest('[data-dmx]'); if(dmx){
+    const f=matrixFeldVon({matrixFeld:dmx.dataset.dmx});
+    if(entwurfNeu && !num(entwurf.sollMin)) Object.assign(entwurf, matrixVorschlag(f, entwurf.domain));
+    entwurf.matrixFeld=f;
     renderDetail(); return; }
   // §5 (v1.6.1): Pausentimer-Flag je Karte
   if(t.closest('[data-dnoauto]')){ entwurf.keineAutoPause=!entwurf.keineAutoPause; renderDetail(); return; }
@@ -8709,7 +9421,7 @@ el('sheet').addEventListener('click', e=>{
   // weitere Klick fügt einen an; der ＋-Button bleibt immer.
   // §9.2 (v1.8.0): Ticks an/aus je Karte
   if(t.closest('[data-dticks]')){ entwurf.ticksAktiv=!entwurf.ticksAktiv; renderDetail(); return; }
-  if(t.closest('[data-dzeit]')){ entwurf.zeitmessung=!hatZeitmessung(entwurf); renderDetail(); return; }   // §2 (1.9.1)
+
 
   // Zeitstaffel (§4): erste Anlage seedet 3 Stufen, danach je +1; Button bleibt.
   if(t.closest('[data-zsadd]')){ zeitStufenLies(); const cur=entwurf.zeitStufen||[];
@@ -8745,7 +9457,36 @@ el('sheet').addEventListener('click', e=>{
   const sak=t.closest('[data-saktion]'); if(sak){ if(sak.dataset.saktion==='speichern'){ stapelLiesEditor(); stapelSpeichern(); } else if(sak.dataset.saktion==='loeschen'){ if(confirm('Stapel „'+stapelEntwurf.name+'" löschen?')) stapelLoeschen(); } return; }
 });
 // Sheet-Body: Änderungen an Text/Zahl/Datum-Feldern live in den Entwurf
+/* ══ §1.2 (v2.0.0) · Das Matrix-Pad — der Punkt liegt FREI ═════════════
+   Tap setzt, Ziehen verschiebt. Bewusst pointer* (nicht click): der Punkt
+   soll der Fingerspitze folgen, und ein Tap auf eine Quadranten-Beschriftung
+   darf NICHT auf deren Mitte springen (die Kacheln sind pointer-events:none).
+   Die Umrechnung steht an EINER Stelle, damit Lesen und Schreiben nicht
+   auseinanderlaufen können. */
+function mxPadSetzenAusEvent(e){
+  const pad=el('mxPad'); if(!pad || !matrixTmp) return;
+  const r=pad.getBoundingClientRect();
+  if(!(r.width>0 && r.height>0)) return;
+  const x=((e.clientX-r.left)/r.width)*2-1;
+  const y=1-((e.clientY-r.top)/r.height)*2;      // oben = außen = y:+1
+  matrixTmp.x=Math.max(-1,Math.min(1,x));
+  matrixTmp.y=Math.max(-1,Math.min(1,y));
+  const dot=el('mxDot');
+  if(dot){ dot.style.left=(((matrixTmp.x+1)/2)*100).toFixed(1)+'%';
+           dot.style.top=(((1-matrixTmp.y)/2)*100).toFixed(1)+'%'; }
+  const rd=el('mxRead'); if(rd) rd.innerHTML=matrixLesart(matrixTmp.x, matrixTmp.y);
+}
+let _mxZieht=false;
+el('sheetBody').addEventListener('pointerdown', e=>{
+  if(!e.target.closest || !e.target.closest('#mxPad')) return;
+  _mxZieht=true; mxPadSetzenAusEvent(e); haptik(8);
+  try{ e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }catch(_){}
+  e.preventDefault();
+});
+el('sheetBody').addEventListener('pointermove', e=>{ if(_mxZieht) mxPadSetzenAusEvent(e); });
+['pointerup','pointercancel'].forEach(ev=>el('sheetBody').addEventListener(ev, ()=>{ _mxZieht=false; }));
 el('sheetBody').addEventListener('input', e=>{
+  if(e.target.id==='mxAkku'){ const v=el('mxAkkuV'); if(v) v.textContent=Math.round(num(e.target.value))+'%'; if(matrixTmp) matrixTmp.akku=num(e.target.value); }
   const t=e.target;
   if(t.id==='akkuQ'){ const v=el('akkuQv'); if(v) v.textContent=Math.round(num(t.value))+'%'; return; }   // §6.1 (v1.13.0)
   // Tag-Start-Slider: live in tagStartTmp, Akku folgt dem Vorschlag bis manuell angefasst
@@ -9045,7 +9786,47 @@ function suchFokusStarten(kid){
   if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid);
   setTab('fokus');
 }
-el('btnSuche').addEventListener('click', oeffneSuche);
+/* §13: Tap auf die Figur öffnet Belohnung + Shop — kein Tab. */
+el('btnFigur').addEventListener('click', ()=>{ setTab('belohnung'); });
+el('btnEinst').addEventListener('click', ()=>{ setTab('einst'); });
+/* §6: Freitext — findet alles, was in der App liegt, auch Erledigtes. */
+el('suFreitext').addEventListener('input', e=>{
+  S.ui.suFrage=e.target.value; saveUi();
+  if(_suDeb) clearTimeout(_suDeb);
+  _suDeb=setTimeout(()=>{ _suDeb=null; renderSuche(); }, 120);
+});
+el('suClear').addEventListener('click', ()=>{
+  S.ui.suFrage=''; saveUi(); const i=el('suFreitext'); if(i) i.value='';
+  renderSuche();
+});
+let _suDeb=null;
+/* Sichtwechsel — Tap auf die Leiste oder horizontales Wischen. */
+el('suSichten').addEventListener('click', e=>{
+  const b=e.target.closest('[data-susicht]');
+  if(b){ S.ui.suSicht=b.dataset.susicht; saveUi(); renderSuche(); haptik(8); return; }
+  if(e.target.closest('[data-suneu]')){ oeffneDetail(null); return; }
+});
+el('suBody').addEventListener('click', e=>{
+  const mx=e.target.closest('[data-sumx]');
+  if(mx){ S.ui.suMatrixFeld=(S.ui.suMatrixFeld===mx.dataset.sumx)?null:mx.dataset.sumx; saveUi(); renderSuche(); return; }
+});
+/* §6: fünf Sichten WISCHBAR. Nur horizontal, mit Winkelschwelle — sonst
+   kapert die Geste das vertikale Scrollen der Liste. */
+(function(){
+  let x0=0,y0=0,id=null,aktiv=false;
+  const sw=el('suSwipe'); if(!sw) return;
+  sw.addEventListener('pointerdown', e=>{ if(e.target.closest('input,textarea,button')) return;
+    id=e.pointerId; x0=e.clientX; y0=e.clientY; aktiv=true; });
+  sw.addEventListener('pointerup', e=>{
+    if(!aktiv || e.pointerId!==id) return; aktiv=false;
+    const dx=e.clientX-x0, dy=e.clientY-y0;
+    if(Math.abs(dx)<60 || Math.abs(dx)<Math.abs(dy)*1.4) return;
+    const i=SU_SICHTEN.findIndex(v=>v[0]===suSicht());
+    const j=Math.max(0, Math.min(SU_SICHTEN.length-1, i+(dx<0?1:-1)));
+    if(j!==i){ S.ui.suSicht=SU_SICHTEN[j][0]; saveUi(); renderSuche(); haptik(10); }
+  });
+  sw.addEventListener('pointercancel', ()=>{ aktiv=false; });
+})();
 el('suchClose').addEventListener('click', schliesseSuche);
 el('suchInput').addEventListener('input', ()=>{ if(_suchDeb) clearTimeout(_suchDeb); _suchDeb=setTimeout(renderSuchTreffer, 90); });   // minimaler Debounce
 el('suchInput').addEventListener('keydown', e=>{ if(e.key==='Escape'){ e.preventDefault(); schliesseSuche(); } });
@@ -9626,12 +10407,12 @@ function anFlowBestandsBalken(F,dom){
       if(t && t>=F.von && t<=F.bis) c.erl++;                 // nur im Fenster erledigt
       return;
     }
-    const pr=k.prioritaet;
-    if(pr==='muss') c.muss++; else if(pr==='idee') c.kann++; else c.soll++;
+    const mf=matrixFeldVon(k);
+    if(mf==='werkzeug') c.werkzeug++; else if(mf==='ziel') c.ziel++; else c.rest++;
   });
-  const tot=c.erl+c.muss+c.soll+c.kann;
+  const tot=c.erl+c.werkzeug+c.ziel+c.rest;
   if(!tot) return '';
-  const seg=[['erl','#3ecf8e','erledigt'],['muss','#f66d6d','offen muss'],['soll','#f2b84b','offen soll'],['kann','#b98af7','offen kann']];
+  const seg=[['erl','#3ecf8e','erledigt'],['ziel','#4f8ef7','offen 🎯 Ziele'],['werkzeug','#3ecf8e','offen 🔧 Werkzeuge'],['rest','#b98af7','offen 🌀/📵']];
   let bar=''; seg.forEach(s=>{ const n=c[s[0]]; if(!n) return; const pct=n/tot*100;
     bar+='<i style="width:'+pct.toFixed(1)+'%;background:'+s[1]+'" title="'+s[2]+': '+n+'">'+(pct>=8?Math.round(pct)+'%':'')+'</i>'; });
   return '<div class="anmod-sub" style="margin-top:12px">Aufgaben-Bestand ('+tot+' gesamt · grün = erledigt, offen nach Priorität):</div>'+
@@ -9921,12 +10702,107 @@ function init(){
   ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev, interaktion, true));
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ interaktion(); saveMeta(); zeigeAutoPauseDialog(); } });
   interaktion(); saveMeta();
+  zeigeV200Gate();       // §0 (v2.0.0): Export-Gate VOR allem anderen
   zeigeMigration160();   // §9.1: Protokoll einmalig anzeigen
   zeigeMigration161();   // §7 (1.6.1): Protokoll einmalig anzeigen
   zeigeMigration180();   // §9.5 (1.8.0): Protokoll einmalig anzeigen
   zeigeMigration190();   // §7 (1.9.0): Protokoll einmalig anzeigen
   zeigeMigration1110();  // §10 (1.11.0): Rang-Protokoll einmalig anzeigen
   zeigeAutoPauseDialog();// §4: offene Rückfrage aus einer Auto-Pause nachholen
+}
+/* ══════════════════════════════════════════════════════════════════════
+   §0 (v2.0.0) · DAS EXPORT-GATE
+   Stufe 2 der Migration. Die App startet mit leerem Kartenbestand (§5) —
+   aber erst, wenn ein Vollexport nach ALTEM Vertrag 1.6 erzeugt UND das
+   Kopieren bestätigt wurde. Der Export wird aus der Sicherung karten_bak200
+   gebaut, nicht aus dem schon umgeschriebenen Bestand: nur so trägt er
+   wirklich den Stand, den der Chat nach 1.6 erwartet.
+   ══════════════════════════════════════════════════════════════════════ */
+function vollexport16AusSicherung(){
+  const kb=DB.get('karten_bak200', null);
+  const ub=DB.get('unteraufgaben_bak200', []);
+  const karten=Array.isArray(kb)?kb:S.karten;
+  const subs=Array.isArray(ub)?ub:(S.unteraufgaben||[]);
+  const mb=DB.get('meta_bak200', {})||{};
+  const sub=pid=>subs.filter(u=>u.parentId===pid);
+  const kd=((mb.ketten&&mb.ketten.dfm&&mb.ketten.dfm.ids)||[]);
+  const kp=((mb.ketten&&mb.ketten.privat&&mb.ketten.privat.ids)||[]);
+  return {
+    typ:'vollexport', appVersion:'1.13.4', tagId:aktuelleTagId(), exportZeit:jetztIso(),
+    hinweis:'Vollsicherung vor dem Umbau auf Vertrag 2.0 — Stand nach Vertrag 1.6.',
+    karten: karten.map(k=>{
+      const o={ id:k.id, domain:k.domain, titel:k.titel,
+        projekt:k.domain==='dfm'?(k.projekt||null):null, geldScore:num(k.geldScore),
+        faelligkeit:k.faelligkeit||null, uhrzeit:k.uhrzeit||null,
+        sollMin:num(k.sollMin), istMin:Math.round(num(k.istSek)/60),
+        komplex:num(k.komplex,1), energie:num(k.energie,1), blockade:num(k.blockade,1),
+        prioritaet:k.prioritaet||'soll', status:k.status, notiz:k.notiz||'',
+        ticksAktiv:!!k.ticksAktiv, tickWert:(k.tickWert==null?null:num(k.tickWert)),
+        ticksHeute:num(k.ticksHeute), abhakbonus:(k.abhakbonus==null?null:num(k.abhakbonus)),
+        rhythmus:k.rhythmus||null, streak:num(k.streak), zuletztRoutine:k.zuletztRoutine||null,
+        freeze:!!k.freeze,
+        unteraufgaben: sub(k.id).map(u=>({ id:u.id, titel:u.titel, sollMin:num(u.sollMin), done:!!u.done, bonusPunkte:num(u.bonusPunkte) })) };
+      if(k.domain==='dfm' && k.airtableId) o.airtableId=k.airtableId;
+      if(k.domain!=='dfm' && Array.isArray(k.tagesabschnitt)) o.tagesabschnitt=k.tagesabschnitt;
+      if(k.kommentarClaude) o.kommentarClaude=k.kommentarClaude;
+      return o;
+    }),
+    ketteDfm: kd.slice(), kettePrivat: kp.slice(),
+    historie: (S.historie||[]).slice(-120),
+    meta: { wohlstand:num(mb.wohlstand), rangPunkte:num(mb.rangPunkte),
+            muenzenGesamt:num(mb.muenzenGesamt), ausgegebenGesamt:num(mb.ausgegebenGesamt),
+            tagesStreak:num(mb.tagesStreak), upgradeFaktor:num(mb.upgradeFaktor,1),
+            akkuMessungen:(mb.akkuMessungen||[]).slice(-500),
+            akkuEintraege:(mb.akkuEintraege||[]).slice(-300) }
+  };
+}
+function zeigeV200Gate(){
+  if(!S.meta.v200LeerungOffen) return;
+  const L=S.meta.migration200Log||{};
+  const anz=(DB.get('karten_bak200',[])||[]).length;
+  const f=L.felder||{};
+  const h='<p class="d"><b>v2.0 leert den Kartenbestand.</b> Ab jetzt liegt in der App nur noch, '+
+    'was Claude geschickt hat: die Tageskette plus die Routinen (§5). Airtable ist das Lager.</p>'+
+    '<p class="d" style="color:var(--warn)"><b>Zuerst Vollexport erzeugen.</b> In den Ist-Zeiten und Punkten '+
+    'steckt Historie, die nirgendwo sonst liegt. Ohne bestätigten Export wird nichts geleert.</p>'+
+    '<div class="kvblock">'+
+    '<div class="kv"><span>Karten in der Sicherung</span><b>'+anz+'</b></div>'+
+    '<div class="kv"><span>Sicherung liegt unter</span><b>karten_bak200</b></div>'+
+    '<div class="kv"><span>Matrixfeld vorgeschlagen · 🎯 Ziele</span><b>'+num(f.ziel)+'</b></div>'+
+    '<div class="kv"><span>🔧 Werkzeuge · 🌀 Zustände · 📵 Ablenkungen</span><b>'+num(f.werkzeug)+' · '+num(f.zustand)+' · '+num(f.ablenkung)+'</b></div>'+
+    '<div class="kv"><span>Alt-Felder entfernt (Karten-Felder)</span><b>'+num(L.entfernt)+'</b></div>'+
+    '</div>'+
+    '<p class="d" style="margin-top:8px">Die Einordnung ist ein <b>Vorschlag</b> — jede Karte bleibt im Detail änderbar.</p>'+
+    '<div class="field"><label>Vollexport nach Vertrag 1.6 (aus der Sicherung)</label>'+
+    '<textarea id="v200Ex" readonly style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px">'+
+      esc(JSON.stringify(vollexport16AusSicherung(), null, 2))+'</textarea>'+
+    '<div class="btnrow"><button class="btn sm" data-v200copy="1">📋 Kopieren</button>'+
+    '<button class="btn sm" data-v200dl="1">⬇︎ Datei</button></div></div>'+
+    '<label class="chk" style="margin-top:10px"><input type="checkbox" id="v200Ok"> '+
+    '<span>Ich habe den Vollexport kopiert bzw. gesichert.</span></label>';
+  openSheet('Update v2.0 — zuerst sichern',
+    h, '<button class="btn ghost sm" data-v200spaeter="1">Später</button>'+
+       '<button class="btn prim" data-v200go="1">Bestand leeren</button>');
+}
+/* §5 · Werkbank statt Lager — die eigentliche Leerung. Läuft ausschließlich
+   aus zeigeV200Gate heraus, nach bestätigtem Export. */
+function v200LeerungAusfuehren(){
+  const behalten=new Set(tagesKette());
+  let weg=0;
+  const bleibt=S.karten.filter(k=>{
+    if(behalten.has(k.id)) return true;           // die Tageskette
+    if(k.rhythmus) return true;                   // Routinen bleiben dauerhaft
+    weg++; return false;
+  });
+  const bleibtIds=new Set(bleibt.map(k=>k.id));
+  S.karten=bleibt;
+  S.unteraufgaben=(S.unteraufgaben||[]).filter(u=>bleibtIds.has(u.parentId));
+  S.meta.v200LeerungOffen=false;
+  S.meta.v200LeerungLog={ ts:jetztIso(), entfernt:weg, geblieben:bleibt.length };
+  saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
+  baueSuchIndex();
+  closeSheet(); renderAlles();
+  toast('🧹 '+weg+' Karten abgeräumt · '+bleibt.length+' bleiben');
 }
 /* §9.1 (v1.6.0): Migrationsprotokoll genau einmal zeigen, danach abhaken. */
 function zeigeMigration160(){

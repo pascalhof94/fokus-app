@@ -57,7 +57,14 @@ function anVorTage(iso,n){ return iso; }
 function snapPunkte(){ return 0; }
 function saveMeta(){}
 function saveKarten(){}
-function tagesabschnittHat(){ return false; }
+var MATRIX_FELDER = ['ablenkung','zustand','werkzeug','ziel'];
+function matrixFeldVon(k){ var f=k&&k.matrixFeld;
+  if(MATRIX_FELDER.indexOf(f)>=0) return f;
+  var n=Number(f); if(isFinite(n)&&n>=1&&n<=4) return MATRIX_FELDER[n-1];
+  return 'ziel'; }
+function matrixFaktor(k){ var t=(S.settings&&S.settings.matrixFaktor)||{};
+  var f=matrixFeldVon(k); var v=t[f];
+  return isFinite(Number(v))?Number(v):(f==='ziel'?1:0); }
 // §5.1 (v1.13.0): Uhrzeit fixieren (14:00) — die Treppe hängt am Tagesstart,
 // die Erwartungen unten sind damit laufzeitunabhängig. Zuweisung NACH dem
 // eval, damit sie die extrahierte Fassung ersetzt.
@@ -65,7 +72,7 @@ jetztStunde = function(){ return 14; };
 
 var fails=0; function ok(n,c){ print((c?'OK   ':'FAIL ')+n); if(!c) fails++; }
 function karte(f){ return Object.assign({ id:'x', domain:'privat', status:'offen', titel:'T',
-  komplex:1, energie:1, blockade:1, sollMin:60, istSek:0, ticksHeute:0, ticksAktiv:false, tickWert:0, tickWerteHeute:[],
+  matrixFeld:'ziel', sollMin:60, istSek:0, ticksHeute:0, ticksAktiv:false, tickWert:0, tickWerteHeute:[],
   punkteProStd:null, akkuProStd:null, zeitStufen:null, rhythmus:null, faelligkeit:heuteApp() }, f||{}); }
 
 var HEUTE=heuteApp();
@@ -123,8 +130,12 @@ if(istWochenendTag(heuteApp())){
   delete S.meta.tagesRahmen;
 }
 ok('paceWerte.ist >= 0 endlich', pw.ist>=0 && isFinite(pw.ist));
+/* Der Test war wochenend-blind: am Wochenende liefert paceWerte bewusst den
+   WE-Zweig (sollRate 0, kein Zeitverlauf — das Kontingent gilt fuer Sa+So
+   gemeinsam). Geprueft wird deshalb je nach Tagestyp das Richtige. */
 ok('paceWerte liefert die drei §1.5-Werte (istRate/restRate/sollRate)',
-  pw.istRate!=null && pw.sollRate>0 && ('restRate' in pw));
+  pw.we ? (pw.istRate===0 && pw.sollRate===0 && ('restRate' in pw))
+        : (pw.istRate!=null && pw.sollRate>0 && ('restRate' in pw)));
 // A3: Tick-Karte-Erkennung + Tick-Punkte
 /* §7/§9 (v1.8.0): Tick-Modell — maßgeblich ist ticksAktiv, timerFlag ist nur
    noch Zeitmessung, und tickPunkte summiert die heutigen Einzelwerte
