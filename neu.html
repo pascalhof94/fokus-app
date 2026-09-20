@@ -4157,6 +4157,12 @@ function renderFokusleiste(){
   }
   const tages=Math.round(tagesPunkteLive());
   el('fkRight').innerHTML='<div class="pt">'+tages+'</div><div class="lbl">heute · P</div>';
+  // §13 (v2.0.0): Die Figur im Kopf IST der Shop-Zugang — sie trägt das
+  // heutige Outfit, damit der Weg dorthin selbst eine Belohnung anzeigt.
+  { const fi=el('tbFigurImg');
+    if(fi){ const of=(typeof outfitHeute==='function')?outfitHeute():1;
+      const src=AVATAR_BILDER[Math.max(0,Math.min(AVATAR_BILDER.length-1,(of||1)-1))];
+      if(src && fi.src!==src) fi.src=src; } }
   renderFkNav();      // Bug 2: Karussell im sticky Topbar (vor layoutTopbar-Messung)
   renderStatusbar();
   layoutTopbar();     // Topbar-Höhe (inkl. fkNav) immer nachziehen, auch bei geschlossenem Tag
@@ -5307,10 +5313,14 @@ function abraeumKarten(){
 function morgenIso(){ const d=new Date(heuteApp()+'T12:00:00'); d.setDate(d.getDate()+1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function oeffneTagAbschluss(){
   if(!tagOffen()){ toast('Kein offener Tag'); return; }
-  abschlussTmp={ step:1, schiebenFor:null, abzug:0, sortOrder:[] };
+  abschlussTmp={ schiebenFor:null, abzug:0 };
   renderAbschluss();
 }
-function renderAbschluss(){ abschlussTmp.step===1 ? renderAbschlussAbraeumen() : renderAbschlussSortieren(); }
+/* ══ §10 (v2.0.0) · TAGESABSCHLUSS — nur noch abräumen und exportieren ══
+   Die zweite Runde „morgen priorisieren" ist entfallen: das macht Claude im
+   Chat, und er macht es besser, weil er Airtable sieht. Der Abschluss hat
+   damit genau einen Schritt. */
+function renderAbschluss(){ renderAbschlussAbraeumen(); }
 function renderAbschlussAbraeumen(){
   rangCacheBauen();
   const karten=abraeumKarten();
@@ -5342,38 +5352,14 @@ function renderAbschlussAbraeumen(){
     }
     h+='</div>';
   });
-  const foot='<button class="btn ghost sm" data-close="1">Später</button><button class="btn prim" data-abfinish="1">Abschließen + Backup</button>';
+  const foot='<button class="btn ghost sm" data-close="1">Später</button><button class="btn prim" data-abfinish="1">Tag schließen + Export</button>';
   openSheet('Tagesabschluss', h, foot);
 }
-function renderAbschlussSortieren(){
-  rangCacheBauen();
-  const morgen=morgenIso(), h0=heuteApp();
-  // Morgen-Stapel = offene Karten, die morgen fällig/übrig sind
-  const ks=S.karten.filter(k=>k.status==='offen' && k.faelligkeit && k.faelligkeit<=morgen);
-  let h='<p class="d"><b>Durchgang 2 — Morgen sortieren.</b> Tippe die Karten in der Reihenfolge an, in der du sie morgen angehen willst.</p>';
-  if(!ks.length){ h+='<div class="card"><p class="d" style="text-align:center">Nichts für morgen.</p></div>'; }
-  // nach aktueller Tap-Reihenfolge sortieren (getappte oben)
-  const order=abschlussTmp.sortOrder;
-  ks.sort((a,b)=>{ const ia=order.indexOf(a.id), ib=order.indexOf(b.id); return (ia<0?9e9:ia)-(ib<0?9e9:ib); });
-  ks.forEach(k=>{
-    const pos=order.indexOf(k.id);
-    h+='<div class="abcard tap '+(pos>=0?'num':'')+'" data-sorttap="'+k.id+'" style="border-left-color:'+karteFarbe(k)+'">'+
-      '<div class="tapnum">'+(pos>=0?(pos+1):'·')+'</div>'+
-      '<div><div class="abtitel">'+esc(k.titel)+'</div><div class="abmeta">'+esc(fmtDatum(k.faelligkeit))+' · '+num(k.sollMin)+'′</div></div>'+
-    '</div>';
-  });
-  const foot='<button class="btn ghost sm" data-absortreset="1">Reset</button><button class="btn prim" data-abfinish="1">Abschließen + Backup</button>';
-  openSheet('Tagesabschluss (2/2)', h, foot);
-}
+/* §10 (v2.0.0): renderAbschlussSortieren ist entfallen — die zweite Runde
+   „morgen priorisieren" macht Claude im Chat. */
 function abschlussFinish(){
-  // §12.2 (v1.12.0): Die Morgen-Reihenfolge schreibt direkt die Ketten —
-  // getappte Karten zuerst, der Rest bleibt dahinter; beim Tageswechsel
-  // rollt die Reihenfolge mit.
-  const order=abschlussTmp.sortOrder;
-  if(order.length){
-    const rest=tagesKette().filter(id=>order.indexOf(id)<0);
-    ketteSetzen(order.concat(rest));
-  }
+  // §10 (v2.0.0): Kein Sortierschritt mehr — der Abschluss räumt ab und
+  // exportiert, sonst nichts.
   tagAbschlussFinalisieren();
   const paket=tagBackupPaket();
   closeSheet(); renderAlles();
@@ -6909,17 +6895,37 @@ function syncImport(text){
 }
 
 /* Sync-Sheet (EIN Button in D6). */
-function oeffneSync(){
-  const anzahl=S.karten.filter(k=>k.domain==='dfm').length;   // §2.2 (1.8.0): inkl. archivierter
-  const ex=esc(syncExportText('sync'));
+/* ══ §11 (v2.0.0) · Sync-Sheet — Delta ist der Standard ═══════════════
+   Der Zeitstempel wird ERST nach der Bestätigung fortgeschrieben. Geht ein
+   Sync verloren, sammelt sich alles an, bis es wirklich angekommen ist. ══ */
+let syncVoll=false;
+function oeffneSync(){ syncVoll=false; renderSyncSheet(); }
+function renderSyncSheet(){
+  const paket=syncExport(syncVoll?'voll':'delta');
+  const ex=esc(JSON.stringify(paket, null, 2));
+  const seit=S.meta && S.meta.letzterSyncBestaetigtTs;
   let h='';
-  h+='<p class="d">Sync Stufe 1 (Copy-Paste, §8). <b>Export</b> nur DFM-Karten ('+anzahl+') — kopiere ihn in den Claude-Chat. <b>Import</b> das Paket, das der Chat zurückgibt.</p>';
-  h+='<div class="field"><label>Export (nur DFM)</label><textarea id="syncEx" readonly style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px">'+ex+'</textarea>'+
+  h+='<div class="rs-kopf" style="margin-bottom:8px">'+
+     '<button class="'+(!syncVoll?'on':'')+'" data-syncmode="delta">Δ Delta</button>'+
+     '<button class="'+(syncVoll?'on':'')+'" data-syncmode="voll">Vollexport</button></div>';
+  if(syncVoll){
+    h+='<p class="d"><b>Vollexport</b> — der ganze Bestand ('+paket.karten.length+' Karten). Für Umzüge und Notfälle.</p>';
+  } else {
+    h+='<p class="d"><b>Delta</b> — nur was sich seit dem letzten <b>bestätigten</b> Sync geändert hat: '+
+       '<b>'+paket.karten.length+'</b> von '+S.karten.length+' Karten.'+
+       (seit?(' Letzter bestätigter Sync: '+esc(String(seit).slice(0,16).replace('T',' '))+'.')
+            :' Noch kein bestätigter Sync — dieses Paket trägt deshalb alles.')+'</p>';
+  }
+  h+='<div class="field"><label>Export</label><textarea id="syncEx" readonly style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px">'+ex+'</textarea>'+
      '<div class="btnrow"><button class="btn sm" data-synccopy="1">📋 Kopieren</button><button class="btn sm" data-syncdownload="1">⬇︎ Datei</button></div></div>';
-  h+='<div class="field"><label>Import (Paket aus dem Chat)</label><textarea id="syncIn" placeholder="{ &quot;karten&quot;: [ … ] }" style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px"></textarea></div>';
+  h+='<div class="field"><label>Angekommen?</label>'+
+     '<p class="d" style="margin-top:0">Erst die Bestätigung schreibt den Zeitstempel fort und räumt erledigte Karten ab. '+
+     'Vorher bleibt alles stehen — ein verlorener Sync darf nichts verschlucken.</p>'+
+     '<div class="btnrow"><button class="btn sm" data-syncbestaetigt="1">✓ Ist im Chat angekommen</button></div></div>';
+  h+='<div class="field"><label>Import (Paket aus dem Chat)</label><textarea id="syncIn" placeholder="{ &quot;appVersion&quot;: &quot;2.0.0&quot;, &quot;karten&quot;: [ … ] }" style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px"></textarea></div>';
   h+='<div id="syncErgebnis"></div>';
   const foot='<button class="btn ghost sm" data-close="1">Schließen</button><button class="btn prim" data-syncimport="1">Importieren</button>';
-  openSheet('Sync (DFM ↔ Claude)', h, foot);
+  openSheet('Sync · Vertrag 2.0', h, foot);
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -9410,7 +9416,7 @@ function karteRowClick(t, e){
   const chk=t.closest('[data-check]'); if(chk){ karteAbhakenAuto(chk.dataset.check, false); return true; }
   return false;
 }
-el('stapelListe').addEventListener('click', e=>{
+if(el('stapelListe')) el('stapelListe').addEventListener('click', e=>{
   const t=e.target;
   if(t.closest('[data-tagstart]')){ oeffneTagStart(); return; }
   if(t.closest('[data-tagclose]')){ oeffneTagAbschluss(); return; }
@@ -9513,6 +9519,11 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-apkeep]')){ autoPauseUebernehmen(true);  return; }
 
   // ── Sync (§8)
+  const sm=t.closest('[data-syncmode]'); if(sm){ syncVoll=(sm.dataset.syncmode==='voll'); renderSyncSheet(); return; }
+  if(t.closest('[data-syncbestaetigt]')){
+    const r=syncBestaetigen();
+    toast('✓ Sync bestätigt · '+r.abgeraeumt+' erledigte Karten abgeräumt');
+    renderSyncSheet(); renderAlles(); return; }
   if(t.closest('[data-synccopy]')){ const ta=el('syncEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){} if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
   if(t.closest('[data-syncdownload]')){ backupDownload(syncExport('sync'), 'fokus-sync-'+aktuelleTagId()+'.json'); return; }
   // §8.4: Kopieren/Download des Tagesabschluss-Pakets
@@ -9641,9 +9652,6 @@ el('sheet').addEventListener('click', e=>{
   const abe=t.closest('[data-abedit]'); if(abe){ oeffneDetail(abe.dataset.abedit); return; }
   const abv=t.closest('[data-abverpasst]'); if(abv){ const k=S.karten.find(x=>x.id===abv.dataset.abverpasst); if(k){ routineBilanz(k,true); k.faelligkeit=null; saveKarten(); saveTag(); } renderAbschluss(); return; }
   const abn=t.closest('[data-abnicht]'); if(abn){ const k=S.karten.find(x=>x.id===abn.dataset.abnicht); if(k){ if(k.rhythmus) routineBilanz(k,false); k.faelligkeit=null; saveKarten(); saveTag(); } renderAbschluss(); return; }
-  if(t.closest('[data-abweiter]')){ abschlussTmp.step=2; renderAbschluss(); return; }
-  const stp=t.closest('[data-sorttap]'); if(stp){ const id=stp.dataset.sorttap; const o=abschlussTmp.sortOrder; const i=o.indexOf(id); if(i>=0) o.splice(i,1); else o.push(id); renderAbschluss(); return; }
-  if(t.closest('[data-absortreset]')){ abschlussTmp.sortOrder=[]; renderAbschluss(); return; }
   if(t.closest('[data-abfinish]')){ abschlussFinish(); return; }
 
   // ── Detail-Chips
@@ -10091,7 +10099,7 @@ el('suchList').addEventListener('click', e=>{
   // §11 (v1.12.0): Kettenfunktionen wie §9.2 (inkl. Uhrstart bei „ganz nach
   // oben" im Aktions-Sheet); Tap auf eine ERLEDIGTE Karte oeffnet den
   // Wiederholen-Dialog (§8).
-  const kb=e.target.closest('[data-suchkette]'); if(kb){ schliesseSuche(); oeffneKetteAktion(kb.dataset.suchkette); return; }
+  const kb=e.target.closest('[data-suchkette]'); if(kb){ schliesseSuche(); oeffneKettePosition(kb.dataset.suchkette); return; }
   const st=e.target.closest('[data-suchstart]'); if(st){
     const k=(S.karten||[]).find(x=>x.id===st.dataset.suchstart);
     if(k && k.status==='erledigt'){ schliesseSuche(); oeffneWiederholen(k.id); return; }
