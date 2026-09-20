@@ -1120,9 +1120,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '1.13.4';                   // Datenvertrag/Sync-appVersion — Vertrag 1.6 (1.13.4: Speicher-Diagnose, Aufraeumen, Quota-Schutz)
-const UI_VERSION = 'v1.13.4';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-02-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '1.13.5';                   // Datenvertrag/Sync-appVersion — Vertrag 1.6 (1.13.5: Export traegt ALLE Kartenfelder + Wiederherstellung)
+const UI_VERSION = 'v1.13.5';                // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-02-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -5889,6 +5889,77 @@ function kartenSitzungenHeute(kid){
   }
   return out;
 }
+/* ══════════════════════════════════════════════════════════════════════
+   §1 (v1.13.5) · DER EXPORT TRÄGT ALLES
+   BEFUND: Der Export listete 18 Felder auf. Es fehlten genau die, die eine
+   Routine zur Routine machen — rhythmus, ticksAktiv, tickWert, abhakbonus,
+   zeitmessung, punkteProStd, akkuProStd, keineAutoPause, timerFlag — sowie
+   die Gruppen-Zuordnung. Der Import-Vertrag kennt sie seit v1.7.1; der
+   Export gab sie nie zurück. Sie lebten ausschliesslich im localStorage.
+
+   KONSEQUENZ: kein Whitelisting mehr. Was am Kartenobjekt hängt und nicht
+   rein abgeleitet ist, geht mit. Neue Felder sind damit automatisch dabei —
+   genau der Fehler, der sich hier sonst wiederholt hätte.
+
+   Ausgeschlossen werden NUR abgeleitete Grössen, die der Export ohnehin in
+   lesbarer Form beilegt (istSek → istMin) — nichts, was Information trägt. */
+const EXPORT_KARTE_ABGELEITET = ['istSek'];
+function kartenAbbildVoll(k, kd, kp){
+  const o={};
+  // 1) ALLES, was am Kartenobjekt persistiert ist.
+  Object.keys(k).forEach(f=>{
+    if(EXPORT_KARTE_ABGELEITET.indexOf(f)>=0) return;
+    if(k[f]===undefined) return;
+    o[f]=k[f];
+  });
+  // 2) Abgeleitetes in der Form, die der Chat erwartet.
+  o.istMin=Math.round(num(k.istSek)/60);
+  o.punkteIst=Math.round(kartePunkte(k));
+  // airtableId bleibt DRIN, auch wenn sie bei privaten Karten null ist:
+  // „kein Whitelisting" heisst auch, kein stilles Weglassen. Der Chat liest
+  // null wie bisher als „keine Airtable-Bindung".
+  // tagesabschnitt bleibt ROH (oft null = „aus der Uhrzeit ableiten"). Der
+  // alte Export schrieb hier den ABGELEITETEN Wert hinein — damit wurde aus
+  // „nicht gesetzt" beim Wiedereinlesen ein fest gesetzter Abschnitt, der
+  // einer spaeteren Uhrzeit-Aenderung nicht mehr folgt. Die abgeleitete
+  // Sicht liegt jetzt unter einem eigenen Schluessel daneben.
+  if(k.domain==='privat') o.tagesabschnittEffektiv=tagesabschnitteVon(k);
+  o.unteraufgaben=untermenge(k.id).map(u=>Object.assign({}, u));
+  const sitz=kartenSitzungenHeute(k.id);
+  if(sitz.length) o.sitzungen=sitz;
+  if(kd && kp){
+    const ki=(k.domain==='privat'?kp:kd).indexOf(k.id);
+    if(ki>=0){ o.kette=k.domain==='privat'?'privat':'dfm'; o.kettenPosition=ki+1; }
+  }
+  return o;
+}
+/* ══ §2 (v1.13.5) · Welche meta-Schlüssel reisen mit ═══════════════════
+   Dieselbe Logik wie bei den Karten: ALLES, ausser einer kurzen, begründeten
+   Sperrliste. Damit sind neue Schlüssel automatisch gesichert.
+
+   Ausgelassen werden nur:
+   · alles auf „Log" — reine Anzeige-Protokolle vergangener Migrationen,
+     teils mehrere KB, ohne Einfluss auf den Zustand.
+   · kettenHistorie — Protokoll, kein Zustand; der laufende Tag reist
+     ohnehin als kettenHistorieHeute mit.
+   · letzteInteraktionTs, autoPause, meilensteinMoment, jokerHinweis —
+     transiente Laufzeitwerte, die sich in Sekunden neu bilden.
+
+   AUSDRÜCKLICH MIT dabei sind die Migrations-FLAGS (migration160, zeit191,
+   rang1110 …). Ohne sie liefen die Migrationen nach einer Wiederherstellung
+   erneut — und migration1120 setzt die Tagesziele HART zurück. Das würde
+   genau die Einstellungen überschreiben, die das Backup retten soll. */
+const EXPORT_META_WEG = ['kettenHistorie','letzteInteraktionTs','autoPause',
+                         'meilensteinMoment','jokerHinweis'];
+function metaAbbildVoll(){
+  const o={};
+  Object.keys(S.meta||{}).forEach(f=>{
+    if(/Log$/.test(f)) return;
+    if(EXPORT_META_WEG.indexOf(f)>=0) return;
+    o[f]=S.meta[f];
+  });
+  return o;
+}
 function syncExport(typ){
   // §13 (v1.12.0) · Vertrag 1.5: Der Export trägt jetzt AUCH private Karten
   // (Kennzeichnung über domain; private Karten tragen KEINE airtableId).
@@ -5899,33 +5970,15 @@ function syncExport(typ){
   const kd=tagesKetteDom('dfm'), kp=tagesKetteDom('privat');
   return {
     typ: typ||'sync', appVersion:VERSION, tagId: aktuelleTagId(), exportZeit:jetztIso(),
-    karten: alle.map(k=>{
-      const o={
-        id:k.id, domain:k.domain,
-        airtableId: k.domain==='dfm' ? (k.airtableId||null) : undefined,
-        titel:k.titel, projekt:k.domain==='dfm'?(k.projekt||null):null, geldScore:num(k.geldScore),
-        faelligkeit:k.faelligkeit||null, uhrzeit:k.uhrzeit||null, sollMin:num(k.sollMin), istMin:Math.round(num(k.istSek)/60),
-        komplex:num(k.komplex,1), energie:num(k.energie,1), blockade:num(k.blockade,1),
-        prioritaet:k.prioritaet, status:k.status, punkteIst:Math.round(kartePunkte(k)),
-        notiz:k.notiz||'',
-        unteraufgaben: untermenge(k.id).map(u=>({ id:u.id, titel:u.titel, sollMin:num(u.sollMin), done:!!u.done }))
-      };
-      if(o.airtableId===undefined) delete o.airtableId;
-      if(k.freeze) o.freeze=true;                          // M1 (1.1.0): nur eingefrorene Karten senden das Feld
-      if(k.kommentarClaude) o.kommentarClaude=k.kommentarClaude;   // U6-F (1.2.0): nur wenn nicht leer
-      if(k.domain==='privat') o.tagesabschnitt=tagesabschnitteVon(k);
-      if(k.vorgaengerAppId)      o.vorgaengerAppId=k.vorgaengerAppId;
-      if(k.vorgaengerAirtableId) o.vorgaengerAirtableId=k.vorgaengerAirtableId;
-      if(k.ungeplant) o.ungeplant=true;   // §5.5 (v1.13.0)
-      // §4 (v1.13.1): Sitzungen des Tages {von,bis,min} — Quelle für Von/Bis
-      // in den Zeit-Records (nur wenn vorhanden, Pakete sind schon groß)
-      const sitz=kartenSitzungenHeute(k.id);
-      if(sitz.length) o.sitzungen=sitz;
-      // §13: Kettenzugehörigkeit und Position je Karte
-      const ki=(k.domain==='privat'?kp:kd).indexOf(k.id);
-      if(ki>=0){ o.kette=k.domain==='privat'?'privat':'dfm'; o.kettenPosition=ki+1; }
-      return o;
-    }),
+    karten: alle.map(k=>kartenAbbildVoll(k, kd, kp)),
+    // §3 (v1.13.5): Routinen-Gruppen als eigener Top-Level-Block — exakt
+    // spiegelbildlich zu dem, was syncImport unter paket.gruppen liest.
+    // Ohne ihn geht der Komplettbonus der „Aufräumrunde" verloren.
+    gruppen: (S.routinenGruppen||[]).map(g=>({
+      id:g.id, name:g.name, domain:g.domain,
+      mitglieder:(g.mitglieder||[]).slice(),
+      komplettBonus:num(g.komplettBonus, KOMPLETT_BONUS_DEFAULT),
+      farbe:g.farbe||null, bonusTag:g.bonusTag||null })),
     ketteDfm: kd.map(id=>{ const k=S.karten.find(x=>x.id===id); return (k&&k.airtableId)||id; }),
     kettePrivat: kp.slice(),
     kettenHistorieHeute: (S.meta.kettenHistorie && S.meta.kettenHistorie[heuteApp()]) ? S.meta.kettenHistorie[heuteApp()] : [],
@@ -5963,7 +6016,31 @@ function syncExport(typ){
       }catch(e){ return []; }
     })(),
     // Routinen-Quote heute in vier Kategorien (Summe = 100 %)
-    routinenQuote: (function(){ try{ return routinenQuoteHeute('alle'); }catch(e){ return null; } })()
+    routinenQuote: (function(){ try{ return routinenQuoteHeute('alle'); }catch(e){ return null; } })(),
+    // ══ §4 (v1.13.5) · WIEDERHERSTELLUNG ════════════════════════════════
+    // Nur im Vollexport. Er ist die Sicherung VOR der v2.0-Migration und
+    // muss ohne die App wieder einlesbar sein: alles, was in localStorage
+    // steht und Nutzerentscheidungen, Messungen oder Spielstand trägt.
+    // Der normale Tages-Sync bleibt schlank.
+    wiederherstellung: (typ==='vollexport') ? {
+      hinweis:'Vollsicherung. Import mit gesetztem wiederherstellung-Block stellt Karten, '+
+              'Unteraufgaben, Gruppen, Einstellungen, Spielstand und Messprotokolle wieder her.',
+      settings: JSON.parse(JSON.stringify(S.settings||{})),
+      meta: metaAbbildVoll(),
+      unteraufgaben: (S.unteraufgaben||[]).map(u=>Object.assign({}, u)),
+      routinenGruppen: (S.routinenGruppen||[]).map(g=>Object.assign({}, g)),
+      kartenGruppen: (S.gruppen||[]).map(g=>Object.assign({}, g)),   // §3.3, NICHT die Routinen-Gruppen
+      stapel: (S.stapel||[]).map(x=>Object.assign({}, x)),
+      ordner: (S.ordner||[]).map(x=>Object.assign({}, x)),
+      vorlagen: (S.vorlagen||[]).map(x=>Object.assign({}, x)),
+      belohnung: JSON.parse(JSON.stringify(S.belohnung||{})),
+      tag: S.tag ? JSON.parse(JSON.stringify(S.tag)) : null,
+      historie: (S.historie||[]).slice(),
+      // Das Intraday-Log speist Rang, Schätzfaktoren und jede Statistik.
+      // Es ist gross — deshalb gekappt, aber nicht weggelassen.
+      intraday: (S.intraday||[]).slice(-4000),
+      kettenHistorie: S.meta && S.meta.kettenHistorie ? JSON.parse(JSON.stringify(S.meta.kettenHistorie)) : {}
+    } : undefined
   };
 }
 function syncExportText(typ){ return JSON.stringify(syncExport(typ), null, 2); }
@@ -5991,6 +6068,19 @@ function syncImport(text){
   }
   const arr = (paket && paket.karten) || null;
   if(!Array.isArray(arr) || !arr.length) return {fehler:'Keine Karten im Paket'};
+  // ══ §5 (v1.13.5) · WIEDERHERSTELLUNG ════════════════════════════════
+  // Normalerweise ist die App Hoheit über Status, Ist-Zeit und Punkte — ein
+  // Chat-Paket darf sie NIE überschreiben. Eine Wiederherstellung ist etwas
+  // anderes: sie soll den Stand exakt zurückbringen. Deshalb ein eigener,
+  // ausdrücklich getragener Modus statt einer Aufweichung der Regel.
+  const wh = (paket && paket.wiederherstellung && typeof paket.wiederherstellung==='object')
+             ? paket.wiederherstellung : null;
+  const restore = !!wh;
+  // Diese Felder gehören sonst der App und wandern NUR im Restore mit.
+  const APP_HOHEIT = ['istSek','status','tagId','punkteOverride','ticksHeute','tickWerteHeute',
+    'streak','zuletztRoutine','abschluesse','strafPunkte','sortIndex','erstelltTs',
+    'letzteBearbeitung','herkunftId','gruppeId','wiederOffenTag','schiebeZaehler',
+    'flowBaseline','ungeplant','pin','schnellauswahl','zeitStufen','tickKurve'];
   let neu=0, neuDfm=0, neuPrivat=0, upd=0, arch=0;
   const neuAngelegt=[];   // FIX1: Neuanlagen dieses Laufs — ggf. als Bestandsübernahme markieren
   const uebersprungen=[]; // §2.4 (v1.7.1): alles, was nicht ankam — MIT Grund
@@ -6065,7 +6155,16 @@ function syncImport(text){
     if(inc.faelligkeit!==undefined) lok.faelligkeit=inc.faelligkeit;   // Deadline↔Fälligkeit
     if(inc.uhrzeit!==undefined) lok.uhrzeit=inc.uhrzeit;               // Uhrzeit↔Airtable-Deadline
     if(inc.freeze!==undefined) lok.freeze=!!inc.freeze;               // M1 (v1.1.0): freeze true setzt / false löst; fehlend = unverändert
-    // App-Hoheit (Status offen/erledigt, Ist, Punkte) wird NIE vom Import überschrieben.
+    // App-Hoheit (Status offen/erledigt, Ist, Punkte) wird NIE vom Import
+    // überschrieben — AUSSER im Wiederherstellungs-Modus (§5).
+    if(restore){
+      APP_HOHEIT.forEach(f=>{ if(inc[f]!==undefined) lok[f]=inc[f]; });
+      if(inc.istMin!==undefined && inc.istSek===undefined) lok.istSek=Math.max(0,num(inc.istMin))*60;
+      // Auch die Bausteine, die sonst nur „wenn mitgeschickt" gesetzt werden,
+      // sollen exakt den Backup-Stand tragen — inklusive null.
+      ['rhythmus','tickWert','abhakbonus','punkteProStd','akkuProStd'].forEach(f=>{
+        if(inc[f]!==undefined) lok[f]=inc[f]; });
+    }
     // Unteraufgaben — Match ausschließlich über App-id, nie über Titel.
     if(Array.isArray(inc.unteraufgaben)){
       inc.unteraufgaben.forEach(iu=>{
@@ -6073,7 +6172,11 @@ function syncImport(text){
         if(!lu){ lu=neueUnteraufgabe(lok.id, { id: iu.id||uuid() }); S.unteraufgaben.push(lu); }
         if(iu.titel!=null) lu.titel=iu.titel;        // Definition beidseitig
         if(iu.sollMin!=null) lu.sollMin=num(iu.sollMin);
-        // done = App-Hoheit → nicht überschreiben
+        if(restore){                                  // §5: done und Bonus gehören zum Stand
+          if(iu.done!==undefined) lu.done=!!iu.done;
+          if(iu.bonusPunkte!==undefined) lu.bonusPunkte=num(iu.bonusPunkte);
+        }
+        // done = App-Hoheit → im Normalbetrieb nicht überschreiben
       });
     }
   });
@@ -6208,20 +6311,64 @@ function syncImport(text){
     });
     saveRoutGruppen();
   }
+  // ══ §5 (v1.13.5) · Die übrigen Speicher-Domänen ══════════════════════
+  let whLog=null;
+  if(restore){
+    whLog={};
+    const setz=(feld, wert, ziel)=>{ if(wert===undefined) return;
+      S[ziel||feld]=wert; whLog[feld]=Array.isArray(wert)?wert.length:1; };
+    setz('settings', wh.settings ? settingsMerge(wh.settings) : undefined);
+    setz('stapel', wh.stapel); setz('ordner', wh.ordner);
+    setz('gruppen', wh.kartenGruppen); setz('vorlagen', wh.vorlagen);
+    setz('belohnung', wh.belohnung); setz('historie', wh.historie);
+    setz('intraday', wh.intraday); setz('routinenGruppen', wh.routinenGruppen);
+    if(wh.tag!==undefined){ S.tag=wh.tag; whLog.tag=wh.tag?1:0; }
+    if(wh.unteraufgaben!==undefined && Array.isArray(wh.unteraufgaben)){
+      // Unteraufgaben vollständig ersetzen — die Kartenschleife hat sie
+      // bereits angelegt; hier zählt der exakte Backup-Stand.
+      S.unteraufgaben=wh.unteraufgaben.map(u=>Object.assign({}, u));
+      whLog.unteraufgaben=S.unteraufgaben.length;
+    }
+    if(wh.meta && typeof wh.meta==='object'){
+      Object.keys(wh.meta).forEach(f=>{ S.meta[f]=wh.meta[f]; });
+      if(wh.kettenHistorie) S.meta.kettenHistorie=wh.kettenHistorie;
+      whLog.meta=Object.keys(wh.meta).length;
+    }
+    DB.set('settings', S.settings); saveStapel(); saveOrdner(); saveGruppen();
+    saveVorlagen(); saveBelohnung(); saveHistorie(); saveTag(); saveRoutGruppen();
+    DB.set('intraday', S.intraday);
+    rangInvalidieren(); baueSuchIndex();
+  }
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   // §5.6 (v1.13.0): erfolgreicher Import = geprüfte Planung
   S.meta.letzterImportTs=jetztIso(); saveMeta();
   return {neu, neuDfm, neuPrivat, upd, arch, ketteGesetzt, ketteUnbekannt, gruppenNeu, gruppenUpd,
-    rahmenGesetzt, korrigiert:korrigiert.length, uebersprungen};
+    rahmenGesetzt, korrigiert:korrigiert.length, uebersprungen, wiederhergestellt:whLog};
 }
 
 /* Sync-Sheet (EIN Button in D6). */
+let syncVollexport=false;
 function oeffneSync(){
-  const anzahl=S.karten.filter(k=>k.domain==='dfm').length;   // §2.2 (1.8.0): inkl. archivierter
-  const ex=esc(syncExportText('sync'));
+  const anzahl=S.karten.length;
+  const typ=syncVollexport?'vollexport':'sync';
+  const txt=syncExportText(typ);
+  const ex=esc(txt);
+  const kb=Math.round(txt.length/1024);
   let h='';
-  h+='<p class="d">Sync Stufe 1 (Copy-Paste, §8). <b>Export</b> nur DFM-Karten ('+anzahl+') — kopiere ihn in den Claude-Chat. <b>Import</b> das Paket, das der Chat zurückgibt.</p>';
-  h+='<div class="field"><label>Export (nur DFM)</label><textarea id="syncEx" readonly style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px">'+ex+'</textarea>'+
+  h+='<div class="rs-kopf" style="margin-bottom:8px">'+
+     '<button class="'+(!syncVollexport?'on':'')+'" data-syncvoll="0">Tages-Sync</button>'+
+     '<button class="'+(syncVollexport?'on':'')+'" data-syncvoll="1">Vollsicherung</button></div>';
+  if(syncVollexport){
+    h+='<p class="d"><b>Vollsicherung ('+kb+' KB).</b> Trägt <b>alle</b> Kartenfelder — auch Rhythmus, '+
+       'Ticks, Abhakbonus und Gruppen —, dazu Einstellungen, Spielstand und Messprotokolle. '+
+       'Dieses Paket lässt sich auf einem leeren Gerät wieder einlesen. '+
+       '<span style="color:var(--warn)">Vor dem Umstieg auf v2.0 unbedingt sichern.</span></p>';
+  } else {
+    h+='<p class="d">Tages-Sync ('+anzahl+' Karten, '+kb+' KB) — kopiere ihn in den Claude-Chat. '+
+       '<b>Import</b> das Paket, das der Chat zurückgibt. Seit v1.13.5 tragen die Karten '+
+       '<b>alle</b> ihre Felder (Rhythmus, Ticks, Abhakbonus) statt nur 18.</p>';
+  }
+  h+='<div class="field"><label>Export</label><textarea id="syncEx" readonly style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px">'+ex+'</textarea>'+
      '<div class="btnrow"><button class="btn sm" data-synccopy="1">📋 Kopieren</button><button class="btn sm" data-syncdownload="1">⬇︎ Datei</button></div></div>';
   h+='<div class="field"><label>Import (Paket aus dem Chat)</label><textarea id="syncIn" placeholder="{ &quot;karten&quot;: [ … ] }" style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px"></textarea></div>';
   h+='<div id="syncErgebnis"></div>';
@@ -8568,7 +8715,10 @@ el('sheet').addEventListener('click', e=>{
 
   // ── Sync (§8)
   if(t.closest('[data-synccopy]')){ const ta=el('syncEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){} if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
-  if(t.closest('[data-syncdownload]')){ backupDownload(syncExport('sync'), 'fokus-sync-'+aktuelleTagId()+'.json'); return; }
+  const sv=t.closest('[data-syncvoll]'); if(sv){ syncVollexport=(sv.dataset.syncvoll==='1'); oeffneSync(); return; }
+  if(t.closest('[data-syncdownload]')){
+    const typ=syncVollexport?'vollexport':'sync';
+    backupDownload(syncExport(typ), (syncVollexport?'fokus-vollsicherung-':'fokus-sync-')+aktuelleTagId()+'.json'); return; }
   // §8.4: Kopieren/Download des Tagesabschluss-Pakets
   if(t.closest('[data-tagcopy]')){ const ta=el('tagEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){}
     if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
@@ -8584,6 +8734,8 @@ el('sheet').addEventListener('click', e=>{
       kz+=' · <b>'+res.upd+'</b> aktualisiert · <b>'+res.arch+'</b> archiviert.';
       if(res.gruppenNeu||res.gruppenUpd) kz+='<br>Gruppen: <b>'+num(res.gruppenNeu)+'</b> angelegt · <b>'+num(res.gruppenUpd)+'</b> aktualisiert.';
       if(res.ketteGesetzt!=null) kz+='<br>Tageskette gesetzt: <b>'+res.ketteGesetzt+'</b> Einträge.';
+      if(res.wiederhergestellt) kz+='<br><span style="color:var(--gut)">♻︎ <b>Wiederherstellung</b>: '+
+        Object.keys(res.wiederhergestellt).map(f=>f+' '+res.wiederhergestellt[f]).join(' · ')+'</span>';
       if(res.rahmenGesetzt!=null) kz+='<br>🕘 Tagesrahmen übernommen: <b>'+res.rahmenGesetzt+'</b> Segmente'+(tagOffen()?' (ersetzt ab jetzt, Gemessenes unberührt)':'')+'.';
       if(res.korrigiert) kz+='<br><span style="color:var(--cyan)">§5.7-Korrekturen angewandt: <b>'+res.korrigiert+'</b> Felder (Protokoll in den Einstellungen).</span>';
       if(res.uebersprungen && res.uebersprungen.length)

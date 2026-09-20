@@ -123,8 +123,12 @@ if(istWochenendTag(heuteApp())){
   delete S.meta.tagesRahmen;
 }
 ok('paceWerte.ist >= 0 endlich', pw.ist>=0 && isFinite(pw.ist));
+/* Der Test war wochenend-blind: am Wochenende liefert paceWerte bewusst den
+   WE-Zweig (sollRate 0, kein Zeitverlauf — das Kontingent gilt fuer Sa+So
+   gemeinsam). Geprueft wird deshalb je nach Tagestyp das Richtige. */
 ok('paceWerte liefert die drei §1.5-Werte (istRate/restRate/sollRate)',
-  pw.istRate!=null && pw.sollRate>0 && ('restRate' in pw));
+  pw.we ? (pw.istRate===0 && pw.sollRate===0 && ('restRate' in pw))
+        : (pw.istRate!=null && pw.sollRate>0 && ('restRate' in pw)));
 // A3: Tick-Karte-Erkennung + Tick-Punkte
 /* §7/§9 (v1.8.0): Tick-Modell — maßgeblich ist ticksAktiv, timerFlag ist nur
    noch Zeitmessung, und tickPunkte summiert die heutigen Einzelwerte
