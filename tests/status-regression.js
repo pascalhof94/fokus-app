@@ -14,13 +14,13 @@ var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','b
   'tickSumme','punkteFuerZeit','zeitquelleMin','subBonusErreicht','pausenStrafe','pausenStrafeLive','kartePunkte','kartenArt','laufendeSek',
   'heuteInvestiertMin','akkuLive','aktuelleTagId','tagOffen','kartePunkteHeute','tagesPunkteDomain','tagesPunkteLive',
   'punkteHeuteAnzeige','tagesZielDomain','wachTagAnteil','punkteHeuteDomain','istTickKarte','tickPunkte',
-  'tagStundenVergangen','anZielDfmTag','paceWerte','imTagesstrom','energieBatterie','tagesStreakStand',
+  'tagStundenVergangen','anZielDfmTag','paceWerte','imTagesstrom','energieBatterie','routinenSerieBeste',
   'fokusKarte','untermenge',
   // §2 (v1.12.0): die Soll-Treppen-Familie
   'istWochenendTag','fensterAnteil','sollFensterStunden','restFensterStd','jetztStunde',
   'zielTag','zielTagGesamt','sollStand','sollStandGesamt','weIstDomain','zielUndIstHeute','sollFensterAktiv',
   // §5.1 (v1.13.0): Start-verankerte Form + Rahmen + Faktor
-  'sollFormWerktag','tagesStartStunde','tagesRahmen','rahmenFenster','upgradeFaktor',
+  'sollFormWerktag','tagesStartStunde','tagesRahmen','rahmenFenster',
   // §2 (v1.13.0): Standardwerte
   'standardWert','tickWertEff','abhakbonusDefault',
   // §3.1/§3.2 (v1.13.0): Vier-Kategorien-Quote + Rein/Raus-Zählwerk
@@ -165,15 +165,19 @@ S.karten=[kv,kl]; S.tag.istMinutenStart={v:0,l:0};
 var eb2=energieBatterie();
 ok('Lader senkt gelb ggü. nur Verbraucher', eb2.gelb<=eb.gelb);
 
-// 5) tagesStreakStand: zusammenhängende positive Tage
-S.historie=[ {datum:'2026-07-27',laufindex:1,punkteBilanz:50,luecke:false},
-             {datum:'2026-07-28',laufindex:1,punkteBilanz:80,luecke:false},
-             {datum:'2026-07-29',laufindex:1,punkteBilanz:0,luecke:false} ];
-ok('Streak bricht am 0-Tag (jüngster=29.=0 → 0)', tagesStreakStand(false)===0);
-S.historie=[ {datum:'2026-07-27',laufindex:1,punkteBilanz:50,luecke:false},
-             {datum:'2026-07-28',laufindex:1,punkteBilanz:80,luecke:false},
-             {datum:'2026-07-29',laufindex:1,punkteBilanz:30,luecke:false} ];
-ok('Streak = 3 zusammenhängende positive Tage', tagesStreakStand(false)===3);
+/* 5) §3 (v2.0.0): Die Serie ist die der ROUTINEN, nicht die der Tage in
+      Folge mit Tagesabschluss. „Katzen fuettern seit 40 Tagen" ist eine
+      Aussage ueber Pascal, „Tagesabschluss seit 12 Tagen" eine ueber die App. */
+var _kv=S.karten;
+S.karten=[ {id:'r1',rhythmus:{typ:'taeglich'},titel:'Katzen fuettern',streak:40},
+           {id:'r2',rhythmus:{typ:'taeglich'},titel:'Gesicht waschen',streak:12},
+           {id:'a1',rhythmus:null,titel:'Aufgabe',streak:99} ];
+ok('§3: laengste Routinen-Serie = 40', routinenSerieBeste().tage===40);
+ok('§3: sie traegt ihren Titel', routinenSerieBeste().titel==='Katzen fuettern');
+ok('§3: eine AUFGABE mit streak zaehlt nicht als Serie', routinenSerieBeste().tage!==99);
+S.karten=[];
+ok('§3: ohne Routinen ist die Serie 0', routinenSerieBeste().tage===0);
+S.karten=_kv;
 
 // 6) punkteHeuteAnzeige nie negativ
 S.tag={ tagId:HEUTE+'-1', datum:heuteIso(), startTs:jetztIso(), akku:75, istMinutenStart:{}, abzuegeBilanz:9999, log:[] };
@@ -234,16 +238,21 @@ for(var off=1; off<=4; off++){
   S.intraday.push({ ts:dd+'T09:00:00', kartenId:'m'+off, domaene:'dfm', punkte:0, minuten:120, typ:'timer' });
   S.intraday.push({ ts:dd+'T12:00:00', kartenId:'m'+off, domaene:'dfm', punkte:400+off*10, minuten:0, typ:'abhaken' });
 }
+/* §3 (v2.0.0): Der Upgrade-Faktor ist ERSATZLOS entfallen — er stand in F
+   in Zaehler UND Nenner und kuerzte sich heraus. Statt seiner Wirkung wird
+   jetzt belegt, dass er WEG ist: ein gesetztes meta.upgradeFaktor darf die
+   Anzeige nicht mehr veraendern. */
 _rangMemo=null; _rangMemoKey='';
-S.meta.upgradeFaktor=1;
 var medianRoh=rangMass().median, oeRoh=oePStd7(), sollF1=paceWerte().soll;
 _rangMemo=null; _rangMemoKey='';
-S.meta.upgradeFaktor=2;
+S.meta.upgradeFaktor=2;   // Altfeld — muss folgenlos bleiben
 var medianF2=rangMass().median, oeF2=oePStd7(), sollF2=paceWerte().soll;
-ok('§4.3 BELEG (F=2): Rang-Median unverändert ('+Math.round(medianRoh)+' P/Std)', medianRoh!=null && medianRoh===medianF2);
-ok('§4.3 BELEG (F=2): oePStd7 unverändert ('+Math.round(oeRoh)+')', Math.abs(oeRoh-oeF2)<0.001);
-ok('§4.3 BELEG (F=2): Anzeige-Soll verdoppelt sich ('+Math.round(sollF1)+' → '+Math.round(sollF2)+')', Math.abs(sollF2-2*sollF1)<1);
-S.meta.upgradeFaktor=1;
+ok('§3 BELEG: Rang-Median unveraendert ('+Math.round(medianRoh)+' P/Std)', medianRoh!=null && medianRoh===medianF2);
+ok('§3 BELEG: oePStd7 unveraendert ('+Math.round(oeRoh)+')', Math.abs(oeRoh-oeF2)<0.001);
+ok('§3 BELEG: Alt-Feld upgradeFaktor=2 aendert das Anzeige-Soll NICHT ('+Math.round(sollF1)+' = '+Math.round(sollF2)+')',
+  Math.abs(sollF2-sollF1)<1);
+ok('§3 BELEG: die Funktion upgradeFaktor existiert nicht mehr', typeof this.upgradeFaktor==='undefined');
+delete S.meta.upgradeFaktor;
 
 // ══ 11) §4 (v1.13.1): Sitzungen des Tages — von = Ende − Dauer, laufende mit ══
 var hf=belFensterDatum(jetztIso());

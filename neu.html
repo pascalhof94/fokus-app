@@ -832,6 +832,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .an-bar .track i{display:block;height:100%;border-radius:6px}
 .an-bar .vv{flex:none;width:66px;text-align:right;color:var(--txt);font-weight:700}
 
+/* ══ §12 (v2.0.0) · Statistik — fünf Module ══ */
+#statistikBody{padding:4px 12px 20px}
+.st-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:6px;margin:4px 0 8px}
+.st-kpi{background:var(--bg2);border:1px solid var(--li);border-radius:10px;padding:8px 6px;text-align:center}
+.st-kpi .k{display:block;font-size:9px;letter-spacing:.06em;text-transform:uppercase;opacity:.5}
+.st-kpi b{display:block;font-size:17px;font-weight:700;margin:2px 0}
+.st-kpi .z{display:block;font-size:9px;opacity:.45}
+.st-kpi.bad b{color:var(--bad)}
+.st-holt{margin:6px 0 4px}
+.st-holt-z{display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 0;border-bottom:1px solid var(--li)}
+.st-holt-z .u{opacity:.5;font-variant-numeric:tabular-nums;flex:0 0 38px}
+.st-holt-z .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-holt-z b{color:var(--gut)}
 /* ── V2 Belohnungsseite ───────────────────────────────────────────── */
 .belkpi-r1{display:flex;gap:8px;margin-bottom:8px}
 .belkpi-col{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--card2)}
@@ -1815,7 +1828,7 @@ function ladeAlles(){
     S.meta.tagesStreak=st; S.meta.tagesStreakBest=st; S.meta.streakLetzterTag=letzt;
     const rp=Math.max(0,num(S.meta.rangPunkte));
     S.meta.gamify190Log={ ts:jetztIso(), rangPunkte:rp, muenzen:num(S.meta.muenzenGesamt),
-      ausgegeben:num(S.meta.ausgegebenGesamt), rang:rangVon(rp), sterne:sterneVon(rp),
+      ausgegeben:num(S.meta.ausgegebenGesamt), rang:rangVon(rp),
       kulisse:bgStufeAus(num(S.meta.ausgegebenGesamt)), streak:st, streakQuelle:(S.historie&&S.historie.length)?'Historie':'leer' };
     S.meta.gamify190=true;
     saveMeta();
@@ -1838,7 +1851,6 @@ function ladeAlles(){
       aussortiert+=dt.ohneZeitN; aussortiertP+=dt.ohneZeitP; });
     const rm=rangMass();
     S.meta.rangBest = rm.rang!=null ? rm.rang : 0;
-    if(!S.meta.sternTage) S.meta.sternTage={};
     S.meta.rang1110Log={ ts:jetztIso(), aktiveTage:rm.n,
       median: rm.median!=null?Math.round(rm.median*10)/10:null,
       rang:rm.rang, aussortiert, aussortiertPunkte:Math.round(aussortiertP),
@@ -1921,8 +1933,6 @@ function ladeAlles(){
     log.tickOverrides=S.karten.filter(k=>k.tickWert!=null).length;
     log.bonusOverrides=S.karten.filter(k=>k.abhakbonus!=null).length;
     // §4.3 / §5.6 / §6.1 / §5.7: neue Akkumulatoren
-    if(S.meta.upgradeFaktor==null) S.meta.upgradeFaktor=1;
-    if(!Array.isArray(S.meta.upgradeHerkunft)) S.meta.upgradeHerkunft=[];
     if(!S.meta.letzterImportTs) S.meta.letzterImportTs=jetztIso();
     if(!Array.isArray(S.meta.akkuEintraege)) S.meta.akkuEintraege=[];
     if(!Array.isArray(S.meta.syncKorrekturen)) S.meta.syncKorrekturen=[];
@@ -3685,8 +3695,7 @@ function fokusStats(k){
   const a=akkuLive(); if(el('tAkku')) el('tAkku').textContent = a!=null?Math.round(a)+'%':'–%';
   // §2 (v1.12.0): Konsument 3 — Kachel „Punkte heute / Ziel" ueber zielUndIstHeute()
   // §4.3 (v1.13.0): Anzeige über den Upgrade-Faktor (Ist UND Ziel — Quote bleibt)
-  const upF=upgradeFaktor();
-  const zi=zielUndIstHeute(), istHeute=(zi.we?zi.ist:punkteHeuteAnzeige())*upF, ziel=zi.ziel*upF;
+  const zi=zielUndIstHeute(), istHeute=(zi.we?zi.ist:punkteHeuteAnzeige()), ziel=zi.ziel;
   if(el('tPktW')){ el('tPktW').textContent=Math.round(istHeute)+'/'+fmtKurzP(ziel); el('tPktSub').textContent=Math.round(istHeute/ziel*100)+'% · Pkt'; }   // §2 (v1.12.0): 12k statt 12000 — passt in die Kachel
   let zeitIst=0, zeitPlan=0; S.karten.forEach(x=>{ if(!imTagesstrom(x)) return; zeitIst+=heuteInvestiertMin(x); zeitPlan+=num(x.sollMin); });
   if(el('tZeitW')){ el('tZeitW').textContent=tZeitKurz(zeitIst)+'/'+tZeitKurz(zeitPlan); el('tZeitSub').textContent='Aufg '+(zeitPlan>0?Math.round(num(k.sollMin)/zeitPlan*100):0)+'%'; }
@@ -4036,8 +4045,8 @@ function oeffneStatusSheet(){
 }
 /* ══ §8 (v1.11.0) · Das Sheet — sechs Abschnitte, das Tagescockpit. ══ */
 function renderStatusSheet(){
-  const rm=rangMass(), eb=energieBatterie(), outfit=outfitHeute(), F=outfitF(), stAkt=sterneAktuell();
-  const av=avatarAssets(5*(outfit-1)+Math.max(1,stAkt||1));
+  const rm=rangMass(), eb=energieBatterie(), outfit=outfitHeute(), F=outfitF();
+  const av=avatarAssets(5*(outfit-1)+1);   // §3 (v2.0.0): ohne Sterne die Basisstufe des Outfits
   const heuteF=belFensterDatum(jetztIso()), nowX=belX(jetztIso());
   const faktor=streakFaktor(), zielHeute=outfitZielHeute();
   const mess=Math.max(0, tagesPunkteLive()), bonus=tagOffen()?Math.max(0,num(S.tag.spielBonus)):0;
@@ -4056,22 +4065,24 @@ function renderStatusSheet(){
         '</div></div>'+
       '<div class="stsh-kx">'+
         '<div class="stsh-k"><span>Rang</span><b style="font-size:19px">'+(rm.rang!=null?rangAnzeigeText(rm):'–')+'</b>'+
-          '<span>'+(stAkt!=null?'<span style="color:var(--warn);letter-spacing:2px">'+'★'.repeat(stAkt)+'☆'.repeat(5-stAkt)+'</span>':'★ sammelt '+sternMass().n+'/14')+'</span>'+
+          '<span>'+esc(rm && rm.rang!=null ? rangName(rm.rang) : '—')+'</span>'+
           '<span>'+(rm.rang!=null?(Math.round(rm.median)+' P/Std'+(rm.naechste?' · R'+(rm.rang+1)+' ab '+Math.round(rm.naechste):' · Spitze')):'sammelt '+rm.n+'/3 aktive Tage')+'</span>'+
           '<span class="av-bar"><i style="width:'+ringPct+'%;background:'+av.akzent+'"></i></span></div>'+
-        '<div class="stsh-k"><span>Heute</span><b>'+Math.round(mess*upgradeFaktor())+' / '+Math.round(zielHeute*upgradeFaktor())+' P</b>'+
+        '<div class="stsh-k"><span>Heute</span><b>'+Math.round(mess)+' / '+Math.round(zielHeute)+' P</b>'+
           '<span>F '+F.toFixed(2).replace('.',',')+' → Outfit '+outfit+(urlaubHeute()?' · 🏖 Ersatzziel':'')+'</span>'+
           '<span class="av-bar"><i style="width:'+Math.round(Math.min(1,F)*100)+'%;background:var(--blue)"></i></span></div>'+
-        (function(){ // §7 (v1.11.1): Bild UND Zahl — Balken zum nächsten Meilenstein
-          const st=num(S.meta.tagesStreak); const stufen=[0,7,30,100,365];
-          const naechster=[7,30,100,365].find(x=>x>st);
+        (function(){ // §3 (v2.0.0): Die Serie ist die der ROUTINEN.
+          const rs=routinenSerieBeste();
+          const stufen=[0,7,30,100,365];
+          const naechster=[7,30,100,365].find(x=>x>rs.tage);
           let sub, pct=100;
-          if(!naechster){ sub='alle Meilensteine erreicht'; }
-          else { const vor=stufen[stufen.indexOf(naechster)-1], ms=STREAK_MEILENSTEINE[naechster];
-            pct=Math.round(Math.max(0,Math.min(1,(st-vor)/(naechster-vor)))*100);
-            sub='Tag '+naechster+' (+'+fmtKurzP(ms.m)+' 🪙) in '+(naechster-st)+' Tg'+(jokerVerfuegbar()?' · ♦ bereit':''); }
-          return '<div class="stsh-k"><span>🔥 Serie</span><b>'+st+' Tg · ×'+faktor.toFixed(2).replace('.',',')+'</b>'+
-            '<span>'+sub+'</span><span class="av-bar"><i style="width:'+pct+'%;background:var(--warn)"></i></span></div>'; })()+
+          if(!naechster) sub='alle Stufen erreicht';
+          else { const vor=stufen[stufen.indexOf(naechster)-1];
+            pct=Math.round(Math.max(0,Math.min(1,(rs.tage-vor)/(naechster-vor)))*100);
+            sub=(naechster-rs.tage)+' Tage bis '+naechster; }
+          return '<div class="stsh-k"><span>🔥 Serie</span><b>'+rs.tage+' Tg</b>'+
+            '<span>'+esc(rs.titel?String(rs.titel).slice(0,18):'—')+' · '+sub+'</span>'+
+            '<span class="av-bar"><i style="width:'+pct+'%;background:var(--warn)"></i></span></div>'; })()+
         (function(){ // §7 (v1.11.1): Konto mit Balken zur nächsten Kulisse
           const st=bgStufeAus(ausgabenAnzeige());
           if(st>=10) return '<div class="stsh-k"><span>🪙 Konto</span><b>'+Math.round(konto())+'</b><span>Reise komplett</span>'+
@@ -4293,12 +4304,12 @@ function renderStatusSheet(){
     const spark=(function(){ const mx=Math.max.apply(null,reihe30.concat([1]));
       const pts=reihe30.map((v,i)=>( (i/(reihe30.length-1))*100 ).toFixed(1)+','+(18-(v/mx)*16).toFixed(1)).join(' ');
       return '<svg viewBox="0 0 100 20" width="100%" height="20" preserveAspectRatio="none"><polyline points="'+pts+'" fill="none" stroke="var(--cyan)" stroke-width="1.6"/></svg>'; })();
-    const serieAkt=num(S.meta.tagesStreak), serieBest=Math.max(1,num(S.meta.tagesStreakBest));
+    const _rs=routinenSerieBeste(); const serieAkt=_rs.tage, serieBest=Math.max(1,_rs.tage);
     s+='<div class="stsh-kacheln" style="grid-template-columns:1fr 1fr 1fr;margin-top:8px">'+
       '<div class="stsh-k"><span>30 Tage</span><b>'+fmtKurzP(p30)+'</b><span>Punkte gesamt</span>'+spark+'</div>'+
       '<div class="stsh-k"><span>Erledigt</span><b>'+e30+'</b><span>in 30 Tagen</span>'+
         '<span class="av-bar"><i style="width:'+Math.round(Math.min(1,e30/90)*100)+'%;background:var(--ok)"></i></span></div>'+
-      '<div class="stsh-k"><span>Beste Serie</span><b>'+num(S.meta.tagesStreakBest)+' Tg</b><span>aktuell '+serieAkt+' Tg 🔥</span>'+
+      '<div class="stsh-k"><span>Längste Routinen-Serie</span><b>'+serieBest+' Tg</b><span>'+esc(_rs.titel||'—')+' 🔥</span>'+
         '<span class="av-bar"><i style="width:'+Math.round(Math.min(1,serieAkt/serieBest)*100)+'%;background:var(--warn)"></i></span></div></div>';
     // Wochentagsprofil (vorhandene Rechnung: Ø Tagespunkte je Wochentag, 30 Tage)
     (function(){
@@ -4365,10 +4376,9 @@ function renderStatusbar(){
   // S2 (v1.3.2): Beschriftung unter der Leiste — Ist DFM/Privat (Punkte) + Soll-jetzt (rot)
   // §4.3 (v1.13.0): Anzeige-Zahlen laufen über den Upgrade-Faktor (Ist UND
   // Soll — die Verhältnisse und der Balken bleiben identisch).
-  const upF=upgradeFaktor();
-  el('sPhDfm').textContent=Math.round(pDfm*upF);
-  el('sPhPrv').textContent=Math.round(pPriv*upF);
-  el('sPhSoll').textContent=urlaubHeute()?'🏖':(istWe?'WE':Math.round(sollStandGesamt()*upF));
+  el('sPhDfm').textContent=Math.round(pDfm);
+  el('sPhPrv').textContent=Math.round(pPriv);
+  el('sPhSoll').textContent=urlaubHeute()?'🏖':(istWe?'WE':Math.round(sollStandGesamt()));
   // Pace-Pfeil (7 Zonen relativ zum Soll) + Δ-P/Std-Anzeige (A2, unverändert)
   const pw=paceWerte();
   const z1=num(S.settings.pfeilZone1,5), z2=num(S.settings.pfeilZone2,15), z3=num(S.settings.pfeilZone3,40);
@@ -4381,13 +4391,13 @@ function renderStatusbar(){
     if(idx>3) farbe='var(--ok)'; if(idx<3) farbe='var(--bad)'; }
   // §1.2 (v1.10.0): fünf Zellen — Kopf, Wert, Zusatz.
   // §3/§4 (v1.11.0): Rang = P/Std-Median, Sterne = Geld-Score-Maß.
-  const rm=rangMass(), stAkt=sterneAktuell();
+  const rm=rangMass();
   const zelle=(id,w,z,farb)=>{ const c=el(id); if(!c) return;
     c.querySelector('.w').innerHTML=w; c.querySelector('.z').innerHTML=z;
     if(farb) c.querySelector('.w').style.color=farb; };
   zelle('sZRang', rm.rang!=null?('R'+rm.rang):'–',
     rm.rang==null ? (rm.n+'/3 Tg')
-      : (stAkt!=null ? '★'.repeat(stAkt)+'☆'.repeat(5-stAkt) : sternMass().n+'/14 ★'));
+      : '—');
   // Zelle 2: Akku + Reichweite (§1.2) — gekürzt auf die Uhrzeit („17:10" statt „bis 17:10")
   const rw=akkuReichweite(eb);
   zelle('sZAkku', (eb.akku!=null?Math.round(eb.akku)+'%':'–'), rw);
@@ -4405,7 +4415,8 @@ function renderStatusbar(){
       farbe);
   }
   // Zelle 4: Serie
-  zelle('sZSerie', '🔥 '+num(S.meta.tagesStreak), '×'+streakFaktor().toFixed(2).replace('.',',')+(jokerVerfuegbar()?' ♦':''));
+  { const rs=routinenSerieBeste();
+    zelle('sZSerie', '🔥 '+rs.tage, rs.titel?String(rs.titel).slice(0,10):'Routinen'); }
   // Zelle 5: Konto + Abstand zur nächsten Kulisse (gekürzt: nur die Zahl)
   const bgSt=bgStufeAus(ausgabenAnzeige());
   zelle('sZKonto', fmtKurzP(k), bgSt<10 ? ('Kulisse '+Math.max(0,Math.round(bgSchwelle(bgSt+1)-ausgabenAnzeige()))+'') : 'Reise voll');
@@ -4634,7 +4645,9 @@ function zielUndIstHeute(dom){
 /* ══ §4.3 (v1.13.0) · Upgrade-Faktor — wirkt NUR auf Anzeige-/Spielebene
    (Tagespunkte-Anzeige, Ziele, F, Münzen). Mess-Ebene (Rang-Median,
    Schätzfaktoren, oePStd7, Intraday, Snapshots) rechnet weiter roh. ══ */
-function upgradeFaktor(){ return Math.max(1, num(S.meta && S.meta.upgradeFaktor, 1)); }
+/* §3 (v2.0.0): Der Upgrade-Faktor ist ERSATZLOS entfallen — er stand in F
+   sowohl im Zähler als auch im Nenner und kürzte sich damit heraus. Ein
+   Multiplikator, der nichts verändert, ist keine Währung. */
 /* §5.4 (v1.13.0): Die PLANKURVE — kumulierte geplante Punkte über den Tag.
    Mit Tagesrahmen ist der Plan die Soll-Treppe des Rahmens; ohne Rahmen die
    Hochrechnung „geplantes Volumen der heutigen Ketten × Profil-Form". */
@@ -4712,12 +4725,11 @@ function tagStundenVergangen(){
    Geld-Größen laufen über den Upgrade-Faktor (ist UND soll — Verhältnisse
    bleiben identisch, keine Zielinflation). */
 function paceWerte(){
-  const f=upgradeFaktor();
   const zi=zielUndIstHeute();
-  if(zi.we) return { we:true, ist:zi.ist*f, ziel:zi.ziel*f, soll:zi.ziel*f, delta:0, istRate:0, restRate:null, sollRate:0 };
-  const soll=sollStandGesamt()*f;
-  const ist=punkteHeuteAnzeige()*f;
-  const ziel=zi.ziel*f;
+  if(zi.we) return { we:true, ist:zi.ist, ziel:zi.ziel, soll:zi.ziel, delta:0, istRate:0, restRate:null, sollRate:0 };
+  const soll=sollStandGesamt();
+  const ist=punkteHeuteAnzeige();
+  const ziel=zi.ziel;
   const rest=restFensterStd();
   const verg=Math.max(0, sollFensterStunden()-rest);
   return { we:false, ist, ziel, soll, delta:ist-soll,
@@ -4727,14 +4739,13 @@ function paceWerte(){
 }
 /* §2 (v1.12.0): Konsument 2 — Pace je Domäne, ebenfalls Stand-basiert. */
 function paceDomain(dom){
-  const f=upgradeFaktor();
   const zi=zielUndIstHeute(dom);
-  if(zi.we) return { we:true, ist:zi.ist*f, ziel:zi.ziel*f, soll:zi.ziel*f, delta:0, istRate:0, sollRate:0 };
-  const soll=sollStand(dom)*f;
+  if(zi.we) return { we:true, ist:zi.ist, ziel:zi.ziel, soll:zi.ziel, delta:0, istRate:0, sollRate:0 };
+  const soll=sollStand(dom);
   const rest=restFensterStd();
   const verg=Math.max(0, sollFensterStunden()-rest);
-  return { we:false, ist:zi.ist*f, ziel:zi.ziel*f, soll, delta:zi.ist*f-soll,
-    istRate: verg>0.05 ? zi.ist*f/verg : 0, sollRate: soll };
+  return { we:false, ist:zi.ist, ziel:zi.ziel, soll, delta:zi.ist-soll,
+    istRate: verg>0.05 ? zi.ist/verg : 0, sollRate: soll };
 }
 /* §3.1 (v1.13.0): Anteil der HEUTE anstehenden Routinen in VIER Kategorien —
    erledigt · geschoben · entschuldigt · verpasst (Summe = 100 %). Solange der
@@ -4920,7 +4931,7 @@ function tagStarten(akkuProzent){
   // v1.1: Tagesbasis der Ist-Minuten je Karte (heute-investiert startet bei 0,
   // mehrtägige Aufgaben behalten ihre bisherige Zeit) + erste Akku-Stichprobe.
   S.tag.istMinutenStart={}; S.karten.forEach(k=>{ S.tag.istMinutenStart[k.id]=istSekLive(k)/60; });
-  S.tag.streak = tagesStreakStand(false);   // Stand VOR heute (heute wird beim Abschluss gebucht)
+  S.tag.streak = routinenSerieBeste().tage;   // §3: die Serie ist die der Routinen
   akkuSampleSchreiben();
   saveTag(); saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   renderAlles();
@@ -4935,47 +4946,21 @@ function tagStarten(akkuProzent){
    Eine 1-Tages-Lücke wird ab Streak 30 automatisch von einem Joker
    überbrückt (einer je Kalendermonat), mit ruhigem Hinweis beim nächsten
    Rendern. Sonst: Serie auf 0 → neuer Tag zählt als 1. */
-const STREAK_MEILENSTEINE={ 7:{m:2500,r:0}, 30:{m:5000,r:5000}, 100:{m:10000,r:10000}, 365:{m:25000,r:25000} };
+/* ══ §3 (v2.0.0) · SERIEN GELTEN NUR NOCH FÜR ROUTINEN ════════════════
+   „Katzen füttern seit 40 Tagen" ist eine Aussage über Pascal.
+   „Tagesabschluss seit 12 Tagen" ist eine Aussage über die App.
+   Deshalb sind Tages-Serie, Joker, Serien-Meilensteine und der davon
+   abgeleitete Münz-Multiplikator entfallen. Was bleibt, ist k.streak je
+   Routine — und das ist die Serie, die etwas bedeutet. */
 function istUrlaubsLueckentag(d){
   if(S.meta && S.meta.urlaubsmodus) return true;
   return (S.historie||[]).some(h=>h.datum===d && h.urlaub && !h.luecke);
 }
-function streakFortschreiben(datum, urlaub){
-  if(urlaub) return;   // neutral — Serie steht, zählt aber nicht weiter
-  const letzt=S.meta.streakLetzterTag;
-  let neu;
-  if(!letzt || letzt>=datum){ neu=Math.max(1, num(S.meta.tagesStreak)); if(!letzt) neu=1; }
-  else {
-    let luecke=0, d=letzt, guard=0;
-    while(guard++<400){ d=anVorTage(d,-1); if(d>=datum) break; if(!istUrlaubsLueckentag(d)) luecke++; }
-    if(luecke===0) neu=num(S.meta.tagesStreak)+1;
-    else if(luecke===1 && jokerVerfuegbar()){
-      S.meta.jokerVerbrauchtMonat=heuteApp().slice(0,7);
-      S.meta.jokerHinweis=num(S.meta.tagesStreak)+1;   // ruhiger Hinweis beim nächsten Rendern
-      neu=num(S.meta.tagesStreak)+1;
-    }
-    else neu=1;
-  }
-  S.meta.tagesStreak=neu;
-  S.meta.tagesStreakBest=Math.max(num(S.meta.tagesStreakBest), neu);
-  S.meta.streakLetzterTag=datum;
-  // §5.3: Meilensteine — einmalig beim exakten Erreichen
-  const ms=STREAK_MEILENSTEINE[neu];
-  if(ms){
-    S.meta.muenzenGesamt=num(S.meta.muenzenGesamt)+ms.m;   // Münzen-Bonus
-    S.meta.rangPunkte=num(S.meta.rangPunkte)+ms.r;         // Rang-Bonus (Quelle 3, §2.2)
-    S.meta.meilensteinMoment=neu;                          // Feier beim nächsten Rendern (§6.3)
-  }
-  saveMeta();
-}
-/* ALT (v1.1): Tage in Folge mit positiver Bilanz — bleibt für S.tag.streak in
-   der Historie erhalten; der NEUE Multiplikator-Streak ist meta.tagesStreak. */
-function tagesStreakStand(inklHeute){
-  const tage=(S.historie||[]).filter(h=>!h.luecke).slice().sort((a,b)=> (a.datum<b.datum?1:a.datum>b.datum?-1:(num(b.laufindex)-num(a.laufindex))) );
-  let s=0;
-  for(const h of tage){ if(num(h.punkteBilanz)>0) s++; else break; }
-  if(inklHeute && tagOffen() && tagesPunkteLive()>0) s++;
-  return s;
+/* Die längste laufende Routinen-Serie — das ist ab 2.0 „die Serie". */
+function routinenSerieBeste(){
+  let best=0, titel=null;
+  S.karten.forEach(k=>{ if(k.rhythmus && num(k.streak)>best){ best=num(k.streak); titel=k.titel||''; } });
+  return { tage:best, titel };
 }
 /* Streak-Buchung bei Routinen-Erledigung (aus karteAbhaken). */
 function routineErledigtBuchen(k){
@@ -5023,7 +5008,7 @@ function tagAbschlussFinalisieren(){
   const bilanz = tagesPunkteLive();                      // erledigte heute − Abzüge (+ nichts Laufendes mehr)
   S.tag.punkteBilanz = Math.round(bilanz);
   S.tag.endeTs = jetztIso();
-  S.tag.streak = bilanz>0 ? tagesStreakStand(false)+1 : 0;   // v1.1: Tages-Streak einfrieren
+  S.tag.streak = routinenSerieBeste().tage;   // §3 (v2.0.0): Routinen-Serie
   S.meta.wohlstand = num(S.meta.wohlstand) + bilanz;     // §4: kumulativ, nie Reset
   // Snapshot für Statistiken (§9) + Belohnungs-Diagramme (v1.1: log/akkuVerlauf/streak)
   S.tag.urlaub=urlaubHeute();   // §5.4 (1.8.1): Markierung gehoert an den TAG
@@ -5035,23 +5020,18 @@ function tagAbschlussFinalisieren(){
     const faktor=streakFaktor();
     const bonus=Math.max(0, num(S.tag.spielBonus));   // §6 (v1.11.0): Kauf-Tagespunkte (Altbestand — seit §4.3 v1.13.0 hebt der Kauf den Faktor)
     // §4.3 (v1.13.0): der Upgrade-Faktor wirkt auf die MÜNZEN (Spiel-Ebene)
-    const zufluss=Math.round(Math.max(0, bilanz)*faktor*upgradeFaktor() + bonus);
+    const zufluss=Math.round(Math.max(0, bilanz)*faktor + bonus);
     S.meta.muenzenGesamt=num(S.meta.muenzenGesamt)+zufluss;
     // rangPunkte ist seit v1.11.0 reine Lebenswerk-Summe (Statistik) — sie
     // wächst mit dem echten Verdienst; Kauf-Bonus/Upgrade-Faktor zählen nicht.
     S.meta.rangPunkte=num(S.meta.rangPunkte)+Math.round(Math.max(0, bilanz)*faktor);
     S.tag.spielZufluss=zufluss; S.tag.spielFaktor=faktor;   // für die Abschluss-Abfolge (§6.2)
-    streakFortschreiben(S.tag.datum, S.tag.urlaub);
+    // §3 (v2.0.0): Tages-Serie entfallen — Routinen-Serien laufen an der Karte.
   }
   // §4 (v1.11.0): Stern-Tageswert festschreiben — Geld-Score der heute
   // abgeschlossenen DFM-Aufgaben + getrackte Minuten (Null-Minuten-Regel).
   {
     const r=tagesRate(belFensterDatum(S.tag.startTs||jetztIso()));
-    if(!S.meta.sternTage) S.meta.sternTage={};
-    S.meta.sternTage[S.tag.datum]={ geld:Math.round(sternGeldHeute()), min:r?Math.round(r.min):0 };
-    const keys=Object.keys(S.meta.sternTage).sort();
-    while(keys.length>60){ delete S.meta.sternTage[keys.shift()]; }   // Kappe: 60 Tage reichen für jedes 14er-Fenster
-    sternKalibrierenPruefen();
   }
   S.historie.push({
     tagId:S.tag.tagId, datum:S.tag.datum, laufindex:S.tag.laufindex, urlaub:S.tag.urlaub, spielZufluss:num(S.tag.spielZufluss),
@@ -5235,7 +5215,7 @@ function oeffneTagAbschlussPaket(paket){
   const rm=rangMass();
   const seq='<div class="abfolge">'+
     '<div class="ab-schritt" style="animation-delay:.05s"><span>Punkte heute</span><b>'+Math.round(num(S.tag&&S.tag.punkteBilanz))+'</b></div>'+
-    '<div class="ab-schritt" style="animation-delay:.35s"><span>🔥 Serie '+num(S.meta.tagesStreak)+' Tg</span><b>×'+num(S.tag&&S.tag.spielFaktor,1).toFixed(2).replace('.',',')+'</b></div>'+
+    '<div class="ab-schritt" style="animation-delay:.35s"><span>🔥 Routinen-Serie</span><b>'+routinenSerieBeste().tage+' Tg</b></div>'+
     '<div class="ab-schritt" style="animation-delay:.65s"><span>🪙 Münzen</span><b>+'+Math.round(num(S.tag&&S.tag.spielZufluss))+'</b></div>'+
     '<div class="ab-schritt" style="animation-delay:.95s"><span>👔 Outfit '+outfitHeute()+' / 20</span><b>'+
       (rm.rang!=null?('Rang '+rangAnzeigeText(rm)):('Rang: '+rm.n+'/3 Tg'))+'</b></div>'+
@@ -5253,7 +5233,7 @@ function tagBackupPaket(){
   return { typ:'tagesabschluss', appVersion:VERSION, exportZeit:jetztIso(),
     tag:S.tag, wohlstand:S.meta.wohlstand,
     karten:S.karten, unteraufgaben:S.unteraufgaben,
-    upgradeFaktor:sx.upgradeFaktor, ziele:sx.ziele, tagesRahmen:sx.tagesRahmen,
+    ziele:sx.ziele, tagesRahmen:sx.tagesRahmen,
     kurvenHeute:sx.kurvenHeute, akkuEintraege:sx.akkuEintraege,
     reinRaus:sx.reinRaus, routinenQuote:sx.routinenQuote,
     ketteDfm:sx.ketteDfm, kettePrivat:sx.kettePrivat };
@@ -6961,7 +6941,7 @@ function renderEinst(){
       return rm.rang!=null ? 'R'+rangAnzeigeText(rm)+' · '+Math.round(rm.median)+' P/Std' : 'sammelt ('+rm.n+'/3)'; })()+'</b></div>'+
     '<div class="kv"><span>Lebenswerk (Spiel-Punkte, ehem. Rang-P)</span><b>'+Math.round(rangPunkteAnzeige())+'</b></div>'+
     '<div class="kv"><span>Rang-P · Münzen · ausgegeben</span><b>'+Math.round(rangPunkteAnzeige())+' · '+Math.round(muenzenAnzeige())+' · '+Math.round(ausgabenAnzeige())+'</b></div>'+
-    '<div class="kv"><span>Tages-Serie (best)</span><b>'+num(S.meta.tagesStreak)+' ('+num(S.meta.tagesStreakBest)+')</b></div>'+
+    '<div class="kv"><span>Längste Routinen-Serie</span><b>'+routinenSerieBeste().tage+' Tg</b></div>'+
     '<div class="kv"><span>Level (Altwert)</span><b>Lv '+avatarStufe()+'/'+AVATAR_MAX_LEVEL+'</b></div>'+
     '<div class="kv"><span>Migration Lifetime-Basis</span><b>'+(S.meta.lifetimeBasis==null?'—':Math.round(S.meta.lifetimeBasis)+' P ('+esc(S.meta.lifetimeQuelle||'?')+')')+'</b></div>'+
     '<div class="kv"><span>Tag</span><b>'+(tagOffen()?('läuft · '+esc(S.tag.tagId)):(S.tag?'abgeschlossen':'nicht gestartet'))+'</b></div>'+
@@ -6997,16 +6977,8 @@ function renderEinst(){
     '<p class="d">Rangaufstieg, Kulissenwechsel und Serien-Meilensteine erscheinen als Vollbild (ein Tap schließt). Hier lassen sie sich abschalten — kleine Einblendungen beim Abhaken bleiben.</p>'+
     '<div class="kv"><span>Vollbild-Momente</span><button class="chip '+(!S.meta.momenteAus?'on gruen':'')+'" data-momenttoggle="1">'+(!S.meta.momenteAus?'AN':'aus')+'</button></div>'+
   '</div>';
-  // §4 (v1.11.0): Sternschwellen — einmal aus dem eigenen Verlauf gesetzt,
-  // hier bewusst neu kalibrierbar.
-  h+='<div class="card"><h3>⭐ Sternschwellen</h3>'+
-    (function(){ const m=sternMass();
-      if(Array.isArray(S.meta.sternSchwellen))
-        return '<p class="d">Kalibriert am '+esc(S.meta.sternKalibriertAm||'?')+' — Schwellen (Geld-Score/Std): '+
-          S.meta.sternSchwellen.map(x=>Math.round(x*10)/10).join(' · ')+'. Neukalibrieren setzt sie neu aus dem aktuellen Verlauf.</p>'+
-          '<div class="btnrow"><button class="btn sm" data-sternkalib="1">⭐ Neu kalibrieren</button></div>';
-      return '<p class="d">Die Sterne messen den Geld-Score je getrackter Stunde. Die Schwellen setzen sich nach 14 aktiven Messtagen selbst aus deinem Verlauf — aktuell '+m.n+'/14.</p>'; })()+
-  '</div>';
+  // §3 (v2.0.0): Die Karte „Sternschwellen" ist entfallen — die Sterne gibt
+  // es nicht mehr.
   // §3 (v1.12.0)/§5.1 (v1.13.0): Tagesprofil — die FORM hängt am Tagesstart
   // (relative Stunden). Aktive Form sichtbar/editierbar, gemessene Form
   // daneben, Übernahme NUR nach ausdrücklicher Freigabe.
@@ -7039,19 +7011,8 @@ function renderEinst(){
         '<div class="btnrow"><button class="btn prim sm" data-profiluebernehmen="1">Gemessene Form übernehmen</button></div>';
     }
     return x+'</div>'; })();
-  // §4.3 (v1.13.0): Upgrade-Faktor — unveränderbar, mit Herkunft
-  h+=(function(){
-    const f=upgradeFaktor();
-    let x='<div class="card"><h3>🎁 Upgrade-Faktor</h3>'+
-      '<p class="d">Jeder Shop-Kauf hebt den Faktor um 2 %. Er wirkt NUR auf der Anzeige-/Spielebene (Tagespunkte, Ziele, Münzen) — Rang-Median, Schätzfaktoren und Shop-Preisbasis rechnen weiter mit Rohpunkten. Hier nicht veränderbar.</p>'+
-      '<div class="kv"><span>Aktueller Faktor</span><b>×'+f.toFixed(2).replace('.',',')+'</b></div>'+
-      '<div class="kv"><span>Werktagsziel effektiv</span><b>'+Math.round((num(S.settings.tagesZielDfm,7000)+num(S.settings.tagesZielPrivat,5000))*f)+' P (eingestellt '+Math.round(num(S.settings.tagesZielDfm,7000)+num(S.settings.tagesZielPrivat,5000))+')</b></div>';
-    const hk=(S.meta.upgradeHerkunft||[]).slice(-8).reverse();
-    if(hk.length){
-      x+='<p class="d" style="margin-top:6px">Herkunft (jüngste zuerst):</p>';
-      hk.forEach(e=>{ x+='<div class="kv"><span>'+esc(String(e.ts||'').slice(0,10))+' · '+esc((BELOHNUNG[e.kat]&&BELOHNUNG[e.kat].icon)||'')+' Stufe '+num(e.stufe)+' ('+fmtKurzP(e.preis)+')</span><b>×'+num(e.von,1).toFixed(2).replace('.',',')+' → ×'+num(e.zu,1).toFixed(2).replace('.',',')+'</b></div>'; });
-    } else x+='<p class="d" style="color:var(--mut2)">Noch kein Kauf seit v1.13.0 — der Faktor steht auf ×1,00.</p>';
-    return x+'</div>'; })();
+  // §3 (v2.0.0): Die Karte „Upgrade-Faktor" ist entfallen — die Währung gibt
+  // es nicht mehr (sie kürzte sich in F heraus).
   // §5.7 (v1.13.0): Sync-Korrektur-Protokoll einsehbar
   if((S.meta.syncKorrekturen||[]).length){
     const ks=S.meta.syncKorrekturen.slice(-10).reverse();
@@ -7154,7 +7115,7 @@ function oeffneShopReset(){
     '<div class="kvblock">'+
     '<div class="kv"><span>Verschwindet</span><b>Besitz-Stufen (Objekte in Shop &amp; Album → „???")</b></div>'+
     '<div class="kv"><span>Bleibt</span><b>Konto '+fmtKurzP(konto())+' · Münzen · Ausgegebenes '+fmtKurzP(ausgabenAnzeige())+'</b></div>'+
-    '<div class="kv"><span>Bleibt</span><b>Kulisse '+bgStufeAus(ausgabenAnzeige())+'/10 · Rang · Bestwert · Serie 🔥'+num(S.meta.tagesStreak)+'</b></div>'+
+    '<div class="kv"><span>Bleibt</span><b>Kulisse '+bgStufeAus(ausgabenAnzeige())+'/10 · Rang · Bestwert · Serie 🔥'+routinenSerieBeste().tage+'</b></div>'+
     '<div class="kv"><span>Bleibt</span><b>alle Punkte, Statistik, Schätzfaktoren, Upgrade-Faktor</b></div></div>'+
     '<p class="d" style="margin-top:8px">Sicherung vorher unter <code>besitz_bak1133</code>. Danach folgt die Preiskalibrierung (§2) — wenn alles gekauft war, waren die Preise zu niedrig.</p>';
   openSheet('🛍 Shop zurücksetzen', h,
@@ -7277,12 +7238,8 @@ function kaufen(kat){
   // Spielebene, nie auf Rang-Median, Schätzfaktoren oder oePStd7. Der alte
   // 50-%-Tagesbonus (v1.11.0) ist damit abgelöst; S.tag.spielBonus wird nur
   // noch gelesen (Altbestand des laufenden Tages).
-  const fVon=upgradeFaktor();
-  S.meta.upgradeFaktor=Math.round(fVon*1.02*10000)/10000;
-  if(!Array.isArray(S.meta.upgradeHerkunft)) S.meta.upgradeHerkunft=[];
-  S.meta.upgradeHerkunft.push({ ts:jetztIso(), kat, stufe:idx+1, preis, von:fVon, zu:S.meta.upgradeFaktor });
-  if(S.meta.upgradeHerkunft.length>100) S.meta.upgradeHerkunft=S.meta.upgradeHerkunft.slice(-100);
-  toast('🎁 Upgrade-Faktor: ×'+fVon.toFixed(2).replace('.',',')+' → ×'+S.meta.upgradeFaktor.toFixed(2).replace('.',','));
+
+
   saveMeta();
   saveBelohnung(); konfetti(); haptik(25);
   toast('🎉 Freigeschaltet: '+BELOHNUNG[kat].icon+' '+stufe[0]);
@@ -7452,7 +7409,7 @@ function rangKosten(n){ return 1200*(n-1)*(n-1); }                 // Kosten fü
 function rangSchwelle(n){ let s=0; for(let i=2;i<=n;i++) s+=rangKosten(i); return s; }
 function rangVon(p){ let n=1; while(n<RANG_MAX && p>=rangSchwelle(n+1)) n++; return n; }
 /* Sterne 0–5 im aktuellen Rang, linear interpoliert (§3.2). */
-function sterneVon(p){
+function _entfallen_sterneVon(p){
   const n=rangVon(p);
   if(n>=RANG_MAX) return 5;
   const basis=rangSchwelle(n), kosten=rangKosten(n+1);
@@ -7461,18 +7418,18 @@ function sterneVon(p){
 /* §3.3: Rang n trägt den Namen von Level 5n, Stern k den von Level 5(n−1)+k —
    alle 100 Namen bleiben im Einsatz. */
 function rangName(n){ return AVATAR_NAMEN[Math.min(100, n*5)-1] || ('Rang '+n); }
-function sternName(n, k){ return AVATAR_NAMEN[Math.min(100, 5*(n-1)+k)-1] || ''; }
+
 /* §5: Tages-Streak (Tage in Folge mit Tagesabschluss; Urlaubstage neutral). */
-function streakFaktor(){ return 1 + Math.min(0.5, Math.max(0,num(S.meta&&S.meta.tagesStreak))*0.02); }
-function jokerVerfuegbar(){
-  return num(S.meta&&S.meta.tagesStreak)>=30 && (S.meta.jokerVerbrauchtMonat||'')!==heuteApp().slice(0,7);
-}
+/* §3 (v2.0.0): Der Münz-Multiplikator hing an der TAGES-Serie — die ist
+   entfallen. Münzen fließen jetzt 1:1 aus den Punkten. */
+function streakFaktor(){ return 1; }
+function jokerVerfuegbar(){ return false; }
 /* Live-Zufluss der Spiel-Ebene: heutige Punkte × Faktor + Kauf-Bonus des Tages
    (§6 v1.11.0) — beim Abschluss wird exakt derselbe Betrag festgeschrieben. */
 function spielLiveZufluss(){
   // §4.3 (v1.13.0): Münzen sind Spiel-Währung — der Upgrade-Faktor wirkt mit.
   return tagOffen()
-    ? Math.max(0, tagesPunkteLive())*streakFaktor()*upgradeFaktor() + Math.max(0,num(S.tag.spielBonus))
+    ? Math.max(0, tagesPunkteLive())*streakFaktor() + Math.max(0,num(S.tag.spielBonus))
     : 0;
 }
 /* Anzeigen rechnen gegen Rohwert − Reset-Offset (§7.2). */
@@ -7480,10 +7437,9 @@ function rangPunkteAnzeige(){ return Math.max(0, num(S.meta&&S.meta.rangPunkte) 
 function ausgabenAnzeige(){ return Math.max(0, num(S.meta&&S.meta.ausgegebenGesamt) - num(S.meta&&S.meta.ausgabenResetOffset)); }
 function muenzenAnzeige(){ return Math.max(0, num(S.meta&&S.meta.muenzenGesamt) - num(S.meta&&S.meta.muenzenResetOffset) + spielLiveZufluss()); }
 function spielStand(){
-  const rp=rangPunkteAnzeige(), n=rangVon(rp), st=sterneVon(rp);
+  const rp=rangPunkteAnzeige(), n=rangVon(rp);
   const naechste=n<RANG_MAX ? rangSchwelle(n+1) : null;
-  return { rp, rang:n, sterne:st, name:rangName(n),
-    sternName: st>=1 ? sternName(n, st) : null,
+  return { rp, rang:n, name:rangName(n),
     basis:rangSchwelle(n), naechste,
     anteil: naechste!=null ? Math.max(0,Math.min(1,(rp-rangSchwelle(n))/rangKosten(n+1))) : 1,
     rest: naechste!=null ? Math.max(0, naechste-rp) : 0 };
@@ -7583,53 +7539,14 @@ function rangAnzeigeText(rm){
   if(rm.rang==null) return 'sammelt noch Daten ('+rm.n+'/3)';
   return rm.best>rm.rang ? (rm.rang+' · best '+rm.best) : String(rm.rang);
 }
-/* §4 · Sterne — Geld-Score abgeschlossener DFM-Aufgaben je Tag ÷ getrackte
-   Stunden (Null-Minuten-Regel), Median über dieselben 14 aktiven Tage.
-   Historische Tageswerte sammelt meta.sternTage ab v1.11.0 (Abschluss). */
-function sternGeldHeute(){
-  const tid=aktuelleTagId();
-  return S.karten.filter(k=>k.domain==='dfm' && k.status==='erledigt' && k.tagId===tid)
-    .reduce((a,k)=>a+Math.max(0,num(k.geldScore)),0);
-}
-function sternMass(){
-  const werte=[];
-  aktiveRateTage(14).forEach(d=>{
-    let g=null, min=null;
-    if(tagOffen() && S.tag.datum===d){ g=sternGeldHeute(); const r=tagesRate(d); min=r?r.min:null; }
-    else { const e=S.meta.sternTage && S.meta.sternTage[d]; if(e){ g=num(e.geld); min=num(e.min); } }
-    if(g!=null && min>=1) werte.push(g/(min/60));
-  });
-  return { n:werte.length, median: werte.length?medianVon(werte):null, werte };
-}
-/* §4 · Schwellen aus dem eigenen Verlauf: Stern 3 = Median, 1/5 = Quartile,
-   2/4 interpoliert — EINMAL gesetzt und festgehalten. */
-function sternSchwellenAus(werte){
-  const s=werte.slice().sort((a,b)=>a-b);
-  const q=p=>{ const i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i); return s[lo]+(s[hi]-s[lo])*(i-lo); };
-  const q1=q(0.25), q2=q(0.5), q3=q(0.75);
-  return [q1,(q1+q2)/2,q2,(q2+q3)/2,q3].map(x=>Math.round(x*10)/10);
-}
-function sternKalibrierenPruefen(){
-  if(Array.isArray(S.meta.sternSchwellen)) return;
-  const m=sternMass(); if(m.n<14) return;
-  S.meta.sternSchwellen=sternSchwellenAus(m.werte);
-  S.meta.sternKalibriertAm=heuteApp(); saveMeta();
-  toast('⭐ Sternschwellen aus deinem Verlauf kalibriert');
-}
-function sterneAktuell(){
-  if(!Array.isArray(S.meta.sternSchwellen)) return null;
-  const m=sternMass(); if(m.median==null) return null;
-  let st=0; S.meta.sternSchwellen.forEach(x=>{ if(m.median>=x) st++; });
-  return Math.max(0, Math.min(5, st));
-}
-function sterneAnzeigeText(){
-  const st=sterneAktuell();
-  if(st!=null) return '★'.repeat(st)+'☆'.repeat(5-st);
-  return 'sammelt ('+sternMass().n+'/14)';
-}
-/* §5 · Kleidung — Tagesleiter. F = (Tagespunkte × Streakfaktor + Kauf-Bonus)
-   ÷ Tagesziel. Der Kauf-Bonus (§6) ist bereits Spiel-Währung und wird deshalb
-   NICHT erneut mit dem Streakfaktor multipliziert. */
+/* ══ §3 (v2.0.0) · DIE STERNE SIND ENTFALLEN ══════════════════════════
+   Sie wurden nie kalibriert und standen dauerhaft auf „sammelt noch Daten"
+   (14 Messtage, die nie zusammenkamen). Eine Währung, die nie etwas anzeigt,
+   ist keine. Was sie messen sollten — Geld-Score je Stunde — steht im
+   Rang-Modul und in der Statistik.
+   Übrig bleiben fünf Währungen: Punkte · Münzen/Konto · Rang · Kleidung ·
+   Serien (nur noch für Routinen, §3).
+   ══════════════════════════════════════════════════════════════════════ */
 function outfitZielHeute(){
   if(!urlaubHeute()) return Math.max(1, belZielGesamt());
   // Urlaubsvorschlag (§5): Ersatzziel = eigener Normaltag — Median der
@@ -7687,7 +7604,7 @@ function albumPrognose(rest){
   if(!(rest>0)) return { fertig:true };
   const real=rangTempo();
   const zielRate=((tagesZielDomain('dfm')+tagesZielDomain('privat'))*5
-    + num(S.settings.zielWeDfm,2500)+num(S.settings.zielWePrivat,10000))/7 * upgradeFaktor();
+    + num(S.settings.zielWeDfm,2500)+num(S.settings.zielWePrivat,10000))/7;
   return { fertig:false,
     real: real!=null && real>0 ? Math.ceil(rest/real) : null,
     ziel: zielRate>0 ? Math.ceil(rest/zielRate) : null };
@@ -7871,7 +7788,7 @@ function momentMeilenstein(tage){
 function momentRangCheck(){
   // §3/§5/§7 (v1.11.0): zentral erkannt werden Leistungs-Rangaufstieg (Vollbild),
   // Outfit-Wechsel (klein; Stufe 20 Vollbild) und Sternwechsel (klein).
-  const rm=rangMass(), st=sterneAktuell();
+  const rm=rangMass();
   // Bestwert fällt nie (§3.3)
   if(rm.rang!=null && rm.rang>num(S.meta.rangBest)){ S.meta.rangBest=rm.rang; saveMeta(); }
   // Outfit-Höchststand des Tages fortschreiben (§5) + Momente
@@ -7892,7 +7809,7 @@ function momentRangCheck(){
       document.body.appendChild(d); setTimeout(()=>d.remove(), 1800);
     }
   }
-  _spielMemo={rang:rm.rang, sterne:st};
+  _spielMemo={rang:rm.rang};
   // aufgeschobene Vollbilder + einmalige Ereignisse aus dem Abschluss
   momentQueueFlush();
   if(S.meta && S.meta.meilensteinMoment){ const t=S.meta.meilensteinMoment; delete S.meta.meilensteinMoment; saveMeta(); momentMeilenstein(t); }
@@ -8448,11 +8365,8 @@ function belTagesDiagramm(){
 /* V2.2: KPI-Felder mit Farbverläufen. */
 function belKpiFelder(){
   const we=belIstWochenende();
-  // §4.3 (v1.13.0): Anzeige-Zahlen über den Upgrade-Faktor (Ist, Ziel UND der
-  // Normaltag-Vergleich — alles in derselben Währung, Verhältnisse identisch).
-  const f43=upgradeFaktor();
-  const zielD=belZielDfm()*f43, zielP=tagesZielDomain('privat')*f43, ziel=zielD+zielP;   // H4.3: DFM-Ziel am WE = Sa+So gemeinsam
-  const pD=Math.round(belIstDfm()*f43), pP=Math.round(tagesPunkteDomain('privat')*f43), pGes=pD+pP;
+  const zielD=belZielDfm(), zielP=tagesZielDomain('privat'), ziel=zielD+zielP;   // DFM-Ziel am WE = Sa+So gemeinsam
+  const pD=Math.round(belIstDfm()), pP=Math.round(tagesPunkteDomain('privat')), pGes=pD+pP;
   const paceD=paceDomain('dfm').istRate, paceP=paceDomain('privat').istRate;
   const dz=v=>v>=0?'+'+Math.round(v):''+Math.round(v);
   // Reihe 1: ein Feld, intern DFM | Privat
@@ -8586,10 +8500,10 @@ function renderBelohnung(){
   // und Farbvariante=Stern gilt.
   // §1/§3–§5 (v1.11.0): Die Kleidung zeigt den TAG (Outfit aus F), der Rang
   // ist das P/Std-Maß, die Sterne das Geld-Maß. Kulisse/Konto unverändert.
-  const rm=rangMass(), outfit=outfitHeute(), F=outfitF(), stAkt=sterneAktuell();
-  const lvl=5*(outfit-1)+Math.max(1, stAkt||1), av=avatarAssets(lvl);
+  const rm=rangMass(), outfit=outfitHeute(), F=outfitF();
+  const lvl=5*(outfit-1)+1, av=avatarAssets(lvl);   // §3 (v2.0.0): ohne Sterne die Basisstufe
   const vital=vitalitaet(), kontoP=konto();
-  const sterneHtml = stAkt!=null ? '★'.repeat(stAkt)+'☆'.repeat(5-stAkt) : ('sammelt '+sternMass().n+'/14');
+  const sterneHtml = '';
   const vs=vitalStufe();
   h+='<div class="avcard"><div class="avscene'+(vs?' '+vs:'')+'" style="background:'+av.bgStyle+'">'+
     '<div class="avbg" style="background-image:url(\''+bgFuerAusgaben()+'\')"></div>'+
@@ -8611,8 +8525,7 @@ function renderBelohnung(){
         : 'Noch '+Math.round(rm.rest)+' P/Std bis Rang '+(rm.rang+1)+' — „'+esc(rangName(rm.rang+1))+'".'))+'</div>'+
     '<div class="rankstufe" style="margin-top:2px">Heute: '+Math.round(Math.max(0,tagesPunkteLive()))+' P · F '+F.toFixed(2).replace('.',',')+
       (outfit<20 ? ' · Outfit '+(outfit+1)+' in '+Math.round(outfitFehltBis(outfit+1))+' P' : ' · Frack an 🤵')+'</div>'+
-    '<div class="rankline" style="margin-top:6px"><div class="rankstufe">🔥 Serie '+num(S.meta.tagesStreak)+' Tg · ×'+streakFaktor().toFixed(2).replace('.',',')+
-      (jokerVerfuegbar()?' · ♦ Joker bereit':(num(S.meta.tagesStreak)>=30?' · ♦ diesen Monat verbraucht':''))+'</div>'+
+    '<div class="rankline" style="margin-top:6px"><div class="rankstufe">🔥 Routinen-Serie '+routinenSerieBeste().tage+' Tg</div>'+
       '<div class="rankstufe">'+(function(){ const st=bgStufeAus(ausgabenAnzeige());
         return 'Reise: Kulisse '+st+'/10'+(st<10?' · noch '+Math.round(bgSchwelle(st+1)-ausgabenAnzeige())+' 🪙 ausgeben':''); })()+'</div></div>'+
     '<button class="btn ghost sm" data-album="1" style="width:100%;margin-top:8px">🖼 Album — Ränge · Kulissen · Besitz</button></div>';
@@ -8866,7 +8779,162 @@ function oeffneKettePosition(kid){
     '<button class="btn prim" data-kstart="'+kid+'">▶ Starten</button>';
   openSheet('Position in der Kette', h, foot);
 }
-function renderStatistik(){ /* §12 — siehe Statistik-Abschnitt */ renderStatistikBody(); }
+function renderStatistik(){ renderStatistikBody(); }
+/* ══════════════════════════════════════════════════════════════════════
+   §12 (v2.0.0) · STATISTIK — eine Seite, fünf Module
+   1 Tagesverlauf · 2 Matrix-Spur · 3 Rein und Raus · 4 Entwicklung ·
+   5 Belastung (über die Matrix, nicht über eine geliehene Sportformel).
+
+   Entfallen: ACWR und Belastungssteuerung alter Art · Kalibrierung Ist/Soll
+   (rechnet Claude beim Sync) · Wochentagsprofil als eigenes Modul (geht in
+   der Matrix-Spur auf).
+   ══════════════════════════════════════════════════════════════════════ */
+function renderStatistikBody(){
+  const host=el('statistikBody'); if(!host) return;
+  let h='';
+  h+=stTagesverlauf();
+  h+=stMatrixSpur();
+  h+=stReinRaus();
+  h+=stEntwicklung();
+  h+=stBelastung();
+  host.innerHTML=h;
+}
+/* 1 · Tagesverlauf — Plan, Ist, Normaltag. Übernommen, läuft. */
+function stTagesverlauf(){
+  let inner='';
+  try{ inner=belTagesDiagramm(); }catch(e){ inner='<div class="an-leer">Tagesverlauf nicht verfügbar.</div>'; }
+  return anModul('📈','Tagesverlauf','Plan · Ist · Normaltag', inner);
+}
+/* 2 · Matrix-Spur — Bewegung über den Tag, plus welches Werkzeug wann
+   zurückgeholt hat. Das Wochentagsprofil geht hier auf. */
+function stMatrixSpur(){
+  const sp=(S.tag && Array.isArray(S.tag.matrixSpur)) ? S.tag.matrixSpur : [];
+  const echt=sp.filter(e=>!e.uebersprungen);
+  if(!echt.length) return anModul('🧭','Matrix-Spur','Bewegung über den Tag',
+    '<div class="an-leer">Noch keine Position heute. Sie wird bei jedem Verlassen einer Karte abgefragt.</div>');
+  const W=320, H=120, PL=8, PR=8, PT=10, PB=16;
+  const t0=Date.parse(echt[0].ts), t1=Date.parse(echt[echt.length-1].ts);
+  const spanne=Math.max(1, t1-t0);
+  const X=e=>PL+((Date.parse(e.ts)-t0)/spanne)*(W-PL-PR);
+  const Y=e=>PT+((1-num(e.x))/2)*(H-PT-PB);
+  const pts=echt.map(e=>X(e).toFixed(1)+','+Y(e).toFixed(1)).join(' ');
+  let g='<svg viewBox="0 0 '+W+' '+H+'" class="ansvg" preserveAspectRatio="none">';
+  // Mittellinie = die Kippkante zwischen „weg von" und „hin zu"
+  const ym=PT+(H-PT-PB)/2;
+  g+='<rect x="0" y="'+PT+'" width="'+W+'" height="'+((H-PT-PB)/2)+'" fill="rgba(62,207,142,.07)"/>';
+  g+='<rect x="0" y="'+ym+'" width="'+W+'" height="'+((H-PT-PB)/2)+'" fill="rgba(246,109,109,.07)"/>';
+  g+='<line x1="0" y1="'+ym+'" x2="'+W+'" y2="'+ym+'" stroke="var(--li)" stroke-width="1"/>';
+  g+='<polyline points="'+pts+'" fill="none" stroke="var(--ac)" stroke-width="2" stroke-linejoin="round"/>';
+  echt.forEach(e=>{
+    const k=e.kid?S.karten.find(c=>c.id===e.kid):null;
+    const wz=k && matrixFeldVon(k)==='werkzeug';
+    g+='<circle cx="'+X(e).toFixed(1)+'" cy="'+Y(e).toFixed(1)+'" r="'+(wz?4:2.5)+'" fill="'+(wz?'var(--gut)':'var(--ac)')+'"/>';
+  });
+  g+='</svg>';
+  // Welches Werkzeug hat wann zurückgeholt?
+  const holt=echt.map((e,i)=>{
+    if(i===0) return null;
+    const k=e.kid?S.karten.find(c=>c.id===e.kid):null;
+    if(!k || matrixFeldVon(k)!=='werkzeug') return null;
+    const dx=num(e.x)-num(echt[i-1].x);
+    if(!(dx>0.05)) return null;
+    return { titel:k.titel||'?', dx, uhr:String(e.ts).slice(11,16) };
+  }).filter(Boolean);
+  let liste='';
+  if(holt.length){
+    liste='<div class="st-holt">'+holt.map(x=>
+      '<div class="st-holt-z"><span class="u">'+esc(x.uhr)+'</span>'+
+      '<span class="t">🔧 '+esc(String(x.titel).slice(0,28))+'</span>'+
+      '<b>+'+(Math.round(x.dx*100)/100)+'</b></div>').join('')+'</div>';
+  } else {
+    liste='<div class="hint">Heute hat noch kein Werkzeug messbar zurückgeholt.</div>';
+  }
+  const sk=matrixSkipQuote();
+  const skTxt='<div class="hint">Abfragen heute: <b>'+num(S.tag&&S.tag.matrixAbfragen)+'</b>'+
+    ' · übersprungen: <b'+(sk>0.5?' style="color:var(--bad)"':'')+'>'+num(S.tag&&S.tag.matrixUebersprungen)+
+    ' ('+Math.round(sk*100)+' %)</b></div>';
+  return anModul('🧭','Matrix-Spur','oben = hin zu · unten = weg von', g+liste+skTxt);
+}
+/* 3 · Rein und Raus — übernommen, inklusive der 5-Uhr-Tagesfenster-Logik. */
+function stReinRaus(){
+  let inner='';
+  try{ inner=reinRausTagHtml(belFensterDatum(jetztIso()), 'alle')+reinRausBalkenHtml(7,'alle'); }
+  catch(e){ inner='<div class="an-leer">Rein/Raus nicht verfügbar.</div>'; }
+  return anModul('⇄','Rein und Raus','Tagesfenster ab 5 Uhr', inner);
+}
+/* 4 · Entwicklung — Rang, Kleidung, Konto über Wochen. */
+function stEntwicklung(){
+  const rm=rangMass();
+  const of=outfitHeute();
+  let h='<div class="st-kpis">';
+  h+='<div class="st-kpi"><span class="k">Rang</span><b>'+(rm && rm.rang!=null?('R'+rm.rang):'—')+'</b>'+
+     '<span class="z">'+esc(rm&&rm.rang!=null?rangName(rm.rang):'sammelt')+'</span></div>';
+  h+='<div class="st-kpi"><span class="k">Kleidung</span><b>'+(of!=null?of:'—')+'</b><span class="z">heute</span></div>';
+  h+='<div class="st-kpi"><span class="k">Konto</span><b>'+fmtKurzP(konto())+'</b><span class="z">Münzen</span></div>';
+  h+='<div class="st-kpi"><span class="k">Kulisse</span><b>'+bgStufeAus(ausgabenAnzeige())+'/10</b><span class="z">ausgegeben</span></div>';
+  h+='</div>';
+  // Wochenverlauf der Tagespunkte aus der Historie
+  const tage=[], werte=[];
+  for(let i=27;i>=0;i--){ const d=anVorTage(heuteApp(),i);
+    const sn=tagSnapshot(d); tage.push(anKurzDatum(d));
+    werte.push(sn?Math.round(snapPunkte(sn,'alle')):null); }
+  const hat=werte.filter(v=>v!=null).length;
+  if(hat>=3){
+    try{ h+=anSvgLine(tage, [{vals:werte, farbe:'var(--ac)'}], {}); }catch(e){}
+    h+='<div class="hint">Tagespunkte der letzten 28 Tage · '+hat+' Messtage</div>';
+  } else {
+    h+=anSammelt(hat,3);
+  }
+  // §3: Der Rang STEIGT UND FÄLLT — das muss sichtbar sein.
+  if(rm && rm.rang!=null){
+    const best=num(S.meta&&S.meta.rangBest);
+    h+='<div class="hint">'+(best>rm.rang
+      ? '↓ Der Rang ist gefallen — Bestwert war <b>R'+best+'</b>. Er misst deine Rate, nicht deine Vergangenheit.'
+      : (best===rm.rang && best>1 ? '= Der Rang hält seinen Bestwert.' : '↑ Der Rang steht auf seinem Bestwert.'))+'</div>';
+  }
+  return anModul('📊','Entwicklung','Rang · Kleidung · Konto über Wochen', h);
+}
+/* 5 · Belastung — aus den REALEN Tageswerten über die Matrix. Kein ACWR,
+   keine geliehene Sportformel: wie lange links, wie viele Werkzeuge nötig,
+   wie schnell die Energie ging. */
+function stBelastung(){
+  const sp=(S.tag && Array.isArray(S.tag.matrixSpur)) ? S.tag.matrixSpur.filter(e=>!e.uebersprungen) : [];
+  if(sp.length<2) return anModul('🪫','Belastung','über die Matrix, nicht über eine Sportformel',
+    '<div class="an-leer">Zu wenige Positionen heute (mindestens zwei).</div>');
+  // a) Wie lange links? — zeitgewichtet über die Spur.
+  let linksMs=0, gesamtMs=0;
+  for(let i=1;i<sp.length;i++){
+    const dt=Math.max(0, Date.parse(sp[i].ts)-Date.parse(sp[i-1].ts));
+    gesamtMs+=dt;
+    if(num(sp[i-1].x)<0) linksMs+=dt;
+  }
+  const linksPct = gesamtMs>0 ? linksMs/gesamtMs : 0;
+  // b) Wie viele Werkzeuge waren nötig?
+  const wz=sp.filter(e=>{ const k=e.kid?S.karten.find(c=>c.id===e.kid):null; return k && matrixFeldVon(k)==='werkzeug'; }).length;
+  // c) Wie schnell ging die Energie? — Akku-Steigung über den Tag.
+  const av=(S.tag && Array.isArray(S.tag.akkuVerlauf)) ? S.tag.akkuVerlauf : [];
+  let akkuRateTag=null;
+  if(av.length>=2){
+    const a0=av[0], a1=av[av.length-1];
+    const std=(Date.parse(a1.ts)-Date.parse(a0.ts))/3600000;
+    if(std>0.25) akkuRateTag=(num(a1.akku)-num(a0.akku))/std;
+  }
+  let h='<div class="st-kpis">';
+  h+='<div class="st-kpi'+(linksPct>0.4?' bad':'')+'"><span class="k">Links</span><b>'+Math.round(linksPct*100)+' %</b>'+
+     '<span class="z">der Tageszeit</span></div>';
+  h+='<div class="st-kpi"><span class="k">Werkzeuge</span><b>'+wz+'</b><span class="z">nötig</span></div>';
+  h+='<div class="st-kpi'+(akkuRateTag!=null&&akkuRateTag<-10?' bad':'')+'"><span class="k">Energie</span><b>'+
+     (akkuRateTag!=null?((akkuRateTag>0?'+':'')+Math.round(akkuRateTag)):'—')+'</b><span class="z">%/Std</span></div>';
+  h+='</div>';
+  // Die Aussage in einem Satz — das ist der Punkt des Moduls.
+  let satz;
+  if(linksPct>0.5) satz='Du hast heute mehr Zeit links als rechts verbracht. Das ist der teure Teil des Tages — nicht die Arbeit selbst.';
+  else if(linksPct>0.25) satz='Ein Viertel bis die Hälfte links. Die Werkzeuge haben gegriffen, aber spät.';
+  else satz='Überwiegend rechts. Der Tag lief in die Richtung, in die er sollte.';
+  if(wz===0 && linksPct>0.25) satz+=' Auffällig: ohne ein einziges Werkzeug.';
+  h+='<div class="hint" style="margin-top:6px">'+esc(satz)+'</div>';
+  return anModul('🪫','Belastung','über die Matrix, nicht über eine Sportformel', h);
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    16 · Toast / Konfetti
@@ -9665,15 +9733,6 @@ el('einstBody').addEventListener('click', e=>{
     S.settings.sollFormWerktag=vs.gemessen; DB.set('settings', S.settings);
     S.meta.profilUebernommenTs=jetztIso(); saveMeta();
     renderEinst(); renderStatusbar(); toast('🕘 Form übernommen');
-    return;
-  }
-  if(e.target.closest('[data-sternkalib]')){
-    const m=sternMass();
-    if(m.n<14){ toast('Erst ab 14 Messtagen ('+m.n+'/14)'); return; }
-    if(!confirm('Sternschwellen neu aus dem aktuellen Verlauf setzen?')) return;
-    S.meta.sternSchwellen=sternSchwellenAus(m.werte);
-    S.meta.sternKalibriertAm=heuteApp(); saveMeta(); renderEinst();
-    toast('⭐ Sternschwellen neu kalibriert');
     return;
   }
   // §3 (v1.6.1): Routinen-Gruppen verwalten
