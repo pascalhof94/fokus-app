@@ -3119,14 +3119,6 @@ function ansichtsListe(key){
 /* §1.3 (v1.12.0): Die Schnellauswahl ist entfallen — die Migration hat ihre
    Karten in die Ketten übernommen. */
 /* ══════════════════════════════════════════════════════════════════════
-   §2.2 (v1.6.0) · Tageskette „Heute" — ein Array von App-IDs je Kalendertag
-   mit Rollover nicht erledigter Einträge auf den Folgetag. Sie ist die
-   einzige Kette der App und bestimmt die Swipe-Reihenfolge im Fokus.
-   ══════════════════════════════════════════════════════════════════════ */
-/* §1 (v1.12.0) · ZWEI Ketten statt einer — ketteDfm und kettePrivat, beide mit
-   Rollover, Umsortierung und Entfernen wie die bisherige Tageskette. Persistenz
-   in meta.ketten={dfm:{datum,ids,entfernt}, privat:{...}}. */
-/* ══════════════════════════════════════════════════════════════════════
    §7 (v2.0.0) · EINE KETTE
    ketteDfm und kettePrivat sind zu EINER kette verschmolzen. Die Domäne
    bleibt an der Karte — für Auswertung, Ziele und die Trennung in Airtable.
@@ -5419,14 +5411,16 @@ function oeffneTagAbschlussPaket(paket){
   openSheet('Tagesabschluss — Paket', h, '<button class="btn prim" data-close="1">Fertig</button>');
 }
 function tagBackupPaket(){
-  const sx=syncExport('tagesabschluss');   // §7 (v1.13.0): Vertrag-1.6-Felder reisen auch im Abschluss-Paket
+  const sx=syncExport('voll');   // §11 (v2.0.0): Vertrag-2.0-Felder reisen auch im Abschluss-Paket
   return { typ:'tagesabschluss', appVersion:VERSION, exportZeit:jetztIso(),
     tag:S.tag, wohlstand:S.meta.wohlstand,
     karten:S.karten, unteraufgaben:S.unteraufgaben,
     ziele:sx.ziele, tagesRahmen:sx.tagesRahmen,
     kurvenHeute:sx.kurvenHeute, akkuEintraege:sx.akkuEintraege,
     reinRaus:sx.reinRaus, routinenQuote:sx.routinenQuote,
-    ketteDfm:sx.ketteDfm, kettePrivat:sx.kettePrivat };
+    // §7 (v2.0.0): EINE Kette — die beiden Alt-Felder gibt es nicht mehr
+    // (sie standen hier noch und waren seit dem Umbau undefined).
+    kette:sx.kette, matrixSpur:sx.matrixSpur };
 }
 function backupDownload(paket, name){
   const href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(paket,null,2));
