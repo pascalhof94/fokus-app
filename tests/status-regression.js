@@ -22,7 +22,7 @@ var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','b
   // §5.1 (v1.13.0): Start-verankerte Form + Rahmen + Faktor
   'sollFormWerktag','tagesStartStunde','tagesRahmen','rahmenFenster',
   // §2 (v1.13.0): Standardwerte
-  'standardWert','tickWertEff','abhakbonusDefault',
+  'standardWert','tickWertEff','abhakbonusFeldDefault','abhakbonusDefault',
   // §3.1/§3.2 (v1.13.0): Vier-Kategorien-Quote + Rein/Raus-Zählwerk
   'routinenQuoteHeute','routineFaellig','routErledigtHeute','anFlowReihe','reinRausTag',
   // Zahlenbeleg 22: Mess-Ebene rechnet roh
@@ -32,7 +32,7 @@ var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','b
   'kartenSitzungenHeute',
   // Nachtrag v1.13.1 §5: Plankurve zieht NUR ueber die Ketten
   'planKurveInfo','ketteKarten','tagesKette','tagesKetteDom','ketteState','ketteAutoIds',
-  'ketteHistLog','kettenHistKappen','ketteSetzen','kartePunkteGeplant','kartePunkteBei','subBonusOffen'];
+  'ketteHistLog','kettenHistKappen','ketteSetzen','kartePunktePrognose','kartePunkteGeplant','kartePunkteBei','subBonusOffen'];
 /* §1 (v1.7.1): kartePunkte zieht die Pausentimer-Strafe live ab — die beiden
    Helfer werden mit extrahiert, die Konstante hier gespiegelt (Konstanten sind
    nicht extrahierbar). Mit S.fokus=null liefert pausenStrafeLive stets 0. */
@@ -189,9 +189,19 @@ S.settings.standardWertDfm=40; S.settings.standardWertPrivat=15;
 var kErbt=karte({ id:'e1', domain:'privat', tickWert:null, abhakbonus:null, ticksAktiv:true, ticksHeute:2, tickWerteHeute:[] });
 var kOvr =karte({ id:'e2', domain:'privat', tickWert:0,    abhakbonus:5 });
 ok('§2: tickWert null erbt den Standard (15)', tickWertEff(kErbt)===15);
-ok('§2: Abhakbonus null erbt den Standard (15)', abhakbonusDefault(kErbt)===15);
-ok('§2: Standard-Änderung wirkt SOFORT auf erbende Karten', (function(){ S.settings.standardWertPrivat=25; var r=tickWertEff(kErbt)===25 && abhakbonusDefault(kErbt)===25; S.settings.standardWertPrivat=15; return r; })());
-ok('§2: Override 0 bleibt Override (kein Erben)', tickWertEff(kOvr)===0 && abhakbonusDefault(kOvr)===5);
+/* Nachtrag §2 (v2.0.0): Der Abhakbonus erbt nicht mehr vom Domaenen-
+   Standardwert, sondern vom MATRIXFELD — er traegt jetzt die Barriere.
+   Der Tick-Wert erbt weiterhin vom Domaenen-Standard (anderes Ding). */
+S.settings.abhakbonusFeld={ ziel:0, zustand:150, werkzeug:100, ablenkung:0 };
+ok('Nachtrag §2: Abhakbonus erbt je MATRIXFELD (Werkzeug 100)',
+  abhakbonusDefault(karte({domain:'privat', matrixFeld:'werkzeug', abhakbonus:null}))===100);
+ok('Nachtrag §2: Zustaende tragen die hoechste Barriere (150)',
+  abhakbonusDefault(karte({domain:'privat', matrixFeld:'zustand', abhakbonus:null}))===150);
+ok('Nachtrag §2: Zielarbeit traegt 0 (die Zeit bezahlt sie bereits)',
+  abhakbonusDefault(karte({domain:'dfm', matrixFeld:'ziel', abhakbonus:null}))===0);
+ok('Nachtrag §2: Ablenkungen tragen 0', abhakbonusDefault(karte({matrixFeld:'ablenkung'}))===0);
+ok('§2: Standard-Änderung wirkt SOFORT auf erbende Tick-Karten', (function(){ S.settings.standardWertPrivat=25; var r=tickWertEff(kErbt)===25; S.settings.standardWertPrivat=15; return r; })());
+ok('§2: Override bleibt Override (kein Erben)', tickWertEff(kOvr)===0 && abhakbonusDefault(kOvr)===5);
 ok('§2: tickSumme nutzt den geerbten Wert (2×15=30)', Math.round(tickSumme(kErbt,2))===30);
 
 // ══ 8) §3.1 (v1.13.0): Routinen-Quote — vier Kategorien, Summe = 100 % ══

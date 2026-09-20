@@ -84,10 +84,53 @@ ok('5 Bewegungsbonus: schon rechts bringt DEUTLICH weniger',
    bewegungsBonusBerechnen({x:0.5},{x:1}) < 0.1*bewegungsBonusBerechnen({x:-1},{x:1}));
 ok('5 Bewegung nach LINKS gibt keinen Bonus (nie negativ)',
    bewegungsBonusBerechnen({x:0.5},{x:-0.5})===0);
-ok('5 Grundwert rechnet auf SOLL-Minuten, nicht auf Ist', (function(){
-     var a=neueKarte({domain:'dfm', sollMin:60, matrixFeld:'ziel', istSek:0});
-     var b=neueKarte({domain:'dfm', sollMin:60, matrixFeld:'ziel', istSek:99999});
-     return Math.abs(kartePunkte(a)-kartePunkte(b))<0.01; })());
+/* ══ NACHTRAG §1 · DIE ZEIT ZAEHLT IMMER (Abnahme N1) ══════════════════
+   Prognose rechnet auf SOLL, der Abschluss auf IST — belegt an EINER Karte
+   mit Ist ungleich Soll. */
+(function(){
+  var k=neueKarte({domain:'dfm', sollMin:60, matrixFeld:'ziel', geldScore:0, istSek:90*60});
+  var prog=kartePunktePrognose(k);        // 60 Min Soll
+  var ist =kartePunkte(k);                // 90 Min gearbeitet
+  var erwartetProg=60/60*num(S.settings.basisProStdDfm)*num(S.settings.zeitGewicht)
+                   + abhakbonusDefault(k);
+  var erwartetIst =90/60*num(S.settings.basisProStdDfm)*num(S.settings.zeitGewicht);
+  ok('N1 BELEG Prognose rechnet auf SOLL 60 Min ('+Math.round(prog)+' P)',
+     Math.abs(prog-erwartetProg)<0.01);
+  ok('N1 BELEG Abschluss rechnet auf IST 90 Min ('+Math.round(ist)+' P)',
+     Math.abs(ist-erwartetIst)<0.01);
+  ok('N1 BELEG: zaeher Tag wird NICHT entwertet — Ist 90 > Prognose 60',
+     ist>prog);
+  var kurz=neueKarte({domain:'dfm', sollMin:60, matrixFeld:'ziel', istSek:30*60});
+  ok('N1 BELEG: schneller als geplant bucht auch weniger ('+Math.round(kartePunkte(kurz))+' P)',
+     kartePunkte(kurz)<kartePunktePrognose(kurz));
+  var nie=neueKarte({domain:'dfm', sollMin:60, matrixFeld:'ziel', istSek:0});
+  ok('N1 Rueckfall: ohne jede Ist-Zeit gilt Soll (vergessener Timer kostet nicht alles)',
+     Math.abs(kartePunkte(nie)-60/60*num(S.settings.basisProStdDfm)*num(S.settings.zeitGewicht))<0.01);
+  ok('N1 Die Prognose traegt KEINEN Bewegungsbonus',
+     Math.abs(kartePunktePrognose(neueKarte({domain:'dfm',sollMin:60,matrixFeld:'ziel',bewegungsBonus:400}))
+              - (erwartetProg+400)) > 1);
+})();
+/* ══ NACHTRAG §2 · Der Abhakbonus traegt die Barriere (Abnahme N2) ══ */
+ok('N2 Default je MATRIXFELD: Zustaende 150 > Werkzeuge 100 > Ziele 0 = Ablenkungen 0',
+   abhakbonusFeldDefault('zustand')===150 && abhakbonusFeldDefault('werkzeug')===100 &&
+   abhakbonusFeldDefault('ziel')===0 && abhakbonusFeldDefault('ablenkung')===0);
+ok('N2 zeitunabhaengig: er wirkt auch bei einer 5-Minuten-Karte voll', (function(){
+     var kurz=neueKarte({domain:'privat', sollMin:5, matrixFeld:'werkzeug'});
+     return abhakbonusDefault(kurz)===100; })());
+ok('N2 Ein Kartenwert bleibt Override und schlaegt den Feld-Default',
+   abhakbonusDefault(neueKarte({matrixFeld:'zustand', abhakbonus:5}))===5);
+ok('N2 Override 0 heisst ausdruecklich „kein Bonus"',
+   abhakbonusDefault(neueKarte({matrixFeld:'zustand', abhakbonus:0}))===0);
+ok('N2 Die Defaults sind Settings, keine Konstanten', (function(){
+     S.settings.abhakbonusFeld.werkzeug=222;
+     var r=abhakbonusDefault(neueKarte({matrixFeld:'werkzeug'}))===222;
+     S.settings.abhakbonusFeld.werkzeug=100; return r; })());
+/* ══ NACHTRAG §3 · Neue Ziele als Settings-Defaults (Abnahme N3) ══ */
+ok('N3 Werktag DFM 5.000 · Privat 3.000',
+   num(S.settings.tagesZielDfm)===5000 && num(S.settings.tagesZielPrivat)===3000);
+ok('N3 Wochenende DFM 1.800 · Privat 6.000',
+   num(S.settings.zielWeDfm)===1800 && num(S.settings.zielWePrivat)===6000);
+ok('N3 zielTag liefert die neuen Werte', zielTag('dfm','2026-09-21')===5000);
 ok('6 komplex/energie/blockade sind aus dem Kartenmodell verschwunden', (function(){
      var k=neueKarte({}); return k.komplex===undefined && k.energie===undefined && k.blockade===undefined; })());
 ok('6 ... und werden auch vom Import nicht mehr gesetzt', (function(){
@@ -193,9 +236,16 @@ ok('19 Drei Belohnungsbloecke, jeder mit eigener Ueberschrift', (function(){
      return a.indexOf('Was diese Karte einbringt')>=0 &&
             b.indexOf('Wo ich heute stehe')>=0 &&
             c.indexOf('Was ich gerade bewege')>=0; })());
-ok('19 Block 1 nennt Punkte, Muenzen und den Anteil am Tagessoll', (function(){
+ok('19 Block 1 nennt Prognose, Stand jetzt und den Anteil am Tagessoll', (function(){
      var a=fbWasDieseKarte(S.karten[0]);
-     return a.indexOf('Punkte')>=0 && a.indexOf('Münzen')>=0 && a.indexOf('Tagessoll')>=0; })());
+     return a.indexOf('Prognose')>=0 && a.indexOf('Stand jetzt')>=0 &&
+            a.indexOf('Münzen')>=0 && a.indexOf('Tagessoll')>=0; })());
+ok('N1 Block 1 macht kenntlich, dass der Endwert abweichen kann',
+   fbWasDieseKarte(S.karten[0]).indexOf('weicht von der Prognose ab')>=0);
+ok('N1 Auch das Karten-Detail sagt es', (function(){
+     entwurf=S.karten[0]; entwurfSubs=[]; entwurfNeu=false;
+     var h=''; try{ renderDetail(); h=el('sheetBody').innerHTML; }catch(e){ return false; }
+     return h.indexOf('Gebucht wird nach')>=0 && h.indexOf('Prognose')>=0; })());
 S.meta.tagesRahmen={ datum:heuteApp(), segmente:[
   {von:8,bis:12,typ:'dfm'},{von:12,bis:13,typ:'pause'},{von:13,bis:17,typ:'privat'} ] };
 var zs=zeitstrahlHtml();

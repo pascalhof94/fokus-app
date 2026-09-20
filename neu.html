@@ -847,6 +847,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .fb-z{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .fb-w{text-align:center}
 .fb-w b{display:block;font-size:17px;font-weight:700;line-height:1.15}
+.fb-w.gut b{color:var(--gut)}
 .fb-w span{display:block;font-size:9px;opacity:.5;margin-top:1px}
 .fb-rechnung{font-size:10px;opacity:.55;margin-top:6px;line-height:1.35}
 .fb-rechnung.gut{color:var(--gut);opacity:.9}
@@ -1438,6 +1439,16 @@ const DEFAULT_SETTINGS = {
   // ist „Ziele" = 1,0: ein Tag aus reiner Zielarbeit landet auf den Punkt dort,
   // wo er unter v1.13.4 landete (Kalibrier-Beleg in der Abnahme).
   matrixFaktor: { ziel:1.0, zustand:0.9, werkzeug:0.8, ablenkung:0 },
+  // ══ Nachtrag §2 (v2.0.0) · DER ABHAKBONUS TRÄGT DIE BARRIERE ══════════
+  // Mit komplex/energie/blockade ist der Träger für „das fällt mir schwer"
+  // weggefallen. Der Abhakbonus übernimmt ihn: Barriere, Priorität und
+  // Komplexität in EINEM zeitunabhängigen Wert — deshalb wirkt er gerade bei
+  // kurzen Karten mit hoher Hürde. Default je MATRIXFELD, je Karte
+  // überschreibbar (der Override ist die Stelle für „diese eine ist zäh").
+  //   Zustände 150 · Werkzeuge 100 · Ziele 0 · Ablenkungen 0
+  // Begründung siehe Report: Zielarbeit wird bereits über die Zeit bezahlt;
+  // der Bonus existiert für die Karten, deren Schwere die Uhr NICHT abbildet.
+  abhakbonusFeld: { ziel:0, zustand:150, werkzeug:100, ablenkung:0 },
   // §2: Bonus für Bewegung nach rechts. Voller Ausschlag (ganz links → ganz
   // rechts) = dieser Wert; wer schon rechts stand, bekommt fast nichts.
   bewegungsBonus: 500,
@@ -1447,10 +1458,16 @@ const DEFAULT_SETTINGS = {
   geldGewicht: 0.5,            // geldFaktor = 1 + geldScoreNorm × geldGewicht (nur dfm)
   geldDeckel: 1.5,            // Faktor-Obergrenze (~1,5)
   geldScoreRef: 200,           // Referenz für geldScoreNorm = geldScore / Ref  (siehe Rückfrage)
-  tagesZielDfm: 7000,          // §2.2 (v1.12.0): Werktagsziel DFM
-  tagesZielPrivat: 5000,       // §2.2 (v1.12.0): Werktagsziel Privat
-  zielWeDfm: 2500,             // §2.2 (v1.12.0): Wochenend-Kontingent DFM (Sa+So gemeinsam)
-  zielWePrivat: 10000,         // §2.2 (v1.12.0): Wochenend-Kontingent Privat (Sa+So gemeinsam)
+  // ══ Nachtrag §3 (v2.0.0) · Ziele aus echten Daten ═════════════════════
+  // 22 Tage mit gebuchter Zeit (06.08.–10.09.): Median 4.498 P/Tag DFM,
+  // ohne die zwei Sync-Ausreißer 4.380. Der Median trifft damit rund 88 %
+  // des Ziels — gute Tage übertreffen es, schwache bleiben sichtbar darunter.
+  // Privat ist eine Setzung (Privat_Zeit existiert erst seit 01.09.) und
+  // wird nach zwei Wochen Tracking geprüft.
+  tagesZielDfm: 5000,          // war 7000
+  tagesZielPrivat: 3000,       // war 5000 — Setzung, Prüfung nach 2 Wochen
+  zielWeDfm: 1800,             // Wochenend-Kontingent DFM (Sa+So gemeinsam), war 2500
+  zielWePrivat: 6000,          // Wochenend-Kontingent Privat (Sa+So gemeinsam), war 10000
   tageszielPunkteProStd: 100,  // ALT (M3-Pace) — durch tagesZielDfm/Privat ersetzt, intern belassen
   pfeilZone1: 5, pfeilZone2: 15, pfeilZone3: 40,  // v1.1: Pace-Pfeil-Zonen (% Abw. vom Soll) — v0.38-Port
   preisFaktor: 15,             // Shop-Preis-Faktor (§7 D7) — Neukalibrierung 30.07. (1,0→15)
@@ -2133,6 +2150,25 @@ function ladeAlles(){
     DB.set('settings', S.settings);
     saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
   }
+  // ══ Nachtrag (v2.0.0) · Ziele und Abhakbonus-Defaults nachziehen ══════
+  // Nur, wo noch der ALTE Default steht — ein bewusst geänderter Wert wird
+  // nie überschrieben (dasselbe Muster wie die Punkte-Neukalibrierung 30.07.).
+  if(!S.meta.nachtrag200){
+    DB.set('settings_bak200n', DB.get('settings', {}));
+    const log={ ts:jetztIso(), ziele:{}, bonus:false };
+    const zieleAlt={ tagesZielDfm:7000, tagesZielPrivat:5000, zielWeDfm:2500, zielWePrivat:10000 };
+    const zieleNeu={ tagesZielDfm:5000, tagesZielPrivat:3000, zielWeDfm:1800, zielWePrivat:6000 };
+    Object.keys(zieleAlt).forEach(f=>{
+      if(num(S.settings[f])===zieleAlt[f]){ S.settings[f]=zieleNeu[f]; log.ziele[f]=zieleAlt[f]+' → '+zieleNeu[f]; }
+      else log.ziele[f]='eigener Wert '+num(S.settings[f])+' — unberührt';
+    });
+    if(!S.settings.abhakbonusFeld || typeof S.settings.abhakbonusFeld!=='object'){
+      S.settings.abhakbonusFeld={ ziel:0, zustand:150, werkzeug:100, ablenkung:0 };
+      log.bonus=true;
+    }
+    DB.set('settings', S.settings);
+    S.meta.nachtrag200Log=log; S.meta.nachtrag200=true; saveMeta();
+  }
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
              if(!S.tag.istMinutenStart) S.tag.istMinutenStart={};
@@ -2267,15 +2303,22 @@ function istSekLive(k){
   if(S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft) s += (Date.now()-S.fokus.startMs)/1000;
   return s;
 }
-/* ══ §2 (v2.0.0) · Der Grundwert rechnet auf SOLL-Minuten ══════════════
-   Bis v1.13.4 speiste die IST-Zeit die Punkte, sobald die Uhr lief. Das
-   belohnte Sitzen. Ab 2.0 steht der Wert einer Karte VORHER fest — das ist die
-   Voraussetzung dafür, dass die Fokusansicht „Was diese Karte einbringt"
-   überhaupt anzeigen kann (§8), und es trifft das eigentliche Problem:
-   Aktivierung, nicht Ausführung.
-   Die Ist-Zeit wird weiter gemessen und gesendet (Airtable, Schätzfaktoren,
-   Akku-Lernen, Sitzungen) — sie zahlt nur nicht mehr auf die Punkte ein. */
-function zeitquelleMin(k){ return num(k.sollMin); }
+/* ══ Nachtrag §1 (v2.0.0) · DIE ZEIT ZÄHLT IMMER ══════════════════════
+   Korrektur zu §2: Der GEBUCHTE Wert rechnet auf IST-Minuten. Gearbeitete
+   Zeit muss sich in Punkten niederschlagen — die Schätzfaktoren liegen teils
+   bei 2,0, Unterschätzen ist die Regel, und ein reiner Soll-Wert würde genau
+   die Tage entwerten, an denen es zäh war.
+
+   Zwei getrennte Größen, bewusst nicht dieselbe Funktion:
+     kartePunkte(k)          = ABSCHLUSS  → Ist  (diese Funktion)
+     kartePunktePrognose(k)  = VORHERSAGE → Soll (§8, „was sie einbringt")
+
+   Rückfall auf Soll, wenn die Uhr NIE lief: sonst kostet ein vergessener
+   Timer die ganze Karte. Sobald Ist-Zeit vorliegt, gilt ausschließlich sie. */
+function zeitquelleMin(k){
+  const ist=istSekLive(k);
+  return ist>0 ? ist/60 : num(k.sollMin);
+}
 /* §9 (v1.8.0): Die mehrstufige tickKurve ist abgelöst. Jeder Tick bucht den
    Kartenwert tickWert — je Tick überschreibbar (§9.4), deshalb hält
    tickWerteHeute die heutigen Einzelwerte (Reset beim Tagesstart wie
@@ -2331,7 +2374,23 @@ function kartePunkte(k){
          - num(k.strafPunkte) - pausenStrafeLive(k);
 }
 /* Prognose inkl. ALLER Unteraufgaben-Boni (erledigt + offen) — für „geplant". */
-function kartePunkteGeplant(k){ return kartePunkte(k) + subBonusOffen(k); }
+/* ══ Nachtrag §1 · DIE PROGNOSE ═══════════════════════════════════════
+   Soll-Minuten × Matrixfeld × Geld-Impact + Abhakbonus. Sie steht VORHER
+   fest (§8) und enthält bewusst KEINEN Bewegungsbonus — den gibt es erst,
+   wenn die Bewegung stattgefunden hat. Der Abschlusswert darf und wird von
+   ihr abweichen; die Anzeige sagt das.
+   Läuft die Uhr bereits länger als das Soll, ist die Prognose die Ist-Lage —
+   sonst zeigte sie einen Wert unterhalb des schon Verdienten. */
+function kartePunktePrognose(k){
+  // Reine Soll-Rechnung: die Ist-Zeit darf hier NICHT durchschlagen (sonst
+  // waere es keine Vorhersage mehr), und der Bewegungsbonus gehoert nicht
+  // hinein — den gibt es erst, wenn die Bewegung stattgefunden hat.
+  const sollP = kartePunkte(Object.assign({}, k,
+    { istSek: num(k.sollMin)*60, bewegungsBonus:0 }));
+  return sollP + abhakbonusDefault(k) + subBonusOffen(k);
+}
+/* Alt-Name — dieselbe Prognose, damit die Aufrufer unverändert bleiben. */
+function kartePunkteGeplant(k){ return kartePunktePrognose(k); }
 /* A3: nur der Tick-Anteil (gebuchte Ticks) — für Counter/Timer, die heute
    getickt, aber weder erledigt noch als Fokus laufend sind. */
 function tickPunkte(k){ return tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k); }
@@ -3270,9 +3329,9 @@ function hms(sek){ sek=Math.max(0,Math.round(sek)); const h=Math.floor(sek/3600)
 /* Kompakte Dauer „3h00" / „45m" für KPI-Subtexte. */
 function tZeitKurz(min){ min=Math.max(0,Math.round(min)); return min>=60 ? Math.floor(min/60)+'h'+String(min%60).padStart(2,'0') : min+'m'; }
 /* Punkte-Prognose der Karte bei genau `min` investierten Minuten (Engine 1:1). */
-/* §2 (v2.0.0): „Was brächte die Karte bei n Minuten Soll?" — die Zeitquelle
-   ist jetzt sollMin, also wird SIE gesetzt, nicht mehr istSek. */
-function kartePunkteBei(k, min){ return kartePunkte(Object.assign({}, k, { sollMin: Math.max(0,min) })); }
+/* „Was brächte die Karte bei n GEARBEITETEN Minuten?" — Nachtrag §1: die
+   Zeitquelle ist wieder die Ist-Zeit, also wird sie gesetzt. */
+function kartePunkteBei(k, min){ return kartePunkte(Object.assign({}, k, { istSek: Math.max(0,min)*60 })); }
 const RING_C = 2*Math.PI*58;    // Umfang Timer-Ring
 const RING_CP = 2*Math.PI*48;   // Umfang Fortschritts-Ring
 /* ══ §5.1 (v1.8.0) · P/h-Pfeil gegen den Gruppenschnitt ══════════════════
@@ -3680,19 +3739,25 @@ function renderFokus(){
    ══════════════════════════════════════════════════════════════════════ */
 /* 1 · Was diese Karte einbringt — Punkte, Münzen, Beitrag zum Outfit. */
 function fbWasDieseKarte(k){
-  const p=kartePunkteGeplant(k);
+  // Nachtrag §1: PROGNOSE (Soll) gross, daneben der Stand JETZT (Ist) —
+  // und ein Satz, der sagt, dass der Endwert abweichen wird.
+  const p=kartePunktePrognose(k);
+  const jetzt=kartePunkte(k)+abhakbonusDefault(k);
   const muenzen=Math.round(Math.max(0,p)*streakFaktor());
   const zielH=outfitZielHeute()||1;
   const anteil=Math.max(0, Math.min(1, p/zielH));
-  const mf=matrixFeldVon(k);
+  const mf=matrixFeldVon(k), istMin=istSekLive(k)/60, bonus=abhakbonusDefault(k);
   let h='<div class="fb"><div class="fb-h">Was diese Karte einbringt</div><div class="fb-z">';
-  h+='<div class="fb-w"><b>'+Math.round(p)+'</b><span>Punkte</span></div>';
-  h+='<div class="fb-w"><b>'+fmtKurzP(muenzen)+'</b><span>Münzen</span></div>';
+  h+='<div class="fb-w"><b>'+Math.round(p)+'</b><span>Prognose</span></div>';
+  h+='<div class="fb-w'+(jetzt>p?' gut':'')+'"><b>'+Math.round(jetzt)+'</b><span>Stand jetzt</span></div>';
   h+='<div class="fb-w"><b>'+Math.round(anteil*100)+' %</b><span>vom Tagessoll</span></div>';
   h+='</div>';
-  h+='<div class="fb-rechnung">'+num(k.sollMin)+'′ × '+Math.round(basisRate(k))+' P/Std × '+
+  h+='<div class="fb-rechnung">Prognose: '+num(k.sollMin)+'′ Soll × '+Math.round(basisRate(k))+' P/Std × '+
      String(matrixFaktor(k)).replace('.',',')+' ('+matrixIcon(mf)+' '+esc(matrixName(mf))+')'+
-     (k.domain==='dfm'?(' × '+(Math.round(geldFaktor(k)*100)/100).toString().replace('.',',')+' Geld'):'')+'</div>';
+     (k.domain==='dfm'?(' × '+(Math.round(geldFaktor(k)*100)/100).toString().replace('.',',')+' Geld'):'')+
+     (bonus?(' + '+Math.round(bonus)+' Abhakbonus'):'')+'</div>';
+  h+='<div class="fb-rechnung">Gebucht wird nach <b>Ist</b> ('+Math.round(istMin)+'′ bisher) — '+
+     'der Endwert weicht von der Prognose ab. Münzen ≈ '+fmtKurzP(muenzen)+'.</div>';
   if(num(k.bewegungsBonus)) h+='<div class="fb-rechnung gut">+ '+Math.round(num(k.bewegungsBonus))+' P Bewegungsbonus heute</div>';
   return h+'</div>';
 }
@@ -5581,10 +5646,12 @@ function renderDetail(){
   // §2 (v2.0.0): Was die Karte bringt — offen gerechnet, damit der Wert
   // VORHER feststeht statt sich aus der Uhr zu ergeben.
   h+='<div class="field"><label>Was diese Karte einbringt</label><div class="hint" style="margin-top:0">'+
-    num(k.sollMin)+'′ × '+Math.round(basisRate(k))+' P/Std × '+String(matrixFaktor(k)).replace('.',',')+' ('+esc(matrixName(matrixFeldVon(k)))+')'+
+    '<b>Prognose</b> (Soll): '+num(k.sollMin)+'′ × '+Math.round(basisRate(k))+' P/Std × '+String(matrixFaktor(k)).replace('.',',')+' ('+esc(matrixName(matrixFeldVon(k)))+')'+
     (k.domain==='dfm'?(' × '+(Math.round(geldFaktor(k)*100)/100).toString().replace('.',',')+' (Geld)'):'')+
-    ' → <b>'+Math.round(kartePunkte(Object.assign({},k,{ticksHeute:0,punkteOverride:null,bewegungsBonus:0})))+' P</b>'+
-    '</div><div class="hint">Dazu kommt der Bewegungsbonus (bis '+num(S.settings.bewegungsBonus,500)+' P), wenn dich diese Karte nach rechts bringt.</div></div>';
+    (abhakbonusDefault(k)?(' + '+Math.round(abhakbonusDefault(k))+' Abhakbonus'):'')+
+    ' → <b>'+Math.round(kartePunktePrognose(Object.assign({},k,{ticksHeute:0,punkteOverride:null})))+' P</b>'+
+    '</div><div class="hint">Gebucht wird nach <b>Ist-Minuten</b> — der Endwert weicht von der Prognose ab. '+
+    'Dazu kommt der Bewegungsbonus (bis '+num(S.settings.bewegungsBonus,500)+' P), wenn dich diese Karte nach rechts bringt.</div></div>';
   h+='<div class="field"><label>Override: Rate &amp; Akku (v1.1)</label><div class="grid2">'+
     '<div><input type="number" inputmode="decimal" data-bind="punkteProStd" value="'+(k.punkteProStd==null?'':num(k.punkteProStd))+'" placeholder="P/Std"><div class="hint">leer = Basis-Rate der Domäne</div></div>'+
     '<div><input type="number" inputmode="decimal" data-bind="akkuProStd" value="'+(k.akkuProStd==null?'':num(k.akkuProStd))+'" placeholder="Akku %/Std"><div class="hint">leer = Standard '+(S.settings.akkuProStd||-8)+'</div></div>'+
@@ -6016,7 +6083,17 @@ function oeffneWiederholen(kid){
 }
 /* §2 (v1.13.0): erbt vom Domänen-STANDARDWERT (gemeinsam mit dem Tick-Wert);
    ein gesetzter Kartenwert ist ein dauerhafter Override. */
-function abhakbonusDefault(k){ return k.abhakbonus!=null ? num(k.abhakbonus) : standardWert(k.domain); }
+/* Nachtrag §2: Default je MATRIXFELD (nicht mehr je Domäne — die Domäne
+   steckt schon in der Basis-Rate). Ein Kartenwert bleibt ein Override und
+   schlägt den Default; 0 heißt ausdrücklich „kein Bonus". */
+function abhakbonusFeldDefault(feld){
+  const tab=(S.settings && S.settings.abhakbonusFeld) || {};
+  const v=tab[feld];
+  return Number.isFinite(Number(v)) ? Number(v) : 0;
+}
+function abhakbonusDefault(k){
+  return k.abhakbonus!=null ? num(k.abhakbonus) : abhakbonusFeldDefault(matrixFeldVon(k));
+}
 function abhakDialog(kid, fromDetail){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
   const hatOverride=k.punkteOverride!=null;                 // Re-Abhaken einer reaktivierten Karte
@@ -7112,6 +7189,20 @@ function renderEinst(){
     '<p class="d" style="margin-top:4px">Aktuell Level '+avatarStufe()+' / '+AVATAR_MAX_LEVEL+
       ' · noch '+Math.round(avatarFortschritt().rest)+' P bis zum nächsten. Minimum 100.</p>';
   h+='</div>';
+
+  // ══ Nachtrag §2 · Abhakbonus je Matrixfeld — der Träger der Barriere ══
+  h+='<div class="card"><h3>Abhakbonus je Matrixfeld</h3>'+
+    '<p class="d">Er trägt seit v2.0 <b>Barriere, Priorität und Komplexität</b> in einem Wert — '+
+    'zeitunabhängig, damit er gerade bei <b>kurzen Karten mit hoher Hürde</b> wirkt. '+
+    'Je Karte im Detail überschreibbar; ein Kartenwert schlägt den Default.</p>';
+  MATRIX_FELDER.slice().sort((a,b)=>num(MATRIX_RANK[a])-num(MATRIX_RANK[b])).forEach(f=>{
+    h+='<div class="slider"><label>'+MATRIX_META[f].icon+' '+esc(MATRIX_META[f].name)+
+      '<small>'+esc(MATRIX_META[f].achse)+' · '+esc(MATRIX_META[f].richtung)+'</small></label>'+
+      '<input type="number" inputmode="numeric" step="10" data-abfeld="'+f+'" value="'+
+      abhakbonusFeldDefault(f)+'"></div>';
+  });
+  h+='<p class="d" style="margin-top:6px">Zielarbeit steht bewusst auf 0: sie wird bereits über die '+
+     'Zeit bezahlt. Der Bonus existiert für die Karten, deren Schwere die Uhr <b>nicht</b> abbildet.</p></div>';
 
   h+='<div class="card"><h3>Punktesystem</h3><p class="d">Alle Sätze live (§3.8). Farbe/Timer/Fokus (M2), Tageslogik (M3) und Sync (M4) laufen.</p>';
   const regler=[
@@ -9987,6 +10078,11 @@ el('einstBody').addEventListener('change', e=>{
   const gn=e.target.dataset.grpname, gb=e.target.dataset.grpbonus;
   if(gn){ const g=S.routinenGruppen.find(x=>x.id===gn); if(g){ g.name=e.target.value; saveRoutGruppen(); } return; }
   if(gb){ const g=S.routinenGruppen.find(x=>x.id===gb); if(g){ g.komplettBonus=num(e.target.value); saveRoutGruppen(); renderStatusbar(); } return; }
+  // Nachtrag §2: Abhakbonus-Default je Matrixfeld
+  const abf=e.target.dataset.abfeld;
+  if(abf){ if(!S.settings.abhakbonusFeld || typeof S.settings.abhakbonusFeld!=='object') S.settings.abhakbonusFeld={};
+    S.settings.abhakbonusFeld[abf]=num(e.target.value); saveSettings(); renderStatusbar();
+    toast(MATRIX_META[abf].icon+' Abhakbonus '+esc(MATRIX_META[abf].name)+': '+num(e.target.value)+' P'); return; }
   const t=e.target; if(t.dataset.setting){ S.settings[t.dataset.setting]=num(t.value); saveSettings();
     // v1.5.1: Level-Kosten wirken sofort — Anzeige (Statusleiste/Belohnung/Hinweis) nachziehen.
     if(t.dataset.setting==='punkteProLevel'){ renderStatusbar(); renderEinst(); } }
