@@ -138,15 +138,26 @@
   }
 
   /* ── View-Aktionen im iframe (same-origin) ── */
+  /* §16 (v2.0.0): `S` ist eine const im App-Scope und liegt NICHT auf window
+     — fw.S ist undefined. Die Sichten werden deshalb ueber echte Klicks auf
+     die Leiste geschaltet, nicht ueber den Zustand. Das ist ohnehin naeher
+     an dem, was Pascal tut. */
+  function sicht(fw, key){
+    fw.setTab('suche');
+    var b=fw.document.querySelector('[data-susicht="'+key+'"]');
+    if(b) b.click(); else throw new Error('Sicht-Knopf fehlt: '+key);
+  }
   var AKTIONEN={
-    /* ══ v2.0.0 · zwei Navigationsziele, fuenf wischbare Sichten ══ */
-    heute:    function(fw){ fw.setTab('suche'); fw.S.ui.suSicht='heute'; fw.renderSuche(); },
-    matrix:   function(fw){ fw.setTab('suche'); fw.S.ui.suSicht='matrix'; fw.S.ui.suMatrixFeld='werkzeug'; fw.renderSuche(); },
-    oft:      function(fw){ fw.setTab('suche'); fw.S.ui.suSicht='oft'; fw.renderSuche(); },
-    faellig:  function(fw){ fw.setTab('suche'); fw.S.ui.suSicht='faellig'; fw.renderSuche(); },
-    art:      function(fw){ fw.setTab('suche'); fw.S.ui.suSicht='art'; fw.renderSuche(); },
-    freitext: function(fw){ fw.setTab('suche'); fw.S.ui.suFrage='a'; fw.renderSuche();
-                            var i=fw.document.getElementById('suFreitext'); if(i) i.value='a'; },
+    /* ══ v2.0.0 · zwei Navigationsziele, fuenf Sichten ══ */
+    heute:    function(fw){ sicht(fw,'heute'); },
+    matrix:   function(fw){ sicht(fw,'matrix');
+                            var q=fw.document.querySelector('[data-sumx="werkzeug"]'); if(q) q.click(); },
+    oft:      function(fw){ sicht(fw,'oft'); },
+    faellig:  function(fw){ sicht(fw,'faellig'); },
+    art:      function(fw){ sicht(fw,'art'); },
+    freitext: function(fw){ fw.setTab('suche');
+                            var i=fw.document.getElementById('suFreitext');
+                            i.value='a'; i.dispatchEvent(new fw.Event('input',{bubbles:true})); },
     /* Die laufende Karte liegt UEBER der Suche (§6) */
     fokus:    function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet(); fw.fokusLayerPflegen(); },
     leiste:   function(fw){ fw.setTab('suche'); fw.renderAlles(); fw.closeSheet(); },
@@ -154,8 +165,7 @@
     /* §1.2 · der EINE Dialog fuer Matrix und Akku */
     mxdialog: function(fw){ fw.setTab('suche'); fw.oeffneMatrixDialog('k-lang','abhaken'); },
     /* §9 · der Vorschlag direkt nach dem Matrix-Tap */
-    vorschlag:function(fw){ fw.setTab('suche'); fw.matrixPosSetzen(-0.7,0.1,null,'test');
-                            if(fw.S.tag) fw.S.tag.vorschlagGezeigt=[]; fw.zeigeVorschlag(); },
+    vorschlag:function(fw){ fw.setTab('suche'); fw.matrixPosSetzen(-0.7,0.1,null,'test'); fw.zeigeVorschlag(); },
     /* §6 · Kettensortierung aus der Suche heraus */
     kpos:     function(fw){ fw.setTab('suche'); fw.oeffneKettePosition('k-lang'); },
     abschluss:function(fw){ fw.setTab('suche'); fw.abhakDialog('k-lang', false); },
@@ -169,12 +179,12 @@
     albumB:   function(fw){ fw.setTab('belohnung'); fw.renderAlles(); fw.oeffneAlbum();
                             var b=fw.document.querySelector('[data-albtab="besitz"]'); if(b) b.click(); },
     detail:   function(fw){ fw.setTab('suche'); fw.oeffneDetail('k-ticks'); },
-    /* §12 · Statistik ist jetzt ein eigenes Navigationsziel */
+    /* §12 · Statistik ist ein eigenes Navigationsziel */
     statistik:function(fw){ fw.setTab('statistik'); },
     /* §11 · Delta-Export */
     sync:     function(fw){ fw.setTab('suche'); fw.oeffneSync(); },
-    /* §0 · das Export-Gate */
-    gate:     function(fw){ fw.S.meta.v200LeerungOffen=true; fw.zeigeV200Gate(); },
+    /* §0 · das Export-Gate (die Fixture gilt als migriert — hier gezielt an) */
+    gate:     function(fw){ fw.setTab('suche'); fw.zeigeV200Gate2Test ? fw.zeigeV200Gate2Test() : fw.zeigeV200Gate(); },
     einst:    function(fw){ var b=fw.document.getElementById('btnEinst'); if(b) b.click(); }
   };
 

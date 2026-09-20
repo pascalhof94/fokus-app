@@ -160,7 +160,7 @@ ok('§1: nicht Genanntes gilt als bewusst draussen (5 in entfernt: d5-d8 + pk1)'
   S.meta.ketten.alle.entfernt.length===5);
 var histD1=(S.meta.kettenHistorie[heuteApp()]||[]).length;
 ok('§2 BELEG: Kettenaenderungen erzeugen Historie-Eintraege', histD1>=1);
-ketteBewegen('d4',-1);
+ketteBewegen('d4','hoch');
 /* (v1.13.4): Die Entprellung ersetzt einen <10-s-Folgeeintrag derselben
    Domaene — massgeblich ist, dass der JUENGSTE dfm-Eintrag den ENDSTAND traegt. */
 var histD2arr=(S.meta.kettenHistorie[heuteApp()]||[]);
@@ -172,14 +172,14 @@ ok('§2 BELEG: DFM-Umsortierung → juengster dfm-Eintrag traegt den Endstand',
 (function(){
   var arr=S.meta.kettenHistorie[heuteApp()];
   var vorherN=arr.length;
-  ketteBewegen('d1',-1); ketteBewegen('d1',-1); ketteBewegen('d1',1); ketteBewegen('d1',1);
+  ketteBewegen('d1','hoch'); ketteBewegen('d1','hoch'); ketteBewegen('d1','runter'); ketteBewegen('d1','runter');
   ok('v1.13.4 BELEG Entprellung: 4 schnelle Umsortierungen → KEIN neuer Eintrag (Endstand ersetzt)',
     arr.length===vorherN);
   ok('v1.13.4 Entprellung: der Eintrag traegt den Endstand',
     JSON.stringify(arr[arr.length-1].ids)===JSON.stringify(tagesKetteDom('dfm')));
   // Tages-Kappe: 9 Alt-Tage + heute → nach dem naechsten Log bleiben 7 Tage
   for(var kt=1; kt<=9; kt++) S.meta.kettenHistorie['2026-01-0'+kt]=[{ts:'2026-01-0'+kt+'T10:00:00', dom:'dfm', ids:[]}];
-  ketteBewegen('d1',-1);
+  ketteBewegen('d1','hoch');
   ok('v1.13.4 BELEG Kappe: Kettenhistorie lokal auf 7 Tage begrenzt',
     Object.keys(S.meta.kettenHistorie).length<=7 && !!S.meta.kettenHistorie[heuteApp()]);
 })();
