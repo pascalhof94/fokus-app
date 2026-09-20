@@ -832,6 +832,36 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .an-bar .track i{display:block;height:100%;border-radius:6px}
 .an-bar .vv{flex:none;width:66px;text-align:right;color:var(--txt);font-weight:700}
 
+/* ══ §8 (v2.0.0) · Drei Belohnungsblöcke + Zeitstrahl ══ */
+.fb{background:var(--bg2);border:1px solid var(--li);border-radius:12px;padding:9px 11px;margin:8px 12px}
+.fb-h{font-size:10px;letter-spacing:.07em;text-transform:uppercase;opacity:.5;margin-bottom:6px}
+.fb-z{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.fb-w{text-align:center}
+.fb-w b{display:block;font-size:17px;font-weight:700;line-height:1.15}
+.fb-w span{display:block;font-size:9px;opacity:.5;margin-top:1px}
+.fb-rechnung{font-size:10px;opacity:.55;margin-top:6px;line-height:1.35}
+.fb-rechnung.gut{color:var(--gut);opacity:.9}
+.fb-bar{height:6px;border-radius:3px;background:var(--li);overflow:hidden;margin-top:8px}
+.fb-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan))}
+.zs{position:relative;margin:12px 12px 24px}
+.zs-h{font-size:10px;letter-spacing:.07em;text-transform:uppercase;opacity:.5;margin-bottom:6px}
+.zs-rahmen,.zs-spalte{position:relative;display:flex;flex-direction:column;gap:4px}
+.zs-seg{position:relative;border:1px solid var(--li);border-radius:10px;overflow:hidden;background:var(--bg2);padding-left:44px}
+.zs-seg.t-dfm{border-left:3px solid var(--blue)}
+.zs-seg.t-privat{border-left:3px solid var(--warn)}
+.zs-seg.t-pause,.zs-seg.t-schlaf{border-left:3px solid var(--li);opacity:.6}
+.zs-uhr{position:absolute;left:6px;top:7px;font-size:10px;opacity:.5;font-variant-numeric:tabular-nums}
+/* „Abgearbeitetes färbt sich ein" — der Tag läuft sichtbar voll. */
+.zs-fuell{position:absolute;left:0;top:0;width:100%;background:rgba(62,207,142,.10);transition:height .3s ease;pointer-events:none}
+.zs-inner{position:relative;padding:6px 8px 7px 0}
+.zs-typ{font-size:10px;letter-spacing:.05em;text-transform:uppercase;opacity:.55;margin-bottom:3px}
+.zs-k{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}
+.zs-k .n{flex:0 0 18px;opacity:.4;font-size:10px}
+.zs-k .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zs-k .m{opacity:.45;font-size:10px;font-variant-numeric:tabular-nums}
+.zs-k.fertig .t{text-decoration:line-through;opacity:.45}
+.zs-jetzt{position:absolute;left:0;right:0;height:0;border-top:2px solid var(--bad);pointer-events:none}
+.zs-jetzt span{position:absolute;right:0;top:-8px;font-size:9px;background:var(--bad);color:#fff;border-radius:3px;padding:1px 4px}
 /* ══ §12 (v2.0.0) · Statistik — fünf Module ══ */
 #statistikBody{padding:4px 12px 20px}
 .st-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:6px;margin:4px 0 8px}
@@ -2355,16 +2385,24 @@ function fokusStarten(kid, quelle){
   // V1.3: Timer-Start auf einer erledigten Karte öffnet IMMER ein frisches Duplikat
   // (ersetzt das UP6b-„in-place wieder öffnen"). Ein Codepfad über karteNeuStarten.
   if(zk && zk.status==='erledigt'){ karteNeuStarten(kid, {starten:true}); return; }
-  if(S.fokus && S.fokus.karteId!==kid) fokusZeitEinbuchen();  // alten Fokus pausieren+buchen
+  // §1.2 (v2.0.0): WECHSEL auf eine andere Karte ist ein Verlassen — die alte
+  // Karte fragt ihre Position ab, bevor die neue aufgenommen wird.
+  if(S.fokus && S.fokus.karteId!==kid){
+    const alt=S.fokus.karteId;
+    fokusZeitEinbuchen();
+    if(tagOffen() && alt && S.karten.some(x=>x.id===alt)) matrixAbfrageNach(alt, 'wechsel');
+  }
   if(!S.fokus || S.fokus.karteId!==kid) S.fokus={ karteId:kid, laeuft:false, startMs:0, sessionSek:0 };
-  // §3 (v1.9.1): ▶ öffnet den Fokus IMMER; die Stoppuhr läuft nur an, wenn die
-  // Karte Zeit misst. Ohne Uhr: kein laeuft, keine Buchung, kein Intraday.
-  if(hatZeitmessung(zk)){ S.fokus.laeuft=true; S.fokus.startMs=Date.now(); }
-  else { S.fokus.laeuft=false; S.fokus.startMs=0; }
+  // §4 (v2.0.0): zeitmessung ist entfallen — die Uhr läuft bei JEDER Karte an.
+  S.fokus.laeuft=true; S.fokus.startMs=Date.now();
   // §3.1 (v1.10.0): merken, aus welcher Liste die Karte kam — Quelle des
   // Nachrückens nach einem Abschluss. Die Swipe-Navigation bleibt davon
   // unberührt (sie läuft weiter über die Tageskette/fokusKandidaten).
   if(quelle!==undefined) S.fokus.quelle=quelle||null;
+  // §2 (v2.0.0): Die Ausgangsposition, gegen die der Bewegungsbonus dieser
+  // Karte später gerechnet wird. Sie wird JETZT festgehalten — beim Aufnehmen,
+  // nicht beim Verlassen; sonst misst der Bonus die falsche Strecke.
+  if(zk && tagOffen()){ const p0=matrixPos(); zk.posVorher=p0?{x:p0.x,y:p0.y}:null; }
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
   fokusNavReset();           // U2: aktive Auswahl beendet die Swipe-Navigation
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
@@ -2401,8 +2439,8 @@ function fokusKarteNachOben(kid){
 function fokusToggle(){
   if(!S.fokus){ return; }
   const fk=fokusKarte();
-  if(fk && !hatZeitmessung(fk)){ toast('Zeitmessung ist für diese Karte aus'); return; }   // §3 (1.9.1)
-  if(S.fokus.laeuft){ fokusZeitEinbuchen(); }
+  // §1.2 (v2.0.0): PAUSIEREN ist ein Verlassen der Karte → Positionsabfrage.
+  if(S.fokus.laeuft){ fokusZeitEinbuchen(); if(fk) matrixAbfrageNach(fk.id, 'pause'); }
   else { S.fokus.laeuft=true; S.fokus.startMs=Date.now(); saveFokus(); starteTicker(); }
   renderAlles();
 }
@@ -2655,6 +2693,18 @@ function matrixDialogSkip(){
   const danach=t.danach; matrixTmp=null;
   closeSheet(); renderAlles();
   if(danach) danach();
+}
+
+/* §1.2 (v2.0.0): EINE Stelle, an der das Verlassen einer Karte die
+   Positionsabfrage auslöst — Abhaken, Pausieren, Wegwischen, Wechsel. Sie
+   ist bewusst zentral: sonst driften die vier Wege auseinander, und genau
+   das hat die alte Akku-Abfrage unsichtbar sterben lassen. Ein bereits
+   offener Dialog wird nicht überschrieben (Dialog-Überschreiber, v1.13). */
+function matrixAbfrageNach(kid, anlass){
+  if(!tagOffen()) return;
+  if(matrixTmp) return;                      // es läuft schon eine Abfrage
+  if(typeof sheetOffen==='function' && sheetOffen()) return;
+  oeffneMatrixDialog(kid, anlass);
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -3513,8 +3563,7 @@ function renderFokus(){
   }
   const kand=fokusKandidaten();
   if(!k){
-    const stn=(S.stapel.find(s=>s.id===S.ui.aktivStapel)||{}).name||'Stapel';
-    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine offene Karte im Stapel „'+esc(stn)+'".<br>Stapel unten wechseln oder eine Karte im Stapel starten.</div>'+fokusKurveHtml()+fokusListeHtml();
+    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine Karte läuft.<br>Such dir in der Suche eine aus.</div>'+zeitstrahlHtml();
     renderFkNav();
     return;
   }
@@ -3599,13 +3648,141 @@ function renderFokus(){
     '<div id="fokusAktiv" class="tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+(num(nav.hist)>0?'imverlauf ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
       titel+kopf+stats+kpis+planbar+(k.status==='erledigt'?aufgabeErledigt:aufgabe)+swipeLeiste+'</div>'+
     fokusSubsHtml(k)+
-    fokusKurveHtml()+   // §9.3 (v1.11.0): Tageskurve unter dem Fokus, über der Liste
-    fokusListeHtml();
+    // §8 (v2.0.0): drei Belohnungsblöcke, kompakt untereinander — danach der
+    // Zeitstrahl von oben nach unten.
+    fbWasDieseKarte(k)+
+    fbWoIchStehe()+
+    fbWasIchBewege(k)+
+    zeitstrahlHtml();
   renderFkNav();
   fokusTacho(k);   // Ring, Timer, Kennzahlen, Balken befüllen
 }
 /* Live-Aktualisierung des Fokus-Tachos (v0.38-Port): Ring-Bögen, Restzeit,
    Unteraufgaben-Panel, Akku/Punkte/Zeit-Kacheln, 4 KPIs, Plan-Balken. */
+/* ══════════════════════════════════════════════════════════════════════
+   §8 (v2.0.0) · DREI BELOHNUNGSBLÖCKE
+   Kompakt untereinander unter der laufenden Karte. Sie beantworten drei
+   verschiedene Fragen, und deshalb sind es drei Blöcke und nicht einer:
+   was bringt DAS hier · wo stehe ich HEUTE · was bewege ich GERADE.
+   ══════════════════════════════════════════════════════════════════════ */
+/* 1 · Was diese Karte einbringt — Punkte, Münzen, Beitrag zum Outfit. */
+function fbWasDieseKarte(k){
+  const p=kartePunkteGeplant(k);
+  const muenzen=Math.round(Math.max(0,p)*streakFaktor());
+  const zielH=outfitZielHeute()||1;
+  const anteil=Math.max(0, Math.min(1, p/zielH));
+  const mf=matrixFeldVon(k);
+  let h='<div class="fb"><div class="fb-h">Was diese Karte einbringt</div><div class="fb-z">';
+  h+='<div class="fb-w"><b>'+Math.round(p)+'</b><span>Punkte</span></div>';
+  h+='<div class="fb-w"><b>'+fmtKurzP(muenzen)+'</b><span>Münzen</span></div>';
+  h+='<div class="fb-w"><b>'+Math.round(anteil*100)+' %</b><span>vom Tagessoll</span></div>';
+  h+='</div>';
+  h+='<div class="fb-rechnung">'+num(k.sollMin)+'′ × '+Math.round(basisRate(k))+' P/Std × '+
+     String(matrixFaktor(k)).replace('.',',')+' ('+matrixIcon(mf)+' '+esc(matrixName(mf))+')'+
+     (k.domain==='dfm'?(' × '+(Math.round(geldFaktor(k)*100)/100).toString().replace('.',',')+' Geld'):'')+'</div>';
+  if(num(k.bewegungsBonus)) h+='<div class="fb-rechnung gut">+ '+Math.round(num(k.bewegungsBonus))+' P Bewegungsbonus heute</div>';
+  return h+'</div>';
+}
+/* 2 · Wo ich heute stehe — Tagesziel, Outfit, was zur nächsten Stufe fehlt. */
+function fbWoIchStehe(){
+  const zi=zielUndIstHeute();
+  const pct=Math.max(0, Math.min(1, zi.ist/Math.max(1,zi.ziel)));
+  const of=outfitHeute(), F=outfitF();
+  const fehlt=(typeof outfitFehltBis==='function') ? outfitFehltBis(Math.min(12,(of||1)+1)) : null;
+  let h='<div class="fb"><div class="fb-h">Wo ich heute stehe</div><div class="fb-z">';
+  h+='<div class="fb-w"><b>'+fmtKurzP(zi.ist)+'</b><span>von '+fmtKurzP(zi.ziel)+'</span></div>';
+  h+='<div class="fb-w"><b>'+(of!=null?of:'—')+'</b><span>Outfit</span></div>';
+  h+='<div class="fb-w"><b>'+(F!=null?F.toFixed(2).replace('.',','):'—')+'</b><span>Faktor F</span></div>';
+  h+='</div>';
+  h+='<div class="fb-bar"><i style="width:'+Math.round(pct*100)+'%"></i></div>';
+  h+='<div class="fb-rechnung">'+(fehlt!=null && fehlt>0
+      ? ('Noch '+fmtKurzP(fehlt)+' P bis Outfit '+Math.min(12,(of||1)+1)+'.')
+      : 'Die nächste Stufe ist erreicht.')+'</div>';
+  return h+'</div>';
+}
+/* 3 · Was ich gerade bewege — eigene Position und wohin diese Karte schiebt. */
+function fbWasIchBewege(k){
+  const p=matrixPos();
+  const mf=matrixFeldVon(k);
+  let h='<div class="fb"><div class="fb-h">Was ich gerade bewege</div>';
+  if(!p){
+    h+='<div class="fb-rechnung">Noch keine Position heute — sie wird abgefragt, sobald du diese Karte verlässt.</div>';
+  } else {
+    // Die Karte schiebt in Richtung ihres Feldes: Werkzeug und Ziel nach
+    // rechts, Ablenkung nach links, Zustand neutral-nach-links.
+    const zielX=MATRIX_META[mf].x;
+    const erwartet=bewegungsBonusBerechnen(p, {x:Math.max(p.x, Math.min(1, p.x+(zielX>0?0.5:-0.3)))});
+    h+='<div class="fb-z">';
+    h+='<div class="fb-w"><b>'+(p.x>0?'+':'')+(Math.round(p.x*100)/100)+'</b><span>Position x</span></div>';
+    h+='<div class="fb-w"><b>'+(zielX>0?'→ rechts':'← links')+'</b><span>schiebt</span></div>';
+    h+='<div class="fb-w"><b>'+(zielX>0?('bis '+Math.round(erwartet)):'0')+'</b><span>Bonus mögl.</span></div>';
+    h+='</div>';
+    h+='<div class="fb-rechnung">'+matrixLesart(p.x,p.y)+'</div>';
+  }
+  return h+'</div>';
+}
+/* ══ §8 · DER ZEITSTRAHL — von oben nach unten ════════════════════════
+   Die Blöcke des Tages als Spalte, die Karten darin einsortiert, die
+   aktuelle Uhrzeit als Linie. Abgearbeitetes färbt sich ein: der Tag läuft
+   sichtbar voll. Quelle ist der TAGESRAHMEN plus die KETTE — nichts
+   Erfundenes. Ohne Rahmen zeigt der Strahl die Kette ohne Uhrzeiten. ══ */
+function zeitstrahlHtml(){
+  const rahmen=tagesRahmen();
+  const ids=tagesKette(), by={}; S.karten.forEach(k=>by[k.id]=k);
+  const ks=ids.map(id=>by[id]).filter(Boolean);
+  const jetzt=jetztStunde();
+  let h='<div class="zs"><div class="zs-h">Der Tag von oben nach unten</div>';
+  if(!rahmen || !rahmen.length){
+    if(!ks.length) return '';
+    h+='<div class="hint" style="padding:0 2px 6px">Kein Tagesrahmen gesetzt — der Strahl zeigt die Kette in ihrer Reihenfolge.</div>';
+    h+='<div class="zs-spalte">';
+    ks.forEach((k,i)=>{
+      const fertig=k.status==='erledigt';
+      h+='<div class="zs-k'+(fertig?' fertig':'')+'" data-detail="'+k.id+'">'+
+         '<span class="n">'+(i+1)+'</span><span class="t">'+esc(String(k.titel||'?').slice(0,34))+'</span>'+
+         '<span class="m">'+num(k.sollMin)+'′</span></div>';
+    });
+    return h+'</div></div>';
+  }
+  const von=Math.min.apply(null, rahmen.map(r=>r.von));
+  const bis=Math.max.apply(null, rahmen.map(r=>r.bis));
+  const spanne=Math.max(0.5, bis-von);
+  // Karten den Segmenten ihrer Domäne zuordnen, in Kettenreihenfolge.
+  const proSeg={};
+  rahmen.forEach((r,i)=>{ proSeg[i]=[]; });
+  ks.forEach(k=>{
+    let idx=rahmen.findIndex(r=>r.typ===(k.domain==='dfm'?'dfm':'privat'));
+    if(idx<0) idx=rahmen.findIndex(r=>r.typ==='dfm'||r.typ==='privat');
+    if(idx>=0) proSeg[idx].push(k);
+  });
+  h+='<div class="zs-rahmen">';
+  rahmen.forEach((r,i)=>{
+    const hoehe=Math.max(34, (r.bis-r.von)/spanne*280);
+    const LBL={dfm:'DFM', privat:'Privat', pause:'Pause', schlaf:'Schlaf'};
+    const drin=proSeg[i]||[];
+    const fertig=drin.filter(k=>k.status==='erledigt').length;
+    const pct=drin.length?Math.round(fertig/drin.length*100):0;
+    h+='<div class="zs-seg t-'+esc(r.typ)+'" style="min-height:'+Math.round(hoehe)+'px">'+
+       '<span class="zs-uhr">'+belUhr(r.von)+'</span>'+
+       '<span class="zs-fuell" style="height:'+pct+'%"></span>'+
+       '<div class="zs-inner"><div class="zs-typ">'+esc(LBL[r.typ]||r.typ)+
+       (drin.length?(' · '+fertig+'/'+drin.length):'')+'</div>';
+    drin.slice(0,6).forEach(k=>{
+      h+='<div class="zs-k'+(k.status==='erledigt'?' fertig':'')+'" data-detail="'+k.id+'">'+
+         '<span class="t">'+esc(String(k.titel||'?').slice(0,30))+'</span>'+
+         '<span class="m">'+num(k.sollMin)+'′</span></div>';
+    });
+    if(drin.length>6) h+='<div class="hint">+'+(drin.length-6)+' weitere</div>';
+    h+='</div></div>';
+  });
+  h+='</div>';
+  // Jetzt-Linie relativ zur Gesamtspanne
+  if(jetzt>=von && jetzt<=bis){
+    const top=((jetzt-von)/spanne)*100;
+    h+='<div class="zs-jetzt" style="top:calc('+top.toFixed(1)+'% + 20px)"><span>'+belUhr(jetzt)+'</span></div>';
+  }
+  return h+'</div>';
+}
 function setzeKopf(dot, halo, frac, farbe){
   const w=frac*2*Math.PI-Math.PI/2, x=(66+58*Math.cos(w)).toFixed(1), y=(66+58*Math.sin(w)).toFixed(1);
   dot.setAttribute('cx',x); dot.setAttribute('cy',y); dot.setAttribute('opacity','1');
@@ -5256,6 +5433,10 @@ function untermenge(parentId){ return S.unteraufgaben.filter(u=>u.parentId===par
    Öffnet als Sheet von unten, schließt per ✕ / Backdrop / Wisch-nach-unten.
    ══════════════════════════════════════════════════════════════════════ */
 let sheetSaveFn=null;
+/* §1.2 (v2.0.0): Ist gerade ein Sheet offen? Die Positionsabfrage darf einen
+   laufenden Dialog NIE überschreiben — das war einer der fünf Fehler, die die
+   Klick-Diagnose in v1.13 gefunden hat. */
+function sheetOffen(){ const sh=el('sheet'); return !!(sh && sh.classList && sh.classList.contains('on')); }
 function openSheet(titel, bodyHtml, footHtml, saveFn){
   el('sheetTitel').textContent=titel;
   el('sheetBody').innerHTML=bodyHtml;
@@ -5266,6 +5447,7 @@ function openSheet(titel, bodyHtml, footHtml, saveFn){
 }
 function closeSheet(){
   ketteSheetOffen=false;   // §9.3 (v1.12.0)
+  matrixTmp=null;          // §1.2 (v2.0.0): ein weggetippter Dialog blockiert nicht den nächsten
   el('sheet').classList.remove('on');
   el('backdrop').classList.remove('on');
   sheetSaveFn=null; entwurf=null; stapelEntwurf=null;
@@ -5508,7 +5690,7 @@ function detailSpeichern(){
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   closeSheet(); renderAlles();
   // §3.1 (v1.10.0): eine neu angelegte Karte wird sofort gestartet und ist der Fokus
-  if(entwurfNeu){ fokusStarten(entwurf.id, null); setTab('fokus'); }
+  if(entwurfNeu){ fokusStarten(entwurf.id, null); setTab('suche'); }
   toast(entwurfNeu?'Karte angelegt & gestartet':'Gespeichert'); haptik(12);
 }
 /* A3: einen Tick buchen (Timer-/Counter-Karten). Erhöht ticksHeute; Punkte
@@ -5616,6 +5798,7 @@ function karteSchiebenA4(kid, mitAbzug, abzug){
   beruehre(k);                                                    // A7
   saveKarten(); saveTag(); closeSheet(); renderAlles();
   toast('Auf '+fmtDatum(k.faelligkeit)+' ('+wochentagLang(k.faelligkeit)+') geschoben'+(ab>0?' · −'+ab+' P':'')); haptik(15);
+  matrixAbfrageNach(k.id, 'schieben');   // §1.2 (v2.0.0)
 }
 /* ══ §6.4 (v1.13.0) · Blockade aus dem Schieben LERNEN — Vorschlag ab der
    dritten Verschiebung derselben Karte, Übernahme NUR nach Freigabe (eine
@@ -5787,7 +5970,7 @@ function karteNeuStarten(kid, opts){
   S.karten.push(kopie);
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   closeSheet();
-  if(opts.starten){ fokusStarten(kopie.id); setTab('fokus'); toast('Als neue Karte geöffnet — Timer läuft'); }
+  if(opts.starten){ fokusStarten(kopie.id); setTab('suche'); toast('Als neue Karte geöffnet — Timer läuft'); }
   else { renderAlles(); toast('🔄 Als neue Karte geöffnet'); }
   haptik(15);
 }
@@ -6015,7 +6198,10 @@ function abhakDialogConfirm(){
   abhakTmp=null; closeSheet();
   karteAbhaken(k.id, false);                            // eigentliches Erledigen (Punkte=Override, Konfetti, Intraday, Speichern)
   // §3.1 (v1.10.0): die Folgeaufgabe übernimmt sofort den Fokus (schlägt das Nachrücken)
-  if(_folgeNeu){ fokusStarten(_folgeNeu.id, S.fokus?S.fokus.quelle:null); setTab('fokus'); }
+  if(_folgeNeu){ fokusStarten(_folgeNeu.id, S.fokus?S.fokus.quelle:null); }
+  // §1.2 (v2.0.0): ABHAKEN ist ein Verlassen der Karte → Positionsabfrage.
+  // Sie kommt NACH dem Abschluss, damit Konfetti und Buchung zuerst laufen.
+  else matrixAbfrageNach(k.id, 'abhaken');
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -8997,7 +9183,7 @@ el('sheetBody').addEventListener('click', e=>{
   // Der Speichern-Knopf liegt im Sheet-FUSS und läuft über den el('sheet')-
   // Handler — Harness-Diagnosefund aus Lauf 1.
   if(t.closest('[data-akkuquick]')){ oeffneAkkuQuick(); return; }
-  const sst=t.closest('[data-sheetstart]'); if(sst){ const kid=sst.dataset.sheetstart; closeSheet(); fokusStarten(kid); setTab('fokus'); return; }
+  const sst=t.closest('[data-sheetstart]'); if(sst){ const kid=sst.dataset.sheetstart; closeSheet(); fokusStarten(kid); setTab('suche'); return; }
   // §8 (1.9.0): Album-Tabs + Detailansicht
   const at=t.closest('[data-albtab]'); if(at){ albumTab=at.dataset.albtab; renderAlbum(); return; }
   const ab=t.closest('[data-albbild]'); if(ab){
@@ -9042,8 +9228,8 @@ el('sheetBody').addEventListener('click', e=>{
    mehr erreichbar (keine eigenen Stapel mehr, Filterung läuft über Ebene 1–3). */
 
 // Fokus-Leiste: Play/Pause-Toggle + Mitte tippen → Fokus-Tab
-el('fkPP').addEventListener('click', ()=>{ if(S.fokus) fokusToggle(); else setTab('fokus'); });
-el('fkMid').addEventListener('click', ()=>setTab('fokus'));
+el('fkPP').addEventListener('click', ()=>{ if(S.fokus) fokusToggle(); else setTab('suche'); });
+el('fkMid').addEventListener('click', ()=>{ setTab('suche'); fokusLayerPflegen(); });
 el('statusbar').addEventListener('click', ()=>oeffneStatusSheet());   // §2 (1.10.0): Sheet statt Live-Kurve
 
 // Fokus-View: Toggle / Häkchen / Karussell / Farbstreifen / Unteraufgaben / Stapelwahl
@@ -9196,7 +9382,9 @@ function karteRowClick(t, e){
     return true; }
   // §9.2 (v1.12.0): „▤" öffnet das Ketten-Aktions-Sheet (anzeigen, abhaken,
   // starten, hoch, runter, ganz nach oben mit Uhrstart, ganz raus/aufnehmen)
-  const ket=t.closest('[data-kette]'); if(ket){ if(e) e.stopPropagation(); oeffneKetteAktion(ket.dataset.kette); return true; }
+  // §6 (v2.0.0): „▤" öffnet die Positionswahl in der EINEN Kette — Sortieren
+  // geschieht aus der Suche heraus, Position frei wählbar.
+  const ket=t.closest('[data-kette]'); if(ket){ if(e) e.stopPropagation(); oeffneKettePosition(ket.dataset.kette); return true; }
   // §2 (v1.8.0): Schieben-Dialog + Archivieren (mit Sicherheitsabfrage, No-delete)
   const scb=t.closest('[data-schieb]'); if(scb){ if(e) e.stopPropagation(); oeffneSchieben(scb.dataset.schieb); return true; }
   const arc=t.closest('[data-archiv]'); if(arc){ if(e) e.stopPropagation();
@@ -9214,7 +9402,7 @@ function karteRowClick(t, e){
     const sid=fst.dataset.stapel, kid=fst.dataset.fokusstart;
     if(sid){ S.ui.aktivStapel=sid; saveUi(); }
     if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid, sid||null);   // §3.1 (1.10.0): Quelle mitgeben
-    setTab('fokus'); return true; }
+    setTab('suche'); return true; }
   const su=t.closest('[data-sortup]'); if(su){ if(e) e.stopPropagation(); karteSortieren(su.dataset.sortup, -1, su.dataset.stapel); return true; }
   const sd=t.closest('[data-sortdown]'); if(sd){ if(e) e.stopPropagation(); karteSortieren(sd.dataset.sortdown, +1, sd.dataset.stapel); return true; }
   const tp=t.closest('[data-tickplus]'); if(tp){ if(e) e.stopPropagation(); karteTick(tp.dataset.tickplus, false); return true; }
@@ -9243,8 +9431,8 @@ el('sheet').addEventListener('click', e=>{
   // §9.2 (v1.12.0): Ketten-Aktions-Sheet — Uhr folgt der Handlung (§6):
   // „ganz nach oben" startet die Fokuszeit sofort, alles andere nicht.
   const kaT=t.closest('[data-kaTop]'); if(kaT){ const kid=kaT.dataset.katop;
-    ketteBewegen(kid,'top'); closeSheet(); fokusNavReset(); fokusStarten(kid); setTab('fokus'); return; }
-  const kaS=t.closest('[data-kaStart]'); if(kaS){ closeSheet(); fokusStarten(kaS.dataset.kastart); setTab('fokus'); return; }
+    ketteBewegen(kid,'top'); closeSheet(); fokusNavReset(); fokusStarten(kid); setTab('suche'); return; }
+  const kaS=t.closest('[data-kaStart]'); if(kaS){ closeSheet(); fokusStarten(kaS.dataset.kastart); setTab('suche'); return; }
   const kaC=t.closest('[data-kaCheck]'); if(kaC){ karteAbhakenAuto(kaC.dataset.kacheck, false); return; }
   const kaH=t.closest('[data-kaHoch]'); if(kaH){ ketteBewegen(kaH.dataset.kahoch,-1); oeffneKetteAktion(kaH.dataset.kahoch); renderAlles(); return; }
   const kaR=t.closest('[data-kaRunter]'); if(kaR){ ketteBewegen(kaR.dataset.karunter,1); oeffneKetteAktion(kaR.dataset.karunter); renderAlles(); return; }
@@ -9365,6 +9553,16 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-akkuqgo]')){ akkuQuickSpeichern(); return; }
   // ══ §1.2 (v2.0.0) · Der EINE Dialog für Matrix und Akku ══
   if(t.closest('[data-mxgo]')){ matrixDialogSpeichern(); return; }
+  // ══ §6 (v2.0.0) · Kette aus der SUCHE heraus sortieren ══
+  const kp=t.closest('[data-kpos]'); if(kp){
+    if(ketteBewegen(kp.dataset.kpos, num(kp.dataset.n))){ haptik(10); toast('Position '+num(kp.dataset.n)); }
+    oeffneKettePosition(kp.dataset.kpos); renderSuche(); return; }
+  const kra=t.closest('[data-kraus]'); if(kra){ ketteToggle(kra.dataset.kraus); closeSheet(); renderSuche();
+    toast('Aus der Kette genommen'); return; }
+  const kre=t.closest('[data-krein]'); if(kre){ ketteToggle(kre.dataset.krein); closeSheet(); renderSuche();
+    toast('In die Kette gelegt'); return; }
+  const kst=t.closest('[data-kstart]'); if(kst){ const kid=kst.dataset.kstart; closeSheet();
+    fokusNavReset(); fokusStarten(kid); setTab('suche'); return; }
   if(t.closest('[data-mxskip]')){ matrixDialogSkip(); return; }
   // §9: Vorschlag übernehmen — Vorschlag, nie Automatik.
   const vsg=t.closest('[data-vsgo]'); if(vsg){
@@ -9843,7 +10041,7 @@ function suchFokusStarten(kid){
   const st=stapelFuerKarte(kid); if(st){ S.ui.aktivStapel=st.id; saveUi(); }
   schliesseSuche();
   if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid);
-  setTab('fokus');
+  setTab('suche');
 }
 /* §13: Tap auf die Figur öffnet Belohnung + Shop — kein Tab. */
 el('btnFigur').addEventListener('click', ()=>{ setTab('belohnung'); });
