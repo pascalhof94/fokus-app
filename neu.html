@@ -158,7 +158,10 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
   border:1.5px solid var(--li);background:var(--bg2)}
 .tb-zahn{background:none;border:0;color:var(--fg);opacity:.6;font-size:17px;min-width:44px;min-height:44px}
 /* §6: Die laufende Karte liegt ÜBER der Suche */
-#fokusLayer{position:fixed;inset:0 0 calc(56px + var(--sab)) 0;z-index:200;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+/* Der Layer liegt ueber der SUCHE, nicht ueber dem Kopf: Timer, Figur und
+   Zahnrad bleiben erreichbar, solange eine Karte laeuft. */
+#fokusLayer{position:fixed;left:0;right:0;top:var(--tbH,96px);bottom:calc(56px + var(--sab));
+  z-index:200;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
 #fokusLayer[hidden]{display:none}
 .mx-tag{font-size:10px;opacity:.7}
 /* ── Views / Content ─────────────────────────────────────────────── */
@@ -1049,7 +1052,10 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 .btn.warn{background:var(--bad);border-color:var(--bad);color:#0a0f1a}
 .btn.ghost{background:none}
 .btn.sm{padding:9px;font-size:13px;flex:none}
-.btnrow{display:flex;gap:8px;margin-top:10px}
+/* v2.0.0: umbrechen statt ueberlaufen — zwei lange Knoepfe (Standard-Reset,
+   Reset rueckgaengig) ragten bei 375 px aus dem Viewport. */
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.btnrow>.btn{max-width:100%}
 
 /* Einstellungen */
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:var(--s2)}
@@ -2693,8 +2699,10 @@ function matrixDialogSpeichern(){
   closeSheet(); renderAlles();
   if(bonus>=1){ toast('↗︎ Bewegung nach rechts · +'+Math.round(bonus)+' P'); momentBuchung(bonus); }
   // §9: DIREKT nach dem Matrix-Tap kommt der Vorschlag — genau einmal je
-  // Karte, im Moment, in dem der Kopf ohnehin gehoben ist.
-  if(danach) danach(); else zeigeVorschlag();
+  // KARTE (nicht einmal je Tag): die Karten-ID muss mit, sonst merkt sich die
+  // App nur die Marke „_frei" und der Vorschlag erscheint den ganzen Tag
+  // kein zweites Mal. Von der Klick-Diagnose gefunden.
+  if(danach) danach(); else zeigeVorschlag(t.kid);
 }
 function matrixDialogSkip(){
   const t=matrixTmp; if(!t){ closeSheet(); return; }
@@ -3359,10 +3367,9 @@ function kartenreiheHtml(k, stapelId){
     : (k.freeze
       ? '<button class="kstart auftau" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="Auftauen &amp; in den Fokus">▶</button>'   // A4: auftauen + Fokus
       : '<button class="kstart'+(laeuft?' laeuft':'')+'" data-fokusstart="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="In den Fokus starten">'+(laeuft?'⏸':'▶')+'</button>'));
-  // §1.3 (v1.8.0): im Erledigt-Stapel keine Pfeile — Chronologie bleibt Chronologie
-  const sortCtrl = stapelId==='sys-erledigt' ? '' :
-    '<div class="ksort"><button class="sar" data-sortup="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="hoch">▲</button>'+
-    '<button class="sar" data-sortdown="'+k.id+'" data-stapel="'+esc(stapelId||'')+'" aria-label="runter">▼</button></div>';
+  // §6 (v2.0.0): KEINE Pfeile mehr in der Kartenzeile. Sortiert wird aus der
+  // Suche heraus ueber ▤ — Karte antippen, Position frei waehlen.
+  const sortCtrl = '';
   // §4 (v1.9.1): Ticks sind eine Ebene OBENDRAUF, kein Ersatz — eine getickte
   // Karte kann auch fertig sein. Bei ticksAktiv stehen ＋ und ✓ nebeneinander.
   const rechts = (istTickKarte(k)
@@ -3648,7 +3655,7 @@ function renderFokus(){
   const nav=fokusNav(), vlLen=fokusVerlaufHeute().length;
   const navMitte = num(nav.hist)>0
     ? 'Verlauf '+nav.hist+'/'+vlLen+' · heute bearbeitet'
-    : (idx+1)+'/'+kand.length+' im Stapel';
+    : (idx+1)+'/'+kand.length+' in der Kette';
   // §9.2 (v1.11.0): „◀ nächste" und „Verlauf ▶" sind echte Bedienelemente
   // (≥44 px) und lösen dasselbe aus wie der Wisch. Nicht mögliche Richtung
   // bleibt zurückgenommen und reagiert nicht.
@@ -3803,7 +3810,11 @@ function setzeKopf(dot, halo, frac, farbe){
   halo.setAttribute('cx',x); halo.setAttribute('cy',y); halo.setAttribute('opacity','.5'); halo.setAttribute('fill',farbe);
 }
 function fokusTacho(k){
-  if(S.ui.tab!=='fokus') return;
+  // §6 (v2.0.0): Es gibt keinen Fokus-TAB mehr — die laufende Karte ist ein
+  // Layer ueber der Suche. Der alte Tab-Vergleich war nach dem Umbau dauerhaft
+  // falsch, und damit stand die Live-Anzeige still (Akku/Punkte/Zeit blieben
+  // auf „–" — von einem Screenshot gefunden, nicht von einer Assertion).
+  const lay=el('fokusLayer'); if(lay && lay.hidden) return;
   if(!k) k=aktiveFokusKarte();
   const zeitArc=el('tZeitArc'); if(!zeitArc || !k) return;
   const rotArc=el('tRotArc'), progArc=el('tProgArc'), dot=el('tKopfDot'), halo=el('tKopfHalo');
@@ -4631,6 +4642,8 @@ function layoutTopbar(){
   const h=tb.offsetHeight; if(h===_tbH) return; _tbH=h;
   const gap=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--s1'))||8;
   document.querySelector('main').style.paddingTop=(h+gap)+'px';
+  // §6 (v2.0.0): der Fokus-Layer beginnt UNTER dem Kopf
+  try{ document.documentElement.style.setProperty('--tbH', h+'px'); }catch(e){}
 }
 /* Tag-Bezug (§3.7): aktuelle Tag-ID + „Tag offen?". */
 function aktuelleTagId(){ return S.tag ? S.tag.tagId : heuteApp(); }
@@ -5075,8 +5088,8 @@ function starteTicker(){
     renderFokusleiste();
     if(tagOffen()) renderStatusbar();                   // V1.1: Live-Punkte/-Minuten/-Pace in der Statusleiste sekündlich
     // Fokus-Tacho live nachziehen (Ring/Timer/Kennzahlen/Balken der angezeigten Karte)
-    if(S.ui.tab==='fokus') fokusTacho(aktiveFokusKarte());
-    else if(S.ui.tab==='belohnung' && _sekTakt%5===0) renderBelohnung();   // V1.1: Belohnungsseite live (alle 5 s, Perf)
+    fokusTacho(aktiveFokusKarte());   // §6 (v2.0.0): der Layer entscheidet, nicht der Tab
+    if(S.ui.tab==='belohnung' && _sekTakt%5===0) renderBelohnung();   // Belohnungsseite live (alle 5 s, Perf)
     _sekTakt++;
   }, 1000);
 }
@@ -6345,13 +6358,17 @@ function renderRoutinenSheet(){
     ['dfm','privat'].map(d=>'<button class="'+(t.dom===d?'on '+(d==='privat'?'privat':''):'')+'" data-rdom="'+d+'">'+
       (d==='dfm'?'DFM':'Privat')+'</button>').join('')+'</div>';
   let body='';
-  TAGESABSCHNITTE.forEach(ta=>{
+  // §4 (v2.0.0): gruppiert nach MATRIXFELD statt nach Tagesabschnitt.
+  MATRIX_FELDER.slice().sort((a,b)=>num(MATRIX_RANK[a])-num(MATRIX_RANK[b])).forEach(ta=>{
     const grp=ks.filter(k=>matrixFeldVon(k)===ta);
+    if(!grp.length && S.ui.routAuf!==ta) return;        // leere Felder nicht zeigen
     const zu=(S.ui.routAuf!==ta);   // §5.3: persistierter manueller Zustand
     body+='<div class="routgruppe'+(zu?' zu':'')+'"><div class="rg-kopf" data-rgrp="'+ta+'">'+
-      '<span class="caret">▾</span>'+TA_LABEL[ta]+'<span class="n">'+grp.length+'</span></div><div class="rg-body">'+
+      '<span class="caret">▾</span>'+MATRIX_META[ta].icon+' '+esc(MATRIX_META[ta].name)+
+      '<span class="n">'+grp.length+'</span></div><div class="rg-body">'+
       (grp.length ? routBlockHtml(grp) : '<div class="leer">—</div>')+'</div></div>';
   });
+  if(!body) body='<div class="leer">Keine Routine in dieser Domäne.</div>';
   openSheet('Routinen', '<div class="routsheet">'+kopf+body+
     '<p class="d" style="margin-top:6px">Häkchen = +1 · nach links wischen = −1. Das Sheet bleibt offen.</p></div>',
     '<button class="btn ghost sm" data-close="1">Schließen</button>');
@@ -8584,7 +8601,7 @@ function belKpiFelder(){
   const nowIso=jetztIso(), heuteF=belFensterDatum(nowIso), nowX=belX(nowIso), wt=belWochentag(heuteF);
   const fenster={}; (S.intraday||[]).forEach(e=>{ if(e.ts&&num(e.punkte)>0) fenster[belFensterDatum(e.ts)]=true; });
   const wtF=Object.keys(fenster).filter(fd=>fd!==heuteF && belWochentag(fd)===wt);
-  const wtBei = wtF.length? wtF.map(fd=>belKurveWert(belTagKurve(fd,'alle'),nowX)).reduce((a,b)=>a+b,0)/wtF.length*f43 : null;
+  const wtBei = wtF.length? wtF.map(fd=>belKurveWert(belTagKurve(fd,'alle'),nowX)).reduce((a,b)=>a+b,0)/wtF.length : null;
   // 1) Noch benötigte Punkte (Verlauf: heute vs Wochentags-Ø zur selben Uhrzeit)
   const noch=Math.max(0, ziel-pGes);
   let s1=0; if(wtBei!=null && wtBei>0) s1=Math.max(-1,Math.min(1,(pGes-wtBei)/Math.max(1,wtBei)));

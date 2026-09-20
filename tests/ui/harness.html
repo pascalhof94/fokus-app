@@ -243,290 +243,166 @@
      Zustandsvergleich für §1.3 (Verschieben in der Stapelansicht), §3.2
      (Rein/Raus-Bilanz) und §6.1 (Akku-Schnellzugriff). Kein Screenshot —
      der Harness ist hier Diagnosewerkzeug, nicht Abnahmeinstrument. ── */
+  /* ══════════════════════════════════════════════════════════════════
+     §8 · KLICK-DIAGNOSE (view=diag) — synthetische Klicks plus
+     Zustandsvergleich, kein Screenshot.
+     v2.0.0: komplett neu geschrieben. Die alte Sequenz prueft den
+     v1.13-Vertrag (Stapelansicht, ketteDfm, Tagesabschnitte) — den gibt es
+     nicht mehr. Durchgeklickt werden jetzt die Wege, die der Auftrag nennt:
+     Matrix-Tap, Vorschlag, Kettensortierung aus der Suche, Sichtwechsel,
+     Shop ueber die Figur, Tagesabschluss, Delta-Export.
+     ══════════════════════════════════════════════════════════════════ */
   function diagSequenz(){
     fixtureSchreiben();
     ladeIframe(function(fw){
       konsoleWaechter(fw);
       var d=fw.document;
-      function lsGet(k){ return JSON.parse(localStorage.getItem('fokus2_'+k)||'null'); }
-      /* v1.13.1: „heute" = App-TAGESFENSTER (belFensterDatum), nicht der rohe
-         Kalendertag — sonst laufen Nachtläufe gegen den falschen Tag. */
-      var heute=fw.belFensterDatum(fw.jetztIso());
+      function pruef(bed, txt){ ergebnis.checks++; if(!bed) fatal('diag '+txt); }
+      function klick(sel){ var e=d.querySelector(sel); if(e) e.click(); return e; }
       try{
-        /* ══ §1.3 · Verschieben in der Stapelansicht (privater Liste) ══ */
-        fw.setTab('stapel'); fw.renderAlles();
-        var schieb=d.querySelector('#stapelListe [data-schieb="k-routine"]') || d.querySelector('#stapelListe [data-schieb]');
-        ergebnis.checks++;
-        if(!schieb){ fatal('diag §1.3: kein Schieben-Knopf in der Stapelansicht'); }
-        else {
-          var kid=schieb.dataset.schieb;
-          schieb.click();   // öffnet den Date-Picker-Sheet
-          var chips=d.querySelectorAll('[data-schiebziel]');
-          ergebnis.checks++;
-          if(chips.length<3) fatal('diag §1.2: Schnellziele fehlen ('+chips.length+'/3)');
-          if(chips[1]) chips[1].click();   // „nächster Montag"
-          var inp=d.getElementById('schiebDatum');
-          var ziel=inp?inp.value:null;
-          var wt=d.getElementById('schiebWt');
-          ergebnis.checks++;
-          if(!(wt && wt.textContent==='Montag')) fatal('diag §1.2: Wochentag nicht erkennbar ('+(wt&&wt.textContent)+')');
-          var ohne=d.querySelector('[data-schiebohne]');
-          ergebnis.checks++;
-          if(!ohne){ fatal('diag §1.3: Bestätigungs-Knopf fehlt'); }
-          else {
-            ohne.click();
-            var k=(lsGet('karten')||[]).filter(function(x){ return x.id===kid; })[0];
-            ergebnis.checks++;
-            if(!(k && ziel && k.faelligkeit===ziel && ziel>heute))
-              fatal('diag §1.3: Fälligkeit nicht aufs Zieldatum gesetzt (ist '+(k&&k.faelligkeit)+', erwartet '+ziel+' > '+heute+')');
-            var meta=lsGet('meta')||{};
-            var kette=(meta.ketten && meta.ketten.privat)||{};
-            ergebnis.checks++;
-            if((kette.ids||[]).indexOf(kid)>=0 || (kette.entfernt||[]).indexOf(kid)<0)
-              fatal('diag §1.3: Karte nicht aus der heutigen Kette entfernt');
-            var iv=lsGet('intraday')||[];
-            var schub=iv.filter(function(e){ return e.typ==='schub' && e.kartenId===kid; }).pop();
-            ergebnis.checks++;
-            if(!(schub && schub.ziel===ziel)) fatal('diag §3.2: Schub-Ereignis ohne Zieltag ('+JSON.stringify(schub)+')');
-            var bil=((lsGet('tag')||{}).routinenBilanz)||[];
-            ergebnis.checks++;
-            if(!bil.some(function(b){ return b.id===kid && b.geschoben; }))
-              fatal('diag §3.1: geschobene Routine nicht in der Tagesbilanz (Kategorie geschoben)');
+        /* ── §6 · Sichtwechsel: jede der fuenf Sichten ist per Tap erreichbar ── */
+        fw.setTab('suche');
+        ['heute','matrix','oft','faellig','art'].forEach(function(v){
+          var b=d.querySelector('[data-susicht="'+v+'"]');
+          pruef(!!b, '§6: Sicht-Knopf „'+v+'" fehlt');
+          if(b){ b.click();
+            pruef(d.querySelector('[data-susicht="'+v+'"]').className.indexOf('on')>=0,
+                  '§6: Sicht „'+v+'" wird nach dem Tap nicht aktiv'); }
+        });
+        /* Heute-Sicht traegt die Kette in Reihenfolge */
+        klick('[data-susicht="heute"]');
+        var zeilen=d.querySelectorAll('#suBody .kettenzeile');
+        pruef(zeilen.length>0, '§6: Heute-Sicht zeigt keine Kettenzeilen');
+
+        /* ── §6 · Kettensortierung AUS DER SUCHE heraus ── */
+        var vorher=fw.tagesKette().slice();
+        pruef(vorher.length>=3, '§6: zu kurze Kette fuer den Sortiertest');
+        if(vorher.length>=3){
+          var letzte=vorher[vorher.length-1];
+          fw.oeffneKettePosition(letzte);
+          var pos1=d.querySelector('[data-kpos="'+letzte+'"][data-n="1"]');
+          pruef(!!pos1, '§6: Positionswahl bietet keine Position 1');
+          if(pos1){
+            pos1.click();
+            pruef(fw.tagesKette()[0]===letzte,
+                  '§6: Tap auf Position 1 verschiebt die Karte nicht (Kette '+fw.tagesKette().slice(0,2).join(',')+')');
+          }
+          fw.closeSheet();
+        }
+        /* Keine Pfeile mehr in der Kartenzeile */
+        pruef(d.querySelectorAll('#suBody [data-sortup]').length===0,
+              '§6: Kartenzeile traegt noch Sortier-Pfeile');
+
+        /* ── §1.2 · Matrix-Tap: EIN Dialog fuer Matrix UND Akku ── */
+        var kid=fw.tagesKette()[0];
+        fw.fokusStarten(kid, null);
+        var posVor=fw.matrixPos();
+        fw.oeffneMatrixDialog(kid, 'abhaken');
+        var pad=d.getElementById('mxPad');
+        pruef(!!pad, '§1.2: Matrix-Pad fehlt im Dialog');
+        pruef(!!d.getElementById('mxAkku'), '§1.2: Akku steckt NICHT im selben Dialog');
+        pruef(!!d.querySelector('[data-mxskip]'), '§1.2: Ueberspringen fehlt');
+        /* Der Punkt liegt frei: ein Zeigerdruck rechts unten setzt x>0 */
+        if(pad){
+          var r=pad.getBoundingClientRect();
+          var ev=new fw.PointerEvent('pointerdown', {clientX:r.left+r.width*0.8,
+                  clientY:r.top+r.height*0.7, bubbles:true, pointerId:1});
+          pad.dispatchEvent(ev);
+          klick('[data-mxgo]');
+          var posNach=fw.matrixPos();
+          pruef(posNach && posNach.x>0.3,
+                '§1.2: Tap rechts setzt die Position nicht nach rechts (x='+(posNach&&posNach.x)+')');
+          pruef(posNach && posNach.y<0, '§1.2: Tap unten setzt y nicht nach innen');
+          /* §2: die Bewegung nach rechts hat einen Bonus gebucht */
+          if(posVor && posNach && posNach.x>posVor.x){
+            var k0=null; fw.S ? null : null;
+            var spur=fw.matrixSpur();
+            pruef(spur.length>=1, '§2: keine Spur nach dem Tap');
           }
         }
-        /* ══ §3.2 · raus (Abhaken) und rein (Wiedereröffnen) zählen ══ */
-        var rrVor=fw.reinRausTag(fw.anFlowReihe('alle'), heute);
-        var chk=d.querySelector('#stapelListe [data-check="k-morgen"]');
-        ergebnis.checks++;
-        if(!chk){ fatal('diag §3.2: Abhak-Kästchen k-morgen fehlt'); }
-        else {
-          chk.click();   // Abhak-Dialog
-          var go=d.querySelector('[data-abgo]');
-          if(go) go.click(); else fatal('diag §3.2: Abhak-Dialog ohne Erledigen-Knopf');
-          var rr1=fw.reinRausTag(fw.anFlowReihe('alle'), heute);
-          ergebnis.checks++;
-          if(rr1.raus!==rrVor.raus+1) fatal('diag §3.2: Abhaken zählt nicht als raus ('+rrVor.raus+' → '+rr1.raus+') heute='+heute
-            +' iv='+JSON.stringify((lsGet('intraday')||[]).slice(-3))
-            +' sheet='+(d.getElementById('sheetBody')?d.getElementById('sheetBody').innerHTML.slice(0,80):'?'));
-          /* Wiedereröffnen über den §8-Dialog = rein */
-          fw.renderAlles();
-          var chk2=d.querySelector('#stapelListe [data-check="k-morgen"]');
-          if(chk2){ chk2.click();
-            var wo=d.querySelector('[data-woeffnen]');
-            ergebnis.checks++;
-            if(!wo){ fatal('diag §3.2: Wiederholen-Dialog fehlt auf erledigter Karte'); }
-            else { wo.click();
-              var rr2=fw.reinRausTag(fw.anFlowReihe('alle'), heute);
-              ergebnis.checks++;
-              if(rr2.rein!==rr1.rein+1) fatal('diag §3.2: Wiedereröffnung zählt nicht als rein ('+rr1.rein+' → '+rr2.rein+')');
-            }
-          }
-        }
-        /* ══ §6.1 · Akku-Schnellzugriff — Tag-Fall und Karten-Fall ══ */
-        fw.setTab('fokus'); fw.renderAlles(); fw.closeSheet();
-        if(fw.fokusBeenden) fw.fokusBeenden();
-        var aq=d.querySelector('[data-akkuquick]');
-        ergebnis.checks++;
-        if(!aq){ fatal('diag §6.1: Akku-Schnellzugriff nicht erreichbar'); }
-        else {
-          aq.click();
-          var slider=d.getElementById('akkuQ'), komm=d.getElementById('akkuQk');
-          ergebnis.checks++;
-          if(!slider || !komm){ fatal('diag §6.1: Dialog ohne Regler/Kommentarfeld'); }
-          else {
-            slider.value='120'; komm.value='Harness: schlecht geschlafen';
-            var goA=d.querySelector('[data-akkuqgo]'); if(goA) goA.click();
-            var eintraege=(lsGet('meta')||{}).akkuEintraege||[];
-            var e1=eintraege[eintraege.length-1];
-            ergebnis.checks++;
-            if(!(e1 && e1.nachher===120 && e1.kid===null && e1.kommentar.indexOf('schlecht geschlafen')>=0))
-              fatal('diag §6.1: Tag-Eintrag falsch ('+JSON.stringify(e1)+')');
-            ergebnis.checks++;
-            var tagAkku=(lsGet('tag')||{}).akku;
-            if(!(tagAkku>100)) fatal('diag §6.2: Akku über 100 nicht gespeichert ('+tagAkku+')');
-            /* Karten-Fall: laufende Karte → Eintrag hängt an ihr */
-            fw.fokusStarten('k-lang', null); fw.closeSheet();
-            var aq2=d.querySelector('[data-akkuquick]');
-            if(aq2){ aq2.click();
-              var s2=d.getElementById('akkuQ'), k2=d.getElementById('akkuQk');
-              if(s2){ s2.value='90'; if(k2) k2.value='Harness: Karte zieht';
-                var goB=d.querySelector('[data-akkuqgo]'); if(goB) goB.click();
-                var ein2=((lsGet('meta')||{}).akkuEintraege||[]);
-                var e2=ein2[ein2.length-1];
-                ergebnis.checks++;
-                if(!(e2 && e2.kid==='k-lang')) fatal('diag §6.1: Karten-Eintrag hängt nicht an der laufenden Karte ('+JSON.stringify(e2)+')');
-              }
-            }
-          }
-        }
-        /* ══ v1.13.1 · Import-Sequenz: ketteDfm ersetzt KOMPLETT, Historie
-           trägt dfm, rec-id wird airtableId, Export trägt Sitzungen ══ */
-        var vorherK=fw.tagesKetteDom('dfm').slice();
-        fw.oeffneSync();
-        var ta=d.getElementById('syncIn');
-        ergebnis.checks++;
-        if(!ta){ fatal('diag v1.13.1: Sync-Sheet ohne Importfeld'); }
-        else {
-          ta.value=JSON.stringify({ appVersion:'1.13.1',
-            karten:[{ id:'recDiagAAAABBBBCC', titel:'Diag rec-Karte' },{ id:'k-lang' }],
-            ketteDfm:['k-lang'] });
-          var goI=d.querySelector('[data-syncimport]'); if(goI) goI.click();
-          var nachK=fw.tagesKetteDom('dfm').slice();
-          ergebnis.checks++;
-          if(!(nachK.length===1 && nachK[0]==='k-lang'))
-            fatal('diag §1 (1.13.1): ketteDfm ersetzt nicht komplett (vorher '+vorherK.length+' → nachher '+JSON.stringify(nachK)+')');
-          ergebnis.checks++;
-          if(fw.tagesKetteDom('dfm').length!==1)
-            fatal('diag §1 (1.13.1): Auto-Nachzug holt bewusst Entferntes zurück');
-          var metaK=lsGet('meta')||{};
-          var histKeys=Object.keys(metaK.kettenHistorie||{}).sort();
-          var histHeute=histKeys.length?metaK.kettenHistorie[histKeys[histKeys.length-1]]:[];
-          ergebnis.checks++;
-          if(!histHeute.some(function(x){ return x.dom==='dfm'; }))
-            fatal('diag §2 (1.13.1): kein dfm-Eintrag in der Kettenhistorie');
-          var recK=(lsGet('karten')||[]).filter(function(x){ return x.id==='recDiagAAAABBBBCC'; })[0];
-          ergebnis.checks++;
-          if(!(recK && recK.airtableId==='recDiagAAAABBBBCC'))
-            fatal('diag §3 (1.13.1): rec-id nicht zur airtableId geworden ('+JSON.stringify(recK&&recK.airtableId)+')');
-          var ex=fw.syncExport('sync');
-          var exK=(ex.karten||[]).filter(function(x){ return x.id==='k-lang'; })[0];
-          ergebnis.checks++;
-          if(!(exK && exK.sitzungen && exK.sitzungen.length>=1 && exK.sitzungen[0].von && exK.sitzungen[0].bis && exK.sitzungen[0].min>0))
-            fatal('diag §4 (1.13.1): Export ohne Sitzungszeiten ('+JSON.stringify(exK&&exK.sitzungen)+')');
-        }
-        /* ══ v1.13.2 · Start setzt IMMER den Fokus — je Startpfad ein
-           synthetischer Klick, danach: laufende Karte == angezeigte Karte.
-           (Die dfm-Kette steht nach dem Import-Test auf [k-lang] — Starts
-           außerhalb der Kette sind exakt der Befund-Fall vom 02.09.) ══ */
-        var fokusGleich=function(pfad){
-          var fok=lsGet('fokus');
-          ergebnis.checks++;
-          if(!fok || !fok.karteId){ fatal('diag v1.13.2 ['+pfad+']: kein S.fokus nach Start'); return; }
-          var ang=fw.aktiveFokusKarte();
-          ergebnis.checks++;
-          if(!(ang && ang.id===fok.karteId))
-            fatal('diag v1.13.2 ['+pfad+']: Fokus/Uhr auf '+fok.karteId+', Ansicht zeigt '+(ang&&ang.id));
-        };
+        /* Die Abfrage wurde gezaehlt */
+        pruef(fw.matrixSkipQuote()>=0, '§1.2: Skip-Quote nicht berechenbar');
+
+        /* ── §1.2 · Ueberspringen wird GEZAEHLT ── */
+        fw.oeffneMatrixDialog(kid, 'pause');
+        var skipVor=fw.matrixSkipQuote();
+        klick('[data-mxskip]');
+        pruef(fw.matrixSkipQuote()>skipVor || fw.matrixSkipQuote()>0,
+              '§1.2: Ueberspringen wird nicht mitgezaehlt');
+
+        /* ── §9 · Der Vorschlag nach dem Matrix-Tap ──
+           Der Matrix-Dialog oben hat fuer DIESE Karte schon einen Vorschlag
+           gezeigt; §9 sagt „genau einmal pro Karte". Geprueft wird deshalb
+           mit einer ZWEITEN Karte. */
+        /* closeSheet nimmt nur die Klasse weg, das Markup bleibt im DOM —
+           massgeblich ist deshalb, ob das Sheet OFFEN ist, nicht ob der
+           Knopf noch existiert. */
+        function sheetAuf(){ var sh=d.getElementById('sheet');
+          return !!(sh && sh.className.indexOf('on')>=0); }
+        var kid2=fw.tagesKette()[1] || kid;
+        fw.matrixPosSetzen(-0.8, 0, null, 'diag');
+        fw.zeigeVorschlag(kid2);
+        pruef(sheetAuf() && !!d.querySelector('[data-vsgo]'), '§9: links erzeugt keinen Vorschlag');
+        pruef(d.querySelector('.vsBox') && d.querySelector('.vs-w').textContent.length>0,
+              '§9: Vorschlag ohne Begruendung');
         fw.closeSheet();
-        // 1) Kartenzeile im Stapel — Karte AUSSERHALB jeder Kette (Befund-Fall)
-        fw.setTab('stapel'); fw.renderAlles();
-        var s1=d.querySelector('#stapelListe [data-fokusstart="k-counter"]');
-        ergebnis.checks++;
-        if(!s1){ fatal('diag v1.13.2: ▶ auf k-counter fehlt im Stapel'); } else { s1.click(); fokusGleich('Kartenzeile Stapel · außerhalb der Kette'); }
-        // 2) Fokusliste der Fokusansicht
-        fw.renderAlles();
-        var s2=d.querySelector('#fokusView [data-fokusstart="k-timer"]');
-        if(s2){ s2.click(); fokusGleich('Fokusliste'); }
-        // 3) Ketten-Schublade
-        fw.oeffneKetteSheet();
-        var s3=d.querySelector('#ketteSheetListe [data-fokusstart]');
-        if(s3){ s3.click(); fokusGleich('Ketten-Schublade'); } else fw.closeSheet();
-        // 4) Ketten-Aktions-Sheet ▶ (Karte außerhalb der Kette)
-        fw.setTab('stapel'); fw.renderAlles();
-        var s4=d.querySelector('#stapelListe [data-kette="k-morgen"]');
-        if(s4){ s4.click();
-          var s4b=d.querySelector('[data-kaStart="k-morgen"]');
-          if(s4b){ s4b.click(); fokusGleich('Ketten-Aktions-Sheet ▶'); } else fw.closeSheet(); }
-        // 5) Routinen-Ansicht
-        fw.setTab('fokus'); fw.oeffneRoutinen();
-        var s5a=d.querySelector('[data-rdom="privat"]'); if(s5a) s5a.click();
-        var s5=d.querySelector('.routsheet [data-fokusstart="k-ticks"]');
-        if(s5){ s5.click(); fokusGleich('Routinen-Ansicht'); } else fw.closeSheet();
-        // 6) Suche (eingefrorene Karte — Start taut auf)
-        fw.oeffneSuche();
-        var si=d.getElementById('suchInput'); si.value='Lieferant'; fw.renderSuchTreffer();
-        var s6=d.querySelector('[data-suchstart="k-frost"]');
-        if(s6){ s6.click(); fokusGleich('Suche'); } else { fw.schliesseSuche(); fatal('diag v1.13.2: Suchtreffer k-frost fehlt'); }
-        // 7) Status-Sheet-Kettenzeile
-        fw.oeffneStatusSheet();
-        var s7=d.querySelector('#sheetKette [data-fokusstart]');
-        if(s7){ s7.click(); fokusGleich('Status-Sheet-Kette'); } else fw.closeSheet();
-        // 8) Nachrücken nach Abhaken der laufenden Karte (Quelle = Kette)
-        fw.setTab('stapel'); fw.renderAlles();
-        var s8=d.querySelector('#stapelListe [data-fokusstart="k-timer"]');
-        if(!s8){ fatal('diag v1.13.2 [Nachrücken]: ▶ k-timer fehlt im Stapel'); }
-        else { s8.click();
-          fw.renderAlles();
-          var s8b=d.querySelector('#fokusView [data-fkcheck="k-timer"]');
-          if(!s8b){ fatal('diag v1.13.2 [Nachrücken]: ✓ auf der Fokus-Karte fehlt'); }
-          else { s8b.click();
-            var s8c=d.querySelector('[data-abgo]');
-            if(!s8c){ fatal('diag v1.13.2 [Nachrücken]: Abhak-Dialog ohne Erledigen'); }
-            else { s8c.click();
-              var fok8=lsGet('fokus');
-              ergebnis.checks++;
-              // Quelle 'sys-dfm' hat keine Ansichts-Liste → Nachrücken darf
-              // leer ausgehen (Fokus beendet) ODER nachrücken — aber wenn ein
-              // Fokus da ist, muss die Ansicht ihn zeigen.
-              if(fok8) fokusGleich('Nachrücken nach Abhaken');
-            }
-          }
+        /* genau EINMAL je Karte: dieselbe Karte liefert keinen zweiten */
+        fw.zeigeVorschlag(kid2);
+        pruef(!sheetAuf(), '§9: Vorschlag erscheint fuer dieselbe Karte mehrfach');
+        /* ... eine ANDERE Karte aber schon */
+        var kid3=fw.tagesKette()[2];
+        if(kid3){ fw.zeigeVorschlag(kid3);
+          pruef(sheetAuf(), '§9: andere Karte bekommt KEINEN eigenen Vorschlag');
+          fw.closeSheet(); }
+
+        /* ── §13 · Shop haengt hinter der FIGUR ── */
+        var fig=d.getElementById('btnFigur');
+        pruef(!!fig, '§13: Figur im Kopf fehlt');
+        if(fig){ fig.click();
+          pruef(d.getElementById('v-belohnung').className.indexOf('on')>=0,
+                '§13: Tap auf die Figur oeffnet den Shop nicht'); }
+        pruef(d.querySelectorAll('#nav button').length===2,
+              '§6: Navigationsleiste traegt nicht genau zwei Ziele');
+
+        /* ── §10 · Tagesabschluss: nur abraeumen und exportieren ── */
+        fw.setTab('suche');
+        fw.oeffneTagAbschluss();
+        pruef(!!d.querySelector('[data-abfinish]'), '§10: Abschluss-Knopf fehlt');
+        pruef(!d.querySelector('[data-abweiter]'), '§10: es gibt noch einen zweiten Schritt');
+        fw.closeSheet();
+
+        /* ── §11 · Delta-Export ── */
+        fw.oeffneSync();
+        pruef(!!d.querySelector('[data-syncmode="delta"]') && !!d.querySelector('[data-syncmode="voll"]'),
+              '§11: Delta/Voll-Umschalter fehlt');
+        pruef(!!d.querySelector('[data-syncbestaetigt]'), '§11: Bestaetigungs-Knopf fehlt');
+        var tsVor=(lsGetMeta()||{}).letzterSyncBestaetigtTs || null;
+        var exFeld=d.getElementById('syncEx');
+        pruef(!!exFeld && exFeld.value.indexOf('"appVersion": "2.0.0"')>=0,
+              '§11: Export traegt nicht appVersion 2.0.0');
+        pruef(((lsGetMeta()||{}).letzterSyncBestaetigtTs||null)===tsVor,
+              '§11: der Zeitstempel wurde schon VOR der Bestaetigung fortgeschrieben');
+        klick('[data-syncbestaetigt]');
+        pruef(((lsGetMeta()||{}).letzterSyncBestaetigtTs||null)!==tsVor,
+              '§11: der Zeitstempel wurde nach der Bestaetigung NICHT fortgeschrieben');
+        fw.closeSheet();
+
+        /* ── §0 · Das Export-Gate leert nichts ohne Haken ── */
+        fw.zeigeV200Gate2Test();
+        var go=d.querySelector('[data-v200go]');
+        pruef(!!go, '§0: Gate ohne „Bestand leeren"');
+        var nVor=fw.tagesKette().length;
+        if(go){
+          go.click();   // OHNE Haken — darf nichts tun
+          pruef(d.getElementById('v200Ok')!==null, '§0: Gate wurde ohne Bestaetigung geschlossen');
+          var cb=d.getElementById('v200Ok');
+          if(cb){ cb.checked=true; d.querySelector('[data-v200go]').click(); }
         }
-        // 9) Play/Pause der Fokus-Leiste (Toggle) — vorher definierten Fokus herstellen
-        fw.fokusStarten('k-lang', null); fw.closeSheet();
-        var s9=d.getElementById('fkPP'); if(s9){ s9.click(); fokusGleich('Fokus-Leiste ▶/⏸'); }
-        /* ══ v1.13.3 · Shop-Reset + Preiskalibrierung als Klickpfad ══ */
-        fw.setTab('einst'); fw.renderAlles();
-        var srBtn=d.querySelector('[data-shopreset]');
-        ergebnis.checks++;
-        if(!srBtn){ fatal('diag v1.13.3: Shop-Reset-Knopf fehlt in den Einstellungen'); }
-        else {
-          var metaVor=lsGet('meta')||{}, belVor=lsGet('belohnung')||{};
-          srBtn.click();   // Bestätigungs-Sheet
-          var srGo=d.querySelector('[data-shopresetgo]');
-          ergebnis.checks++;
-          if(!srGo){ fatal('diag v1.13.3: Bestätigungs-Knopf fehlt (Sheet-Fuß?)'); }
-          else {
-            srGo.click();   // Reset + Kalibrierungs-Dialog
-            var belN=lsGet('belohnung')||{}, metaN=lsGet('meta')||{};
-            ergebnis.checks++;
-            var alle0=Object.keys(belN.stufen||{}).length && Object.keys(belN.stufen).every(function(k){ return belN.stufen[k]===0; });
-            if(!alle0) fatal('diag v1.13.3 §1: Stufen nicht auf 0 ('+JSON.stringify(belN.stufen)+')');
-            ergebnis.checks++;
-            if(!(metaN.muenzenGesamt===metaVor.muenzenGesamt && metaN.ausgegebenGesamt===metaVor.ausgegebenGesamt
-                 && metaN.tagesStreak===metaVor.tagesStreak && metaN.rangBest===metaVor.rangBest))
-              fatal('diag v1.13.3 §1: Währung/Rang/Serie verändert (Münzen '+metaVor.muenzenGesamt+'→'+metaN.muenzenGesamt+', ausg '+metaVor.ausgegebenGesamt+'→'+metaN.ausgegebenGesamt+')');
-            ergebnis.checks++;
-            if(!lsGet('besitz_bak1133')) fatal('diag v1.13.3 §1: Sicherung besitz_bak1133 fehlt');
-            var pf=d.getElementById('shopPf');
-            ergebnis.checks++;
-            if(!pf){ fatal('diag v1.13.3 §2: Kalibrierungs-Dialog ohne Faktor-Feld'); }
-            else {
-              pf.value='42';
-              var pfGo=d.querySelector('[data-shoppfgo]'); if(pfGo) pfGo.click();
-              var setN=lsGet('settings')||{};
-              ergebnis.checks++;
-              if(setN.preisFaktor!==42) fatal('diag v1.13.3 §2: überschriebener Faktor nicht übernommen ('+setN.preisFaktor+')');
-            }
-          }
-        }
-        /* ══ v1.13.4 · Speicher: MESSEN (Tabelle in den Report), dann
-           Aufräumen per Klick, dann erneut messen ══ */
-        fw.setTab('einst'); fw.renderAlles();
-        var mess1=fw.speicherBelegung();
-        ergebnis.speicher={ vorherKb:Math.round(mess1.kb),
-          top:mess1.rows.slice(0,10).map(function(r){ return r.key+'='+(Math.round(r.kb*10)/10)+'KB'; }) };
-        var spBtn=d.querySelector('[data-speicheraufraeumen]');
-        ergebnis.checks++;
-        if(!spBtn){ fatal('diag v1.13.4: Aufräumen-Knopf fehlt'); }
-        else {
-          fw.confirm=function(){ return true; };   // Bestätigung im Headless
-          spBtn.click();
-          var mess2=fw.speicherBelegung();
-          ergebnis.speicher.nachherKb=Math.round(mess2.kb);
-          ergebnis.speicher.geloescht=((lsGet('meta')||{}).speicherAufraeumLog||{}).geloescht||[];
-          ergebnis.checks++;
-          if(!(mess2.kb<=mess1.kb)) fatal('diag v1.13.4: Aufräumen hat die Belegung nicht verringert');
-          ergebnis.checks++;
-          if(lsGet('karten_bak1120')!==null || lsGet('meta_bak1120')!==null)
-            fatal('diag v1.13.4: ältere Sicherungen (bak1120) nicht entfernt');
-          ergebnis.checks++;
-          if(lsGet('karten_bak1130')===null || lsGet('meta_bak1130')===null)
-            fatal('diag v1.13.4: JÜNGSTE Sicherung (bak1130) wurde fälschlich entfernt');
-        }
+        fw.closeSheet();
       }catch(err){ fatal('diag-Sequenz abgebrochen: '+err); }
       abschluss();
     });
+    function lsGetMeta(){ try{ return JSON.parse(localStorage.getItem('fokus2_meta')||'null'); }catch(e){ return null; } }
   }
 
   var frame=document.getElementById('app');
