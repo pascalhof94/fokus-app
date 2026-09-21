@@ -9,6 +9,10 @@ function frisch(){
   _store={}; S.karten=[]; S.unteraufgaben=[]; S.historie=[]; S.intraday=[];
   S.meta={ wohlstand:0, seeded:true, migration200:true }; S.settings=settingsMerge({});
   S.tag=neuerTag(H(),1); S.tag.akku=70; S.fokus=null; S.meta.ketten=null;
+  /* Einen offenen Matrix-Dialog aus dem vorherigen Block wegraeumen: der
+     Ueberschreib-Schutz in matrixAbfrageNach wuerde sonst die naechste
+     Abfrage blocken — korrektes Verhalten, aber verschlepptes Fixture. */
+  matrixTmp=null; S.ui.fokusOffen=false;
 }
 
 /* ══ §0 · Sicherung ══════════════════════════════════════════════════ */
@@ -28,15 +32,48 @@ ok('1 Leerung steht noch AUS (kein Loeschen ohne bestaetigten Export)',
 ok('1 Der Vollexport wird aus der SICHERUNG gebaut (Vertrag 1.6, Alt-Felder)',
    (function(){ var v=vollexport16AusSicherung();
      return v.appVersion==='1.13.4' && v.karten[0].prioritaet==='muss' && v.karten[0].komplex===1.5; })());
-/* Erst nach bestaetigtem Export darf geleert werden. */
+/* ══ §3 (v2.0.1) · WAS „DIE TAGESKETTE" BEIM LEEREN HEISST ═══════════
+   v2.0.0 behielt alles aus tagesKette() — und die fuellt sich AUTOMATISCH
+   aus jeder offenen Karte mit Faelligkeit heute oder frueher. Auf einem
+   gelebten Bestand blieb damit fast alles stehen; das ist die Ursache der
+   ausgebliebenen Leerung. Massgeblich ist jetzt die Kette, die BEIM UMBAU
+   vorlag (= was Claude geschickt hat). */
+ok('§3 Der Schnappschuss der Kette wurde bei der Migration genommen',
+   Array.isArray(S.meta.v200KetteBeiMigration));
 S.karten.push(neueKarte({id:'lose', domain:'dfm', titel:'Nicht in der Kette'}));
 S.karten.push(neueKarte({id:'rout', domain:'privat', titel:'Routine', rhythmus:{typ:'taeglich'}}));
-ketteSetzen(['alt1']);
+S.karten.push(neueKarte({id:'faellig', domain:'dfm', titel:'Ueberfaellig', faelligkeit:'2020-01-01'}));
+/* Die Auto-Kette adoptiert alles Ueberfaellige — GENAU das darf nicht mehr
+   vor dem Abraeumen schuetzen. */
+ok('§3 BELEG: die Auto-Kette adoptiert die ueberfaellige Karte',
+   tagesKette().indexOf('faellig')>=0);
 var vorLeerung=S.karten.length;
 v200LeerungAusfuehren();
-ok('1 Leerung behaelt Kette + Routinen, raeumt den Rest ab ('+vorLeerung+' → '+S.karten.length+')',
-   S.karten.length===2 && S.karten.some(function(k){return k.id==='alt1';}) && S.karten.some(function(k){return k.id==='rout';}));
+ok('§3 BELEG: sie wird trotzdem abgeraeumt ('+vorLeerung+' → '+S.karten.length+')',
+   !S.karten.some(function(k){return k.id==='faellig';}));
+ok('1 Routinen bleiben immer', S.karten.some(function(k){return k.id==='rout';}));
+ok('1 Was NICHT in der Migrations-Kette lag, geht weg',
+   !S.karten.some(function(k){return k.id==='lose';}));
 ok('1 Danach ist das Gate zu', S.meta.v200LeerungOffen===false);
+/* Mit einer beim Umbau gesetzten Kette bleibt genau diese erhalten. */
+(function(){
+  _store={}; S.karten=[]; S.unteraufgaben=[];
+  /* migration1120 ueberschreibt meta.ketten mit der ZWEI-Ketten-Form. Auf
+     jedem lebenden Bestand ist sie laengst gelaufen — ohne ihr Flag prueft
+     der Test den falschen Pfad (dieselbe Falle wie bei den Zielen). */
+  S.meta={ migration1120:true, migration1130:true,
+           ketten:{ alle:{ datum:'2026-09-20', ids:['k-claude'], entfernt:[] } } };
+  S.karten=[ neueKarte({id:'k-claude', domain:'dfm', titel:'Von Claude geplant'}),
+             neueKarte({id:'k-alt', domain:'dfm', titel:'Altlast', faelligkeit:'2020-01-01'}) ];
+  DB.set('karten', S.karten); DB.set('meta', S.meta);
+  ladeAlles();
+  ok('§3 Die beim Umbau vorliegende Kette wird festgehalten (1 Eintrag)',
+     (S.meta.v200KetteBeiMigration||[]).length===1);
+  v200LeerungAusfuehren();
+  ok('§3 BELEG: Claudes Kette bleibt, die Altlast geht',
+     S.karten.some(function(k){return k.id==='k-claude';}) &&
+     !S.karten.some(function(k){return k.id==='k-alt';}));
+})();
 
 /* ══ §1 · Matrix ══════════════════════════════════════════════════════ */
 kopf('§1 Matrix (Abnahme 2-4)');
@@ -345,7 +382,7 @@ frisch();
 S.karten=[ neueKarte({id:'v1', domain:'dfm', titel:'V1', geplantFuer:H(), matrixFeld:'werkzeug'}) ];
 ketteSetzen(['v1']); matrixPosSetzen(0.3,-0.2,null,'t');
 var ex=syncExport('delta');
-ok('26 Vertrag 2.0: appVersion 2.0.0', ex.appVersion==='2.0.0' && VERSION==='2.0.0');
+ok('26 Vertrag 2.0: appVersion 2.0.x', /^2\.0\./.test(ex.appVersion) && /^2\.0\./.test(VERSION));
 ok('26 Vertrag 2.0: EINE kette statt zweier',
    Array.isArray(ex.kette) && ex.ketteDfm===undefined && ex.kettePrivat===undefined);
 ok('26 Vertrag 2.0: matrixFeld je Karte', ex.karten[0].matrixFeld==='werkzeug');
@@ -413,8 +450,116 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.0.0 · Build gesetzt', VERSION==='2.0.0' && UI_VERSION==='v2.0.0' &&
-   APP_BUILD==='2026-09-21-1');
+ok('31 APP_VERSION 2.0.1 · Build gesetzt', VERSION==='2.0.1' && UI_VERSION==='v2.0.1' &&
+   APP_BUILD==='2026-09-21-2');
+
+
+/* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
+kopf('v2.0.1 §1 · Fokus und Suche entkoppelt');
+frisch();
+S.karten=[ neueKarte({id:'A', domain:'dfm', titel:'Karte A', sollMin:60, matrixFeld:'ziel', geplantFuer:H()}),
+           neueKarte({id:'B', domain:'dfm', titel:'Karte B', sollMin:30, matrixFeld:'ziel', geplantFuer:H()}) ];
+ketteSetzen(['A','B']);
+ok('§1 Ohne Karte ist die Fokusansicht zu', !fokusAnsichtOffen());
+fokusStarten('A');
+ok('§1 Starten oeffnet die Ansicht', fokusAnsichtOffen()===true);
+ok('§1 ... und die Uhr laeuft', S.fokus.laeuft===true && S.fokus.karteId==='A');
+/* Wegschieben darf die Uhr NICHT anfassen */
+var startVor=S.fokus.startMs, istVor=num(S.karten[0].istSek);
+fokusAnsichtSchliessen();
+ok('§1 BELEG Wegschieben: Ansicht zu, Uhr laeuft weiter',
+   !fokusAnsichtOffen() && S.fokus.laeuft===true && S.fokus.karteId==='A');
+ok('§1 BELEG: startMs unveraendert ('+startVor+')', S.fokus.startMs===startVor);
+ok('§1 BELEG: nichts wurde vorzeitig gebucht', num(S.karten[0].istSek)===istVor);
+ok('§1 Die Karte ist weiter die laufende (Leiste zeigt sie)', !!fokusKarte() && fokusKarte().id==='A');
+fokusAnsichtZeigen();
+ok('§1 Tippen auf die Leiste holt sie zurueck', fokusAnsichtOffen()===true);
+ok('§1 ... ohne die Uhr anzufassen', S.fokus.startMs===startVor && S.fokus.laeuft===true);
+/* Der Zustand „welche Karte laeuft" und „welche Ansicht" sind getrennt */
+fokusAnsichtSchliessen();
+ok('§1 Zwei Zustaende, nie gekoppelt: laeuft='+S.fokus.laeuft+' offen='+fokusAnsichtOffen(),
+   S.fokus.laeuft===true && fokusAnsichtOffen()===false);
+/* Pausieren darf die Ansicht NICHT schliessen (und umgekehrt) */
+fokusAnsichtZeigen(); fokusToggle();
+ok('§1 Pausieren schliesst die Ansicht nicht', fokusAnsichtOffen()===true && S.fokus.laeuft===false);
+
+/* ══ v2.0.1 · §2 FOKUSKARTE AUSTAUSCHEN ═════════════════════════════ */
+kopf('v2.0.1 §2 · Kartenwechsel');
+frisch();
+S.karten=[ neueKarte({id:'A', domain:'dfm', titel:'Karte A', sollMin:60, matrixFeld:'ziel', geplantFuer:H()}),
+           neueKarte({id:'B', domain:'dfm', titel:'Karte B', sollMin:30, matrixFeld:'ziel', geplantFuer:H()}) ];
+ketteSetzen(['A','B']);
+matrixPosSetzen(-0.5, 0, null, 'start');
+fokusStarten('A');
+/* 12 Minuten auf A arbeiten */
+S.fokus.startMs = Date.now() - 12*60*1000;
+var istA_vor=num(S.karten[0].istSek);
+fokusStarten('B');
+var istA_nach=num(S.karten.find(function(k){return k.id==='A';}).istSek);
+ok('§2 BELEG: Zeit der alten Karte gebucht ('+Math.round(istA_vor/60)+'′ → '+
+   Math.round(istA_nach/60)+'′)', Math.abs(istA_nach-istA_vor-720)<5);
+ok('§2 Die neue Karte laeuft', S.fokus.karteId==='B' && S.fokus.laeuft===true);
+ok('§2 Die alte Uhr steht', istSekLive(S.karten.find(function(k){return k.id==='A';}))===istA_nach);
+ok('§2 BELEG: der Matrix-Dialog kam fuer die VERLASSENE Karte',
+   !!matrixTmp && matrixTmp.kid==='A' && matrixTmp.anlass==='wechsel');
+ok('§2 Die Ansicht zeigt jetzt die neue Karte', fokusAnsichtOffen()===true);
+/* Dialog beantworten → Bewegungsbonus landet auf A, nicht auf B */
+matrixTmp.x=0.5; matrixTmp.y=0; matrixDialogSpeichern();
+ok('§2 Der Bewegungsbonus wurde der VERLASSENEN Karte gutgeschrieben',
+   num(S.karten.find(function(k){return k.id==='A';}).bewegungsBonus)>0 &&
+   num(S.karten.find(function(k){return k.id==='B';}).bewegungsBonus)===0);
+
+/* ══ v2.0.1 · §4 DUBLETTEN ══════════════════════════════════════════ */
+kopf('v2.0.1 §4 · Dubletten zusammenfuehren');
+(function(){
+  _store={}; S.karten=[]; S.unteraufgaben=[];
+  var alt=[['r-post','recbC92MXk8wtmHZI'],['r-whatsapp','rechW26iOYGayvbG7'],
+    ['r-pausentimer','recWElw8lE4aYdxxO'],['r-meetingtimer','recIlKzvzwx7PmGsy'],
+    ['r-klein-dfm','recetMijqt9rJ0FBg'],['r-cold','recPvTBS9aJ6WzoDX'],
+    ['r-feierabend','rec5B62OpIaSUPFtk'],['linkedin-kommentare-0809','recrcoDMOICAdUJ6C'],
+    ['554b286d-11c9-480d-931f-b53e982ec049','rec8LbdbjOW1f5Uos']];
+  var ks=[];
+  alt.forEach(function(pp,i){
+    ks.push({ id:pp[0], domain:'dfm', titel:'Routine '+i, rhythmus:{typ:'taeglich'},
+      status:'offen', streak:20+i, airtableId:null, istSek:600, sollMin:10 });
+    ks.push({ id:pp[1], domain:'dfm', titel:'Routine '+i, rhythmus:{typ:'taeglich'},
+      status:'offen', streak:0, airtableId:pp[1], projekt:'Vertrieb', geldScore:50, istSek:0, sollMin:10 });
+  });
+  /* r-mails traegt die ID bereits und ist NICHT betroffen */
+  ks.push({ id:'r-mails', domain:'dfm', titel:'Mails', rhythmus:{typ:'taeglich'},
+    status:'offen', streak:33, airtableId:'reciAhR0Lb1YpZbaU', istSek:0, sollMin:10 });
+  DB.set('karten', ks);
+  DB.set('meta', { migration1120:true, migration1130:true, migration160:true, migration161:true,
+    migration180:true, zeit191:true, gamify190:true, rang1110:true, akku1100:true,
+    hotfix1131:true, flowfix152:true, flowfix181:true, stapelV4:true, stapelV6:true,
+    stapelV8:true, u3statusMigriert:true, u6migriert:true, panoramaReset151:true,
+    flowBaseline133:true, hotfix131:true, hotfix133:true, seeded:true });
+  DB.set('unteraufgaben', []);
+  ladeAlles();
+  var L=S.meta.dublettenFix201Log;
+  ok('§4 Genau neun Paare zusammengefuehrt', L && L.zusammengefuehrt.length===9);
+  ok('§4 Sicherung karten_bak201 liegt', Array.isArray(DB.get('karten_bak201',null)));
+  var post=S.karten.find(function(k){return k.id==='r-post';});
+  var dub =S.karten.find(function(k){return k.id==='recbC92MXk8wtmHZI';});
+  ok('§4 BELEG: die ALTE Karte bleibt und behaelt ihre Serie ('+num(post.streak)+')',
+     post && post.status==='offen' && num(post.streak)===20);
+  ok('§4 BELEG: sie hat die airtableId geerbt', post.airtableId==='recbC92MXk8wtmHZI');
+  ok('§4 BELEG: die NEUE ist archiviert, nicht geloescht',
+     dub && dub.status==='archiviert');
+  ok('§4 Die alte erbt Projekt/Geld aus der neuen', post.projekt==='Vertrieb' && num(post.geldScore)===50);
+  ok('§4 r-mails ist unberuehrt (trug die ID schon)', (function(){
+       var m2=S.karten.find(function(k){return k.id==='r-mails';});
+       return m2 && m2.status==='offen' && num(m2.streak)===33; })());
+  var offenMitRec=S.karten.filter(function(k){
+    return k.status!=='archiviert' && /^rec/.test(String(k.id)); }).length;
+  ok('§4 BELEG: keine offene Dublette mit rec-id mehr uebrig ('+offenMitRec+')', offenMitRec===0);
+  ok('§4 Migration ist geguarded (laeuft nicht erneut)', (function(){
+       var vor=S.karten.filter(function(k){return k.status==='archiviert';}).length;
+       ladeAlles();
+       return S.karten.filter(function(k){return k.status==='archiviert';}).length===vor; })());
+  ok('§4 Keine Titel-Heuristik: nur die neun IDs', L.zusammengefuehrt.every(function(x){
+       return alt.some(function(pp){ return pp[0]===x.alt.id && pp[1]===x.rec; }); }));
+})();
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

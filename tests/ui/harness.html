@@ -293,6 +293,65 @@
         pruef(d.querySelectorAll('#suBody [data-sortup]').length===0,
               '§6: Kartenzeile traegt noch Sortier-Pfeile');
 
+        /* ══ v2.0.1 §1 · SUCHE BLEIBT BEDIENBAR, WENN EINE KARTE LAEUFT ══
+           Der Live-Befund: der Fokus-Layer lag ueber der Suche und fing alle
+           Klicks ab — kein Weg zurueck. Hier wird genau das geprueft, und
+           zwar ueber echte Klicks, nicht ueber Zustaende. */
+        (function(){
+          var erste=fw.tagesKette()[0];
+          fw.fokusStarten(erste, null);
+          pruef(fw.fokusAnsichtOffen()===true, '§1: Starten oeffnet die Fokusansicht nicht');
+          var lay=d.getElementById('fokusLayer');
+          pruef(lay && !lay.hidden, '§1: Fokus-Layer ist nach dem Start nicht sichtbar');
+          /* Wegschieben ueber den echten Knopf */
+          var zu=d.querySelector('[data-fokuszu]');
+          pruef(!!zu, '§1: kein Weg-Knopf in der Fokusansicht');
+          if(zu) zu.click();
+          pruef(lay.hidden===true, '§1: Weg-Knopf schliesst den Layer nicht');
+          /* Die Uhr laeuft weiter — ueber die oeffentliche Fokus-Karte gepruef */
+          pruef(!!fw.fokusKarte() && fw.fokusKarte().id===erste,
+                '§1: nach dem Wegschieben ist keine Karte mehr die laufende');
+          /* JETZT muss die Suche bedienbar sein: alle fuenf Sichten + Freitext */
+          ['heute','matrix','oft','faellig','art'].forEach(function(v){
+            var b=d.querySelector('[data-susicht=\"'+v+'\"]');
+            pruef(!!b, '§1: Sicht „'+v+'" fehlt bei laufender Karte');
+            if(b){ b.click();
+              pruef(d.querySelector('[data-susicht=\"'+v+'\"]').className.indexOf('on')>=0,
+                    '§1: Sicht „'+v+'" nicht schaltbar, waehrend eine Karte laeuft'); }
+          });
+          var ff=d.getElementById('suFreitext');
+          pruef(!!ff, '§1: Freitextfeld fehlt bei laufender Karte');
+          if(ff){ ff.value='a'; ff.dispatchEvent(new fw.Event('input',{bubbles:true}));
+            pruef(d.getElementById('suBody').innerHTML.length>0,
+                  '§1: Freitext liefert nichts, waehrend eine Karte laeuft');
+            ff.value=''; ff.dispatchEvent(new fw.Event('input',{bubbles:true})); }
+          /* Eine Kartenzeile in der Suche muss anklickbar sein (kein Schleier) */
+          klick('[data-susicht=\"heute\"]');
+          var reihe=d.querySelector('#suBody [data-kette]');
+          pruef(!!reihe, '§1: keine Kartenzeile in der Suche erreichbar');
+          /* Zurueck ueber die Leiste */
+          var mid=d.getElementById('fkMid');
+          pruef(!!mid, '§1: Leiste fehlt');
+          if(mid) mid.click();
+          pruef(lay.hidden===false, '§1: Tippen auf die Leiste holt die Ansicht nicht zurueck');
+          pruef(!!fw.fokusKarte(), '§1: die Karte ging beim Zurueckholen verloren');
+          /* und wieder weg, damit die folgenden Pruefungen die Suche sehen */
+          var zu2=d.querySelector('[data-fokuszu]'); if(zu2) zu2.click();
+        })();
+        /* ══ v2.0.1 §2 · Kartenwechsel ══ */
+        (function(){
+          var kette=fw.tagesKette();
+          if(kette.length>=2){
+            fw.fokusStarten(kette[0], null);
+            var vorher=fw.fokusKarte().id;
+            fw.fokusStarten(kette[1], null);
+            pruef(fw.fokusKarte().id===kette[1], '§2: die neue Karte laeuft nicht');
+            pruef(fw.fokusKarte().id!==vorher, '§2: die Karte hat nicht gewechselt');
+            pruef(fw.fokusAnsichtOffen()===true, '§2: die Ansicht zeigt die neue Karte nicht');
+            fw.closeSheet();
+            var zu3=d.querySelector('[data-fokuszu]'); if(zu3) zu3.click();
+          }
+        })();
         /* ── §1.2 · Matrix-Tap: EIN Dialog fuer Matrix UND Akku ── */
         var kid=fw.tagesKette()[0];
         fw.fokusStarten(kid, null);
@@ -410,8 +469,8 @@
         pruef(!!d.querySelector('[data-syncbestaetigt]'), '§11: Bestaetigungs-Knopf fehlt');
         var tsVor=(lsGetMeta()||{}).letzterSyncBestaetigtTs || null;
         var exFeld=d.getElementById('syncEx');
-        pruef(!!exFeld && exFeld.value.indexOf('"appVersion": "2.0.0"')>=0,
-              '§11: Export traegt nicht appVersion 2.0.0');
+        pruef(!!exFeld && /"appVersion":\s*"2\.0\./.test(exFeld.value),
+              '§11: Export traegt keine 2.0.x-appVersion');
         pruef(((lsGetMeta()||{}).letzterSyncBestaetigtTs||null)===tsVor,
               '§11: der Zeitstempel wurde schon VOR der Bestaetigung fortgeschrieben');
         klick('[data-syncbestaetigt]');

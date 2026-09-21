@@ -164,6 +164,12 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
   z-index:200;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
 #fokusLayer[hidden]{display:none}
 .mx-tag{font-size:10px;opacity:.7}
+/* §1 (v2.0.1): Weg-Knopf der Fokusansicht — 44px, oben links in der Karte */
+.fk-zu{display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--li);
+  border-radius:999px;color:var(--fg);font:inherit;font-size:12px;padding:0 13px;min-height:40px;
+  margin:0 0 8px;opacity:.8}
+/* Die Leiste ist ein Tap-Ziel, sobald eine Karte gewaehlt ist */
+#topbar .mid{cursor:pointer}
 /* ── Views / Content ─────────────────────────────────────────────── */
 main{
   flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y;  /* U3: nur vertikal, kein seitliches Driften */
@@ -1267,9 +1273,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.0.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (Matrix, eine Kette, Delta-Export)
-const UI_VERSION = 'v2.0.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-21-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.0.1';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.0.1';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-21-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1670,6 +1676,19 @@ function ladeAlles(){
   S.routinenGruppen = DB.get('routinenGruppen', []);   // §3 (1.6.1): Routinen-Gruppen mit Komplett-Bonus
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
+  // §3 (v2.0.1): Die Kette GENAU SO, wie sie im Speicher lag — vor jeder
+  // Migration. Nötig, weil die alte migration160 selbst tagesKette() ruft
+  // und damit die Auto-Befüllung auslöst; ein Schnappschuss später im
+  // Ablauf wäre schon verfälscht. Reihenfolge-unabhängig ist hier die
+  // einzige verlässliche Stelle.
+  const _ketteRoh = (function(){
+    const kt=S.meta.ketten;
+    if(!kt) return [];
+    if(kt.alle && Array.isArray(kt.alle.ids)) return kt.alle.ids.slice();
+    const d=(kt.dfm && Array.isArray(kt.dfm.ids)) ? kt.dfm.ids : [];
+    const pv=(kt.privat && Array.isArray(kt.privat.ids)) ? kt.privat.ids : [];
+    return d.concat(pv);
+  })();
   S.ui       = Object.assign({ tab:'suche', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', analyseArt:'alle', debugTap:false }, DB.get('ui', {}));
   // U6-B: Erstell-Zeitstempel für Altkarten guarded nachrüsten (VOR der Härtung,
   // damit der Fallback greift statt der neueKarte-Default-Jetztzeit). Idempotent.
@@ -2147,6 +2166,17 @@ function ladeAlles(){
         entfernt:((S.meta.ketten.dfm&&S.meta.ketten.dfm.entfernt)||[]).concat((S.meta.ketten.privat&&S.meta.ketten.privat.entfernt)||[]) } };
       log.ketteZusammen=d.length+pv.length;
     }
+    // ══ §3 (v2.0.1) · WAS „DIE TAGESKETTE" BEIM LEEREN HEISST ═══════════
+    // v2.0.0 liess v200LeerungAusfuehren alles behalten, was in tagesKette()
+    // lag — und tagesKette() füllt sich AUTOMATISCH aus jeder offenen Karte
+    // mit Fälligkeit heute oder früher (ketteAutoIds). Auf einem gelebten
+    // Bestand ist das fast alles: im Nachbau blieben 78 von 120 Karten
+    // stehen. Die Leerung lief also, sie war nur wirkungslos.
+    // §5 meint aber „was Claude geschickt hat" — die zuletzt IMPORTIERTE
+    // Kette. Die wird hier festgehalten, solange sie noch unverfälscht ist:
+    // vor dem ersten tagesKette()-Aufruf des neuen Codes.
+    S.meta.v200KetteBeiMigration = _ketteRoh.slice();
+    log.ketteBeiMigration=S.meta.v200KetteBeiMigration.length;
     // §5-Leerung steht noch AUS — sie wartet auf den bestätigten Vollexport.
     S.meta.v200LeerungOffen=true;
     S.meta.migration200Log=log;
@@ -2190,6 +2220,64 @@ function ladeAlles(){
     } else log.we='eigener Wert '+num(S.settings.zielWePrivat)+' — unberührt';
     DB.set('settings', S.settings);
     S.meta.nachtrag200bLog=log; S.meta.nachtrag200b=true; saveMeta();
+  }
+  // ══════════════════════════════════════════════════════════════════════
+  //  §4 (v2.0.1) · DUBLETTEN AUS DEM ROUTINEN-IMPORT ZUSAMMENFÜHREN
+  //  Das 38er-Routinen-Paket trug die DFM-Routinen mit ihrer Airtable-ID als
+  //  `id`. Im Altbestand hatten dieselben Routinen KEINE airtableId — der
+  //  Import fand sie über keinen der beiden Anker und legte sie neu an.
+  //  Ergebnis: Paare.
+  //
+  //  Zusammengeführt wird nach der EXPLIZITEN Liste unten, nie über Titel:
+  //  eine Titel-Heuristik würde bei „Post" oder „Kleinkram DFM" zuverlässig
+  //  danebengreifen. Die ALTE Karte bleibt — sie trägt Serie, die IDs ihrer
+  //  Unteraufgaben und die Historie. Sie erbt die airtableId, die NEUE wird
+  //  archiviert (nie gelöscht, §8-No-delete).
+  // ══════════════════════════════════════════════════════════════════════
+  if(!S.meta.dublettenFix201){
+    const PAARE = [
+      ['r-post',                                 'recbC92MXk8wtmHZI'],
+      ['r-whatsapp',                             'rechW26iOYGayvbG7'],
+      ['r-pausentimer',                          'recWElw8lE4aYdxxO'],
+      ['r-meetingtimer',                         'recIlKzvzwx7PmGsy'],
+      ['r-klein-dfm',                            'recetMijqt9rJ0FBg'],
+      ['r-cold',                                 'recPvTBS9aJ6WzoDX'],
+      ['r-feierabend',                           'rec5B62OpIaSUPFtk'],
+      ['linkedin-kommentare-0809',               'recrcoDMOICAdUJ6C'],
+      ['554b286d-11c9-480d-931f-b53e982ec049',   'rec8LbdbjOW1f5Uos']
+    ];
+    const log={ ts:jetztIso(), zusammengefuehrt:[], nichtGefunden:[] };
+    let sicherungNoetig=false;
+    PAARE.forEach(([altId, recId])=>{
+      const alt=S.karten.find(k=>k.id===altId);
+      const neu=S.karten.find(k=>k.id===recId);
+      if(!alt || !neu){
+        log.nichtGefunden.push({ alt:altId, rec:recId, altDa:!!alt, neuDa:!!neu });
+        return;
+      }
+      if(!sicherungNoetig){ DB.set('karten_bak201', S.karten); sicherungNoetig=true; }
+      const vorher={ id:alt.id, titel:alt.titel, streak:num(alt.streak), airtableId:alt.airtableId||null };
+      alt.airtableId = neu.airtableId || recId;          // die Bindung wandert
+      // Was die NEUE aus Airtable mitbrachte und die alte nicht hat, erben —
+      // aber nie Serie, Ist-Zeit, Unteraufgaben oder Status der alten.
+      if(alt.projekt==null && neu.projekt!=null) alt.projekt=neu.projekt;
+      if(!num(alt.geldScore) && num(neu.geldScore)) alt.geldScore=num(neu.geldScore);
+      neu.status='archiviert';
+      neu.notiz=(neu.notiz?neu.notiz+' · ':'')+'Dublette aus dem 38er-Import, zusammengeführt mit '+altId+' (v2.0.1).';
+      beruehre(alt); beruehre(neu);
+      log.zusammengefuehrt.push({ alt:vorher, rec:recId, streakErhalten:num(alt.streak) });
+    });
+    // Die neun sind erledigt — die Ketten koennen die archivierten Dubletten
+    // nicht mehr tragen.
+    if(log.zusammengefuehrt.length && S.meta.ketten && S.meta.ketten.alle &&
+       Array.isArray(S.meta.ketten.alle.ids)){
+      const archiv=new Set(log.zusammengefuehrt.map(x=>x.rec));
+      S.meta.ketten.alle.ids=S.meta.ketten.alle.ids.filter(id=>!archiv.has(id));
+    }
+    S.meta.dublettenFix201Log=log;
+    S.meta.dublettenFix201=true;
+    if(log.zusammengefuehrt.length) saveKarten();
+    saveMeta();
   }
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
@@ -2502,6 +2590,7 @@ function fokusStarten(kid, quelle){
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
   fokusNavReset();           // U2: aktive Auswahl beendet die Swipe-Navigation
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
+  S.ui.fokusOffen=true;      // §1 (v2.0.1): Starten heisst „zeig sie mir"
   saveFokus(); saveUi(); if(S.fokus.laeuft) starteTicker(); renderAlles();
 }
 /* §3.1 (v1.10.0): Nach dem Abschluss der aktiven Fokus-Karte rückt die
@@ -2540,7 +2629,8 @@ function fokusToggle(){
   else { S.fokus.laeuft=true; S.fokus.startMs=Date.now(); saveFokus(); starteTicker(); }
   renderAlles();
 }
-function fokusBeenden(){ fokusZeitEinbuchen(); S.fokus=null; saveFokus(); }
+function fokusBeenden(){ fokusZeitEinbuchen(); S.fokus=null; S.ui.fokusOffen=false;
+  saveFokus(); saveUi(); }
 function saveFokus(){ DB.set('fokus', S.fokus); }
 /* ── Energie/Akku live (v1.1, v0.38-Port) ────────────────────────────
    Der Tag trägt einen einzigen Akku-Stand (%); Fokuszeit driftet ihn über
@@ -3697,7 +3787,9 @@ function renderFokus(){
   const planbar='<div class="tpbar"><div class="tpb-track"><i class="tpb-g" id="tpbG"></i><i class="tpb-y" id="tpbY"></i><i class="tpb-r" id="tpbR"></i>'+
     '<div class="tpb-marks" id="tpbMarks"></div></div><div class="tpb-info" id="tpbInfo"></div></div>';
   // Hotfix2: Titel ganz oben über der Zeit (voll, mehrzeilig, A2); unten nur Meta + Buttons.
-  const titel='<div class="fk-haupttitel" data-detail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</div>';
+  // §1 (v2.0.1): Weg-Knopf. Die Karte laeuft weiter — nur die Ansicht geht.
+  const zurueck='<button class="fk-zu" data-fokuszu="1" aria-label="Zur Suche">▾ Zur Suche</button>';
+  const titel=zurueck+'<div class="fk-haupttitel" data-detail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</div>';
   // §7 (v1.12.0): ERLEDIGTE Karte im Verlauf — ausgegraut, gebuchte Zeit und
   // Punkte direkt sichtbar, zwei Aktionen: Punkte anpassen · Wiederholen.
   // Nie automatisch neu erstellt, nie automatisch wieder geöffnet.
@@ -9087,16 +9179,39 @@ function setTab(tab){
   else renderSuche();
   fokusLayerPflegen();
 }
-/* §6: „Läuft eine Karte, liegt sie über der Suche" — und bleibt dort, bis sie
-   geschlossen wird (erledigt, pausiert oder geschoben). Der Layer ist bewusst
-   an den LAUF gekoppelt, nicht an eine Seite: er verschwindet in dem Moment,
-   in dem die Karte geschlossen wird, nicht beim Wegnavigieren. */
+/* ══════════════════════════════════════════════════════════════════════
+   §1 (v2.0.1) · ZWEI UNABHÄNGIGE EBENEN
+   v2.0.0 hatte die Sichtbarkeit der Fokusansicht an S.fokus.laeuft gekoppelt:
+   sobald eine Karte lief, lag der Layer über der Suche — ohne Weg zurück.
+   Suchfeld und Sicht-Chips waren unerreichbar, die Karten darunter wirkten
+   wie hinter einem Schleier (der Layer fing alle Klicks ab).
+
+   Ab 2.0.1 sind es ZWEI Zustände, die einander nie bedingen:
+     S.fokus            — WELCHE KARTE LÄUFT (Uhr, Buchung, Punkte)
+     S.ui.fokusOffen    — WELCHE ANSICHT IST SICHTBAR (reine Darstellung)
+   Wegschieben ändert nichts an der Uhr; die Karte läuft im Hintergrund
+   weiter und bleibt als Leiste oben sichtbar. Tippen auf die Leiste holt
+   die Ansicht zurück.
+   ══════════════════════════════════════════════════════════════════════ */
+function fokusAnsichtOffen(){ return !!(S.ui && S.ui.fokusOffen); }
+function fokusAnsichtZeigen(){
+  if(!S.fokus || !S.fokus.karteId) return;   // ohne Karte gibt es nichts zu zeigen
+  S.ui.fokusOffen=true; saveUi(); fokusLayerPflegen();
+}
+function fokusAnsichtSchliessen(){
+  S.ui.fokusOffen=false; saveUi(); fokusLayerPflegen();
+  // Die Uhr bleibt unangetastet — bewusst KEIN fokusZeitEinbuchen hier.
+  renderFokusleiste();
+}
 function fokusLayerPflegen(){
   const lay=el('fokusLayer'); if(!lay) return;
-  const laeuft = !!(S.fokus && S.fokus.karteId && S.fokus.laeuft);
-  lay.hidden = !laeuft;
-  document.body.classList.toggle('fokusOffen', laeuft);
-  if(laeuft) renderFokus();
+  // Sichtbar nur, wenn eine Karte GEWÄHLT ist UND die Ansicht offen sein soll.
+  // „laeuft" spielt hier bewusst keine Rolle: eine pausierte Karte darf man
+  // ansehen, eine laufende darf man wegschieben.
+  const zeigen = fokusAnsichtOffen() && !!(S.fokus && S.fokus.karteId);
+  lay.hidden = !zeigen;
+  document.body.classList.toggle('fokusOffen', zeigen);
+  if(zeigen) renderFokus();
 }
 function renderSuche(){
   // Kopf: Sicht-Umschalter
@@ -9500,12 +9615,17 @@ el('sheetBody').addEventListener('click', e=>{
 
 // Fokus-Leiste: Play/Pause-Toggle + Mitte tippen → Fokus-Tab
 el('fkPP').addEventListener('click', ()=>{ if(S.fokus) fokusToggle(); else setTab('suche'); });
-el('fkMid').addEventListener('click', ()=>{ setTab('suche'); fokusLayerPflegen(); });
+/* §1 (v2.0.1): Tippen auf die Leiste holt die Fokusansicht zurueck.
+   Laeuft keine Karte, ist die Leiste nur Anzeige. */
+el('fkMid').addEventListener('click', ()=>{
+  if(S.fokus && S.fokus.karteId) fokusAnsichtZeigen();
+});
 el('statusbar').addEventListener('click', ()=>oeffneStatusSheet());   // §2 (1.10.0): Sheet statt Live-Kurve
 
 // Fokus-View: Toggle / Häkchen / Karussell / Farbstreifen / Unteraufgaben / Stapelwahl
 // Bug 2: Karussell-Pfeile im Topbar (außerhalb von #fokusView)
 el('fokusView').addEventListener('click', e=>{
+  if(e.target.closest('[data-fokuszu]')){ fokusAnsichtSchliessen(); haptik(8); return; }
   const t=e.target;
   // §2.5 (v1.6.0): die drei Navigationsebenen — je ein Tap, Zustand in S.ui (reload-fest)
   // §9.1 (v1.12.0): Ebene 4 — Kette der aktiven Domäne (persistiert)
@@ -11341,6 +11461,13 @@ function zeigeV200Gate(){
     '<div class="kv"><span>Matrixfeld vorgeschlagen · 🎯 Ziele</span><b>'+num(f.ziel)+'</b></div>'+
     '<div class="kv"><span>🔧 Werkzeuge · 🌀 Zustände · 📵 Ablenkungen</span><b>'+num(f.werkzeug)+' · '+num(f.zustand)+' · '+num(f.ablenkung)+'</b></div>'+
     '<div class="kv"><span>Alt-Felder entfernt (Karten-Felder)</span><b>'+num(L.entfernt)+'</b></div>'+
+    (function(){   // §3 (v2.0.1): Vorschau — Löschen ohne Zahl ist nicht zumutbar
+      const behalten=new Set(Array.isArray(S.meta.v200KetteBeiMigration)?S.meta.v200KetteBeiMigration:[]);
+      let weg=0, bleibt=0;
+      S.karten.forEach(k=>{ if(behalten.has(k.id)||k.rhythmus) bleibt++; else weg++; });
+      return '<div class="kv"><span>Würde abgeräumt</span><b>'+weg+' Karten</b></div>'+
+             '<div class="kv"><span>Bleibt (Kette + Routinen)</span><b>'+bleibt+'</b></div>';
+    })()+
     '</div>'+
     '<p class="d" style="margin-top:8px">Die Einordnung ist ein <b>Vorschlag</b> — jede Karte bleibt im Detail änderbar.</p>'+
     '<div class="field"><label>Vollexport nach Vertrag 1.6 (aus der Sicherung)</label>'+
@@ -11357,7 +11484,13 @@ function zeigeV200Gate(){
 /* §5 · Werkbank statt Lager — die eigentliche Leerung. Läuft ausschließlich
    aus zeigeV200Gate heraus, nach bestätigtem Export. */
 function v200LeerungAusfuehren(){
-  const behalten=new Set(tagesKette());
+  // §3 (v2.0.1): NICHT tagesKette() — die füllt sich automatisch aus allem
+  // Überfälligen und adoptiert damit genau den Bestand, der weg soll.
+  // Massgeblich ist die Kette, die beim Umbau vorlag (= was Claude geschickt
+  // hat). Fehlt sie (Alt-Installation ohne den 2.0.1-Schnappschuss), bleiben
+  // nur die Routinen — das ist die konservative Lesart von §5.
+  const behalten=new Set(Array.isArray(S.meta.v200KetteBeiMigration)
+    ? S.meta.v200KetteBeiMigration : []);
   let weg=0;
   const bleibt=S.karten.filter(k=>{
     if(behalten.has(k.id)) return true;           // die Tageskette
