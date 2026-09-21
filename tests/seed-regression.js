@@ -25,7 +25,12 @@ var S = { karten: [], unteraufgaben: [], routinenGruppen: [], tag: null, meta: {
 eval(extractConst('DEFAULT_SETTINGS').replace(/^const/, 'var'));
 /* Umfeld-Shims: Konstanten gespiegelt (nicht extrahierbar), Persistenz/Kette
    als No-ops — getestet wird die Import-LOGIK, nicht der Speicher. */
-var TAGESABSCHNITTE = ['morgens','tagsueber','abends'];
+/* v2.0.0: Tagesabschnitte sind entfallen (§4); die Matrix hat ihre Rolle. */
+var MATRIX_FELDER = ['ablenkung','zustand','werkzeug','ziel'];
+function matrixFeldVon(k){ var f=k&&k.matrixFeld;
+  if(MATRIX_FELDER.indexOf(f)>=0) return f;
+  var n=Number(f); if(isFinite(n)&&n>=1&&n<=4) return MATRIX_FELDER[n-1];
+  return 'ziel'; }
 var SYNC_BESTAND_SCHWELLE = 10;
 var KOMPLETT_BONUS_DEFAULT = 200;
 function esc(s){ return String(s==null?'':s); }
@@ -43,10 +48,10 @@ function imp(p){ return syncImport(JSON.stringify(p)); }
 
 /* 1) §2.1: Neuanlage mit domain — privat wird privat, fehlend bleibt dfm. */
 S.karten=[]; S.unteraufgaben=[]; S.routinenGruppen=[];
-var r1=imp({ appVersion:'1.13.0', karten:[
+var r1=imp({ appVersion:'2.0.0', karten:[
   { id:'n-dfm', titel:'DFM-Aufgabe', sollMin:30 },
   { id:'n-prv', domain:'privat', titel:'Private Routine', rhythmus:{typ:'taeglich'}, tickKurve:[10],
-    tagesabschnitt:['morgens','abends'], abhakbonus:-25, punkteProStd:0, timerFlag:true, keineAutoPause:true },
+    matrixFeld:'werkzeug', abhakbonus:-25, punkteProStd:0, timerFlag:true, keineAutoPause:true },
   { id:'n-cnt', domain:'privat', titel:'Negativ-Counter', tickKurve:[-15,-20] }
 ]});
 var dfm=S.karten[0], prv=S.karten[1], cnt=S.karten[2];
@@ -55,7 +60,7 @@ ok('Neuanlage domain privat → privat', prv.domain==='privat');
 ok('Ergebnis zählt je Domäne (1 dfm / 2 privat)', r1.neuDfm===1 && r1.neuPrivat===2);
 /* 2) §2.2: Bausteine kommen an — Routine, Abschnitte, negativer Bonus, Overrides. */
 ok('rhythmus macht die Karte zur Routine', prv.rhythmus && prv.rhythmus.typ==='taeglich');
-ok('tagesabschnitt als Array übernommen', JSON.stringify(prv.tagesabschnitt)==='["morgens","abends"]');
+ok('v2.0 §1: matrixFeld kommt aus dem Paket an', prv.matrixFeld==='werkzeug');
 ok('abhakbonus negativ zulässig', prv.abhakbonus===-25);
 ok('punkteProStd 0 kommt an (nicht als fehlend gewertet)', prv.punkteProStd===0);
 ok('timerFlag + keineAutoPause gesetzt', prv.timerFlag===true && prv.keineAutoPause===true);
@@ -63,21 +68,21 @@ ok('timerFlag + keineAutoPause gesetzt', prv.timerFlag===true && prv.keineAutoPa
    ticksAktiv + tickWert (erster Wert), negative Werte zulässig. */
 ok('Negativ-Counter: tickKurve → ticksAktiv + tickWert(-15)', cnt.ticksAktiv===true && cnt.tickWert===-15);
 /* 3) Fehlende Felder ändern nichts (Re-Import derselben Karte ohne Bausteine). */
-imp({ appVersion:'1.13.0', karten:[{ id:'n-prv', titel:'Private Routine v2' }] });
+imp({ appVersion:'2.0.0', karten:[{ id:'n-prv', titel:'Private Routine v2' }] });
 ok('Re-Import: nur 1 Karte (kein Duplikat)', S.karten.filter(function(k){return k.id==='n-prv';}).length===1);
 ok('Re-Import: rhythmus unangetastet', prv.rhythmus && prv.rhythmus.typ==='taeglich');
 ok('Re-Import: abhakbonus unangetastet', prv.abhakbonus===-25);
 /* 4) §2.1: domain einer BEKANNTEN Karte wird ignoriert. */
-imp({ appVersion:'1.13.0', karten:[{ id:'n-dfm', domain:'privat', titel:'DFM bleibt DFM' }] });
+imp({ appVersion:'2.0.0', karten:[{ id:'n-dfm', domain:'privat', titel:'DFM bleibt DFM' }] });
 ok('bekannte Karte: domain-Wechsel ignoriert', dfm.domain==='dfm');
 /* 5) §2.3: Gruppen — Auflösung per Titel UND App-ID, Unauflösbares gemeldet. */
-var r5=imp({ appVersion:'1.13.0', karten:[{ id:'n-prv' }],
+var r5=imp({ appVersion:'2.0.0', karten:[{ id:'n-prv' }],
   gruppen:[{ id:'g1', name:'Runde', domain:'privat', mitglieder:['Private Routine v2','n-cnt','Fehlt'], komplettBonus:150 }] });
 ok('Gruppe angelegt', r5.gruppenNeu===1 && S.routinenGruppen.length===1);
 ok('Mitglieder per Titel + ID aufgelöst', JSON.stringify(S.routinenGruppen[0].mitglieder)==='["n-prv","n-cnt"]');
 ok('Unauflösbares Mitglied gemeldet, nicht verschluckt',
   r5.uebersprungen.some(function(u){ return u.was.indexOf('Fehlt')>=0; }));
-var r5b=imp({ appVersion:'1.13.0', karten:[{ id:'n-prv' }],
+var r5b=imp({ appVersion:'2.0.0', karten:[{ id:'n-prv' }],
   gruppen:[{ id:'g1', name:'Runde v2', mitglieder:['n-prv'], komplettBonus:300 }] });
 ok('gleiche Gruppen-id → aktualisiert, nicht dupliziert', r5b.gruppenUpd===1 && S.routinenGruppen.length===1 && S.routinenGruppen[0].komplettBonus===300);
 /* 6) Gate unverändert: ohne appVersion / Array / 0.x abgelehnt. */

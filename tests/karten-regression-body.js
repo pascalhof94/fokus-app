@@ -29,17 +29,16 @@ var htmlNorm=kartenreiheHtml(S.karten[0], 'x');
 ok('ohne Ticks: kein data-tickplus', htmlNorm.indexOf('data-tickplus')<0);
 ok('ohne Ticks: data-check vorhanden', htmlNorm.indexOf('data-check')>=0);
 
-/* §3: ▶ ohne Zeitmessung oeffnet den Fokus OHNE Uhr, ohne Intraday */
-var intrVor=S.intraday.length;
+/* §4 (v2.0.0): zeitmessung ist ENTFALLEN — jede Karte darf die Uhr tragen.
+   Der alte Vertrag ("Routine ohne Zeitmessung startet ohne Uhr") gilt nicht
+   mehr; die Punkte kommen ohnehin aus den Soll-Minuten, nicht aus der Uhr.
+   Getestet wird deshalb jetzt das Gegenteil: die Uhr laeuft bei JEDER Art. */
 fokusStarten('t2');
 ok('Fokus gewaehlt (t2)', S.fokus && S.fokus.karteId==='t2');
-ok('Stoppuhr laeuft NICHT', S.fokus.laeuft===false);
+ok('v2.0 §4: Uhr laeuft auch ohne frueheres zeitmessung-Flag', S.fokus.laeuft===true);
 fokusZeitEinbuchen();
-ok('keine Zeit gebucht', num(S.karten[1].istSek)===0);
-ok('kein Intraday-Eintrag', S.intraday.length===intrVor);
-/* mit Zeitmessung: Uhr laeuft an */
 fokusStarten('t3');
-ok('mit Zeitmessung: Uhr laeuft', S.fokus.laeuft===true);
+ok('v2.0 §4: Uhr laeuft auch bei der zweiten Routine', S.fokus.laeuft===true);
 fokusZeitEinbuchen();
 
 /* §4: ✓ auf einer Tick-Karte schliesst AB (tickt nicht) */
@@ -180,7 +179,7 @@ S.belohnung={ stufen:{fahrzeuge:12,wohnen:12,reisen:12,mobilitaet:12,begleiter:1
   ausgegeben:24500, kaeufe:[{kat:'fahrzeuge',stufe:2,name:'x',datum:'2026-08-01',preis:9000}] };
 S.meta.muenzenGesamt=30000; S.meta.ausgegebenGesamt=24500;
 S.meta.rangResetOffset=0; S.meta.muenzenResetOffset=0; S.meta.ausgabenResetOffset=0;
-S.meta.rangBest=13; S.meta.tagesStreak=12; S.meta.tagesStreakBest=18; S.meta.upgradeFaktor=1.04;
+S.meta.rangBest=13;
 S.tag=null; S.intraday=[];
 var kontoVor=konto(), kulisseVor=bgStufeAus(ausgabenAnzeige()), ausgVor=ausgabenAnzeige();
 shopResetJetzt();
@@ -190,8 +189,8 @@ ok('v1.13.3 §1 BELEG: Konto unveraendert ('+kontoVor+')', konto()===kontoVor);
 ok('v1.13.3 §1 BELEG: muenzenGesamt 30000 · ausgegebenGesamt 24500 unveraendert',
   S.meta.muenzenGesamt===30000 && S.meta.ausgegebenGesamt===24500 && ausgabenAnzeige()===ausgVor);
 ok('v1.13.3 §1 BELEG: Kulisse bleibt ('+kulisseVor+'/10)', bgStufeAus(ausgabenAnzeige())===kulisseVor);
-ok('v1.13.3 §1 BELEG: Rang-Bestwert 13 · Serie 12/18 · Upgrade-Faktor 1,04 unveraendert',
-  S.meta.rangBest===13 && S.meta.tagesStreak===12 && S.meta.tagesStreakBest===18 && S.meta.upgradeFaktor===1.04);
+ok('v1.13.3 §1 BELEG: Rang-Bestwert 13 unveraendert (Serie/Upgrade entfallen, §3 v2.0.0)',
+  S.meta.rangBest===13);
 ok('v1.13.3 §1: Kauf-Historie bleibt (Statistik)', S.belohnung.kaeufe.length===1);
 ok('v1.13.3 §1: Sicherung besitz_bak1133 mit Vorher-Stand',
   (function(){ var b=JSON.parse(localStorage.getItem('fokus2_besitz_bak1133')||'null');

@@ -15,12 +15,13 @@
   function karte(f){
     return Object.assign({
       id:'fx-'+Math.random().toString(36).slice(2,8), domain:'privat', titel:'Karte',
-      status:'offen', prioritaet:'soll', projekt:null, geldScore:0, notiz:'',
-      faelligkeit:null, uhrzeit:null, sollMin:0, istSek:0, komplex:1, energie:1, blockade:1,
+      status:'offen', projekt:null, geldScore:0, notiz:'',
+      faelligkeit:null, uhrzeit:null, geplantFuer:null, sollMin:0, istSek:0,
+      matrixFeld:'ziel', bewegungsBonus:0, posVorher:null,
       punkteProStd:null, akkuProStd:null, abhakbonus:null, tickKurve:[0],
       ticksAktiv:false, tickWert:0, tickWerteHeute:[], ticksHeute:0,
-      timerFlag:false, keineAutoPause:false, zeitmessung:true, strafPunkte:0,
-      rhythmus:null, tageszeitFenster:null, tagesabschnitt:null, streak:0, zuletztRoutine:null,
+      timerFlag:false, keineAutoPause:false, strafPunkte:0,
+      rhythmus:null, streak:0, zuletztRoutine:null,
       freeze:false, pin:false, schnellauswahl:false, erstelltTs:GESTERN+'T09:00:00',
       letzteBearbeitung:H+'T09:00:00', tagId:null, punkteOverride:null, abschluesse:[],
       sortIndex:{}, vorgaengerAppId:null, vorgaengerAirtableId:null, airtableId:null
@@ -30,7 +31,7 @@
   var KARTEN=[
     // 1) DFM-Aufgabe, langer Titel, Unteraufgaben, läuft — für die Fokusansicht
     karte({ id:'k-lang', domain:'dfm', titel:'Angebotskalkulation für die neue Fertigungslinie vollständig durchrechnen und dokumentieren',
-      projekt:'Fertigung', geldScore:120, prioritaet:'muss', faelligkeit:H, sollMin:90, istSek:1860,
+      projekt:'Fertigung', geldScore:120, faelligkeit:H, geplantFuer:H, sollMin:90, istSek:1860, matrixFeld:'ziel',
       ticksAktiv:true, tickWert:25, ticksHeute:3, tickWerteHeute:[25,25,25] }),
     // 2) DFM eingefroren
     karte({ id:'k-frost', domain:'dfm', titel:'Wartet auf Rückmeldung Lieferant', projekt:'Einkauf',
@@ -40,28 +41,31 @@
       geldScore:60, faelligkeit:MORGEN, sollMin:45 }),
     // 4) private Routine OHNE Zeitmessung
     karte({ id:'k-routine', domain:'privat', titel:'Gesicht waschen', rhythmus:{typ:'taeglich'},
-      zeitmessung:false, tagesabschnitt:['morgens','abends'], streak:12, faelligkeit:H,
+      streak:12, faelligkeit:H, geplantFuer:H, matrixFeld:'werkzeug',
       abhakbonus:50 }),   // v1.12.0: Beleg-Fall Abhakbonus privater Morgen-Routine
     // 5) private Routine MIT Ticks
     karte({ id:'k-ticks', domain:'privat', titel:'Wasser trinken', rhythmus:{typ:'taeglich'},
-      ticksAktiv:true, tickWert:10, ticksHeute:2, tickWerteHeute:[10,10], zeitmessung:false,
-      tagesabschnitt:['tagsueber'], streak:5, faelligkeit:H }),
+      ticksAktiv:true, tickWert:10, ticksHeute:2, tickWerteHeute:[10,10],
+      streak:5, faelligkeit:H, geplantFuer:H, matrixFeld:'werkzeug' }),
     // 6) Counter (negativ)
     karte({ id:'k-counter', domain:'privat', titel:'Handy zur Hand genommen', ticksAktiv:true,
-      tickWert:-15, zeitmessung:false, tagesabschnitt:['tagsueber'] }),
+      tickWert:-15, matrixFeld:'ablenkung', geplantFuer:H }),
     // 7) reiner Timer
     karte({ id:'k-timer', domain:'dfm', titel:'Pausentimer', timerFlag:true, keineAutoPause:true,
       punkteProStd:60, projekt:'Intern' }),
     // 8) erledigte Karten (beide Domänen — speisen die Tagespunkte)
     karte({ id:'k-fertig', domain:'dfm', titel:'Morgenmeeting vorbereitet', projekt:'Fertigung',
-      status:'erledigt', tagId:H+'-1', punkteOverride:800, istSek:2400,
+      status:'erledigt', tagId:H+'-1', punkteOverride:800, istSek:2400, matrixFeld:'ziel',
       abschluesse:[{ts:H+'T10:00:00', tagId:H+'-1', punkteIstVorher:0, istMinVorher:0, bonusPunkte:0, subsDoneVorher:[], glaettung:[]}] }),
     karte({ id:'k-privat-fertig', domain:'privat', titel:'Einkauf erledigt', status:'erledigt',
       tagId:H+'-1', punkteOverride:300, istSek:1200,
       abschluesse:[{ts:H+'T11:00:00', tagId:H+'-1', punkteIstVorher:0, istMinVorher:0, bonusPunkte:0, subsDoneVorher:[], glaettung:[]}] }),
     // Gruppe: gemischter Stand (k-ticks getickt=fertig, die zwei anderen offen)
     karte({ id:'k-g3', domain:'privat', titel:'Küche aufräumen', rhythmus:{typ:'taeglich'},
-      zeitmessung:false, tagesabschnitt:['abends'] })
+      matrixFeld:'werkzeug', geplantFuer:H }),
+    // 11) Zustand — die vierte Matrix-Kategorie soll in den Sichten vorkommen
+    karte({ id:'k-zustand', domain:'privat', titel:'Kopf freibekommen vor dem Anruf',
+      matrixFeld:'zustand', sollMin:15, faelligkeit:H, geplantFuer:H })
   ];
 
   var SUBS=[
@@ -91,7 +95,12 @@
     flowfix181:true, zeit191:true, gamify190:true, gamify190Gezeigt:true, akku1100:true,
     // v1.11.0: Rang-Migration gilt als gelaufen; Bestwert > aktuellem Rang,
     // damit die „X · best Y"-Anzeige sichtbar wird. Sterne sammeln noch.
-    rang1110:true, rangBest:13, sternTage:{},
+    rang1110:true, rangBest:13,
+    /* v2.0.0: Die §0-Migration gilt als gelaufen und das Export-Gate als
+       erledigt — sonst laege es als Sheet ueber JEDER Ansicht. Die Ansicht
+       „gate" schaltet es gezielt wieder ein. */
+    migration200:true, v200LeerungOffen:false,
+    letzterSyncBestaetigtTs:null, matrixWirkung:[],
     /* stapelV4/V6/V8 fehlen absichtlich: seedStapel() legt die
        Standard-Stapel beim ersten Laden selbst an. */
     lifetimeQuelle:'wohlstand',

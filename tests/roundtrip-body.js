@@ -1,4 +1,8 @@
-/* Abnahme v1.13.5 — „Vollexport rettet die App-Bausteine". */
+/* Abnahme v1.13.5 — „Vollexport rettet die App-Bausteine".
+   Nach dem Merge auf v2.0 (21.09.) am v2.0-Kartenmodell gefuehrt: die sechs
+   Felder prioritaet/zeitmessung/tagesabschnitt/komplex/energie/blockade gibt
+   es nicht mehr (§4), dafuer matrixFeld. Der ZWECK des Tests bleibt exakt
+   derselbe — kein persistiertes Feld darf aus dem Export fallen. */
 var fails=0, n=0;
 function ok(t,c){ n++; print((c?'OK   ':'FAIL ')+t); if(!c) fails++; }
 function kopf(t){ print(''); print('── '+t+' ──'); }
@@ -31,22 +35,23 @@ function bestandAufbauen(){
   S.karten.push(neueKarte({ id:'r-katzen', domain:'privat', titel:'Katzen füttern',
     rhythmus:{typ:'alleNTage', n:2}, ticksAktiv:true, tickWert:12, ticksHeute:3,
     tickWerteHeute:[12,12,15], abhakbonus:-25, zeitmessung:false, keineAutoPause:true,
-    timerFlag:true, punkteProStd:0, akkuProStd:-3, tagesabschnitt:['morgens','abends'],
+    timerFlag:true, punkteProStd:0, akkuProStd:-3, matrixFeld:'werkzeug',
     streak:40, zuletztRoutine:H, freeze:false, sollMin:5, istSek:600,
     zeitStufen:[{bisMin:30,punkteProStd:200},{bisMin:null,punkteProStd:80}],
-    prioritaet:'muss', komplex:1.5, energie:0.8, blockade:2, strafPunkte:7,
+    strafPunkte:7, bewegungsBonus:120,
     sortIndex:{'sys-dfm':3}, faelligkeit:H, uhrzeit:'07:30', geldScore:0,
     notiz:'Nassfutter', kommentarClaude:'bitte nicht verschieben' }));
   /* 2) Eine DFM-Aufgabe mit Abschluss-Stack und Unteraufgaben */
   S.karten.push(neueKarte({ id:'d-angebot', domain:'dfm', airtableId:'recAAAAAAAAAAAAAA',
     titel:'Angebot rechnen', projekt:'Fertigung', geldScore:120, sollMin:90, istSek:1860,
     status:'erledigt', tagId:H+'-1', punkteOverride:800, faelligkeit:H,
+    geplantFuer:H, matrixFeld:'ziel',
     abschluesse:[{ts:H+'T10:00:00', tagId:H+'-1', punkteIstVorher:0, istMinVorher:0,
                   bonusPunkte:0, subsDoneVorher:[], glaettung:[]}],
     vorgaengerAppId:'alt-1', ungeplant:true, schiebeZaehler:2 }));
   /* 3) Zwei weitere Gruppenmitglieder */
   S.karten.push(neueKarte({ id:'r-kueche', domain:'privat', titel:'Küche aufräumen',
-    rhythmus:{typ:'taeglich'}, abhakbonus:40, tagesabschnitt:['abends'] }));
+    rhythmus:{typ:'taeglich'}, abhakbonus:40, matrixFeld:'werkzeug' }));
   S.karten.push(neueKarte({ id:'r-wasser', domain:'privat', titel:'Wasser trinken',
     rhythmus:{typ:'wochentage', tage:[1,2,3,4,5]}, ticksAktiv:true, tickWert:10, ticksHeute:2 }));
 
@@ -62,7 +67,7 @@ function bestandAufbauen(){
   S.vorlagen=[{ id:'v1', name:'Vorlage A', cfg:{titel:'X'} }];
   S.historie=[{ datum:H, laufindex:1, punkteBilanz:3200, luecke:false }];
   S.intraday=[{ ts:H+'T09:00:00', kartenId:'d-angebot', domaene:'dfm', punkte:0, minuten:31, typ:'timer' }];
-  ketteSetzen(['r-katzen','d-angebot'], 'privat');
+  ketteSetzen(['r-katzen','d-angebot']);   // §7 (v2.0): EINE Kette
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveRoutGruppen(); saveGruppen();
   saveVorlagen(); saveHistorie(); DB.set('intraday', S.intraday); saveBelohnung();
   saveTag(); saveMeta(); DB.set('settings', S.settings);
@@ -91,7 +96,8 @@ print('   Felder vorher: '+Object.keys(vorher).length+' · im Paket: '+Object.ke
  ['tickWerteHeute', JSON.stringify(nachher.tickWerteHeute)==='[12,12,15]'],
  ['ticksHeute', nachher.ticksHeute===3],
  ['abhakbonus', nachher.abhakbonus===-25],
- ['zeitmessung', nachher.zeitmessung===false],
+ ['matrixFeld (v2.0)', nachher.matrixFeld==='werkzeug'],
+ ['bewegungsBonus (v2.0)', nachher.bewegungsBonus===120],
  ['keineAutoPause', nachher.keineAutoPause===true],
  ['timerFlag', nachher.timerFlag===true],
  ['punkteProStd', nachher.punkteProStd===0],
@@ -244,7 +250,7 @@ print('   Tages-Sync '+Math.round(JSON.stringify(tagesPaket).length/1024)+' KB �
 /* ══ Ein normales Chat-Paket darf die App-Hoheit NICHT brechen ══ */
 kopf('Schutz · App-Hoheit im Normalbetrieb');
 var vorIst=S.karten.find(function(k){return k.id==='d-angebot';}).istSek;
-syncImport(JSON.stringify({ appVersion:'1.13.0', karten:[
+syncImport(JSON.stringify({ appVersion:'2.0.0', karten:[
   { id:'d-angebot', titel:'Angebot rechnen', istMin:9999, status:'offen', punkteOverride:1 }]}));
 var d2=S.karten.find(function(k){return k.id==='d-angebot';});
 ok('Ohne Wiederherstellungs-Block bleibt die Ist-Zeit unangetastet', d2.istSek===vorIst);

@@ -14,15 +14,15 @@ var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','b
   'tickSumme','punkteFuerZeit','zeitquelleMin','subBonusErreicht','pausenStrafe','pausenStrafeLive','kartePunkte','kartenArt','laufendeSek',
   'heuteInvestiertMin','akkuLive','aktuelleTagId','tagOffen','kartePunkteHeute','tagesPunkteDomain','tagesPunkteLive',
   'punkteHeuteAnzeige','tagesZielDomain','wachTagAnteil','punkteHeuteDomain','istTickKarte','tickPunkte',
-  'tagStundenVergangen','anZielDfmTag','paceWerte','imTagesstrom','energieBatterie','tagesStreakStand',
+  'tagStundenVergangen','anZielDfmTag','paceWerte','imTagesstrom','energieBatterie','routinenSerieBeste',
   'fokusKarte','untermenge',
   // §2 (v1.12.0): die Soll-Treppen-Familie
   'istWochenendTag','fensterAnteil','sollFensterStunden','restFensterStd','jetztStunde',
   'zielTag','zielTagGesamt','sollStand','sollStandGesamt','weIstDomain','zielUndIstHeute','sollFensterAktiv',
   // §5.1 (v1.13.0): Start-verankerte Form + Rahmen + Faktor
-  'sollFormWerktag','tagesStartStunde','tagesRahmen','rahmenFenster','upgradeFaktor',
+  'sollFormWerktag','tagesStartStunde','tagesRahmen','rahmenFenster',
   // §2 (v1.13.0): Standardwerte
-  'standardWert','tickWertEff','abhakbonusDefault',
+  'standardWert','tickWertEff','abhakbonusFeldDefault','abhakbonusDefault',
   // §3.1/§3.2 (v1.13.0): Vier-Kategorien-Quote + Rein/Raus-Zählwerk
   'routinenQuoteHeute','routineFaellig','routErledigtHeute','anFlowReihe','reinRausTag',
   // Zahlenbeleg 22: Mess-Ebene rechnet roh
@@ -32,7 +32,7 @@ var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','b
   'kartenSitzungenHeute',
   // Nachtrag v1.13.1 §5: Plankurve zieht NUR ueber die Ketten
   'planKurveInfo','ketteKarten','tagesKette','tagesKetteDom','ketteState','ketteAutoIds',
-  'ketteHistLog','kettenHistKappen','ketteSetzen','kartePunkteGeplant','kartePunkteBei','subBonusOffen'];
+  'ketteHistLog','kettenHistKappen','ketteSetzen','kartePunktePrognose','kartePunkteGeplant','kartePunkteBei','subBonusOffen'];
 /* §1 (v1.7.1): kartePunkte zieht die Pausentimer-Strafe live ab — die beiden
    Helfer werden mit extrahiert, die Konstante hier gespiegelt (Konstanten sind
    nicht extrahierbar). Mit S.fokus=null liefert pausenStrafeLive stets 0. */
@@ -57,7 +57,14 @@ function anVorTage(iso,n){ return iso; }
 function snapPunkte(){ return 0; }
 function saveMeta(){}
 function saveKarten(){}
-function tagesabschnittHat(){ return false; }
+var MATRIX_FELDER = ['ablenkung','zustand','werkzeug','ziel'];
+function matrixFeldVon(k){ var f=k&&k.matrixFeld;
+  if(MATRIX_FELDER.indexOf(f)>=0) return f;
+  var n=Number(f); if(isFinite(n)&&n>=1&&n<=4) return MATRIX_FELDER[n-1];
+  return 'ziel'; }
+function matrixFaktor(k){ var t=(S.settings&&S.settings.matrixFaktor)||{};
+  var f=matrixFeldVon(k); var v=t[f];
+  return isFinite(Number(v))?Number(v):(f==='ziel'?1:0); }
 // §5.1 (v1.13.0): Uhrzeit fixieren (14:00) — die Treppe hängt am Tagesstart,
 // die Erwartungen unten sind damit laufzeitunabhängig. Zuweisung NACH dem
 // eval, damit sie die extrahierte Fassung ersetzt.
@@ -65,7 +72,7 @@ jetztStunde = function(){ return 14; };
 
 var fails=0; function ok(n,c){ print((c?'OK   ':'FAIL ')+n); if(!c) fails++; }
 function karte(f){ return Object.assign({ id:'x', domain:'privat', status:'offen', titel:'T',
-  komplex:1, energie:1, blockade:1, sollMin:60, istSek:0, ticksHeute:0, ticksAktiv:false, tickWert:0, tickWerteHeute:[],
+  matrixFeld:'ziel', sollMin:60, istSek:0, ticksHeute:0, ticksAktiv:false, tickWert:0, tickWerteHeute:[],
   punkteProStd:null, akkuProStd:null, zeitStufen:null, rhythmus:null, faelligkeit:heuteApp() }, f||{}); }
 
 var HEUTE=heuteApp();
@@ -158,15 +165,19 @@ S.karten=[kv,kl]; S.tag.istMinutenStart={v:0,l:0};
 var eb2=energieBatterie();
 ok('Lader senkt gelb ggü. nur Verbraucher', eb2.gelb<=eb.gelb);
 
-// 5) tagesStreakStand: zusammenhängende positive Tage
-S.historie=[ {datum:'2026-07-27',laufindex:1,punkteBilanz:50,luecke:false},
-             {datum:'2026-07-28',laufindex:1,punkteBilanz:80,luecke:false},
-             {datum:'2026-07-29',laufindex:1,punkteBilanz:0,luecke:false} ];
-ok('Streak bricht am 0-Tag (jüngster=29.=0 → 0)', tagesStreakStand(false)===0);
-S.historie=[ {datum:'2026-07-27',laufindex:1,punkteBilanz:50,luecke:false},
-             {datum:'2026-07-28',laufindex:1,punkteBilanz:80,luecke:false},
-             {datum:'2026-07-29',laufindex:1,punkteBilanz:30,luecke:false} ];
-ok('Streak = 3 zusammenhängende positive Tage', tagesStreakStand(false)===3);
+/* 5) §3 (v2.0.0): Die Serie ist die der ROUTINEN, nicht die der Tage in
+      Folge mit Tagesabschluss. „Katzen fuettern seit 40 Tagen" ist eine
+      Aussage ueber Pascal, „Tagesabschluss seit 12 Tagen" eine ueber die App. */
+var _kv=S.karten;
+S.karten=[ {id:'r1',rhythmus:{typ:'taeglich'},titel:'Katzen fuettern',streak:40},
+           {id:'r2',rhythmus:{typ:'taeglich'},titel:'Gesicht waschen',streak:12},
+           {id:'a1',rhythmus:null,titel:'Aufgabe',streak:99} ];
+ok('§3: laengste Routinen-Serie = 40', routinenSerieBeste().tage===40);
+ok('§3: sie traegt ihren Titel', routinenSerieBeste().titel==='Katzen fuettern');
+ok('§3: eine AUFGABE mit streak zaehlt nicht als Serie', routinenSerieBeste().tage!==99);
+S.karten=[];
+ok('§3: ohne Routinen ist die Serie 0', routinenSerieBeste().tage===0);
+S.karten=_kv;
 
 // 6) punkteHeuteAnzeige nie negativ
 S.tag={ tagId:HEUTE+'-1', datum:heuteIso(), startTs:jetztIso(), akku:75, istMinutenStart:{}, abzuegeBilanz:9999, log:[] };
@@ -178,9 +189,19 @@ S.settings.standardWertDfm=40; S.settings.standardWertPrivat=15;
 var kErbt=karte({ id:'e1', domain:'privat', tickWert:null, abhakbonus:null, ticksAktiv:true, ticksHeute:2, tickWerteHeute:[] });
 var kOvr =karte({ id:'e2', domain:'privat', tickWert:0,    abhakbonus:5 });
 ok('§2: tickWert null erbt den Standard (15)', tickWertEff(kErbt)===15);
-ok('§2: Abhakbonus null erbt den Standard (15)', abhakbonusDefault(kErbt)===15);
-ok('§2: Standard-Änderung wirkt SOFORT auf erbende Karten', (function(){ S.settings.standardWertPrivat=25; var r=tickWertEff(kErbt)===25 && abhakbonusDefault(kErbt)===25; S.settings.standardWertPrivat=15; return r; })());
-ok('§2: Override 0 bleibt Override (kein Erben)', tickWertEff(kOvr)===0 && abhakbonusDefault(kOvr)===5);
+/* Nachtrag §2 (v2.0.0): Der Abhakbonus erbt nicht mehr vom Domaenen-
+   Standardwert, sondern vom MATRIXFELD — er traegt jetzt die Barriere.
+   Der Tick-Wert erbt weiterhin vom Domaenen-Standard (anderes Ding). */
+S.settings.abhakbonusFeld={ ziel:0, zustand:150, werkzeug:100, ablenkung:0 };
+ok('Nachtrag §2: Abhakbonus erbt je MATRIXFELD (Werkzeug 100)',
+  abhakbonusDefault(karte({domain:'privat', matrixFeld:'werkzeug', abhakbonus:null}))===100);
+ok('Nachtrag §2: Zustaende tragen die hoechste Barriere (150)',
+  abhakbonusDefault(karte({domain:'privat', matrixFeld:'zustand', abhakbonus:null}))===150);
+ok('Nachtrag §2: Zielarbeit traegt 0 (die Zeit bezahlt sie bereits)',
+  abhakbonusDefault(karte({domain:'dfm', matrixFeld:'ziel', abhakbonus:null}))===0);
+ok('Nachtrag §2: Ablenkungen tragen 0', abhakbonusDefault(karte({matrixFeld:'ablenkung'}))===0);
+ok('§2: Standard-Änderung wirkt SOFORT auf erbende Tick-Karten', (function(){ S.settings.standardWertPrivat=25; var r=tickWertEff(kErbt)===25; S.settings.standardWertPrivat=15; return r; })());
+ok('§2: Override bleibt Override (kein Erben)', tickWertEff(kOvr)===0 && abhakbonusDefault(kOvr)===5);
 ok('§2: tickSumme nutzt den geerbten Wert (2×15=30)', Math.round(tickSumme(kErbt,2))===30);
 
 // ══ 8) §3.1 (v1.13.0): Routinen-Quote — vier Kategorien, Summe = 100 % ══
@@ -227,16 +248,21 @@ for(var off=1; off<=4; off++){
   S.intraday.push({ ts:dd+'T09:00:00', kartenId:'m'+off, domaene:'dfm', punkte:0, minuten:120, typ:'timer' });
   S.intraday.push({ ts:dd+'T12:00:00', kartenId:'m'+off, domaene:'dfm', punkte:400+off*10, minuten:0, typ:'abhaken' });
 }
+/* §3 (v2.0.0): Der Upgrade-Faktor ist ERSATZLOS entfallen — er stand in F
+   in Zaehler UND Nenner und kuerzte sich heraus. Statt seiner Wirkung wird
+   jetzt belegt, dass er WEG ist: ein gesetztes meta.upgradeFaktor darf die
+   Anzeige nicht mehr veraendern. */
 _rangMemo=null; _rangMemoKey='';
-S.meta.upgradeFaktor=1;
 var medianRoh=rangMass().median, oeRoh=oePStd7(), sollF1=paceWerte().soll;
 _rangMemo=null; _rangMemoKey='';
-S.meta.upgradeFaktor=2;
+S.meta.upgradeFaktor=2;   // Altfeld — muss folgenlos bleiben
 var medianF2=rangMass().median, oeF2=oePStd7(), sollF2=paceWerte().soll;
-ok('§4.3 BELEG (F=2): Rang-Median unverändert ('+Math.round(medianRoh)+' P/Std)', medianRoh!=null && medianRoh===medianF2);
-ok('§4.3 BELEG (F=2): oePStd7 unverändert ('+Math.round(oeRoh)+')', Math.abs(oeRoh-oeF2)<0.001);
-ok('§4.3 BELEG (F=2): Anzeige-Soll verdoppelt sich ('+Math.round(sollF1)+' → '+Math.round(sollF2)+')', Math.abs(sollF2-2*sollF1)<1);
-S.meta.upgradeFaktor=1;
+ok('§3 BELEG: Rang-Median unveraendert ('+Math.round(medianRoh)+' P/Std)', medianRoh!=null && medianRoh===medianF2);
+ok('§3 BELEG: oePStd7 unveraendert ('+Math.round(oeRoh)+')', Math.abs(oeRoh-oeF2)<0.001);
+ok('§3 BELEG: Alt-Feld upgradeFaktor=2 aendert das Anzeige-Soll NICHT ('+Math.round(sollF1)+' = '+Math.round(sollF2)+')',
+  Math.abs(sollF2-sollF1)<1);
+ok('§3 BELEG: die Funktion upgradeFaktor existiert nicht mehr', typeof this.upgradeFaktor==='undefined');
+delete S.meta.upgradeFaktor;
 
 // ══ 11) §4 (v1.13.1): Sitzungen des Tages — von = Ende − Dauer, laufende mit ══
 var hf=belFensterDatum(jetztIso());
