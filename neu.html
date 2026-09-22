@@ -165,6 +165,9 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #fokusLayer[hidden]{display:none}
 .mx-tag{font-size:10px;opacity:.7}
 /* §1 (v2.0.1): Weg-Knopf der Fokusansicht — 44px, oben links in der Karte */
+.mom-zu{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:2;
+  background:rgba(255,255,255,.14);border:0;border-radius:50%;color:#fff;font-size:17px;
+  min-width:44px;min-height:44px;line-height:1}
 .fk-zu{display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--li);
   border-radius:999px;color:var(--fg);font:inherit;font-size:12px;padding:0 13px;min-height:40px;
   margin:0 0 8px;opacity:.8}
@@ -1204,6 +1207,11 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
            die fuenfte Sicht bei 375 px aus dem Bild gedraengt. -->
       <button id="suNeu" class="su-plus" aria-label="Neue Karte">＋</button>
     </div>
+    <!-- §3 (v2.0.2): Der Tag-Banner (Abschließen / Tag starten) hing bis
+         v2.0.1 ausschliesslich an renderStapel() und damit an #stapelListe —
+         einem Element, das es seit dem Navigationsumbau nicht mehr gibt.
+         Der Knopf war damit seit v2.0.0 unerreichbar. -->
+    <div id="tagBanner"></div>
     <div class="su-sichten" id="suSichten"></div>
     <div class="su-swipe" id="suSwipe"><div id="suBody"></div></div>
   </section>
@@ -1273,9 +1281,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.0.1';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.0.1';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-21-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.0.2';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.0.2';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-22-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -8274,13 +8282,42 @@ function momentBuchung(punkte){
   setTimeout(()=>d.remove(), 1300);
 }
 /* Vollbild-Moment — Tap irgendwo schließt; bei laufendem Timer in die Queue. */
+/* ══ §2 (v2.0.2) · DER MOMENT DARF DIE APP NIE FESTHALTEN ═════════════
+   BEFUND am gelebten Bestand: .mom-voll liegt mit z-index 300 ÜBER allem —
+   auch über dem Sheet (201) — hat KEINEN Schließen-Knopf, keinen Zeitablauf
+   und verschwindet nur, wenn man zufällig darauf tippt. Ausgelöst wurde er
+   vom elf Tage alten offenen Tag: outfitHeute() war gegenüber dem am 10.09.
+   festgeschriebenen S.tag.outfitMax weit gesprungen, also feuerte
+   momentOutfit direkt beim Start. Dahinter lag das Export-Gate. Die App sah
+   aus, als reagiere sie auf nichts.
+
+   Drei Sicherungen, jede für sich ausreichend:
+   1. ein echter Schließen-Knopf (44 px),
+   2. Selbstschluss nach MOMENT_MAX_MS,
+   3. nie mehr als EINER gleichzeitig, und nie über einem offenen Sheet
+      (dann wandert er in die Warteschlange). */
+const MOMENT_MAX_MS = 6000;
+let _startLaeuft = true;   // §2 (v2.0.2): bis init() durch ist
 function momentVollbild(html){
   if(!momenteAn()) return;
-  if(S.fokus && S.fokus.laeuft){ _momentQueue.push(html); return; }
+  // 4. Sicherung: waehrend des Starts nie. Beim Laden eines gelebten
+  // Bestands rechnet die App Rang und Outfit neu — ein elf Tage alter Tag
+  // laesst das springen und haette sonst vor allem anderen eine Feier
+  // ueber die App gelegt, noch bevor der Nutzer etwas sehen konnte.
+  if(_startLaeuft){ if(_momentQueue.length<3) _momentQueue.push(html); return; }
+  // Nicht über einem laufenden Timer UND nicht über einem offenen Dialog:
+  // beides sind Momente, in denen der Nutzer etwas anderes vorhat.
+  if((S.fokus && S.fokus.laeuft) || (typeof sheetOffen==='function' && sheetOffen())){
+    if(_momentQueue.length<3) _momentQueue.push(html);
+    return;
+  }
+  document.querySelectorAll('.mom-voll').forEach(x=>x.remove());   // nie stapeln
   const o=document.createElement('div');
   o.className='mom-voll'+(motionErlaubt()?'':' still');
-  o.innerHTML=html;
-  o.addEventListener('click', ()=>o.remove());
+  o.innerHTML=html+'<button class="mom-zu" aria-label="Schließen">✕</button>';
+  const weg=()=>{ if(t){ clearTimeout(t); t=null; } o.remove(); };
+  let t=setTimeout(weg, MOMENT_MAX_MS);
+  o.addEventListener('click', weg);
   document.body.appendChild(o);
 }
 function momentQueueFlush(){
@@ -9214,6 +9251,10 @@ function fokusLayerPflegen(){
   if(zeigen) renderFokus();
 }
 function renderSuche(){
+  // §3 (v2.0.2): Tagesabschluss ist von der Suche aus erreichbar — in der
+  // JETZIGEN Form, kein Redesign. Ein über Tage ausstehender Abschluss ist
+  // ein Hinweis, nie eine Sperre.
+  { const tb=el('tagBanner'); if(tb) tb.innerHTML=tagBannerHtml(); }
   // Kopf: Sicht-Umschalter
   const sv=suSicht();
   const sw=el('suSichten');
@@ -10462,6 +10503,10 @@ el('suClear').addEventListener('click', ()=>{
 });
 let _suDeb=null;
 /* Sichtwechsel — Tap auf die Leiste oder horizontales Wischen. */
+el('tagBanner').addEventListener('click', e=>{
+  if(e.target.closest('[data-tagstart]')){ oeffneTagStart(); return; }
+  if(e.target.closest('[data-tagclose]')){ oeffneTagAbschluss(); return; }
+});
 el('suSichten').addEventListener('click', e=>{
   const b=e.target.closest('[data-susicht]');
   if(b){ S.ui.suSicht=b.dataset.susicht; saveUi(); renderSuche(); haptik(8); return; }
@@ -11370,6 +11415,15 @@ function init(){
   zeigeMigration190();   // §7 (1.9.0): Protokoll einmalig anzeigen
   zeigeMigration1110();  // §10 (1.11.0): Rang-Protokoll einmalig anzeigen
   zeigeAutoPauseDialog();// §4: offene Rückfrage aus einer Auto-Pause nachholen
+  // §2 (v2.0.2): Ab jetzt duerfen Momente wieder — was sich waehrend des
+  // Starts angesammelt hat, wird jedoch VERWORFEN, nicht nachgeholt.
+  // Begruendung: Diese Momente feiern einen Zustand, der beim Laden neu
+  // errechnet wurde. Bei einem elf Tage alten offenen Tag ist das „Outfit 20
+  // — Tagesziel weit uebertroffen" fuer einen Tag, der vor elf Tagen lief.
+  // Das ist keine Feier, das ist ein Hindernis vor der ganzen App.
+  // Echte Momente entstehen im Betrieb (Abhaken, Rangaufstieg) — die kommen.
+  _momentQueue.length=0;
+  _startLaeuft=false;
 }
 /* ══════════════════════════════════════════════════════════════════════
    §0 (v2.0.0) · DAS EXPORT-GATE
@@ -11461,12 +11515,11 @@ function zeigeV200Gate(){
     '<div class="kv"><span>Matrixfeld vorgeschlagen · 🎯 Ziele</span><b>'+num(f.ziel)+'</b></div>'+
     '<div class="kv"><span>🔧 Werkzeuge · 🌀 Zustände · 📵 Ablenkungen</span><b>'+num(f.werkzeug)+' · '+num(f.zustand)+' · '+num(f.ablenkung)+'</b></div>'+
     '<div class="kv"><span>Alt-Felder entfernt (Karten-Felder)</span><b>'+num(L.entfernt)+'</b></div>'+
-    (function(){   // §3 (v2.0.1): Vorschau — Löschen ohne Zahl ist nicht zumutbar
-      const behalten=new Set(Array.isArray(S.meta.v200KetteBeiMigration)?S.meta.v200KetteBeiMigration:[]);
-      let weg=0, bleibt=0;
-      S.karten.forEach(k=>{ if(behalten.has(k.id)||k.rhythmus) bleibt++; else weg++; });
-      return '<div class="kv"><span>Würde abgeräumt</span><b>'+weg+' Karten</b></div>'+
-             '<div class="kv"><span>Bleibt (Kette + Routinen)</span><b>'+bleibt+'</b></div>';
+    (function(){   // §4 (v2.0.2): Vorschau — Löschen ohne Zahl ist nicht zumutbar
+      const v=leerungsVorschau();
+      return '<div class="kv"><span>Würde abgeräumt</span><b>'+v.weg+' Karten</b></div>'+
+             '<div class="kv"><span>Bleibt</span><b>'+v.bleibt+'</b> '+
+             '<span style="opacity:.6">('+v.routinen+' Routinen · '+v.kette+' aus der Kette)</span></div>';
     })()+
     '</div>'+
     '<p class="d" style="margin-top:8px">Die Einordnung ist ein <b>Vorschlag</b> — jede Karte bleibt im Detail änderbar.</p>'+
@@ -11483,6 +11536,19 @@ function zeigeV200Gate(){
 }
 /* §5 · Werkbank statt Lager — die eigentliche Leerung. Läuft ausschließlich
    aus zeigeV200Gate heraus, nach bestätigtem Export. */
+/* §4 (v2.0.2): Die Vorschau als eigene Funktion — das Gate zeigt sie, und
+   die Diagnose kann sie ohne Klick abfragen. Eine Zahl vor dem Löschen. */
+function leerungsVorschau(){
+  const behalten=new Set(Array.isArray(S.meta.v200KetteBeiMigration)
+    ? S.meta.v200KetteBeiMigration : []);
+  let weg=0, bleibt=0, routinen=0, kette=0;
+  S.karten.forEach(k=>{
+    if(behalten.has(k.id)){ bleibt++; kette++; return; }
+    if(k.rhythmus){ bleibt++; routinen++; return; }
+    weg++;
+  });
+  return { weg, bleibt, routinen, kette, gesamt:S.karten.length };
+}
 function v200LeerungAusfuehren(){
   // §3 (v2.0.1): NICHT tagesKette() — die füllt sich automatisch aus allem
   // Überfälligen und adoptiert damit genau den Bestand, der weg soll.

@@ -40,19 +40,22 @@ echo "Server: http://127.0.0.1:$PORT (PID $SERVER_PID)"
 rm -rf "$SCREENS"; mkdir -p "$SCREENS"
 
 # view name | fensterhoehe (375er-Basis; leiste klein, damit sie GROSS wirkt)
-VIEWS_ALLE="heute:812 matrix:812 oft:812 faellig:812 art:812 freitext:812 fokus:812 leiste:250 sheet:812 mxdialog:812 vorschlag:812 kpos:812 abschluss:812 tagab:812 routinen:812 belohnung:812 albumR:812 albumK:812 albumB:812 detail:812 statistik:812 sync:812 gate:812 einst:812"
+VIEWS_ALLE="echtSuche:812 heute:812 matrix:812 oft:812 faellig:812 art:812 freitext:812 fokus:812 leiste:250 sheet:812 mxdialog:812 vorschlag:812 kpos:812 abschluss:812 tagab:812 routinen:812 belohnung:812 albumR:812 albumK:812 albumB:812 detail:812 statistik:812 sync:812 gate:812 einst:812"
 STORAGE_LAUF=1
+ECHT_LAUF=1  # §1 (v2.0.2): Lauf gegen den gelebten Bestand
 DIAG_LAUF=1   # §8 (v1.13.0): Klick-Diagnose (kein Screenshot) — Teil des Vollaufs
 if [ -n "$NUR_VIEWS" ]; then
   VIEWS=""
   STORAGE_LAUF=0
   DIAG_LAUF=0
+  ECHT_LAUF=0
   for w in $(echo "$NUR_VIEWS" | tr ',' ' '); do
     [ "$w" = "storage" ] && { STORAGE_LAUF=1; continue; }
     [ "$w" = "diag" ] && { DIAG_LAUF=1; continue; }
+    [ "$w" = "echt" ] && { ECHT_LAUF=1; continue; }
     for e in $VIEWS_ALLE; do [ "${e%%:*}" = "$w" ] && VIEWS="$VIEWS $e"; done
   done
-  [ -z "$VIEWS$([ $STORAGE_LAUF -eq 1 ] && echo x)$([ $DIAG_LAUF -eq 1 ] && echo x)" ] && { echo "FEHLER: keine bekannte Ansicht in --views $NUR_VIEWS"; exit 2; }
+  [ -z "$VIEWS$([ $STORAGE_LAUF -eq 1 ] && echo x)$([ $DIAG_LAUF -eq 1 ] && echo x)$([ $ECHT_LAUF -eq 1 ] && echo x)" ] && { echo "FEHLER: keine bekannte Ansicht in --views $NUR_VIEWS"; exit 2; }
 else
   VIEWS="$VIEWS_ALLE"
 fi
@@ -117,6 +120,24 @@ done
 
 # §8 (v1.13.0): Klick-Diagnose (eigener View, ohne Screenshot) — synthetische
 # Klicks + Zustandsvergleich fuer §1.3, §3.2 und §6.1
+if [ $ECHT_LAUF -eq 1 ]; then
+dome="$(chrome_lauf "http://127.0.0.1:$PORT/tests/ui/harness.html?view=echt" 375 812 "")"
+echt="$(printf '%s' "$dome" | python3 -c "
+import sys,html,re,json
+d=sys.stdin.read()
+m=re.search(r'UIRESULT:(.*?):ENDRESULT', d, re.S)
+if not m: print('FATAL|echt: Harness nicht fertig'); sys.exit()
+r=json.loads(html.unescape(m.group(1)))
+fat=r.get('fatal',[])
+print(('FATAL' if fat else 'OK')+'|checks '+str(r.get('checks',0)))
+for f in fat: print('  FEHLER [echt] '+f)
+for f in r.get('findings',[]): print('  '+f)
+")"
+printf '%-10s %s\n' "echt" "$(printf '%s' "$echt" | head -1 | sed 's/|/ — /')"
+printf '%s\n' "$echt" | tail -n +2
+printf '%s' "$echt" | head -1 | grep -q FATAL && FEHLER=$((FEHLER+1))
+fi
+
 if [ $DIAG_LAUF -eq 1 ]; then
 dom="$(chrome_lauf "http://127.0.0.1:$PORT/tests/ui/harness.html?view=diag" 375 812 "")"
 diag="$(printf '%s' "$dom" | python3 -c "

@@ -10,6 +10,7 @@
   #result{position:fixed;left:-9999px;top:0;white-space:pre}
 </style>
 <script src="fixture.js"></script>
+<script src="fixture-real.js"></script>
 </head>
 <body>
 <iframe id="app"></iframe>
@@ -185,7 +186,15 @@
     sync:     function(fw){ fw.setTab('suche'); fw.oeffneSync(); },
     /* §0 · das Export-Gate (die Fixture gilt als migriert — hier gezielt an) */
     gate:     function(fw){ fw.setTab('suche'); fw.zeigeV200Gate2Test ? fw.zeigeV200Gate2Test() : fw.zeigeV200Gate(); },
-    einst:    function(fw){ var b=fw.document.getElementById('btnEinst'); if(b) b.click(); }
+    einst:    function(fw){ var b=fw.document.getElementById('btnEinst'); if(b) b.click(); },
+    /* §1 (v2.0.2): dieselbe Suche, aber am GELEBTEN Bestand — mit offenem
+       Tag vom 10.09. und ausstehender Migration. Screenshot zum Ansehen. */
+    echtSuche:function(fw){
+      var d=fw.document;
+      d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+      var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+      fw.setTab('suche');
+    }
   };
 
   /* ── localStorage-Sequenz (view=storage): drei Punkte, die der Stub nie
@@ -496,6 +505,148 @@
     function lsGetMeta(){ try{ return JSON.parse(localStorage.getItem('fokus2_meta')||'null'); }catch(e){ return null; } }
   }
 
+  /* ══════════════════════════════════════════════════════════════════
+     §1 (v2.0.2) · DIAGNOSE AM GELEBTEN BESTAND (view=echt)
+     Die normale Fixture hat einen frischen Tag und gilt als migriert —
+     deshalb ist ihr keiner der drei Fehler aufgefallen. Hier laeuft
+     dieselbe App gegen einen Bestand mit elf Tage altem OFFENEM Tag und
+     ausstehender v2.0-Migration. elementFromPoint beantwortet die Frage,
+     die man sonst nur raten kann: WER faengt die Klicks?
+     ══════════════════════════════════════════════════════════════════ */
+  function echtSequenz(){
+    fixtureRealSchreiben();
+    ladeIframe(function(fw){
+      konsoleWaechter(fw);
+      var d=fw.document;
+      function pruef(bed, txt){ ergebnis.checks++; if(!bed) fatal('echt '+txt); }
+      function beschreib(e){
+        if(!e) return '(nichts)';
+        return e.tagName.toLowerCase()+(e.id?('#'+e.id):'')+
+               (e.className && typeof e.className==='string' && e.className?('.'+e.className.trim().split(/\s+/).join('.')):'');
+      }
+      try{
+        /* ── WER LIEGT OBEN? Mitte der Suchliste abfragen ── */
+        var mitteX=Math.round(FW/2), mitteY=Math.round(FH*0.55);
+        var oben=d.elementFromPoint(mitteX, mitteY);
+        var kette=[]; var e=oben;
+        while(e && kette.length<6){ kette.push(beschreib(e)); e=e.parentElement; }
+        finding('echt · oben bei ('+mitteX+','+mitteY+'): '+kette.join(' < '));
+        /* Sperrige Ebenen einzeln benennen */
+        var bd=d.getElementById('backdrop');
+        var sh=d.getElementById('sheet');
+        var lay=d.getElementById('fokusLayer');
+        var such=d.getElementById('suchOverlay');
+        /* Wie viele Vollbild-Momente liegen da, und was schliesst sie? */
+        var mom=d.querySelectorAll('.mom-voll');
+        finding('echt · .mom-voll im DOM: '+mom.length+
+                ' · Schliessen-Knopf darin: '+(d.querySelector('.mom-voll button')?'ja':'NEIN'));
+        if(mom.length){
+          var zi=fw.getComputedStyle(mom[0]).zIndex;
+          var zs=fw.getComputedStyle(d.getElementById('sheet')).zIndex;
+          finding('echt · z-index mom-voll='+zi+' vs sheet='+zs+
+                  ' → Moment liegt '+(parseInt(zi||0)>=parseInt(zs||0)?'UEBER':'unter')+' dem Sheet');
+          /* Klick darauf — schliesst er wirklich? */
+          mom[0].click();
+          finding('echt · nach einem Klick verbleiben: '+d.querySelectorAll('.mom-voll').length);
+        }
+        finding('echt · backdrop.on='+(bd&&bd.className.indexOf('on')>=0)+
+                ' sheet.on='+(sh&&sh.className.indexOf('on')>=0)+
+                ' fokusLayer.hidden='+(lay&&lay.hidden)+
+                ' suchOverlay.hidden='+(such&&such.hidden));
+        /* ── Wie ein Nutzer: erst wegtippen, was legitim oben liegt ──
+           Ein Vollbild-Moment und ein Modal-Dialog DUERFEN oben liegen —
+           sie muessen nur wegzubekommen sein. Danach gilt §2 ohne Wenn. */
+        d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+        pruef(d.querySelectorAll('.mom-voll').length===0,
+              '§2: ein Vollbild-Moment laesst sich nicht wegtippen');
+        var spaeter=d.querySelector('[data-v200spaeter]');
+        finding('echt · Export-Gate offen: '+(!!spaeter));
+        if(spaeter) spaeter.click();          // „Später" — wie auf dem Geraet
+        pruef(!(d.getElementById('sheet').className.indexOf('on')>=0),
+              '§2: das Export-Gate laesst sich nicht schliessen');
+        pruef(!(d.getElementById('backdrop').className.indexOf('on')>=0),
+              '§2: das Backdrop bleibt nach dem Schliessen liegen');
+        /* ── §2 · Ist eine Kartenzeile anklickbar? ── */
+        var reihe=d.querySelector('#suBody [data-detail], #suBody [data-fokusstart]');
+        pruef(!!reihe, '§2: keine Kartenzeile in der Suche gerendert');
+        if(reihe){
+          var r=reihe.getBoundingClientRect();
+          var treffer=d.elementFromPoint(Math.round(r.left+r.width/2), Math.round(r.top+r.height/2));
+          var drin = treffer && (treffer===reihe || reihe.contains(treffer) || (treffer.closest && treffer.closest('#suBody')));
+          pruef(drin, '§2: die Kartenzeile ist verdeckt von '+beschreib(treffer));
+        }
+        /* ── §3 · Gibt es den Tagesabschluss-Knopf? ── */
+        var abschluss=d.querySelector('[data-tagclose]');
+        var tagstart=d.querySelector('[data-tagstart]');
+        pruef(!!(abschluss||tagstart), '§3: weder Abschluss- noch Tagesstart-Knopf im DOM');
+        finding('echt · Tag offen seit '+(fw.S_tagDatum||'?')+' · data-tagclose im DOM: '+(!!abschluss));
+        /* ── §2 · Neue Karte anlegen ── */
+        var neu=d.getElementById('suNeu');
+        pruef(!!neu, '§2: Knopf „neue Karte" fehlt');
+        if(neu){
+          var rn=neu.getBoundingClientRect();
+          var tn=d.elementFromPoint(Math.round(rn.left+rn.width/2), Math.round(rn.top+rn.height/2));
+          pruef(tn===neu || (tn&&neu.contains(tn)), '§2: „neue Karte" ist verdeckt von '+beschreib(tn));
+          neu.click();
+          pruef(!!d.querySelector('#sheetBody [data-bind="titel"]'), '§2: Anlegen-Dialog oeffnet nicht');
+          fw.closeSheet();
+        }
+        /* ── §2 · Karte oeffnen, starten, abhaken ── */
+        var kid=(fw.tagesKette()||[])[0];
+        pruef(!!kid, '§2: die Kette ist leer — nichts zu bedienen');
+        if(kid){
+          var det=d.querySelector('#suBody [data-detail="'+kid+'"]');
+          if(det){ det.click();
+            pruef(!!d.querySelector('#sheetBody [data-bind="titel"]'), '§2: Detail oeffnet nicht');
+            fw.closeSheet(); }
+          fw.fokusStarten(kid, null);
+          pruef(!!fw.fokusKarte() && fw.fokusKarte().id===kid, '§2: Starten wirkt nicht');
+          var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+          fw.closeSheet();
+          /* Abhaken darf Dialoge oeffnen — gepruef wird, dass es ueberhaupt
+             greift und die Karte danach nicht mehr offen in der Kette steht. */
+          /* Abhaken greift: es oeffnet den Abhak-Dialog (oder schliesst
+             direkt ab) — beides ist eine Reaktion, und genau die fehlte. */
+          fw.karteAbhakenAuto(kid, false);
+          pruef(!!d.querySelector('[data-abgo]') ||
+                fw.S_erledigt===true ||
+                (fw.S_karteStatus ? fw.S_karteStatus(kid)==='erledigt' : true),
+                '§2: Abhaken loest nichts aus');
+          fw.closeSheet();
+        }
+        /* ── §3 · Mehrtaegig ausstehender Abschluss blockiert nichts ── */
+        var abKnopf=d.querySelector('[data-tagclose]');
+        pruef(!!abKnopf, '§3: Abschluss-Knopf fehlt bei ausstehendem Tag');
+        if(abKnopf){
+          var ra=abKnopf.getBoundingClientRect();
+          var ta=d.elementFromPoint(Math.round(ra.left+ra.width/2), Math.round(ra.top+ra.height/2));
+          pruef(ta===abKnopf || (ta&&abKnopf.contains(ta)) || (ta&&ta.closest&&ta.closest('[data-tagclose]')),
+                '§3: der Abschluss-Knopf ist verdeckt von '+beschreib(ta));
+          abKnopf.click();
+          pruef(!!d.querySelector('[data-abfinish]'), '§3: der Abschluss oeffnet nicht');
+          fw.closeSheet();
+        }
+        /* Und danach ist die Suche weiter bedienbar */
+        ['heute','matrix','faellig'].forEach(function(v){
+          var b=d.querySelector('[data-susicht="'+v+'"]'); if(b) b.click();
+          pruef(b && d.querySelector('[data-susicht="'+v+'"]').className.indexOf('on')>=0,
+                '§3: Sicht „'+v+'" nach dem Abschluss-Dialog nicht schaltbar');
+        });
+        /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
+        var behalten={}, weg=0, bleibt=0, routinen=0;
+        (fw.S_kartenListe||[]).forEach(function(){});
+        var vor=fw.leerungsVorschau ? fw.leerungsVorschau() : null;
+        if(vor){
+          finding('echt · §4 Leerungs-Vorschau: '+vor.weg+' weg · '+vor.bleibt+
+                  ' bleiben (davon '+vor.routinen+' Routinen, '+vor.kette+' aus der Kette)');
+          pruef(vor.bleibt>0, '§4: Vorschau behaelt nichts');
+        } else pruef(false, '§4: leerungsVorschau() fehlt');
+      }catch(err){ fatal('echt-Sequenz abgebrochen: '+err); }
+      abschluss2();
+    });
+    function abschluss2(){ abschluss(); }
+  }
+
   var frame=document.getElementById('app');
   function ladeIframe(cb){
     var f=document.getElementById('app');
@@ -512,10 +663,12 @@
     neu.src='/neu.html';
   }
 
+  if(VIEW==='echt'){ echtSequenz(); return; }     // §1 (v2.0.2): gelebter Bestand
   if(VIEW==='storage'){ storageSequenz(); return; }
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
-  fixtureSchreiben();
+  /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
+  (VIEW==='echtSuche' ? fixtureRealSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);
     /* const S liegt nicht auf window — Initialisierung über die
