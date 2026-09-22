@@ -126,6 +126,12 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
   color:var(--fg);font:inherit;font-size:11px;padding:0 4px;min-height:44px;opacity:.72;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .su-s.on{background:var(--ac);border-color:var(--ac);color:#fff;opacity:1;font-weight:600}
+/* §3 (v2.1.0): Der Filter ist ein schmaler Anhang, keine sechste Sicht —
+   er darf die fuenf nicht zusammenquetschen. */
+.su-erl{flex:0 0 34px;min-width:34px;min-height:44px;background:var(--bg2);
+  border:1px solid var(--li);border-radius:999px;color:var(--fg);font:inherit;
+  font-size:13px;opacity:.45;padding:0}
+.su-erl.on{background:var(--gut);border-color:var(--gut);color:#06210f;opacity:1;font-weight:700}
 .su-plus{flex:0 0 auto;background:var(--bg2);border:1px solid var(--li);border-radius:10px;color:var(--fg);
   font:inherit;font-size:19px;min-width:44px;min-height:44px;line-height:1}
 .su-swipe{touch-action:pan-y}
@@ -163,8 +169,37 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #fokusLayer{position:fixed;left:0;right:0;top:var(--tbH,96px);bottom:calc(56px + var(--sab));
   z-index:200;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
 #fokusLayer[hidden]{display:none}
+/* §2 (v2.1.0): Das Plus liegt ueber jeder Ansicht — Suche, alle fuenf
+   Sichten, Fokus und Statistik. 56 px Flaeche (ueber der 44-px-Norm), im
+   Daumenbogen, mit safe-area-Abstand ueber der Navigationsleiste.
+   z-index 199 ist bewusst gewaehlt: ueber dem Inhalt, aber UNTER Backdrop
+   (200) und Sheet (201) — ein offener Dialog muss es verdecken, sonst
+   waere es genau der Fehler, den v2.0.2 behoben hat, nur andersherum.
+   Der Fokus-Layer (200) liegt darueber; deshalb wird das Plus dort
+   ausgeblendet, wenn die Fokusansicht offen ist (fokusLayerPflegen). */
+#neuFab{position:fixed;right:16px;bottom:calc(56px + var(--sab) + 14px);z-index:199;
+  width:56px;height:56px;border-radius:50%;border:0;background:var(--ac);color:#fff;
+  font-size:26px;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;
+  align-items:center;justify-content:center}
+#neuFab[hidden]{display:none}
+/* In der Fokusansicht wandert das Plus ueber den Layer (der bei 200 liegt). */
+body.fokusOffen #neuFab{z-index:201}
 .mx-tag{font-size:10px;opacity:.7}
 /* §1 (v2.0.1): Weg-Knopf der Fokusansicht — 44px, oben links in der Karte */
+/* §1 (v2.1.0) · Abschluss in einem Durchgang */
+.ab-block{background:var(--bg2);border:1px solid var(--li);border-radius:12px;padding:10px 12px;margin:0 0 10px}
+.ab-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.55;margin-bottom:8px}
+.ab-z{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.ab-z b{display:block;font-size:18px;font-weight:700}
+.ab-z span{display:block;font-size:9px;opacity:.5}
+.ab-liste{margin-top:8px}
+.ab-zeile{display:flex;gap:8px;font-size:12px;padding:4px 0;border-bottom:1px solid var(--li)}
+.ab-zeile .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ab-zeile .d{opacity:.5;font-variant-numeric:tabular-nums}
+.ab-lauf{margin:0 0 10px}
+.ab-lauf-k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.6;margin-bottom:5px}
+.ab-lauf-bar{height:5px;border-radius:3px;background:var(--li);overflow:hidden}
+.ab-lauf-bar i{display:block;height:100%;background:var(--ac);transition:width .2s}
 .mom-zu{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:2;
   background:rgba(255,255,255,.14);border:0;border-radius:50%;color:#fff;font-size:17px;
   min-width:44px;min-height:44px;line-height:1}
@@ -1205,7 +1240,7 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
       <button id="suClear" class="su-x" hidden>✕</button>
       <!-- §6: Neuanlage sitzt in der Kopfzeile — in der Sichtleiste haette sie
            die fuenfte Sicht bei 375 px aus dem Bild gedraengt. -->
-      <button id="suNeu" class="su-plus" aria-label="Neue Karte">＋</button>
+
     </div>
     <!-- §3 (v2.0.2): Der Tag-Banner (Abschließen / Tag starten) hing bis
          v2.0.1 ausschliesslich an renderStapel() und damit an #stapelListe —
@@ -1238,6 +1273,12 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 <!-- §6: „Läuft eine Karte, liegt sie ÜBER der Suche" — bis sie geschlossen
      wird (erledigt, pausiert oder geschoben). -->
 <div id="fokusLayer" hidden><div id="fokusView"></div></div>
+
+<!-- §2 (v2.1.0): EIN Plus fuer die ganze App. Es haengt nicht mehr in der
+     Suchkopfzeile (dort war es auf Statistik und im Fokus nicht da), sondern
+     global ueber allem — ueber dem Fokus-Layer (200) und unter den Sheets
+     (201), damit ein offener Dialog es sauber verdeckt. -->
+<button id="neuFab" aria-label="Neue Karte">＋</button>
 
 <nav id="nav">
   <button data-tab="suche" class="on"><span class="ic">🔍</span>Suche</button>
@@ -1281,9 +1322,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.0.2';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.0.2';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-22-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.1.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.1.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-22-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1568,14 +1609,12 @@ function neueKarte(f={}){
     kommentarClaude: '',              // U6-E: Hinweis an Claude für den nächsten Sync (Freitext, keine App-Logik)
     projekt: null,                    // nur dfm
     geldScore: 0,                     // nur dfm — der Geld-Impact aus §2
-    // §4 (v2.0.0): Deadline und Planung sind ZWEI Dinge. Die Deadline sagt,
-    // bis wann es fertig sein MUSS (Sicht „Fällig"); geplantFuer sagt, an
-    // welchem Tag es drankommen SOLL (speist die Kette). Vorher war beides
-    // dasselbe Feld, und deshalb war „überfällig" nie vom „heute dran"
-    // zu unterscheiden.
-    faelligkeit: null,                // "YYYY-MM-DD" | null — DEADLINE
+    // ══ §4 (v2.1.0) · EIN DATUM ════════════════════════════════════════
+    // Die v2.0-Trennung in Deadline und „Geplant für" ist zurückgenommen:
+    // Pascal führt EIN Datum. Es gibt nur noch die Deadline — und sie ist ab
+    // jetzt BEIDSEITIG, die App darf sie setzen (vorher Airtable-Hoheit).
+    faelligkeit: null,                // "YYYY-MM-DD" | null — die Deadline, beidseitig
     uhrzeit: null,                    // "HH:MM" | null — Uhrzeit der Deadline ⇒ Termin
-    geplantFuer: null,                // "YYYY-MM-DD" | null — GEPLANT FÜR
     keineAutoPause: false,            // §5 (1.6.1): Pausentimer — keine Auto-Pause, dafür negative Rate ab PAUSENTIMER_MAX_MIN
     strafPunkte: 0,                   // §5 (1.6.1): aufgelaufene Dauerlauf-Strafe (app-only, mindert kartePunkte)
     sollMin: 0,
@@ -2148,7 +2187,7 @@ function ladeAlles(){
       // §4: Deadline und Planung trennen. Der Bestand kannte nur EIN Feld —
       // es wird zur Deadline, und der Planungstag erbt denselben Wert, damit
       // die Kette am ersten Tag exakt so aussieht wie vorher.
-      if(k.geplantFuer===undefined || k.geplantFuer===null){ k.geplantFuer=k.faelligkeit||null; if(k.geplantFuer) log.geplant++; }
+      // §4 (v2.1.0): geplantFuer gibt es nicht mehr — siehe Migration unten.
       // §4: die sechs entfallenen Felder — restlos.
       ['prioritaet','zeitmessung','tagesabschnitt','komplex','energie','blockade'].forEach(f=>{
         if(k[f]!==undefined){ delete k[f]; log.entfernt++; }
@@ -2285,6 +2324,27 @@ function ladeAlles(){
     S.meta.dublettenFix201Log=log;
     S.meta.dublettenFix201=true;
     if(log.zusammengefuehrt.length) saveKarten();
+    saveMeta();
+  }
+  // ══ §4 (v2.1.0) · EIN DATUM — geplantFuer verwerfen ═════════════════
+  // Die v2.0-Migration hatte geplantFuer = faelligkeit kopiert; bei allen
+  // Karten ist die Deadline also bereits das maßgebliche Datum. Der Regelfall
+  // ist deshalb: Feld ersatzlos entfernen.
+  // Der EINE Fall, der gerettet werden muss: geplantFuer gesetzt, Deadline
+  // leer — dann wandert es in die Deadline, sonst verlöre die Karte ihr Datum.
+  if(!S.meta.einDatum210){
+    const log={ ts:jetztIso(), entfernt:0, uebernommen:0, uebernommenIds:[] };
+    S.karten.forEach(k=>{
+      if(k.geplantFuer===undefined) return;
+      if(k.geplantFuer && !k.faelligkeit){
+        k.faelligkeit=k.geplantFuer;
+        log.uebernommen++;
+        if(log.uebernommenIds.length<20) log.uebernommenIds.push({id:k.id, titel:String(k.titel||'').slice(0,40), datum:k.geplantFuer});
+      }
+      delete k.geplantFuer; log.entfernt++;
+    });
+    S.meta.einDatum210Log=log; S.meta.einDatum210=true;
+    if(log.entfernt) saveKarten();
     saveMeta();
   }
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
@@ -3314,13 +3374,11 @@ function ketteState(){
   return S.meta.ketten.alle;
 }
 /* Auto-Vorschlag: offene Karten, die heute geplant oder überfällig sind.
-   §4 (v2.0.0): geplantFuer ist der Planungstag, faelligkeit die Deadline —
-   beide ziehen in die Kette, aber aus verschiedenen Gründen.
+   §4 (v2.1.0): EIN Datum — der Auto-Nachzug geht nach der Deadline.
    Werkzeuge stehen vorn: sie aktivieren, und Aktivierung ist das Problem. */
 function ketteAutoIds(){
   const h=heuteApp();
-  const ks=S.karten.filter(k=>k.status==='offen' &&
-    ((k.geplantFuer && k.geplantFuer<=h) || (k.faelligkeit && k.faelligkeit<=h)));
+  const ks=S.karten.filter(k=>k.status==='offen' && k.faelligkeit && k.faelligkeit<=h);
   const rang={werkzeug:0, ziel:1, zustand:2, ablenkung:3};
   return ks.slice().sort((a,b)=>num(rang[matrixFeldVon(a)],9)-num(rang[matrixFeldVon(b)],9)).map(k=>k.id);
 }
@@ -5511,12 +5569,46 @@ function tagStartPrioFinish(){
 
 /* ── Tagesabschluss (2 Durchgänge) ────────────────────────────────── */
 let abschlussTmp=null;
-function abraeumKarten(){
+/* ══ §1.2 (v2.1.0) · WELCHE AUFGABEN DURCHGEGANGEN WERDEN ═════════════
+   Genau die Karten, die ALLE DREI Bedingungen erfuellen:
+     · Deadline heute oder frueher
+     · keine Routine, kein Counter
+     · nicht erledigt
+   Routinen laufen automatisch (§1.1), Counter haben kein „erledigt", und
+   Erledigtes ist fertig. Eingefrorene bleiben ebenfalls draussen — eine
+   Karte auf „wartet" ist bewusst geparkt. */
+function abschlussKarten(){
   if(urlaubHeute()) return [];   // §5 (1.8.1): keine Abraeumpflicht im Urlaub
   const h=heuteApp();
-  return S.karten.filter(k=>k.status==='offen' && !k.freeze && k.faelligkeit && (k.faelligkeit===h || k.faelligkeit<h));   // A4: Eingefrorene raus
+  return S.karten.filter(k=>
+       k.status==='offen'
+    && !k.freeze
+    && !k.rhythmus                       // keine Routine
+    && kartenArt(k)!=='Counter'          // kein Counter
+    && k.faelligkeit && k.faelligkeit<=h // Deadline heute oder frueher
+  );
 }
-function morgenIso(){ const d=new Date(heuteApp()+'T12:00:00'); d.setDate(d.getDate()+1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+/* Alt-Name — derselbe Satz, damit bestehende Aufrufer nicht brechen. */
+function abraeumKarten(){ return abschlussKarten(); }
+/* §1.1: Was der Abschluss an Routinen AUTOMATISCH verbucht — zur Anzeige. */
+function abschlussRoutinenStand(){
+  const h=heuteApp();
+  const faellig=S.karten.filter(k=>k.rhythmus && k.status!=='archiviert' && routineFaellig(k,h));
+  const fertig=faellig.filter(k=>routErledigtHeute(k));
+  const bonus=fertig.reduce((a,k)=>a+abhakbonusDefault(k),0);
+  return { faellig:faellig.length, fertig:fertig.length, bonus:Math.round(bonus),
+           offen:faellig.length-fertig.length };
+}
+/* ══ §1.4 (v2.1.0) · „MORGEN" IST DER KALENDER, NICHT DER APP-TAG ══════
+   morgenIso() rechnete von heuteApp() — und das ist bei einem seit Tagen
+   offenen Tag der ALTE Tag. „Alle auf morgen" haette 114 Karten auf den
+   12.09. geschoben, also zehn Tage in die Vergangenheit. Vom Screenshot
+   des Durchgangs gefunden.
+   Der App-Tag ist eine Buchungsgroesse; „morgen" meint fuer den Nutzer
+   immer den Kalender. Alle Aufrufer (Schieben, Gruppe verschieben,
+   Abschluss) meinen genau das. */
+function morgenIso(){ const d=new Date(heuteIso()+'T12:00:00'); d.setDate(d.getDate()+1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function oeffneTagAbschluss(){
   if(!tagOffen()){ toast('Kein offener Tag'); return; }
   abschlussTmp={ schiebenFor:null, abzug:0 };
@@ -5527,39 +5619,105 @@ function oeffneTagAbschluss(){
    Chat, und er macht es besser, weil er Airtable sieht. Der Abschluss hat
    damit genau einen Schritt. */
 function renderAbschluss(){ renderAbschlussAbraeumen(); }
+/* ══════════════════════════════════════════════════════════════════════
+   §1 (v2.1.0) · TAGESABSCHLUSS — EIN DURCHGANG
+   Ersetzt den bisherigen zweistufigen Ablauf. Routinen laufen automatisch,
+   die faelligen Aufgaben werden nacheinander im BESTEHENDEN Anlege-Dialog
+   durchgegangen (derselbe Dialog, keine Kopie), Default-Datum ist morgen,
+   und „Alle auf morgen" kuerzt den ganzen Durchgang ab.
+   ══════════════════════════════════════════════════════════════════════ */
+/* §1.4: Schnellwahl-Ziele. Das Datum setzt die DEADLINE (§4: ein Datum). */
+function abschlussZiele(){
+  const m=morgenIso();
+  const d=new Date(heuteIso()+'T12:00:00'); d.setDate(d.getDate()+2);
+  const ue=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return [[m,'morgen'],[ue,'übermorgen'],[naechsterMontagIso(),'nächster Montag']];
+}
 function renderAbschlussAbraeumen(){
   rangCacheBauen();
-  const karten=abraeumKarten();
-  let h='<p class="d"><b>Abräumen.</b> Fällige/überfällige Karten abhaken, schieben, archivieren. Routinen: verpasst oder heute nicht nötig. <span style="color:var(--mut2)">(Eingefrorene Karten sind ausgenommen — kein Abzug.)</span></p>';
-  if(!karten.length){ h+='<div class="card"><p class="d" style="text-align:center">Alles abgeräumt 🎉</p></div>'; }
-  karten.forEach(k=>{
-    // §12.2 (v1.12.0): Standard-Kartenzeile; TAEGLICHE Routinen sind nicht
-    // schiebbar (nur „fertig"), alles andere schon. Datum direkt sichtbar.
-    const istRoutine=!!k.rhythmus, tickartig=istTickKarte(k);
-    const taeglich=istRoutine && k.rhythmus.typ==='taeglich';
-    h+='<div class="abzeile">'+kartenreiheHtml(k,'abschluss');
-    if(abschlussTmp.schiebenFor===k.id){
-      const vor=abzugVorschlag(k);
-      h+='<div class="schiebe">'+
-        '<div class="row2"><input type="date" id="ab-date" value="'+morgenIso()+'"><input type="time" id="ab-time" value="'+esc(k.uhrzeit||'')+'"></div>'+
-        '<div class="abzugsel">Punkteverlust: '+
-          [['0','ohne'],[String(vor),'Vorschlag −'+vor]].map(([v,t])=>'<button class="chip '+(num(abschlussTmp.abzug)===num(v)&&!abschlussTmp.abzugSelbst?'on rot':'')+'" data-abzug="'+v+'">'+t+'</button>').join('')+
-          '<input type="number" inputmode="numeric" id="ab-abzug" placeholder="selbst" style="width:76px" value="'+(abschlussTmp.abzugSelbst?num(abschlussTmp.abzug):'')+'">'+
-        '</div>'+
-        '<div class="abbtns"><button class="abbtn" data-abschiebenab="1">✕</button><button class="abbtn ok" data-abschiebengo="'+k.id+'">→ Schieben</button></div>'+
-      '</div>';
-    } else {
-      h+='<div class="abbtns">'+
-        (!tickartig?'<button class="abbtn ok" data-abfertig="'+k.id+'">✓ Fertig</button>':'')+
-        (!taeglich?'<button class="abbtn" data-abschieben="'+k.id+'">→ Schieben</button>':'')+
-        (istRoutine?'<button class="abbtn warn" data-abverpasst="'+k.id+'">😴 Verpasst</button><button class="abbtn" data-abnicht="'+k.id+'">🆗 nicht nötig</button>'
-          : tickartig?'<button class="abbtn" data-abnicht="'+k.id+'">🆗 weg</button>':'')+
-      '</div>';
-    }
-    h+='</div>';
-  });
-  const foot='<button class="btn ghost sm" data-close="1">Später</button><button class="btn prim" data-abfinish="1">Tag schließen + Export</button>';
+  const karten=abschlussKarten();
+  const rt=abschlussRoutinenStand();
+  const vortag = S.tag && S.tag.datum<heuteIso();
+  let h='';
+  // §1.7: Ein ueber Tage offener Abschluss ist ein Hinweis, nie eine Sperre.
+  if(vortag){
+    // fmtDatum rechnet relativ zum APP-Tag — und der ist hier gerade der
+    // alte, also käme „heute" heraus. Beim Nachholen zählt der Kalender.
+    const tage=Math.max(1, Math.round((new Date(heuteIso()+'T12:00:00')-new Date(S.tag.datum+'T12:00:00'))/86400000));
+    h+='<div class="hinweisbox">Der Tag vom <b>'+S.tag.datum.slice(8)+'.'+S.tag.datum.slice(5,7)+'.</b> '+
+       'ist noch offen — seit '+tage+' Tag'+(tage===1?'':'en')+'. Du holst ihn jetzt nach; '+
+       'das geht jederzeit und blockiert nichts.</div>';
+  }
+  // §1.1 · Routinen laufen automatisch
+  h+='<div class="ab-block"><div class="ab-h">🔁 Routinen — laufen automatisch</div>'+
+     '<div class="ab-z"><div><b>'+rt.fertig+'/'+rt.faellig+'</b><span>erledigt</span></div>'+
+     '<div><b>+'+rt.bonus+'</b><span>Abhakbonus</span></div>'+
+     '<div><b>'+routinenSerieBeste().tage+'</b><span>längste Serie</span></div></div>'+
+     '<div class="hint">Quote und Serien werden beim Abschließen gebucht, die Ticks zurückgesetzt. '+
+     'Kein Schritt für dich.</div></div>';
+  // §1.2/§1.3/§1.5 · Die Aufgaben
+  h+='<div class="ab-block"><div class="ab-h">📋 Fällige Aufgaben — '+karten.length+'</div>';
+  if(!karten.length){
+    h+='<div class="hint">Nichts offen mit Deadline heute oder früher. Routinen und Counter '+
+       'stehen hier bewusst nicht — die laufen automatisch.</div>';
+  } else {
+    h+='<div class="hint">Jede Karte öffnet sich nacheinander im Anlege-Dialog. '+
+       'Datum steht auf <b>morgen</b>, Matrixfeld und alles andere sind dort änderbar.</div>'+
+       '<div class="btnrow">'+
+       '<button class="btn prim" data-abdurch="1">▶ Durchgehen ('+karten.length+')</button>'+
+       '<button class="btn sm" data-aballemorgen="1">⏭ Alle auf morgen</button></div>';
+    h+='<div class="ab-liste">'+karten.slice(0,12).map(k=>
+      '<div class="ab-zeile"><span class="t">'+matrixIcon(matrixFeldVon(k))+' '+
+      esc(String(k.titel||'?').slice(0,40))+'</span>'+
+      '<span class="d">'+fmtDatum(k.faelligkeit)+'</span></div>').join('')+
+      (karten.length>12?'<div class="hint">+'+(karten.length-12)+' weitere</div>':'')+'</div>';
+  }
+  h+='</div>';
+  const foot='<button class="btn ghost sm" data-close="1">Später</button>'+
+             '<button class="btn prim" data-abfinish="1">Tag schließen + Export</button>';
   openSheet('Tagesabschluss', h, foot);
+}
+/* §1.3 · Der Durchgang. Er benutzt oeffneDetail — DENSELBEN Dialog. */
+function abschlussDurchgangStarten(){
+  const ks=abschlussKarten();
+  if(!ks.length){ toast('Nichts durchzugehen'); return; }
+  abschlussLauf={ ids:ks.map(k=>k.id), idx:0 };
+  abschlussDurchgangZeigen();
+}
+function abschlussDurchgangZeigen(){
+  if(!abschlussLauf) return;
+  if(abschlussLauf.idx>=abschlussLauf.ids.length){
+    abschlussLauf=null;
+    toast('✓ Alle durchgegangen');
+    oeffneTagAbschluss();               // zurueck in den Abschluss
+    return;
+  }
+  const kid=abschlussLauf.ids[abschlussLauf.idx];
+  const k=S.karten.find(x=>x.id===kid);
+  if(!k){ abschlussLauf.idx++; abschlussDurchgangZeigen(); return; }
+  oeffneDetail(kid);
+  // §1.4: Default morgen — gesetzt, sobald die Karte im Durchgang aufgeht.
+  if(entwurf){ entwurf.faelligkeit=morgenIso(); renderDetail(); }
+}
+function abschlussDurchgangWeiter(){
+  if(!abschlussLauf) return;
+  // detailSpeichern() ruft closeSheet(), und das beendet den Durchgang
+  // (richtig so: ein weggetipptes Sheet heisst abbrechen). Fuer den Weg
+  // „Weiter" muss der Lauf das Speichern deshalb ueberdauern.
+  const lauf=abschlussLauf;
+  detailLies(); detailSpeichern();
+  abschlussLauf=lauf;
+  abschlussLauf.idx++;
+  abschlussDurchgangZeigen();
+}
+/* §1.5 · Die Abkuerzung. */
+function abschlussAlleAufMorgen(){
+  const ks=abschlussKarten(), m=morgenIso();
+  ks.forEach(k=>{ k.faelligkeit=m; beruehre(k); });
+  saveKarten(); baueSuchIndex();
+  toast('⏭ '+ks.length+' Karten auf '+fmtDatum(m));
+  oeffneTagAbschluss();
+  return ks.length;
 }
 /* §10 (v2.0.0): renderAbschlussSortieren ist entfallen — die zweite Runde
    „morgen priorisieren" macht Claude im Chat. */
@@ -5626,6 +5784,7 @@ function untermenge(parentId){ return S.unteraufgaben.filter(u=>u.parentId===par
    11 · Sheet-Infrastruktur (Detail D3 / Stapel-Editor D4)
    Öffnet als Sheet von unten, schließt per ✕ / Backdrop / Wisch-nach-unten.
    ══════════════════════════════════════════════════════════════════════ */
+let abschlussLauf=null;   // §1.3 (v2.1.0): laufender Abschluss-Durchgang
 let sheetSaveFn=null;
 /* §1.2 (v2.0.0): Ist gerade ein Sheet offen? Die Positionsabfrage darf einen
    laufenden Dialog NIE überschreiben — das war einer der fünf Fehler, die die
@@ -5641,6 +5800,7 @@ function openSheet(titel, bodyHtml, footHtml, saveFn){
 }
 function closeSheet(){
   ketteSheetOffen=false;   // §9.3 (v1.12.0)
+  abschlussLauf=null;      // §1.3 (v2.1.0): Dialog zu heisst Durchgang beendet
   matrixTmp=null;          // §1.2 (v2.0.0): ein weggetippter Dialog blockiert nicht den nächsten
   el('sheet').classList.remove('on');
   el('backdrop').classList.remove('on');
@@ -5681,6 +5841,18 @@ function renderDetail(){
   if(entwurfNeu && S.vorlagen.length){
     h+='<div class="field"><label>Aus Vorlage</label><div class="chips">'+
       S.vorlagen.map(v=>'<button class="chip" data-ausvorlage="'+v.id+'">📄 '+esc(v.name)+'</button>').join('')+'</div></div>';
+  }
+  // §1.3 (v2.1.0): Im Abschluss-Durchgang bekommt DERSELBE Dialog einen
+  // Fortschritt und die Datums-Schnellwahl obendrauf — keine zweite Ansicht.
+  if(abschlussLauf){
+    const nr=abschlussLauf.idx+1, von=abschlussLauf.ids.length;
+    h+='<div class="ab-lauf"><div class="ab-lauf-k">Abschluss · Karte '+nr+' von '+von+'</div>'+
+       '<div class="ab-lauf-bar"><i style="width:'+Math.round(nr/von*100)+'%"></i></div></div>';
+    h+='<div class="field"><label>Neue Deadline</label><div class="chips">'+
+      abschlussZiele().map(([d,l])=>'<button class="chip '+(k.faelligkeit===d?'on':'')+
+        '" data-abziel="'+d+'">'+l+'</button>').join('')+
+      '</div><input type="date" data-bind="faelligkeit" value="'+esc(k.faelligkeit||'')+'" style="margin-top:6px">'+
+      '<div class="hint">Default ist morgen. Das Datum setzt die Deadline — seit v2.1 führt die App ein Datum.</div></div>';
   }
   // §4 (v2.0.0) · Beim Anlegen sind es FÜNF Entscheidungen statt neun:
   // Titel, Domäne, Matrixfeld, Soll-Minuten, Geld-Impact. Priorität ist
@@ -5825,6 +5997,17 @@ function renderDetail(){
   h+='</div></details>';
 
   let foot='';
+  if(abschlussLauf){
+    // Im Durchgang: abhaken bleibt moeglich, aber die Hauptwege sind
+    // „weiter" (speichert) und „ueberspringen" (laesst die Karte stehen).
+    foot+='<button class="btn ghost sm" data-detailaktion="abhaken">✓ fertig</button>'+
+          '<button class="btn ghost sm" data-abskip="1">Überspringen</button>'+
+          '<button class="btn prim" data-abweiter="1">'+
+          (abschlussLauf.idx+1>=abschlussLauf.ids.length?'Fertig':'Weiter ›')+'</button>';
+    openSheet('Abschluss · Karte', h, foot, null);
+    const _sb0=el('sheetBody'); if(_sb0) _sb0.scrollTop=_scroll;
+    return;
+  }
   foot+='<button class="btn ghost sm" data-detailaktion="abhaken">'+(k.status==='erledigt'?'↩︎ offen':'✓ fertig')+'</button>';
   if(k.status==='erledigt') foot+='<button class="btn ghost sm" data-detailaktion="neustarten">🔄 Neu starten</button>';   // U6-A6
   if(!entwurfNeu) foot+='<button class="btn ghost sm" data-detailaktion="archiv">🗄</button>';
@@ -7046,7 +7229,6 @@ function syncImport(text){
     if(inc.timerFlag!==undefined)      lok.timerFlag=!!inc.timerFlag;
     if(inc.keineAutoPause!==undefined) lok.keineAutoPause=!!inc.keineAutoPause;
     if(inc.faelligkeit!==undefined) lok.faelligkeit=inc.faelligkeit;   // DEADLINE
-    if(inc.geplantFuer!==undefined) lok.geplantFuer=inc.geplantFuer;   // §4: GEPLANT FÜR (getrennt von der Deadline)
     if(inc.uhrzeit!==undefined) lok.uhrzeit=inc.uhrzeit;               // Uhrzeit↔Airtable-Deadline
     if(inc.freeze!==undefined) lok.freeze=!!inc.freeze;               // M1 (v1.1.0): freeze true setzt / false löst; fehlend = unverändert
     // App-Hoheit (Status offen/erledigt, Ist, Punkte) wird NIE vom Import
@@ -9200,6 +9382,24 @@ const SU_SICHTEN = [
   ['art',    'Art',     '◇']
 ];
 function suSicht(){ const v=S.ui.suSicht; return SU_SICHTEN.some(x=>x[0]===v)?v:'heute'; }
+/* ══ §3 (v2.1.0) · ERLEDIGTES IST AUS DER SUCHE DRAUSSEN ══════════════
+   Das aendert die v2.0-Regel, nach der der Freitext bewusst auch Erledigtes
+   fand. Die neue Regel gilt fuer ALLE fuenf Sichten UND den Freitext — ein
+   Filter blendet es wieder ein.
+   „Erledigt" heisst hier zweierlei, und beides muss weg:
+     · eine Aufgabe mit status 'erledigt'
+     · eine ROUTINE, die HEUTE schon erledigt ist (sie ist morgen wieder da) */
+function erledigteZeigen(){ return !!(S.ui && S.ui.suErledigt); }
+function istHeuteErledigt(k){
+  if(!k) return false;
+  if(k.status==='erledigt') return true;
+  if(k.rhythmus && typeof routErledigtHeute==='function' && routErledigtHeute(k)) return true;
+  return false;
+}
+/* DIE Filterstelle. Jede Sicht und der Freitext gehen hier durch. */
+function suSichtbar(ks){
+  return erledigteZeigen() ? ks : ks.filter(k=>!istHeuteErledigt(k));
+}
 function suFrage(){ return String(S.ui.suFrage||'').trim(); }
 
 function setTab(tab){
@@ -9248,6 +9448,9 @@ function fokusLayerPflegen(){
   const zeigen = fokusAnsichtOffen() && !!(S.fokus && S.fokus.karteId);
   lay.hidden = !zeigen;
   document.body.classList.toggle('fokusOffen', zeigen);
+  // §2 (v2.1.0): Das Plus liegt unter dem Fokus-Layer — in der Fokusansicht
+  // bekommt es deshalb einen eigenen Platz (siehe .fokusOffen-Regel), statt
+  // unsichtbar darunter zu verschwinden.
   if(zeigen) renderFokus();
 }
 function renderSuche(){
@@ -9259,7 +9462,9 @@ function renderSuche(){
   const sv=suSicht();
   const sw=el('suSichten');
   if(sw) sw.innerHTML = SU_SICHTEN.map(([k,l,ic])=>
-    '<button class="su-s'+(sv===k?' on':'')+'" data-susicht="'+k+'">'+ic+' '+esc(l)+'</button>').join('');
+    '<button class="su-s'+(sv===k?' on':'')+'" data-susicht="'+k+'">'+ic+' '+esc(l)+'</button>').join('')+
+    '<button class="su-erl'+(erledigteZeigen()?' on':'')+'" data-suerl="1" '+
+    'aria-label="Erledigte zeigen" title="Erledigte zeigen">✓</button>';
   const q=suFrage();
   const body=el('suBody'); if(!body) return;
   // §6: Der Freitext schlägt JEDE Sicht — und er findet alles, was in der App
@@ -9271,9 +9476,12 @@ function renderSuche(){
 function suFreitextHtml(q){
   // sucheTreffer liefert {k,sc}-Paare, nicht die Karten selbst — die Karte
   // muss ausgepackt werden, sonst rendert die Zeile ein leeres Objekt.
-  const tr=sucheTreffer(q);
-  if(!tr.length) return '<div class="leer">Nichts gefunden zu „'+esc(q)+'".</div>';
-  return '<div class="su-kopfzeile">'+tr.length+' Treffer · Freitext (auch Erledigtes)</div>'+
+  // §3 (v2.1.0): auch der Freitext filtert — das ist die Aenderung zu v2.0.
+  const tr=sucheTreffer(q).filter(o=>erledigteZeigen() || !istHeuteErledigt(o.k));
+  if(!tr.length) return '<div class="leer">Nichts gefunden zu „'+esc(q)+'".'+
+    (erledigteZeigen()?'':' (Erledigtes ist ausgeblendet.)')+'</div>';
+  return '<div class="su-kopfzeile">'+tr.length+' Treffer · Freitext'+
+    (erledigteZeigen()?' · inkl. Erledigtes':'')+'</div>'+
     tr.map(o=>kartenreiheHtml(o.k, 'su-frei')).join('');
 }
 function suSichtHtml(sv){
@@ -9286,8 +9494,10 @@ function suSichtHtml(sv){
 /* 1 · Heute — die Kette in ihrer Reihenfolge (Standardsicht). */
 function suHeuteHtml(){
   const ids=tagesKette(), by={}; S.karten.forEach(k=>by[k.id]=k);
-  const ks=ids.map(id=>by[id]).filter(Boolean);
-  if(!ks.length) return '<div class="leer">Die Kette ist leer. Ein Sync aus dem Chat füllt sie — oder leg selbst eine Karte an (＋).</div>';
+  const ks=suSichtbar(ids.map(id=>by[id]).filter(Boolean));
+  if(!ks.length) return '<div class="leer">'+(erledigteZeigen()
+    ? 'Die Kette ist leer.'
+    : 'Nichts Offenes in der Kette. (Erledigtes ist ausgeblendet — Filter oben.)')+'</div>';
   const offen=ks.filter(k=>k.status==='offen').length;
   let h='<div class="su-kopfzeile">'+ks.length+' in der Kette · '+offen+' offen</div>';
   h+=ks.map((k,i)=>'<div class="kettenzeile"><span class="kn">'+(i+1)+'</span>'+kartenreiheHtml(k,'kette')+'</div>').join('');
@@ -9295,7 +9505,7 @@ function suHeuteHtml(){
 }
 /* 2 · Matrix — die vier Felder als Raster; Tap zeigt die Karten des Felds. */
 function suMatrixHtml(){
-  const off=S.karten.filter(k=>k.status==='offen');
+  const off=suSichtbar(S.karten.filter(k=>k.status==='offen'||erledigteZeigen()));
   const gewaehlt=S.ui.suMatrixFeld && MATRIX_FELDER.indexOf(S.ui.suMatrixFeld)>=0 ? S.ui.suMatrixFeld : null;
   const p=matrixPos();
   let h='<div class="su-mxgrid">';
@@ -9324,7 +9534,7 @@ function suMatrixHtml(){
 }
 /* 3 · Zuletzt und oft genutzt. */
 function suOftHtml(){
-  const ks=S.karten.filter(k=>k.status!=='archiviert');
+  const ks=suSichtbar(S.karten.filter(k=>k.status!=='archiviert'));
   const zuletzt=ks.filter(k=>k.letzteBearbeitung).sort((a,b)=>String(b.letzteBearbeitung).localeCompare(String(a.letzteBearbeitung))).slice(0,12);
   // „oft" = Häufigkeit im Abschluss-Stack plus Ticks — das ist das, was die
   // App über tatsächliche Nutzung weiß, ohne einen neuen Zähler zu erfinden.
@@ -9342,7 +9552,7 @@ function suOftHtml(){
 /* 4 · Fällig — nach Deadline, überfällige zuerst. */
 function suFaelligHtml(){
   const h0=heuteApp();
-  const ks=S.karten.filter(k=>k.status==='offen' && k.faelligkeit)
+  const ks=suSichtbar(S.karten.filter(k=>(k.status==='offen'||erledigteZeigen()) && k.faelligkeit))
     .sort((a,b)=>String(a.faelligkeit).localeCompare(String(b.faelligkeit))
       || String(a.uhrzeit||'99:99').localeCompare(String(b.uhrzeit||'99:99')));
   if(!ks.length) return '<div class="leer">Keine Karte mit Deadline.</div>';
@@ -9360,7 +9570,7 @@ function suFaelligHtml(){
 }
 /* 5 · Art — Aufgaben, Routinen, Counter. */
 function suArtHtml(){
-  const off=S.karten.filter(k=>k.status==='offen');
+  const off=suSichtbar(S.karten.filter(k=>k.status==='offen'||erledigteZeigen()));
   let h='';
   [['Aufgabe','Aufgaben'],['Routine','Routinen'],['Counter','Counter']].forEach(([a,l])=>{
     const ks=off.filter(k=>kartenArt(k)===a);
@@ -9994,6 +10204,13 @@ el('sheet').addEventListener('click', e=>{
     return; }
   // §6.1 (v1.13.0): Akku-Dialog — Speichern (Sheet-Fuß) + Öffnen-Knöpfe
   if(t.closest('[data-akkuqgo]')){ akkuQuickSpeichern(); return; }
+  // ══ §1 (v2.1.0) · Tagesabschluss in einem Durchgang ══
+  if(t.closest('[data-abdurch]')){ abschlussDurchgangStarten(); return; }
+  if(t.closest('[data-aballemorgen]')){ abschlussAlleAufMorgen(); return; }
+  if(t.closest('[data-abweiter]')){ abschlussDurchgangWeiter(); return; }
+  if(t.closest('[data-abskip]')){ if(abschlussLauf){ abschlussLauf.idx++; abschlussDurchgangZeigen(); } return; }
+  const abZiel=t.closest('[data-abziel]'); if(abZiel){
+    if(entwurf){ detailLies(); entwurf.faelligkeit=abZiel.dataset.abziel; renderDetail(); } return; }
   // ══ §1.2 (v2.0.0) · Der EINE Dialog für Matrix und Akku ══
   if(t.closest('[data-mxgo]')){ matrixDialogSpeichern(); return; }
   // ══ §6 (v2.0.0) · Kette aus der SUCHE heraus sortieren ══
@@ -10508,10 +10725,14 @@ el('tagBanner').addEventListener('click', e=>{
   if(e.target.closest('[data-tagclose]')){ oeffneTagAbschluss(); return; }
 });
 el('suSichten').addEventListener('click', e=>{
+  // §3 (v2.1.0): Filter „Erledigte zeigen" — sitzt in der Sicht-Leiste.
+  if(e.target.closest('[data-suerl]')){ S.ui.suErledigt=!erledigteZeigen(); saveUi();
+    renderSuche(); haptik(8);
+    toast(erledigteZeigen()?'✓ Erledigte werden gezeigt':'Erledigte ausgeblendet'); return; }
   const b=e.target.closest('[data-susicht]');
   if(b){ S.ui.suSicht=b.dataset.susicht; saveUi(); renderSuche(); haptik(8); return; }
 });
-el('suNeu').addEventListener('click', ()=>oeffneDetail(null));
+el('neuFab').addEventListener('click', ()=>oeffneDetail(null));
 el('suBody').addEventListener('click', e=>{
   const mx=e.target.closest('[data-sumx]');
   if(mx){ S.ui.suMatrixFeld=(S.ui.suMatrixFeld===mx.dataset.sumx)?null:mx.dataset.sumx; saveUi(); renderSuche(); return; }

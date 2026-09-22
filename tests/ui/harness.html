@@ -11,6 +11,58 @@
 </style>
 <script src="fixture.js"></script>
 <script src="fixture-real.js"></script>
+<script>
+/* ══ Schritt 0 (v2.1.0) · ECHTE DATEN, WENN VORHANDEN ══════════════════
+   tests/ui/pascal-20-09.json ist Pascals Vollexport. Sie liegt in
+   .gitignore und wird NIE committet (Kundennamen, Projekte, private
+   Routinen; das Repo haengt an GitHub Pages).
+   Fehlt sie, faellt der Harness auf fixture-real.js zurueck — das Repo
+   muss ohne die private Datei gruen bauen. */
+var ECHT_QUELLE='Nachbau (fixture-real.js)';
+function echteDatenLaden(){
+  try{
+    var x=new XMLHttpRequest();
+    x.open('GET','pascal-20-09.json',false);   // synchron: der Harness ist ein Werkzeug
+    x.send(null);
+    if(x.status!==200) return null;
+    var p=JSON.parse(x.responseText);
+    if(!p || !Array.isArray(p.karten) || !p.karten.length) return null;
+    ECHT_QUELLE='pascal-20-09.json ('+p.karten.length+' Karten, appVersion '+(p.appVersion||'?')+')';
+    return p;
+  }catch(e){ return null; }
+}
+/* Aus einem Vollexport nach Vertrag 1.6/2.0 einen localStorage-Stand bauen. */
+function echtSchreibenAusPaket(p){
+  try{ localStorage.clear(); }catch(e){}
+  var wh=p.wiederherstellung||{};
+  function setz(k,v){ if(v!==undefined && v!==null) localStorage.setItem('fokus2_'+k, JSON.stringify(v)); }
+  setz('karten', p.karten.map(function(k){
+    var o={}; Object.keys(k).forEach(function(f){
+      if(f==='istMin'||f==='punkteIst'||f==='punktePrognose'||f==='unteraufgaben'||
+         f==='sitzungen'||f==='kette'||f==='kettenPosition'||f==='tagesabschnittEffektiv') return;
+      o[f]=k[f]; });
+    if(o.istSek===undefined && k.istMin!==undefined) o.istSek=Math.max(0,Number(k.istMin)||0)*60;
+    return o; }));
+  var subs=[]; p.karten.forEach(function(k){
+    (k.unteraufgaben||[]).forEach(function(u){ subs.push(Object.assign({parentId:k.id}, u)); }); });
+  setz('unteraufgaben', wh.unteraufgaben || subs);
+  setz('meta', wh.meta || p.meta || {});
+  setz('settings', wh.settings);
+  setz('routinenGruppen', wh.routinenGruppen || p.gruppen);
+  setz('gruppen', wh.kartenGruppen); setz('stapel', wh.stapel); setz('ordner', wh.ordner);
+  setz('vorlagen', wh.vorlagen); setz('belohnung', wh.belohnung);
+  setz('historie', wh.historie); setz('intraday', wh.intraday);
+  setz('tag', wh.tag!==undefined ? wh.tag : null);
+  localStorage.setItem('fokus2_ui', JSON.stringify({tab:'suche'}));
+  localStorage.setItem('fokus2_fokus', JSON.stringify(null));
+}
+/* EIN Einstieg fuer alle Diagnosen: echt, wenn da — sonst Nachbau. */
+function bestandSchreiben(){
+  var p=echteDatenLaden();
+  if(p){ echtSchreibenAusPaket(p); return; }
+  fixtureRealSchreiben();
+}
+</script>
 </head>
 <body>
 <iframe id="app"></iframe>
@@ -189,6 +241,24 @@
     einst:    function(fw){ var b=fw.document.getElementById('btnEinst'); if(b) b.click(); },
     /* §1 (v2.0.2): dieselbe Suche, aber am GELEBTEN Bestand — mit offenem
        Tag vom 10.09. und ausstehender Migration. Screenshot zum Ansehen. */
+    /* §1 (v2.1.0): der neue Abschluss-Dialog, am gelebten Bestand */
+    abschluss21:function(fw){
+      var d=fw.document;
+      d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+      var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+      fw.closeSheet(); fw.setTab('suche');
+      fw.oeffneTagAbschluss();
+    },
+    /* §1.3: der Durchgang im Anlege-Dialog */
+    durchgang21:function(fw){
+      var d=fw.document;
+      d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+      var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+      fw.closeSheet(); fw.setTab('suche');
+      fw.abschlussDurchgangStarten();
+    },
+    /* §2: das Plus in der Statistik */
+    plusStat: function(fw){ fw.setTab('statistik'); },
     echtSuche:function(fw){
       var d=fw.document;
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
@@ -478,8 +548,10 @@
         pruef(!!d.querySelector('[data-syncbestaetigt]'), '§11: Bestaetigungs-Knopf fehlt');
         var tsVor=(lsGetMeta()||{}).letzterSyncBestaetigtTs || null;
         var exFeld=d.getElementById('syncEx');
-        pruef(!!exFeld && /"appVersion":\s*"2\.0\./.test(exFeld.value),
-              '§11: Export traegt keine 2.0.x-appVersion');
+        /* §4 (v2.1.0): Der DATENVERTRAG bleibt 2.0 (Gate), die App-Version
+           zieht auf 2.1.0 — sie reist als appVersion mit. */
+        pruef(!!exFeld && /"appVersion":\s*"2\./.test(exFeld.value),
+              '§11: Export traegt keine 2.x-appVersion');
         pruef(((lsGetMeta()||{}).letzterSyncBestaetigtTs||null)===tsVor,
               '§11: der Zeitstempel wurde schon VOR der Bestaetigung fortgeschrieben');
         klick('[data-syncbestaetigt]');
@@ -514,11 +586,26 @@
      die man sonst nur raten kann: WER faengt die Klicks?
      ══════════════════════════════════════════════════════════════════ */
   function echtSequenz(){
-    fixtureRealSchreiben();
+    bestandSchreiben();
     ladeIframe(function(fw){
       konsoleWaechter(fw);
       var d=fw.document;
       function pruef(bed, txt){ ergebnis.checks++; if(!bed) fatal('echt '+txt); }
+      function klick(sel){ var e=d.querySelector(sel); if(e) e.click(); return e; }
+      /* Bei 294 Karten ist init() beim ersten Zugriff noch nicht durch — das
+         Export-Gate geht dann NACH dem Aufraeumen auf. Deshalb nicht einmal
+         wegtippen, sondern vor jeder Pruefgruppe frei machen. Das ist auch
+         naeher am Nutzer: er tippt weg, was ihm in den Weg kommt. */
+      function freiMachen(){
+        for(var i=0;i<4;i++){
+          var offen=false;
+          d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); offen=true; });
+          var sp=d.querySelector('[data-v200spaeter]');
+          if(sp && d.getElementById('sheet').className.indexOf('on')>=0){ sp.click(); offen=true; }
+          if(d.getElementById('sheet').className.indexOf('on')>=0){ fw.closeSheet(); offen=true; }
+          if(!offen) break;
+        }
+      }
       function beschreib(e){
         if(!e) return '(nichts)';
         return e.tagName.toLowerCase()+(e.id?('#'+e.id):'')+
@@ -526,6 +613,7 @@
       }
       try{
         /* ── WER LIEGT OBEN? Mitte der Suchliste abfragen ── */
+        finding('echt · Datenquelle: '+ECHT_QUELLE);
         var mitteX=Math.round(FW/2), mitteY=Math.round(FH*0.55);
         var oben=d.elementFromPoint(mitteX, mitteY);
         var kette=[]; var e=oben;
@@ -556,17 +644,20 @@
         /* ── Wie ein Nutzer: erst wegtippen, was legitim oben liegt ──
            Ein Vollbild-Moment und ein Modal-Dialog DUERFEN oben liegen —
            sie muessen nur wegzubekommen sein. Danach gilt §2 ohne Wenn. */
-        d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+        var sheetWar=d.getElementById('sheet').className.indexOf('on')>=0;
+        var gateWar=!!d.querySelector('[data-v200spaeter]');
+        finding('echt · beim Start offen: Sheet='+sheetWar+' · Export-Gate='+gateWar);
+        freiMachen();
         pruef(d.querySelectorAll('.mom-voll').length===0,
               '§2: ein Vollbild-Moment laesst sich nicht wegtippen');
-        var spaeter=d.querySelector('[data-v200spaeter]');
-        finding('echt · Export-Gate offen: '+(!!spaeter));
-        if(spaeter) spaeter.click();          // „Später" — wie auf dem Geraet
+        pruef(!(d.getElementById('sheet').className.indexOf('on')>=0),
+              '§2: es bleibt ein Dialog offen');
         pruef(!(d.getElementById('sheet').className.indexOf('on')>=0),
               '§2: das Export-Gate laesst sich nicht schliessen');
         pruef(!(d.getElementById('backdrop').className.indexOf('on')>=0),
               '§2: das Backdrop bleibt nach dem Schliessen liegen');
         /* ── §2 · Ist eine Kartenzeile anklickbar? ── */
+        freiMachen();
         var reihe=d.querySelector('#suBody [data-detail], #suBody [data-fokusstart]');
         pruef(!!reihe, '§2: keine Kartenzeile in der Suche gerendert');
         if(reihe){
@@ -581,7 +672,7 @@
         pruef(!!(abschluss||tagstart), '§3: weder Abschluss- noch Tagesstart-Knopf im DOM');
         finding('echt · Tag offen seit '+(fw.S_tagDatum||'?')+' · data-tagclose im DOM: '+(!!abschluss));
         /* ── §2 · Neue Karte anlegen ── */
-        var neu=d.getElementById('suNeu');
+        var neu=d.getElementById('neuFab');
         pruef(!!neu, '§2: Knopf „neue Karte" fehlt');
         if(neu){
           var rn=neu.getBoundingClientRect();
@@ -632,6 +723,110 @@
           pruef(b && d.querySelector('[data-susicht="'+v+'"]').className.indexOf('on')>=0,
                 '§3: Sicht „'+v+'" nach dem Abschluss-Dialog nicht schaltbar');
         });
+        /* ══ §2 (v2.1.0) · DAS PLUS AUF JEDER ANSICHT ══════════════════
+           Gemessen mit elementFromPoint, nicht nur im DOM nachgesehen —
+           die letzten drei Fehler waren alle „etwas liegt darueber". */
+        freiMachen();
+        (function(){
+          function plusTrifft(wo){
+            var fab=d.getElementById('neuFab');
+            if(!fab) return 'fehlt';
+            if(fab.hidden) return 'hidden';
+            var r=fab.getBoundingClientRect();
+            if(!(r.width>=44 && r.height>=44)) return 'zu klein '+Math.round(r.width)+'x'+Math.round(r.height);
+            var tr=d.elementFromPoint(Math.round(r.left+r.width/2), Math.round(r.top+r.height/2));
+            if(tr===fab || fab.contains(tr)) return 'ok';
+            return 'verdeckt von '+beschreib(tr);
+          }
+          ['heute','matrix','oft','faellig','art'].forEach(function(v){
+            var b=d.querySelector('[data-susicht="'+v+'"]'); if(b) b.click();
+            var r=plusTrifft(v);
+            pruef(r==='ok', '§2: Plus in Sicht „'+v+'" — '+r);
+          });
+          fw.setTab('statistik');
+          pruef(plusTrifft('statistik')==='ok', '§2: Plus in der Statistik — '+plusTrifft('statistik'));
+          fw.setTab('suche');
+          var kid0=(fw.tagesKette()||[])[0];
+          if(kid0){
+            fw.fokusStarten(kid0, null); fw.closeSheet();
+            pruef(plusTrifft('fokus')==='ok', '§2: Plus in der Fokusansicht — '+plusTrifft('fokus'));
+            var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+          }
+          /* Und es oeffnet wirklich den Anlege-Dialog */
+          d.getElementById('neuFab').click();
+          pruef(!!d.querySelector('#sheetBody [data-bind="titel"]'),
+                '§2: das Plus oeffnet den Anlege-Dialog nicht');
+          fw.closeSheet();
+        })();
+        /* ══ §3 (v2.1.0) · Erledigtes ausgeblendet, Filter blendet ein ══ */
+        freiMachen();
+        (function(){
+          /* ACHTUNG: renderSuche baut die Sicht-Leiste NEU. Ein vorher
+             gegriffenes Element ist danach abgehaengt — ein Klick darauf
+             tut nichts. Deshalb nach jedem Sichtwechsel frisch abfragen. */
+          klick('[data-susicht="art"]');
+          var f=d.querySelector('[data-suerl]');
+          pruef(!!f, '§3: Filter „Erledigte zeigen" fehlt');
+          if(f){
+            var rf=f.getBoundingClientRect();
+            var tf=d.elementFromPoint(Math.round(rf.left+rf.width/2), Math.round(rf.top+rf.height/2));
+            pruef(tf===f || f.contains(tf), '§3: der Filter ist verdeckt von '+beschreib(tf));
+            var ohne=d.querySelectorAll('#suBody .krow').length;
+            d.querySelector('[data-suerl]').click();
+            var mit=d.querySelectorAll('#suBody .krow').length;
+            finding('echt · §3 Sicht „Art": ohne Erledigte '+ohne+' Zeilen, mit '+mit);
+            pruef(mit>ohne, '§3: der Filter zeigt nicht MEHR Karten ('+ohne+' → '+mit+')');
+            d.querySelector('[data-suerl]').click();   // zurueck
+          }
+        })();
+        /* ══ §1 (v2.1.0) · DER GANZE ABSCHLUSS ═════════════════════════ */
+        freiMachen();
+        (function(){
+          klick('[data-susicht="heute"]');
+          var abk=d.querySelector('[data-tagclose]');
+          pruef(!!abk, '§1: Abschluss-Knopf fehlt');
+          if(!abk) return;
+          abk.click();
+          pruef(!!d.querySelector('[data-abfinish]'), '§1: Abschluss oeffnet nicht');
+          /* §1.1 Routinen laufen automatisch — der Block ist da */
+          pruef(d.getElementById('sheetBody').innerHTML.indexOf('laufen automatisch')>=0,
+                '§1.1: kein Hinweis, dass Routinen automatisch laufen');
+          var durch=d.querySelector('[data-abdurch]');
+          var alle =d.querySelector('[data-aballemorgen]');
+          finding('echt · §1 Abschluss: Durchgehen-Knopf '+(!!durch)+' · Alle-auf-morgen '+(!!alle)+
+                  ' · faellige Aufgaben '+fw.abschlussKarten().length);
+          if(durch){
+            /* §1.3 Durchgang oeffnet DENSELBEN Anlege-Dialog */
+            durch.click();
+            pruef(!!d.querySelector('#sheetBody [data-bind="titel"]'),
+                  '§1.3: der Durchgang oeffnet nicht den Anlege-Dialog');
+            pruef(!!d.querySelector('#sheetBody [data-dmx]'),
+                  '§1.3: das Matrixfeld fehlt im Durchgang');
+            pruef(d.getElementById('sheetBody').innerHTML.indexOf('Karte 1 von')>=0,
+                  '§1.3: kein Fortschritt im Durchgang');
+            /* §1.4 Default morgen */
+            var dz=d.querySelector('#sheetBody [data-bind="faelligkeit"]');
+            pruef(!!dz && dz.value===fw.morgenIso(), '§1.4: Default ist nicht morgen ('+(dz&&dz.value)+')');
+            var w=d.querySelector('[data-abweiter]');
+            pruef(!!w, '§1.3: kein „Weiter"-Knopf');
+            if(w) w.click();
+            pruef(!!d.querySelector('#sheetBody [data-bind="titel"]') ||
+                  !!d.querySelector('[data-abfinish]'),
+                  '§1.3: „Weiter" fuehrt weder zur naechsten Karte noch zurueck');
+            fw.closeSheet();
+          }
+          /* §1.5 Alle auf morgen */
+          abk=d.querySelector('[data-tagclose]'); if(abk) abk.click();
+          var alle2=d.querySelector('[data-aballemorgen]');
+          if(alle2){
+            var vorher=fw.abschlussKarten().length;
+            alle2.click();
+            var nachher=fw.abschlussKarten().length;
+            finding('echt · §1.5 Alle auf morgen: '+vorher+' → '+nachher+' faellig');
+            pruef(nachher===0, '§1.5: es sind noch '+nachher+' Karten faellig');
+          }
+          fw.closeSheet();
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
@@ -668,7 +863,8 @@
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
-  (VIEW==='echtSuche' ? fixtureRealSchreiben : fixtureSchreiben)();
+  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21')
+     ? bestandSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);
     /* const S liegt nicht auf window — Initialisierung über die

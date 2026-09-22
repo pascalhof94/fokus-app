@@ -225,9 +225,35 @@ ok('10 Die sechs entfallenen Felder fehlen', (function(){
      return ['prioritaet','zeitmessung','tagesabschnitt','komplex','energie','blockade']
        .every(function(f){ return k[f]===undefined; }); })());
 ok('10 matrixFeld ist da und faellt auf „ziel" zurueck', neueKarte({}).matrixFeld==='ziel');
-ok('10 Deadline und „Geplant fuer" sind getrennte Felder', (function(){
-     var k=neueKarte({faelligkeit:'2026-10-01', geplantFuer:'2026-09-20'});
-     return k.faelligkeit!==k.geplantFuer; })());
+/* ══ §4 (v2.1.0) · EIN DATUM ══════════════════════════════════════════ */
+ok('§4 geplantFuer ist aus dem Kartenmodell raus',
+   neueKarte({}).geplantFuer===undefined);
+ok('§4 Die Tageskette zieht nach DEADLINE', (function(){
+     _store={}; S.karten=[]; S.meta={migration1120:true, migration1130:true, einDatum210:true};
+     S.karten=[ neueKarte({id:'d-hat', faelligkeit:H()}),
+                neueKarte({id:'d-ohne'}) ];
+     S.meta.ketten=null;
+     var ids=ketteAutoIds();
+     return ids.indexOf('d-hat')>=0 && ids.indexOf('d-ohne')<0; })());
+ok('§4 Migration: geplantFuer wird verworfen, Deadline gerettet wenn leer', (function(){
+     _store={};
+     DB.set('karten', [
+       { id:'m1', domain:'dfm', titel:'Deadline da', faelligkeit:'2026-09-01', geplantFuer:'2026-09-01', status:'offen' },
+       { id:'m2', domain:'dfm', titel:'nur geplantFuer', faelligkeit:null, geplantFuer:'2026-09-05', status:'offen' },
+       { id:'m3', domain:'dfm', titel:'gar nichts', status:'offen' } ]);
+     DB.set('meta', { migration1120:true, migration1130:true, migration200:true, nachtrag200:true,
+                      nachtrag200b:true, dublettenFix201:true });
+     DB.set('unteraufgaben', []);
+     ladeAlles();
+     var L=S.meta.einDatum210Log;
+     var m1=S.karten.find(function(k){return k.id==='m1';});
+     var m2=S.karten.find(function(k){return k.id==='m2';});
+     return L && L.entfernt===2 && L.uebernommen===1 &&
+            m1.geplantFuer===undefined && m1.faelligkeit==='2026-09-01' &&
+            m2.faelligkeit==='2026-09-05'; })());
+ok('§4 Migration ist geguarded', (function(){
+     var vor=JSON.stringify(S.meta.einDatum210Log); ladeAlles();
+     return JSON.stringify(S.meta.einDatum210Log)===vor; })());
 ok('11 Akku-Mediane lernen ueber das MATRIXFELD statt den Tagesabschnitt',
    akkuKategorie(neueKarte({domain:'privat', matrixFeld:'werkzeug'}))==='privat|werkzeug' &&
    akkuKategorie(neueKarte({domain:'dfm', projekt:'P'}))==='dfm|P');
@@ -260,13 +286,57 @@ S.karten=[ neueKarte({id:'o', domain:'dfm', titel:'Offen', geplantFuer:H()}),
            neueKarte({id:'e', domain:'dfm', titel:'Erledigtes Ding', status:'erledigt'}) ];
 baueSuchIndex();
 /* sucheTreffer liefert {k,sc}-Paare — genau die Auspack-Falle, ueber die
-   die Suchseite zuerst gestolpert ist. */
-ok('14 Freitext findet auch ERLEDIGTES',
+   die Suchseite zuerst gestolpert ist. Der Index findet weiterhin ALLES;
+   §3 (v2.1.0) filtert erst in der Anzeige. */
+ok('14 Der Suchindex findet auch Erledigtes', 
    sucheTreffer('Erledigtes').some(function(o){ return o.k && o.k.id==='e'; }));
 ok('14 ... und die Suchseite packt die Karte richtig aus (kein [object Object])',
-   (function(){ S.ui.suFrage='Erledigtes';
+   (function(){ S.ui.suFrage='Erledigtes'; S.ui.suErledigt=true;
      var h=suFreitextHtml('Erledigtes');
+     S.ui.suErledigt=false;
      return h.indexOf('Erledigtes Ding')>=0 && h.indexOf('[object')<0; })());
+/* ══ §3 (v2.1.0) · Erledigtes ist DRAUSSEN, der Filter holt es zurueck ══ */
+ok('§3 Freitext blendet Erledigtes standardmaessig AUS',
+   suFreitextHtml('Erledigtes').indexOf('Erledigtes Ding')<0);
+ok('§3 Der Filter blendet es ein', (function(){
+     S.ui.suErledigt=true; var h=suFreitextHtml('Erledigtes');
+     S.ui.suErledigt=false; return h.indexOf('Erledigtes Ding')>=0; })());
+ok('§3 Die Sichten filtern ueber DIESELBE Stelle (suSichtbar)', (function(){
+     var erl=neueKarte({id:'x-erl', status:'erledigt', titel:'Fertig'});
+     var off=neueKarte({id:'x-off', status:'offen', titel:'Offen'});
+     S.ui.suErledigt=false;
+     var a=suSichtbar([erl,off]).length;
+     S.ui.suErledigt=true;
+     var b=suSichtbar([erl,off]).length;
+     S.ui.suErledigt=false;
+     return a===1 && b===2; })());
+/* §3 BELEG: in ALLEN fuenf Sichten und im Freitext, nicht nur irgendwo. */
+(function(){
+  var keepK=S.karten, keepU=S.ui;
+  S.karten=[ neueKarte({id:'o1',domain:'dfm',titel:'Offen',status:'offen',faelligkeit:H(),
+               letzteBearbeitung:H()+'T09:00:00',matrixFeld:'ziel'}),
+             neueKarte({id:'e1',domain:'dfm',titel:'Fertig',status:'erledigt',tagId:aktuelleTagId(),
+               faelligkeit:H(),letzteBearbeitung:H()+'T10:00:00',matrixFeld:'ziel'}) ];
+  S.meta.ketten=null; ketteSetzen(['o1','e1']);
+  S.ui.suMatrixFeld='ziel'; baueSuchIndex();
+  function zeilen(h){ return (h.match(/class="krow/g)||[]).length; }
+  ['heute','matrix','oft','faellig','art'].forEach(function(v){
+    S.ui.suSicht=v;
+    S.ui.suErledigt=false; var a=zeilen(suSichtHtml(v));
+    S.ui.suErledigt=true;  var b=zeilen(suSichtHtml(v));
+    ok('§3 Sicht „'+v+'": ohne '+a+' → mit '+b, b===a+1);
+  });
+  S.ui.suErledigt=false;
+  ok('§3 Freitext ohne Filter findet die erledigte NICHT',
+     zeilen(suFreitextHtml('Fertig'))===0);
+  S.ui.suErledigt=true;
+  ok('§3 Freitext mit Filter findet sie', zeilen(suFreitextHtml('Fertig'))===1);
+  S.ui.suErledigt=false; S.ui.suSicht='heute'; S.ui.suMatrixFeld=null;
+  S.karten=keepK; S.ui=keepU;
+})();
+ok('§3 Eine HEUTE erledigte Routine gilt als erledigt', (function(){
+     var r=neueKarte({id:'x-r', rhythmus:{typ:'taeglich'}, status:'erledigt', tagId:aktuelleTagId()});
+     return istHeuteErledigt(r)===true; })());
 ok('15 Fuenf Sichten, „Heute" ist Standard', SU_SICHTEN[0][0]==='heute' && suSicht()==='heute');
 frisch();
 S.karten=[]; for(var i=1;i<=5;i++) S.karten.push(neueKarte({id:'p'+i, domain:(i%2?'dfm':'privat'), titel:'P'+i, geplantFuer:H()}));
@@ -382,7 +452,11 @@ frisch();
 S.karten=[ neueKarte({id:'v1', domain:'dfm', titel:'V1', geplantFuer:H(), matrixFeld:'werkzeug'}) ];
 ketteSetzen(['v1']); matrixPosSetzen(0.3,-0.2,null,'t');
 var ex=syncExport('delta');
-ok('26 Vertrag 2.0: appVersion 2.0.x', /^2\.0\./.test(ex.appVersion) && /^2\.0\./.test(VERSION));
+/* §4 (v2.1.0): Der DATENVERTRAG bleibt 2.0 (Gate unveraendert), die
+   App-Version zieht auf 2.1.0 — sie reist als appVersion mit. */
+ok('26 appVersion 2.x, Gate weiterhin auf 2.0',
+   /^2\./.test(ex.appVersion) && /^2\./.test(VERSION) &&
+   !!syncImport(JSON.stringify({appVersion:'1.13.5', karten:[{id:'q',titel:'q'}]})).fehler);
 ok('26 Vertrag 2.0: EINE kette statt zweier',
    Array.isArray(ex.kette) && ex.ketteDfm===undefined && ex.kettePrivat===undefined);
 ok('26 Vertrag 2.0: matrixFeld je Karte', ex.karten[0].matrixFeld==='werkzeug');
@@ -450,8 +524,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.0.2 · Build gesetzt', VERSION==='2.0.2' && UI_VERSION==='v2.0.2' &&
-   APP_BUILD==='2026-09-22-1');
+ok('31 APP_VERSION 2.1.0 · Build gesetzt', VERSION==='2.1.0' && UI_VERSION==='v2.1.0' &&
+   APP_BUILD==='2026-09-22-2');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -560,6 +634,106 @@ kopf('v2.0.1 §4 · Dubletten zusammenfuehren');
   ok('§4 Keine Titel-Heuristik: nur die neun IDs', L.zusammengefuehrt.every(function(x){
        return alt.some(function(pp){ return pp[0]===x.alt.id && pp[1]===x.rec; }); }));
 })();
+
+
+/* ══ v2.1.0 · §1 TAGESABSCHLUSS IN EINEM DURCHGANG ═══════════════════ */
+kopf('v2.1.0 §1 · Tagesabschluss');
+frisch();
+var GESTERN=(function(){ var d=new Date(H()+'T12:00:00'); d.setDate(d.getDate()-1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+var MORGEN=morgenIso();
+S.karten=[
+  neueKarte({id:'A-heute',  domain:'dfm', titel:'Heute faellig',  faelligkeit:H(),     sollMin:30, matrixFeld:'ziel'}),
+  neueKarte({id:'A-alt',    domain:'dfm', titel:'Ueberfaellig',   faelligkeit:GESTERN, sollMin:30, matrixFeld:'ziel'}),
+  neueKarte({id:'A-morgen', domain:'dfm', titel:'Erst morgen',    faelligkeit:MORGEN,  sollMin:30, matrixFeld:'ziel'}),
+  neueKarte({id:'A-erl',    domain:'dfm', titel:'Schon fertig',   faelligkeit:H(), status:'erledigt', tagId:aktuelleTagId()}),
+  neueKarte({id:'R-tag',    domain:'privat', titel:'Routine',     faelligkeit:H(), rhythmus:{typ:'taeglich'}, abhakbonus:100}),
+  neueKarte({id:'C-zaehl',  domain:'privat', titel:'Counter',     faelligkeit:H(), ticksAktiv:true, tickWert:-20}),
+  neueKarte({id:'A-frost',  domain:'dfm', titel:'Eingefroren',    faelligkeit:GESTERN, freeze:true})
+];
+var ab=abschlussKarten().map(function(k){return k.id;});
+ok('§1.2 BELEG: genau die zwei faelligen Aufgaben ('+ab.join(', ')+')',
+   ab.length===2 && ab.indexOf('A-heute')>=0 && ab.indexOf('A-alt')>=0);
+ok('§1.2 BELEG: die Routine taucht NICHT auf', ab.indexOf('R-tag')<0);
+ok('§1.2 BELEG: der Counter taucht NICHT auf', ab.indexOf('C-zaehl')<0);
+ok('§1.2 BELEG: die erledigte taucht NICHT auf', ab.indexOf('A-erl')<0);
+ok('§1.2 BELEG: die morgen faellige taucht NICHT auf', ab.indexOf('A-morgen')<0);
+ok('§1.2 Eingefrorenes bleibt draussen', ab.indexOf('A-frost')<0);
+/* §1.1 Routinen automatisch */
+var rt=abschlussRoutinenStand();
+ok('§1.1 Routinen-Stand vorher: 0 von 1 erledigt, Bonus 0',
+   rt.faellig===1 && rt.fertig===0 && rt.bonus===0);
+/* karteAbhakenAuto oeffnet fuer Routinen den Abhak-Dialog; der eigentliche
+   Abschluss ist karteAbhaken. */
+karteAbhaken('R-tag', false); closeSheet();
+var rt2=abschlussRoutinenStand();
+ok('§1.1 BELEG nachher: 1 von 1 erledigt, Abhakbonus '+rt2.bonus,
+   rt2.fertig===1 && rt2.bonus===100);
+/* §1.5 Alle auf morgen */
+frisch();
+S.karten=[ neueKarte({id:'B1', domain:'dfm', titel:'B1', faelligkeit:GESTERN, sollMin:30}),
+           neueKarte({id:'B2', domain:'dfm', titel:'B2', faelligkeit:H(), sollMin:30}),
+           neueKarte({id:'B3', domain:'dfm', titel:'B3', faelligkeit:MORGEN, sollMin:30}) ];
+var nAlle=abschlussAlleAufMorgen(); closeSheet();
+ok('§1.5 BELEG: „Alle auf morgen" hat '+nAlle+' Karten verschoben', nAlle===2);
+ok('§1.5 BELEG: beide stehen jetzt auf '+MORGEN,
+   S.karten[0].faelligkeit===MORGEN && S.karten[1].faelligkeit===MORGEN);
+ok('§1.5 Die morgen faellige blieb unberuehrt', S.karten[2].faelligkeit===MORGEN);
+ok('§1.5 Danach ist nichts mehr durchzugehen', abschlussKarten().length===0);
+/* §1.3/§1.4 Durchgang im Anlege-Dialog */
+frisch();
+S.karten=[ neueKarte({id:'C1', domain:'dfm', titel:'C1', faelligkeit:GESTERN, sollMin:30, matrixFeld:'ziel'}),
+           neueKarte({id:'C2', domain:'dfm', titel:'C2', faelligkeit:GESTERN, sollMin:30, matrixFeld:'ziel'}) ];
+abschlussDurchgangStarten();
+ok('§1.3 Der Durchgang laeuft und zeigt Karte 1 von 2',
+   !!abschlussLauf && abschlussLauf.idx===0 && abschlussLauf.ids.length===2);
+ok('§1.3 BELEG: es ist DERSELBE Anlege-Dialog (entwurf gesetzt)',
+   !!entwurf && entwurf.id==='C1');
+ok('§1.4 BELEG: das Datum steht per Default auf morgen ('+MORGEN+')',
+   entwurf.faelligkeit===MORGEN);
+/* §1.4 BELEG: „morgen" ist der KALENDER, nicht der App-Tag — sonst schoebe
+   ein seit Tagen offener Abschluss alles in die Vergangenheit. */
+ok('§1.4 BELEG: „morgen" rechnet vom Kalender, nicht vom App-Tag', (function(){
+     var keep=S.tag;
+     S.tag=neuerTag('2026-09-11',1);          // App-Tag steht still
+     var m=morgenIso();
+     S.tag=keep;
+     var kal=new Date(heuteIso()+'T12:00:00'); kal.setDate(kal.getDate()+1);
+     var erwartet=kal.getFullYear()+'-'+String(kal.getMonth()+1).padStart(2,'0')+'-'+String(kal.getDate()).padStart(2,'0');
+     return m===erwartet && m>heuteIso(); })());
+ok('§1.3 Das Matrixfeld ist im Durchgang aenderbar', (function(){
+     entwurf.matrixFeld='werkzeug'; return matrixFeldVon(entwurf)==='werkzeug'; })());
+abschlussDurchgangWeiter();
+ok('§1.3 „Weiter" speichert und geht zur zweiten Karte',
+   !!abschlussLauf && abschlussLauf.idx===1 && entwurf && entwurf.id==='C2');
+ok('§1.3 BELEG: die erste Karte traegt jetzt morgen und ihr neues Feld', (function(){
+     var c1=S.karten.find(function(k){return k.id==='C1';});
+     return c1.faelligkeit===MORGEN && matrixFeldVon(c1)==='werkzeug'; })());
+abschlussDurchgangWeiter();
+ok('§1.3 Nach der letzten Karte endet der Durchgang', abschlussLauf===null);
+closeSheet();
+/* §1.7 Mehrtaegig offen blockiert nichts */
+frisch();
+S.tag=neuerTag(GESTERN,1); S.tag.datum=GESTERN; S.tag.akku=70;
+S.karten=[ neueKarte({id:'D1', domain:'dfm', titel:'D1', faelligkeit:GESTERN, sollMin:30}) ];
+ok('§1.7 Ein Tag von gestern ist offen', tagOffen() && S.tag.datum<heuteIso());
+oeffneTagAbschluss();
+ok('§1.7 BELEG: der Abschluss laesst sich nachholen', !!abschlussTmp);
+ok('§1.7 Der Banner zeigt den alten Tag mit Knopf',
+   tagBannerHtml().indexOf('data-tagclose')>=0 && tagBannerHtml().indexOf('noch offen')>=0);
+closeSheet();
+ok('§1.7 Und die Suche funktioniert daneben weiter', (function(){
+     S.ui.suSicht='heute'; var h2=suHeuteHtml(); return typeof h2==='string'; })());
+
+/* ══ v2.1.0 · §2 DAS PLUS ÜBERALL ════════════════════════════════════ */
+kopf('v2.1.0 §2 · Das Plus');
+ok('§2 Das Plus liegt GLOBAL im Markup, nicht in der Suchkopfzeile',
+   src.indexOf('id="neuFab"')>=0 && src.indexOf('id="suNeu"')<0);
+ok('§2 Es liegt unter Backdrop/Sheet (199) — ein Dialog muss es verdecken',
+   /#neuFab\{[^}]*z-index:199/.test(src));
+ok('§2 In der Fokusansicht wandert es ueber den Layer',
+   /body\.fokusOffen #neuFab\{z-index:201\}/.test(src));
+ok('§2 44-px-Norm uebererfuellt (56 px)', /#neuFab\{[^}]*width:56px;height:56px/.test(src));
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));
