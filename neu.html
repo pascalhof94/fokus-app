@@ -98,6 +98,8 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 /* Zeile 2: fünf Zellen — Kopf, Wert, Zusatz */
 #statusbar .sb-r2{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-top:3px}
 #statusbar .sb-cell{min-width:0;text-align:center;line-height:1.15;overflow:hidden}
+/* §1 (v2.2.0): Die Rang-Zelle ist ein eigenes Tap-Ziel (→ Belohnungsseite) — 44 px. */
+#statusbar #sZRang{min-height:44px;cursor:pointer}
 #statusbar .sb-cell .k{display:block;font-size:8px;color:var(--mut2);text-transform:uppercase;letter-spacing:.4px}
 #statusbar .sb-cell .w{display:block;font-size:12px;font-weight:800;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #statusbar .sb-cell .z{display:block;font-size:8.5px;color:var(--mut2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -139,6 +141,20 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .su-plus{flex:0 0 auto;background:var(--bg2);border:1px solid var(--li);border-radius:10px;color:var(--fg);
   font:inherit;font-size:19px;min-width:44px;min-height:44px;line-height:1}
 .su-swipe{touch-action:pan-y}
+/* §2 (v2.2.0): Domaene und Art als zwei schmale Segment-Leisten; der
+   Erledigt-Filter sitzt rechts neben der Domaene und schneidet nichts ab. */
+.su-filter{display:flex;flex-direction:column;gap:6px;padding:0 12px 8px}
+.su-frow{display:flex;align-items:center;gap:8px;min-width:0}
+.su-frow .l{flex:0 0 46px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut2)}
+.su-seg{flex:1 1 auto;min-width:0;display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+.su-seg button{flex:1 1 auto;min-width:44px;min-height:44px;padding:0 8px;font-size:12px;color:var(--mut);white-space:nowrap;border-left:1px solid var(--line)}
+.su-seg button:first-child{border-left:0}
+.su-seg button.on{background:var(--blue);color:#fff;font-weight:700}
+.su-erl2{flex:0 0 auto;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);
+  color:var(--mut);font-size:12px;white-space:nowrap}
+.su-erl2.on{background:var(--ok);border-color:var(--ok);color:#06210f;font-weight:700}
+.su-aktiv{color:var(--blue);opacity:1}
+.su-mxzurueck{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;color:var(--blue);font-size:13px;font-weight:600}
 .su-kopfzeile{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.5;padding:12px 12px 6px}
 .su-kopfzeile.warn{color:var(--bad);opacity:.9}
 /* Matrix-Sicht: vier Felder als Raster, eigene Position als Punkt darüber */
@@ -915,6 +931,54 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .fbk-zz{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-bottom:7px}
 .fb-rechnung{font-size:10px;color:var(--mut);margin-top:7px;line-height:1.4}
 .fb-rechnung.gut{color:var(--ok)}
+/* ══ §4 (v2.2.0) · Belohnungsseite — drei Bereiche, Kachel-Prinzip ══ */
+.bw{margin:0 0 18px}
+.bw .fb-kacheln+.fbk,.bw .fbk+.fbk{margin-top:8px}
+.fbk-bar i.hell{background:rgba(109,211,224,.28)}
+.bw-rangbar{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mut)}
+.bw-rangbar .fbk-bar{flex:1}
+.bw-katrow{display:flex;align-items:center;gap:8px;min-height:30px;font-size:12px}
+.bw-katrow .ic{flex:0 0 20px;text-align:center}
+.bw-katrow .nm{flex:0 0 42%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mut)}
+.bw-katrow .bar{flex:1;min-width:0}
+.bw-katrow b{flex:0 0 38px;text-align:right;font-size:14px;font-variant-numeric:tabular-nums}
+.bw-of{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.bw-ofz{position:relative;aspect-ratio:3/4;border-radius:10px;border:1px solid var(--line);background:var(--bg);overflow:hidden;pointer-events:none}
+.bw-ofz img{position:absolute;left:50%;bottom:0;height:92%;width:auto;transform:translateX(-50%)}
+.bw-ofz span{position:absolute;left:4px;top:2px;font-size:11px;font-weight:700;color:var(--mut)}
+.bw-ofz.spaeter img{filter:brightness(0);opacity:.35}
+.bw-ofz.spaeter{opacity:.55}
+.bw-ofz.heute{border:2px solid var(--purple);box-shadow:0 0 0 2px rgba(185,138,247,.25)}
+.bw-ofz.heute span{color:var(--purple)}
+.bw-ofz.naechste{border:2px dashed var(--ok)}
+.bw-ofz.naechste img{filter:brightness(0);opacity:.6}
+.bw-ofz.naechste span{color:var(--ok)}
+.bw-shoph{margin:14px 2px 8px;font-size:12px;color:var(--txt);font-weight:700}
+.bw-kat{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px}
+.bw-katkopf{display:flex;align-items:center;gap:10px}
+.bw-katbild{flex:0 0 48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:26px;background:var(--bg);border-radius:10px;overflow:hidden}
+.bw-katbild img{width:46px;height:46px;object-fit:contain}
+.bw-katkopf .nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.bw-katkopf .n{font-size:18px;font-variant-numeric:tabular-nums}
+.bw-akt{font-size:11px;color:var(--mut);margin:8px 0 6px;line-height:1.35}
+.bw-st{display:flex;align-items:center;gap:8px;min-height:34px;font-size:12px;border-top:1px solid var(--line);padding:4px 0}
+.bw-st .sym{flex:0 0 30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.bw-st .sym img{width:30px;height:30px;object-fit:contain}
+.bw-st .tx{flex:1;min-width:0;line-height:1.3}
+.bw-st .zu{flex:0 0 auto;font-size:11px;color:var(--mut)}
+.bw-st.gekauft .zu{color:var(--ok)}
+.bw-st.naechste .tx b{color:var(--ok)}
+.bw-st.gesperrt{opacity:.5}
+.bw-kat>.bw-st.naechste{border-top:0}
+.bw-kauf{margin-top:4px}
+.bw-sperre{display:block;font-size:11px;color:var(--warn);padding:4px 0}
+.bw-fehlt{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mut);padding:4px 0}
+.bw-fehlt .bar{flex:1;min-width:0}
+.bw-alle{display:block;width:100%;min-height:44px;margin-top:6px;border-top:1px solid var(--line);color:var(--blue);font-size:12px}
+.bw-stufen{margin-top:2px}
+.bw-fuss{display:flex;gap:8px;margin:0 0 12px}
+.bw-zumshop{display:block;width:100%;min-height:44px;margin-top:10px}
+.bw-fuss .btn{flex:1;min-height:44px}
 .zs{position:relative;margin:14px 12px 24px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 10px 12px}
 .zs-hint{font-size:11px;color:var(--mut);margin:0 2px 8px;line-height:1.35}
 .zs-mb{flex:0 0 38px;height:5px;border-radius:3px;background:var(--line);position:relative;pointer-events:none}
@@ -1269,6 +1333,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
          einem Element, das es seit dem Navigationsumbau nicht mehr gibt.
          Der Knopf war damit seit v2.0.0 unerreichbar. -->
     <div id="tagBanner"></div>
+    <!-- §2 (v2.2.0): zwei Filter ueber ALLEN Sichten und dem Freitext —
+         eigene Segment-Leisten, keine weiteren Chips in der Sicht-Leiste. -->
+    <div class="su-filter" id="suFilter"></div>
     <div class="su-sichten" id="suSichten"></div>
     <div class="su-swipe" id="suSwipe"><div id="suBody"></div></div>
   </section>
@@ -1344,9 +1411,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.1.2';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.1.2';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-22-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.2.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.2.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-22-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -8031,7 +8098,7 @@ function backupHtml(){
 /* ── Belohnung/Shop (§7 D7) — voller Port aus v0.38. Kategorien + Stufen
    sind base64-kodiert; der Inhalt der nächsten Stufe bleibt „???" bis zum
    Freischalten (Überraschung erst live in der App). ── */
-const BELOHNUNG_B64 = 'eyJmYWhyemV1Z2UiOnsiaWNvbiI6IvCfmpciLCJuYW1lIjoiRmFocnpldWdlIiwic3R1ZmVuIjpbWyJGYWhycmFkLCBmcmlzY2ggZ2XDtmx0IiwwXSxbIkZhaHJyYWQsIGZyaXNjaCBnZcO2bHQiLDgwMF0sWyJFaW4gQXV0bywgZGFzIGltbWVyIGFuc3ByaW5ndCIsMjIwMF0sWyJFaW4gQXV0bywgZGFzIGltbWVyIGFuc3ByaW5ndCIsNDUwMF0sWyJCTVcgTTQiLDc1MDBdLFsiQk1XIE00IiwxMTAwMF0sWyJDTEEgZGFuZWJlbiwgZsO8ciBkaWUgYW5kZXJlbiBUYWdlIiwxNjAwMCxbIndvaG5lbiIsNF1dLFsiQ0xBIGRhbmViZW4sIGbDvHIgZGllIGFuZGVyZW4gVGFnZSIsMjIwMDBdLFsiQ291cMOpLUdhcmFnZSBtaXQgSGViZWLDvGhuZSIsMjkwMDBdLFsiQ291cMOpLUdhcmFnZSBtaXQgSGViZWLDvGhuZSIsMzcwMDBdLFsiRGllIGVpbmUgS8O8c3RlbnN0cmHDn2UsIGRlaW4gV2FnZW4sIGtlaW4gVGVybWluIiw0NjAwMF0sWyJEaWUgZWluZSBLw7xzdGVuc3RyYcOfZSwgZGVpbiBXYWdlbiwga2VpbiBUZXJtaW4iLDU2MDAwXV19LCJ3b2huZW4iOnsiaWNvbiI6IvCfj5nvuI8iLCJuYW1lIjoiRGFjaHRlcnJhc3NlIC8gV29obmVuIiwic3R1ZmVuIjpbWyJCYWxrb25zdHVobCBtaXQgQmxpY2sgYXVmIGRpZSBTdHJhw59lIiwwXSxbIkJhbGtvbnN0dWhsIG1pdCBCbGljayBhdWYgZGllIFN0cmHDn2UiLDkwMF0sWyJEYWNodGVycmFzc2UgbWl0IEJsaWNrIMO8YmVyIGRpZSBEw6RjaGVyIiwyNDAwXSxbIkRhY2h0ZXJyYXNzZSBtaXQgQmxpY2sgw7xiZXIgZGllIETDpGNoZXIiLDQ4MDAsWyJmYWhyemV1Z2UiLDNdXSxbIkRhY2h0ZXJyYXNzZSBhbSBXYXNzZXIiLDc4MDBdLFsiRGFjaHRlcnJhc3NlIGFtIFdhc3NlciIsMTE1MDBdLFsiRGFjaHRlcnJhc3NlIG1pdCBXaGlybHBvb2wiLDE2NTAwXSxbIkRhY2h0ZXJyYXNzZSBtaXQgV2hpcmxwb29sIiwyMzAwMF0sWyJQZW50aG91c2Ugw7xiZXIgZWluZW0gRmx1c3MsIFdoaXJscG9vbCBhdWYgZGVyIEthbnRlIiwzMDAwMF0sWyJQZW50aG91c2Ugw7xiZXIgZWluZW0gRmx1c3MsIFdoaXJscG9vbCBhdWYgZGVyIEthbnRlIiwzOTAwMF0sWyJIYXVzIGFtIEhhbmc6IEJlcmdlIGltIFLDvGNrZW4sIERzY2h1bmdlbCBsaW5rcywgTWVlciB2b3JhdXMiLDQ4MDAwXSxbIkhhdXMgYW0gSGFuZzogQmVyZ2UgaW0gUsO8Y2tlbiwgRHNjaHVuZ2VsIGxpbmtzLCBNZWVyIHZvcmF1cyIsNTgwMDBdXX0sInJlaXNlbiI6eyJpY29uIjoi8J+MjSIsIm5hbWUiOiJMYW5kc2NoYWZ0ZW4gLyBSZWlzZW4iLCJzdHVmZW4iOltbIldvY2hlbmVuZGUgaW4gRXVyb3BhIiwwXSxbIldvY2hlbmVuZGUgaW4gRXVyb3BhIiwxMDAwXSxbIlp3ZWkgV29jaGVuIE1pdHRlbG1lZXIiLDI4MDBdLFsiWndlaSBXb2NoZW4gTWl0dGVsbWVlciIsNTIwMF0sWyJUcm9wZW4genVtIGVyc3RlbiBNYWwiLDgyMDBdLFsiVHJvcGVuIHp1bSBlcnN0ZW4gTWFsIiwxMjAwMF0sWyJFaW4gTGFuZCBwcm8gUXVhcnRhbCwga2VpbnMgendlaW1hbCIsMTcwMDBdLFsiRWluIExhbmQgcHJvIFF1YXJ0YWwsIGtlaW5zIHp3ZWltYWwiLDIzNTAwLFsibW9iaWxpdGFldCIsNl1dLFsiU2VnZWx0w7ZybiwgS8O8c3RlIGltIFLDvGNrZW4iLDMwNTAwXSxbIlNlZ2VsdMO2cm4sIEvDvHN0ZSBpbSBSw7xja2VuIiwzOTUwMF0sWyJTZWNocyBNb25hdGUgdW50ZXJ3ZWdzLCBSw7xja2ZsdWcgb2ZmZW4iLDQ5MDAwXSxbIlNlY2hzIE1vbmF0ZSB1bnRlcndlZ3MsIFLDvGNrZmx1ZyBvZmZlbiIsNTkwMDBdXX0sIm1vYmlsaXRhZXQiOnsiaWNvbiI6IuKciO+4jyIsIm5hbWUiOiJNb2JpbGl0w6R0IChhbmRlcmUgRm9ybWVuKSIsInN0dWZlbiI6W1siQlZHLU1vbmF0c2thcnRlIiwwXSxbIkJWRy1Nb25hdHNrYXJ0ZSIsNzAwXSxbIkpldHNraSBmw7xyIGVpbmVuIFRhZyIsMjAwMF0sWyJKZXRza2kgZsO8ciBlaW5lbiBUYWciLDM4MDBdLFsiVGF1Y2hzY2hlaW4iLDY1MDBdLFsiVGF1Y2hzY2hlaW4iLDEwMDAwXSxbIkZsdWdzdHVuZGUiLDE0NTAwXSxbIkZsdWdzdHVuZGUiLDIwMDAwXSxbIkh1YnNjaHJhdWJlciDDvGJlciBkZXIgS8O8c3RlIiwyNjUwMF0sWyJIdWJzY2hyYXViZXIgw7xiZXIgZGVyIEvDvHN0ZSIsMzQwMDBdLFsiRXJkZSwgV2Fzc2VyLCBMdWZ0IGFuIGVpbmVtIFRhZyIsNDMwMDBdLFsiRXJkZSwgV2Fzc2VyLCBMdWZ0IGFuIGVpbmVtIFRhZyIsNTMwMDBdXX0sImJlZ2xlaXRlciI6eyJpY29uIjoi8J+QviIsIm5hbWUiOiJCZWdsZWl0ZXIiLCJzdHVmZW4iOltbIk5ldWVyIEtyYXR6YmF1bSIsMF0sWyJOZXVlciBLcmF0emJhdW0iLDYwMF0sWyJLYXR6ZW4gbWl0IEdhcnRlbiIsMTgwMF0sWyJLYXR6ZW4gbWl0IEdhcnRlbiIsMzYwMF0sWyJIdW5kIGRhenUiLDYwMDBdLFsiSHVuZCBkYXp1Iiw5NTAwXSxbIldvaG51bmcsIGluIGRlciBkcmVpIFRpZXJlIFBsYXR6IGhhYmVuIiwxNDAwMF0sWyJXb2hudW5nLCBpbiBkZXIgZHJlaSBUaWVyZSBQbGF0eiBoYWJlbiIsMTk1MDBdLFsiQWxsZSB6dXNhbW1lbiBhdWYgZGVyIERhY2h0ZXJyYXNzZSIsMjYwMDBdLFsiQWxsZSB6dXNhbW1lbiBhdWYgZGVyIERhY2h0ZXJyYXNzZSIsMzM1MDBdLFsiRWluIEhhdXMsIGRhcyBuYWNoIFJ1ZGVsIGtsaW5ndCIsNDIwMDBdLFsiRWluIEhhdXMsIGRhcyBuYWNoIFJ1ZGVsIGtsaW5ndCIsNTIwMDBdXX0sInNvemlhbGVzIjp7Imljb24iOiLwn5GlIiwibmFtZSI6IkZyZXVuZGUgLyBTb3ppYWxlcyIsInN0dWZlbiI6W1siRnJldW5kZSBhdWYgZWluZW4gS2FmZmVlIiwwXSxbIkZyZXVuZGUgYXVmIGVpbmVuIEthZmZlZSIsNTAwXSxbIkdyaWxsYWJlbmQgYmVpIGRpciIsMTYwMF0sWyJHcmlsbGFiZW5kIGJlaSBkaXIiLDMyMDBdLFsiUm9hZHRyaXAgbWl0IHZpZXIgTGV1dGVuIiw1NTAwXSxbIlJvYWR0cmlwIG1pdCB2aWVyIExldXRlbiIsODgwMF0sWyJBbGxlIGVpbmxhZGVuLCBkdSB6YWhsc3QiLDEzMDAwXSxbIkFsbGUgZWlubGFkZW4sIGR1IHphaGxzdCIsMTgwMDBdLFsiRWluIEhhdXMgdm9sbGVyIEZyZXVuZGUsIGVpbiBXb2NoZW5lbmRlIGxhbmciLDI0NTAwXSxbIkVpbiBIYXVzIHZvbGxlciBGcmV1bmRlLCBlaW4gV29jaGVuZW5kZSBsYW5nIiwzMjAwMF0sWyJEZXIgT3J0LCBhbiBkZW0gYWxsZSB3aWVkZXIgenVzYW1tZW5rb21tZW4iLDQxMDAwXSxbIkRlciBPcnQsIGFuIGRlbSBhbGxlIHdpZWRlciB6dXNhbW1lbmtvbW1lbiIsNTEwMDBdXX19';
+const BELOHNUNG_B64 = 'eyJmYWhyemV1Z2UiOnsiaWNvbiI6IvCfmpciLCJuYW1lIjoiRmFocnpldWdlIiwic3R1ZmVuIjpbWyJGYWhycmFkLCBmcmlzY2ggZ2XDtmx0IiwwXSxbIlJlbm5yYWQsIGRhcyBkaXIgZ2Vow7ZydCIsODAwXSxbIkVpbiBBdXRvLCBkYXMgaW1tZXIgYW5zcHJpbmd0IiwyMjAwXSxbIkVpbiBBdXRvLCBpbiBkYXMgbWFuIGdlcm4gZWluc3RlaWd0Iiw0NTAwXSxbIkRhcyBlcnN0ZSBDb3Vww6kiLDc1MDBdLFsiQk1XIE00IiwxMTAwMF0sWyJNNCBpbiBkZXIgRmFyYmUsIGRpZSBkdSB3aWxsc3QiLDE2MDAwLFsid29obmVuIiw0XV0sWyJDTEEgZGFuZWJlbiwgZsO8ciBkaWUgYW5kZXJlbiBUYWdlIiwyMjAwMF0sWyJFaWdlbmUgR2FyYWdlIiwyOTAwMF0sWyJDb3Vww6ktR2FyYWdlIG1pdCBIZWJlYsO8aG5lIiwzNzAwMF0sWyJLw7xzdGVuc3RyYcOfZSwgZGVpbiBXYWdlbiwgZWluIFdvY2hlbmVuZGUiLDQ2MDAwXSxbIkRpZSBlaW5lIEvDvHN0ZW5zdHJhw59lLCBrZWluIFRlcm1pbiwga2VpbiBSw7xja3dlZyIsNTYwMDBdXX0sIndvaG5lbiI6eyJpY29uIjoi8J+Pme+4jyIsIm5hbWUiOiJEYWNodGVycmFzc2UgLyBXb2huZW4iLCJzdHVmZW4iOltbIkJhbGtvbnN0dWhsIG1pdCBCbGljayBhdWYgZGllIFN0cmHDn2UiLDBdLFsiQmFsa29uLCBhdWYgZGVtIHp3ZWkgTGV1dGUgc2l0emVuIGvDtm5uZW4iLDkwMF0sWyJEYWNodGVycmFzc2UgbWl0IEJsaWNrIMO8YmVyIGRpZSBEw6RjaGVyIiwyNDAwXSxbIkRhY2h0ZXJyYXNzZSBtaXQgTW9yZ2Vuc29ubmUiLDQ4MDAsWyJmYWhyemV1Z2UiLDNdXSxbIkRhY2h0ZXJyYXNzZSBhbSBXYXNzZXIiLDc4MDBdLFsiV2Fzc2VyYmxpY2ssIGRlciBzaWNoIGFiZW5kcyBmw6RyYnQiLDExNTAwXSxbIkRhY2h0ZXJyYXNzZSBtaXQgV2hpcmxwb29sIiwxNjUwMF0sWyJXaGlybHBvb2wsIGF1cyBkZW0gbWFuIGRpZSBTa3lsaW5lIHNpZWh0IiwyMzAwMF0sWyJQZW50aG91c2Ugw7xiZXIgZWluZW0gRmx1c3MiLDMwMDAwXSxbIlBlbnRob3VzZSwgV2hpcmxwb29sIGF1ZiBkZXIgS2FudGUiLDM5MDAwXSxbIkhhdXMgYW0gSGFuZyBtaXQgTWVlcmJsaWNrIiw0ODAwMF0sWyJCZXJnZSBpbSBSw7xja2VuLCBEc2NodW5nZWwgbGlua3MsIE1lZXIgdm9yYXVzIiw1ODAwMF1dfSwicmVpc2VuIjp7Imljb24iOiLwn4yNIiwibmFtZSI6IkxhbmRzY2hhZnRlbiAvIFJlaXNlbiIsInN0dWZlbiI6W1siV29jaGVuZW5kZSBpbiBFdXJvcGEiLDBdLFsiVmVybMOkbmdlcnRlcyBXb2NoZW5lbmRlLCBzcG9udGFuIGdlYnVjaHQiLDEwMDBdLFsiWndlaSBXb2NoZW4gTWl0dGVsbWVlciIsMjgwMF0sWyJNaXR0ZWxtZWVyLCBhYmVyIGRpZSBJbnNlbCBvaG5lIEZsdWdoYWZlbiIsNTIwMF0sWyJUcm9wZW4genVtIGVyc3RlbiBNYWwiLDgyMDBdLFsiVHJvcGVuLCB3byBCZXJnZSBpbnMgTWVlciBmYWxsZW4iLDEyMDAwXSxbIkVpbiBMYW5kIHBybyBRdWFydGFsIiwxNzAwMF0sWyJFaW4gTGFuZCBwcm8gUXVhcnRhbCwga2VpbnMgendlaW1hbCIsMjM1MDAsWyJtb2JpbGl0YWV0Iiw2XV0sWyJTZWdlbHTDtnJuIGVudGxhbmcgZGVyIEvDvHN0ZSIsMzA1MDBdLFsiU2VnZWx0w7ZybiwgS8O8c3RlIGltIFLDvGNrZW4iLDM5NTAwXSxbIkRyZWkgTW9uYXRlIHVudGVyd2VncyIsNDkwMDBdLFsiU2VjaHMgTW9uYXRlIHVudGVyd2VncywgUsO8Y2tmbHVnIG9mZmVuIiw1OTAwMF1dfSwibW9iaWxpdGFldCI6eyJpY29uIjoi4pyI77iPIiwibmFtZSI6Ik1vYmlsaXTDpHQgKGFuZGVyZSBGb3JtZW4pIiwic3R1ZmVuIjpbWyJCVkctTW9uYXRza2FydGUiLDBdLFsiRmFocnJhZCwgZGFzIGplZGUgU3RyZWNrZSBzY2hhZmZ0Iiw3MDBdLFsiSmV0c2tpIGbDvHIgZWluZW4gVGFnIiwyMDAwXSxbIkpldHNraSwgd2FubiBkdSB3aWxsc3QiLDM4MDBdLFsiU2NobnVwcGVydGF1Y2hlbiIsNjUwMF0sWyJUYXVjaHNjaGVpbiIsMTAwMDBdLFsiRXJzdGUgRmx1Z3N0dW5kZSIsMTQ1MDBdLFsiRmx1Z3N0dW5kZW4sIGJpcyBlcyBzaXR6dCIsMjAwMDBdLFsiSHVic2NocmF1YmVycnVuZGZsdWciLDI2NTAwXSxbIkh1YnNjaHJhdWJlciDDvGJlciBkZXIgS8O8c3RlIiwzNDAwMF0sWyJad2VpIEVsZW1lbnRlIGFuIGVpbmVtIFRhZyIsNDMwMDBdLFsiRXJkZSwgV2Fzc2VyLCBMdWZ0IGFuIGVpbmVtIFRhZyIsNTMwMDBdXX0sImJlZ2xlaXRlciI6eyJpY29uIjoi8J+QviIsIm5hbWUiOiJCZWdsZWl0ZXIiLCJzdHVmZW4iOltbIk5ldWVyIEtyYXR6YmF1bSIsMF0sWyJEYXMgZ3V0ZSBGdXR0ZXIsIGRhdWVyaGFmdCIsNjAwXSxbIkZlbnN0ZXJwbGF0eiBpbiBkZXIgU29ubmUiLDE4MDBdLFsiS2F0emVuIG1pdCBHYXJ0ZW4iLDM2MDBdLFsiS2F0emVua2xhcHBlIG5hY2ggZHJhdcOfZW4iLDYwMDBdLFsiSHVuZCBkYXp1Iiw5NTAwXSxbIkh1bmQsIGRlciBtaXRmw6RocnQiLDE0MDAwXSxbIldvaG51bmcsIGluIGRlciBkcmVpIFRpZXJlIFBsYXR6IGhhYmVuIiwxOTUwMF0sWyJBbGxlIHp1c2FtbWVuIGF1ZiBkZXIgRGFjaHRlcnJhc3NlIiwyNjAwMF0sWyJUaWVyYXJ6dCwgb2huZSBhdWZzIEdlbGQgenUgc2NoYXVlbiIsMzM1MDBdLFsiRWluIEhhdXMsIGRhcyBuYWNoIFJ1ZGVsIGtsaW5ndCIsNDIwMDBdLFsiVW5kIG5pZW1hbmQgbXVzcyBkcmF1w59lbiBibGVpYmVuIiw1MjAwMF1dfSwic296aWFsZXMiOnsiaWNvbiI6IvCfkaUiLCJuYW1lIjoiRnJldW5kZSAvIFNvemlhbGVzIiwic3R1ZmVuIjpbWyJGcmV1bmRlIGF1ZiBlaW5lbiBLYWZmZWUiLDBdLFsiRGllIFJ1bmRlIGdlaHQgYXVmIGRpY2giLDUwMF0sWyJHcmlsbGFiZW5kIGJlaSBkaXIiLDE2MDBdLFsiR3JpbGxhYmVuZCwgZGVyIGJpcyBuYWNodHMgZ2VodCIsMzIwMF0sWyJSb2FkdHJpcCBtaXQgdmllciBMZXV0ZW4iLDU1MDBdLFsiUm9hZHRyaXAgb2huZSBSw7xja2ZhaHJ0ZGF0dW0iLDg4MDBdLFsiQWxsZSBlaW5sYWRlbiwgZHUgemFobHN0IiwxMzAwMF0sWyJBbGxlIGVpbmxhZGVuLCBrZWluZXIgZnJhZ3QgbmFjaCIsMTgwMDBdLFsiV29jaGVuZW5kaGF1cyBmw7xyIGRpZSBHcnVwcGUiLDI0NTAwXSxbIkVpbiBIYXVzIHZvbGxlciBGcmV1bmRlLCBlaW4gV29jaGVuZW5kZSBsYW5nIiwzMjAwMF0sWyJEZXIgT3J0LCBhbiBkZW4gYWxsZSBrb21tZW4iLDQxMDAwXSxbIkRlciBPcnQsIGFuIGRlbSBhbGxlIHdpZWRlciB6dXNhbW1lbmtvbW1lbiIsNTEwMDBdXX19';
 const BELOHNUNG = JSON.parse(decodeURIComponent(escape(atob(BELOHNUNG_B64))));
 const KAT_KEYS = Object.keys(BELOHNUNG);
 const KAT_PREISFAKTOR = { fahrzeuge:1.3, wohnen:1.2, reisen:1.1, mobilitaet:1.0, begleiter:0.9, soziales:0.8 };
@@ -8685,11 +8752,10 @@ function momentRangCheck(){
       saveMeta();
       momentRang(_spielMemo.rang, rm.rang);
     }
-    else if(st!=null && _spielMemo.sterne!=null && st>_spielMemo.sterne && momenteAn() && motionErlaubt()){
-      const d=document.createElement('div'); d.className='mom-stern';
-      d.textContent='✨ Stern '+st;
-      document.body.appendChild(d); setTimeout(()=>d.remove(), 1800);
-    }
+    /* v2.2.0: Der Sterne-Zweig ist entfernt. Er las `st`, das seit dem
+       Wegfall der Sterne (v2.0.0) nirgends mehr definiert war — ab dem
+       zweiten Aufruf warf die Funktion einen ReferenceError, und alles
+       danach (aufgeschobene Vollbilder, einmalige Ereignisse) lief nie. */
   }
   _spielMemo={rang:rm.rang};
   // aufgeschobene Vollbilder + einmalige Ereignisse aus dem Abschluss
@@ -9369,115 +9435,247 @@ function belStapelBalken(){
   return h+'</div>';
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   §4 (v2.2.0) · DIE BELOHNUNGSSEITE — aus der Rangansicht, mit dem Shop
+   Drei Bereiche untereinander, Kachel-Prinzip aus v2.1.2 (jede Zahl neben
+   ihrer Grafik): 1 Was heute noch geht · 2 Was ich schon erklommen habe ·
+   3 Outfit und Shop. Alles aus vorhandenen Größen gerechnet — keine neue
+   Kennzahl, kein neues Speicherfeld. Die Statistik-Module, die hier bis
+   v2.1.2 standen, leben im Tab „Statistik"; die Detailanalyse und das Album
+   bleiben unten erreichbar. Der Shop-Reset bleibt in den Einstellungen.
+   ══════════════════════════════════════════════════════════════════════ */
+/* Rang an einem vergangenen Tag — dieselbe Rechnung wie rangMass()
+   (Median der Tages-P/Std über die letzten 14 aktiven Tage), nur mit dem
+   Stichtag als Ende. Memo je Minute, weil die Seite alle 5 s neu zeichnet. */
+let _belMemo=null, _belMemoKey='';
+function belVerlaufDaten(){
+  const iv=(S.intraday||[]), hs=(S.historie||[]);
+  const key=iv.length+'|'+hs.length+'|'+Math.floor(Date.now()/60000);
+  if(_belMemo && _belMemoKey===key) return _belMemo;
+  // Tagesraten einmal je aktivem Tag
+  const tage={}; iv.forEach(e=>{ if(e.ts && num(e.minuten)>=1) tage[belFensterDatum(e.ts)]=true; });
+  const raten=Object.keys(tage).sort().filter(d=>!tagIstUrlaub(d))
+    .map(d=>({d, r:tagesRate(d)})).filter(x=>x.r);
+  const heute=heuteApp(), wochen=[];
+  for(let w=7; w>=0; w--){
+    const stich=anVorTage(heute, w*7);
+    const vorher=raten.filter(x=>x.d<=stich).slice(-14);
+    const med=vorher.length>=3 ? medianVon(vorher.map(x=>x.r.rate)) : null;
+    wochen.push({ datum:stich, rang: med!=null ? leistungsRangVon(med) : null });
+  }
+  // Outfit-Bestwert: je vergangenem Tag aus Tagespunkten gegen das Tagesziel
+  // (dieselbe Treppe outfitVon), dazu das heutige Outfit.
+  let best=outfitHeute();
+  hs.filter(h=>!h.luecke && h.datum && h.datum!==heute).map(h=>h.datum)
+    .filter((v,i,a)=>a.indexOf(v)===i).forEach(d=>{
+      const sn=tagSnapshot(d); if(!sn) return;
+      const z=Math.max(1, zielTagGesamt(d));
+      best=Math.max(best, outfitVon(Math.max(0,num(sn.punkteBilanz))/z));
+    });
+  // Wohlstand über 28 Tage: vom heutigen Stand rückwärts über die Tagespunkte
+  const wl=[]; let w=wohlstandLive();
+  for(let i=0;i<28;i++){
+    const d=anVorTage(heute, i); wl.unshift(w);
+    const sn=tagSnapshot(d); if(sn) w-=Math.max(0, num(sn.punkteBilanz));
+  }
+  _belMemo={ wochen, outfitBest:Math.min(20,best), wohlstand:wl };
+  _belMemoKey=key;
+  return _belMemo;
+}
+/* Mini-Kurve (Verlauf über Zeit). werte: Zahlen oder null (Lücke). */
+function belKurve(werte, min, max, farbe){
+  const W=120, H=40, P=4, n=werte.length;
+  const lo=min!=null?min:Math.min.apply(null, werte.filter(v=>v!=null));
+  const hi=max!=null?max:Math.max.apply(null, werte.filter(v=>v!=null));
+  const sp=Math.max(1e-9, hi-lo);
+  const X=i=>P+(n>1?i/(n-1):0.5)*(W-2*P), Y=v=>H-P-((v-lo)/sp)*(H-2*P);
+  let pfad='', offen=false, punkte='';
+  werte.forEach((v,i)=>{ if(v==null){ offen=false; return; }
+    pfad+=(offen?'L':'M')+X(i).toFixed(1)+','+Y(v).toFixed(1); offen=true; });
+  const letzter=werte.map((v,i)=>v!=null?i:-1).filter(i=>i>=0).pop();
+  if(letzter!=null) punkte='<circle cx="'+X(letzter).toFixed(1)+'" cy="'+Y(werte[letzter]).toFixed(1)+'" r="3.5" fill="'+(farbe||'var(--cyan)')+'" stroke="var(--txt)" stroke-width="1.2"/>';
+  return '<svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
+    '<line x1="0" y1="'+(H-P)+'" x2="'+W+'" y2="'+(H-P)+'" stroke="var(--line)"/>'+
+    (pfad?'<path d="'+pfad+'" fill="none" stroke="'+(farbe||'var(--cyan)')+'" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>':'')+
+    punkte+'</svg>';
+}
+/* Zwei Füllungen auf einem Balken (fest + hell), plus Zielmarke. */
+function belDoppelBalken(fest, hell, marke, label){
+  const f=Math.max(0,Math.min(1,num(fest))), h=Math.max(f,Math.min(1,num(hell)));
+  let s='<div class="fbk-bar mitmarke"><i class="hell" style="width:'+(h*100).toFixed(1)+'%"></i>'+
+    '<i style="width:'+(f*100).toFixed(1)+'%"></i>';
+  if(marke!=null){ const m=Math.max(0,Math.min(1,num(marke)))*100;
+    s+='<u style="left:'+m.toFixed(1)+'%"></u>'+(label?'<em style="left:'+Math.max(12,Math.min(88,m)).toFixed(1)+'%">'+label+'</em>':''); }
+  return s+'</div>';
+}
+/* Der nächste mögliche Kauf: die günstigste freie Kategorie. */
+function belNaechsterKauf(){
+  let best=null;
+  KAT_KEYS.forEach(kk=>{
+    if(kaufSperre(kk)) return;
+    const p=preisFuer(kk);
+    if(!best || p<best.preis) best={ kat:kk, preis:p, stufe:num(S.belohnung.stufen[kk])+1 };
+  });
+  return best;
+}
+/* 1 · Was heute noch geht */
+function belHeuteNoch(){
+  const zi=zielUndIstHeute(), fehltZiel=Math.max(0, zi.ziel-zi.ist);
+  const skala=Math.max(zi.ziel, zi.ist)*1.1;
+  const of=outfitHeute(), naechste=Math.min(20, of+1);
+  const fehltOf=of>=20 ? 0 : outfitFehltBis(naechste);
+  const spanne=Math.max(1, (fbOutfitSchwelleF(naechste)-fbOutfitSchwelleF(of))*outfitZielHeute()/streakFaktor());
+  const ofFrac=of>=20 ? 1 : Math.max(0, Math.min(1, 1-fehltOf/spanne));
+  const rm=rangMass();
+  let h='<div class="bw"><div class="fb-h">Was heute noch geht</div><div class="fb-kacheln">';
+  h+='<div class="fbk voll"><div class="fbk-h">Bis zum Tagesziel</div><div class="fbk-r">'+
+     '<div class="fbk-g breit" aria-hidden="true">'+fbBalken(zi.ist/skala, zi.ziel/skala, 'Ziel '+fmtKurzP(zi.ziel), zi.ist>=zi.ziel)+'</div>'+
+     fbWert(fehltZiel>0?('noch '+fmtKurzP(fehltZiel)):'erreicht', fmtKurzP(zi.ist)+' von '+fmtKurzP(zi.ziel), 'rechts'+(fehltZiel>0?'':' gut'))+'</div></div>';
+  h+=fbKachel('Nächstes Outfit', fbRing(ofFrac, 'var(--purple)'),
+     fbWert(of>=20?'20':('noch '+fmtKurzP(fehltOf)), of>=20?'höchste Stufe':('bis Outfit '+naechste)));
+  // Münzen, die heute noch hereinkommen (bis zum Tagesziel, 1:1 aus Punkten)
+  const heuteMgl=Math.round(fehltZiel*streakFaktor()), k=konto(), nk=belNaechsterKauf();
+  if(nk){
+    const sk=Math.max(nk.preis, k+heuteMgl)*1.05;
+    h+=fbKachel('Münzen heute noch', '<div style="width:100%">'+belDoppelBalken(k/sk, (k+heuteMgl)/sk, nk.preis/sk, 'Kauf')+'</div>',
+       fbWert('+'+fmtKurzP(heuteMgl).replace(/ P$/,''), 'bis Tagesziel'), {breit:true});
+  } else {
+    h+=fbKachel('Münzen heute noch', fbRing(zi.ist/Math.max(1,zi.ziel), 'var(--warn)'),
+       fbWert('+'+fmtKurzP(heuteMgl).replace(/ P$/,''), 'bis Tagesziel'));
+  }
+  // Rang: Abstand nach oben UND nach unten — der Rang fällt auch.
+  if(rm.rang==null){
+    h+=fbKachel('Rang', '<div style="width:100%">'+fbBalken(rm.n/3, null, null)+'</div>',
+       fbWert(rm.n+'/3', 'Messtage bis zum Rang'), {voll:true, breit:true});
+  } else {
+    const basis=rm.rang>1 ? leistungsSchwelle(rm.rang) : 0;
+    const oben=rm.rang<RANG_MAX ? leistungsSchwelle(rm.rang+1) : Math.max(rm.median, basis)*1.1;
+    const frac=(rm.median-basis)/Math.max(1, oben-basis);
+    const puffer=rm.median-basis;
+    h+='<div class="fbk voll"><div class="fbk-h">Rang R'+rm.rang+' · „'+esc(rangName(rm.rang))+'"</div>'+
+       '<div class="fbk-zz">'+fbWert(rm.rang>1?('↓ '+Math.round(puffer)):'—', rm.rang>1?('P/Std Puffer bis R'+(rm.rang-1)):'Boden der Leiter')+
+       fbWert(rm.rang<RANG_MAX?('↑ '+Math.round(rm.rest)):'Top', rm.rang<RANG_MAX?('P/Std bis R'+(rm.rang+1)):'höchster Rang', 'rechts')+'</div>'+
+       '<div aria-hidden="true" class="bw-rangbar"><span>R'+rm.rang+'</span>'+fbBalken(frac, null, null)+'<span>'+(rm.rang<RANG_MAX?'R'+(rm.rang+1):'')+'</span></div>'+
+       '<div class="fb-rechnung">Median '+Math.round(rm.median)+' P/Std über '+rm.n+' aktive Tage.</div></div>';
+  }
+  if(nk){
+    const kat=BELOHNUNG[nk.kat], kann=k>=nk.preis;
+    h+='<div class="fbk voll"><div class="fbk-h">Als Nächstes im Shop</div><div class="fbk-r">'+
+       '<div class="fbk-g" aria-hidden="true">'+fbRing(k/nk.preis, kann?'var(--ok)':'var(--warn)')+'</div>'+
+       fbWert(kann?'jetzt':('noch '+Math.round(nk.preis-k)), kat.icon+' '+esc(kat.name)+' · Stufe '+nk.stufe+' · '+Math.round(nk.preis)+' 🪙')+'</div></div>';
+  }
+  return h+'</div></div>';
+}
+/* 2 · Was ich schon erklommen habe */
+function belErklommen(){
+  const vd=belVerlaufDaten(), rm=rangMass(), of=outfitHeute();
+  let h='<div class="bw"><div class="fb-h">Was ich schon erklommen habe</div><div class="fb-kacheln">';
+  const rw=vd.wochen.map(x=>x.rang), hat=rw.filter(v=>v!=null).length;
+  h+=fbKachel('Rang über 8 Wochen', hat>=1 ? belKurve(rw, 1, Math.max(4, Math.max.apply(null, rw.filter(v=>v!=null))+1), 'var(--purple)') : belKurve([0,0],0,1,'var(--line)'),
+     fbWert(rm.rang!=null?('R'+rm.rang):'—', rm.best?('Bestwert R'+rm.best):'sammelt noch'), {voll:true, breit:true});
+  h+=fbKachel('Outfit · heute und Bestwert', '<div style="width:100%">'+fbBalken(of/20, vd.outfitBest/20, 'Best', of>=vd.outfitBest)+'</div>',
+     fbWert(String(of), 'Bestwert '+vd.outfitBest+' / 20'), {voll:true, breit:true});
+  // Shop-Stand je Kategorie
+  let rows='';
+  KAT_KEYS.forEach(kk=>{
+    const n=Math.max(0, num(S.belohnung.stufen[kk])), max=BELOHNUNG[kk].stufen.length;
+    rows+='<div class="bw-katrow"><span class="ic">'+BELOHNUNG[kk].icon+'</span><span class="nm">'+esc(BELOHNUNG[kk].name)+'</span>'+
+      '<span class="bar" aria-hidden="true">'+fbBalken(n/max, null, null, n>=max)+'</span><b>'+n+'/'+max+'</b></div>';
+  });
+  h+='<div class="fbk voll"><div class="fbk-h">Shop-Stand je Kategorie</div>'+rows+'</div>';
+  // Wohlstand, Konto, Kulisse
+  h+=fbKachel('Wohlstand · 28 Tage', belKurve(vd.wohlstand, null, null, 'var(--ok)'),
+     fbWert(fmtKurzP(wohlstandLive()).replace(/ P$/,''), 'Punkte gesamt'), {breit:true});
+  const ausg=ausgabenAnzeige(), k=konto(), ges=Math.max(1, k+ausg);
+  h+=fbKachel('Konto', '<div style="width:100%">'+belDoppelBalken(k/ges, 1, null, null)+'</div>',
+     fbWert(fmtKurzP(k).replace(/ P$/,''), Math.round(ausg)+' 🪙 ausgegeben'), {breit:true});
+  const st=bgStufeAus(ausg), lo=st>1||ausg>=bgSchwelle(1) ? bgSchwelle(st) : 0, hi=st<10 ? bgSchwelle(st+1) : Math.max(ausg,1);
+  h+=fbKachel('Kulisse', '<div style="width:100%">'+fbBalken(st<10?(ausg-lo)/Math.max(1,hi-lo):1, null, null, st>=10)+'</div>',
+     fbWert(st+'/10', st<10?('noch '+Math.round(hi-ausg)+' 🪙 ausgeben'):'letzte Kulisse'), {voll:true, breit:true});
+  return h+'</div></div>';
+}
+/* 3a · Outfit — alle 20 Stufen. Erreichte (bis zum Bestwert) zeigen ihr
+   Bild, das heutige ist markiert, die nächste hervorgehoben, spätere
+   bleiben Silhouette — die Überraschung bleibt. */
+function belOutfitLeiste(){
+  const vd=belVerlaufDaten(), of=outfitHeute();
+  let h='<div class="bw-of">';
+  for(let i=1;i<=20;i++){
+    const cls=i===of?'heute':(i===of+1?'naechste':(i<=vd.outfitBest?'erreicht':'spaeter'));
+    h+='<div class="bw-ofz '+cls+'"><img src="'+AVATAR_BILDER[i-1]+'" alt="" loading="lazy" decoding="async" onerror="this.style.visibility=\'hidden\'">'+
+       '<span>'+i+'</span></div>';
+  }
+  return h+'</div><div class="fb-rechnung">Heute Outfit <b>'+of+'</b> · nächstes '+(of<20?of+1:'—')+' · Bestwert '+vd.outfitBest+'. Spätere Stufen bleiben verdeckt.</div>';
+}
+/* 3b · Shop — sechs Kategorien, je zwölf Stufen, Kaufen passiert hier.
+   Gekauftes zeigt Bild (Objektstufe) und Text; die nächste Stufe und alles
+   danach bleiben „???" bis zum Kauf (Regel aus Shop-Etappe 2). */
+function belShopHtml(){
+  const k=konto(); belohnungInit();
+  const auf=(S.ui && S.ui.belKatAuf) || {};
+  return KAT_KEYS.map(kk=>{
+    const kat=BELOHNUNG[kk], offen=Math.max(0,num(S.belohnung.stufen[kk])), max=kat.stufen.length;
+    const sperre=kaufSperre(kk), preis=preisFuer(kk), zone=KAT_ZONE[kk];
+    const bildFuer=s=>zone ? '<img src="img/obj-'+zone+Math.max(1,Math.min(5,Math.ceil(s/max*5)))+'.png" alt="" loading="lazy" decoding="async" onerror="this.replaceWith(document.createTextNode(\''+kat.icon+'\'))">' : kat.icon;
+    let naechste;
+    if(sperre==='komplett') naechste='<div class="bw-st fertig"><span class="sym">🏁</span><span class="tx">Alle zwölf Stufen gekauft</span></div>';
+    else {
+      const s=offen+1;
+      let rechts;
+      if(sperre) rechts='<span class="bw-sperre">🔒 '+esc(sperre)+'</span>';
+      else if(k>=preis) rechts='<button class="kaufbtn bw-kauf" data-kauf="'+kk+'">Kaufen · '+Math.round(preis)+' 🪙</button>';
+      else rechts='<span class="bw-fehlt"><span class="bar" aria-hidden="true">'+fbBalken(k/preis, null, null)+'</span>noch '+Math.round(preis-k)+' von '+Math.round(preis)+' 🪙</span>';
+      naechste='<div class="bw-st naechste"><span class="sym">🎁</span><span class="tx"><b>Stufe '+s+'</b> · ???</span></div>'+rechts;
+    }
+    let liste='';
+    if(auf[kk]){
+      liste='<div class="bw-stufen">';
+      kat.stufen.forEach((st,i)=>{
+        const s=i+1, gekauft=s<=offen, istNaechste=s===offen+1;
+        liste+='<div class="bw-st '+(gekauft?'gekauft':(istNaechste?'naechste':'gesperrt'))+'">'+
+          '<span class="sym">'+(gekauft?bildFuer(s):(istNaechste?'🎁':'🔒'))+'</span>'+
+          '<span class="tx"><b>'+s+'</b> · '+(gekauft?esc(st[0]):'???')+'</span>'+
+          '<span class="zu">'+(gekauft?'✓':(istNaechste?(sperre&&sperre!=='komplett'?'gesperrt':Math.round(preis)+' 🪙'):''))+'</span></div>';
+      });
+      liste+='</div>';
+    }
+    return '<div class="bw-kat">'+
+      '<div class="bw-katkopf"><span class="bw-katbild" aria-hidden="true">'+(offen>=1?bildFuer(offen):kat.icon)+'</span>'+
+        '<span class="nm"><b>'+kat.icon+' '+esc(kat.name)+'</b><span class="bar" aria-hidden="true">'+fbBalken(offen/max, null, null, offen>=max)+'</span></span>'+
+        '<b class="n">'+offen+'/'+max+'</b></div>'+
+      '<div class="bw-akt">'+(offen>=1?('Aktuell: '+esc(kat.stufen[offen-1][0])):'Noch nichts gekauft')+'</div>'+
+      naechste+
+      '<button class="bw-alle" data-belkat="'+kk+'" aria-expanded="'+(auf[kk]?'true':'false')+'">'+(auf[kk]?'Stufen einklappen ▴':'Alle zwölf Stufen ▾')+'</button>'+
+      liste+'</div>';
+  }).join('');
+}
 function renderBelohnung(){
   rangCacheBauen();
-  let h='';
-  // ── Avatar-Szene (§7 D7 + §6.1): Foto nach Level/Vitalität, gekaufte
-  //    Kategorien wachsen als Objekte in der Szene. Hintergrund-Verlauf.
   belohnungInit();
-  // U4 (v1.4.0): Level/Name/Hintergrund/Funkel-Stufe zentral aus avatarAssets;
-  // Fortschrittsleiste zeigt den Weg zum nächsten Level (Lifetime-Punkte).
-  // §3 (v1.9.0): Anzeige läuft über RANG und STERNE (spielStand) — avatarAssets
-  // bekommt das Level-Äquivalent 5·(Rang−1)+max(1,Stern), damit Bild-Slot=Rang
-  // und Farbvariante=Stern gilt.
-  // §1/§3–§5 (v1.11.0): Die Kleidung zeigt den TAG (Outfit aus F), der Rang
-  // ist das P/Std-Maß, die Sterne das Geld-Maß. Kulisse/Konto unverändert.
-  const rm=rangMass(), outfit=outfitHeute(), F=outfitF();
-  const lvl=5*(outfit-1)+1, av=avatarAssets(lvl);   // §3 (v2.0.0): ohne Sterne die Basisstufe
-  const vital=vitalitaet(), kontoP=konto();
-  const sterneHtml = '';
-  const vs=vitalStufe();
+  const rm=rangMass(), outfit=outfitHeute();
+  const av=avatarAssets(5*(outfit-1)+1), vs=vitalStufe();
+  let h='';
+  // Die Figur mit dem heutigen Outfit groß oben (Szene aus v1.5 übernommen)
   h+='<div class="avcard"><div class="avscene'+(vs?' '+vs:'')+'" style="background:'+av.bgStyle+'">'+
     '<div class="avbg" style="background-image:url(\''+bgFuerAusgaben()+'\')"></div>'+
     '<img class="avfoto" src="'+AVATAR_BILDER[outfit-1]+'" alt="Avatar" loading="lazy" decoding="async"'+
       ' onerror="if(this.src.indexOf(\''+AVATAR_FALLBACK+'\')<0){this.src=\''+AVATAR_FALLBACK+'\';}else{this.style.display=\'none\';}">'+
-    '<div class="avfx '+avatarAssets(5*((rm.rang||1)-1)+1).fx+'"></div>'+   // §7: Funkel bleibt am RANG (5/10/15/19)
+    '<div class="avfx '+avatarAssets(5*((rm.rang||1)-1)+1).fx+'"></div>'+
     '</div>'+
     '<div class="rankline"><div class="rankname" style="color:'+av.akzent+'">Outfit '+outfit+' / 20</div>'+
-      '<div class="rankpts">🪙 '+Math.round(kontoP)+'</div></div>'+
+      '<div class="rankpts">🪙 '+Math.round(konto())+'</div></div>'+
     '<div class="rankline" style="margin-top:2px"><div class="rankstufe">'+
-      (rm.rang==null ? 'Rang: sammelt noch Daten ('+rm.n+'/3)'
-        : 'Rang '+rangAnzeigeText(rm)+' · '+esc(rangName(rm.rang))+' · '+Math.round(rm.median)+' P/Std')+
-      ' <span style="color:'+av.akzent+';letter-spacing:2px">'+sterneHtml+'</span></div>'+
+      (rm.rang==null ? 'Rang: sammelt noch Daten ('+rm.n+'/3)' : 'Rang '+rangAnzeigeText(rm)+' · '+esc(rangName(rm.rang)))+'</div>'+
       '<div class="rankstufe">'+VITAL_LABEL[vs||'voll']+'</div></div>'+
-    '<div class="av-bar" id="rangRing"><i style="width:'+Math.round((rm.rang!=null?rm.anteil:0)*100)+'%;background:'+av.akzent+'"></i></div>'+
-    '<div class="rankstufe" style="margin-top:4px">'+(rm.rang==null
-      ? 'Der Rang misst deinen P/Std-Median über 14 aktive Tage.'
-      : (rm.rang>=RANG_MAX ? 'Höchster Rang — Median '+Math.round(rm.median)+' P/Std.'
-        : 'Noch '+Math.round(rm.rest)+' P/Std bis Rang '+(rm.rang+1)+' — „'+esc(rangName(rm.rang+1))+'".'))+'</div>'+
-    '<div class="rankstufe" style="margin-top:2px">Heute: '+Math.round(Math.max(0,tagesPunkteLive()))+' P · F '+F.toFixed(2).replace('.',',')+
-      (outfit<20 ? ' · Outfit '+(outfit+1)+' in '+Math.round(outfitFehltBis(outfit+1))+' P' : ' · Frack an 🤵')+'</div>'+
-    '<div class="rankline" style="margin-top:6px"><div class="rankstufe">🔥 Routinen-Serie '+routinenSerieBeste().tage+' Tg</div>'+
-      '<div class="rankstufe">'+(function(){ const st=bgStufeAus(ausgabenAnzeige());
-        return 'Reise: Kulisse '+st+'/10'+(st<10?' · noch '+Math.round(bgSchwelle(st+1)-ausgabenAnzeige())+' 🪙 ausgeben':''); })()+'</div></div>'+
-    '<button class="btn ghost sm" data-album="1" style="width:100%;margin-top:8px">🖼 Album — Ränge · Kulissen · Besitz</button></div>';
-
-  // ── B1: Einstieg Detailanalyse ───────────────────────────────────
-  h+='<button class="btn prim" data-analyse="1" style="width:100%;margin:0 0 14px;display:flex;align-items:center;justify-content:center;gap:8px">📊 Detailanalyse öffnen</button>';
-
-  // ── V2.1 Tages-Diagramm 5→5 + V2.2 KPI-Felder ────────────────────
-  h+=belTagesDiagramm();
-  h+=belKpiFelder();
-
-  // ── Stat 3: Zeitverteilung je Domäne + Projekt (heute) ───────────
-  const zh=tagesZeitAggregat(aktuelleTagId()); const gesZ=zh.dfm+zh.privat;
-  h+='<div class="card"><h3>Zeit heute</h3>';
-  if(gesZ<60){ h+='<p class="d" style="color:var(--mut2)">Noch keine nennenswerte Zeit gebucht.</p>'; }
-  else {
-    h+='<div class="split"><span class="dfm">DFM '+fmtMin(zh.dfm)+'</span><span class="priv">Privat '+fmtMin(zh.privat)+'</span></div>'+
-      '<div class="splitbar"><i class="dfm" style="width:'+Math.round(zh.dfm/gesZ*100)+'%"></i><i class="priv" style="width:'+Math.round(zh.privat/gesZ*100)+'%"></i></div>';
-    const projekte=Object.entries(zh.projekte).sort((a,b)=>b[1]-a[1]).slice(0,6);
-    projekte.forEach(([p,sek])=>{ h+='<div class="projrow"><span>'+esc(p)+'</span><span class="bwrap2"><i style="width:'+Math.round(sek/gesZ*100)+'%"></i></span><b>'+fmtMin(sek)+'</b></div>'; });
-  }
-  h+='</div>';
-
-  // ── V2.3 Punkte-Aufschlüsselung (aufklappbar) ────────────────────
-  // §5 (v1.7.0): Diagramme-Karte wiederbelebt — Tag/Woche/Monat + Kennzahlen +
-  // Aufschlüsselung nach Kartenart, oberhalb der Punkte-Aufschlüsselung.
-  h+=diagrammHtml();
-  h+=belAufschluesselung();
-
-  // ── Stat 4: Routinen-Erfüllungsquote + Streaks ───────────────────
-  // §4 (v1.7.1) BUGFIX: die Quote rechnete NUR über routinenBilanz — die enthält
-  // aber ausschließlich verpasste/entschuldigte Einträge, nie erfüllte, womit
-  // erf strukturell 0 blieb und die Quote dauerhaft 0 % zeigte. Jetzt DIESELBE
-  // Rechnung wie im Routinen-Flow der Analyse: erfüllt aus dem Punkt-Log
-  // (Historie + heute), verpasst aus der Bilanz, entschuldigt bleibt draußen.
-  let erf=0, verp=0;
-  S.historie.forEach(x=>{
-    (x.log||[]).forEach(l=>{ if(l.art==='Routine' && num(l.punkte)>0) erf++; });
-    (x.routinenBilanz||[]).forEach(r=>{ if(r.verpasst) verp++; });
-  });
-  if(tagOffen() && S.tag) (S.tag.log||[]).forEach(l=>{ if(l.art==='Routine' && num(l.punkte)>0) erf++; });
-  const routKarten=S.karten.filter(k=>k.rhythmus && k.status!=='archiviert');
-  const quote = (erf+verp)>0 ? Math.round(erf/(erf+verp)*100) : null;
-  h+='<div class="card"><h3>Routinen</h3>';
-  // §3.1 (v1.13.0): heute anstehende Routinen in VIER Kategorien (Σ = 100 %)
-  {
-    const q=routinenQuoteHeute('alle');
-    if(q.gesamt>0){
-      const seg=[['erledigt','var(--ok)',q.erledigt],['geschoben','#f08c4b',q.geschoben],
-                 ['entschuldigt','var(--cyan)',q.entschuldigt],[tagOffen()?'verpasst/offen':'verpasst','var(--bad)',q.verpasst]];
-      h+='<div class="kv"><span>Heute anstehend</span><b>'+q.gesamt+' Routinen</b></div>'+
-        '<div class="stbar" style="margin:4px 0 5px">'+seg.map(s=>{ if(!s[2]) return '';
-          const pct=s[2]/q.gesamt*100;
-          return '<i style="width:'+pct.toFixed(1)+'%;background:'+s[1]+'" title="'+s[0]+': '+s[2]+'">'+(pct>=14?Math.round(pct)+'%':'')+'</i>'; }).join('')+'</div>'+
-        '<div class="stbar-leg">'+seg.map(s=>'<span><i style="background:'+s[1]+'"></i>'+s[0]+' '+s[2]+'</span>').join('')+'</div>';
-    } else {
-      h+='<p class="d" style="color:var(--mut2)">Heute keine anstehenden Routinen.</p>';
-    }
-  }
-  h+='<div class="kv"><span>Erfüllungsquote gesamt (entschuldigte raus)</span><b>'+(quote==null?'—':quote+'%')+'</b></div>';
-  if(!routKarten.length) h+='<p class="d" style="color:var(--mut2)">Keine Routinen angelegt.</p>';
-  routKarten.sort((a,b)=>num(b.streak)-num(a.streak)).slice(0,8).forEach(k=>{ h+='<div class="kv"><span>'+esc(k.titel)+'</span><b>🔥 '+num(k.streak)+'</b></div>'; });
-  h+='</div>';
-
-  // ── V2.4 Stapel-100%-Segmentbalken (ersetzt die alte Stapel-KPI) ──
-  h+=belStapelBalken();
-
-  // ── Shop — nächste Stufen (§7 D7, voller Port) ───────────────────
-  h+='<div class="card"><h3>Shop — nächste Stufen</h3><p class="d">Konto '+Math.round(konto())+' P (Wohlstand − Ausgaben). Der Inhalt der nächsten Stufe bleibt „???" bis zum Freischalten.</p>'+shopHtml()+'</div>';
-
+    '<button class="btn sm bw-zumshop" data-zumshop="1">🛒 Zum Shop · '+Math.round(konto())+' 🪙</button></div>';
+  h+=belHeuteNoch();
+  h+=belErklommen();
+  h+='<div class="bw"><div class="fb-h">Outfit und Shop</div>'+
+     '<div class="fbk"><div class="fbk-h">Outfit · alle 20 Stufen</div>'+belOutfitLeiste()+'</div>'+
+     '<div class="fbk-h bw-shoph" id="belShop">Shop · Konto '+Math.round(konto())+' 🪙</div>'+belShopHtml()+
+     '<div class="fb-rechnung">Der Inhalt einer Stufe bleibt „???" bis zum Kauf. Den Shop zurücksetzen: ⚙︎ Einstellungen.</div></div>';
+  h+='<div class="bw-fuss"><button class="btn ghost sm" data-album="1">🖼 Album</button>'+
+     '<button class="btn ghost sm" data-analyse="1">📊 Detailanalyse</button></div>';
   el('belohnungBody').innerHTML=h;
 }
 
@@ -9511,9 +9709,32 @@ function istHeuteErledigt(k){
   if(k.rhythmus && typeof routErledigtHeute==='function' && routErledigtHeute(k)) return true;
   return false;
 }
+/* ══ §2 (v2.2.0) · DOMÄNE UND ART — zwei Filter über allen Sichten ═══
+   Die Wahl lebt in S.ui (localStorage) und übersteht einen Neustart. Sie
+   ist nie unsichtbar aktiv: die Segment-Leisten stehen immer über den
+   Sichten, und jede Kopfzeile nennt die aktive Filterung. */
+const SU_DOM = [['alle','Alle'],['dfm','DFM'],['privat','Privat']];
+const SU_ART = [['alle','Alle'],['aufgaben','Aufgaben'],['routinen','Routinen und Counter']];
+function suDom(){ const v=S.ui&&S.ui.suDom; return SU_DOM.some(x=>x[0]===v)?v:'alle'; }
+function suArtW(){ const v=S.ui&&S.ui.suArt; return SU_ART.some(x=>x[0]===v)?v:'alle'; }
+function suFilterPasst(k){
+  if(!k) return false;
+  const d=suDom(); if(d!=='alle' && k.domain!==d) return false;
+  const a=suArtW(), art=kartenArt(k);
+  if(a==='aufgaben' && art!=='Aufgabe') return false;
+  if(a==='routinen' && art!=='Routine' && art!=='Counter') return false;
+  return true;
+}
+/* Kurztext der aktiven Filterung für die Kopfzeilen ('' = keine). */
+function suFilterText(){
+  const t=[];
+  if(suDom()!=='alle') t.push(SU_DOM.find(x=>x[0]===suDom())[1]);
+  if(suArtW()!=='alle') t.push(SU_ART.find(x=>x[0]===suArtW())[1]);
+  return t.length ? ' · <span class="su-aktiv">'+esc(t.join(' · '))+'</span>' : '';
+}
 /* DIE Filterstelle. Jede Sicht und der Freitext gehen hier durch. */
 function suSichtbar(ks){
-  return erledigteZeigen() ? ks : ks.filter(k=>!istHeuteErledigt(k));
+  return ks.filter(k=>suFilterPasst(k) && (erledigteZeigen() || !istHeuteErledigt(k)));
 }
 function suFrage(){ return String(S.ui.suFrage||'').trim(); }
 
@@ -9532,6 +9753,10 @@ function suFrage(){ return String(S.ui.suFrage||'').trim(); }
 function setTab(tab, opt){
   if(tab!=='suche' && tab!=='statistik' && tab!=='einst' && tab!=='belohnung') tab='suche';
   if(!(opt && opt.fokusLassen)){ S.ui.fokusOffen=false; S.ui.fokusZeigt=null; }
+  // v2.2.0: <main> ist EIN Scroller fuer alle Seiten — ein Seitenwechsel
+  // beginnt oben (sonst oeffnete die Suche nach dem Shop mitten in der Liste,
+  // Filter und Sichten ausserhalb des Bildes).
+  if(S.ui.tab!==tab){ const m=document.querySelector('main'); if(m) m.scrollTop=0; }
   S.ui.tab=tab; saveUi();
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
   const v=el('v-'+tab); if(v) v.classList.add('on');
@@ -9610,9 +9835,15 @@ function renderSuche(){
   const sv=suSicht();
   const sw=el('suSichten');
   if(sw) sw.innerHTML = SU_SICHTEN.map(([k,l,ic])=>
-    '<button class="su-s'+(sv===k?' on':'')+'" data-susicht="'+k+'">'+ic+' '+esc(l)+'</button>').join('')+
-    '<button class="su-erl'+(erledigteZeigen()?' on':'')+'" data-suerl="1" '+
-    'aria-label="Erledigte zeigen" title="Erledigte zeigen">✓</button>';
+    '<button class="su-s'+(sv===k?' on':'')+'" data-susicht="'+k+'">'+ic+' '+esc(l)+'</button>').join('');
+  const sf=el('suFilter');
+  if(sf) sf.innerHTML=
+    '<div class="su-frow"><span class="l">Domäne</span><div class="su-seg" role="group" aria-label="Domäne">'+
+      SU_DOM.map(([k,l])=>'<button class="'+(suDom()===k?'on':'')+'" data-sudom="'+k+'" aria-pressed="'+(suDom()===k)+'">'+l+'</button>').join('')+
+    '</div><button class="su-erl2'+(erledigteZeigen()?' on':'')+'" data-suerl="1" aria-pressed="'+erledigteZeigen()+'">✓ Erledigte</button></div>'+
+    '<div class="su-frow"><span class="l">Art</span><div class="su-seg" role="group" aria-label="Art">'+
+      SU_ART.map(([k,l])=>'<button class="'+(suArtW()===k?'on':'')+'" data-suart="'+k+'" aria-pressed="'+(suArtW()===k)+'">'+l+'</button>').join('')+
+    '</div></div>';
   const q=suFrage();
   // §4 (v2.1.1): Der Begriff lebt in S.ui.suFrage UND im Eingabefeld. Waren
   // die beiden auseinander (Feld leer, Zustand gefüllt), lief die Suche
@@ -9631,10 +9862,10 @@ function suFreitextHtml(q){
   // sucheTreffer liefert {k,sc}-Paare, nicht die Karten selbst — die Karte
   // muss ausgepackt werden, sonst rendert die Zeile ein leeres Objekt.
   // §3 (v2.1.0): auch der Freitext filtert — das ist die Aenderung zu v2.0.
-  const tr=sucheTreffer(q).filter(o=>erledigteZeigen() || !istHeuteErledigt(o.k));
-  if(!tr.length) return '<div class="leer">Nichts gefunden zu „'+esc(q)+'".'+
+  const tr=sucheTreffer(q).filter(o=>suFilterPasst(o.k) && (erledigteZeigen() || !istHeuteErledigt(o.k)));
+  if(!tr.length) return '<div class="leer">Nichts gefunden zu „'+esc(q)+'"'+suFilterText().replace(/<[^>]+>/g,'')+'.'+
     (erledigteZeigen()?'':' (Erledigtes ist ausgeblendet.)')+'</div>';
-  return '<div class="su-kopfzeile">'+tr.length+' Treffer · Freitext'+
+  return '<div class="su-kopfzeile">'+tr.length+' Treffer · Freitext'+suFilterText()+
     (erledigteZeigen()?' · inkl. Erledigtes':'')+'</div>'+
     tr.map(o=>kartenreiheHtml(o.k, 'su-frei')).join('');
 }
@@ -9651,9 +9882,9 @@ function suHeuteHtml(){
   const ks=suSichtbar(ids.map(id=>by[id]).filter(Boolean));
   if(!ks.length) return '<div class="leer">'+(erledigteZeigen()
     ? 'Die Kette ist leer.'
-    : 'Nichts Offenes in der Kette. (Erledigtes ist ausgeblendet — Filter oben.)')+'</div>';
+    : 'Nichts Offenes in der Kette'+suFilterText().replace(/<[^>]+>/g,'')+'. (Erledigtes ist ausgeblendet — Filter oben.)')+'</div>';
   const offen=ks.filter(k=>k.status==='offen').length;
-  let h='<div class="su-kopfzeile">'+ks.length+' in der Kette · '+offen+' offen</div>';
+  let h='<div class="su-kopfzeile">'+ks.length+' in der Kette · '+offen+' offen'+suFilterText()+'</div>';
   h+=ks.map((k,i)=>'<div class="kettenzeile"><span class="kn">'+(i+1)+'</span>'+kartenreiheHtml(k,'kette')+'</div>').join('');
   return h;
 }
@@ -9662,6 +9893,20 @@ function suMatrixHtml(){
   const off=suSichtbar(S.karten.filter(k=>k.status==='offen'||erledigteZeigen()));
   const gewaehlt=S.ui.suMatrixFeld && MATRIX_FELDER.indexOf(S.ui.suMatrixFeld)>=0 ? S.ui.suMatrixFeld : null;
   const p=matrixPos();
+  /* §3 (v2.2.0): Ein gewähltes Feld zeigt seine Karten als EIGENE Liste mit
+     Zurück. BEFUND, gemessen: der Tipp kam an (button.su-mxq, Feld wurde
+     gewählt), die Liste stand aber UNTER Raster und Hinweis bei y≈625 —
+     bei leeren Feldern nur „Kein Eintrag" knapp über der Leiste; bis v2.1.2
+     war zudem die Markierung .on unsichtbar (--ac fehlte). Es sah aus, als
+     passiere nichts. */
+  if(gewaehlt){
+    const ks=off.filter(k=>matrixFeldVon(k)===gewaehlt);
+    let h='<button class="su-mxzurueck" data-sumx="'+gewaehlt+'">‹ Alle vier Felder</button>';
+    h+='<div class="su-kopfzeile">'+MATRIX_META[gewaehlt].icon+' '+MATRIX_META[gewaehlt].nr+' · '+esc(MATRIX_META[gewaehlt].name)+' · '+ks.length+suFilterText()+'</div>';
+    h+= ks.length ? ks.map(k=>kartenreiheHtml(k,'su-mx')).join('')
+                  : '<div class="leer">Keine Karte in diesem Feld'+suFilterText().replace(/<[^>]+>/g,'')+'.</div>';
+    return h;
+  }
   let h='<div class="su-mxgrid">';
   [['ablenkung','q1'],['werkzeug','q3'],['zustand','q2'],['ziel','q4']].forEach(([f,q])=>{
     const n=off.filter(k=>matrixFeldVon(k)===f).length;
@@ -9679,11 +9924,6 @@ function suMatrixHtml(){
   h+='<div class="hint" style="padding:0 12px 6px">'+(p
       ? 'Dein Punkt liegt im Raster — '+esc(matrixLesart(p.x,p.y).replace(/<[^>]+>/g,''))
       : 'Noch keine Position heute. Sie wird beim Verlassen einer Karte abgefragt.')+'</div>';
-  if(gewaehlt){
-    const ks=off.filter(k=>matrixFeldVon(k)===gewaehlt);
-    h+='<div class="su-kopfzeile">'+MATRIX_META[gewaehlt].icon+' '+esc(MATRIX_META[gewaehlt].name)+' · '+ks.length+'</div>';
-    h+= ks.length ? ks.map(k=>kartenreiheHtml(k,'su-mx')).join('') : '<div class="leer">Kein Eintrag in diesem Feld.</div>';
-  }
   return h;
 }
 /* 3 · Zuletzt und oft genutzt. */
@@ -9695,7 +9935,7 @@ function suOftHtml(){
   const oft=ks.slice().map(k=>({k, n:(Array.isArray(k.abschluesse)?k.abschluesse.length:0)+num(k.streak)}))
     .filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,12);
   let h='';
-  h+='<div class="su-kopfzeile">Zuletzt angefasst</div>';
+  h+='<div class="su-kopfzeile">Zuletzt angefasst'+suFilterText()+'</div>';
   h+= zuletzt.length ? zuletzt.map(k=>kartenreiheHtml(k,'su-oft')).join('') : '<div class="leer">Noch nichts angefasst.</div>';
   if(oft.length){
     h+='<div class="su-kopfzeile">Am häufigsten genutzt</div>';
@@ -9709,15 +9949,15 @@ function suFaelligHtml(){
   const ks=suSichtbar(S.karten.filter(k=>(k.status==='offen'||erledigteZeigen()) && k.faelligkeit))
     .sort((a,b)=>String(a.faelligkeit).localeCompare(String(b.faelligkeit))
       || String(a.uhrzeit||'99:99').localeCompare(String(b.uhrzeit||'99:99')));
-  if(!ks.length) return '<div class="leer">Keine Karte mit Deadline.</div>';
+  if(!ks.length) return '<div class="leer">Keine Karte mit Deadline'+suFilterText().replace(/<[^>]+>/g,'')+'.</div>';
   const ueber=ks.filter(k=>k.faelligkeit<h0), rest=ks.filter(k=>k.faelligkeit>=h0);
   let h='';
   if(ueber.length){
-    h+='<div class="su-kopfzeile warn">Überfällig · '+ueber.length+'</div>';
+    h+='<div class="su-kopfzeile warn">Überfällig · '+ueber.length+suFilterText()+'</div>';
     h+=ueber.map(k=>kartenreiheHtml(k,'su-ueber')).join('');
   }
   if(rest.length){
-    h+='<div class="su-kopfzeile">Kommt · '+rest.length+'</div>';
+    h+='<div class="su-kopfzeile">Kommt · '+rest.length+(ueber.length?'':suFilterText())+'</div>';
     h+=rest.map(k=>kartenreiheHtml(k,'su-faellig')).join('');
   }
   return h;
@@ -9729,10 +9969,10 @@ function suArtHtml(){
   [['Aufgabe','Aufgaben'],['Routine','Routinen'],['Counter','Counter']].forEach(([a,l])=>{
     const ks=off.filter(k=>kartenArt(k)===a);
     if(!ks.length) return;
-    h+='<div class="su-kopfzeile">'+esc(l)+' · '+ks.length+'</div>';
+    h+='<div class="su-kopfzeile">'+esc(l)+' · '+ks.length+suFilterText()+'</div>';
     h+=ks.map(k=>kartenreiheHtml(k,'su-art')).join('');
   });
-  return h || '<div class="leer">Keine offene Karte.</div>';
+  return h || '<div class="leer">Keine offene Karte'+suFilterText().replace(/<[^>]+>/g,'')+'.</div>';
 }
 /* ══ §6 · Sortieren der Kette geschieht AUS DER SUCHE heraus ═══════════
    Karte antippen → Position frei wählbar. Keine Pfeile in der Kartenzeile,
@@ -10025,7 +10265,12 @@ el('fkPP').addEventListener('click', ()=>{ if(S.fokus) fokusToggle(); else setTa
 el('fkMid').addEventListener('click', ()=>{
   if(S.fokus && S.fokus.karteId) fokusAnsichtZeigen();
 });
-el('statusbar').addEventListener('click', ()=>oeffneStatusSheet());   // §2 (1.10.0): Sheet statt Live-Kurve
+el('statusbar').addEventListener('click', e=>{
+  // §1 (v2.2.0): die Rang-Zelle fuehrt auf die Belohnungsseite; der Rest
+  // der Leiste oeffnet wie bisher das Status-Sheet.
+  if(e.target.closest('#sZRang')){ zurBelohnung(); return; }
+  oeffneStatusSheet();
+});   // §2 (1.10.0): Sheet statt Live-Kurve
 
 // Fokus-View: Toggle / Häkchen / Karussell / Farbstreifen / Unteraufgaben / Stapelwahl
 // Bug 2: Karussell-Pfeile im Topbar (außerhalb von #fokusView)
@@ -10662,6 +10907,14 @@ function stapelLiesEditor(){
 // Belohnung/Statistik: Diagramm-Umschalter (Zeitraum/Domäne/Tageswahl) + Shop-Kauf
 el('belohnungBody').addEventListener('click', e=>{
   if(e.target.closest('[data-album]')){ oeffneAlbum(); return; }   // §8 (1.9.0)
+  // §4 (v2.2.0): Sprung zum Shop-Bereich der Seite
+  // (main scrollt unter der fixen Kopfleiste — deshalb um deren Höhe versetzt)
+  if(e.target.closest('[data-zumshop]')){ const z=el('belShop'), m=document.querySelector('main'), tb=el('topbar');
+    if(z && m){ const oben=tb?tb.getBoundingClientRect().bottom:0;
+      m.scrollTop += z.getBoundingClientRect().top - oben - 8; } return; }
+  // §4 (v2.2.0): alle zwölf Stufen einer Shop-Kategorie auf-/zuklappen
+  const bk=e.target.closest('[data-belkat]'); if(bk){ S.ui.belKatAuf=Object.assign({}, S.ui.belKatAuf);
+    S.ui.belKatAuf[bk.dataset.belkat]=!S.ui.belKatAuf[bk.dataset.belkat]; saveUi(); renderBelohnung(); return; }
   const zr=e.target.closest('[data-statzr]'); if(zr){ S.ui.statZeitraum=zr.dataset.statzr; saveUi(); renderBelohnung(); return; }
   const dm=e.target.closest('[data-statdom]'); if(dm){ S.ui.statDomain=dm.dataset.statdom; saveUi(); renderBelohnung(); return; }
   const ut=e.target.closest('[data-urlaubtag]'); if(ut){ const iso=ut.dataset.urlaubtag;
@@ -10871,7 +11124,21 @@ function suchFokusStarten(kid){
   setTab('suche',{fokusLassen:true});
 }
 /* §13: Tap auf die Figur öffnet Belohnung + Shop — kein Tab. */
-el('btnFigur').addEventListener('click', ()=>{ setTab('belohnung'); });
+/* §1 (v2.2.0) · WEG ZUR BELOHNUNGSSEITE — Figur UND Rang.
+   BEFUND, gemessen am gelebten Bestand: Der Tipp auf die Figur kam an
+   (elementFromPoint → img#tbFigurImg < button#btnFigur) und schaltete auf
+   v-belohnung — auch aus der offenen Fokusansicht. setTab (v2.1.2) war also
+   NICHT die Ursache. Der Shop stand aber als letzte von neun Karten bei
+   y≈3739 px einer 4450 px hohen Seite, unter Detailanalyse, Tages-
+   diagramm, KPI, Zeit, Diagrammen, Aufschluesselung, Routinen und Stapel-
+   balken — fuenf Bildschirmhoehen tief, unter einer Seite, die aussah wie
+   die Statistik. Dazu blieb die Scrollposition der letzten Seite stehen.
+   Jetzt: die Seite IST Belohnung und Shop (§4), beide Wege landen oben. */
+function zurBelohnung(){
+  setTab('belohnung');
+  const m=document.querySelector('main'); if(m) m.scrollTop=0;
+}
+el('btnFigur').addEventListener('click', zurBelohnung);
 el('btnEinst').addEventListener('click', ()=>{ setTab('einst'); });
 /* §6: Freitext — findet alles, was in der App liegt, auch Erledigtes. */
 el('suFreitext').addEventListener('input', e=>{
@@ -10889,13 +11156,21 @@ el('tagBanner').addEventListener('click', e=>{
   if(e.target.closest('[data-tagstart]')){ oeffneTagStart(); return; }
   if(e.target.closest('[data-tagclose]')){ oeffneTagAbschluss(); return; }
 });
+el('suFilter').addEventListener('click', e=>{
+  // §2 (v2.2.0): Domäne, Art und Erledigte — Wahl bleibt bis zur Änderung.
+  if(e.target.closest('[data-suerl]')){ S.ui.suErledigt=!erledigteZeigen(); saveUi();
+    renderSuche(); haptik(8);
+    toast(erledigteZeigen()?'✓ Erledigte werden gezeigt':'Erledigte ausgeblendet'); return; }
+  const d=e.target.closest('[data-sudom]'); if(d){ S.ui.suDom=d.dataset.sudom; saveUi(); renderSuche(); haptik(8); return; }
+  const a=e.target.closest('[data-suart]'); if(a){ S.ui.suArt=a.dataset.suart; saveUi(); renderSuche(); haptik(8); return; }
+});
 el('suSichten').addEventListener('click', e=>{
   // §3 (v2.1.0): Filter „Erledigte zeigen" — sitzt in der Sicht-Leiste.
   if(e.target.closest('[data-suerl]')){ S.ui.suErledigt=!erledigteZeigen(); saveUi();
     renderSuche(); haptik(8);
     toast(erledigteZeigen()?'✓ Erledigte werden gezeigt':'Erledigte ausgeblendet'); return; }
   const b=e.target.closest('[data-susicht]');
-  if(b){ S.ui.suSicht=b.dataset.susicht; saveUi(); renderSuche(); haptik(8); return; }
+  if(b){ S.ui.suSicht=b.dataset.susicht; S.ui.suMatrixFeld=null; saveUi(); renderSuche(); haptik(8); return; }
 });
 el('neuFab').addEventListener('click', ()=>oeffneDetail(null));
 /* ══ §1/§2 (v2.1.1) · KARTEN IN DER SUCHE ══════════════════════════════

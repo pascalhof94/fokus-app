@@ -40,7 +40,7 @@ echo "Server: http://127.0.0.1:$PORT (PID $SERVER_PID)"
 rm -rf "$SCREENS"; mkdir -p "$SCREENS"
 
 # view name | fensterhoehe (375er-Basis; leiste klein, damit sie GROSS wirkt)
-VIEWS_ALLE="fokusBloecke:1300 fokusBloeckeMx:1300 echtSuche:812 abschluss21:812 durchgang21:812 plusStat:812 heute:812 matrix:812 oft:812 faellig:812 art:812 freitext:812 fokus:812 leiste:250 sheet:812 mxdialog:812 vorschlag:812 kpos:812 abschluss:812 tagab:812 routinen:812 belohnung:812 albumR:812 albumK:812 albumB:812 detail:812 statistik:812 sync:812 gate:812 einst:812"
+VIEWS_ALLE="echtFilter:812 echtMatrixFeld:812 echtBelohnung:6400 belohnungMitte:1400 belohnungShop:812 fokusBloecke:1300 fokusBloeckeMx:1300 echtSuche:812 abschluss21:812 durchgang21:812 plusStat:812 heute:812 matrix:812 oft:812 faellig:812 art:812 freitext:812 fokus:812 leiste:250 sheet:812 mxdialog:812 vorschlag:812 kpos:812 abschluss:812 tagab:812 routinen:812 belohnung:812 albumR:812 albumK:812 albumB:812 detail:812 statistik:812 sync:812 gate:812 einst:812"
 STORAGE_LAUF=1
 ECHT_LAUF=1  # §1 (v2.0.2): Lauf gegen den gelebten Bestand
 DIAG_LAUF=1   # §8 (v1.13.0): Klick-Diagnose (kein Screenshot) — Teil des Vollaufs

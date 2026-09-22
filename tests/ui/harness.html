@@ -277,6 +277,45 @@ function bestandSchreiben(){
       var lay=d.getElementById('fokusLayer'), fb=d.querySelectorAll('#fokusView .fb')[1];
       if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
     },
+    /* v2.2 §2: Suche mit Filtern am gelebten Bestand (Privat + Routinen) */
+    echtFilter:function(fw){
+      var d=fw.document;
+      d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+      var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+      fw.closeSheet(); fw.setTab('suche');
+      var b=d.querySelector('[data-sudom="privat"]'); if(b) b.click();
+      b=d.querySelector('[data-suart="routinen"]'); if(b) b.click();
+    },
+    /* v2.2 §3: Matrix mit geoeffnetem Feld (Werkzeuge), gelebter Bestand */
+    echtMatrixFeld:function(fw){
+      var d=fw.document;
+      d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+      var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+      fw.closeSheet(); fw.setTab('suche');
+      var b=d.querySelector('[data-sudom="alle"]'); if(b) b.click();
+      b=d.querySelector('[data-suart="alle"]'); if(b) b.click();
+      b=d.querySelector('[data-susicht="matrix"]'); if(b) b.click();
+      b=d.querySelector('[data-sumx="werkzeug"]'); if(b) b.click();
+    },
+    /* v2.2 §4: die Belohnungsseite komplett (hohes Fenster), gelebter Bestand */
+    echtBelohnung:function(fw){
+      var d=fw.document;
+      d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+      var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+      fw.closeSheet();
+      var b=d.getElementById('btnFigur'); if(b) b.click();
+      b=d.querySelector('[data-belkat="fahrzeuge"]'); if(b) b.click();
+    },
+    /* v2.2 §4: Bereich 1 und 2 der Belohnungsseite im Bild (gescrollt) */
+    belohnungMitte:function(fw){
+      var d=fw.document, b=d.getElementById('btnFigur'); if(b) b.click(); fw.closeSheet();
+      var m=d.querySelector('main'), z=d.querySelector('#belohnungBody .bw');
+      if(m && z) m.scrollTop += z.getBoundingClientRect().top - d.getElementById('topbar').getBoundingClientRect().bottom - 8;
+    },
+    belohnungShop:function(fw){
+      var d=fw.document, b=d.getElementById('btnFigur'); if(b) b.click(); fw.closeSheet();
+      b=d.querySelector('[data-zumshop]'); if(b) b.click();
+    },
     /* §2: das Plus in der Statistik */
     plusStat: function(fw){ fw.setTab('statistik'); },
     echtSuche:function(fw){
@@ -984,6 +1023,94 @@ function bestandSchreiben(){
           var zu=d.querySelector('[data-fokuszu]'); if(zu && !lay.hidden) zu.click();
           fw.setTab('suche');
         });
+        /* ══ v2.2 §1 · WEG IN DEN SHOP — MESSUNG (Figur, Rang) ══════════ */
+        (function(){
+          function tapAuf(sel, wie){
+            var z=d.querySelector(sel); if(!z){ pruef(false,'v2.2 §1: '+sel+' fehlt'); return; }
+            var r=z.getBoundingClientRect(), x=Math.round(r.left+r.width/2), y=Math.round(r.top+r.height/2);
+            var hit=d.elementFromPoint(x,y), kette=[], e=hit;
+            while(e && kette.length<4){ kette.push(beschreib(e)); e=e.parentElement; }
+            pruef(hit && (hit===z || z.contains(hit)), 'v2.2 §1 '+wie+': Tipp landet auf '+beschreib(hit)+' statt '+sel);
+            if(hit) hit.click();
+            var an=(d.querySelector('.view.on')||{}).id;
+            var zs=d.querySelector('[data-zumshop]'), zr=zs?zs.getBoundingClientRect():null;
+            var zhit=zr?d.elementFromPoint(Math.round(zr.left+zr.width/2), Math.round(zr.top+zr.height/2)):null;
+            pruef(an==='v-belohnung', 'v2.2 §1 '+wie+': landet auf '+an+' statt v-belohnung');
+            pruef(zhit && zs.contains(zhit), 'v2.2 §1 '+wie+': „Zum Shop" nicht im Bild/verdeckt ('+beschreib(zhit)+')');
+            if(zhit) zhit.click();
+            var kauf=d.querySelector('#belohnungBody .bw-kat'), kr=kauf?kauf.getBoundingClientRect():null;
+            var khit=kr?d.elementFromPoint(Math.round(kr.left+kr.width/2), Math.round(kr.top+20)):null;
+            pruef(khit && khit.closest && khit.closest('.bw-kat'), 'v2.2 §1 '+wie+': Shop-Kategorie nach „Zum Shop" nicht oben ('+beschreib(khit)+')');
+            finding('echt · v2.2 §1 '+wie+' ('+x+','+y+', '+Math.round(r.width)+'×'+Math.round(r.height)+'): Treffer '+kette.join(' < ')+
+              ' · Seite '+an+' · „Zum Shop" bei y='+(zr?Math.round(zr.top):'-')+' · danach Shop-Kategorie bei y='+(kr?Math.round(kr.top):'-')+
+              ' · fokusOffen='+fw.fokusAnsichtOffen());
+          }
+          freiMachen(); fw.setTab('suche');
+          tapAuf('#btnFigur','Figur (Suche)');
+          freiMachen(); fw.setTab('suche');
+          var kid=(fw.tagesKette()||[])[0]; if(kid){ fw.fokusStarten(kid,null); freiMachen(); }
+          tapAuf('#btnFigur','Figur (Fokusansicht offen)');
+          freiMachen(); fw.setTab('suche');
+          tapAuf('#sZRang','Rang');
+          /* §4/7: Kaufen von der neuen Seite — Konto sinkt, Stufe steigt */
+          var kb=d.querySelector('#belohnungBody [data-kauf]');
+          if(kb){
+            var kat=kb.dataset.kauf, konto0=fw.konto(), n0=d.querySelector('[data-belkat="'+kat+'"]').closest('.bw-kat').querySelector('.bw-katkopf .n').textContent;
+            var br=kb.getBoundingClientRect(); kb.scrollIntoView({block:'center'}); br=kb.getBoundingClientRect();
+            var bh=d.elementFromPoint(Math.round(br.left+br.width/2), Math.round(br.top+br.height/2));
+            pruef(bh && kb.contains(bh), 'v2.2 §4: Kaufen-Knopf verdeckt von '+beschreib(bh));
+            if(bh) bh.click();
+            freiMachen();
+            var n1=d.querySelector('[data-belkat="'+kat+'"]').closest('.bw-kat').querySelector('.bw-katkopf .n').textContent;
+            finding('echt · v2.2 §4 Kauf '+kat+': Konto '+Math.round(konto0)+' → '+Math.round(fw.konto())+' · Stufe '+n0+' → '+n1);
+            pruef(fw.konto()<konto0 && n1!==n0, 'v2.2 §4: Kauf ohne Wirkung (Konto/Stufe)');
+          } else finding('echt · v2.2 §4 Kauf: kein Kaufen-Knopf (Konto reicht nirgends)');
+          freiMachen(); fw.setTab('suche');
+        })();
+        /* ══ v2.2 §2 · FILTER — Messung, Lesbarkeit, Speicher ═══════════ */
+        (function(){
+          freiMachen(); fw.setTab('suche');
+          var abgeschnitten=[];
+          d.querySelectorAll('#suFilter button, #suSichten button').forEach(function(b){
+            if(b.scrollWidth>b.clientWidth+1) abgeschnitten.push(b.textContent.trim()); });
+          finding('echt · v2.2 §2 abgeschnittene Beschriftungen: '+(abgeschnitten.length?abgeschnitten.join(', '):'keine'));
+          pruef(!abgeschnitten.length, 'v2.2 §2: abgeschnitten: '+abgeschnitten.join(', '));
+          [['privat','routinen'],['dfm','aufgaben']].forEach(function(c){
+            ['[data-sudom="'+c[0]+'"]','[data-suart="'+c[1]+'"]'].forEach(function(sel){
+              var z=d.querySelector(sel), r=z.getBoundingClientRect();
+              var hit=d.elementFromPoint(Math.round(r.left+r.width/2), Math.round(r.top+r.height/2));
+              pruef(hit===z, 'v2.2 §2: '+sel+' verdeckt von '+beschreib(hit)); if(hit) hit.click(); });
+            var ui=JSON.parse(localStorage.getItem('fokus2_ui')||'{}');
+            var zeilen=[].slice.call(d.querySelectorAll('#suBody .krow[data-kid]'));
+            var kopf=(d.querySelector('#suBody .su-kopfzeile')||{}).textContent||'';
+            finding('echt · v2.2 §2 '+c[0]+' + '+c[1]+': '+zeilen.length+' Zeilen in „Heute" · Kopf „'+kopf+'" · gespeichert suDom='+ui.suDom+' suArt='+ui.suArt);
+            pruef(ui.suDom===c[0] && ui.suArt===c[1], 'v2.2 §2: Filterwahl nicht im Speicher');
+          });
+          klick('[data-sudom="alle"]'); klick('[data-suart="alle"]');
+        })();
+        /* ══ v2.2 §3 · MATRIX-FELD ANTIPPEN — MESSUNG ══════════════════ */
+        (function(){
+          freiMachen(); fw.setTab('suche'); klick('[data-susicht="matrix"]');
+          ['ablenkung','werkzeug','zustand','ziel'].forEach(function(f){
+            var q=d.querySelector('[data-sumx="'+f+'"]'); if(!q){ pruef(false,'v2.2 §3: Feld '+f+' fehlt'); return; }
+            var r=q.getBoundingClientRect(), x=Math.round(r.left+r.width/2), y=Math.round(r.top+r.height/2);
+            var hit=d.elementFromPoint(x,y), kette=[], e=hit;
+            while(e && kette.length<4){ kette.push(beschreib(e)); e=e.parentElement; }
+            pruef(hit && q.contains(hit), 'v2.2 §3: Feld '+f+' verdeckt von '+beschreib(hit));
+            if(hit) hit.click();
+            var zur=d.querySelector('#suBody .su-mxzurueck'), kz=d.querySelector('#suBody .su-kopfzeile');
+            var zeilen=d.querySelectorAll('#suBody .krow[data-kid]').length, leer=d.querySelector('#suBody .leer');
+            var kr=kz?kz.getBoundingClientRect():null;
+            finding('echt · v2.2 §3 Feld '+f+' ('+x+','+y+'): Treffer '+kette.join(' < ')+' · Liste „'+(kz?kz.textContent:'-')+
+              '" bei y='+(kr?Math.round(kr.top):'-')+' · Zeilen '+zeilen+(leer?(' · „'+leer.textContent+'"'):''));
+            pruef(zur && kz && kr.top<FH*0.75, 'v2.2 §3: Feld '+f+' zeigt keine Liste im Bild');
+            pruef(zeilen>0 || leer, 'v2.2 §3: Feld '+f+' ohne Karten und ohne Hinweis');
+            if(zur){ var zr=zur.getBoundingClientRect(), zh=d.elementFromPoint(Math.round(zr.left+20), Math.round(zr.top+zr.height/2));
+              pruef(zh===zur, 'v2.2 §3: Zurück verdeckt von '+beschreib(zh)); if(zh) zh.click(); }
+            pruef(!!d.querySelector('#suBody .su-mxgrid'), 'v2.2 §3: Zurück fuehrt nicht zum Raster');
+          });
+          klick('[data-susicht="heute"]');
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
@@ -1020,7 +1147,7 @@ function bestandSchreiben(){
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
-  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21')
+  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung')
      ? bestandSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);

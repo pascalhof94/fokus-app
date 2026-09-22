@@ -524,8 +524,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.1.2 · Build gesetzt', VERSION==='2.1.2' && UI_VERSION==='v2.1.2' &&
-   APP_BUILD==='2026-09-22-4');
+ok('31 APP_VERSION 2.2.0 · Build gesetzt', VERSION==='2.2.0' && UI_VERSION==='v2.2.0' &&
+   APP_BUILD==='2026-09-22-5');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -876,6 +876,102 @@ ok('§2 Grafiken fangen keine Klicks (pointer-events:none im CSS)',
    /\.fbk-g svg\{[^}]*pointer-events:none/.test(src) && /\.fbk-bar\{[^}]*pointer-events:none/.test(src));
 ok('§2 Farb-Aliase definiert (--li/--bg2/--fg/--gut/--ac)', /--li:var\(--line\); --bg2:var\(--card\); --fg:var\(--txt\); --gut:var\(--ok\); --ac:var\(--blue\)/.test(src));
 ok('§2 „Zur Suche" hat 44 px Tapflaeche', /\.fk-zu\{[^}]*min-height:44px/.test(src));
+
+kopf('v2.2.0 §2 · Suche: Domäne und Art');
+frisch();
+S.karten=[
+  neueKarte({id:'dA', domain:'dfm',    titel:'Filter DFM Aufgabe', matrixFeld:'ziel', faelligkeit:H()}),
+  neueKarte({id:'pA', domain:'privat', titel:'Filter Privat Aufgabe', matrixFeld:'ziel', faelligkeit:H()}),
+  neueKarte({id:'dR', domain:'dfm',    titel:'Filter DFM Routine', rhythmus:'taeglich', matrixFeld:'werkzeug', faelligkeit:H()}),
+  neueKarte({id:'pR', domain:'privat', titel:'Filter Privat Routine', rhythmus:'taeglich', matrixFeld:'werkzeug', faelligkeit:H()}),
+  neueKarte({id:'pC', domain:'privat', titel:'Filter Privat Counter', ticksAktiv:true, matrixFeld:'werkzeug', faelligkeit:H()}) ];
+S.karten.forEach(function(k){ k.letzteBearbeitung=jetztIso(); k.streak=1; });
+ketteSetzen(['dA','pA','dR','pR','pC']);
+suchIndex=[];
+function idsIn(h){ var r=[], re=/data-kid="([^"]+)"/g, m; while((m=re.exec(h))) if(r.indexOf(m[1])<0) r.push(m[1]); return r.sort().join(','); }
+var KOMBI=[['alle','alle','dA,dR,pA,pC,pR'],['privat','routinen','pC,pR'],['dfm','aufgaben','dA'],
+           ['privat','aufgaben','pA'],['dfm','routinen','dR'],['alle','routinen','dR,pC,pR'],['dfm','alle','dA,dR']];
+KOMBI.forEach(function(c){
+  S.ui.suDom=c[0]; S.ui.suArt=c[1];
+  ['heute','faellig','art','oft'].forEach(function(v){
+    var h=suSichtHtml(v);
+    ok('§2 '+c[0]+' + '+c[1]+' · Sicht '+v+' → '+c[2], idsIn(h)===c[2]);
+  });
+  S.ui.suMatrixFeld=null;
+  var hm='', fe=['ziel','werkzeug'];
+  fe.forEach(function(f){ S.ui.suMatrixFeld=f; hm+=suMatrixHtml(); });
+  S.ui.suMatrixFeld=null;
+  ok('§2/§5 '+c[0]+' + '+c[1]+' · Matrix (Feld geöffnet) → '+c[2], idsIn(hm)===c[2]);
+  ok('§2 '+c[0]+' + '+c[1]+' · Freitext „filter" → '+c[2], idsIn(suFreitextHtml('filter'))===c[2]);
+});
+S.ui.suDom='privat'; S.ui.suArt='routinen'; saveUi();
+var gespeichert=JSON.parse(_store[Object.keys(_store).filter(function(k){ return /ui$/.test(k); })[0]]||'{}');
+ok('§2 Filterwahl steht im Speicher (übersteht den Neustart)', gespeichert.suDom==='privat' && gespeichert.suArt==='routinen');
+ok('§2 aktive Filterung steht in der Kopfzeile', suHeuteHtml().indexOf('Privat · Routinen und Counter')>=0);
+renderSuche();
+var fl=el('suFilter').innerHTML, sl=el('suSichten').innerHTML;
+ok('§2 zwei Segment-Leisten mit allen Werten', ['data-sudom="alle"','data-sudom="dfm"','data-sudom="privat"',
+   'data-suart="alle"','data-suart="aufgaben"','data-suart="routinen"'].every(function(x){ return fl.indexOf(x)>=0; }));
+ok('§2 aktive Segmente markiert', /class="on" data-sudom="privat"/.test(fl) && /class="on" data-suart="routinen"/.test(fl));
+ok('§2 Erledigt-Filter sitzt bei den Filtern, nicht mehr in der Sicht-Leiste', fl.indexOf('data-suerl')>=0 && sl.indexOf('data-suerl')<0);
+ok('§2 Sicht-Leiste hat genau die fünf Sichten', (sl.match(/data-susicht=/g)||[]).length===5);
+S.ui.suDom='alle'; S.ui.suArt='alle';
+
+kopf('v2.2.0 §3 · Matrix-Feld zeigt seine Karten');
+S.ui.suMatrixFeld='werkzeug';
+var mh=suMatrixHtml();
+ok('§3 gewähltes Feld: eigene Liste mit Zurück, ohne Raster davor', mh.indexOf('su-mxzurueck')>=0 && mh.indexOf('su-mxgrid')<0 && idsIn(mh)==='dR,pC,pR');
+S.ui.suMatrixFeld='ablenkung';
+ok('§3 leeres Feld sagt es ausdrücklich', suMatrixHtml().indexOf('Keine Karte in diesem Feld')>=0);
+S.ui.suMatrixFeld=null;
+ok('§3 ohne Wahl: Raster mit vier Feldern', (suMatrixHtml().match(/data-sumx=/g)||[]).length===4);
+
+kopf('v2.2.0 §4 · Belohnungsseite');
+frisch(); belohnungInit();
+S.meta.muenzenGesamt=100000; S.meta.ausgegebenGesamt=0;
+renderBelohnung();
+var bh=el('belohnungBody').innerHTML;
+ok('§4 drei Bereiche', bh.indexOf('Was heute noch geht')>=0 && bh.indexOf('Was ich schon erklommen habe')>=0 && bh.indexOf('Outfit und Shop')>=0);
+var kach=bh.split(/<div class="fbk( voll)?"/).filter(function(x,i){ return i>0 && x!==undefined && x!==' voll'; });
+var ohneGrafik=kach.filter(function(k){ return !/<svg|fbk-bar|bw-of/.test(k); });
+ok('§4 jede Kachel hat eine Grafik ('+kach.length+' Kacheln, ohne: '+ohneGrafik.length+')', kach.length>=9 && ohneGrafik.length===0);
+ok('§4 Outfit-Leiste zeigt alle 20 Stufen', (bh.match(/class="bw-ofz /g)||[]).length===20);
+ok('§4 Outfit: heute + nächste markiert, spätere als Silhouette', /bw-ofz heute/.test(bh) && /bw-ofz naechste/.test(bh) && /bw-ofz spaeter/.test(bh));
+ok('§4 Shop: sechs Kategorien', (bh.match(/class="bw-kat"/g)||[]).length===6);
+ok('§4 Rang-Kachel und Mini-Kurve Rangverlauf', bh.indexOf('Rang über 8 Wochen')>=0);
+ok('§4 Shop-Reset NICHT auf der Seite', bh.indexOf('data-shopreset')<0);
+var kontoVor=konto(), stufeVor=num(S.belohnung.stufen.soziales);
+ok('§4 Kaufen-Knopf auf der Seite', bh.indexOf('data-kauf="soziales"')>=0);
+momentRangCheck(); var mrcOk=true; try{ momentRangCheck(); }catch(ex){ mrcOk=false; }
+ok('momentRangCheck wirft beim zweiten Aufruf nicht mehr (st-Referenzfehler)', mrcOk);
+var gekauft=kaufen('soziales');
+ok('§4/7 Kauf: Konto sinkt, Stufe steigt', gekauft && konto()<kontoVor && num(S.belohnung.stufen.soziales)===stufeVor+1);
+S.ui.belKatAuf={soziales:true}; renderBelohnung(); bh=el('belohnungBody').innerHTML;
+ok('§4 aufgeklappt: zwölf Stufen, gekaufte mit Text, nächste „???"',
+   (bh.match(/class="bw-st (gekauft|naechste|gesperrt)"/g)||[]).length>=12 &&
+   bh.indexOf('Die Runde geht auf dich')>=0 && bh.indexOf('Grillabend, der bis nachts geht')<0);
+ok('§1 Figur und Rang führen auf die Seite (Code-Pfad)', typeof zurBelohnung==='function' &&
+   /closest\('#sZRang'\)\)\{ zurBelohnung\(\)/.test(src) && /el\('btnFigur'\)\.addEventListener\('click', zurBelohnung\)/.test(src));
+
+kopf('v2.2.0 §5 · Zwölf Stufentexte je Kategorie');
+var PREISE={fahrzeuge:[0,800,2200,4500,7500,11000,16000,22000,29000,37000,46000,56000],
+  wohnen:[0,900,2400,4800,7800,11500,16500,23000,30000,39000,48000,58000],
+  reisen:[0,1000,2800,5200,8200,12000,17000,23500,30500,39500,49000,59000],
+  mobilitaet:[0,700,2000,3800,6500,10000,14500,20000,26500,34000,43000,53000],
+  begleiter:[0,600,1800,3600,6000,9500,14000,19500,26000,33500,42000,52000],
+  soziales:[0,500,1600,3200,5500,8800,13000,18000,24500,32000,41000,51000]};
+KAT_KEYS.forEach(function(k){
+  var st=BELOHNUNG[k].stufen, texte=st.map(function(x){ return x[0]; });
+  ok('§5 '+k+': 12 Stufen, 12 verschiedene Texte', st.length===12 && texte.filter(function(t,i){ return texte.indexOf(t)===i; }).length===12);
+  ok('§5 '+k+': Schwellen byte-gleich', JSON.stringify(st.map(function(x){ return x[1]; }))===JSON.stringify(PREISE[k]));
+});
+ok('§5 drei Quer-Voraussetzungen unverändert',
+   JSON.stringify(BELOHNUNG.fahrzeuge.stufen[6][2])==='["wohnen",4]' &&
+   JSON.stringify(BELOHNUNG.wohnen.stufen[3][2])==='["fahrzeuge",3]' &&
+   JSON.stringify(BELOHNUNG.reisen.stufen[7][2])==='["mobilitaet",6]' &&
+   KAT_KEYS.reduce(function(a,k){ return a+BELOHNUNG[k].stufen.filter(function(x){ return x[2]; }).length; },0)===3);
+ok('§5 Stichproben', BELOHNUNG.wohnen.stufen[11][0]==='Berge im Rücken, Dschungel links, Meer voraus' &&
+   BELOHNUNG.mobilitaet.stufen[4][0]==='Schnuppertauchen' && BELOHNUNG.begleiter.stufen[11][0]==='Und niemand muss draußen bleiben');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));
