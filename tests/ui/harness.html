@@ -306,6 +306,16 @@ function bestandSchreiben(){
       var b=d.getElementById('btnFigur'); if(b) b.click();
       b=d.querySelector('[data-belkat="fahrzeuge"]'); if(b) b.click();
     },
+    /* Nachtrag v2.2.0: eine aufgeklappte Kategorie im Bild (gelebter Bestand) */
+    echtShopAuf:function(fw){
+      var d=fw.document;
+      d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+      var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+      fw.closeSheet();
+      var b=d.getElementById('btnFigur'); if(b) b.click();
+      b=d.querySelector('[data-belkat="fahrzeuge"]'); if(b) b.click();
+      b=d.querySelector('[data-zumshop]'); if(b) b.click();
+    },
     /* v2.2 §4: Bereich 1 und 2 der Belohnungsseite im Bild (gescrollt) */
     belohnungMitte:function(fw){
       var d=fw.document, b=d.getElementById('btnFigur'); if(b) b.click(); fw.closeSheet();
@@ -1147,7 +1157,7 @@ function bestandSchreiben(){
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
-  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung')
+  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf')
      ? bestandSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);

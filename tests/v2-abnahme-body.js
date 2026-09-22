@@ -524,8 +524,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.2.0 · Build gesetzt', VERSION==='2.2.0' && UI_VERSION==='v2.2.0' &&
-   APP_BUILD==='2026-09-22-5');
+ok('31 APP_VERSION 2.2.1 · Build gesetzt', VERSION==='2.2.1' && UI_VERSION==='v2.2.1' &&
+   APP_BUILD==='2026-09-22-6');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -947,9 +947,24 @@ ok('momentRangCheck wirft beim zweiten Aufruf nicht mehr (st-Referenzfehler)', m
 var gekauft=kaufen('soziales');
 ok('§4/7 Kauf: Konto sinkt, Stufe steigt', gekauft && konto()<kontoVor && num(S.belohnung.stufen.soziales)===stufeVor+1);
 S.ui.belKatAuf={soziales:true}; renderBelohnung(); bh=el('belohnungBody').innerHTML;
-ok('§4 aufgeklappt: zwölf Stufen, gekaufte mit Text, nächste „???"',
+ok('§4 aufgeklappt: zwölf Stufen, gekaufte mit Text',
    (bh.match(/class="bw-st (gekauft|naechste|gesperrt)"/g)||[]).length>=12 &&
-   bh.indexOf('Die Runde geht auf dich')>=0 && bh.indexOf('Grillabend, der bis nachts geht')<0);
+   bh.indexOf('Die Runde geht auf dich')>=0);
+/* Nachtrag v2.2.0: gekaufte + GENAU die nächste Stufe zeigen Text, alle danach „???" */
+function sichtbareTexte(h){ var r=[]; KAT_KEYS.forEach(function(k){ var n=num(S.belohnung.stufen[k]);
+  BELOHNUNG[k].stufen.forEach(function(st,i){ if(i+1>n && h.indexOf(esc(st[0]))>=0 &&
+    // Texte, die auch in einer GEKAUFTEN Stufe stehen, zählen nicht
+    !BELOHNUNG[k].stufen.slice(0,n).some(function(x){ return x[0]===st[0]; })) r.push(k+':'+(i+1)); }); }); return r; }
+S.ui.belKatAuf={}; KAT_KEYS.forEach(function(k){ S.ui.belKatAuf[k]=true; }); renderBelohnung(); bh=el('belohnungBody').innerHTML;
+var sicht=sichtbareTexte(bh), erwartet=KAT_KEYS.map(function(k){ return k+':'+(num(S.belohnung.stufen[k])+1); });
+ok('Nachtrag: je Kategorie genau EINE ungekaufte Stufe mit Text — die nächste ('+sicht.join(', ')+')',
+   JSON.stringify(sicht.slice().sort())===JSON.stringify(erwartet.slice().sort()));
+ok('Nachtrag: soziales Stufe 3 sichtbar, Stufe 4 „???"', bh.indexOf('Grillabend bei dir')>=0 && bh.indexOf('Grillabend, der bis nachts geht')<0);
+ok('Nachtrag: nächste Stufe hat Preis/Kaufen-Knopf', bh.indexOf('data-kauf="soziales"')>=0);
+kaufen('soziales'); renderBelohnung(); bh=el('belohnungBody').innerHTML;
+ok('Nachtrag: Kauf deckt die darauffolgende Stufe auf (soziales 4 sichtbar, 5 „???")',
+   bh.indexOf('Grillabend, der bis nachts geht')>=0 && bh.indexOf('Roadtrip mit vier Leuten')<0 &&
+   sichtbareTexte(bh).filter(function(x){ return x.indexOf('soziales:')===0; }).join()==='soziales:4');
 ok('§1 Figur und Rang führen auf die Seite (Code-Pfad)', typeof zurBelohnung==='function' &&
    /closest\('#sZRang'\)\)\{ zurBelohnung\(\)/.test(src) && /el\('btnFigur'\)\.addEventListener\('click', zurBelohnung\)/.test(src));
 

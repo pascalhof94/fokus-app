@@ -1411,9 +1411,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.2.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.2.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-22-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.2.1';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.2.1';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-22-6';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -9608,8 +9608,10 @@ function belOutfitLeiste(){
   return h+'</div><div class="fb-rechnung">Heute Outfit <b>'+of+'</b> · nächstes '+(of<20?of+1:'—')+' · Bestwert '+vd.outfitBest+'. Spätere Stufen bleiben verdeckt.</div>';
 }
 /* 3b · Shop — sechs Kategorien, je zwölf Stufen, Kaufen passiert hier.
-   Gekauftes zeigt Bild (Objektstufe) und Text; die nächste Stufe und alles
-   danach bleiben „???" bis zum Kauf (Regel aus Shop-Etappe 2). */
+   Nachtrag v2.2.0 (Pascal): Gekauftes UND die NÄCHSTE Stufe zeigen Bild
+   und Text — die nächste mit Preis und Kaufen-Knopf. Alles danach bleibt
+   „???". Ein Kauf deckt damit genau die darauffolgende Stufe auf. Gilt in
+   der Kategorie-Kachel und in der aufgeklappten Zwölfer-Ansicht. */
 function belShopHtml(){
   const k=konto(); belohnungInit();
   const auf=(S.ui && S.ui.belKatAuf) || {};
@@ -9625,7 +9627,7 @@ function belShopHtml(){
       if(sperre) rechts='<span class="bw-sperre">🔒 '+esc(sperre)+'</span>';
       else if(k>=preis) rechts='<button class="kaufbtn bw-kauf" data-kauf="'+kk+'">Kaufen · '+Math.round(preis)+' 🪙</button>';
       else rechts='<span class="bw-fehlt"><span class="bar" aria-hidden="true">'+fbBalken(k/preis, null, null)+'</span>noch '+Math.round(preis-k)+' von '+Math.round(preis)+' 🪙</span>';
-      naechste='<div class="bw-st naechste"><span class="sym">🎁</span><span class="tx"><b>Stufe '+s+'</b> · ???</span></div>'+rechts;
+      naechste='<div class="bw-st naechste"><span class="sym">'+bildFuer(s)+'</span><span class="tx"><b>Stufe '+s+'</b> · '+esc(kat.stufen[s-1][0])+'</span></div>'+rechts;
     }
     let liste='';
     if(auf[kk]){
@@ -9633,8 +9635,8 @@ function belShopHtml(){
       kat.stufen.forEach((st,i)=>{
         const s=i+1, gekauft=s<=offen, istNaechste=s===offen+1;
         liste+='<div class="bw-st '+(gekauft?'gekauft':(istNaechste?'naechste':'gesperrt'))+'">'+
-          '<span class="sym">'+(gekauft?bildFuer(s):(istNaechste?'🎁':'🔒'))+'</span>'+
-          '<span class="tx"><b>'+s+'</b> · '+(gekauft?esc(st[0]):'???')+'</span>'+
+          '<span class="sym">'+(gekauft||istNaechste?bildFuer(s):'🔒')+'</span>'+
+          '<span class="tx"><b>'+s+'</b> · '+(gekauft||istNaechste?esc(st[0]):'???')+'</span>'+
           '<span class="zu">'+(gekauft?'✓':(istNaechste?(sperre&&sperre!=='komplett'?'gesperrt':Math.round(preis)+' 🪙'):''))+'</span></div>';
       });
       liste+='</div>';
@@ -9673,7 +9675,7 @@ function renderBelohnung(){
   h+='<div class="bw"><div class="fb-h">Outfit und Shop</div>'+
      '<div class="fbk"><div class="fbk-h">Outfit · alle 20 Stufen</div>'+belOutfitLeiste()+'</div>'+
      '<div class="fbk-h bw-shoph" id="belShop">Shop · Konto '+Math.round(konto())+' 🪙</div>'+belShopHtml()+
-     '<div class="fb-rechnung">Der Inhalt einer Stufe bleibt „???" bis zum Kauf. Den Shop zurücksetzen: ⚙︎ Einstellungen.</div></div>';
+     '<div class="fb-rechnung">Gekauftes und die nächste Stufe sind sichtbar, alles danach bleibt „???". Den Shop zurücksetzen: ⚙︎ Einstellungen.</div></div>';
   h+='<div class="bw-fuss"><button class="btn ghost sm" data-album="1">🖼 Album</button>'+
      '<button class="btn ghost sm" data-analyse="1">📊 Detailanalyse</button></div>';
   el('belohnungBody').innerHTML=h;
