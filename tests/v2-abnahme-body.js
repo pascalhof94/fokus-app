@@ -524,8 +524,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.1.1 · Build gesetzt', VERSION==='2.1.1' && UI_VERSION==='v2.1.1' &&
-   APP_BUILD==='2026-09-22-3');
+ok('31 APP_VERSION 2.1.2 · Build gesetzt', VERSION==='2.1.2' && UI_VERSION==='v2.1.2' &&
+   APP_BUILD==='2026-09-22-4');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -844,6 +844,38 @@ ok('§4 Platzhalter sagt nicht mehr „auch Erledigtes"',
    init den Pfad traegt. */
 ok('§4 init() verwirft einen gespeicherten Suchbegriff (Code-Pfad vorhanden)',
    /if\(S\.ui && S\.ui\.suFrage\)\{ S\.ui\.suFrage=''/.test(src));
+
+kopf('v2.1.2 · Suche-Tab aus der Fokusansicht, Kennzahl-Kacheln');
+frisch();
+S.karten=[ neueKarte({id:'T1', domain:'dfm', titel:'Tab-Test', sollMin:60, matrixFeld:'ziel', faelligkeit:H()}) ];
+fokusStarten('T1');
+var t0=S.fokus.startMs;
+ok('§1 Karte laeuft, Fokusansicht offen', S.fokus.laeuft===true && S.ui.fokusOffen===true);
+setTab('suche');
+ok('§1 Tab „Suche" schliesst die Fokusansicht (fokusOffen=false, fokusZeigt=null)',
+   S.ui.fokusOffen===false && S.ui.fokusZeigt==null);
+ok('§1 ... die Karte laeuft weiter, Uhr unangetastet',
+   S.fokus.laeuft===true && S.fokus.karteId==='T1' && S.fokus.startMs===t0);
+S.ui.fokusOffen=true; setTab('statistik');
+ok('§1 Tab „Statistik" ebenso', S.ui.fokusOffen===false && S.fokus.laeuft===true && S.fokus.startMs===t0);
+S.ui.fokusOffen=true; setTab('suche',{fokusLassen:true});
+ok('§1 interner Startpfad (fokusLassen) laesst die Ansicht offen', S.ui.fokusOffen===true);
+var kk=S.karten[0];
+var b1=fbWasDieseKarte(kk), b2=fbWoIchStehe(), b3=fbWasIchBewege(kk);
+function kacheln(h){ return (h.match(/class="fbk[ "]/g)||[]).length; }
+function grafiken(h){ return (h.match(/<svg|class="fbk-bar/g)||[]).length; }
+ok('§2 Block 1: je Kachel eine Grafik ('+kacheln(b1)+' Kacheln)', kacheln(b1)>=2 && grafiken(b1)>=kacheln(b1));
+ok('§2 Block 2: Tagesziel, Outfit, Faktor F als Kacheln mit Grafik', kacheln(b2)===3 && grafiken(b2)>=3);
+ok('§2 Block 2: kein doppeltes „P P" mehr', b2.indexOf('P P')<0);
+ok('§2 Block 3 ohne Position: Mini-Matrix statt nackter Text', b3.indexOf('<svg')>=0);
+S.tag.matrixSpur=[{x:-0.6,y:0.4},{x:0.2,y:-0.2}];
+b3=fbWasIchBewege(kk);
+ok('§2 Block 3 mit Position: Mini-Matrix mit Pfeil vorher→jetzt, 3 Kacheln',
+   kacheln(b3)===3 && b3.indexOf('marker-end')>=0 && b3.indexOf('vorher -0,6')>=0);
+ok('§2 Grafiken fangen keine Klicks (pointer-events:none im CSS)',
+   /\.fbk-g svg\{[^}]*pointer-events:none/.test(src) && /\.fbk-bar\{[^}]*pointer-events:none/.test(src));
+ok('§2 Farb-Aliase definiert (--li/--bg2/--fg/--gut/--ac)', /--li:var\(--line\); --bg2:var\(--card\); --fg:var\(--txt\); --gut:var\(--ok\); --ac:var\(--blue\)/.test(src));
+ok('§2 „Zur Suche" hat 44 px Tapflaeche', /\.fk-zu\{[^}]*min-height:44px/.test(src));
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

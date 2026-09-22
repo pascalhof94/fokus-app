@@ -257,6 +257,26 @@ function bestandSchreiben(){
       fw.closeSheet(); fw.setTab('suche');
       fw.abschlussDurchgangStarten();
     },
+    /* v2.1.2 §2: die Belohnungsbloecke der Fokusansicht, mit LAUFENDER Karte
+       (Fenster hoch, damit alle drei Bloecke plus Zeitstrahl im Bild sind) */
+    fokusBloecke:function(fw){
+      var d=fw.document;
+      fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.fokusLayerPflegen();
+      var lay=d.getElementById('fokusLayer'), fb=d.querySelector('#fokusView .fb');
+      if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
+    },
+    /* v2.1.2 §2: dieselbe Ansicht MIT Matrix-Position (vorher → jetzt),
+       damit Mini-Matrix, Schub-Achse und Bonus-Balken im Bild sind */
+    fokusBloeckeMx:function(fw){
+      var d=fw.document;
+      fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.matrixPosSetzen(-0.55, 0.45, null, 'harness');
+      fw.matrixPosSetzen(-0.15, -0.2, null, 'harness');
+      fw.fokusLayerPflegen();
+      var lay=d.getElementById('fokusLayer'), fb=d.querySelectorAll('#fokusView .fb')[1];
+      if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
+    },
     /* §2: das Plus in der Statistik */
     plusStat: function(fw){ fw.setTab('statistik'); },
     echtSuche:function(fw){
@@ -930,6 +950,40 @@ function bestandSchreiben(){
           pruef(n.indexOf('a-notiz')>=0, '§5/9: Notiz-Begriff findet die Karte nicht');
           inp.value=''; inp.dispatchEvent(new fw.Event('input',{bubbles:true})); fw.renderSuche();
         })();
+        /* ══ v2.1.2 §1 · NAV-TAB AUS DER FOKUSANSICHT — MESSUNG ══════════ */
+        freiMachen();
+        ['suche','statistik'].forEach(function(ziel){
+          freiMachen(); fw.setTab('suche');
+          var kid=(fw.tagesKette()||[])[0]; if(!kid) return;
+          fw.fokusStarten(kid, null); freiMachen();
+          var startMs=fw.fokusKarte() ? fw.fokusKarte().id : null;
+          var lay=d.getElementById('fokusLayer');
+          var navBtn=d.querySelector('#nav button[data-tab="'+ziel+'"]');
+          pruef(!!navBtn, 'v2.1.2 §1: Tab „'+ziel+'" fehlt');
+          if(!navBtn) return;
+          navBtn.click();
+          var fbw=Math.round(FW/2), fbh=Math.round(FH*0.5);
+          var oben=d.elementFromPoint(fbw, fbh);
+          var kette=[]; var e=oben;
+          while(e && kette.length<4){ kette.push(beschreib(e)); e=e.parentElement; }
+          finding('echt · v2.1.2 §1 nach Tab „'+ziel+'": oben '+kette.join(' < ')+
+                  ' · fokusLayer.hidden='+(lay&&lay.hidden)+' · fokusOffen='+fw.fokusAnsichtOffen());
+          pruef(lay && lay.hidden===true, 'v2.1.2 §1: nach Tab „'+ziel+'" liegt die Fokusansicht noch ueber allem');
+          pruef(fw.fokusKarte() && fw.fokusKarte().id===startMs, 'v2.1.2 §1: Tab „'+ziel+'" hat die laufende Karte verloren');
+          pruef(!(d.getElementById('sheet').className.indexOf('on')>=0), 'v2.1.2 §1: Tab „'+ziel+'" oeffnet einen Dialog');
+          if(ziel==='suche'){
+            var b=d.querySelector('[data-susicht="matrix"]'); if(b) b.click();
+            pruef(b && d.querySelector('[data-susicht="matrix"]').className.indexOf('on')>=0,
+                  'v2.1.2 §1: nach Tab „Suche" ist die Sicht nicht schaltbar');
+            klick('[data-susicht="heute"]');
+            var row=d.querySelector('#suBody .krow[data-kid]');
+            if(row){ var r=row.getBoundingClientRect();
+              var hit=d.elementFromPoint(Math.round(r.right-18), Math.round(r.top+10));
+              pruef(hit && hit.closest && hit.closest('.krow'), 'v2.1.2 §1: Kartenzeile verdeckt von '+beschreib(hit)); }
+          }
+          var zu=d.querySelector('[data-fokuszu]'); if(zu && !lay.hidden) zu.click();
+          fw.setTab('suche');
+        });
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
