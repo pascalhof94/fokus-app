@@ -32,6 +32,16 @@
     faelligkeit:vorTagen(a%30), geplantFuer:vorTagen(a%30), sollMin:30, istSek:(a%5)*600,
     matrixFeld:'ziel', projekt:(a%3?'Fertigung':null), geldScore:(a%3?60:0),
     erstelltTs:vorTagen(90)+'T09:00:00', letzteBearbeitung:vorTagen(a%12)+'T09:00:00' });
+  /* v2.1.1 §5: die Karten, an denen die Freitext-Abnahme haengt — eine
+     private Routine mit Umlaut, eine DFM-Routine, eine Karte mit Notiz. */
+  KARTEN.push({ id:'r-zaehne', domain:'privat', titel:'Zähne putzen', rhythmus:{typ:'taeglich'},
+    status:'offen', streak:40, faelligkeit:H, sollMin:3, istSek:0, matrixFeld:'werkzeug' });
+  KARTEN.push({ id:'r-mails', domain:'dfm', titel:'Mails bearbeiten', rhythmus:{typ:'taeglich'},
+    status:'offen', streak:12, faelligkeit:H, sollMin:20, istSek:0, matrixFeld:'ziel',
+    airtableId:'reciAhR0Lb1YpZbaU' });
+  KARTEN.push({ id:'a-notiz', domain:'dfm', titel:'Angebot Hofmann', status:'offen',
+    faelligkeit:H, sollMin:45, istSek:0, matrixFeld:'ziel', projekt:'Vertrieb',
+    notiz:'Rahmenvertrag vor dem Termin pruefen' });
   /* 76 erledigte Altkarten */
   for(var e=1;e<=76;e++) KARTEN.push({
     id:'e-'+e, domain:'dfm', titel:'Erledigt '+e, status:'erledigt',
@@ -66,7 +76,9 @@
     belohnung:{ stufen:{fahrzeuge:3,wohnen:2,reisen:2,mobilitaet:1,begleiter:1,soziales:1},
       ausgegeben:76000, kaeufe:[] },
     historie:[], intraday:[],
-    ui:{ tab:'suche' }, fokus:null
+    /* §4 (v2.1.1): ein Begriff aus der letzten Sitzung — auf dem Geraet war
+       er gesetzt, das Feld aber leer („4 Treffer · Freitext"). */
+    ui:{ tab:'suche', suFrage:'hofmann' }, fokus:null
   };
   global.FIXTURE_REAL=FIXTURE;
   global.fixtureRealSchreiben=function(){

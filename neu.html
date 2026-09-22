@@ -1236,7 +1236,7 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
       <span class="su-ic">🔍</span>
       <input id="suFreitext" type="search" inputmode="search" enterkeyhint="search"
              autocomplete="off" autocapitalize="off" spellcheck="false"
-             placeholder="Alles finden — auch Erledigtes …">
+             placeholder="Offene Karten finden …">
       <button id="suClear" class="su-x" hidden>✕</button>
       <!-- §6: Neuanlage sitzt in der Kopfzeile — in der Sichtleiste haette sie
            die fuenfte Sicht bei 375 px aus dem Bild gedraengt. -->
@@ -1322,9 +1322,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.1.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.1.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-22-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.1.1';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.1.1';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-22-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2637,12 +2637,12 @@ function fokusStarten(kid, quelle){
   // V1.3: Timer-Start auf einer erledigten Karte öffnet IMMER ein frisches Duplikat
   // (ersetzt das UP6b-„in-place wieder öffnen"). Ein Codepfad über karteNeuStarten.
   if(zk && zk.status==='erledigt'){ karteNeuStarten(kid, {starten:true}); return; }
-  // §1.2 (v2.0.0): WECHSEL auf eine andere Karte ist ein Verlassen — die alte
-  // Karte fragt ihre Position ab, bevor die neue aufgenommen wird.
+  // §3 (v2.1.1): WECHSEL zaehlt fuer die alte Karte wie Pausieren — Uhr
+  // stoppt, Zeit wird gebucht, KEIN Dialog. (Aendert v2.0.1 §2.) Der
+  // Buchungsdialog gehoert zu Erledigen und Schieben — dort ist die Karte
+  // wirklich abgeschlossen, bei Pause und Wechsel nur unterbrochen.
   if(S.fokus && S.fokus.karteId!==kid){
-    const alt=S.fokus.karteId;
     fokusZeitEinbuchen();
-    if(tagOffen() && alt && S.karten.some(x=>x.id===alt)) matrixAbfrageNach(alt, 'wechsel');
   }
   if(!S.fokus || S.fokus.karteId!==kid) S.fokus={ karteId:kid, laeuft:false, startMs:0, sessionSek:0 };
   // §4 (v2.0.0): zeitmessung ist entfallen — die Uhr läuft bei JEDER Karte an.
@@ -2659,6 +2659,7 @@ function fokusStarten(kid, quelle){
   fokusNavReset();           // U2: aktive Auswahl beendet die Swipe-Navigation
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
   S.ui.fokusOffen=true;      // §1 (v2.0.1): Starten heisst „zeig sie mir"
+  S.ui.fokusZeigt=null;      // §1 (v2.1.1): die laufende IST jetzt die angezeigte
   saveFokus(); saveUi(); if(S.fokus.laeuft) starteTicker(); renderAlles();
 }
 /* §3.1 (v1.10.0): Nach dem Abschluss der aktiven Fokus-Karte rückt die
@@ -2692,8 +2693,8 @@ function fokusKarteNachOben(kid){
 function fokusToggle(){
   if(!S.fokus){ return; }
   const fk=fokusKarte();
-  // §1.2 (v2.0.0): PAUSIEREN ist ein Verlassen der Karte → Positionsabfrage.
-  if(S.fokus.laeuft){ fokusZeitEinbuchen(); if(fk) matrixAbfrageNach(fk.id, 'pause'); }
+  // §3 (v2.1.1): PAUSIEREN — kein Dialog. Uhr stoppt, Zeit bleibt gezaehlt.
+  if(S.fokus.laeuft){ fokusZeitEinbuchen(); }
   else { S.fokus.laeuft=true; S.fokus.startMs=Date.now(); saveFokus(); starteTicker(); }
   renderAlles();
 }
@@ -3739,6 +3740,13 @@ function fokusNav(){
 /* U2: Navigation zurücksetzen, sobald wieder aktiv eine Karte gewählt/gestartet wird. */
 function fokusNavReset(){ S.ui.fokusNav={hist:0, stapel:null}; }
 function aktiveFokusKarte(){
+  // §1 (v2.1.1): Eine bewusst ANGESEHENE Karte hat Vorrang vor allem —
+  // auch vor der laufenden. Sie ist Auswahl, nicht Divergenz.
+  if(S.ui && S.ui.fokusZeigt){
+    const zk=S.karten.find(k=>k.id===S.ui.fokusZeigt);
+    if(zk && zk.status!=='archiviert') return zk;
+    S.ui.fokusZeigt=null;
+  }
   // U2: eine aktive Swipe-Navigation (Verlauf zurück / Stapel vor) hat Vorrang
   // (bewusstes Blättern; endet mit jedem Start über fokusNavReset).
   const nav=fokusNav(), kand=fokusKandidaten();
@@ -3802,7 +3810,9 @@ function renderFokus(){
   // Wahrheit. Zeigt die Ansicht eine andere Karte, obwohl der Nutzer nicht
   // bewusst blättert, zieht der Fokus nach — und meldet es, damit eine
   // etwaige neue Ursache nicht wieder unsichtbar bleibt.
-  if(S.fokus && S.fokus.laeuft && k && k.id!==S.fokus.karteId){
+  // §1 (v2.1.1): Eine angesehene Karte (fokusZeigt) ist eine bewusste
+  // Auswahl — der Schutz darf sie NICHT auf die laufende zurueckziehen.
+  if(S.fokus && S.fokus.laeuft && k && k.id!==S.fokus.karteId && !(S.ui && S.ui.fokusZeigt)){
     const nav0=fokusNav();
     if(!(num(nav0.hist)>0 || nav0.stapel!=null)){
       console.warn('Fokus-Divergenz nachgezogen: Uhr läuft auf '+S.fokus.karteId+', Ansicht zeigte '+k.id);
@@ -7415,6 +7425,12 @@ function syncImport(text){
     rangInvalidieren(); baueSuchIndex();
   }
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
+  // §5 (v2.1.1): DIE Ursache von „der Freitext findet nur lila Karten".
+  // baueSuchIndex() lief nur im Wiederherstellungs-Zweig. Die v2.0-Leerung
+  // hatte den Index mit den verbliebenen ROUTINEN gebaut (lila = rhythmus),
+  // und jeder normale Import danach legte Karten an, die nie in den Index
+  // kamen — bis zum naechsten Kaltstart der App.
+  baueSuchIndex();
   // §5.6 (v1.13.0): erfolgreicher Import = geprüfte Planung
   S.meta.letzterImportTs=jetztIso(); saveMeta();
   return {neu, neuDfm, neuPrivat, upd, arch, ketteGesetzt, ketteUnbekannt, gruppenNeu, gruppenUpd,
@@ -9431,12 +9447,32 @@ function setTab(tab){
    die Ansicht zurück.
    ══════════════════════════════════════════════════════════════════════ */
 function fokusAnsichtOffen(){ return !!(S.ui && S.ui.fokusOffen); }
+/* ══ §1 (v2.1.1) · DIE ANGEZEIGTE KARTE ════════════════════════════════
+   Drei Zustaende, die einander nie bedingen:
+     S.fokus          — WELCHE KARTE LAEUFT (Uhr, Buchung)
+     S.ui.fokusOffen  — IST DIE FOKUSANSICHT SICHTBAR
+     S.ui.fokusZeigt  — WELCHE KARTE SIE ZEIGT, wenn sie ANGESEHEN statt
+                        gestartet wurde (null = die laufende)
+   Antippen einer Karte setzt nur die letzten beiden. Laeuft gerade eine
+   andere Karte, laeuft sie weiter. */
+function fokusAngezeigtId(){
+  const z=S.ui && S.ui.fokusZeigt;
+  if(z && S.karten.some(k=>k.id===z)) return z;
+  return (S.fokus && S.fokus.karteId) || null;
+}
+function fokusKarteAnsehen(kid){
+  if(!S.karten.some(k=>k.id===kid)) return;
+  S.ui.fokusZeigt = (S.fokus && S.fokus.karteId===kid) ? null : kid;
+  S.ui.fokusOffen=true; saveUi(); fokusLayerPflegen();
+}
 function fokusAnsichtZeigen(){
-  if(!S.fokus || !S.fokus.karteId) return;   // ohne Karte gibt es nichts zu zeigen
+  if(!fokusAngezeigtId()) return;            // ohne Karte gibt es nichts zu zeigen
   S.ui.fokusOffen=true; saveUi(); fokusLayerPflegen();
 }
 function fokusAnsichtSchliessen(){
-  S.ui.fokusOffen=false; saveUi(); fokusLayerPflegen();
+  // §3 (v2.1.1): Eine nur ANGESEHENE, nie gestartete Karte zu schliessen
+  // ist kein Verlassen — kein Dialog, keine Buchung. Nichts wird gerufen.
+  S.ui.fokusOffen=false; S.ui.fokusZeigt=null; saveUi(); fokusLayerPflegen();
   // Die Uhr bleibt unangetastet — bewusst KEIN fokusZeitEinbuchen hier.
   renderFokusleiste();
 }
@@ -9445,7 +9481,7 @@ function fokusLayerPflegen(){
   // Sichtbar nur, wenn eine Karte GEWÄHLT ist UND die Ansicht offen sein soll.
   // „laeuft" spielt hier bewusst keine Rolle: eine pausierte Karte darf man
   // ansehen, eine laufende darf man wegschieben.
-  const zeigen = fokusAnsichtOffen() && !!(S.fokus && S.fokus.karteId);
+  const zeigen = fokusAnsichtOffen() && !!fokusAngezeigtId();
   lay.hidden = !zeigen;
   document.body.classList.toggle('fokusOffen', zeigen);
   // §2 (v2.1.0): Das Plus liegt unter dem Fokus-Layer — in der Fokusansicht
@@ -9466,6 +9502,12 @@ function renderSuche(){
     '<button class="su-erl'+(erledigteZeigen()?' on':'')+'" data-suerl="1" '+
     'aria-label="Erledigte zeigen" title="Erledigte zeigen">✓</button>';
   const q=suFrage();
+  // §4 (v2.1.1): Der Begriff lebt in S.ui.suFrage UND im Eingabefeld. Waren
+  // die beiden auseinander (Feld leer, Zustand gefüllt), lief die Suche
+  // unsichtbar weiter — „4 Treffer · Freitext" bei leerem Feld, die Sichten
+  // wirkten nicht. Deshalb: das Feld zeigt IMMER, wonach gesucht wird.
+  { const inp=el('suFreitext');
+    if(inp && document.activeElement!==inp && inp.value!==(S.ui.suFrage||'')) inp.value=S.ui.suFrage||''; }
   const body=el('suBody'); if(!body) return;
   // §6: Der Freitext schlägt JEDE Sicht — und er findet alles, was in der App
   // liegt, auch Erledigtes.
@@ -10627,9 +10669,14 @@ el('einstBody').addEventListener('change', e=>{
    nichts wird gespeichert. ESC / Tap-außen / „Abbrechen" schließt.
    ══════════════════════════════════════════════════════════════════════ */
 let suchIndex=[], _suchDeb=null;
+/* §5 (v2.1.1): Umlaute werden zu ae/oe/ue — nicht zu a/o/u. Vorher wurde
+   „Zähne" im Index zu „zahne", die Eingabe „zaehne" blieb „zaehne", und die
+   beiden trafen sich nie (gemessen: auch mit frischem Index 0 Treffer). Die
+   deutsche Umschrift auf BEIDEN Seiten macht „zähne", „zaehne" und – über
+   die Teilfolgen-Suche – auch „zahne" gleichwertig. */
 function normSuche(s){
   return (s==null?'':String(s)).toLowerCase()
-    .replace(/ä/g,'a').replace(/ö/g,'o').replace(/ü/g,'u').replace(/ß/g,'ss')
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
     .replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
 }
 function baueSuchIndex(){
@@ -10651,6 +10698,12 @@ function tokenScore(hay, tok){
 }
 function sucheTreffer(q){
   const qn=normSuche(q); if(!qn) return [];
+  // §5 (v2.1.1): Der Index wird bei JEDER Suche frisch gebaut. Ein
+  // gecachter Index musste an jeder Stelle nachgezogen werden, die Karten
+  // anlegt oder ändert (Import, Anlegen, Bearbeiten, Leerung …) — und genau
+  // das war die Fehlerquelle. Bei einigen hundert Karten kostet der Neubau
+  // Bruchteile einer Millisekunde; die Eingabe ist ohnehin entprellt.
+  baueSuchIndex();
   const toks=qn.split(' '), res=[];
   suchIndex.forEach(e=>{
     let sc=0, ok=true;
@@ -10733,9 +10786,29 @@ el('suSichten').addEventListener('click', e=>{
   if(b){ S.ui.suSicht=b.dataset.susicht; saveUi(); renderSuche(); haptik(8); return; }
 });
 el('neuFab').addEventListener('click', ()=>oeffneDetail(null));
+/* ══ §1/§2 (v2.1.1) · KARTEN IN DER SUCHE ══════════════════════════════
+   BEFUND: Beim Umbau der Suche in v2.0 fehlte der Handler fuer den
+   Kartenkoerper. #suBody kannte nur die Matrix-Kacheln; weder der Koerper
+   noch die Schnellknoepfe waren an karteRowClick angeschlossen.
+   Reihenfolge ist Absicht: erst die Bedienelemente (§2 — jedes loest NUR
+   seine Aktion aus), dann der Koerper (§1 — ansehen, nicht starten). */
+const SU_BEDIENELEMENT = 'button,[data-check],[data-tickplus],[data-fokusstart],[data-schieb],'+
+  '[data-kette],[data-freeze],[data-archiv],[data-pqstart],[data-pqtick],[data-pqcheck],input,select,textarea,a';
 el('suBody').addEventListener('click', e=>{
-  const mx=e.target.closest('[data-sumx]');
+  const t=e.target;
+  const mx=t.closest('[data-sumx]');
   if(mx){ S.ui.suMatrixFeld=(S.ui.suMatrixFeld===mx.dataset.sumx)?null:mx.dataset.sumx; saveUi(); renderSuche(); return; }
+  // §2: Ein Schnellknopf loest seine Aktion aus — und NICHTS sonst. Das
+  // Ereignis endet hier; der Koerper-Zweig unten wird nie erreicht.
+  if(t.closest(SU_BEDIENELEMENT)){
+    e.stopPropagation();
+    if(karteRowClick(t, e)){ renderSuche(); }
+    return;
+  }
+  // §1: Tipp auf den Kartenkoerper (Titel, Metazeile, freie Flaeche) —
+  // die Karte in der Fokusansicht ANSEHEN, ohne die Uhr zu starten.
+  const row=t.closest('.krow[data-kid]');
+  if(row){ haptik(8); fokusKarteAnsehen(row.dataset.kid); return; }
 });
 /* §6: fünf Sichten WISCHBAR. Nur horizontal, mit Winkelschwelle — sonst
    kapert die Geste das vertikale Scrollen der Liste. */
@@ -11611,6 +11684,10 @@ function init(){
   ladeAlles();
   S.unteraufgaben = DB.get('unteraufgaben', []);
   baueSuchIndex();   // A10: In-Memory-Suchindex bei App-Start
+  // §4 (v2.1.1): Die Suche beginnt LEER. Ein gespeicherter Begriff aus der
+  // letzten Sitzung hätte nach dem Start aktiv gefiltert, ohne im Feld zu
+  // stehen — und nach Leerung und Import passte er zu nichts mehr.
+  if(S.ui && S.ui.suFrage){ S.ui.suFrage=''; saveUi(); }
   seedStapel();
   pruefeTagKante();   // §6: vergessenen Abschluss beim Öffnen nachholen
   // Der Timer läuft über Reloads weiter (§7 D1): war er beim Verlassen aktiv,

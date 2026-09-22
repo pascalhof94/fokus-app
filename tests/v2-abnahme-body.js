@@ -524,8 +524,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.1.0 · Build gesetzt', VERSION==='2.1.0' && UI_VERSION==='v2.1.0' &&
-   APP_BUILD==='2026-09-22-2');
+ok('31 APP_VERSION 2.1.1 · Build gesetzt', VERSION==='2.1.1' && UI_VERSION==='v2.1.1' &&
+   APP_BUILD==='2026-09-22-3');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -574,14 +574,10 @@ ok('§2 BELEG: Zeit der alten Karte gebucht ('+Math.round(istA_vor/60)+'′ → 
    Math.round(istA_nach/60)+'′)', Math.abs(istA_nach-istA_vor-720)<5);
 ok('§2 Die neue Karte laeuft', S.fokus.karteId==='B' && S.fokus.laeuft===true);
 ok('§2 Die alte Uhr steht', istSekLive(S.karten.find(function(k){return k.id==='A';}))===istA_nach);
-ok('§2 BELEG: der Matrix-Dialog kam fuer die VERLASSENE Karte',
-   !!matrixTmp && matrixTmp.kid==='A' && matrixTmp.anlass==='wechsel');
+/* v2.1.1 §3: Der WECHSEL zaehlt fuer die alte Karte wie Pausieren — KEIN
+   Dialog mehr (aendert v2.0.1 §2, wo er kam). */
+ok('§2/v2.1.1 BELEG: beim Wechsel kommt KEIN Dialog', matrixTmp===null);
 ok('§2 Die Ansicht zeigt jetzt die neue Karte', fokusAnsichtOffen()===true);
-/* Dialog beantworten → Bewegungsbonus landet auf A, nicht auf B */
-matrixTmp.x=0.5; matrixTmp.y=0; matrixDialogSpeichern();
-ok('§2 Der Bewegungsbonus wurde der VERLASSENEN Karte gutgeschrieben',
-   num(S.karten.find(function(k){return k.id==='A';}).bewegungsBonus)>0 &&
-   num(S.karten.find(function(k){return k.id==='B';}).bewegungsBonus)===0);
 
 /* ══ v2.0.1 · §4 DUBLETTEN ══════════════════════════════════════════ */
 kopf('v2.0.1 §4 · Dubletten zusammenfuehren');
@@ -734,6 +730,120 @@ ok('§2 Es liegt unter Backdrop/Sheet (199) — ein Dialog muss es verdecken',
 ok('§2 In der Fokusansicht wandert es ueber den Layer',
    /body\.fokusOffen #neuFab\{z-index:201\}/.test(src));
 ok('§2 44-px-Norm uebererfuellt (56 px)', /#neuFab\{[^}]*width:56px;height:56px/.test(src));
+
+
+/* ══ v2.1.1 · §1 KARTE ANTIPPEN — ANSEHEN, NICHT STARTEN ═════════════ */
+kopf('v2.1.1 §1 · Karte ansehen');
+frisch();
+S.karten=[ neueKarte({id:'X', domain:'dfm', titel:'Karte X', sollMin:30, faelligkeit:H()}),
+           neueKarte({id:'Y', domain:'dfm', titel:'Karte Y', sollMin:30, faelligkeit:H()}) ];
+ketteSetzen(['X','Y']);
+fokusKarteAnsehen('X');
+ok('§1 BELEG: Antippen oeffnet die Fokusansicht', fokusAnsichtOffen()===true);
+ok('§1 BELEG: die Uhr steht (S.fokus unberuehrt)', S.fokus===null);
+ok('§1 Die Ansicht zeigt die angetippte Karte', aktiveFokusKarte() && aktiveFokusKarte().id==='X');
+/* Laeuft eine ANDERE Karte, laeuft sie weiter */
+fokusStarten('Y'); fokusAnsichtSchliessen();
+var startY=S.fokus.startMs;
+fokusKarteAnsehen('X');
+ok('§1 BELEG: waehrend Y laeuft, zeigt die Ansicht X', aktiveFokusKarte().id==='X');
+ok('§1 BELEG: Y laeuft unveraendert weiter', S.fokus.karteId==='Y' && S.fokus.laeuft===true &&
+   S.fokus.startMs===startY);
+ok('§1 Der Divergenz-Schutz zieht die angesehene Karte NICHT zurueck', (function(){
+     renderFokus(); return aktiveFokusKarte().id==='X' && S.ui.fokusZeigt==='X'; })());
+/* ▶ in der Fokusansicht startet erst */
+fokusStarten('X');
+ok('§1 Erst ▶ startet die angesehene Karte', S.fokus.karteId==='X' && S.fokus.laeuft===true);
+ok('§1 Danach ist die laufende die angezeigte', S.ui.fokusZeigt===null);
+
+/* ══ v2.1.1 · §3 WANN DER DIALOG KOMMT ══════════════════════════════ */
+kopf('v2.1.1 §3 · Buchungsdialog');
+frisch();
+S.karten=[ neueKarte({id:'P', domain:'dfm', titel:'P', sollMin:60, faelligkeit:H()}),
+           neueKarte({id:'Q', domain:'dfm', titel:'Q', sollMin:30, faelligkeit:H()}) ];
+ketteSetzen(['P','Q']);
+fokusStarten('P'); S.fokus.startMs=Date.now()-10*60*1000; matrixTmp=null;
+fokusToggle();   // PAUSE
+ok('§3 BELEG Pausieren: KEIN Dialog', matrixTmp===null);
+ok('§3 BELEG Pausieren: Zeit gebucht ('+Math.round(num(S.karten[0].istSek)/60)+'′)',
+   Math.abs(num(S.karten[0].istSek)-600)<5);
+ok('§3 Pausieren: Uhr steht', S.fokus.laeuft===false);
+fokusAnsichtSchliessen();
+ok('§3 Pausieren: Suche erreichbar (Ansicht zu)', fokusAnsichtOffen()===false);
+/* Wechsel */
+frisch();
+S.karten=[ neueKarte({id:'P', domain:'dfm', titel:'P', sollMin:60, faelligkeit:H()}),
+           neueKarte({id:'Q', domain:'dfm', titel:'Q', sollMin:30, faelligkeit:H()}) ];
+ketteSetzen(['P','Q']);
+fokusStarten('P'); S.fokus.startMs=Date.now()-7*60*1000; matrixTmp=null;
+fokusStarten('Q');
+ok('§3 BELEG Wechsel: alte Karte gestoppt und gebucht ('+Math.round(num(S.karten[0].istSek)/60)+'′)',
+   Math.abs(num(S.karten[0].istSek)-420)<5 && S.fokus.karteId==='Q');
+ok('§3 BELEG Wechsel: KEIN Dialog', matrixTmp===null);
+/* Erledigen */
+frisch();
+S.karten=[ neueKarte({id:'E', domain:'dfm', titel:'E', sollMin:30, faelligkeit:H()}) ];
+ketteSetzen(['E']); fokusStarten('E'); matrixTmp=null;
+abhakDialog('E', false); abhakDialogConfirm();
+ok('§3 BELEG Erledigen: der Dialog kommt', !!matrixTmp && matrixTmp.anlass==='abhaken');
+closeSheet();
+/* Schieben */
+frisch();
+S.karten=[ neueKarte({id:'F', domain:'dfm', titel:'F', sollMin:30, faelligkeit:H()}) ];
+ketteSetzen(['F']); matrixTmp=null;
+oeffneSchieben('F'); karteSchiebenA4('F', false, 0);
+ok('§3 BELEG Schieben: der Dialog kommt', !!matrixTmp && matrixTmp.anlass==='schieben');
+closeSheet();
+/* Nur angesehen, nie gestartet */
+frisch();
+S.karten=[ neueKarte({id:'G', domain:'dfm', titel:'G', sollMin:30, faelligkeit:H()}) ];
+matrixTmp=null;
+fokusKarteAnsehen('G');
+var istVor=num(S.karten[0].istSek), logVor=(S.intraday||[]).length;
+fokusAnsichtSchliessen();
+ok('§3 BELEG angesehen+geschlossen: kein Dialog', matrixTmp===null);
+ok('§3 BELEG angesehen+geschlossen: keine Buchung',
+   num(S.karten[0].istSek)===istVor && (S.intraday||[]).length===logVor && S.fokus===null);
+/* Bewegungsbonus: vorher = die letzte gesetzte Position, auch von frueherer Karte */
+frisch();
+S.karten=[ neueKarte({id:'H1', domain:'dfm', titel:'H1', sollMin:30, faelligkeit:H()}),
+           neueKarte({id:'H2', domain:'dfm', titel:'H2', sollMin:30, faelligkeit:H()}) ];
+matrixPosSetzen(-0.6, 0, null, 'frueher');          // letzte Position — von einer frueheren Karte
+fokusStarten('H1'); fokusStarten('H2');             // Wechsel ohne Dialog
+ok('§3 Bewegungsbonus: H2 rechnet gegen die letzte gesetzte Position (−0,6)',
+   S.karten[1].posVorher && Math.abs(S.karten[1].posVorher.x+0.6)<0.001);
+
+/* ══ v2.1.1 · §4/§5 SUCHE ═══════════════════════════════════════════ */
+kopf('v2.1.1 §4/§5 · Suche');
+frisch();
+S.karten=[ neueKarte({id:'r-zaehne', domain:'privat', titel:'Zähne putzen', rhythmus:{typ:'taeglich'}, faelligkeit:H()}),
+           neueKarte({id:'r-mails',  domain:'dfm',    titel:'Mails bearbeiten', rhythmus:{typ:'taeglich'}, faelligkeit:H()}),
+           neueKarte({id:'a-notiz',  domain:'dfm',    titel:'Angebot', notiz:'Rahmenvertrag pruefen', faelligkeit:H()}) ];
+suchIndex=[];   // absichtlich LEER: der Index darf nie veraltet sein
+function tr(q){ return sucheTreffer(q).map(function(o){return o.k.id;}); }
+ok('§5/9 „zaehne" findet die private Routine', tr('zaehne').indexOf('r-zaehne')>=0);
+ok('§5 „zähne" findet sie ebenso', tr('zähne').indexOf('r-zaehne')>=0);
+ok('§5/9 „mails" findet die DFM-Routine', tr('mails').indexOf('r-mails')>=0);
+ok('§5/9 ein Begriff aus der Notiz findet die Karte', tr('rahmenvertrag').indexOf('a-notiz')>=0);
+/* Beide Domaenen in einer Liste */
+S.karten.push(neueKarte({id:'p-putz', domain:'privat', titel:'Putzplan', faelligkeit:H()}));
+S.karten.push(neueKarte({id:'d-putz', domain:'dfm', titel:'Putzmittel bestellen', faelligkeit:H()}));
+var both=tr('putz');
+ok('§5/10 Treffer beider Domaenen erscheinen gemeinsam ('+both.length+')',
+   both.indexOf('p-putz')>=0 && both.indexOf('d-putz')>=0 && both.indexOf('r-zaehne')>=0);
+/* Nach einem normalen Import sofort auffindbar (die gemessene Ursache) */
+syncImport(JSON.stringify({appVersion:'2.1.1', karten:[
+  {id:'neu-imp', domain:'privat', titel:'Frisch importiert', faelligkeit:H()}]}));
+ok('§5 BELEG Ursache: frisch importierte Karte ist SOFORT auffindbar',
+   tr('frisch').indexOf('neu-imp')>=0);
+/* §4: kein unsichtbarer Begriff */
+ok('§4 Platzhalter sagt nicht mehr „auch Erledigtes"',
+   src.indexOf('auch Erledigtes …')<0 && src.indexOf('Offene Karten finden')>=0);
+/* §4: Der echte Beleg („beim Start leer") laeuft im Harness beim BOOTEN
+   (view=echt) — hier kann jsc init() nicht fahren. Geprueft wird nur, dass
+   init den Pfad traegt. */
+ok('§4 init() verwirft einen gespeicherten Suchbegriff (Code-Pfad vorhanden)',
+   /if\(S\.ui && S\.ui\.suFrage\)\{ S\.ui\.suFrage=''/.test(src));
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

@@ -39,7 +39,9 @@ var SYNC_BESTAND_SCHWELLE = 10;
 var KOMPLETT_BONUS_DEFAULT = 200;
 function esc(s){ return String(s==null?'':s); }
 function saveKarten(){} function saveRoutGruppen(){}
-function saveMeta(){} function saveHistorie(){}                       // §5.6/§5.7 (v1.13.0)
+function saveMeta(){} function saveHistorie(){}
+/* v2.1.1: syncImport baut danach den Suchindex neu — hier ohne Belang. */
+function baueSuchIndex(){}                       // §5.6/§5.7 (v1.13.0)
 
 var _tagOffen=false;
 function tagOffen(){ return _tagOffen; }

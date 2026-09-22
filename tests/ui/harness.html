@@ -827,6 +827,109 @@ function bestandSchreiben(){
           }
           fw.closeSheet();
         })();
+        /* ══════════════════════════════════════════════════════════════
+           v2.1.1 · KARTE ANTIPPEN, SCHNELLKNOEPFE, DIALOGREGELN, SUCHE
+           ══════════════════════════════════════════════════════════════ */
+        freiMachen();
+        /* §4 · Kein unsichtbarer Begriff nach dem Start (Fixture hat einen gesetzt) */
+        (function(){
+          var inp=d.getElementById('suFreitext');
+          var kopf=(d.querySelector('#suBody .su-kopfzeile')||{}).textContent||'';
+          finding('echt · §4 nach Start: Feld="'+(inp?inp.value:'?')+'" · Kopf="'+kopf+'"');
+          pruef(inp && inp.value==='', '§4: Suchfeld nach Start nicht leer ("'+(inp&&inp.value)+'")');
+          pruef(kopf.indexOf('Freitext')<0, '§4: Freitext ist beim Start UNSICHTBAR aktiv ('+kopf+')');
+          pruef(inp && (inp.getAttribute('placeholder')||'').indexOf('Erledigtes')<0,
+                '§4: Platzhalter nennt noch „Erledigtes"');
+        })();
+        /* §1 · Tipp auf den Kartenkoerper — Titel, Metazeile, freie Flaeche */
+        (function(){
+          klick('[data-susicht="heute"]');
+          var row=d.querySelector('#suBody .krow[data-kid]');
+          pruef(!!row, '§1: keine Kartenzeile');
+          if(!row) return;
+          var kid=row.dataset.kid;
+          var ziele=[
+            ['Titel',  row.querySelector('.ktitel, .kmain .t, .kmain b, .kmain')],
+            ['Metazeile', row.querySelector('.kmeta, .kmain .art, .kmain .tag')],
+            ['freie Flaeche', row]
+          ];
+          ziele.forEach(function(z){
+            var e2=z[1]; if(!e2){ pruef(false,'§1: '+z[0]+' nicht gefunden'); return; }
+            freiMachen(); fw.fokusAnsichtSchliessen();
+            var r=e2.getBoundingClientRect();
+            /* freie Flaeche: rechts oben in der Zeile, weg von Knoepfen */
+            var x=z[0]==='freie Flaeche' ? Math.round(r.right-18) : Math.round(r.left+Math.min(40,r.width/2));
+            var y=z[0]==='freie Flaeche' ? Math.round(r.top+10) : Math.round(r.top+r.height/2);
+            var hit=d.elementFromPoint(x,y);
+            var inReihe=hit && hit.closest && hit.closest('.krow[data-kid="'+kid+'"]');
+            var aufKnopf=hit && hit.closest && hit.closest('button,[data-check]');
+            pruef(inReihe && !aufKnopf, '§1: '+z[0]+' — Punkt trifft '+beschreib(hit));
+            if(inReihe && !aufKnopf){
+              var vorFokus=fw.fokusKarte()?fw.fokusKarte().id:null;
+              hit.click();
+              pruef(fw.fokusAnsichtOffen()===true, '§1: Tipp auf '+z[0]+' oeffnet die Fokusansicht nicht');
+              pruef((fw.fokusKarte()?fw.fokusKarte().id:null)===vorFokus,
+                    '§1: Tipp auf '+z[0]+' hat eine Uhr gestartet/gewechselt');
+            }
+          });
+          fw.fokusAnsichtSchliessen();
+        })();
+        /* §2 · Jeder Schnellknopf nur seine Aktion */
+        (function(){
+          freiMachen(); klick('[data-susicht="heute"]');
+          var row=d.querySelector('#suBody .krow[data-kid]'); if(!row) return;
+          var kid=row.dataset.kid;
+          /* ▶ startet — und oeffnet NICHT zusaetzlich die Ansicht einer anderen Karte */
+          var play=row.querySelector('[data-fokusstart]');
+          pruef(!!play, '§2: ▶ fehlt');
+          if(play){ play.click();
+            pruef(fw.fokusKarte() && fw.fokusKarte().id===kid, '§2: ▶ startet die Karte nicht');
+            fw.fokusToggle();                       // Pause fuer die weiteren Pruefungen
+            fw.fokusAnsichtSchliessen(); freiMachen(); }
+          klick('[data-susicht="heute"]');
+          row=d.querySelector('#suBody .krow[data-kid="'+kid+'"]')||d.querySelector('#suBody .krow[data-kid]');
+          var sch=row && row.querySelector('[data-schieb]');
+          if(sch){ var offenVor=fw.fokusAnsichtOffen(); sch.click();
+            pruef(d.getElementById('sheet').className.indexOf('on')>=0, '§2: ⏭ oeffnet den Schieben-Dialog nicht');
+            pruef(fw.fokusAnsichtOffen()===offenVor, '§2: ⏭ hat zusaetzlich die Fokusansicht geoeffnet');
+            freiMachen(); }
+          klick('[data-susicht="heute"]');
+          row=d.querySelector('#suBody .krow[data-kid]');
+          var chk=row && row.querySelector('[data-check]');
+          if(chk){ var ov=fw.fokusAnsichtOffen(); chk.click();
+            pruef(fw.fokusAnsichtOffen()===ov, '§2: ☐ hat zusaetzlich die Fokusansicht geoeffnet');
+            freiMachen(); }
+        })();
+        /* §3 · Pausieren ohne Dialog, Suche danach erreichbar */
+        (function(){
+          freiMachen(); klick('[data-susicht="heute"]');
+          var kid=(fw.tagesKette()||[])[0]; if(!kid) return;
+          fw.fokusStarten(kid, null); freiMachen();
+          var pp=d.querySelector('#fokusView [data-fktoggle]');
+          pruef(!!pp, '§3: Play/Pause fehlt in der Fokusansicht');
+          if(pp){ pp.click();
+            pruef(!(d.getElementById('sheet').className.indexOf('on')>=0), '§3: Pausieren oeffnet einen Dialog');
+            var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+            var b=d.querySelector('[data-susicht="matrix"]'); if(b) b.click();
+            pruef(b && d.querySelector('[data-susicht="matrix"]').className.indexOf('on')>=0,
+                  '§3: nach dem Pausieren ist die Suche nicht bedienbar'); }
+        })();
+        /* §5 · Freitext am gelebten Bestand */
+        (function(){
+          freiMachen();
+          var inp=d.getElementById('suFreitext'); if(!inp) return;
+          function suche(q){
+            inp.value=q; inp.dispatchEvent(new fw.Event('input',{bubbles:true}));
+            fw.renderSuche();
+            return Array.prototype.map.call(d.querySelectorAll('#suBody .krow[data-kid]'), function(e){ return e.dataset.kid; });
+          }
+          var z=suche('zaehne'), m=suche('mails'), n=suche('rahmenvertrag');
+          finding('echt · §5 zaehne→'+z.length+' · mails→'+m.length+' · rahmenvertrag→'+n.length);
+          pruef(z.indexOf('r-zaehne')>=0, '§5/9: „zaehne" findet die private Routine nicht');
+          pruef(m.indexOf('r-mails')>=0, '§5/9: „mails" findet die DFM-Routine nicht');
+          pruef(n.indexOf('a-notiz')>=0, '§5/9: Notiz-Begriff findet die Karte nicht');
+          inp.value=''; inp.dispatchEvent(new fw.Event('input',{bubbles:true})); fw.renderSuche();
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
