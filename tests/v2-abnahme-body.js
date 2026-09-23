@@ -524,8 +524,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.2.1 · Build gesetzt', VERSION==='2.2.1' && UI_VERSION==='v2.2.1' &&
-   APP_BUILD==='2026-09-22-6');
+ok('31 APP_VERSION 2.3.0 · Build gesetzt', VERSION==='2.3.0' && UI_VERSION==='v2.3.0' &&
+   APP_BUILD==='2026-09-23-1');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -865,13 +865,14 @@ var b1=fbWasDieseKarte(kk), b2=fbWoIchStehe(), b3=fbWasIchBewege(kk);
 function kacheln(h){ return (h.match(/class="fbk[ "]/g)||[]).length; }
 function grafiken(h){ return (h.match(/<svg|class="fbk-bar/g)||[]).length; }
 ok('§2 Block 1: je Kachel eine Grafik ('+kacheln(b1)+' Kacheln)', kacheln(b1)>=2 && grafiken(b1)>=kacheln(b1));
-ok('§2 Block 2: Tagesziel, Outfit, Faktor F als Kacheln mit Grafik', kacheln(b2)===3 && grafiken(b2)>=3);
+ok('§2/v2.3 §9 Block 2: DFM, Privat, Outfit, Faktor F (+Kurve) als Kacheln mit Grafik',
+   kacheln(b2)>=4 && grafiken(b2)>=4 && b2.indexOf('>DFM<')>=0 && b2.indexOf('>Privat<')>=0);
 ok('§2 Block 2: kein doppeltes „P P" mehr', b2.indexOf('P P')<0);
-ok('§2 Block 3 ohne Position: Mini-Matrix statt nackter Text', b3.indexOf('<svg')>=0);
+ok('§2 Block 3 ohne Position: Matrix statt nackter Text', b3.indexOf('<svg')>=0);
 S.tag.matrixSpur=[{x:-0.6,y:0.4},{x:0.2,y:-0.2}];
 b3=fbWasIchBewege(kk);
-ok('§2 Block 3 mit Position: Mini-Matrix mit Pfeil vorher→jetzt, 3 Kacheln',
-   kacheln(b3)===3 && b3.indexOf('marker-end')>=0 && b3.indexOf('vorher -0,6')>=0);
+ok('v2.3 §8 Block 3 mit Position: grosse Matrix mit Tageslinie + zwei Kacheln',
+   kacheln(b3)===3 && b3.indexOf('fb-mx')>=0 && b3.indexOf('unbekannt')>=0);
 ok('§2 Grafiken fangen keine Klicks (pointer-events:none im CSS)',
    /\.fbk-g svg\{[^}]*pointer-events:none/.test(src) && /\.fbk-bar\{[^}]*pointer-events:none/.test(src));
 ok('§2 Farb-Aliase definiert (--li/--bg2/--fg/--gut/--ac)', /--li:var\(--line\); --bg2:var\(--card\); --fg:var\(--txt\); --gut:var\(--ok\); --ac:var\(--blue\)/.test(src));
@@ -882,8 +883,8 @@ frisch();
 S.karten=[
   neueKarte({id:'dA', domain:'dfm',    titel:'Filter DFM Aufgabe', matrixFeld:'ziel', faelligkeit:H()}),
   neueKarte({id:'pA', domain:'privat', titel:'Filter Privat Aufgabe', matrixFeld:'ziel', faelligkeit:H()}),
-  neueKarte({id:'dR', domain:'dfm',    titel:'Filter DFM Routine', rhythmus:'taeglich', matrixFeld:'werkzeug', faelligkeit:H()}),
-  neueKarte({id:'pR', domain:'privat', titel:'Filter Privat Routine', rhythmus:'taeglich', matrixFeld:'werkzeug', faelligkeit:H()}),
+  neueKarte({id:'dR', domain:'dfm',    titel:'Filter DFM Routine', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', faelligkeit:H()}),
+  neueKarte({id:'pR', domain:'privat', titel:'Filter Privat Routine', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', faelligkeit:H()}),
   neueKarte({id:'pC', domain:'privat', titel:'Filter Privat Counter', ticksAktiv:true, matrixFeld:'werkzeug', faelligkeit:H()}) ];
 S.karten.forEach(function(k){ k.letzteBearbeitung=jetztIso(); k.streak=1; });
 ketteSetzen(['dA','pA','dR','pR','pC']);
@@ -987,6 +988,130 @@ ok('§5 drei Quer-Voraussetzungen unverändert',
    KAT_KEYS.reduce(function(a,k){ return a+BELOHNUNG[k].stufen.filter(function(x){ return x[2]; }).length; },0)===3);
 ok('§5 Stichproben', BELOHNUNG.wohnen.stufen[11][0]==='Berge im Rücken, Dschungel links, Meer voraus' &&
    BELOHNUNG.mobilitaet.stufen[4][0]==='Schnuppertauchen' && BELOHNUNG.begleiter.stufen[11][0]==='Und niemand muss draußen bleiben');
+
+kopf('v2.3.0 §1–§3 · Suche: kompakt, nur Fälliges, Ungeplantes ans Ende');
+frisch();
+var MO=(function(){ var d=new Date(H()+'T12:00:00'); var wt=((d.getDay()+6)%7)+1; return wt; })();
+S.karten=[
+  neueKarte({id:'h1', domain:'dfm', titel:'Heute faellig', matrixFeld:'ziel', faelligkeit:H()}),
+  neueKarte({id:'u1', domain:'dfm', titel:'Ueberfaellig gestern', matrixFeld:'ziel', faelligkeit:anVorTage(H(),3)}),
+  neueKarte({id:'z1', domain:'dfm', titel:'Zukunft naechste Woche', matrixFeld:'ziel', faelligkeit:anVorTage(H(),-7)}),
+  neueKarte({id:'o1', domain:'privat', titel:'Ohne Datum', matrixFeld:'ziel'}),
+  neueKarte({id:'rT', domain:'privat', titel:'Routine taeglich', matrixFeld:'werkzeug', rhythmus:{typ:'taeglich'}, faelligkeit:H()}),
+  neueKarte({id:'rN', domain:'privat', titel:'Routine alle 7 Tage', matrixFeld:'werkzeug',
+             rhythmus:{typ:'alleNTage', n:7}, zuletztRoutine:anVorTage(H(),1), faelligkeit:H()}),
+  neueKarte({id:'cC', domain:'privat', titel:'Counter ohne Rhythmus', matrixFeld:'werkzeug', ticksAktiv:true, faelligkeit:H()}) ];
+ketteSetzen(['h1','u1','z1','o1','rT','rN','cC']);
+suchIndex=[];
+function idsIn2(h){ var r=[], re=/data-kid="([^"]+)"/g, m; while((m=re.exec(h))) if(r.indexOf(m[1])<0) r.push(m[1]); return r; }
+var heute=idsIn2(suHeuteHtml());
+ok('§2 heute nicht fällige Routine (7-Tage) fehlt überall · Sicht Heute ['+heute.join(',')+']', heute.indexOf('rN')<0);
+ok('§2 tägliche Routine und Counter bleiben', heute.indexOf('rT')>=0 && heute.indexOf('cC')>=0);
+ok('§2 auch der Freitext zeigt die nicht fällige nicht', idsIn2(suFreitextHtml('routine')).indexOf('rN')<0);
+S.ui.suArt='routinen';
+var nurRout=idsIn2(suHeuteHtml());
+ok('§2 Ausnahme: Art-Filter „Routinen und Counter" zeigt auch die nicht fällige', nurRout.indexOf('rN')>=0);
+ok('§2 Ausnahme steht in der Kopfzeile', suHeuteHtml().indexOf('auch heute nicht fällige')>=0);
+ok('§2 Ausnahme wirkt auch im Freitext', idsIn2(suFreitextHtml('routine')).indexOf('rN')>=0);
+S.ui.suArt='alle';
+var reihe=idsIn2(suHeuteHtml());
+ok('§3 heute + überfällig vor dem nicht Eingeplanten ['+reihe.join(',')+']',
+   reihe.indexOf('h1')<reihe.indexOf('z1') && reihe.indexOf('u1')<reihe.indexOf('z1') &&
+   reihe.indexOf('u1')<reihe.indexOf('o1') && reihe[reihe.length-1]!=='h1');
+ok('§3 überfällige NICHT ausgegraut', kartenreiheHtml(S.karten.find(function(k){return k.id==='u1';}),'t').indexOf('eingefroren')<0);
+ok('§3 Zukunft und ohne Datum ausgegraut',
+   kartenreiheHtml(S.karten.find(function(k){return k.id==='z1';}),'t').indexOf('eingefroren')>=0 &&
+   kartenreiheHtml(S.karten.find(function(k){return k.id==='o1';}),'t').indexOf('eingefroren')>=0);
+var frei=suFreitextHtml('faellig'), sicht=suHeuteHtml();
+ok('§1 Freitext: Karten kompakt (zwei Zeilen, keine Knopfreihe)',
+   frei.indexOf('krow kompakt')>=0 && frei.indexOf('ktools')<0 && frei.indexOf('data-detail=')>=0);
+ok('§1 Sichten unverändert (Knopfreihe bleibt)', sicht.indexOf('ktools')>=0 && sicht.indexOf('krow kompakt')<0);
+
+kopf('v2.3.0 §4 · Der Vorschlag ist immer ein Werkzeug');
+frisch();
+S.karten=[
+  neueKarte({id:'wD', domain:'dfm', titel:'DFM-Werkzeug', matrixFeld:'werkzeug', sollMin:10, faelligkeit:H()}),
+  neueKarte({id:'wP', domain:'privat', titel:'Privates Werkzeug', matrixFeld:'werkzeug', sollMin:5, faelligkeit:H()}),
+  neueKarte({id:'zA', domain:'dfm', titel:'Ziel-Aufgabe', matrixFeld:'ziel', sollMin:60, faelligkeit:H()}) ];
+S.tag.akku=80;
+ok('§4 Reihenfolge: DFM-Werkzeug vor privatem', werkzeugReihenfolge().map(function(k){return k.id;}).join(',')==='wD,wP');
+matrixPosSetzen(0.6,0.2,null,'test');          // rechts — frueher haette es die Kette vorgeschlagen
+zeigeVorschlag('zA');
+ok('§4 Vorschlag ist das DFM-Werkzeug', S.ui.suVorschlag && S.ui.suVorschlag.kid==='wD');
+ok('§4 Sprung in die Suche, Sicht Matrix, Feld Werkzeug',
+   S.ui.tab==='suche' && S.ui.suSicht==='matrix' && S.ui.suMatrixFeld==='werkzeug');
+ok('§4 keine eigene Vorschlagsansicht mehr (kein Sheet)', !sheetOffen());
+var mh2=suMatrixHtml();
+ok('§4 Vorschlag steht OBEN in der Werkzeug-Liste, mit Grund',
+   mh2.indexOf('su-vorschlag')>=0 && mh2.indexOf('data-kid="wD"')<mh2.indexOf('data-kid="wP"'));
+ok('§4 Filter unberührt', suDom()==='alle' && suArtW()==='alle');
+S.karten=S.karten.filter(function(k){ return k.id!=='wD'; });
+S.tag.vorschlagGezeigt=[]; S.ui.suVorschlag=null;
+zeigeVorschlag('zA');
+ok('§4 ohne DFM-Werkzeug kommt das private', S.ui.suVorschlag && S.ui.suVorschlag.kid==='wP');
+S.karten=S.karten.filter(function(k){ return k.id==='zA'; });
+S.tag.vorschlagGezeigt=[]; S.ui.suVorschlag=null; S.ui.suSicht='heute';
+zeigeVorschlag('zA');
+ok('§4 ganz ohne Werkzeug: kein Sprung, ehrliche Auskunft', !S.ui.suVorschlag && S.ui.suSicht==='heute');
+
+kopf('v2.3.0 §5/§6 · Matrix-Picker und neue Karte im Fokus');
+frisch();
+ok('§5 Feld-Pad statt Auswahlliste im Anlege-Dialog',
+   /function matrixFeldPadHtml/.test(src) && matrixFeldPadHtml('werkzeug').indexOf('dmxPad')>=0 &&
+   /matrixFeldPadHtml\(mf\)/.test(src) && !/data-dmx="/.test(src));
+ok('§5 Pad kennt alle vier Felder und markiert das aktuelle',
+   MATRIX_FELDER.every(function(f){ return matrixFeldPadHtml('ziel').indexOf(MATRIX_META[f].name)>=0; }) &&
+   /mxq q4 on/.test(matrixFeldPadHtml('ziel')));
+ok('§5 Quadrant → Feld: rechts-oben Werkzeug, links-unten Zustand',
+   matrixFeldAusXY(0.5,0.5)==='werkzeug' && matrixFeldAusXY(-0.5,-0.5)==='zustand' &&
+   matrixFeldAusXY(-0.5,0.5)==='ablenkung' && matrixFeldAusXY(0.5,-0.5)==='ziel');
+S.karten=[ neueKarte({id:'lauf', domain:'dfm', titel:'Laeuft gerade', matrixFeld:'ziel', sollMin:60, faelligkeit:H()}) ];
+fokusStarten('lauf');
+S.fokus.startMs=Date.now()-300000;                 // 5 Minuten gelaufen
+var istVor=num(S.karten[0].istSek);
+oeffneDetail(null); entwurf.titel='Frisch angelegt'; entwurf.domain='dfm'; entwurf.sollMin=30;
+detailSpeichern();
+var neuK=S.karten.find(function(k){ return k.titel==='Frisch angelegt'; });
+ok('§6 neue Karte ist der Fokus und steht PAUSIERT', !!neuK && S.fokus.karteId===neuK.id && S.fokus.laeuft===false);
+ok('§6 Fokusansicht offen', fokusAnsichtOffen()===true);
+ok('§6 laufende Karte pausiert, ihre Zeit ist gebucht ('+Math.round(num(S.karten[0].istSek)-istVor)+' s)',
+   num(S.karten[0].istSek)-istVor>=290);
+ok('§6 kein Buchungsdialog', !sheetOffen());
+
+kopf('v2.3.0 §7/§8 · Zeitstrahl-Tipp und die grosse Matrix');
+ok('§7 Zeitstrahl-Zeilen tragen data-zskarte und öffnen die Fokusansicht',
+   /data-zskarte="/.test(src) && /closest\('\[data-zskarte\]'\).*fokusKarteAnsehen/.test(src));
+frisch();
+S.karten=[ neueKarte({id:'m1', domain:'dfm', titel:'Matrix-Karte', matrixFeld:'ziel', sollMin:60, faelligkeit:H()}) ];
+S.tag.startTs=new Date(Date.now()-240*60000).toISOString();     // Tag laeuft seit 4 h
+S.tag.matrixSpur=[
+  { ts:new Date(Date.now()-200*60000).toISOString(), x:-0.6, y:0.5 },   // 60 Min Ablenkung
+  { ts:new Date(Date.now()-140*60000).toISOString(), x:0.7, y:0.6 },    // 40 Min Werkzeug
+  { ts:new Date(Date.now()-100*60000).toISOString(), uebersprungen:true },  // 40 Min unbekannt
+  { ts:new Date(Date.now()-60*60000).toISOString(), x:0.8, y:-0.5 } ];  // 60 Min unbekannt (nach der letzten)
+var z=matrixZeitFelder();
+ok('§8 Zeit je Feld aus der Spur (Ablenkung '+Math.round(z.felder.ablenkung)+', Werkzeug '+Math.round(z.felder.werkzeug)+')',
+   Math.round(z.felder.ablenkung)===60 && Math.round(z.felder.werkzeug)===40 && Math.round(z.felder.ziel)===0);
+ok('§8 unbekannt = vor der ersten (40) + Übersprung (40) + nach der letzten (60) = '+Math.round(z.unbekannt),
+   Math.round(z.unbekannt)===140);
+ok('§8 Summe Felder + unbekannt = Messzeit ('+Math.round(z.mess)+' Min = 240)',
+   Math.round(z.felder.ablenkung+z.felder.zustand+z.felder.werkzeug+z.felder.ziel+z.unbekannt)===Math.round(z.mess) &&
+   Math.round(z.mess)===240);
+var gm=fbGrosseMatrix();
+ok('§8 grosse Matrix mit Tageslinie, Feldzeiten und hervorgehobenem Jetzt',
+   gm.svg.indexOf('fb-mx')>=0 && (gm.svg.match(/<line /g)||[]).length>=4 && gm.svg.indexOf('60′')>=0 && gm.n===3);
+ok('§8 Grafik fängt keine Klicks (pointer-events:none)', /\.fb-mx\{[^}]*pointer-events:none/.test(src));
+
+kopf('v2.3.0 §9/§10 · Wo ich heute stehe');
+var b9=fbWoIchStehe();
+ok('§9 DFM und Privat getrennt, je mit Zielmarke',
+   b9.indexOf('>DFM<')>=0 && b9.indexOf('>Privat<')>=0 && (b9.match(/fbk-bar mitmarke/g)||[]).length>=2);
+ok('§9 die Ziele sind die Domänen-Ziele',
+   b9.indexOf(fmtKurzP(zielUndIstHeute('dfm').ziel))>=0 && b9.indexOf(fmtKurzP(zielUndIstHeute('privat').ziel))>=0);
+ok('§10 Tageskurve im Block — dieselbe Funktion wie die Statistik',
+   b9.indexOf('fb-kurve')>=0 && b9.indexOf('Tagesverlauf')>=0);
+ok('§10 Werte identisch zur Statistik (gleiche Quelle belTagesDiagramm)',
+   b9.indexOf(belTagesDiagramm().slice(0,120))>=0 && /function stTagesverlauf\(\)\{[\s\S]{0,200}belTagesDiagramm\(\)/.test(src));
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

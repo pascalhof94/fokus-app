@@ -277,6 +277,34 @@ function bestandSchreiben(){
       var lay=d.getElementById('fokusLayer'), fb=d.querySelectorAll('#fokusView .fb')[1];
       if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
     },
+    /* v2.3 §1: Freitext mit kompakten Karten (gelebter Bestand) */
+    echtFreitext:function(fw){
+      var d=fw.document;
+      d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+      var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+      fw.closeSheet(); fw.setTab('suche');
+      var i=d.getElementById('suFreitext');
+      i.value='a'; i.dispatchEvent(new fw.Event('input',{bubbles:true})); fw.renderSuche();
+    },
+    /* v2.3 §4: Werkzeug-Liste nach dem Vorschlag */
+    echtVorschlag:function(fw){
+      var d=fw.document;
+      d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+      var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+      fw.closeSheet(); fw.setTab('suche');
+      fw.zeigeVorschlag(null);
+      fw.closeSheet();
+    },
+    /* v2.3 §5: Anlege-Dialog mit dem Matrix-Pad */
+    neuDialogMx:function(fw){
+      var d=fw.document;
+      fw.setTab('suche'); fw.closeSheet();
+      d.getElementById('neuFab').click();
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; }
+      var pad=d.getElementById('dmxPad'), sb=d.getElementById('sheetBody');
+      if(pad && sb){ var off=0; for(var e=pad; e && e!==sb; e=e.offsetParent) off+=e.offsetTop;
+        sb.scrollTop=Math.max(0, off-130); }
+    },
     /* v2.2 §2: Suche mit Filtern am gelebten Bestand (Privat + Routinen) */
     echtFilter:function(fw){
       var d=fw.document;
@@ -537,30 +565,37 @@ function bestandSchreiben(){
         pruef(fw.matrixSkipQuote()>skipVor || fw.matrixSkipQuote()>0,
               '§1.2: Ueberspringen wird nicht mitgezaehlt');
 
-        /* ── §9 · Der Vorschlag nach dem Matrix-Tap ──
-           Der Matrix-Dialog oben hat fuer DIESE Karte schon einen Vorschlag
-           gezeigt; §9 sagt „genau einmal pro Karte". Geprueft wird deshalb
-           mit einer ZWEITEN Karte. */
-        /* closeSheet nimmt nur die Klasse weg, das Markup bleibt im DOM —
-           massgeblich ist deshalb, ob das Sheet OFFEN ist, nicht ob der
-           Knopf noch existiert. */
+        /* ── §9 (v2.3) · Der Vorschlag ist ein WERKZEUG und springt in die
+           Suche (Sicht Matrix, Feld Werkzeug) — kein Sheet mehr. Er kommt
+           weiterhin genau einmal je Karte. ── */
         function sheetAuf(){ var sh=d.getElementById('sheet');
           return !!(sh && sh.className.indexOf('on')>=0); }
         var kid2=fw.tagesKette()[1] || kid;
         fw.matrixPosSetzen(-0.8, 0, null, 'diag');
-        fw.zeigeVorschlag(kid2);
-        pruef(sheetAuf() && !!d.querySelector('[data-vsgo]'), '§9: links erzeugt keinen Vorschlag');
-        pruef(d.querySelector('.vsBox') && d.querySelector('.vs-w').textContent.length>0,
-              '§9: Vorschlag ohne Begruendung');
         fw.closeSheet();
-        /* genau EINMAL je Karte: dieselbe Karte liefert keinen zweiten */
         fw.zeigeVorschlag(kid2);
-        pruef(!sheetAuf(), '§9: Vorschlag erscheint fuer dieselbe Karte mehrfach');
-        /* ... eine ANDERE Karte aber schon */
-        var kid3=fw.tagesKette()[2];
-        if(kid3){ fw.zeigeVorschlag(kid3);
-          pruef(sheetAuf(), '§9: andere Karte bekommt KEINEN eigenen Vorschlag');
-          fw.closeSheet(); }
+        var wz=fw.werkzeugReihenfolge().filter(function(k){ return k.id!==kid2; });
+        finding('diag · §9 (v2.3) Werkzeuge ausser der verlassenen Karte: '+wz.length);
+        if(wz.length){
+          pruef(!sheetAuf(), '§9 (v2.3): es oeffnet wieder ein Vorschlags-Sheet');
+          var vsz=d.querySelector('#suBody .su-vorschlag');
+          finding('diag · §9 (v2.3): '+(vsz?('„'+vsz.textContent.slice(0,60)+'"'):'keine Vorschlagszeile'));
+          pruef(!!vsz, '§9 (v2.3): keine Vorschlagszeile in der Werkzeug-Liste');
+          pruef(fw.matrixFeldVon(wz[0])==='werkzeug', '§9 (v2.3): der Vorschlag ist kein Werkzeug');
+          var vz=d.querySelector('#suBody .su-vorschlag span');
+          pruef(vz && vz.textContent.length>0, '§9 (v2.3): Vorschlag ohne Begruendung');
+          /* genau EINMAL je Karte: derselbe Aufruf aendert nichts mehr */
+          fw.setTab('suche'); klick('[data-susicht="heute"]');
+          fw.zeigeVorschlag(kid2);
+          pruef(!d.querySelector('#suBody .su-vorschlag'), '§9: Vorschlag erscheint fuer dieselbe Karte mehrfach');
+          /* ... eine ANDERE Karte aber schon */
+          var kid3=fw.tagesKette()[2];
+          if(kid3){ fw.zeigeVorschlag(kid3);
+            pruef(!!d.querySelector('#suBody .su-vorschlag'), '§9: andere Karte bekommt KEINEN eigenen Vorschlag'); }
+        } else {
+          pruef(!sheetAuf(), '§9 (v2.3): ohne Werkzeug darf nichts aufgehen');
+        }
+        klick('[data-susicht="heute"]');
 
         /* ── §13 · Shop haengt hinter der FIGUR ── */
         var fig=d.getElementById('btnFigur');
@@ -674,6 +709,8 @@ function bestandSchreiben(){
           if(d.getElementById('sheet').className.indexOf('on')>=0){ fw.closeSheet(); offen=true; }
           if(!offen) break;
         }
+        var _sh=d.getElementById('sheet');
+        if(_sh && _sh.className.indexOf('on')<0){ _sh.style.transition='none'; _sh.style.transform='translateY(110%)'; }
       }
       function beschreib(e){
         if(!e) return '(nichts)';
@@ -869,8 +906,8 @@ function bestandSchreiben(){
             durch.click();
             pruef(!!d.querySelector('#sheetBody [data-bind="titel"]'),
                   '§1.3: der Durchgang oeffnet nicht den Anlege-Dialog');
-            pruef(!!d.querySelector('#sheetBody [data-dmx]'),
-                  '§1.3: das Matrixfeld fehlt im Durchgang');
+            pruef(!!d.querySelector('#sheetBody #dmxPad'),
+                  '§1.3: das Matrixfeld (Pad) fehlt im Durchgang');
             pruef(d.getElementById('sheetBody').innerHTML.indexOf('Karte 1 von')>=0,
                   '§1.3: kein Fortschritt im Durchgang');
             /* §1.4 Default morgen */
@@ -1121,6 +1158,183 @@ function bestandSchreiben(){
           });
           klick('[data-susicht="heute"]');
         })();
+        /* const S liegt nicht auf window — Uhr-Zustand und Ist-Zeit kommen
+           deshalb aus dem echten localStorage (same-origin iframe). */
+        /* Der Dialog faehrt per CSS-Transition hoch; headless laeuft sie nie ab,
+           die Rects zeigen also die Bewegung. Fuer die Messung wird der
+           Ruhezustand erzwungen — gemessen wird die Lage, nicht die Animation. */
+        function sheetRuhe(){ var sh=d.getElementById('sheet');
+          if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; } }
+        function sheetRuheAus(){ var sh=d.getElementById('sheet');
+          if(sh){ sh.style.transition='none'; sh.style.transform='translateY(110%)'; } }
+        function lsFokus(){ try{ return JSON.parse(localStorage.getItem('fokus2_fokus')||'null'); }catch(e){ return null; } }
+        function lsLaeuft(){ var f=lsFokus(); return !!(f && f.laeuft); }
+        function lsIstSek(id){ try{ var a=JSON.parse(localStorage.getItem('fokus2_karten')||'[]');
+          var k=a.filter(function(x){ return x.id===id; })[0]; return k?Number(k.istSek||0):0; }catch(e){ return 0; } }
+        /* ══ v2.3 §1–§3 · SUCHE: kompakt, nur Faelliges, Ungeplantes ans Ende ══ */
+        (function(){
+          freiMachen(); fw.setTab('suche'); klick('[data-sudom="alle"]'); klick('[data-suart="alle"]');
+          klick('[data-susicht="heute"]');
+          var reihen=[].slice.call(d.querySelectorAll('#suBody .krow[data-kid]'));
+          var gedimmt=reihen.map(function(r){ return r.className.indexOf('eingefroren')>=0; });
+          var ersterGedimmt=gedimmt.indexOf(true), letzterNormal=gedimmt.lastIndexOf(false);
+          finding('echt · v2.3 §3 Sicht Heute: '+reihen.length+' Zeilen · erste ausgegraute an Position '+
+                  (ersterGedimmt<0?'—':ersterGedimmt+1)+' · letzte normale an '+(letzterNormal+1));
+          pruef(ersterGedimmt<0 || ersterGedimmt>letzterNormal, 'v2.3 §3: Ausgegrautes steht nicht am Ende');
+          /* Freitext: kompakte Zeilen, Tipp oeffnet die Karte */
+          var inp=d.getElementById('suFreitext');
+          inp.value='a'; inp.dispatchEvent(new fw.Event('input',{bubbles:true})); fw.renderSuche();
+          var kompakt=d.querySelectorAll('#suBody .krow.kompakt').length,
+              mitTools=d.querySelectorAll('#suBody .krow .ktools').length;
+          var z0=d.querySelector('#suBody .krow.kompakt');
+          var hoehe=z0?Math.round(z0.getBoundingClientRect().height):0;
+          finding('echt · v2.3 §1 Freitext: '+kompakt+' kompakte Zeilen, '+mitTools+' mit Knopfreihe · Zeilenhoehe '+hoehe+' px');
+          pruef(kompakt>0, 'v2.3 §1: der Freitext findet nichts zu „a" — Messung unmoeglich');
+          pruef(mitTools===0, 'v2.3 §1: Freitext zeigt weiter die volle Karte ('+mitTools+' Knopfreihen)');
+          if(z0){
+            var r=z0.getBoundingClientRect();
+            var hit=d.elementFromPoint(Math.round(r.left+r.width/2), Math.round(r.top+r.height/2));
+            pruef(hit && hit.closest && hit.closest('.krow'), 'v2.3 §1: kompakte Zeile verdeckt von '+beschreib(hit));
+            if(hit) hit.click();
+            var lay=d.getElementById('fokusLayer');
+            pruef(lay && lay.hidden===false, 'v2.3 §1: Tipp auf die kompakte Zeile oeffnet die Karte nicht');
+            var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+          }
+          inp.value=''; inp.dispatchEvent(new fw.Event('input',{bubbles:true})); fw.renderSuche();
+          /* §2: Routinen-Ausnahme ueber den Art-Filter */
+          klick('[data-suart="routinen"]');
+          var mitAus=d.querySelectorAll('#suBody .krow[data-kid]').length;
+          var kopf=(d.querySelector('#suBody .su-kopfzeile')||{}).textContent||'';
+          klick('[data-suart="alle"]');
+          var ohneAus=d.querySelectorAll('#suBody .krow[data-kid]').length;
+          finding('echt · v2.3 §2 Sicht Heute: ohne Ausnahme '+ohneAus+' Zeilen · Art-Filter „Routinen" '+mitAus+
+                  ' Zeilen · Kopf „'+kopf+'"');
+          pruef(kopf.indexOf('auch heute nicht fällige')>=0, 'v2.3 §2: Kopfzeile nennt die Ausnahme nicht');
+        })();
+        /* ══ v2.3 §4 · VORSCHLAG = WERKZEUG, SPRUNG IN DIE MATRIX ══════ */
+        (function(){
+          freiMachen(); fw.setTab('suche');
+          var wz=fw.werkzeugReihenfolge();
+          if(!wz.length){ finding('echt · v2.3 §4: kein Werkzeug im Bestand'); return; }
+          fw.zeigeVorschlag(null);
+          freiMachen();
+          var vs=d.querySelector('#suBody .su-vorschlag');
+          var erste=d.querySelector('#suBody .krow[data-kid]');
+          var mx=d.querySelector('.su-mxzurueck');
+          var r=vs?vs.getBoundingClientRect():null;
+          var oben=r?d.elementFromPoint(Math.round(r.left+r.width/2), Math.round(r.top+r.height/2)):null;
+          finding('echt · v2.3 §4 nach dem Vorschlag: Sicht '+(mx?'Matrix/Feld offen':'NICHT Matrix')+
+                  ' · Vorschlagszeile '+(vs?('„'+vs.textContent.slice(0,46)+'" bei y='+Math.round(r.top)):'fehlt')+
+                  ' · erste Karte '+(erste?erste.querySelector('.ktitle').textContent.slice(0,28):'—')+
+                  ' · Domaene '+(wz[0]?wz[0].domain:'—'));
+          pruef(!!mx && !!vs, 'v2.3 §4: kein Sprung in die Werkzeug-Liste mit Vorschlag');
+          pruef(!!oben, 'v2.3 §4: Vorschlagszeile ausserhalb des Bildes');
+          pruef(erste && erste.dataset.kid===wz[0].id, 'v2.3 §4: der Vorschlag steht nicht oben');
+          pruef(!(d.getElementById('sheet').className.indexOf('on')>=0), 'v2.3 §4: es oeffnet wieder ein Sheet');
+          klick('[data-susicht="heute"]');
+        })();
+        /* ══ v2.3 §5/§6 · MATRIX-PAD IM DIALOG, NEUE KARTE PAUSIERT ════ */
+        (function(){
+          freiMachen(); fw.setTab('suche');
+          var kid=(fw.tagesKette()||[])[0];
+          if(kid){ fw.fokusStarten(kid,null); freiMachen(); }
+          var istVor=kid?lsIstSek(kid):null;
+          var neu=d.getElementById('neuFab');
+          var rn=neu.getBoundingClientRect();
+          var tn=d.elementFromPoint(Math.round(rn.left+rn.width/2), Math.round(rn.top+rn.height/2));
+          pruef(tn===neu || (tn&&neu.contains(tn)), 'v2.3 §6: „neue Karte" verdeckt von '+beschreib(tn));
+          if(tn) tn.click();   // KEIN freiMachen() — das wuerde den Dialog sofort schliessen
+          sheetRuhe();
+          var pad=d.getElementById('dmxPad');
+          pruef(!!pad, 'v2.3 §5: kein Matrix-Pad im Anlege-Dialog');
+          pruef(!d.querySelector('#sheetBody [data-dmx]'), 'v2.3 §5: die Auswahlliste steht noch da');
+          if(pad){
+            /* Der Dialog scrollt in #sheetBody — scrollIntoView reicht dort nicht. */
+            var sb=d.getElementById('sheetBody');
+            /* Offset im Scroll-Container aufsummieren — Rects sind waehrend der
+               Sheet-Animation noch nicht endgueltig. */
+            var off=0; for(var e2=pad; e2 && e2!==sb; e2=e2.offsetParent) off+=e2.offsetTop;
+            sb.scrollTop=Math.max(0, off-130);   // Platz fuer die klebende Dialog-Kopfzeile
+            var pr=pad.getBoundingClientRect();
+            /* rechts-oben = Werkzeug */
+            var x=Math.round(pr.left+pr.width*0.75), y=Math.round(pr.top+pr.height*0.25);
+            finding('echt · v2.3 §5 Pad-Lage: top '+Math.round(pr.top)+' hoehe '+Math.round(pr.height)+
+                    ' · sheetBody scroll '+sb.scrollTop+'/'+sb.scrollHeight+' sichtbar '+sb.clientHeight+' · FH='+FH);
+            var hit=d.elementFromPoint(x,y);
+            pruef(hit && hit.closest && hit.closest('#dmxPad'), 'v2.3 §5: Pad verdeckt von '+beschreib(hit));
+            var ev=function(typ){ return new fw.PointerEvent(typ,{bubbles:true, clientX:x, clientY:y, pointerId:1}); };
+            (hit||pad).dispatchEvent(ev('pointerdown'));
+            var on=d.querySelector('#dmxPad .mxq.on');
+            finding('echt · v2.3 §5 Pad rechts-oben ('+x+','+y+'): markiert „'+(on?on.textContent.slice(0,22):'—')+'"');
+            pruef(on && on.className.indexOf('q3')>=0, 'v2.3 §5: rechts-oben setzt nicht „Werkzeug"');
+            /* links-unten = Zustand */
+            var x2=Math.round(pr.left+pr.width*0.25), y2=Math.round(pr.top+pr.height*0.75);
+            var pad2=d.getElementById('dmxPad');   // renderDetail hat den DOM ersetzt
+            var hit2=d.elementFromPoint(x2,y2);
+            (hit2||pad2).dispatchEvent(new fw.PointerEvent('pointerdown',{bubbles:true, clientX:x2, clientY:y2, pointerId:1}));
+            var on2=d.querySelector('#dmxPad .mxq.on');
+            pruef(on2 && on2.className.indexOf('q2')>=0, 'v2.3 §5: links-unten setzt nicht „Zustaende"');
+          }
+          /* §6: speichern → pausiert im Fokus, laufende Karte gebucht, kein Dialog */
+          var ti=d.querySelector('#sheetBody [data-bind="titel"]');   // nach dem Pad frisch geholt
+          if(ti){ ti.value='Harness-Neuanlage v2.3'; ti.dispatchEvent(new fw.Event('input',{bubbles:true})); }
+          var sp=d.querySelector('#sheetFoot [data-detailaktion="speichern"]') || d.querySelector('#sheetFoot .btn.prim');
+          pruef(!!sp, 'v2.3 §6: kein Speichern-Knopf im Anlege-Dialog');
+          if(sp){ sp.click(); }
+          var lay=d.getElementById('fokusLayer'), fk=fw.fokusKarte();
+          var istNach=kid?lsIstSek(kid):null;
+          finding('echt · v2.3 §6 nach dem Anlegen: Fokuskarte „'+(fk?String(fk.titel).slice(0,26):'—')+
+                  '" · laeuft='+lsLaeuft()+' · Ansicht offen='+(lay&&!lay.hidden)+
+                  ' · Vorgaengerin gebucht: '+(istVor!=null?(Math.round(istVor)+'s → '+Math.round(istNach)+'s'):'—')+
+                  ' · Sheet offen='+(d.getElementById('sheet').className.indexOf('on')>=0));
+          pruef(fk && String(fk.titel).indexOf('Harness-Neuanlage')>=0, 'v2.3 §6: die neue Karte ist nicht im Fokus');
+          pruef(lsLaeuft()===false, 'v2.3 §6: die neue Karte laeuft, statt zu stehen');
+          pruef(lay && lay.hidden===false, 'v2.3 §6: die Fokusansicht ist nicht offen');
+          pruef(!(d.getElementById('sheet').className.indexOf('on')>=0), 'v2.3 §6: es steht ein Buchungsdialog offen');
+          if(istVor!=null) pruef(istNach>=istVor, 'v2.3 §6: die Zeit der laufenden Karte ging verloren');
+          sheetRuheAus();   // die erzwungene Ruhelage nur fuer diese Messung
+          freiMachen();
+        })();
+        /* ══ v2.3 §7/§8 · ZEITSTRAHL-TIPP UND GROSSE MATRIX ════════════ */
+        (function(){
+          freiMachen(); fw.setTab('suche');
+          var kid=(fw.tagesKette()||[])[0]; if(!kid) return;
+          fw.fokusStarten(kid, null); freiMachen();
+          var zs=d.querySelectorAll('#fokusView [data-zskarte]');
+          pruef(zs.length>0, 'v2.3 §7: keine Karten im Zeitstrahl');
+          if(zs.length){
+            var ziel=null;
+            for(var i=0;i<zs.length;i++) if(zs[i].dataset.zskarte!==kid){ ziel=zs[i]; break; }
+            ziel=ziel||zs[0];
+            var zid=ziel.dataset.zskarte;
+            ziel.scrollIntoView({block:'center'});
+            var r=ziel.getBoundingClientRect();
+            var hit=d.elementFromPoint(Math.round(r.left+r.width/2), Math.round(r.top+r.height/2));
+            pruef(hit && hit.closest && hit.closest('[data-zskarte]'), 'v2.3 §7: Zeitstrahl-Zeile verdeckt von '+beschreib(hit));
+            if(hit) hit.click();
+            freiMachen();
+            var gezeigt=fw.fokusAngezeigtId ? fw.fokusAngezeigtId() : null;
+            finding('echt · v2.3 §7 Tipp im Zeitstrahl: angezeigt '+gezeigt+' (erwartet '+zid+') · laufend '+
+                    (fw.fokusKarte()||{}).id+' · Uhr laeuft='+lsLaeuft());
+            pruef(gezeigt===zid, 'v2.3 §7: der Tipp oeffnet die Karte nicht');
+            pruef(!(d.getElementById('sheet').className.indexOf('on')>=0), 'v2.3 §7: der Tipp oeffnet einen Dialog');
+          }
+          /* §8: die grosse Matrix, Zeitsumme und Klickdurchlaessigkeit */
+          var mx=d.querySelector('#fokusView .fb-mx');
+          pruef(!!mx, 'v2.3 §8: keine grosse Matrix in der Fokusansicht');
+          if(mx){
+            var z=fw.matrixZeitFelder();
+            var summe=z.felder.ablenkung+z.felder.zustand+z.felder.werkzeug+z.felder.ziel+z.unbekannt;
+            finding('echt · v2.3 §8 Zeit je Feld: Ablenkung '+Math.round(z.felder.ablenkung)+'′ · Zustaende '+
+                    Math.round(z.felder.zustand)+'′ · Werkzeuge '+Math.round(z.felder.werkzeug)+'′ · Ziele '+
+                    Math.round(z.felder.ziel)+'′ · unbekannt '+Math.round(z.unbekannt)+'′ = '+Math.round(summe)+'′ Messzeit');
+            pruef(Math.abs(summe-z.mess)<0.5, 'v2.3 §8: Summe der Felder + unbekannt != Messzeit');
+            var mr=mx.getBoundingClientRect();
+            var hit2=d.elementFromPoint(Math.round(mr.left+mr.width/2), Math.round(mr.top+mr.height/2));
+            pruef(!(hit2 && hit2.closest && hit2.closest('svg')), 'v2.3 §8: die Matrix faengt Klicks ab ('+beschreib(hit2)+')');
+          }
+          var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
@@ -1157,7 +1371,7 @@ function bestandSchreiben(){
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
-  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf')
+  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag')
      ? bestandSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);

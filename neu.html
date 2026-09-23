@@ -155,6 +155,10 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .su-erl2.on{background:var(--ok);border-color:var(--ok);color:#06210f;font-weight:700}
 .su-aktiv{color:var(--blue);opacity:1}
 .su-mxzurueck{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;color:var(--blue);font-size:13px;font-weight:600}
+/* §4 (v2.3.0): der Werkzeug-Vorschlag steht als Zeile ueber der Liste */
+.su-vorschlag{margin:0 12px 6px;padding:8px 10px;border:1px solid var(--ok);border-radius:10px;
+  background:rgba(62,207,142,.08);font-size:13px;line-height:1.35}
+.su-vorschlag span{display:block;font-size:10px;color:var(--mut);margin-top:2px}
 .su-kopfzeile{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.5;padding:12px 12px 6px}
 .su-kopfzeile.warn{color:var(--bad);opacity:.9}
 /* Matrix-Sicht: vier Felder als Raster, eigene Position als Punkt darüber */
@@ -289,6 +293,9 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .krow{display:block;background:var(--card2);border-radius:11px;margin-bottom:8px;overflow:hidden;border:1.5px solid var(--mut2)}
 .krow:last-child{margin-bottom:0}
 .krow.erledigt{opacity:.55}
+/* §1 (v2.3.0): kompakte Zeile im Freitext — Titel und Metazeile, sonst nichts. */
+.krow.kompakt .kmain{padding:8px 12px}
+.krow.kompakt .ktitle{font-size:14px}
 /* Zeile 2: drei Gruppen — Sortieren links, Toggles mittig, Aktion rechts.
    Gruppen durch feine Trennlinien abgesetzt; alle Ziele 44×44. */
 /* §2.1 (v1.8.0): ZWEI Werkzeugzeilen — primär groß (Start·Schieben·Erledigt,
@@ -929,6 +936,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .fbk-bar em{position:absolute;top:15px;line-height:1;font-size:9px;font-style:normal;color:var(--mut);transform:translateX(-50%);white-space:nowrap}
 .fbk-bar.mitmarke{margin-bottom:16px}
 .fbk-zz{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-bottom:7px}
+.fb-mx{display:block;pointer-events:none;width:100%;height:auto}
+.fb-kurve{pointer-events:none;margin:2px 0 2px}
+.fb-kurve svg{width:100%;height:auto;display:block}
+/* §10 (v2.3.0): In der Kachel steht die KURVE — die Bedienelemente der
+   Statistik-Karte (Domaenen-Chips, Datumswahl) haetten hier keinen Handler
+   und waeren tote Knoepfe; ihre Ueberschrift doppelt die Kachelzeile. */
+.fb-kurve .card{background:none;border:0;padding:0;margin:0}
+.fb-kurve .card>h3,.fb-kurve .statfilter{display:none}
 .fb-rechnung{font-size:10px;color:var(--mut);margin-top:7px;line-height:1.4}
 .fb-rechnung.gut{color:var(--ok)}
 /* ══ §4 (v2.2.0) · Belohnungsseite — drei Bereiche, Kachel-Prinzip ══ */
@@ -1101,6 +1116,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
    getroffen wird die Fläche, nicht die Kachel. */
 .mxpad{position:relative;width:100%;aspect-ratio:1/1;max-width:320px;margin:4px auto 6px;
   border-radius:14px;background:var(--bg2);border:1px solid var(--li);overflow:hidden;touch-action:none;cursor:crosshair}
+.mxpad-feld{max-width:280px;aspect-ratio:1.15/1}
+.mxpad-feld .mxq{padding:6px}
+.mxpad-feld .mxq.on{background:rgba(79,142,247,.18);box-shadow:inset 0 0 0 1.5px var(--blue)}
 .mxq{position:absolute;width:50%;height:50%;display:flex;flex-direction:column;justify-content:center;
   align-items:center;gap:2px;text-align:center;padding:4px;pointer-events:none}
 .mxq b{font-size:11px;font-weight:700;opacity:.85}
@@ -1411,9 +1429,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.2.1';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.2.1';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-22-6';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.3.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.3.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-23-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2987,6 +3005,31 @@ function matrixPadHtml(x, y){
     '</div>'+
     '<div class="mxread" id="mxRead">'+matrixLesart(x,y)+'</div>';
 }
+/* ══ §5 (v2.3.0) · MATRIXFELD PER MATRIX SETZEN ══════════════════════
+   Im Anlege-Dialog und in der Einstellungsansicht einer Karte wird das Feld
+   nicht mehr aus einer Liste gewaehlt, sondern IN der Matrix verschoben —
+   dieselbe Bedienung wie der Positions-Dialog beim Verlassen einer Karte.
+   Vier Felder, ein Marker; Tap setzt, Ziehen verschiebt. */
+function matrixFeldPadHtml(feld){
+  const f=matrixFeldVon({matrixFeld:feld});
+  const m=MATRIX_META[f];
+  // Der Marker sitzt in der MITTE des Quadranten (±0,5), nicht in seiner Ecke.
+  const px=((num(m.x)*0.5+1)/2*100), py=((1-num(m.y)*0.5)/2*100);   // y:+1 außen = OBEN
+  const q={ablenkung:'q1', werkzeug:'q3', zustand:'q2', ziel:'q4'};
+  return '<div class="mxpad mxpad-feld" id="dmxPad">'+
+    MATRIX_FELDER.map(x=>'<div class="mxq '+q[x]+(x===f?' on':'')+'"><b>'+MATRIX_META[x].icon+' '+MATRIX_META[x].nr+' · '+esc(MATRIX_META[x].name)+'</b>'+
+      '<span>'+esc(MATRIX_META[x].achse)+' · '+esc(MATRIX_META[x].richtung)+'</span></div>').join('')+
+    '<div class="mxax mxax-v"></div><div class="mxax mxax-h"></div>'+
+    '<div class="mxlbl mxl-l">← weg von</div><div class="mxlbl mxl-r">hin zu →</div>'+
+    '<div class="mxlbl mxl-t">außen</div><div class="mxlbl mxl-b">innen</div>'+
+    '<div class="mxdot" id="dmxDot" style="left:'+px.toFixed(1)+'%;top:'+py.toFixed(1)+'%"></div>'+
+    '</div>';
+}
+/* Welches Feld liegt unter diesem Punkt? Eine Stelle fuer Lesen und Setzen. */
+function matrixFeldAusXY(x, y){
+  return num(x)>=0 ? (num(y)>=0 ? 'werkzeug' : 'ziel')
+                   : (num(y)>=0 ? 'ablenkung' : 'zustand');
+}
 function matrixLesart(x,y){
   const rx=num(x)<-0.33?'links':(num(x)>0.33?'rechts':'mittig');
   const ry=num(y)>0.33?'außen':(num(y)<-0.33?'innen':'dazwischen');
@@ -3095,7 +3138,9 @@ function werkzeugMessungenGesamt(){
   return w.filter(e=>e.feld==='werkzeug').length;
 }
 function vorschlagGelernt(){ return werkzeugMessungenGesamt() >= num(S.settings&&S.settings.vorschlagLernSchwelle,12); }
-/* Das vorgeschlagene Werkzeug + die Begründung, die der Dialog zeigt. */
+/* Kern der Lernmechanik: welches Werkzeug hat zurueckgeholt. Seit v2.3 nicht
+   mehr direkt in der Oberflaeche — werkzeugReihenfolge() nutzt dieselben
+   Regeln und sortiert damit die Werkzeug-Liste. */
 function werkzeugVorschlag(){
   const ws=werkzeugKarten();
   if(!ws.length) return null;
@@ -3126,40 +3171,60 @@ function naechsteKetteKarte(ausser){
   }
   return null;
 }
+/* ══ §4 (v2.3.0) · DER VORSCHLAG IST IMMER EIN WERKZEUG ═══════════════
+   Bis v2.2 war der Vorschlag ein Sheet — links ein Werkzeug, rechts die
+   naechste Kettenkarte. Ab v2.3 gilt: der Vorschlag ist IMMER ein Werkzeug,
+   DFM vor privat (der leichte Einstieg), und es gibt KEINE eigene
+   Vorschlagsansicht mehr. Die App springt in die Suche, Sicht Matrix, Feld
+   Werkzeug — der Vorschlag steht oben, die uebrigen Werkzeuge darunter.
+   Die Lernmechanik (§9 v2.0) bestimmt nur noch die Reihenfolge.
+   Die Filter aus v2.2 bleiben unberuehrt. */
+function werkzeugReihenfolge(){
+  const ws=werkzeugKarten();
+  const gelernt=vorschlagGelernt();
+  const a=akkuLive(), leer=(a==null)?false:(a<50);
+  function rang(k){
+    if(gelernt){ const w=werkzeugWirkung(k.id); if(w && w.median>0) return -w.median; }
+    return leer ? -num(k.sollMin) : num(k.sollMin);   // leer → das ladende (lange), voll → das kurze
+  }
+  const dfm=ws.filter(k=>k.domain==='dfm').sort((x,y)=>rang(x)-rang(y));
+  const priv=ws.filter(k=>k.domain!=='dfm').sort((x,y)=>rang(x)-rang(y));
+  return dfm.concat(priv);   // DFM zuerst, dann privat
+}
+function werkzeugVorschlagGrund(k){
+  if(!k) return '';
+  if(vorschlagGelernt()){ const w=werkzeugWirkung(k.id);
+    if(w && w.median>0) return 'hat dich '+w.n+'× im Schnitt um '+(Math.round(w.median*100)/100)+' nach rechts gebracht'; }
+  const a=akkuLive();
+  if(a==null) return 'noch nichts gelernt — Startwert';
+  return a<50 ? ('Akku bei '+Math.round(a)+' % — das ladende Werkzeug')
+              : ('Akku bei '+Math.round(a)+' % — das kurze reicht');
+}
 function zeigeVorschlag(kid){
-  if(!tagOffen()) return;
-  if(!S.tag) return;
+  if(!tagOffen() || !S.tag) return;
   if(!Array.isArray(S.tag.vorschlagGezeigt)) S.tag.vorschlagGezeigt=[];
   const marke=kid||'_frei';
   if(S.tag.vorschlagGezeigt.indexOf(marke)>=0) return;   // genau EINMAL je Karte
-  const p=matrixPos(); if(!p) return;
-  const links = num(p.x) < 0;
-  let v=null, kopf='', warum='';
-  if(links){
-    v=werkzeugVorschlag();
-    kopf='Du stehst links'; warum=v?('Werkzeug — '+v.grund):'';
-    if(!v){
-      // Kein Werkzeug angelegt — das ist eine ehrliche Auskunft, kein Ersatzvorschlag.
-      const k2=naechsteKetteKarte(kid);
-      if(!k2) return;
-      v={karte:k2}; kopf='Du stehst links'; warum='Noch kein Werkzeug eingeordnet — lege eins an (Matrixfeld 3).';
-    }
-  } else {
-    const k2=naechsteKetteKarte(kid);
-    if(!k2) return;
-    v={karte:k2}; kopf='Du ziehst nach vorn'; warum='Die nächste Karte aus der Kette.';
-  }
+  const ws=werkzeugReihenfolge().filter(k=>k.id!==kid);
   S.tag.vorschlagGezeigt.push(marke); saveTag();
-  const k=v.karte;
-  const h='<div class="vsBox"><div class="vs-k">'+esc(kopf)+'</div>'+
-    '<div class="vs-t">'+matrixIcon(matrixFeldVon(k))+' '+esc(String(k.titel||'?').slice(0,60))+'</div>'+
-    '<div class="vs-w">'+esc(warum)+'</div></div>'+
-    '<p class="d">Vorschlag, keine Automatik — du entscheidest.</p>';
-  openSheet('Was jetzt?', h,
-    '<button class="btn ghost sm" data-close="1">Später</button>'+
-    '<button class="btn prim" data-vsgo="'+esc(k.id)+'">Starten</button>');
+  if(!ws.length){
+    // Ehrliche Auskunft statt Ersatzvorschlag — ohne Werkzeug gibt es keinen.
+    toast('Noch kein Werkzeug eingeordnet — lege eins an (Matrixfeld 3).');
+    return;
+  }
+  const v=ws[0];
+  S.ui.suVorschlag={ kid:v.id, grund:werkzeugVorschlagGrund(v), dom:v.domain };
+  S.ui.suSicht='matrix'; S.ui.suMatrixFeld='werkzeug'; saveUi();
+  setTab('suche');
+  haptik(10);
 }
-
+/* Die vorgeschlagene Karte, solange sie offen ist (sonst raeumt sie sich weg). */
+function suVorschlagKarte(){
+  const v=S.ui && S.ui.suVorschlag; if(!v || !v.kid) return null;
+  const k=S.karten.find(x=>x.id===v.kid);
+  if(!k || k.status!=='offen' || matrixFeldVon(k)!=='werkzeug'){ S.ui.suVorschlag=null; return null; }
+  return k;
+}
 /* Heute in eine Karte investierte Minuten (ab Tagesbasis, gedeckelt 16 h). */
 function heuteInvestiertMin(k){
   const basis = (S.tag && S.tag.istMinutenStart && S.tag.istMinutenStart[k.id]!=null) ? num(S.tag.istMinutenStart[k.id]) : 0;
@@ -3650,7 +3715,7 @@ function istBadge(k){
   if(min>0.05) return '<span><b>'+Math.round(min)+'</b>′ ist</span>';
   return '';
 }
-function kartenreiheHtml(k, stapelId){
+function kartenreiheHtml(k, stapelId, opt){
   const meta=[];
   meta.push('<span class="art">'+esc(kartenArtLabel(k))+'</span>');   // §11.1: Label folgt Grundart
   if(k.faelligkeit) meta.push('<span class="tag">'+esc(fmtDatum(k.faelligkeit))+'</span>');
@@ -3717,7 +3782,20 @@ function kartenreiheHtml(k, stapelId){
   // Elemente lassen die Zeile symmetrisch zusammenrücken.
   // §8 (v1.8.0): heute nicht Fälliges (Zukunfts-Deadline, Routine am freien
   // Tag) wird wie Wartendes ausgegraut — rein visuell, EIN Erscheinungsbild.
-  const gedimmt = (k.freeze || istNichtFaellig(k)) && !(S.fokus && S.fokus.karteId===k.id);   // §3.1 (1.10.0): gestartete Karte nie gedimmt
+  // §3 (v2.3.0): nicht eingeplant (Datum in der Zukunft oder ohne Datum) wird
+  // ebenfalls zurueckgenommen — dieselbe Optik wie „nicht faellig", die Karte
+  // bleibt vollstaendig bedienbar.
+  const gedimmt = (k.freeze || istNichtFaellig(k) || istUngeplantOffen(k)) && !(S.fokus && S.fokus.karteId===k.id);   // §3.1 (1.10.0): gestartete Karte nie gedimmt
+  // §1 (v2.3.0): Im Freitext steht die Karte auf ZWEI Zeilen — Titel und
+  // Metazeile, keine Schnellknopf-Reihe. Der Tipp auf die Karte oeffnet sie
+  // wie ueberall (v2.1.1 §1); die Bedienelemente stehen dort drin.
+  if(opt && opt.kompakt){
+    return '<div class="krow kompakt '+(k.status==='erledigt'?'erledigt ':'')+(gedimmt?'eingefroren ':'')+(istRout?'routinezeile ':'')+'" data-kid="'+k.id+'" style="border-color:'+karteFarbe(k)+'">'+
+      '<div class="kmain" data-detail="'+k.id+'">'+
+        '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
+        '<div class="kmeta">'+meta.join('')+'</div>'+
+      '</div></div>';
+  }
   return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+(gedimmt?'eingefroren ':'')+(istRout?'routinezeile ':'')+'" data-kid="'+k.id+'" style="border-color:'+karteFarbe(k)+'">'+
     '<div class="kmain" data-detail="'+k.id+'">'+
       '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
@@ -4104,52 +4182,129 @@ function fbWasDieseKarte(k){
 }
 /* Outfit-Schwellen als F — dieselbe Treppe wie outfitVon/outfitFehltBis. */
 function fbOutfitSchwelleF(stufe){ return stufe<=15 ? (stufe-1)/14 : 1+(stufe-15)*0.07; }
-/* 2 · Wo ich heute stehe — Tagesziel, Outfit, was zur nächsten Stufe fehlt. */
+/* ══ §8 (v2.3.0) · ZEIT JE MATRIX-FELD — aus der Spur, nicht aus Karten ══
+   Jede Messung gilt bis zur naechsten. Ehrlich bleibt: Zeit VOR der ersten
+   und NACH der letzten Messung sowie jede Luecke durch eine uebersprungene
+   Abfrage zaehlt als „unbekannt" und wird NICHT auf die Felder verteilt.
+   Es gilt immer: Summe der vier Felder + unbekannt = gemessene Zeit. */
+function matrixZeitFelder(){
+  const felder={ablenkung:0, zustand:0, werkzeug:0, ziel:0};
+  let unbekannt=0;
+  const start=(S.tag && S.tag.startTs) ? Date.parse(S.tag.startTs) : null;
+  const jetzt=Date.now();
+  const sp=(S.tag && Array.isArray(S.tag.matrixSpur) ? S.tag.matrixSpur : [])
+    .filter(e=>e && e.ts && !isNaN(Date.parse(e.ts)))
+    .slice().sort((a,b)=>Date.parse(a.ts)-Date.parse(b.ts));
+  if(!sp.length){
+    unbekannt = start!=null ? Math.max(0,(jetzt-start)/60000) : 0;
+    return { felder, unbekannt, mess:unbekannt };
+  }
+  if(start!=null) unbekannt += Math.max(0, (Date.parse(sp[0].ts)-start)/60000);
+  sp.forEach((e,i)=>{
+    const bis = (i+1<sp.length) ? Date.parse(sp[i+1].ts) : jetzt;
+    const dt=Math.max(0, (bis-Date.parse(e.ts))/60000);
+    if(i+1>=sp.length || e.uebersprungen) unbekannt += dt;      // nach der letzten / nach einem Übersprung
+    else felder[matrixFeldAusXY(e.x, e.y)] += dt;
+  });
+  const mess=felder.ablenkung+felder.zustand+felder.werkzeug+felder.ziel+unbekannt;
+  return { felder, unbekannt, mess };
+}
+/* Die grosse Matrix: vier Felder als Flaeche, die Linie durch den Tag,
+   Zeit je Feld im Feld. Fasst keine Klicks ab (pointer-events:none). */
+function fbGrosseMatrix(){
+  const W=300, H=240, P=6;
+  const X=v=>P+((num(v)+1)/2)*(W-2*P), Y=v=>P+((1-num(v))/2)*(H-2*P);
+  const z=matrixZeitFelder();
+  const sp=matrixSpur().filter(e=>!e.uebersprungen && e.ts);
+  const jetzt=sp.length?{x:num(sp[sp.length-1].x), y:num(sp[sp.length-1].y)}:null;
+  const QF={ablenkung:['rgba(246,109,109,.10)',0,0], zustand:['rgba(242,184,75,.10)',0,1],
+            werkzeug:['rgba(62,207,142,.10)',1,0], ziel:['rgba(79,142,247,.12)',1,1]};
+  let g='<svg class="fb-mx" viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Matrix mit der Linie durch den Tag">';
+  Object.keys(QF).forEach(f=>{
+    const q=QF[f], x=P+q[1]*(W-2*P)/2, y=P+q[2]*(H-2*P)/2;
+    g+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+((W-2*P)/2).toFixed(1)+'" height="'+((H-2*P)/2).toFixed(1)+'" fill="'+q[0]+'"/>';
+  });
+  g+='<rect x="'+(P-0.5)+'" y="'+(P-0.5)+'" width="'+(W-2*P+1)+'" height="'+(H-2*P+1)+'" fill="none" stroke="var(--line)" rx="10"/>'+
+     '<line x1="'+(W/2)+'" y1="'+P+'" x2="'+(W/2)+'" y2="'+(H-P)+'" stroke="var(--line)"/>'+
+     '<line x1="'+P+'" y1="'+(H/2)+'" x2="'+(W-P)+'" y2="'+(H/2)+'" stroke="var(--line)"/>';
+  // Beschriftung + Zeit je Feld
+  MATRIX_FELDER.forEach(f=>{
+    const m=MATRIX_META[f], tx=X(m.x*0.55), ty=Y(m.y*0.72);
+    g+='<text x="'+tx.toFixed(1)+'" y="'+ty.toFixed(1)+'" text-anchor="middle" font-size="10" fill="var(--mut)">'+m.nr+' · '+esc(m.name)+'</text>'+
+       '<text x="'+tx.toFixed(1)+'" y="'+(ty+15).toFixed(1)+'" text-anchor="middle" font-size="13" font-weight="700" fill="var(--txt)">'+
+       (z.felder[f]>=1?Math.round(z.felder[f])+'′':'–')+'</text>';
+  });
+  // Die Linie durch den Tag — frühere Abschnitte blasser
+  for(let i=1;i<sp.length;i++){
+    const o=0.18+0.62*(i/Math.max(1,sp.length-1));
+    g+='<line x1="'+X(sp[i-1].x).toFixed(1)+'" y1="'+Y(sp[i-1].y).toFixed(1)+'" x2="'+X(sp[i].x).toFixed(1)+'" y2="'+Y(sp[i].y).toFixed(1)+
+       '" stroke="var(--txt)" stroke-width="1.6" stroke-linecap="round" opacity="'+o.toFixed(2)+'"/>';
+  }
+  sp.forEach((e,i)=>{
+    const letzte=i===sp.length-1;
+    g+='<circle cx="'+X(e.x).toFixed(1)+'" cy="'+Y(e.y).toFixed(1)+'" r="'+(letzte?5.5:2.6)+'" fill="'+(letzte?'var(--blue)':'var(--mut2)')+
+       '"'+(letzte?' stroke="var(--txt)" stroke-width="1.5"':'')+' opacity="'+(letzte?1:(0.3+0.5*(i/Math.max(1,sp.length-1)))).toFixed(2)+'"/>';
+  });
+  g+='<text x="'+(P+3)+'" y="'+(H-P-3)+'" font-size="9" fill="var(--mut2)">← weg von</text>'+
+     '<text x="'+(W-P-3)+'" y="'+(H-P-3)+'" text-anchor="end" font-size="9" fill="var(--mut2)">hin zu →</text>';
+  return { svg:g+'</svg>', zeit:z, jetzt, n:sp.length };
+}
+/* 3 · Was ich gerade bewege — grosse Matrix mit der Tageslinie (§8). */
+function fbWasIchBewege(k){
+  const p=matrixPos();
+  const mf=matrixFeldVon(k);
+  const gm=fbGrosseMatrix();
+  let h='<div class="fb"><div class="fb-h">Was ich gerade bewege</div><div class="fb-kacheln">';
+  h+='<div class="fbk voll"><div class="fbk-h">Position im Tag'+(gm.n?' · '+gm.n+' Messungen':'')+'</div>'+
+     '<div aria-hidden="true">'+gm.svg+'</div>'+
+     '<div class="fb-rechnung">'+(p
+        ? ('Jetzt <b>'+((p.x>0?'+':'')+fbZahl(p.x,2))+' / '+((p.y>0?'+':'')+fbZahl(p.y,2))+'</b> — '+matrixLesart(p.x,p.y)+
+           ' · unbekannt: <b>'+Math.round(gm.zeit.unbekannt)+' Min</b> (vor der ersten, nach der letzten Messung und übersprungene Abfragen)')
+        : 'Noch keine Position heute — sie wird abgefragt, sobald du diese Karte verlässt. Unbekannt: <b>'+Math.round(gm.zeit.unbekannt)+' Min</b>.')+
+     '</div></div>';
+  if(p){
+    const zielX=MATRIX_META[mf].x;
+    const erwartet=bewegungsBonusBerechnen(p, {x:Math.max(p.x, Math.min(1, p.x+(zielX>0?0.5:-0.3)))});
+    const bbMax=Math.max(1, num(S.settings&&S.settings.bewegungsBonus,500));
+    h+=fbKachel('Diese Karte schiebt', fbSchubAchse(p.x, zielX>0),
+       fbWert(zielX>0?'→':'←', zielX>0?'nach rechts':'nach links', zielX>0?'gut':''));
+    h+=fbKachel('Bonus möglich', '<div style="width:100%">'+fbBalken(zielX>0?erwartet/bbMax:0, null, null, true)+'</div>',
+       fbWert(zielX>0?('bis '+Math.round(erwartet)):'0', 'von '+Math.round(bbMax)+' P'), {breit:true});
+  }
+  return h+'</div></div>';
+}
+/* 2 · Wo ich heute stehe — §9 getrennt nach DFM und Privat, §10 mit der
+   Tageskurve aus der Statistik (dieselbe Funktion, dieselben Werte). */
 function fbWoIchStehe(){
-  const zi=zielUndIstHeute();
-  const skala=Math.max(zi.ziel, zi.ist)*1.1;
+  const ges=zielUndIstHeute();
   const of=outfitHeute(), F=outfitF();
   const naechste=Math.min(20, (of||1)+1);
   const fehlt=(of||1)>=20 ? 0 : outfitFehltBis(naechste);
-  // Ring = Weg von der aktuellen Stufe zur nächsten (in Punkten des Tages).
   const spanne=Math.max(1, (fbOutfitSchwelleF(naechste)-fbOutfitSchwelleF(of||1))*outfitZielHeute()/streakFaktor());
   const ofFrac=(of||1)>=20 ? 1 : Math.max(0, Math.min(1, 1-fehlt/spanne));
   const Fs=Math.max(1.4, num(F)*1.1);
   let h='<div class="fb"><div class="fb-h">Wo ich heute stehe</div><div class="fb-kacheln">';
-  h+='<div class="fbk voll"><div class="fbk-h">Tagesziel'+(zi.we?' · Wochenende':'')+'</div>'+
-     '<div class="fbk-r"><div class="fbk-g breit" aria-hidden="true">'+fbBalken(zi.ist/skala, zi.ziel/skala, 'Ziel '+fmtKurzP(zi.ziel), zi.ist>=zi.ziel)+'</div>'+
-     fbWert(fmtKurzP(zi.ist), Math.round(zi.ist/zi.ziel*100)+' % von '+fmtKurzP(zi.ziel), 'rechts')+'</div></div>';
+  [['dfm','DFM','var(--blue)'],['privat','Privat','var(--warn)']].forEach(([d,lbl])=>{
+    const zi=zielUndIstHeute(d);
+    const skala=Math.max(zi.ziel, zi.ist)*1.1;
+    h+='<div class="fbk voll"><div class="fbk-h">'+lbl+(zi.we?' · Wochenende (Sa+So)':'')+'</div>'+
+       '<div class="fbk-r"><div class="fbk-g breit" aria-hidden="true">'+
+       fbBalken(zi.ist/skala, zi.ziel/skala, 'Ziel '+fmtKurzP(zi.ziel), zi.ist>=zi.ziel)+'</div>'+
+       fbWert(fmtKurzP(zi.ist), Math.round(zi.ist/Math.max(1,zi.ziel)*100)+' % von '+fmtKurzP(zi.ziel), 'rechts')+'</div></div>';
+  });
   h+=fbKachel('Outfit', fbRing(ofFrac, 'var(--purple)'),
      fbWert(of!=null?String(of):'—', (of||1)>=20?'höchste Stufe':(fehlt>0?('noch '+fmtKurzP(fehlt)+' bis '+naechste):('Stufe '+naechste+' erreicht'))));
   h+=fbKachel('Faktor F', '<div style="width:100%">'+fbBalken(num(F)/Fs, 1/Fs, '1,0', num(F)>=1)+'</div>',
      fbWert(F!=null?F.toFixed(2).replace('.',','):'—', '1,0 = Ziel'), {breit:true});
-  return h+'</div></div>';
-}
-/* 3 · Was ich gerade bewege — eigene Position und wohin diese Karte schiebt. */
-function fbWasIchBewege(k){
-  const p=matrixPos();
-  const mf=matrixFeldVon(k);
-  let h='<div class="fb"><div class="fb-h">Was ich gerade bewege</div><div class="fb-kacheln">';
-  if(!p){
-    h+='<div class="fbk voll"><div class="fbk-h">Position</div><div class="fbk-r"><div class="fbk-g" aria-hidden="true">'+fbMiniMatrix(null)+'</div>'+
-       '<div class="fb-rechnung" style="margin:0">Noch keine Position heute — sie wird abgefragt, sobald du diese Karte verlässt.</div></div></div>';
-    return h+'</div></div>';
+  // §10: Tageskurve (Soll · Ist · Normal) — exakt die Funktion der Statistik.
+  let kurve='';
+  try{ kurve=belTagesDiagramm(); }catch(e){ kurve=''; }
+  if(kurve){
+    h+='<div class="fbk voll"><div class="fbk-h">Tagesverlauf · Soll · Ist · Normaltag</div>'+
+       '<div class="fb-kurve" aria-hidden="true">'+kurve+'</div>'+
+       '<div class="fb-rechnung">Gesamt heute <b>'+fmtKurzP(ges.ist)+'</b> von '+fmtKurzP(ges.ziel)+
+       ' · dieselbe Rechnung wie in der Statistik (Tagesverlauf).</div></div>';
   }
-  // Vorherige Position = der Spur-Eintrag vor dem aktuellen (übersprungene zählen nicht).
-  const sp=matrixSpur().filter(e=>!e.uebersprungen);
-  const vorher=sp.length>1 ? {x:num(sp[sp.length-2].x), y:num(sp[sp.length-2].y)} : null;
-  // Die Karte schiebt in Richtung ihres Feldes: Werkzeug und Ziel nach
-  // rechts, Ablenkung nach links, Zustand neutral-nach-links.
-  const zielX=MATRIX_META[mf].x;
-  const erwartet=bewegungsBonusBerechnen(p, {x:Math.max(p.x, Math.min(1, p.x+(zielX>0?0.5:-0.3)))});
-  const bbMax=Math.max(1, num(S.settings&&S.settings.bewegungsBonus,500));
-  h+=fbKachel('Position', fbMiniMatrix(p, vorher),
-     fbWert((p.x>0?'+':'')+fbZahl(p.x,2), vorher?('vorher '+(vorher.x>0?'+':'')+fbZahl(vorher.x,2)):'x · erste heute'));
-  h+=fbKachel('Diese Karte schiebt', fbSchubAchse(p.x, zielX>0),
-     fbWert(zielX>0?'→':'←', zielX>0?'nach rechts':'nach links', zielX>0?'gut':''));
-  h+=fbKachel('Bonus möglich', '<div style="width:100%">'+fbBalken(zielX>0?erwartet/bbMax:0, null, null, true)+'</div>',
-     fbWert(zielX>0?('bis '+Math.round(erwartet)):'0', 'von '+Math.round(bbMax)+' P'), {voll:true, breit:true,
-     nach:'<div class="fb-rechnung">'+matrixLesart(p.x,p.y)+'</div>'});
   return h+'</div></div>';
 }
 /* ══ §8 · DER ZEITSTRAHL — von oben nach unten ════════════════════════
@@ -4172,7 +4327,7 @@ function zeitstrahlHtml(){
     h+='<div class="zs-spalte">';
     ks.forEach((k,i)=>{
       const fertig=k.status==='erledigt';
-      h+='<div class="zs-k'+(fertig?' fertig':'')+'" data-detail="'+k.id+'">'+
+      h+='<div class="zs-k'+(fertig?' fertig':'')+'" data-zskarte="'+k.id+'">'+
          '<span class="n">'+(i+1)+'</span><span class="t">'+esc(String(k.titel||'?').slice(0,34))+'</span>'+
          mb(k)+'<span class="m">'+num(k.sollMin)+'′</span></div>';
     });
@@ -4202,7 +4357,7 @@ function zeitstrahlHtml(){
        '<div class="zs-inner"><div class="zs-typ">'+esc(LBL[r.typ]||r.typ)+
        (drin.length?(' · '+fertig+'/'+drin.length):'')+'</div>';
     drin.slice(0,6).forEach(k=>{
-      h+='<div class="zs-k'+(k.status==='erledigt'?' fertig':'')+'" data-detail="'+k.id+'">'+
+      h+='<div class="zs-k'+(k.status==='erledigt'?' fertig':'')+'" data-zskarte="'+k.id+'">'+
          '<span class="t">'+esc(String(k.titel||'?').slice(0,30))+'</span>'+
          mb(k)+'<span class="m">'+num(k.sollMin)+'′</span></div>';
     });
@@ -6038,10 +6193,8 @@ function renderDetail(){
   // und speichert. Vorschlag, nie Automatik.
   {
     const mf=matrixFeldVon(k);
-    h+='<div class="field"><label>Matrixfeld</label><div class="chips">'+
-      MATRIX_FELDER.map(f=>'<button class="chip '+(mf===f?'on':'')+'" data-dmx="'+f+'">'+
-        MATRIX_META[f].icon+' '+MATRIX_META[f].nr+' · '+MATRIX_META[f].name+'</button>').join('')+
-      '</div><div class="hint">'+esc(MATRIX_META[mf].achse)+' · '+esc(MATRIX_META[mf].richtung)+
+    h+='<div class="field"><label>Matrixfeld</label>'+matrixFeldPadHtml(mf)+
+      '<div class="hint">'+esc(MATRIX_META[mf].achse)+' · '+esc(MATRIX_META[mf].richtung)+
       ' — '+esc(MATRIX_META[mf].hint)+' · Faktor ×'+String(matrixFaktor(k)).replace('.',',')+'</div></div>';
   }
   // 3 Titel
@@ -6212,6 +6365,9 @@ function subParentAngleichen(){
   entwurf.sollMin = entwurfSubs.reduce((a,u)=>a+num(u.sollMin),0);
 }
 function detailSpeichern(){
+  // v2.3.0: Ein zweiter Tipp auf „Speichern" (der Dialog ist da schon zu und
+  // entwurf geleert) lief bis hierher in einen TypeError. Jetzt endet er hier.
+  if(!entwurf) return;
   entwurf.titel = (entwurf.titel||'').trim();
   if(!entwurf.titel){ toast('Titel fehlt'); return; }
   if(entwurf.domain!=='dfm'){ entwurf.projekt=null; entwurf.geldScore=0; }
@@ -6242,11 +6398,27 @@ function detailSpeichern(){
   // Erledigt/archiviert + war im Fokus → Fokus beenden.
   if((entwurf.status==='erledigt'||entwurf.status==='archiviert') && S.fokus && S.fokus.karteId===entwurf.id){ S.fokus=null; saveFokus(); }
   beruehre(entwurf);                                     // A7: Edit zählt als Interaktion
+  const neuId=entwurf.id;                                // closeSheet() raeumt entwurf weg
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   closeSheet(); renderAlles();
   // §3.1 (v1.10.0): eine neu angelegte Karte wird sofort gestartet und ist der Fokus
-  if(entwurfNeu){ fokusStarten(entwurf.id, null); setTab('suche',{fokusLassen:true}); }
-  toast(entwurfNeu?'Karte angelegt & gestartet':'Gespeichert'); haptik(12);
+  // §6 (v2.3.0): Die neue Karte oeffnet sich PAUSIERT in der Fokusansicht.
+  // Eine laufende Karte wird dabei automatisch pausiert: Zeit wird gebucht,
+  // kein Buchungsdialog (Regel aus v2.1.1 §3 — Pause/Wechsel fragen nicht).
+  // (closeSheet() hat entwurf bereits geleert — die ID steht in neuId.)
+  let warLaufend=null;
+  if(entwurfNeu && neuId){
+    if(S.fokus && S.fokus.laeuft && S.fokus.karteId!==neuId){
+      warLaufend=(fokusKarte()||{}).titel||'';
+      fokusZeitEinbuchen();
+    }
+    S.fokus={ karteId:neuId, laeuft:false, startMs:0, sessionSek:0, quelle:null };
+    S.ui.fokusOffen=true; S.ui.fokusZeigt=null;
+    saveFokus(); saveUi();
+    setTab('suche',{fokusLassen:true});
+    renderAlles();
+  }
+  toast(entwurfNeu?('Karte angelegt — pausiert im Fokus'+(warLaufend?' · „'+String(warLaufend).slice(0,22)+'" pausiert':'')):'Gespeichert'); haptik(12);
 }
 /* A3: einen Tick buchen (Timer-/Counter-Karten). Erhöht ticksHeute; Punkte
    kommen über die Tick-Kurve (tickSumme) in tickPunkte/kartePunkte. */
@@ -9732,11 +9904,35 @@ function suFilterText(){
   const t=[];
   if(suDom()!=='alle') t.push(SU_DOM.find(x=>x[0]===suDom())[1]);
   if(suArtW()!=='alle') t.push(SU_ART.find(x=>x[0]===suArtW())[1]);
+  // §2 (v2.3.0): die Ausnahme steht ausdruecklich da, sonst waere sie unsichtbar.
+  if(routAusnahmeAktiv()) t.push('auch heute nicht fällige');
   return t.length ? ' · <span class="su-aktiv">'+esc(t.join(' · '))+'</span>' : '';
 }
-/* DIE Filterstelle. Jede Sicht und der Freitext gehen hier durch. */
+/* ══ §2 (v2.3.0) · ROUTINEN UND COUNTER NUR, WENN HEUTE FAELLIG ══════
+   Eine Routine, die laut Rhythmus heute nicht dran ist, steht nirgends mehr
+   in der Suche. AUSNAHME (mein Zusatz, im Auftrag als solcher benannt):
+   steht der Art-Filter auf „Routinen und Counter", werden alle gezeigt —
+   sonst kaeme man an eine 7-Tage-Routine sechs Tage lang nicht heran. Die
+   Kopfzeile sagt das dann ausdruecklich. */
+function routAusnahmeAktiv(){ return suArtW()==='routinen'; }
+function suRhythmusOk(k){
+  if(!k || !k.rhythmus) return true;                 // Counter ohne Rhythmus: immer
+  if(routAusnahmeAktiv()) return true;               // Ausnahme: alle zeigen
+  if(typeof routErledigtHeute==='function' && routErledigtHeute(k)) return true;   // heute schon gelaufen
+  if(num(k.ticksHeute)>0) return true;
+  return routineFaellig(k, heuteApp());
+}
+/* §3 (v2.3.0): nicht eingeplant = offene AUFGABE ohne Datum oder mit Datum in
+   der Zukunft. Ueberfaellige (Datum < heute) sind ausdruecklich NICHT gemeint. */
+function istUngeplantOffen(k){
+  if(!k || k.status!=='offen' || k.rhythmus) return false;
+  return !k.faelligkeit || k.faelligkeit>heuteApp();
+}
+/* DIE Filterstelle. Jede Sicht und der Freitext gehen hier durch.
+   §3: nicht Eingeplantes rutscht ans Ende, die Reihenfolge davor bleibt. */
 function suSichtbar(ks){
-  return ks.filter(k=>suFilterPasst(k) && (erledigteZeigen() || !istHeuteErledigt(k)));
+  const g=ks.filter(k=>suFilterPasst(k) && suRhythmusOk(k) && (erledigteZeigen() || !istHeuteErledigt(k)));
+  return g.filter(k=>!istUngeplantOffen(k)).concat(g.filter(k=>istUngeplantOffen(k)));
 }
 function suFrage(){ return String(S.ui.suFrage||'').trim(); }
 
@@ -9864,12 +10060,13 @@ function suFreitextHtml(q){
   // sucheTreffer liefert {k,sc}-Paare, nicht die Karten selbst — die Karte
   // muss ausgepackt werden, sonst rendert die Zeile ein leeres Objekt.
   // §3 (v2.1.0): auch der Freitext filtert — das ist die Aenderung zu v2.0.
-  const tr=sucheTreffer(q).filter(o=>suFilterPasst(o.k) && (erledigteZeigen() || !istHeuteErledigt(o.k)));
+  const tr0=sucheTreffer(q).filter(o=>suFilterPasst(o.k) && suRhythmusOk(o.k) && (erledigteZeigen() || !istHeuteErledigt(o.k)));
+  const tr=tr0.filter(o=>!istUngeplantOffen(o.k)).concat(tr0.filter(o=>istUngeplantOffen(o.k)));
   if(!tr.length) return '<div class="leer">Nichts gefunden zu „'+esc(q)+'"'+suFilterText().replace(/<[^>]+>/g,'')+'.'+
     (erledigteZeigen()?'':' (Erledigtes ist ausgeblendet.)')+'</div>';
   return '<div class="su-kopfzeile">'+tr.length+' Treffer · Freitext'+suFilterText()+
     (erledigteZeigen()?' · inkl. Erledigtes':'')+'</div>'+
-    tr.map(o=>kartenreiheHtml(o.k, 'su-frei')).join('');
+    tr.map(o=>kartenreiheHtml(o.k, 'su-frei', {kompakt:true})).join('');
 }
 function suSichtHtml(sv){
   if(sv==='matrix')  return suMatrixHtml();
@@ -9902,8 +10099,19 @@ function suMatrixHtml(){
      war zudem die Markierung .on unsichtbar (--ac fehlte). Es sah aus, als
      passiere nichts. */
   if(gewaehlt){
-    const ks=off.filter(k=>matrixFeldVon(k)===gewaehlt);
+    let ks=off.filter(k=>matrixFeldVon(k)===gewaehlt);
     let h='<button class="su-mxzurueck" data-sumx="'+gewaehlt+'">‹ Alle vier Felder</button>';
+    // §4 (v2.3.0): Der Vorschlag steht OBEN in der Werkzeug-Liste, mit Grund.
+    const vk=(gewaehlt==='werkzeug') ? suVorschlagKarte() : null;
+    if(vk){
+      // Die Filter bleiben unberuehrt (Auftrag) — blenden sie den Vorschlag
+      // aus, steht er trotzdem da, mit dem Hinweis warum er unten fehlt.
+      const drin=ks.some(k=>k.id===vk.id);
+      if(drin) ks=[vk].concat(ks.filter(k=>k.id!==vk.id));
+      h+='<div class="su-vorschlag">🔧 <b>Vorschlag:</b> '+esc(String(vk.titel||'?').slice(0,44))+
+         '<span>'+esc((S.ui.suVorschlag&&S.ui.suVorschlag.grund)||'')+' · '+(vk.domain==='dfm'?'DFM':'Privat')+
+         (drin?'':' · vom Filter ausgeblendet')+'</span></div>';
+    }
     h+='<div class="su-kopfzeile">'+MATRIX_META[gewaehlt].icon+' '+MATRIX_META[gewaehlt].nr+' · '+esc(MATRIX_META[gewaehlt].name)+' · '+ks.length+suFilterText()+'</div>';
     h+= ks.length ? ks.map(k=>kartenreiheHtml(k,'su-mx')).join('')
                   : '<div class="leer">Keine Karte in diesem Feld'+suFilterText().replace(/<[^>]+>/g,'')+'.</div>';
@@ -10299,6 +10507,9 @@ el('fokusView').addEventListener('click', e=>{
   const fku=t.closest('[data-fkurve]'); if(fku){ S.ui.fokusKurveZu=!S.ui.fokusKurveZu; saveUi(); renderFokus(); return; }
   // §7/§8 (v1.12.0): Wiederholen-Dialog aus dem Verlauf
   const wdh=t.closest('[data-wiederholen]'); if(wdh){ oeffneWiederholen(wdh.dataset.wiederholen); return; }
+  // §7 (v2.3.0): Ein Tipp im Zeitstrahl OEFFNET die Karte in der Fokusansicht
+  // (Uhr steht, wie v2.1.1 §1) — er oeffnet nicht mehr den Detail-Dialog.
+  const zsk=t.closest('[data-zskarte]'); if(zsk){ haptik(8); fokusKarteAnsehen(zsk.dataset.zskarte); return; }
   const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
   if(karteRowClick(t, e)) return;   // U1: Fokus-Liste = gleiche Karten-Zeilen-Aktionen wie der Stapel
   const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
@@ -10808,6 +11019,25 @@ el('sheetBody').addEventListener('pointerdown', e=>{
   e.preventDefault();
 });
 el('sheetBody').addEventListener('pointermove', e=>{ if(_mxZieht) mxPadSetzenAusEvent(e); });
+/* §5 (v2.3.0): dasselbe Muster fuer das Feld-Pad im Detail/Anlege-Dialog.
+   Gesetzt wird nur, wenn sich das FELD aendert — sonst zeichnete jeder
+   Pixel den Dialog neu. */
+let _dmxZieht=false;
+function dmxFeldSetzenAusEvent(e){
+  const pad=el('dmxPad'); if(!pad || !entwurf) return;
+  const r=pad.getBoundingClientRect(); if(!(r.width>0 && r.height>0)) return;
+  const x=((e.clientX-r.left)/r.width)*2-1, y=1-((e.clientY-r.top)/r.height)*2;
+  const f=matrixFeldAusXY(x,y);
+  if(matrixFeldVon(entwurf)===f) return;
+  if(entwurfNeu && !num(entwurf.sollMin)) Object.assign(entwurf, matrixVorschlag(f, entwurf.domain));
+  entwurf.matrixFeld=f; haptik(8); renderDetail();
+}
+el('sheetBody').addEventListener('pointerdown', e=>{
+  if(!e.target.closest || !e.target.closest('#dmxPad')) return;
+  _dmxZieht=true; dmxFeldSetzenAusEvent(e);
+});
+el('sheetBody').addEventListener('pointermove', e=>{ if(_dmxZieht) dmxFeldSetzenAusEvent(e); });
+['pointerup','pointercancel','pointerleave'].forEach(ev=>el('sheetBody').addEventListener(ev, ()=>{ _dmxZieht=false; }));
 ['pointerup','pointercancel'].forEach(ev=>el('sheetBody').addEventListener(ev, ()=>{ _mxZieht=false; }));
 el('sheetBody').addEventListener('input', e=>{
   if(e.target.id==='mxAkku'){ const v=el('mxAkkuV'); if(v) v.textContent=Math.round(num(e.target.value))+'%'; if(matrixTmp) matrixTmp.akku=num(e.target.value); }
@@ -10860,6 +11090,7 @@ el('sheetBody').addEventListener('change', e=>{
 
 /* Detail: einzelnes gebundenes Feld in den Entwurf schreiben */
 function detailFeld(bind, input){
+  if(!entwurf) return;
   const v=input.value;
   if(bind==='geldScore'||bind==='sollMin'){ entwurf[bind]=num(v); }
   // §6.2 (v1.6.1): abhakbonus wie die anderen Overrides — leer = Domänen-Default,
@@ -10881,6 +11112,7 @@ function zeitStufenLies(){
 }
 /* Detail: gesamten Formularstand aus dem DOM in den Entwurf lesen (vor Save/Aktion) */
 function detailLies(){
+  if(!entwurf) return;   // v2.3.0: nach dem Schliessen gibt es nichts mehr zu lesen
   document.querySelectorAll('#sheetBody [data-bind]').forEach(inp=>detailFeld(inp.dataset.bind, inp));
   document.querySelectorAll('#sheetBody [data-subtitel]').forEach(inp=>{ const u=entwurfSubs.find(x=>x.id===inp.dataset.subtitel); if(u) u.titel=inp.value; });
   document.querySelectorAll('#sheetBody [data-submin]').forEach(inp=>{ const u=entwurfSubs.find(x=>x.id===inp.dataset.submin); if(u) u.sollMin=num(inp.value); });
