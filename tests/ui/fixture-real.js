@@ -70,7 +70,14 @@
     letzteAktivitaetTs:OFFEN_SEIT+'T18:00:00', log:[] };
 
   var FIXTURE={
-    karten:KARTEN, unteraufgaben:[], meta:META, tag:TAG,
+    /* v2.5.0 §2: eine ERLEDIGTE Karte mit Unteraufgaben (Abfrage beim Wiederoeffnen)
+       und eine OFFENE mit teils abgehakten (keine Abfrage, Fortschritt bleibt). */
+    karten:KARTEN, unteraufgaben:[
+      { id:'u-e1-1', parentId:'e-1', titel:'Zeichnung prüfen', sollMin:10, done:true },
+      { id:'u-e1-2', parentId:'e-1', titel:'Kalkulation abgleichen', sollMin:15, done:true },
+      { id:'u-e1-3', parentId:'e-1', titel:'Freigabe einholen', sollMin:5, done:false },
+      { id:'u-a2-1', parentId:'a-2', titel:'Teil 1', sollMin:10, done:true },
+      { id:'u-a2-2', parentId:'a-2', titel:'Teil 2', sollMin:10, done:false } ], meta:META, tag:TAG,
     routinenGruppen:[{ id:'g-auf', name:'Aufräumrunde', domain:'privat',
       mitglieder:['r-10','r-11','r-12'], komplettBonus:200, farbe:'#b98af7', bonusTag:null }],
     belohnung:{ stufen:{fahrzeuge:3,wohnen:2,reisen:2,mobilitaet:1,begleiter:1,soziales:1},

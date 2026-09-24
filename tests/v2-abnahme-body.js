@@ -524,8 +524,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.4.1 · Build gesetzt', VERSION==='2.4.1' && UI_VERSION==='v2.4.1' &&
-   APP_BUILD==='2026-09-24-2');
+ok('31 APP_VERSION 2.5.0 · Build gesetzt', VERSION==='2.5.0' && UI_VERSION==='v2.5.0' &&
+   APP_BUILD==='2026-09-24-3');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -1108,10 +1108,12 @@ ok('§9 DFM und Privat getrennt, je mit Zielmarke',
    b9.indexOf('>DFM<')>=0 && b9.indexOf('>Privat<')>=0 && (b9.match(/fbk-bar mitmarke/g)||[]).length>=2);
 ok('§9 die Ziele sind die Domänen-Ziele',
    b9.indexOf(fmtKurzP(zielUndIstHeute('dfm').ziel))>=0 && b9.indexOf(fmtKurzP(zielUndIstHeute('privat').ziel))>=0);
-ok('§10 Tageskurve im Block — dieselbe Funktion wie die Statistik',
-   b9.indexOf('fb-kurve')>=0 && b9.indexOf('Tagesverlauf')>=0);
-ok('§10 Werte identisch zur Statistik (gleiche Quelle belTagesDiagramm)',
-   b9.indexOf(belTagesDiagramm().slice(0,120))>=0 && /function stTagesverlauf\(\)\{[\s\S]{0,200}belTagesDiagramm\(\)/.test(src));
+/* v2.5.0 §1.1: die v2.3-Kachel „Tagesverlauf" ist durch das ORIGINAL aus der
+   Detailanalyse ersetzt — „Heute gegen typische Tage" = Aktivitaetsfenster aus „Verhalten". */
+ok('§10→v2.5 §1.1 „Heute gegen typische Tage" (Aktivitätsfenster) statt Tagesverlauf-Neubau',
+   b9.indexOf('Heute gegen typische Tage')>=0 && b9.indexOf('fb-kurve')<0);
+ok('§10→v2.5 §1.1 identisch zur Detailanalyse (anAktivitaetsfenster ist der Kopf von „Verhalten")',
+   b9.indexOf(anAktivitaetsfenster(S.ui.analyseDomain||'alle'))>=0 && /function anModVerhalten\(F,dom\)\{\s*const chart=anAktivitaetsfenster\(dom\)/.test(src));
 
 kopf('v2.4.0 §1 · Drei Tabs, Import oben, Ampel');
 ok('§1.1 drei Tabs: Suche · Statistik · Einstellungen',
@@ -1264,7 +1266,8 @@ var sb=el('statistikBody').innerHTML;
 ok('§7 Statistik beginnt mit der Matrix', sb.indexOf('Der Tag in der Matrix')>=0 && sb.indexOf('Der Tag in der Matrix')<sb.indexOf('Tagesverlauf'));
 ok('§7 Tagebuch-Punkte unterscheidbar (Raute)', (sb.match(/class="tb-pt"/g)||[]).length===2);
 var fb2=fbWoIchStehe();
-ok('§8 Belastung in der Fokusansicht — dieselbe Funktion, identischer Inhalt', fb2.indexOf(stBelastung())>=0);
+ok('§8→v2.5 §1.1 Fokusansicht zeigt die Belastungssteuerung (Original anModACWR), nicht mehr die Matrix-Belastung',
+   fb2.indexOf(anModACWR(analyseFenster(), S.ui.analyseDomain||'alle'))>=0 && fb2.indexOf('über die Matrix, nicht über eine Sportformel')<0);
 ok('Nebenbefund: Statistik-Umschalter haben jetzt einen Handler', /el\('statistikBody'\)\.addEventListener\('click', statKlick\)/.test(src));
 
 kopf('v2.4.0 §11 · Tagebuch-Felder im Export');
@@ -1284,6 +1287,143 @@ ok('§11 nach Tageswechsel: unbestätigte Tagebuch-Einträge von gestern gehen i
    sp2.filter(function(e){ return e.quelle==='tagebuch'; }).length===2);
 S.meta.letzterSyncBestaetigtTs=jetztIso();
 ok('§11 nach bestätigtem Sync nicht mehr', syncExport('delta').matrixSpur.filter(function(e){ return e.quelle==='tagebuch'; }).length===0);
+
+kopf('v2.5.0 §1 · Fokusansicht: Originale, Ampelfarben');
+frisch();
+S.karten=[ neueKarte({id:'f1', domain:'dfm', titel:'Fokus-Karte', matrixFeld:'ziel', sollMin:30, faelligkeit:H()}) ];
+var fb5=fbWoIchStehe();
+ok('§1.1 Belastungssteuerung (Original) in der Fokusansicht', fb5.indexOf('Belastungssteuerung')>=0 && fb5.indexOf(anModACWR(analyseFenster(),'alle'))>=0);
+ok('§1.1 „Heute gegen typische Tage" = Aktivitätsfenster aus „Verhalten"', fb5.indexOf('Heute gegen typische Tage')>=0 &&
+   anModVerhalten(analyseFenster(),'alle').indexOf(anAktivitaetsfenster('alle'))>=0);
+ok('§1.1 die Neubauten sind weg (Tagesverlauf-Kachel, Matrix-Belastung)', fb5.indexOf('Tagesverlauf · Soll')<0 && fb5.indexOf('Sportformel')<0);
+ok('§1.2 Outfit und Faktor F tragen die Ampelfarbe', (fb5.match(/class="fbk amp" style="--af:/g)||[]).length>=2 ||
+   (fb5.match(/fbk[^"]* amp" style="--af:/g)||[]).length>=2);
+ok('§1.2 ohne Vergleichsbasis grau', fb5.indexOf('--af:'+AMPEL_FARBE.grau[0])>=0);
+ok('§1.2 ACWR nach Modul-Zonen (Entscheidung Pascal)', acwrStufe(1.0)==='gruen' && acwrStufe(0.8)==='gruen' && acwrStufe(1.3)==='gruen' &&
+   acwrStufe(1.4)==='gelb' && acwrStufe(1.6)==='rot' && acwrStufe(0.6)==='orange' && acwrStufe(null)==='grau');
+
+kopf('v2.5.0 §2 · Wieder öffnen: Unteraufgaben übernehmen oder entfernen');
+frisch();
+S.karten=[ neueKarte({id:'e1', domain:'dfm', titel:'Erledigte Karte', matrixFeld:'ziel', sollMin:60, faelligkeit:H(), airtableId:'recCCCCCCCCCCCCCC1'}),
+           neueKarte({id:'o1', domain:'dfm', titel:'Offene Karte', matrixFeld:'ziel', sollMin:60, faelligkeit:H()}),
+           neueKarte({id:'r1', domain:'privat', titel:'Routine mit Subs', rhythmus:{typ:'taeglich'}, faelligkeit:H()}) ];
+S.unteraufgaben=[ neueUnteraufgabe('e1',{id:'u1', titel:'Schritt eins', done:true}), neueUnteraufgabe('e1',{id:'u2', titel:'Schritt zwei', done:true}),
+                  neueUnteraufgabe('e1',{id:'u3', titel:'Schritt drei', done:false}),
+                  neueUnteraufgabe('o1',{id:'o-u1', titel:'offen erledigt', done:true}), neueUnteraufgabe('o1',{id:'o-u2', titel:'offen offen', done:false}),
+                  neueUnteraufgabe('r1',{id:'r-u1', titel:'Routine-Sub', done:true}) ];
+S.karten[0].status='erledigt'; S.karten[0].tagId=aktuelleTagId();
+S.karten[2].status='erledigt'; S.karten[2].tagId=aktuelleTagId();
+var geoeffnet=false;
+wiederOeffnenMitAbfrage('e1', function(){ geoeffnet=true; });
+ok('§2 erledigte Karte mit Unteraufgaben → Abfrage statt sofort öffnen', !geoeffnet && reoffenTmp && el('sheetBody').innerHTML.indexOf('data-rowahl="u1"')>=0);
+ok('§2 zwei Sammelknöpfe', el('sheetBody').innerHTML.indexOf('data-roalle="uebernehmen"')>=0 && el('sheetBody').innerHTML.indexOf('data-roalle="entfernen"')>=0);
+Object.keys(reoffenTmp.wahl).forEach(function(id){ reoffenTmp.wahl[id]='entfernen'; });   // „Alle entfernen"
+ok('§2 „Alle entfernen" setzt jede Zeile', Object.keys(reoffenTmp.wahl).every(function(id){ return reoffenTmp.wahl[id]==='entfernen'; }));
+Object.keys(reoffenTmp.wahl).forEach(function(id){ reoffenTmp.wahl[id]='uebernehmen'; });  // „Alle übernehmen"
+reoffenTmp.wahl.u2='entfernen';                                                             // je Zeile
+wiederOeffnenBestaetigen();
+ok('§2 nach Bestätigen öffnet die Karte', geoeffnet===true);
+ok('§2 übernommene stehen auf nicht erledigt', untermenge('e1').length===2 && untermenge('e1').every(function(u){ return u.done===false; }));
+ok('§2 entfernte ist weg', !S.unteraufgaben.some(function(u){ return u.id==='u2'; }));
+geoeffnet=false;
+wiederOeffnenMitAbfrage('o1', function(){ geoeffnet=true; });
+ok('§2 offene Karte → keine Abfrage, Fortschritt bleibt', geoeffnet && !reoffenTmp &&
+   S.unteraufgaben.filter(function(u){ return u.parentId==='o1' && u.done; }).length===1);
+geoeffnet=false;
+wiederOeffnenMitAbfrage('r1', function(){ geoeffnet=true; });
+ok('§2 Routine → keine Abfrage', geoeffnet && !reoffenTmp);
+S.karten.push(neueKarte({id:'e2', domain:'dfm', titel:'Ohne Subs', status:'erledigt', faelligkeit:H()}));
+geoeffnet=false; wiederOeffnenMitAbfrage('e2', function(){ geoeffnet=true; });
+ok('§2 keine Unteraufgaben → keine Abfrage', geoeffnet && !reoffenTmp);
+
+kopf('v2.5.0 §6 · Export meldet entfernte Unteraufgaben');
+var ex6=syncExport('delta'), k6=(ex6.karten||[]).filter(function(k){ return k.id==='e1'; })[0];
+var gem=k6 ? (k6.unteraufgaben||[]).filter(function(u){ return u.entfernt; }) : [];
+ok('§6 Karte geht im Delta mit und meldet die entfernte (id + entfernt:true)', gem.length===1 && gem[0].id==='u2' && gem[0].entfernt===true);
+ok('§6 Top-Level-Liste unteraufgabenEntfernt', (ex6.unteraufgabenEntfernt||[]).length===1 && ex6.unteraufgabenEntfernt[0].id==='u2');
+print('   Beispiel: '+JSON.stringify(gem[0]));
+syncImport(JSON.stringify({appVersion:'2.5.0', karten:[{id:'e1', airtableId:'recCCCCCCCCCCCCCC1', titel:'Erledigte Karte',
+  unteraufgaben:[{id:'u2', titel:'Schritt zwei', done:true}]}]}));
+ok('§6 ein Import bringt die entfernte bis zum bestätigten Sync nicht zurück', !S.unteraufgaben.some(function(u){ return u.id==='u2'; }));
+syncBestaetigen();
+ok('§6 nach bestätigtem Sync ist die Meldung erledigt', entfernteUnteraufgaben().length===0 &&
+   !((syncExport('delta').unteraufgabenEntfernt)||[]).length);
+
+kopf('v2.5.0 §3 · Detailanalyse in der Statistik, Prognose, DFM-Flows');
+frisch(); renderStatistik();
+var st5=el('statistikBody').innerHTML;
+ok('§3.1 Detailanalyse steht in der Statistik direkt unter der Matrix',
+   st5.indexOf('Der Tag in der Matrix')<st5.indexOf('Detailanalyse') && st5.indexOf('Detailanalyse')<st5.indexOf('Tagesverlauf') &&
+   st5.indexOf('data-anzr=')>=0);
+ok('§3.1 Belohnungsseite behält nur einen Verweis', /data-analyse="1">📊 Detailanalyse → Statistik/.test(src));
+ok('§4 Kalibrierung verlässt die Detailanalyse …', anModuleHtml().indexOf('Kalibrierung')<0);
+renderEinst();
+ok('§4 … und steht als Diagramm in den Einstellungen', el('einstBody').innerHTML.indexOf('Kalibrierung')>=0);
+/* §3.3 Prognose — Zahlenbeleg */
+function progTest(akkuHeute, mitAkku){
+  frisch(); _ampelMemo=null;
+  var jetzt=new Date(), heuteF=belFensterDatum(jetztIso()), we=istWochenendTag(heuteF), tage=[], i;
+  for(i=1; tage.length<4 && i<40; i++){ var d=anVorTage(heuteF,i); if(istWochenendTag(d)===we) tage.push(d); }
+  function zeit(d, minRel){ var t=new Date(jetzt.getTime()+minRel*60000); return d+'T'+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':00'; }
+  S.intraday=[]; S.historie=[];
+  tage.forEach(function(d){
+    S.intraday.push({ts:zeit(d,-120), punkte:1000, minuten:30, domaene:'dfm', kartenId:'x'});
+    S.intraday.push({ts:zeit(d,+20),  punkte:2000, minuten:30, domaene:'dfm', kartenId:'x'});
+    if(mitAkku) S.historie.push({tagId:d+'-1', datum:d, punkteBilanz:3000, luecke:false, akkuVerlauf:[{ts:zeit(d,-60), akku:50}]});
+  });
+  S.intraday.push({ts:new Date(Date.now()-60000).toISOString(), punkte:500, minuten:30, domaene:'dfm', kartenId:'x'});
+  S.tag.startTs=new Date(Date.now()-6*3600000).toISOString(); S.tag.akku=akkuHeute;
+  return prognoseHeute();
+}
+var pA=progTest(50,true);
+ok('§3.3 k = 50 % ÷ 50 % = 1 → Prognose '+Math.round(pA.prognose)+' = 500 + 2000 × 1', Math.round(pA.rest)===2000 && Math.abs(pA.k-1)<1e-9 && Math.round(pA.prognose)===2500);
+var pV=progTest(100,true);
+ok('§3.3 sehr voller Akku: roh 2,0 → begrenzt 1,5 → '+Math.round(pV.prognose), Math.abs(pV.k-1.5)<1e-9 && Math.round(pV.prognose)===3500 && pV.kGrund.indexOf('begrenzt')>=0);
+var pL=progTest(10,true);
+ok('§3.3 sehr leerer Akku: roh 0,2 → begrenzt 0,5 → '+Math.round(pL.prognose), Math.abs(pL.k-0.5)<1e-9 && Math.round(pL.prognose)===1500);
+var pO=progTest(80,false);
+ok('§3.3 ohne typischen Akku: k = 1, und die Kachel sagt es', pO.k===1 && pO.kGrund.indexOf('typischer Akku fehlt')>=0 && Math.round(pO.prognose)===2500);
+S.karten=[]; var kz=anModKonsistenz(analyseFenster(),'alle');
+ok('§3.3 heutiger Wochentag in drei Schichten (geschafft · Prognose · Ziel)', /an-bar heute amp/.test(kz) && kz.indexOf('class="prog"')>=0 &&
+   kz.indexOf('class="ist"')>=0 && /<u style="left:/.test(kz) && kz.indexOf('Prognose')>=0);
+/* §3.4 nur DFM, DFM-Routinen zählen mit */
+frisch();
+S.karten=[ neueKarte({id:'dA', domain:'dfm', titel:'DFM neu', faelligkeit:H(), erstelltTs:jetztIso()}),
+           neueKarte({id:'pA', domain:'privat', titel:'Privat neu', faelligkeit:H(), erstelltTs:jetztIso()}),
+           neueKarte({id:'dR', domain:'dfm', titel:'DFM-Routine', rhythmus:{typ:'taeglich'}, faelligkeit:H()}),
+           neueKarte({id:'pR', domain:'privat', titel:'Privat-Routine', rhythmus:{typ:'taeglich'}, faelligkeit:H()}) ];
+var hf=belFensterDatum(jetztIso());
+var tDfm=reinRausTag(anFlowReihe('dfm',{routinen:true}), hf), tAlle=reinRausTag(anFlowReihe('alle'), hf);
+ok('§3.4 nur DFM: private Aufgabe zählt nicht mit (rein DFM = Aufgabe + fällige DFM-Routine = '+tDfm.rein+')', tDfm.rein===2 && tAlle.rein===2 && tDfm.routRein===1);
+ok('§3.4 Rein/Raus der Statistik und Aufgaben-Flow sagen „nur DFM"', stReinRaus().indexOf('nur DFM')>=0 && /Aufgaben-Flow · nur DFM/.test(src));
+
+kopf('v2.5.0 §5 · Kalender: kurze Routinen als Gruppe');
+frisch();
+S.karten=[ neueKarte({id:'g1', domain:'privat', titel:'Gesicht waschen', rhythmus:{typ:'taeglich'}, sollMin:5, matrixFeld:'werkzeug', faelligkeit:H()}),
+           neueKarte({id:'g2', domain:'privat', titel:'Wasser trinken', rhythmus:{typ:'taeglich'}, sollMin:5, matrixFeld:'werkzeug', faelligkeit:H()}),
+           neueKarte({id:'g3', domain:'privat', titel:'Küche aufräumen', rhythmus:{typ:'taeglich'}, sollMin:5, matrixFeld:'zustand', faelligkeit:H()}),
+           neueKarte({id:'lang', domain:'dfm', titel:'Angebotskalkulation', sollMin:90, matrixFeld:'ziel', faelligkeit:H()}) ];
+ketteSetzen(['g1','g2','g3','lang']);
+_kalAuf={};
+var kg=suHeuteHtml();
+ok('§5 drei kurze Routinen hintereinander → eine Gruppe', (kg.match(/kal-b gruppe/g)||[]).length===1 && kg.indexOf('3 kurze')>=0);
+ok('§5 lange Karte bleibt ein eigener Block', /data-kalkarte="lang"/.test(kg));
+var key=(kg.match(/data-kalgruppe="([^"]+)"/)||[])[1];
+_kalAuf[key]=true; kg=suHeuteHtml();
+ok('§5 aufgeklappt: jede Karte mit vollem Titel und antippbar',
+   (kg.match(/class="kal-auf-z/g)||[]).length===3 && kg.indexOf('>Küche aufräumen<')>=0 && /data-kalkarte="g1"/.test(kg));
+
+kopf('v2.5.0 · Nebenbefund: die Migration darf Unteraufgaben nicht leeren');
+(function(){
+  var mk=S.meta; _store={};
+  _store['fokus2_karten']=JSON.stringify([neueKarte({id:'m1', domain:'dfm', titel:'Mit Subs', faelligkeit:H()})]);
+  _store['fokus2_unteraufgaben']=JSON.stringify([{id:'mu1', parentId:'m1', titel:'Sub A', done:false},{id:'mu2', parentId:'m1', titel:'Sub B', done:true}]);
+  _store['fokus2_meta']=JSON.stringify({ seeded:true });   // KEIN migration200 → die v2.0-Migration laeuft
+  S.unteraufgaben=[];
+  try{ ladeAlles(); }catch(e){}
+  var gespeichert=JSON.parse(_store['fokus2_unteraufgaben']||'[]'), bak=JSON.parse(_store['fokus2_unteraufgaben_bak200']||'[]');
+  ok('Migration: Unteraufgaben bleiben im Speicher ('+gespeichert.length+') und in der Sicherung ('+bak.length+')', gespeichert.length===2 && bak.length===2);
+})();
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));
