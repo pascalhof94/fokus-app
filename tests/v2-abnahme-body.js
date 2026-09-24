@@ -524,8 +524,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.4.0 · Build gesetzt', VERSION==='2.4.0' && UI_VERSION==='v2.4.0' &&
-   APP_BUILD==='2026-09-24-1');
+ok('31 APP_VERSION 2.4.1 · Build gesetzt', VERSION==='2.4.1' && UI_VERSION==='v2.4.1' &&
+   APP_BUILD==='2026-09-24-2');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */

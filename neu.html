@@ -209,7 +209,8 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .tb-kurve{flex:none;min-width:56px;min-height:44px;padding:0 4px;background:none;border:0;display:flex;align-items:center;justify-content:center}
 .tb-kurve svg{display:block;pointer-events:none}
 .tb-kurve{--amp:var(--mut2)}
-.tb-kurve.gruen{--amp:var(--ok)} .tb-kurve.gelb{--amp:#f2d24b} .tb-kurve.orange{--amp:#f08c4b} .tb-kurve.rot{--amp:var(--bad)}
+.tb-kurve.gruen{--amp:#34d399} .tb-kurve.gelb{--amp:#f7d046} .tb-kurve.orange{--amp:#fb923c} .tb-kurve.rot{--amp:#f87171}
+.tb-kurve:not(.grau) svg{filter:drop-shadow(0 0 4px var(--amp))}
 /* §6: Die laufende Karte liegt ÜBER der Suche */
 /* Der Layer liegt ueber der SUCHE, nicht ueber dem Kopf: Timer, Figur und
    Zahnrad bleiben erreichbar, solange eine Karte laeuft. */
@@ -1397,6 +1398,38 @@ body{background:var(--bg)}
 .anmod .card>h3{font-size:13px;font-weight:500;color:var(--mut)}
 .an-leer{border-radius:16px}
 #suchOverlay{background:rgba(0,0,0,.95)}
+
+/* ══ v2.4.1 · Farbe nur in den Visualisierungen ══════════════════════
+   1 · Karten-Grafiken: --fc/--fc2 = Matrixfeld (Grundfarbe), --dom = Domaene
+       (Hintergrund), Klasse kvis-ueber/-heute/-spaeter = Faelligkeit (Kraft).
+   2 · Pascal gegen normal: --af/--af2 = Ampelfarbe. */
+.kvis{--rg1:var(--fc2);--rg2:var(--fc);--b1:var(--fc2);--b2:var(--fc)}
+.fb-kacheln.kvis>.fbk{background:linear-gradient(140deg,rgba(var(--dom),.22),rgba(var(--dom),.05) 60%),var(--card)}
+.kvis .fbk-bar i{background:linear-gradient(90deg,var(--b1),var(--b2))}
+.kvis.kvis-ueber .fbk-bar i{box-shadow:0 0 12px var(--fc)}
+.kvis.kvis-ueber svg.ring{filter:drop-shadow(0 0 6px var(--fc))}
+.kvis.kvis-spaeter .fbk-bar i,.kvis.kvis-spaeter svg.ring{opacity:.5;filter:saturate(.5)}
+.amp{--rg1:var(--af2);--rg2:var(--af);--b1:var(--af2);--b2:var(--af)}
+.amp .fbk-bar i{background:linear-gradient(90deg,var(--b1),var(--b2));box-shadow:0 0 10px color-mix(in srgb,var(--af) 45%,transparent)}
+.amp svg.ring{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--af) 55%,transparent))}
+.st-kpi.amp b{color:var(--af)}
+.st-kpi.amp{box-shadow:inset 0 2px 0 var(--af)}
+/* Kalender: Grundfarbe links, Domaene als Hintergrund, Kraft ueber Leuchten/Daempfen */
+.kal-b.kvis{border-left:4px solid var(--fc);background:linear-gradient(90deg,rgba(var(--dom),.38),rgba(var(--dom),.12))}
+.kal-b.kvis.plan{border-left-style:solid;background:linear-gradient(90deg,rgba(var(--dom),.30),rgba(var(--dom),.08))}
+.kal-b.kvis.kvis-ueber{box-shadow:0 0 14px color-mix(in srgb,var(--fc) 60%,transparent);border-color:var(--fc)}
+.kal-b.kvis.kvis-spaeter{opacity:.5}
+.kal-b.kvis.laeuft{border:1.5px solid var(--fc);border-left:4px solid var(--fc);box-shadow:0 0 16px color-mix(in srgb,var(--fc) 55%,transparent)}
+/* Zeitstrahl: Minutenbalken in der Feldfarbe, Zeile in der Domaene */
+.zs-k.kvis{background:linear-gradient(90deg,rgba(var(--dom),.14),transparent 70%);border-radius:8px;padding-left:4px}
+.zs-k.kvis .zs-mb i{background:linear-gradient(90deg,var(--fc2),var(--fc))}
+.zs-k.kvis.kvis-ueber .zs-mb i{box-shadow:0 0 8px var(--fc)}
+.zs-k.kvis.kvis-spaeter{opacity:.55}
+/* Matrix-Felder in den Pads und der Such-Matrix: dieselben Feldfarben */
+.mxq.q1,.su-mxq.q1{background:rgba(255,92,92,.10)}
+.mxq.q2,.su-mxq.q2{background:rgba(255,154,60,.10)}
+.mxq.q3,.su-mxq.q3{background:rgba(34,211,197,.10)}
+.mxq.q4,.su-mxq.q4{background:rgba(74,222,128,.10)}
 </style>
 </head>
 <body>
@@ -1541,9 +1574,9 @@ body{background:var(--bg)}
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.4.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.4.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-24-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.4.1';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.4.1';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-24-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -4206,6 +4239,35 @@ function renderFokus(){
    verschiedene Fragen, und deshalb sind es drei Blöcke und nicht einer:
    was bringt DAS hier · wo stehe ich HEUTE · was bewege ich GERADE.
    ══════════════════════════════════════════════════════════════════════ */
+/* ══ v2.4.1 · FARBE FUER DIE VISUALISIERUNGEN ═════════════════════════
+   Nur die Grafiken werden farbig; Flaechen, Pillen und Symbole bleiben
+   monochrom (v2.4.0). Die Farbtabelle aus v2.4.0 §10 ist damit NICHT
+   umgesetzt — nur dieser Teil. Zwei Familien, je mit eigener Aufgabe:
+   1 · Grafiken, die EINE KARTE zeigen — drei Eigenschaften, drei Mittel:
+       Matrixfeld = Grundfarbe · Domaene = Hintergrund · Faelligkeit = Kraft.
+       Die Art (Aufgabe/Routine/Counter) bekommt bewusst keine Farbe.
+   2 · Grafiken, die PASCAL GEGEN NORMAL zeigen — Farbe folgt der Ampel,
+       dieselben Schwellen wie die Statusleiste (ampelStufe); ohne Basis grau. */
+const MX_FARBE={ ablenkung:['#ff5c5c','#ffa3a3'], zustand:['#ff9a3c','#ffc98f'],
+                 werkzeug:['#22d3c5','#93efe7'], ziel:['#4ade80','#b1f5c8'] };
+const DOM_RGB={ dfm:'59,130,246', privat:'168,85,247' };
+const AMPEL_FARBE={ gruen:['#34d399','#a7f3d0'], gelb:['#f7d046','#fbe9a1'], orange:['#fb923c','#fdc9a0'],
+                    rot:['#f87171','#fcc1c1'], grau:['#6b6e74','#a3a6ab'] };
+/* Faelligkeit → Kraft: ueberfaellig kraeftig mit Leuchten, heute normal,
+   spaeter (Zukunft oder ohne Datum, v2.3 §3) gedaempft. */
+function karteKraft(k){
+  if(!k || k.status!=='offen') return 'heute';
+  if(k.faelligkeit && k.faelligkeit<heuteApp() && !k.rhythmus) return 'ueber';
+  if(istUngeplantOffen(k) || istNichtFaellig(k)) return 'spaeter';
+  return 'heute';
+}
+/* CSS-Variablen einer Karte: --fc/--fc2 Grundfarbe (Matrixfeld), --dom Hintergrund (Domaene). */
+function karteVisStil(k){
+  const c=MX_FARBE[matrixFeldVon(k)]||MX_FARBE.ziel, d=DOM_RGB[k&&k.domain==='dfm'?'dfm':'privat'];
+  return '--fc:'+c[0]+';--fc2:'+c[1]+';--dom:'+d;
+}
+function karteVisKlasse(k){ return 'kvis kvis-'+karteKraft(k)+' kvis-'+(k&&k.domain==='dfm'?'dfm':'privat'); }
+function ampelStil(stufe){ const a=AMPEL_FARBE[stufe]||AMPEL_FARBE.grau; return '--af:'+a[0]+';--af2:'+a[1]; }
 /* ══ §9 (v2.4.0) · FORMENSPRACHE NACH SLEEP CYCLE — die Bausteine ═════
    Uebernommen wird die Form, nicht die Marke: grosse Zahl mit kleiner
    Beschriftung und Trendpfeil im gefuellten Kreis · Hauptwert als Ring mit
@@ -4247,7 +4309,8 @@ function glattPfad(pts){
 function trendRichtung(r){ if(r==null || !Number.isFinite(r)) return null; return r>0.05?'auf':(r<-0.05?'ab':'gleich'); }
 function trendKreis(r, titel){
   const t=trendRichtung(r); if(!t) return '';
-  const fill= t==='auf'?'var(--ok)':(t==='ab'?'var(--bad)':'var(--mut2)');
+  // v2.4.1: Farbe folgt der Ampel (dieselben Schwellen), der Pfeil der Richtung
+  const fill=(AMPEL_FARBE[ampelStufe(r)]||AMPEL_FARBE.grau)[0];
   const pfeil= t==='auf' ? 'M7 13 L13 7 M8.5 7 H13 V11.5'
              : t==='ab'  ? 'M7 7 L13 13 M8.5 13 H13 V8.5'
              :             'M6 10 H14 M10.5 6.5 L14 10 L10.5 13.5';
@@ -4294,14 +4357,17 @@ function histogrammHtml(werte, heute, opt){
   const maxC=Math.max.apply(null,bins)||1;
   const W=300, H=110, P=4, gap=4, sw=(W-2*P-(nB-1)*gap)/nB, base=H-4;
   const gid=svgId('hg');
-  let g='<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ffffff" stop-opacity=".08"/></linearGradient></defs>';
+  // v2.4.1: die Heute-Saeule traegt die Ampelfarbe (heute gegen deinen Schnitt)
+  const schnitt0=v.reduce((a,b)=>a+b,0)/v.length;
+  const hStufe=ampelStufe(Number.isFinite(heute) && schnitt0>0 ? heute/schnitt0-1 : null), hf=AMPEL_FARBE[hStufe];
+  let g='<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+hf[1]+'"/><stop offset=".35" stop-color="'+hf[0]+'"/><stop offset="1" stop-color="'+hf[0]+'" stop-opacity=".08"/></linearGradient></defs>';
   bins.forEach((c,i)=>{
     const h=Math.max(6, (c/maxC)*(H-18)), x=P+i*(sw+gap), y=base-h;
     g+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+sw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+Math.min(6,sw/2).toFixed(1)+'" fill="#2a2c30"/>';
   });
   if(hb>=0){
     const x=P+hb*(sw+gap), h=Math.max(22, (Math.max(bins[hb],1)/maxC)*(H-18)+10), y=base-h;
-    g+='<rect class="hg-heute" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+sw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+Math.min(6,sw/2).toFixed(1)+'" fill="url(#'+gid+')" filter="drop-shadow(0 0 6px rgba(255,255,255,.55))"/>';
+    g+='<rect class="hg-heute" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+sw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+Math.min(6,sw/2).toFixed(1)+'" fill="url(#'+gid+')" style="filter:drop-shadow(0 0 7px '+hf[0]+')"/>';
   }
   const fmt=opt.fmt||(x=>Math.round(x));
   const schnitt=v.reduce((a,b)=>a+b,0)/v.length;
@@ -4335,12 +4401,12 @@ function fbRing(frac, farbe, opt){
   const gid=svgId('rg');
   const w=f*2*Math.PI-Math.PI/2, kx=c+r*Math.cos(w), ky=c+r*Math.sin(w);
   let g='<svg class="ring" width="'+S0+'" height="'+S0+'" viewBox="0 0 '+S0+' '+S0+'">'+
-    '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#8b8e94"/></linearGradient></defs>'+
+    '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--rg1,#ffffff)"/><stop offset="1" style="stop-color:var(--rg2,#8b8e94)"/></linearGradient></defs>'+
     '<circle cx="'+c+'" cy="'+c+'" r="'+r.toFixed(1)+'" fill="none" stroke="#26282c" stroke-width="'+sw+'"/>';
   if(f>0){
     g+='<circle cx="'+c+'" cy="'+c+'" r="'+r.toFixed(1)+'" fill="none" stroke="url(#'+gid+')" stroke-width="'+sw+'" stroke-linecap="round"'+
        ' stroke-dasharray="'+(f*u).toFixed(1)+' '+u.toFixed(1)+'" transform="rotate(-90 '+c+' '+c+')"/>'+
-       '<circle cx="'+kx.toFixed(1)+'" cy="'+ky.toFixed(1)+'" r="'+(sw*0.9).toFixed(1)+'" fill="#ffffff" opacity=".22"/>';
+       '<circle cx="'+kx.toFixed(1)+'" cy="'+ky.toFixed(1)+'" r="'+(sw*0.9).toFixed(1)+'" style="fill:var(--rg2,#ffffff)" opacity=".28"/>';
   }
   if(opt.mitte!=null){
     const fs=opt.gross?26:(opt.mittel?16:11);
@@ -4402,7 +4468,8 @@ function fbWasDieseKarte(k){
   const mf=matrixFeldVon(k), istMin=istSekLive(k)/60, bonus=abhakbonusDefault(k);
   const skala=Math.max(1, p, jetzt)*1.08;
   const bb=num(k.bewegungsBonus), bbMax=Math.max(1, num(S.settings&&S.settings.bewegungsBonus,500));
-  let h='<div class="fb"><div class="fb-h">Was diese Karte einbringt</div><div class="fb-kacheln">';
+  // v2.4.1: Matrixfeld = Grundfarbe · Domaene = Hintergrund · Faelligkeit = Kraft
+  let h='<div class="fb"><div class="fb-h">Was diese Karte einbringt</div><div class="fb-kacheln '+karteVisKlasse(k)+'" style="'+karteVisStil(k)+'">';
   h+='<div class="fbk voll"><div class="fbk-h">Punkte dieser Karte · Ist gegen Prognose</div>'+
      '<div class="fbk-zz">'+fbWert(Math.round(jetzt), 'Stand jetzt · '+Math.round(istMin)+'′ Ist', jetzt>p?'gut':'')+
      fbWert(Math.round(p), 'Prognose · ≈ '+fmtKurzP(muenzen).replace(/ P$/,'')+' Münzen', 'rechts')+'</div>'+
@@ -4456,8 +4523,9 @@ function fbGrosseMatrix(opt){
   const z=matrixZeitFelder();
   const sp=matrixSpur().filter(e=>!e.uebersprungen && e.ts);
   const jetzt=sp.length?{x:num(sp[sp.length-1].x), y:num(sp[sp.length-1].y)}:null;
-  const QF={ablenkung:['rgba(246,109,109,.10)',0,0], zustand:['rgba(242,184,75,.10)',0,1],
-            werkzeug:['rgba(62,207,142,.10)',1,0], ziel:['rgba(79,142,247,.12)',1,1]};
+  // v2.4.1: Flaechen in der Feldfarbe (Ablenkung rot · Zustand orange · Werkzeug tuerkis · Ziel gruen)
+  const QF={ablenkung:['rgba(255,92,92,.10)',0,0], zustand:['rgba(255,154,60,.10)',0,1],
+            werkzeug:['rgba(34,211,197,.10)',1,0], ziel:['rgba(74,222,128,.10)',1,1]};
   // §6/§7 (v2.4.0): klickbar → Tipp in ein Feld oeffnet das Tagebuch dort.
   let g='<svg class="fb-mx'+(opt.klick?' klick':'')+'" data-tbmatrix="1" data-rand="'+P+'" viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Matrix mit der Linie durch den Tag'+(opt.klick?' — tippen für einen Tagebuch-Eintrag':'')+'">';
   Object.keys(QF).forEach(f=>{
@@ -4489,8 +4557,11 @@ function fbGrosseMatrix(opt){
       g+='<path class="tb-pt" d="M'+cx.toFixed(1)+' '+(cy-r).toFixed(1)+' L'+(cx+r).toFixed(1)+' '+cy.toFixed(1)+' L'+cx.toFixed(1)+' '+(cy+r).toFixed(1)+' L'+(cx-r).toFixed(1)+' '+cy.toFixed(1)+' Z" '+
          'fill="none" stroke="var(--txt)" stroke-width="1.6" opacity="'+o+'"/>';
     } else {
-      g+='<circle cx="'+X(e.x).toFixed(1)+'" cy="'+Y(e.y).toFixed(1)+'" r="'+(letzte?5.5:2.6)+'" fill="'+(letzte?'var(--blue)':'var(--mut2)')+
-         '"'+(letzte?' stroke="var(--txt)" stroke-width="1.5"':'')+' opacity="'+o+'"/>';
+      // v2.4.1: ein Punkt, der zu einer Karte gehoert, traegt deren Feldfarbe
+      const pk=e.kid ? S.karten.find(c=>c.id===e.kid) : null;
+      const pf=pk ? (MX_FARBE[matrixFeldVon(pk)]||MX_FARBE.ziel)[0] : (letzte?'#f2f2f3':'var(--mut2)');
+      g+='<circle cx="'+X(e.x).toFixed(1)+'" cy="'+Y(e.y).toFixed(1)+'" r="'+(letzte?5.5:(pk?3.2:2.6))+'" fill="'+pf+'"'+
+         (letzte?' stroke="var(--txt)" stroke-width="1.5" style="filter:drop-shadow(0 0 5px '+pf+')"':'')+' opacity="'+o+'"/>';
     }
   });
   g+='<text x="'+(P+3)+'" y="'+(H-P-3)+'" font-size="9" fill="var(--mut2)">← weg von</text>'+
@@ -4535,7 +4606,7 @@ function fbWoIchStehe(){
   // §9 (v2.4.0): der Hauptwert als Ring mit Prozent in der Mitte, daneben die
   // grosse Zahl mit Trendpfeil gegen „dein Schnitt, letzte 4 Wochen" zur selben Uhrzeit.
   { const pct=ges.ist/Math.max(1,ges.ziel), nz=normalZurUhrzeit('alle');
-    h+='<div class="fbk voll fbk-held"><div class="fbk-r">'+
+    h+='<div class="fbk voll fbk-held amp" style="'+ampelStil(ampelStufe(nz.r))+'"><div class="fbk-r">'+
        '<div class="fbk-g" aria-hidden="true">'+fbRing(pct, null, {gross:true, mitte:Math.round(pct*100)+'%', unter:'Tagesziel'})+'</div>'+
        grossZahl(fmtKurzP(ges.ist), 'von '+fmtKurzP(ges.ziel)+(ges.we?' · Sa+So':'')+(nz.norm!=null?'<br>Schnitt jetzt '+fmtKurzP(nz.norm):''), nz.r, 'gegen deinen Schnitt zur selben Uhrzeit')+
        '</div></div>'; }
@@ -4543,7 +4614,7 @@ function fbWoIchStehe(){
     const zi=zielUndIstHeute(d);
     const skala=Math.max(zi.ziel, zi.ist)*1.1;
     const nz=normalZurUhrzeit(d);
-    h+='<div class="fbk voll"><div class="fbk-h">'+lbl+(zi.we?' · Wochenende (Sa+So)':'')+'</div>'+
+    h+='<div class="fbk voll amp" style="'+ampelStil(ampelStufe(nz.r))+'"><div class="fbk-h">'+lbl+(zi.we?' · Wochenende (Sa+So)':'')+'</div>'+
        '<div class="fbk-r"><div class="fbk-g breit" aria-hidden="true">'+
        fbBalken(zi.ist/skala, zi.ziel/skala, 'Ziel '+fmtKurzP(zi.ziel), zi.ist>=zi.ziel)+'</div>'+
        fbWert(fmtKurzP(zi.ist), Math.round(zi.ist/Math.max(1,zi.ziel)*100)+' % von '+fmtKurzP(zi.ziel), 'rechts', nz.r)+'</div></div>';
@@ -4586,7 +4657,7 @@ function zeitstrahlHtml(){
     h+='<div class="zs-spalte">';
     ks.forEach((k,i)=>{
       const fertig=k.status==='erledigt';
-      h+='<div class="zs-k'+(fertig?' fertig':'')+'" data-zskarte="'+k.id+'">'+
+      h+='<div class="zs-k '+karteVisKlasse(k)+(fertig?' fertig':'')+'" style="'+karteVisStil(k)+'" data-zskarte="'+k.id+'">'+
          '<span class="n">'+(i+1)+'</span><span class="t">'+esc(String(k.titel||'?').slice(0,34))+'</span>'+
          mb(k)+'<span class="m">'+num(k.sollMin)+'′</span></div>';
     });
@@ -4616,7 +4687,7 @@ function zeitstrahlHtml(){
        '<div class="zs-inner"><div class="zs-typ">'+esc(LBL[r.typ]||r.typ)+
        (drin.length?(' · '+fertig+'/'+drin.length):'')+'</div>';
     drin.slice(0,6).forEach(k=>{
-      h+='<div class="zs-k'+(k.status==='erledigt'?' fertig':'')+'" data-zskarte="'+k.id+'">'+
+      h+='<div class="zs-k '+karteVisKlasse(k)+(k.status==='erledigt'?' fertig':'')+'" style="'+karteVisStil(k)+'" data-zskarte="'+k.id+'">'+
          '<span class="t">'+esc(String(k.titel||'?').slice(0,30))+'</span>'+
          mb(k)+'<span class="m">'+num(k.sollMin)+'′</span></div>';
     });
@@ -9824,12 +9895,20 @@ function belTagesDiagramm(){
   // U1: Mitternachts-Marke, wenn das Fenster über 24:00 hinausreicht (Abschluss nach Mitternacht)
   if(endX>24.01){ const x=X(24).toFixed(1); g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--purple)" stroke-width="0.9" stroke-dasharray="2 2" opacity=".7"/>'; }
   g+='<line x1="'+pL+'" y1="'+Y(ziel).toFixed(1)+'" x2="'+(W-pR)+'" y2="'+Y(ziel).toFixed(1)+'" stroke="var(--mut2)" stroke-width="0.7" stroke-dasharray="2 3"/><text x="'+(W-pR)+'" y="'+(Y(ziel)-2).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">Ziel '+Math.round(ziel)+'</text>';
-  if(zeigD) g+=poly(wD,'var(--blue)',1.4,'4 3');
-  if(zeigP) g+=poly(wP,'var(--warn)',1.4,'4 3');
-  if(zeigG) g+=poly(wG,'#f08c4b',1.4,'4 3');
-  if(zeigD) g+=poly(kD,'var(--blue)',2,null,true);
-  if(zeigP) g+=poly(kP,'var(--warn)',2,null,true);
-  if(zeigG) g+=poly(kG,'#f08c4b',2.4,null,true);
+  // v2.4.1: Die Hauptlinie (Gesamt bzw. die gewaehlte Domaene) zeigt Pascal
+  // gegen normal → Ampelfarbe (nur heute, gleiche Schwellen wie die Statusleiste).
+  // Die Nebenlinien bleiben monochrom: DFM hell, Privat grau.
+  let ampHaupt='#f2f2f3';
+  if(istHeute){ try{ ampHaupt=AMPEL_FARBE[ampelStufe(normalZurUhrzeit(dom).r)][0]; }catch(e){} }
+  const colD = dom==='dfm' ? ampHaupt : '#e9e9ec';
+  const colP = dom==='privat' ? ampHaupt : '#8e9197';
+  const colG = ampHaupt;
+  if(zeigD) g+=poly(wD,colD,1.4,'4 3');
+  if(zeigP) g+=poly(wP,colP,1.4,'4 3');
+  if(zeigG) g+=poly(wG,colG,1.4,'4 3');
+  if(zeigD) g+=poly(kD,colD,dom==='dfm'?2.6:1.8,null,true);
+  if(zeigP) g+=poly(kP,colP,dom==='privat'?2.6:1.8,null,true);
+  if(zeigG) g+=poly(kG,colG,2.8,null,true);
   // §5.4 (v1.13.0): PLANKURVE (nur heute, Gesamtsicht) — beschriftet, damit
   // erkennbar ist, ob Rahmen oder Profil×Kette dahintersteht.
   var planLeg='';
@@ -9838,8 +9917,8 @@ function belTagesDiagramm(){
     const pPts=[]; const schritt=Math.max(0.25,(endX-vonX)/40);
     for(let x=vonX;x<=endX+0.001;x+=schritt) pPts.push({x, p:plan.wert(x)});
     if(pPts.length && pPts[pPts.length-1].p>0){
-      g+=poly(pPts,'var(--cyan)',1.5,'3 3');
-      planLeg='<span><i style="background:var(--cyan)"></i>Plan ('+plan.quelle+')</span>';
+      g+=poly(pPts,'#bfc1c5',1.5,'3 3');
+      planLeg='<span><i style="background:#bfc1c5"></i>Plan ('+plan.quelle+')</span>';
     }
   }
   // U1: Jetzt-Marker im neuen Fenster
@@ -9859,9 +9938,9 @@ function belTagesDiagramm(){
     '<button data-statstep="1" aria-label="Tag vor"'+(istHeute?' disabled':'')+'>›</button>'+
     (istHeute?'':'<button data-statheute="1">heute</button>')+'</span></div>';
   const legTeile=[];
-  if(zeigD) legTeile.push('<span><i style="background:var(--blue)"></i>DFM</span>');
-  if(zeigP) legTeile.push('<span><i style="background:var(--warn)"></i>Privat</span>');
-  if(zeigG) legTeile.push('<span><i style="background:#f08c4b"></i>Gesamt</span>');
+  if(zeigD) legTeile.push('<span><i style="background:'+colD+'"></i>DFM</span>');
+  if(zeigP) legTeile.push('<span><i style="background:'+colP+'"></i>Privat</span>');
+  if(zeigG) legTeile.push('<span><i style="background:'+colG+'"></i>Gesamt'+(istHeute?' (Ampel)':'')+'</span>');
   if(planLeg) legTeile.push(planLeg);
   const legende='<div class="an-legend">'+legTeile.join('')+'<span style="color:var(--mut2)">— '+(istHeute?'heute':anKurzDatum(sel))+' · - - Ø '+AN_WT_LANG[wt]+' (Normaltag)</span></div>';
   const hint = wtF.length===0 ? '<div class="stathint">Noch kein Vergleichstag ('+AN_WT_LANG[wt]+') — Ø erscheint ab dem ersten getrackten '+AN_WT_LANG[wt]+'.</div>'
@@ -10604,8 +10683,8 @@ function suKalenderHtml(){
     const top=Y(b.von), hoehe=Math.max(KAL_MIN_H, Y(b.bis)-Y(b.von)-2);
     const breite=100/(b.lanes||1), links=(b.lane||0)*breite;
     const min=Math.round((b.bis-b.von)*60);
-    h+='<div class="kal-b '+b.art+(b.k && b.k.domain==='dfm'?' dfm':' privat')+'" role="button" data-kalkarte="'+esc(b.kid)+'" data-kid="'+esc(b.kid)+'"'+
-       ' style="top:'+Math.round(top)+'px;height:'+Math.round(hoehe)+'px;left:calc('+links.toFixed(2)+'% + 2px);width:calc('+breite.toFixed(2)+'% - 4px)">'+
+    h+='<div class="kal-b '+b.art+' '+karteVisKlasse(b.k)+'" role="button" data-kalkarte="'+esc(b.kid)+'" data-kid="'+esc(b.kid)+'"'+
+       ' style="'+karteVisStil(b.k)+';top:'+Math.round(top)+'px;height:'+Math.round(hoehe)+'px;left:calc('+links.toFixed(2)+'% + 2px);width:calc('+breite.toFixed(2)+'% - 4px)">'+
        '<span class="kal-t">'+(b.art==='erledigt'?'✓ ':'')+esc(String(b.k.titel||'?'))+'</span>'+
        '<span class="kal-m">'+belUhr(b.von)+' · '+min+'′ · '+LBL[b.art]+'</span></div>';
   });
@@ -10897,7 +10976,8 @@ function stMatrixSpur(){
   echt.forEach(e=>{
     const k=e.kid?S.karten.find(c=>c.id===e.kid):null;
     const wz=k && matrixFeldVon(k)==='werkzeug';
-    g+='<circle cx="'+X(e).toFixed(1)+'" cy="'+Y(e).toFixed(1)+'" r="'+(wz?4:2.5)+'" fill="'+(wz?'var(--gut)':'var(--ac)')+'"/>';
+    // v2.4.1: Kartenpunkte in der Feldfarbe ihrer Karte, freie Positionen grau
+    g+='<circle cx="'+X(e).toFixed(1)+'" cy="'+Y(e).toFixed(1)+'" r="'+(wz?4:3)+'" fill="'+(k?(MX_FARBE[matrixFeldVon(k)]||MX_FARBE.ziel)[0]:'#8e9197')+'"/>';
   });
   g+='</svg>';
   // Welches Werkzeug hat wann zurückgeholt?
@@ -10972,6 +11052,32 @@ function stEntwicklung(){
 /* 5 · Belastung — aus den REALEN Tageswerten über die Matrix. Kein ACWR,
    keine geliehene Sportformel: wie lange links, wie viele Werkzeuge nötig,
    wie schnell die Energie ging. */
+/* v2.4.1 · Belastung gegen normal: dieselben Kennzahlen fuer vergangene
+   Tage aus der Historie (Positions-Spur seit v2.4.0, Akku-Verlauf), Schnitt
+   der letzten 4 Wochen, Werktag gegen Werktag. Richtung: weniger „links" ist
+   besser (verglichen wird der Rechts-Anteil), steigende Energie ist besser.
+   „Werkzeuge noetig" hat keine gute/schlechte Richtung und bleibt neutral.
+   Weniger als 3 Vergleichstage → grau. */
+function belastungWerte(spur, akkuVerlauf){
+  const sp=(spur||[]).filter(e=>e && !e.uebersprungen && e.ts);
+  if(sp.length<2) return null;
+  let linksMs=0, gesamtMs=0;
+  for(let i=1;i<sp.length;i++){ const dt=Math.max(0, Date.parse(sp[i].ts)-Date.parse(sp[i-1].ts)); gesamtMs+=dt; if(num(sp[i-1].x)<0) linksMs+=dt; }
+  const av=akkuVerlauf||[]; let rate=null;
+  if(av.length>=2){ const a0=av[0], a1=av[av.length-1], std=(Date.parse(a1.ts)-Date.parse(a0.ts))/3600000;
+    if(std>0.25) rate=(num(a1.akku)-num(a0.akku))/std; }
+  return { links: gesamtMs>0 ? linksMs/gesamtMs : 0, rate };
+}
+function belastungNormal(){
+  const heute=heuteApp(), we=istWochenendTag(heute), grenze=anVorTage(heute,28);
+  const tage=(S.historie||[]).filter(h=>h && !h.luecke && h.datum && h.datum<heute && h.datum>=grenze &&
+    istWochenendTag(h.datum)===we && !h.urlaub && Array.isArray(h.matrixSpur))
+    .map(h=>belastungWerte(h.matrixSpur, h.akkuVerlauf)).filter(Boolean);
+  if(tage.length<AMPEL_MIN_TAGE) return null;
+  const rates=tage.map(t=>t.rate).filter(r=>r!=null);
+  return { links: tage.reduce((a,t)=>a+t.links,0)/tage.length,
+           rate: rates.length>=AMPEL_MIN_TAGE ? rates.reduce((a,b)=>a+b,0)/rates.length : null, n:tage.length };
+}
 function stBelastung(){
   const sp=(S.tag && Array.isArray(S.tag.matrixSpur)) ? S.tag.matrixSpur.filter(e=>!e.uebersprungen) : [];
   if(sp.length<2) return anModul('🪫','Belastung','über die Matrix, nicht über eine Sportformel',
@@ -10994,13 +11100,19 @@ function stBelastung(){
     const std=(Date.parse(a1.ts)-Date.parse(a0.ts))/3600000;
     if(std>0.25) akkuRateTag=(num(a1.akku)-num(a0.akku))/std;
   }
+  // v2.4.1: Farbe nach Ampel gegen den eigenen Normal (4 Wochen); ohne Basis grau
+  const bn=belastungNormal();
+  const rLinks = bn ? ((1-linksPct)/Math.max(0.05,1-bn.links)-1) : null;
+  const rRate  = (bn && bn.rate!=null && akkuRateTag!=null) ? (akkuRateTag-bn.rate)/Math.max(5,Math.abs(bn.rate)) : null;
   let h='<div class="st-kpis">';
-  h+='<div class="st-kpi'+(linksPct>0.4?' bad':'')+'"><span class="k">Links</span><b>'+Math.round(linksPct*100)+' %</b>'+
-     '<span class="z">der Tageszeit</span></div>';
+  h+='<div class="st-kpi amp" style="'+ampelStil(ampelStufe(rLinks))+'"><span class="k">Links</span><b>'+Math.round(linksPct*100)+' %</b>'+
+     '<span class="z">'+(bn?('Ø '+Math.round(bn.links*100)+' %'):'der Tageszeit')+'</span></div>';
   h+='<div class="st-kpi"><span class="k">Werkzeuge</span><b>'+wz+'</b><span class="z">nötig</span></div>';
-  h+='<div class="st-kpi'+(akkuRateTag!=null&&akkuRateTag<-10?' bad':'')+'"><span class="k">Energie</span><b>'+
-     (akkuRateTag!=null?((akkuRateTag>0?'+':'')+Math.round(akkuRateTag)):'—')+'</b><span class="z">%/Std</span></div>';
+  h+='<div class="st-kpi amp" style="'+ampelStil(ampelStufe(rRate))+'"><span class="k">Energie</span><b>'+
+     (akkuRateTag!=null?((akkuRateTag>0?'+':'')+Math.round(akkuRateTag)):'—')+'</b><span class="z">'+
+     ((bn && bn.rate!=null)?('Ø '+(bn.rate>0?'+':'')+Math.round(bn.rate)+' %/Std'):'%/Std')+'</span></div>';
   h+='</div>';
+  if(!bn) h+='<div class="an-hint">Grau: noch keine Vergleichsbasis (mind. '+AMPEL_MIN_TAGE+' vergleichbare Tage mit Positionen in den letzten 4 Wochen).</div>';
   // Die Aussage in einem Satz — das ist der Punkt des Moduls.
   let satz;
   if(linksPct>0.5) satz='Du hast heute mehr Zeit links als rechts verbracht. Das ist der teure Teil des Tages — nicht die Arbeit selbst.';
