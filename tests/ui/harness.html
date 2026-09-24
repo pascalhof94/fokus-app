@@ -277,6 +277,46 @@ function bestandSchreiben(){
       var lay=d.getElementById('fokusLayer'), fb=d.querySelectorAll('#fokusView .fb')[1];
       if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
     },
+    /* v2.4 §3: die Volltextsuche hinter dem Suchknopf (gelebter Bestand) */
+    echtSuchknopf:function(fw){
+      var d=fw.document;
+      d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+      var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+      fw.closeSheet(); fw.setTab('suche');
+      d.getElementById('suchFab').click();
+      var i=d.getElementById('suchInput'); i.value='zaehne'; fw.renderSuchTreffer();
+    },
+    /* v2.4 §6: das Tagebuch (Einstieg ueber die Statistik-Matrix, Feld Zustaende) */
+    tagebuchDialog:function(fw){
+      fw.setTab('statistik'); fw.oeffneTagebuch(-0.5,-0.5);
+      var sh=fw.document.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; }
+    },
+    /* v2.4 §1.2: Einstellungen mit dem Import oben */
+    einstImport:function(fw){ fw.setTab('einst'); },
+    /* v2.4 §10: FARBVORSCHLAG — NUR VORSCHAU. Das CSS wird ausschliesslich
+       hier im Harness in die Seite gespielt; neu.html bleibt unberuehrt. */
+    farbStat:function(fw){ farbVorschlag(fw); fw.setTab('statistik'); },
+    farbFokus:function(fw){
+      farbVorschlag(fw);
+      fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.matrixPosSetzen(-0.55, 0.45, null, 'harness');
+      fw.matrixPosSetzen(0.35, -0.3, null, 'harness');
+      fw.closeSheet(); fw.fokusLayerPflegen();
+      var lay=fw.document.getElementById('fokusLayer'), fb=fw.document.querySelectorAll('#fokusView .fb')[1];
+      if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
+    },
+    /* v2.4 §9: Statistik lang (alle Module im Bild) */
+    statistikLang:function(fw){ fw.setTab('statistik'); },
+    /* v2.4 §9: Fokusansicht komplett (hoch) */
+    fokusLang:function(fw){
+      var d=fw.document;
+      fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.matrixPosSetzen(-0.55, 0.45, null, 'harness');
+      fw.matrixPosSetzen(-0.15, -0.2, null, 'harness');
+      fw.closeSheet(); fw.fokusLayerPflegen();
+    },
+    /* v2.4 §9: Belohnungsseite komplett (hoch) */
+    belohnungLang:function(fw){ var b=fw.document.getElementById('btnFigur'); if(b) b.click(); fw.closeSheet(); },
     /* v2.3 §1: Freitext mit kompakten Karten (gelebter Bestand) */
     echtFreitext:function(fw){
       var d=fw.document;
@@ -364,6 +404,28 @@ function bestandSchreiben(){
     }
   };
 
+  function farbVorschlag(fw){
+    var st=fw.document.createElement('style');
+    st.textContent=[
+      /* 2 Auswahl = weisse Pille, kein Blau-Akzent */
+      ':root{--ac:#f2f2f3;--blue:#eeeef0;--warn:#8e9197;--purple:#d4d5d9;--pink:#d4d5d9}',
+      /* 4 Jetzt/heute/laeuft = Cyan, eine Tonfamilie */
+      '.kal-jetzt,.zs-jetzt{border-top-color:#6dd3e0!important}.kal-jetzt span,.zs-jetzt span{background:#6dd3e0!important;color:#001316!important}',
+      '.hg-heute{filter:drop-shadow(0 0 7px rgba(109,211,224,.8))!important}',
+      /* 5 Matrixfelder ohne Farbe: links dunkler, rechts heller */
+      '.fb-mx rect:nth-of-type(1),.fb-mx rect:nth-of-type(2){fill:#141517!important}.fb-mx rect:nth-of-type(3),.fb-mx rect:nth-of-type(4){fill:#1d1f22!important}',
+      '.su-mxq.q1,.su-mxq.q2{background:#141517!important}.su-mxq.q3,.su-mxq.q4{background:#1d1f22!important}',
+      '.mxq.q1,.mxq.q2{background:#141517!important}.mxq.q3,.mxq.q4{background:#1d1f22!important}',
+      /* 6 Domaene ueber Form: DFM weisse Linie, Privat graue Linie, Gesamt entfaellt als Farbe */
+      '.an-svg path[stroke="#f08c4b"]{stroke:#6dd3e0!important}',
+      /* 7/8 Wiederholung und Termin ueber Symbol statt Rahmenfarbe */
+      '.krow{border-color:#26282c!important}.kal-b.termin{border-left-color:#f2f2f3!important;background:#17181b!important}',
+      /* 10 Belohnung monochrom */
+      '#statusbar #sZRang .w,#statusbar #sZKonto .w,#statusbar #sZSerie .w{color:#f2f2f3!important}',
+      '#neuFab{color:#0b0b0c!important}'
+    ].join('\n');
+    fw.document.head.appendChild(st);
+  }
   /* ── localStorage-Sequenz (view=storage): drei Punkte, die der Stub nie
      zeigen konnte — Persistenz über Reload, Migration genau einmal, Timer
      überlebt Reload. Läuft über zwei iframe-Generationen. ── */
@@ -445,10 +507,10 @@ function bestandSchreiben(){
             pruef(d.querySelector('[data-susicht="'+v+'"]').className.indexOf('on')>=0,
                   '§6: Sicht „'+v+'" wird nach dem Tap nicht aktiv'); }
         });
-        /* Heute-Sicht traegt die Kette in Reihenfolge */
+        /* Heute-Sicht traegt die Kette — seit v2.4 als Kalender */
         klick('[data-susicht="heute"]');
-        var zeilen=d.querySelectorAll('#suBody .kettenzeile');
-        pruef(zeilen.length>0, '§6: Heute-Sicht zeigt keine Kettenzeilen');
+        var zeilen=d.querySelectorAll('#suBody .kal-b');
+        pruef(zeilen.length>0, '§6 (v2.4): Heute-Sicht zeigt keine Kalenderbloecke');
 
         /* ── §6 · Kettensortierung AUS DER SUCHE heraus ── */
         var vorher=fw.tagesKette().slice();
@@ -502,7 +564,7 @@ function bestandSchreiben(){
                   '§1: Freitext liefert nichts, waehrend eine Karte laeuft');
             ff.value=''; ff.dispatchEvent(new fw.Event('input',{bubbles:true})); }
           /* Eine Kartenzeile in der Suche muss anklickbar sein (kein Schleier) */
-          klick('[data-susicht=\"heute\"]');
+          klick('[data-susicht=\"art\"]');   // v2.4: „Heute" ist der Kalender, Listen stehen in den anderen Sichten
           var reihe=d.querySelector('#suBody [data-kette]');
           pruef(!!reihe, '§1: keine Kartenzeile in der Suche erreichbar');
           /* Zurueck ueber die Leiste */
@@ -603,8 +665,8 @@ function bestandSchreiben(){
         if(fig){ fig.click();
           pruef(d.getElementById('v-belohnung').className.indexOf('on')>=0,
                 '§13: Tap auf die Figur oeffnet den Shop nicht'); }
-        pruef(d.querySelectorAll('#nav button').length===2,
-              '§6: Navigationsleiste traegt nicht genau zwei Ziele');
+        pruef(d.querySelectorAll('#nav button').length===3,
+              '§6 (v2.4): Navigationsleiste traegt nicht Suche · Statistik · Einstellungen');
 
         /* ── §10 · Tagesabschluss: nur abraeumen und exportieren ── */
         fw.setTab('suche');
@@ -764,9 +826,10 @@ function bestandSchreiben(){
               '§2: das Backdrop bleibt nach dem Schliessen liegen');
         /* ── §2 · Ist eine Kartenzeile anklickbar? ── */
         freiMachen();
-        var reihe=d.querySelector('#suBody [data-detail], #suBody [data-fokusstart]');
+        var reihe=d.querySelector('#suBody [data-detail], #suBody [data-fokusstart], #suBody [data-kalkarte]');
         pruef(!!reihe, '§2: keine Kartenzeile in der Suche gerendert');
         if(reihe){
+          reihe.scrollIntoView({block:'center'});   // v2.4: der Kalender ist hoch
           var r=reihe.getBoundingClientRect();
           var treffer=d.elementFromPoint(Math.round(r.left+r.width/2), Math.round(r.top+r.height/2));
           var drin = treffer && (treffer===reihe || reihe.contains(treffer) || (treffer.closest && treffer.closest('#suBody')));
@@ -815,6 +878,7 @@ function bestandSchreiben(){
         var abKnopf=d.querySelector('[data-tagclose]');
         pruef(!!abKnopf, '§3: Abschluss-Knopf fehlt bei ausstehendem Tag');
         if(abKnopf){
+          abKnopf.scrollIntoView({block:'center'});   // die vorige Messung hat den Kalender gescrollt
           var ra=abKnopf.getBoundingClientRect();
           var ta=d.elementFromPoint(Math.round(ra.left+ra.width/2), Math.round(ra.top+ra.height/2));
           pruef(ta===abKnopf || (ta&&abKnopf.contains(ta)) || (ta&&ta.closest&&ta.closest('[data-tagclose]')),
@@ -949,10 +1013,11 @@ function bestandSchreiben(){
         })();
         /* §1 · Tipp auf den Kartenkoerper — Titel, Metazeile, freie Flaeche */
         (function(){
-          klick('[data-susicht="heute"]');
+          klick('[data-susicht="art"]');   // v2.4: Kartenzeilen in einer Listen-Sicht
           var row=d.querySelector('#suBody .krow[data-kid]');
           pruef(!!row, '§1: keine Kartenzeile');
           if(!row) return;
+          row.scrollIntoView({block:'center'});
           var kid=row.dataset.kid;
           var ziele=[
             ['Titel',  row.querySelector('.ktitel, .kmain .t, .kmain b, .kmain')],
@@ -1331,9 +1396,135 @@ function bestandSchreiben(){
             pruef(Math.abs(summe-z.mess)<0.5, 'v2.3 §8: Summe der Felder + unbekannt != Messzeit');
             var mr=mx.getBoundingClientRect();
             var hit2=d.elementFromPoint(Math.round(mr.left+mr.width/2), Math.round(mr.top+mr.height/2));
-            pruef(!(hit2 && hit2.closest && hit2.closest('svg')), 'v2.3 §8: die Matrix faengt Klicks ab ('+beschreib(hit2)+')');
+            /* v2.4 §6: die grosse Matrix IST jetzt ein Einstieg ins Tagebuch */
+            pruef(hit2 && hit2.closest && hit2.closest('svg.fb-mx.klick'), 'v2.4 §6: Tipp in die Matrix trifft sie nicht ('+beschreib(hit2)+')');
+            if(hit2) hit2.dispatchEvent(new fw.MouseEvent('click',{bubbles:true, clientX:Math.round(mr.left+mr.width/2), clientY:Math.round(mr.top+mr.height/2)}));
+            pruef(!!d.querySelector('#sheetBody #tbGedanke') && d.getElementById('sheet').className.indexOf('on')>=0,
+                  'v2.4 §6: Tipp in die Fokus-Matrix oeffnet kein Tagebuch');
+            fw.closeSheet(); freiMachen();
           }
           var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+        })();
+        /* ══ v2.4 · NEUE WEGE — elementFromPoint am gelebten Bestand ══════ */
+        (function(){
+          function mitte(e){ var r=e.getBoundingClientRect(); return {x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2), w:Math.round(r.width), h:Math.round(r.height)}; }
+          function trifft(sel, wie){
+            var e=d.querySelector(sel); if(!e){ pruef(false,'v2.4: '+wie+' fehlt ('+sel+')'); return null; }
+            var m=mitte(e), hit=d.elementFromPoint(m.x,m.y);
+            pruef(hit && (hit===e || e.contains(hit)), 'v2.4: '+wie+' verdeckt von '+beschreib(hit));
+            finding('echt · v2.4 '+wie+' ('+m.x+','+m.y+', '+m.w+'×'+m.h+'): Treffer '+beschreib(hit));
+            return hit;
+          }
+          /* §3 · die zwei schwebenden Knoepfe — Suche und Fokusansicht */
+          freiMachen(); fw.setTab('suche');
+          trifft('#neuFab','Plus (Suche)'); var sf=trifft('#suchFab','Suchknopf (Suche)');
+          var nr=d.getElementById('neuFab').getBoundingClientRect(), sr=d.getElementById('suchFab').getBoundingClientRect();
+          pruef(sr.right<nr.left && Math.abs(sr.top-nr.top)<2, 'v2.4 §3: Suchknopf steht nicht gegenueber dem Plus');
+          fw.setTab('statistik'); trifft('#suchFab','Suchknopf (Statistik)'); trifft('#neuFab','Plus (Statistik)');
+          fw.setTab('suche');
+          if(sf) sf.click();
+          var ov=d.getElementById('suchOverlay'), inp=d.getElementById('suchInput');
+          pruef(ov && !ov.hidden, 'v2.4 §3: Suchknopf oeffnet die Suche nicht');
+          pruef(d.activeElement===inp, 'v2.4 §3: das Suchfeld hat nicht den Fokus (Tastatur)');
+          pruef(inp.value==='' && !d.querySelector('#suchList .krow'), 'v2.4 §3: die Suche ist nicht leer');
+          pruef(d.querySelectorAll('#suchFilter [data-sf]').length===9, 'v2.4 §3: nicht drei Filter mit je drei Werten');
+          inp.value='zaehne'; inp.dispatchEvent(new fw.Event('input',{bubbles:true})); fw.renderSuchTreffer();
+          var tr=d.querySelectorAll('#suchList .krow.kompakt').length;
+          finding('echt · v2.4 §3 Suche „zaehne": '+tr+' Treffer (kompakt)');
+          var neuB=d.querySelector('#suchList [data-suchneu]');
+          pruef(!!neuB, 'v2.4 §3: „Neu anlegen" fehlt');
+          if(neuB){ neuB.scrollIntoView({block:'center'}); var mh=mitte(neuB), hh=d.elementFromPoint(mh.x,mh.y);
+            pruef(hh && neuB.contains(hh), 'v2.4 §3: „Neu anlegen" verdeckt von '+beschreib(hh)); if(hh) hh.click();
+            var ti=d.querySelector('#sheetBody [data-bind="titel"]');
+            pruef(ti && ti.value==='zaehne', 'v2.4 §3: „Neu anlegen" uebernimmt den Suchbegriff nicht ('+(ti&&ti.value)+')');
+            fw.closeSheet(); freiMachen(); }
+          fw.schliesseSuche();
+          /* §1.3 · Mini-Kurve */
+          var bk=trifft('#btnKurve','Mini-Kurve');
+          finding('echt · v2.4 §1.4 Ampel: '+(d.getElementById('btnKurve').dataset.ampel||'—')+' · '+d.getElementById('btnKurve').getAttribute('aria-label'));
+          if(bk){ bk.click();
+            pruef((d.querySelector('.view.on')||{}).id==='v-statistik', 'v2.4 §1.3: Mini-Kurve oeffnet nicht die Statistik');
+            var an=d.getElementById('stTagesverlaufAnker'), ar=an?an.getBoundingClientRect():null;
+            finding('echt · v2.4 §1.3 nach Tipp: Statistik, Tagesverlauf-Anker bei y='+(ar?Math.round(ar.top):'—'));
+            pruef(ar && ar.top>0 && ar.top<FH*0.4, 'v2.4 §1.3: der Tagesverlauf steht nicht oben im Bild'); }
+          /* §1.1/§1.2 · Einstellungen-Tab mit Import oben */
+          var tabE=trifft('#nav button[data-tab="einst"]','Tab Einstellungen');
+          if(tabE) tabE.click();
+          var imp=d.getElementById('einstImport');
+          pruef(!!imp, 'v2.4 §1.2: kein Import-Feld');
+          if(imp){ var mi=mitte(imp), hi=d.elementFromPoint(mi.x,mi.y);
+            pruef(hi===imp, 'v2.4 §1.2: Import-Feld verdeckt von '+beschreib(hi));
+            finding('echt · v2.4 §1.2 Import-Feld oben bei y='+Math.round(imp.getBoundingClientRect().top));
+            imp.value=JSON.stringify({appVersion:'2.4.0', karten:[{id:'harness-einst-imp', domain:'privat', titel:'Import aus Einstellungen'}]});
+            var bi=d.getElementById('btnEinstImport'); var mb=mitte(bi), hb=d.elementFromPoint(mb.x,mb.y);
+            pruef(hb===bi, 'v2.4 §1.2: Importieren verdeckt von '+beschreib(hb)); if(hb) hb.click();
+            var erg=(d.getElementById('einstImportErg')||{}).textContent||'';
+            finding('echt · v2.4 §1.2 Import-Ergebnis: '+erg.slice(0,60));
+            pruef(erg.indexOf('1')>=0 && erg.indexOf('angelegt')>=0, 'v2.4 §1.2: Import aus den Einstellungen wirkt nicht'); }
+          /* §2 · Kalender: Block antippen oeffnet die Karte */
+          fw.setTab('suche'); klick('[data-susicht="heute"]');
+          var kb=d.querySelector('#suBody .kal-b.plan') || d.querySelector('#suBody .kal-b');
+          var kj=d.querySelector('#suBody .kal-jetzt');
+          finding('echt · v2.4 §2 Kalender: '+d.querySelectorAll('#suBody .kal-b').length+' Bloecke ('+
+            ['plan','termin','erledigt','bearbeitet','laeuft'].map(function(a){ return a+' '+d.querySelectorAll('#suBody .kal-b.'+a).length; }).join(' · ')+
+            ') · Jetzt-Linie '+(kj?'ja':'nein'));
+          pruef(!!kj, 'v2.4 §2: keine Jetzt-Linie');
+          if(kb){ kb.scrollIntoView({block:'center'}); var mk=mitte(kb), hk=d.elementFromPoint(mk.x,mk.y);
+            pruef(hk && hk.closest && hk.closest('.kal-b'), 'v2.4 §2: Kalenderblock verdeckt von '+beschreib(hk));
+            var kid=kb.dataset.kalkarte, laufVor=(lsFokus()||{}).karteId||null, laeuftVor=lsLaeuft(); if(hk) hk.click();
+            var fNach=lsFokus()||{};
+            pruef(fw.fokusAngezeigtId()===kid, 'v2.4 §2: Tipp oeffnet die Karte nicht');
+            pruef((fNach.karteId||null)===laufVor && lsLaeuft()===laeuftVor, 'v2.4 §2: Tipp hat die Uhr veraendert');
+            var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click(); }
+          /* §6 · Tagebuch aus der Suche (Knopf) und aus der Statistik (Feld) */
+          freiMachen(); fw.setTab('suche'); klick('[data-susicht="matrix"]');
+          var tbk=d.querySelector('#suBody [data-tagebuch]');
+          if(tbk){ tbk.scrollIntoView({block:'center'}); }
+          var ht=trifft('#suBody [data-tagebuch]','Tagebuch-Knopf (Suche/Matrix)');
+          if(ht){ ht.click(); sheetRuhe();
+            pruef(!!d.querySelector('#sheetBody #tbGedanke'), 'v2.4 §6: Knopf oeffnet kein Tagebuch');
+            fw.closeSheet(); sheetRuheAus(); freiMachen(); }
+          fw.setTab('statistik');
+          var smx=d.querySelector('#statistikBody svg.fb-mx.klick');
+          pruef(!!smx, 'v2.4 §7: Statistik beginnt nicht mit der Matrix');
+          if(smx){
+            var ersteMod=d.querySelector('#statistikBody .anmod');
+            pruef(ersteMod && ersteMod.contains(smx), 'v2.4 §7: die Matrix ist nicht die erste Kachel');
+            var sr2=smx.getBoundingClientRect();
+            /* Feld „Zustaende" (links unten) antippen */
+            var x=Math.round(sr2.left+sr2.width*0.25), y=Math.round(sr2.top+sr2.height*0.75);
+            var hs=d.elementFromPoint(x,y);
+            pruef(hs && hs.closest && hs.closest('svg.fb-mx.klick'), 'v2.4 §7: Matrix-Feld verdeckt von '+beschreib(hs));
+            var z0=fw.matrixZeitFelder(), n0=(fw.matrixSpur()||[]).length;
+            if(hs) hs.dispatchEvent(new fw.MouseEvent('click',{bubbles:true, clientX:x, clientY:y}));
+            sheetRuhe();
+            var go=d.querySelector('#sheetFoot [data-tbgo]');
+            pruef(!!go, 'v2.4 §7: Tipp ins Feld oeffnet kein Tagebuch');
+            if(go){ go.click(); sheetRuheAus(); freiMachen(); }
+            var sp=fw.matrixSpur()||[], e=sp[sp.length-1], z1=fw.matrixZeitFelder();
+            finding('echt · v2.4 §6/§7 Tagebuch aus dem Feld: Spur '+n0+' → '+sp.length+' · Eintrag '+(e?(e.quelle+' ('+e.x+'/'+e.y+')'):'—')+
+                    ' · Zustaende '+Math.round(z0.felder.zustand)+'′ · unbekannt '+Math.round(z0.unbekannt)+'′ → nach dem Eintrag '+
+                    Math.round(z1.felder.zustand)+'′ / '+Math.round(z1.unbekannt)+'′');
+            pruef(e && e.quelle==='tagebuch' && e.x<0 && e.y<0, 'v2.4 §6: Eintrag nicht im Feld „Zustaende" gespeichert');
+            fw.renderStatistik();
+            pruef(!!d.querySelector('#statistikBody .tb-pt'), 'v2.4 §7: Tagebuch-Punkt nicht unterscheidbar');
+          }
+          /* Nebenbefund: Umschalter des Tagesverlaufs wirken jetzt in der Statistik */
+          var dsw=d.querySelector('#statistikBody [data-statdom="dfm"]');
+          if(dsw){ dsw.scrollIntoView({block:'center'}); dsw.click();
+            pruef(!!d.querySelector('#statistikBody [data-statdom="dfm"].on'), 'v2.4: Domaenen-Umschalter der Statistik wirkt nicht');
+            var da=d.querySelector('#statistikBody [data-statdom="alle"]'); if(da) da.click(); }
+          /* §4 · Counter bleibt nach „+" sichtbar */
+          fw.setTab('suche'); klick('[data-susicht="art"]');
+          var tp=d.querySelector('#suBody [data-tickplus]');
+          if(tp){ var ck=tp.dataset.tickplus;
+            for(var i=0;i<3;i++){ var t2=d.querySelector('#suBody [data-tickplus="'+ck+'"]'); if(!t2) break;
+              t2.scrollIntoView({block:'center'}); var m2=mitte(t2), h2=d.elementFromPoint(m2.x,m2.y); if(h2) h2.click(); }
+            var da2=!!d.querySelector('#suBody .krow[data-kid="'+ck+'"]');
+            finding('echt · v2.4 §4 Counter '+ck+' nach 3× „+": sichtbar='+da2);
+            pruef(da2, 'v2.4 §4: Counter nach „+" verschwunden');
+          } else finding('echt · v2.4 §4: kein Counter im Bestand');
+          freiMachen(); fw.setTab('suche'); klick('[data-susicht="heute"]');
         })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
@@ -1371,7 +1562,7 @@ function bestandSchreiben(){
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
-  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag')
+  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf')
      ? bestandSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);

@@ -141,6 +141,21 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .su-plus{flex:0 0 auto;background:var(--bg2);border:1px solid var(--li);border-radius:10px;color:var(--fg);
   font:inherit;font-size:19px;min-width:44px;min-height:44px;line-height:1}
 .su-swipe{touch-action:pan-y}
+/* §2 (v2.4.0): Kalender der Sicht „Heute" */
+.kal{position:relative;margin:4px 12px 12px 50px}
+.kal-std{position:absolute;left:0;right:0;height:0;border-top:1px solid var(--line);pointer-events:none}
+.kal-std span{position:absolute;left:-46px;top:-8px;width:38px;text-align:right;font-size:11px;color:var(--mut2);font-variant-numeric:tabular-nums}
+.kal-b{position:absolute;overflow:hidden;border-radius:10px;padding:3px 8px;background:var(--card2);border:1px solid var(--line);
+  border-left:3px solid var(--mut2);cursor:pointer;display:flex;flex-direction:column;justify-content:flex-start;min-height:26px}
+.kal-b .kal-t{font-size:12px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kal-b .kal-m{font-size:10px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kal-b.plan{border-style:dashed;border-left-style:solid;background:rgba(255,255,255,.03)}
+.kal-b.termin{border-left-color:var(--blue);background:rgba(79,142,247,.10)}
+.kal-b.erledigt{opacity:.55}
+.kal-b.bearbeitet{border-left-color:var(--mut)}
+.kal-b.laeuft{border:1.5px solid var(--txt);border-left:3px solid var(--txt);background:rgba(255,255,255,.10);box-shadow:0 0 14px rgba(255,255,255,.12)}
+.kal-jetzt{position:absolute;left:-8px;right:0;height:0;border-top:2px solid var(--bad);pointer-events:none;z-index:3}
+.kal-jetzt span{position:absolute;left:-44px;top:-8px;font-size:10px;font-weight:700;color:#fff;background:var(--bad);border-radius:4px;padding:0 4px}
 /* §2 (v2.2.0): Domaene und Art als zwei schmale Segment-Leisten; der
    Erledigt-Filter sitzt rechts neben der Domaene und schneidet nichts ab. */
 .su-filter{display:flex;flex-direction:column;gap:6px;padding:0 12px 8px}
@@ -154,6 +169,9 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
   color:var(--mut);font-size:12px;white-space:nowrap}
 .su-erl2.on{background:var(--ok);border-color:var(--ok);color:#06210f;font-weight:700}
 .su-aktiv{color:var(--blue);opacity:1}
+.su-tagebuch{display:block;width:calc(100% - 24px);margin:0 12px 8px;min-height:44px;border:1px solid var(--line);
+  border-radius:12px;background:var(--card2);color:var(--txt);font-size:13px;font-weight:600}
+.st-mx .fb-mx{max-width:420px;margin:0 auto}
 .su-mxzurueck{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;color:var(--blue);font-size:13px;font-weight:600}
 /* §4 (v2.3.0): der Werkzeug-Vorschlag steht als Zeile ueber der Liste */
 .su-vorschlag{margin:0 12px 6px;padding:8px 10px;border:1px solid var(--ok);border-radius:10px;
@@ -187,6 +205,11 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .tb-figur img{width:32px;height:32px;border-radius:50%;object-fit:cover;object-position:top center;
   border:1.5px solid var(--li);background:var(--bg2)}
 .tb-zahn{background:none;border:0;color:var(--fg);opacity:.6;font-size:17px;min-width:44px;min-height:44px}
+/* §1.3/§1.4 (v2.4.0): Mini-Tageskurve mit Ampel — 44 px Tapflaeche */
+.tb-kurve{flex:none;min-width:56px;min-height:44px;padding:0 4px;background:none;border:0;display:flex;align-items:center;justify-content:center}
+.tb-kurve svg{display:block;pointer-events:none}
+.tb-kurve{--amp:var(--mut2)}
+.tb-kurve.gruen{--amp:var(--ok)} .tb-kurve.gelb{--amp:#f2d24b} .tb-kurve.orange{--amp:#f08c4b} .tb-kurve.rot{--amp:var(--bad)}
 /* §6: Die laufende Karte liegt ÜBER der Suche */
 /* Der Layer liegt ueber der SUCHE, nicht ueber dem Kopf: Timer, Figur und
    Zahnrad bleiben erreichbar, solange eine Karte laeuft. */
@@ -208,6 +231,12 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #neuFab[hidden]{display:none}
 /* In der Fokusansicht wandert das Plus ueber den Layer (der bei 200 liegt). */
 body.fokusOffen #neuFab{z-index:201}
+/* §3 (v2.4.0): Suchknopf spiegelbildlich zum Plus, gleiche Hoehe, gleiche Ebene */
+#suchFab{position:fixed;left:16px;bottom:calc(56px + var(--sab) + 14px);z-index:199;
+  width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:#fff;
+  font-size:22px;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+body.fokusOffen #suchFab{z-index:201}
+.such-filter{padding:10px 0 0}
 .mx-tag{font-size:10px;opacity:.7}
 /* §1 (v2.0.1): Weg-Knopf der Fokusansicht — 44px, oben links in der Karte */
 /* §1 (v2.1.0) · Abschluss in einem Durchgang */
@@ -860,6 +889,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .such-x{flex:none;background:transparent;border:none;color:var(--blue);font-size:14px;font-weight:700;padding:6px 8px}
 .such-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:10px}
 .such-leer{color:var(--mut);text-align:center;padding:24px;font-size:14px}
+.such-neu{display:block;width:100%;min-height:48px;margin:10px 0 24px;border-radius:12px}
 .such-row{display:flex;align-items:stretch;gap:4px;background:var(--card2);border:1px solid var(--line);border-radius:11px;margin-bottom:7px;overflow:hidden}
 .such-main{flex:1;min-width:0;padding:9px 6px 9px 11px;cursor:pointer}
 .such-t{font-size:14px;font-weight:700;overflow-wrap:anywhere;line-height:1.25}
@@ -937,6 +967,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .fbk-bar.mitmarke{margin-bottom:16px}
 .fbk-zz{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-bottom:7px}
 .fb-mx{display:block;pointer-events:none;width:100%;height:auto}
+/* §6 (v2.4.0): die grossen Matrizen sind ein Einstieg ins Tagebuch */
+.fb-mx.klick{pointer-events:auto;cursor:crosshair;-webkit-tap-highlight-color:rgba(255,255,255,.08)}
+.fb-mx.klick *{pointer-events:none}
+.an-legend i.rhombus{width:8px;height:8px;border:1.5px solid var(--txt);background:none;transform:rotate(45deg);border-radius:0}
 .fb-kurve{pointer-events:none;margin:2px 0 2px}
 .fb-kurve svg{width:100%;height:auto;display:block}
 /* §10 (v2.3.0): In der Kachel steht die KURVE — die Bedienelemente der
@@ -944,6 +978,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
    und waeren tote Knoepfe; ihre Ueberschrift doppelt die Kachelzeile. */
 .fb-kurve .card{background:none;border:0;padding:0;margin:0}
 .fb-kurve .card>h3,.fb-kurve .statfilter{display:none}
+/* §8 (v2.4.0): Statistik-Modul in einer Kachel — dessen Kopf doppelt die Kachelzeile */
+.fb-modul .anmod{background:none;border:0;padding:0;margin:0}
+.fb-modul .anmod-h{display:none}
 .fb-rechnung{font-size:10px;color:var(--mut);margin-top:7px;line-height:1.4}
 .fb-rechnung.gut{color:var(--ok)}
 /* ══ §4 (v2.2.0) · Belohnungsseite — drei Bereiche, Kachel-Prinzip ══ */
@@ -1291,6 +1328,75 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 #toast{position:fixed;left:50%;bottom:calc(84px + var(--sab));transform:translateX(-50%) translateY(20px);z-index:320;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:all .25s;max-width:88vw;text-align:center}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 #konfetti{position:fixed;inset:0;z-index:310;pointer-events:none}
+
+/* ══ §9 (v2.4.0) · FORMENSPRACHE NACH SLEEP CYCLE ═════════════════════
+   Schwarzer Grund, neutrale Grautoene fuer Flaechen, grosse Radien, ruhige
+   Abstaende. Datengrafik in Weiss/Grau; Bedeutungsfarben (Matrixfelder,
+   Ampel/Trend, Domaenen) bleiben vorlaeufig — das System kommt mit §10. */
+:root{ --bg:#000000; --card:#111214; --card2:#17181b; --line:#26282c; --mut:#9a9ca2; --mut2:#63666c; --txt:#f2f2f3; }
+body{background:var(--bg)}
+.anmod{background:var(--card);border:0;border-radius:22px;padding:18px 16px 16px;margin-bottom:18px}
+.anmod-h{align-items:center;margin-bottom:2px}
+.anmod-h .ic{display:none}
+.anmod-h h4{flex:1 1 auto;min-width:0;font-size:22px;font-weight:400;letter-spacing:-.01em}
+.anmod-sub{font-size:12px;color:var(--mut);margin-bottom:12px}
+.anmod .hint,.an-hint{font-size:11px;color:var(--mut);line-height:1.4;margin-top:6px}
+.an-legend{font-family:inherit;font-size:11px;gap:6px 14px}
+.an-legend i{border-radius:50%}
+.fbk{background:var(--card);border:0;border-radius:20px;padding:12px 14px 14px}
+.fb-kacheln{gap:10px}
+.fbk-h{font-size:12px;color:var(--mut)}
+.fbk-w b{font-size:24px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:6px}
+.fbk-w.rechts b{justify-content:flex-end}
+.fb-kacheln>.fbk:not(.voll) .fbk-w b{font-size:20px}
+/* Balken: gerundet, weicher Verlauf; Ziel/Schnitt gestrichelt */
+.fbk-bar{height:12px;border-radius:6px;background:#26282c}
+.fbk-bar i{border-radius:6px;background:linear-gradient(90deg,#6f7278,#f2f2f3)}
+.fbk-bar i.gut{background:linear-gradient(90deg,#9fa2a8,#ffffff);box-shadow:0 0 10px rgba(255,255,255,.35)}
+.fbk-bar i.hell{background:rgba(255,255,255,.16)}
+.fbk-bar u{width:0;margin-left:0;background:none;border-left:2px dashed #c9cace;top:-5px;bottom:-5px}
+/* Grosse Zahl + Trendpfeil */
+.gz{min-width:0}
+.gz-w{display:flex;align-items:center;gap:8px}
+.gz-w b{font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.05;white-space:nowrap}
+.gz span{display:block;font-size:12px;color:var(--mut);margin-top:3px;line-height:1.35}
+.gz-reihe{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;margin:6px 0 14px}
+.trend{flex:none;display:inline-block;vertical-align:middle}
+.fbk-held .fbk-r{gap:16px}
+.fbk-held .gz-w b{font-size:34px}
+/* Histogramm */
+.hg{margin-top:14px;background:#0b0c0d;border-radius:18px;padding:12px 12px 8px}
+.hg-kopf{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;margin-bottom:6px}
+.hg-du{display:flex;align-items:center;gap:6px;font-weight:600;white-space:nowrap}
+.hg-avg{color:var(--mut);font-size:11px;text-align:right}
+.hg-svg{display:block;overflow:visible}
+.hg-achse{display:flex;justify-content:space-between;font-size:11px;color:var(--mut2);margin-top:4px;font-variant-numeric:tabular-nums}
+/* Karten allgemein: groessere Radien, ruhiger */
+.card{border-radius:20px}
+.avcard{border-radius:22px;border:0}
+.bw-kat{border:0;border-radius:20px}
+.st-kpi{background:var(--card2);border:0;border-radius:14px}
+.kal-b{border-radius:12px}
+.zs{background:var(--card);border:0;border-radius:20px}
+.zs-seg{border-radius:14px}
+
+/* §9 (v2.4.0) · Kopfleiste und Umschalter neutral; aktiv = weisse Pille */
+#topbar{background:#000}
+#statusbar{background:#000}
+#statusbar .sb-bar{background:#1c1d20}
+#nav{background:rgba(10,10,11,.96);border-top:1px solid #1d1e21}
+#nav button.on{color:var(--txt)}
+.segmini button,.su-seg button{border-color:#2a2c30}
+.segmini button.on,.su-seg button.on{background:#f2f2f3;color:#0b0b0c;border-color:#f2f2f3}
+.su-s{background:var(--card2);border-color:#2a2c30}
+.su-s.on{background:#f2f2f3;border-color:#f2f2f3;color:#0b0b0c}
+.su-seg{background:var(--card2);border-color:#2a2c30;border-radius:999px}
+.su-erl2{border-radius:999px}
+/* Statistik-Karten im Modul: keine Karte in der Karte */
+.anmod .card{background:none;border:0;padding:0;margin:4px 0 0;border-radius:0}
+.anmod .card>h3{font-size:13px;font-weight:500;color:var(--mut)}
+.an-leer{border-radius:16px}
+#suchOverlay{background:rgba(0,0,0,.95)}
 </style>
 </head>
 <body>
@@ -1306,7 +1412,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
   <button class="tb-figur" id="btnFigur" aria-label="Belohnung und Shop"><img id="tbFigurImg" alt=""></button>
   <!-- Einstellungen sind kein Navigationsziel mehr (§6: zwei Ziele) — sie
        bleiben über das Zahnrad erreichbar. -->
-  <button class="tb-zahn" id="btnEinst" aria-label="Einstellungen">⚙︎</button>
+  <!-- §1.3 (v2.4.0): Wo das Zahnrad sass, steht die Mini-Tageskurve mit Ampel.
+       Die Einstellungen sind der dritte Tab. -->
+  <button class="tb-kurve grau" id="btnKurve" aria-label="Tagesverlauf — heute gegen den typischen Tag"></button>
 </div>
 <!-- §1 (v1.10.0): Statusleiste in ZWEI Zeilen — Balken volle Breite, darunter
      fünf gleich breite Zellen. Die ganze Leiste ist EIN Tap-Ziel (Sheet §2). -->
@@ -1386,10 +1494,13 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
      global ueber allem — ueber dem Fokus-Layer (200) und unter den Sheets
      (201), damit ein offener Dialog es sauber verdeckt. -->
 <button id="neuFab" aria-label="Neue Karte">＋</button>
+<!-- §3 (v2.4.0): der Suchknopf — gegenueber dem Plus -->
+<button id="suchFab" aria-label="Volltextsuche">🔍</button>
 
 <nav id="nav">
   <button data-tab="suche" class="on"><span class="ic">🔍</span>Suche</button>
   <button data-tab="statistik"><span class="ic">📊</span>Statistik</button>
+  <button data-tab="einst"><span class="ic">⚙︎</span>Einstellungen</button>
 </nav>
 
 <div id="backdrop"></div>
@@ -1407,6 +1518,7 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
     <input id="suchInput" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Karten suchen …">
     <button id="suchClose" class="such-x">Abbrechen</button>
   </div>
+  <div id="suchFilter" class="su-filter such-filter"></div>
   <div id="suchList" class="such-list"></div>
 </div>
 
@@ -1429,9 +1541,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.3.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.3.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-23-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.4.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.4.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-24-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -4094,6 +4206,113 @@ function renderFokus(){
    verschiedene Fragen, und deshalb sind es drei Blöcke und nicht einer:
    was bringt DAS hier · wo stehe ich HEUTE · was bewege ich GERADE.
    ══════════════════════════════════════════════════════════════════════ */
+/* ══ §9 (v2.4.0) · FORMENSPRACHE NACH SLEEP CYCLE — die Bausteine ═════
+   Uebernommen wird die Form, nicht die Marke: grosse Zahl mit kleiner
+   Beschriftung und Trendpfeil im gefuellten Kreis · Hauptwert als Ring mit
+   Prozent in der Mitte · gestrichelte Linie fuer Ziel/Durchschnitt · weiche
+   Kurven mit Kreisen als Datenpunkten · gerundete Balken mit weichem Verlauf
+   · Verteilung als Histogramm, der heutige Wert als leuchtende Saeule.
+   Farbe in diesem Schritt NEUTRAL (Weiss/Grau). Bedeutungsfarben (Matrix-
+   felder, Ampel/Trend, Domaenen im Tagesverlauf) bleiben vorlaeufig — das
+   endgueltige System kommt mit §10. Keine neue Kennzahl. */
+let _svgId=0;
+function svgId(p){ _svgId=(_svgId+1)%100000; return (p||'g')+_svgId; }
+/* Monotone kubische Interpolation (Fritsch–Carlson) — weich, ohne ueber die
+   Datenpunkte hinaus zu schwingen (kumulierte Kurven bleiben steigend).
+   pts: [{x,y}] in Pixeln, x aufsteigend. */
+function glattPfad(pts){
+  const p=(pts||[]).filter(q=>q && Number.isFinite(q.x) && Number.isFinite(q.y));
+  if(!p.length) return '';
+  if(p.length<3) return p.map((q,i)=>(i?'L':'M')+q.x.toFixed(1)+' '+q.y.toFixed(1)).join(' ');
+  const n=p.length, dx=[], dy=[], m=[], t=[];
+  for(let i=0;i<n-1;i++){ dx[i]=p[i+1].x-p[i].x; dy[i]=p[i+1].y-p[i].y; m[i]=dx[i]!==0?dy[i]/dx[i]:0; }
+  t[0]=m[0]; t[n-1]=m[n-2];
+  for(let i=1;i<n-1;i++) t[i]=(m[i-1]*m[i]<=0)?0:(m[i-1]+m[i])/2;
+  for(let i=0;i<n-1;i++){
+    if(m[i]===0){ t[i]=0; t[i+1]=0; continue; }
+    const a=t[i]/m[i], b=t[i+1]/m[i], s=a*a+b*b;
+    if(s>9){ const k=3/Math.sqrt(s); t[i]=k*a*m[i]; t[i+1]=k*b*m[i]; }
+  }
+  let d='M'+p[0].x.toFixed(1)+' '+p[0].y.toFixed(1);
+  for(let i=0;i<n-1;i++){
+    const h=dx[i]/3;
+    d+=' C'+(p[i].x+h).toFixed(1)+' '+(p[i].y+t[i]*h).toFixed(1)+' '+
+         (p[i+1].x-h).toFixed(1)+' '+(p[i+1].y-t[i+1]*h).toFixed(1)+' '+
+         p[i+1].x.toFixed(1)+' '+p[i+1].y.toFixed(1);
+  }
+  return d;
+}
+/* Trendpfeil im gefuellten Kreis: aufwaerts besser, abwaerts schlechter.
+   r = relative Abweichung; ±5 % gilt als „gleich" (Pfeil nach rechts, grau). */
+function trendRichtung(r){ if(r==null || !Number.isFinite(r)) return null; return r>0.05?'auf':(r<-0.05?'ab':'gleich'); }
+function trendKreis(r, titel){
+  const t=trendRichtung(r); if(!t) return '';
+  const fill= t==='auf'?'var(--ok)':(t==='ab'?'var(--bad)':'var(--mut2)');
+  const pfeil= t==='auf' ? 'M7 13 L13 7 M8.5 7 H13 V11.5'
+             : t==='ab'  ? 'M7 7 L13 13 M8.5 13 H13 V8.5'
+             :             'M6 10 H14 M10.5 6.5 L14 10 L10.5 13.5';
+  return '<svg class="trend '+t+'" width="20" height="20" viewBox="0 0 20 20" aria-label="'+esc(titel||'')+'" role="img">'+
+    '<circle cx="10" cy="10" r="10" fill="'+fill+'"/>'+
+    '<path d="'+pfeil+'" fill="none" stroke="#0b0b0c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+/* Grosse Zahl, kleine Beschriftung darunter, Trendpfeil daneben. */
+function grossZahl(wert, label, r, titel){
+  return '<div class="gz"><div class="gz-w"><b>'+wert+'</b>'+trendKreis(r, titel)+'</div>'+
+         (label?'<span>'+label+'</span>':'')+'</div>';
+}
+/* Normal zur selben Uhrzeit — dieselben Bausteine wie die Ampel (§1.4),
+   hier je Domaene und ueber „dein Schnitt, letzte 4 Wochen" (28 Kalender-
+   tage, Werktag gegen Werktag, Wochenende gegen Wochenende). */
+function normalZurUhrzeit(dom){
+  const iv=S.intraday||[];
+  const nowIso=jetztIso(), heuteF=belFensterDatum(nowIso), nowX=belX(nowIso);
+  const fn=belTagFenster(heuteF), von=fn.von;
+  const heuteWE=istWochenendTag(heuteF), grenze=anVorTage(heuteF,28);
+  const tage={}; iv.forEach(e=>{ if(e.ts && num(e.punkte)>0) tage[belFensterDatum(e.ts)]=true; });
+  const vgl=Object.keys(tage).filter(d=>d<heuteF && d>=grenze && istWochenendTag(d)===heuteWE && !tagIstUrlaub(d));
+  const kHeute=belTagKurve(heuteF, dom||'alle', von);
+  const live=tagOffen() ? (dom && dom!=='alle' ? Math.max(0,tagesPunkteDomain(dom))
+                          : Math.max(0,tagesPunkteDomain('dfm'))+Math.max(0,tagesPunkteDomain('privat'))) : 0;
+  const ist=Math.max(kHeute[kHeute.length-1].p, live);
+  if(vgl.length<AMPEL_MIN_TAGE) return { ist, norm:null, r:null, n:vgl.length };
+  const norm=vgl.map(d=>belKurveWert(belTagKurve(d, dom||'alle', von), nowX)).reduce((a,b)=>a+b,0)/vgl.length;
+  return { ist, norm, r:(norm>=AMPEL_MIN_NORM ? ist/norm-1 : null), n:vgl.length };
+}
+/* Histogramm: Verteilung aus gerundeten Saeulen, der heutige Wert als
+   leuchtende Saeule. werte = Vergangenheit (dein Schnitt, 4 Wochen). */
+function histogrammHtml(werte, heute, opt){
+  opt=opt||{};
+  const v=(werte||[]).filter(x=>Number.isFinite(x));
+  if(v.length<3) return '';
+  const alle=v.concat(Number.isFinite(heute)?[heute]:[]);
+  let lo=Math.min.apply(null,alle), hi=Math.max.apply(null,alle);
+  if(hi-lo<1){ hi=lo+1; }
+  const nB=opt.bins||14, bw=(hi-lo)/nB;
+  const bins=new Array(nB).fill(0);
+  v.forEach(x=>{ bins[Math.min(nB-1, Math.floor((x-lo)/bw))]++; });
+  const hb=Number.isFinite(heute) ? Math.min(nB-1, Math.floor((heute-lo)/bw)) : -1;
+  const maxC=Math.max.apply(null,bins)||1;
+  const W=300, H=110, P=4, gap=4, sw=(W-2*P-(nB-1)*gap)/nB, base=H-4;
+  const gid=svgId('hg');
+  let g='<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ffffff" stop-opacity=".08"/></linearGradient></defs>';
+  bins.forEach((c,i)=>{
+    const h=Math.max(6, (c/maxC)*(H-18)), x=P+i*(sw+gap), y=base-h;
+    g+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+sw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+Math.min(6,sw/2).toFixed(1)+'" fill="#2a2c30"/>';
+  });
+  if(hb>=0){
+    const x=P+hb*(sw+gap), h=Math.max(22, (Math.max(bins[hb],1)/maxC)*(H-18)+10), y=base-h;
+    g+='<rect class="hg-heute" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+sw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+Math.min(6,sw/2).toFixed(1)+'" fill="url(#'+gid+')" filter="drop-shadow(0 0 6px rgba(255,255,255,.55))"/>';
+  }
+  const fmt=opt.fmt||(x=>Math.round(x));
+  const schnitt=v.reduce((a,b)=>a+b,0)/v.length;
+  const r = Number.isFinite(heute) && schnitt>0 ? heute/schnitt-1 : null;
+  return '<div class="hg">'+
+    '<div class="hg-kopf"><span class="hg-du">● '+(Number.isFinite(heute)?fmt(heute):'—')+' '+trendKreis(r,'heute gegen deinen Schnitt')+'</span>'+
+    '<span class="hg-avg">'+fmt(schnitt)+' Ø · dein Schnitt, letzte 4 Wochen</span></div>'+
+    '<svg class="hg-svg" viewBox="0 0 '+W+' '+H+'" width="100%" aria-hidden="true">'+g+'</svg>'+
+    '<div class="hg-achse"><span>'+fmt(lo)+'</span><span>'+fmt((lo+hi)/2)+'</span><span>'+fmt(hi)+'</span></div>'+
+    '</div>';
+}
 /* ── v2.1.2 §2 · Grafik-Bausteine: jede Zahl steht NEBEN ihrer Grafik.
    Alle Grafiken sind pointer-events:none — sie fangen keine Klicks. ── */
 function fbZahl(v, stellen){ return (Math.round(num(v)*Math.pow(10,stellen||0))/Math.pow(10,stellen||0)).toString().replace('.',','); }
@@ -4103,16 +4322,34 @@ function fbKachel(titel, grafik, wertHtml, opt){
          '<div class="fbk-r"><div class="fbk-g'+(opt.breit?' breit':'')+'" aria-hidden="true">'+grafik+'</div>'+
          wertHtml+'</div>'+(opt.nach||'')+'</div>';
 }
-function fbWert(zahl, sub, cls){ return '<div class="fbk-w'+(cls?' '+cls:'')+'"><b>'+zahl+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</div>'; }
-/* Ring: Fortschritt gegen ein Ziel (voller Kreis = Ziel). */
-function fbRing(frac, farbe){
-  const f=Math.max(0, Math.min(1, num(frac))), r=17, u=2*Math.PI*r;
-  return '<svg width="44" height="44" viewBox="0 0 44 44">'+
-    '<circle cx="22" cy="22" r="'+r+'" fill="none" stroke="var(--line)" stroke-width="6"/>'+
-    '<circle cx="22" cy="22" r="'+r+'" fill="none" stroke="'+(farbe||'var(--cyan)')+'" stroke-width="6" stroke-linecap="round"'+
-    ' stroke-dasharray="'+(f*u).toFixed(1)+' '+u.toFixed(1)+'" transform="rotate(-90 22 22)"'+(f<=0?' opacity="0"':'')+'/></svg>';
+/* §9 (v2.4.0): r = Abweichung gegen „dein Schnitt, letzte 4 Wochen" → Trendpfeil */
+function fbWert(zahl, sub, cls, r){ return '<div class="fbk-w'+(cls?' '+cls:'')+'"><b>'+zahl+(r!==undefined?trendKreis(r,'gegen deinen Schnitt'):'')+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</div>'; }
+/* Ring: Fortschritt gegen ein Ziel (voller Kreis = Ziel). §9 (v2.4.0):
+   neutraler Verlauf, runde Enden, leuchtender Kopf; opt.mitte = Prozent in
+   der Mitte (Hauptwert), opt.gross = grosse Ausfuehrung. farbe bleibt als
+   Parameter bestehen, wird in diesem Schritt aber neutral gezeichnet. */
+function fbRing(frac, farbe, opt){
+  opt=opt||{};
+  const f=Math.max(0, Math.min(1, num(frac)));
+  const S0=opt.gross?104:(opt.mittel?64:44), sw=opt.gross?9:(opt.mittel?7:6), r=(S0-sw)/2-1, c=S0/2, u=2*Math.PI*r;
+  const gid=svgId('rg');
+  const w=f*2*Math.PI-Math.PI/2, kx=c+r*Math.cos(w), ky=c+r*Math.sin(w);
+  let g='<svg class="ring" width="'+S0+'" height="'+S0+'" viewBox="0 0 '+S0+' '+S0+'">'+
+    '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#8b8e94"/></linearGradient></defs>'+
+    '<circle cx="'+c+'" cy="'+c+'" r="'+r.toFixed(1)+'" fill="none" stroke="#26282c" stroke-width="'+sw+'"/>';
+  if(f>0){
+    g+='<circle cx="'+c+'" cy="'+c+'" r="'+r.toFixed(1)+'" fill="none" stroke="url(#'+gid+')" stroke-width="'+sw+'" stroke-linecap="round"'+
+       ' stroke-dasharray="'+(f*u).toFixed(1)+' '+u.toFixed(1)+'" transform="rotate(-90 '+c+' '+c+')"/>'+
+       '<circle cx="'+kx.toFixed(1)+'" cy="'+ky.toFixed(1)+'" r="'+(sw*0.9).toFixed(1)+'" fill="#ffffff" opacity=".22"/>';
+  }
+  if(opt.mitte!=null){
+    const fs=opt.gross?26:(opt.mittel?16:11);
+    g+='<text x="'+c+'" y="'+(c+fs*0.36).toFixed(1)+'" text-anchor="middle" font-size="'+fs+'" font-weight="700" fill="var(--txt)">'+
+       esc(String(opt.mitte).replace(/%$/,''))+(String(opt.mitte).slice(-1)==='%'?'<tspan font-size="'+Math.round(fs*0.5)+'">%</tspan>':'')+'</text>';
+    if(opt.unter) g+='<text x="'+c+'" y="'+(c+fs*0.36+13).toFixed(1)+'" text-anchor="middle" font-size="10" fill="var(--mut)">'+esc(opt.unter)+'</text>';
+  }
+  return g+'</svg>';
 }
-/* Balken mit optionaler Zielmarke (marke = Anteil 0..1, label darunter). */
 function fbBalken(frac, marke, label, gut){
   const f=Math.max(0, Math.min(1, num(frac)));
   let h='<div class="fbk-bar'+(marke!=null?' mitmarke':'')+'"><i'+(gut?' class="gut"':'')+' style="width:'+(f*100).toFixed(1)+'%"></i>';
@@ -4175,7 +4412,8 @@ function fbWasDieseKarte(k){
      (k.domain==='dfm'?(' × '+(Math.round(geldFaktor(k)*100)/100).toString().replace('.',',')+' Geld'):'')+
      (bonus?(' + '+Math.round(bonus)+' Abhakbonus'):'')+
      ' — gebucht wird nach <b>Ist</b>, der Endwert weicht von der Prognose ab.</div></div>';
-  h+=fbKachel('Anteil am Tagessoll', fbRing(anteil), fbWert(Math.round(anteil*100)+' %', 'der Prognose'), {voll:!bb});
+  h+=fbKachel('Anteil am Tagessoll', fbRing(anteil, null, {mittel:true, mitte:Math.round(anteil*100)+'%'}),
+     fbWert(fmtKurzP(p), 'Prognose von '+fmtKurzP(zielH)), {voll:!bb});
   if(bb) h+=fbKachel('Bewegungsbonus heute', '<div style="width:100%">'+fbBalken(bb/bbMax, null, null, true)+'</div>',
                      fbWert('+'+Math.round(bb), 'von '+Math.round(bbMax)+' P', 'gut'), {breit:true});
   return h+'</div></div>';
@@ -4211,7 +4449,8 @@ function matrixZeitFelder(){
 }
 /* Die grosse Matrix: vier Felder als Flaeche, die Linie durch den Tag,
    Zeit je Feld im Feld. Fasst keine Klicks ab (pointer-events:none). */
-function fbGrosseMatrix(){
+function fbGrosseMatrix(opt){
+  opt=opt||{};
   const W=300, H=240, P=6;
   const X=v=>P+((num(v)+1)/2)*(W-2*P), Y=v=>P+((1-num(v))/2)*(H-2*P);
   const z=matrixZeitFelder();
@@ -4219,7 +4458,8 @@ function fbGrosseMatrix(){
   const jetzt=sp.length?{x:num(sp[sp.length-1].x), y:num(sp[sp.length-1].y)}:null;
   const QF={ablenkung:['rgba(246,109,109,.10)',0,0], zustand:['rgba(242,184,75,.10)',0,1],
             werkzeug:['rgba(62,207,142,.10)',1,0], ziel:['rgba(79,142,247,.12)',1,1]};
-  let g='<svg class="fb-mx" viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Matrix mit der Linie durch den Tag">';
+  // §6/§7 (v2.4.0): klickbar → Tipp in ein Feld oeffnet das Tagebuch dort.
+  let g='<svg class="fb-mx'+(opt.klick?' klick':'')+'" data-tbmatrix="1" data-rand="'+P+'" viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Matrix mit der Linie durch den Tag'+(opt.klick?' — tippen für einen Tagebuch-Eintrag':'')+'">';
   Object.keys(QF).forEach(f=>{
     const q=QF[f], x=P+q[1]*(W-2*P)/2, y=P+q[2]*(H-2*P)/2;
     g+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+((W-2*P)/2).toFixed(1)+'" height="'+((H-2*P)/2).toFixed(1)+'" fill="'+q[0]+'"/>';
@@ -4242,8 +4482,16 @@ function fbGrosseMatrix(){
   }
   sp.forEach((e,i)=>{
     const letzte=i===sp.length-1;
-    g+='<circle cx="'+X(e.x).toFixed(1)+'" cy="'+Y(e.y).toFixed(1)+'" r="'+(letzte?5.5:2.6)+'" fill="'+(letzte?'var(--blue)':'var(--mut2)')+
-       '"'+(letzte?' stroke="var(--txt)" stroke-width="1.5"':'')+' opacity="'+(letzte?1:(0.3+0.5*(i/Math.max(1,sp.length-1)))).toFixed(2)+'"/>';
+    const o=(letzte?1:(0.35+0.5*(i/Math.max(1,sp.length-1)))).toFixed(2);
+    if(e.quelle==='tagebuch'){
+      // §7: Tagebuch-Punkte als Raute — unterscheidbar ohne weitere Farbe
+      const cx=X(e.x), cy=Y(e.y), r=letzte?6.5:4.5;
+      g+='<path class="tb-pt" d="M'+cx.toFixed(1)+' '+(cy-r).toFixed(1)+' L'+(cx+r).toFixed(1)+' '+cy.toFixed(1)+' L'+cx.toFixed(1)+' '+(cy+r).toFixed(1)+' L'+(cx-r).toFixed(1)+' '+cy.toFixed(1)+' Z" '+
+         'fill="none" stroke="var(--txt)" stroke-width="1.6" opacity="'+o+'"/>';
+    } else {
+      g+='<circle cx="'+X(e.x).toFixed(1)+'" cy="'+Y(e.y).toFixed(1)+'" r="'+(letzte?5.5:2.6)+'" fill="'+(letzte?'var(--blue)':'var(--mut2)')+
+         '"'+(letzte?' stroke="var(--txt)" stroke-width="1.5"':'')+' opacity="'+o+'"/>';
+    }
   });
   g+='<text x="'+(P+3)+'" y="'+(H-P-3)+'" font-size="9" fill="var(--mut2)">← weg von</text>'+
      '<text x="'+(W-P-3)+'" y="'+(H-P-3)+'" text-anchor="end" font-size="9" fill="var(--mut2)">hin zu →</text>';
@@ -4253,10 +4501,10 @@ function fbGrosseMatrix(){
 function fbWasIchBewege(k){
   const p=matrixPos();
   const mf=matrixFeldVon(k);
-  const gm=fbGrosseMatrix();
+  const gm=fbGrosseMatrix({klick:true});
   let h='<div class="fb"><div class="fb-h">Was ich gerade bewege</div><div class="fb-kacheln">';
   h+='<div class="fbk voll"><div class="fbk-h">Position im Tag'+(gm.n?' · '+gm.n+' Messungen':'')+'</div>'+
-     '<div aria-hidden="true">'+gm.svg+'</div>'+
+     '<div>'+gm.svg+'</div>'+
      '<div class="fb-rechnung">'+(p
         ? ('Jetzt <b>'+((p.x>0?'+':'')+fbZahl(p.x,2))+' / '+((p.y>0?'+':'')+fbZahl(p.y,2))+'</b> — '+matrixLesart(p.x,p.y)+
            ' · unbekannt: <b>'+Math.round(gm.zeit.unbekannt)+' Min</b> (vor der ersten, nach der letzten Messung und übersprungene Abfragen)')
@@ -4284,13 +4532,21 @@ function fbWoIchStehe(){
   const ofFrac=(of||1)>=20 ? 1 : Math.max(0, Math.min(1, 1-fehlt/spanne));
   const Fs=Math.max(1.4, num(F)*1.1);
   let h='<div class="fb"><div class="fb-h">Wo ich heute stehe</div><div class="fb-kacheln">';
+  // §9 (v2.4.0): der Hauptwert als Ring mit Prozent in der Mitte, daneben die
+  // grosse Zahl mit Trendpfeil gegen „dein Schnitt, letzte 4 Wochen" zur selben Uhrzeit.
+  { const pct=ges.ist/Math.max(1,ges.ziel), nz=normalZurUhrzeit('alle');
+    h+='<div class="fbk voll fbk-held"><div class="fbk-r">'+
+       '<div class="fbk-g" aria-hidden="true">'+fbRing(pct, null, {gross:true, mitte:Math.round(pct*100)+'%', unter:'Tagesziel'})+'</div>'+
+       grossZahl(fmtKurzP(ges.ist), 'von '+fmtKurzP(ges.ziel)+(ges.we?' · Sa+So':'')+(nz.norm!=null?'<br>Schnitt jetzt '+fmtKurzP(nz.norm):''), nz.r, 'gegen deinen Schnitt zur selben Uhrzeit')+
+       '</div></div>'; }
   [['dfm','DFM','var(--blue)'],['privat','Privat','var(--warn)']].forEach(([d,lbl])=>{
     const zi=zielUndIstHeute(d);
     const skala=Math.max(zi.ziel, zi.ist)*1.1;
+    const nz=normalZurUhrzeit(d);
     h+='<div class="fbk voll"><div class="fbk-h">'+lbl+(zi.we?' · Wochenende (Sa+So)':'')+'</div>'+
        '<div class="fbk-r"><div class="fbk-g breit" aria-hidden="true">'+
        fbBalken(zi.ist/skala, zi.ziel/skala, 'Ziel '+fmtKurzP(zi.ziel), zi.ist>=zi.ziel)+'</div>'+
-       fbWert(fmtKurzP(zi.ist), Math.round(zi.ist/Math.max(1,zi.ziel)*100)+' % von '+fmtKurzP(zi.ziel), 'rechts')+'</div></div>';
+       fbWert(fmtKurzP(zi.ist), Math.round(zi.ist/Math.max(1,zi.ziel)*100)+' % von '+fmtKurzP(zi.ziel), 'rechts', nz.r)+'</div></div>';
   });
   h+=fbKachel('Outfit', fbRing(ofFrac, 'var(--purple)'),
      fbWert(of!=null?String(of):'—', (of||1)>=20?'höchste Stufe':(fehlt>0?('noch '+fmtKurzP(fehlt)+' bis '+naechste):('Stufe '+naechste+' erreicht'))));
@@ -4302,9 +4558,12 @@ function fbWoIchStehe(){
   if(kurve){
     h+='<div class="fbk voll"><div class="fbk-h">Tagesverlauf · Soll · Ist · Normaltag</div>'+
        '<div class="fb-kurve" aria-hidden="true">'+kurve+'</div>'+
-       '<div class="fb-rechnung">Gesamt heute <b>'+fmtKurzP(ges.ist)+'</b> von '+fmtKurzP(ges.ziel)+
-       ' · dieselbe Rechnung wie in der Statistik (Tagesverlauf).</div></div>';
+       '<div class="fb-rechnung">Dieselbe Rechnung wie in der Statistik (Tagesverlauf).</div></div>';
   }
+  // §8 (v2.4.0): Belastung — exakt das Modul der Statistik (stBelastung).
+  let bel='';
+  try{ bel=stBelastung(); }catch(e){ bel=''; }
+  if(bel) h+='<div class="fbk voll fb-modul"><div class="fbk-h">Belastung</div>'+bel+'</div>';
   return h+'</div></div>';
 }
 /* ══ §8 · DER ZEITSTRAHL — von oben nach unten ════════════════════════
@@ -5108,7 +5367,74 @@ function renderStatusSheet(){
     return s+'</div>'; })();
   openSheet('Heute', h, '<button class="btn ghost sm" data-close="1">Schließen</button>');
 }
+/* ══ §1.4 (v2.4.0) · DIE AMPEL — Punkte bis jetzt gegen den typischen Tag ══
+   „Typischer Tag" = der Normaltag der Statistik: dieselben Bausteine
+   (belTagKurve + belKurveWert, gemittelt ueber Vergleichstage, abgelesen zur
+   SELBEN Uhrzeit im Fenster von heute). Verglichen wird Werktag mit Werktag
+   und Wochenende mit Wochenende (Urlaubstage raus). Belastbar ist die Basis
+   ab 3 Vergleichstagen UND mindestens 20 P im Normaltag zu dieser Uhrzeit —
+   dieselbe Schwelle wie der Einordnungssatz im Status-Sheet. Sonst grau.
+     gruen  > +20 %   ·  gelb  0 … +20 %  ·  orange  0 … −20 %  ·  rot  < −20 % */
+const AMPEL_MIN_TAGE=3, AMPEL_MIN_NORM=20;
+function ampelStufe(r){
+  if(r==null) return 'grau';
+  return r>0.2 ? 'gruen' : (r>=0 ? 'gelb' : (r>=-0.2 ? 'orange' : 'rot'));
+}
+let _ampelMemo=null, _ampelKey='';
+function tagesAmpel(){
+  const iv=S.intraday||[];
+  const key=iv.length+'|'+Math.floor(Date.now()/30000)+'|'+Math.round(punkteHeuteAnzeige?punkteHeuteAnzeige():0);
+  if(_ampelMemo && _ampelKey===key) return _ampelMemo;
+  const nowIso=jetztIso(), heuteF=belFensterDatum(nowIso), nowX=belX(nowIso);
+  const fn=belTagFenster(heuteF), von=fn.von, bis=Math.max(fn.bis, nowX);
+  const heuteWE=istWochenendTag(heuteF);
+  const tage={}; iv.forEach(e=>{ if(e.ts && num(e.punkte)>0) tage[belFensterDatum(e.ts)]=true; });
+  const vgl=Object.keys(tage).filter(d=>d<heuteF && istWochenendTag(d)===heuteWE && !tagIstUrlaub(d))
+    .sort().reverse().slice(0,14);
+  const kHeute=belTagKurve(heuteF,'alle',von);
+  const live=tagOffen() ? Math.max(0,tagesPunkteDomain('dfm'))+Math.max(0,tagesPunkteDomain('privat')) : 0;
+  const ist=Math.max(kHeute[kHeute.length-1].p, live);
+  kHeute.push({x:Math.max(von,Math.min(nowX,bis)), p:ist});
+  let norm=null, kNorm=null;
+  if(vgl.length>=AMPEL_MIN_TAGE){
+    const kurven=vgl.map(d=>belTagKurve(d,'alle',von));
+    norm=kurven.map(k=>belKurveWert(k,nowX)).reduce((a,b)=>a+b,0)/kurven.length;
+    kNorm=[]; const schritt=Math.max(0.25,(bis-von)/24);
+    for(let x=von;x<=bis+0.001;x+=schritt) kNorm.push({x, p:kurven.map(k=>belKurveWert(k,x)).reduce((a,b)=>a+b,0)/kurven.length});
+  }
+  const belastbar = norm!=null && norm>=AMPEL_MIN_NORM;
+  const r = belastbar ? (ist/norm-1) : null;
+  _ampelMemo={ stufe:ampelStufe(r), r, ist, norm, n:vgl.length, we:heuteWE, kHeute, kNorm, von, bis, nowX, belastbar };
+  _ampelKey=key;
+  return _ampelMemo;
+}
+function ampelKurveSvg(a){
+  const W=52, H=26, P=2;
+  const maxY=Math.max(10, a.ist, a.kNorm ? Math.max.apply(null, a.kNorm.map(p=>p.p)) : 0)*1.08;
+  const span=Math.max(0.5, a.bis-a.von);
+  const X=x=>P+((Math.max(a.von,Math.min(a.bis,x))-a.von)/span)*(W-2*P), Y=p=>H-P-(p/maxY)*(H-2*P);
+  const pfad=pts=>glattPfad(pts.map(q=>({x:X(q.x), y:Y(q.p)})));   // §9: weich
+  const heute=a.kHeute.filter(q=>q.x<=a.nowX+0.001);
+  const letzt=heute[heute.length-1];
+  return '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+
+    (a.kNorm?'<path d="'+pfad(a.kNorm)+'" fill="none" stroke="var(--mut2)" stroke-width="1.2" stroke-dasharray="2.5 2"/>':'')+
+    '<path d="'+pfad(heute)+'" fill="none" stroke="var(--amp)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+    (letzt?'<circle cx="'+X(letzt.x).toFixed(1)+'" cy="'+Y(letzt.p).toFixed(1)+'" r="2.6" fill="var(--amp)"/>':'')+
+    '</svg>';
+}
+function renderAmpelKurve(){
+  const b=el('btnKurve'); if(!b) return;
+  let a=null; try{ a=tagesAmpel(); }catch(e){ a=null; }
+  if(!a){ b.className='tb-kurve grau'; b.innerHTML=''; return; }
+  b.className='tb-kurve '+a.stufe;
+  b.dataset.ampel=a.stufe;
+  b.innerHTML=ampelKurveSvg(a);
+  b.setAttribute('aria-label','Tagesverlauf — '+(a.belastbar
+    ? (Math.round(a.r*100)>0?'+':'')+Math.round(a.r*100)+' % gegen den typischen '+(a.we?'Wochenendtag':'Werktag')
+    : 'noch keine belastbare Vergleichsbasis'));
+}
 function renderStatusbar(){
+  renderAmpelKurve();
   const bar=el('statusbar'); if(!bar) return;
   if(!tagOffen()){ bar.hidden=true; return; }
   bar.hidden=false;
@@ -5816,6 +6142,10 @@ function tagAbschlussFinalisieren(){
     startTs:S.tag.startTs, endeTs:S.tag.endeTs, akku:S.tag.akku,
     punkteBilanz:S.tag.punkteBilanz, abzuege:num(S.tag.abzuegeBilanz),
     routinenBilanz:S.tag.routinenBilanz||[], zeit:tagesZeitAggregat(S.tag.tagId), luecke:false,
+    // §11 (v2.4.0): die Positions-Spur bleibt mit dem Tag erhalten — sonst
+    // erreichte ein Tagebuch-Eintrag den Chat nicht, wenn vor dem Sync der
+    // neue Tag begann. Additiv, rein lesend im Export.
+    matrixSpur:(Array.isArray(S.tag.matrixSpur)?S.tag.matrixSpur.slice():[]),
     log:(S.tag.log||[]).slice(), akkuVerlauf:(S.tag.akkuVerlauf||[]).slice(),
     streak:S.tag.streak, erledigtHeute:num(S.tag.erledigtHeute)
   });
@@ -7371,6 +7701,35 @@ function syncKartenAuswahl(voll){
     return !isFinite(lb) || lb>t0;
   });
 }
+/* ══ §11 (v2.4.0) · POSITIONS-SPUR IM EXPORT ══════════════════════════
+   Additiv, Vertrag bleibt 2.0. Jeder Eintrag bekommt dieselben Felder:
+   quelle ('tagebuch' | 'abfrage' | 'uebersprungen') · gedanke · wirkung ·
+   mittel · istGut (bool) · akku. Leere optionale Felder als "", nie weg.
+   Der heutige Tag geht wie bisher ganz mit; aus vergangenen Tagen (Historie)
+   alles, was juenger ist als der letzte BESTAETIGTE Sync — so erreicht ein
+   Tagebuch-Eintrag den Chat auch, wenn dazwischen der Tag gewechselt hat. */
+function exportSpurEintrag(e){
+  const o=Object.assign({}, e);
+  o.quelle = e.quelle || (e.uebersprungen ? 'uebersprungen' : 'abfrage');
+  o.gedanke = e.gedanke!=null ? String(e.gedanke) : '';
+  o.wirkung = e.wirkung!=null ? String(e.wirkung) : '';
+  o.mittel  = e.mittel!=null ? String(e.mittel) : '';
+  o.istGut  = !!e.istGut;
+  o.akku    = (e.akku!=null && e.akku!=='') ? num(e.akku) : '';
+  return o;
+}
+function spurFuerExport(){
+  const heute=(S.tag && Array.isArray(S.tag.matrixSpur)) ? S.tag.matrixSpur : [];
+  const seit=S.meta && S.meta.letzterSyncBestaetigtTs;
+  const t0=seit ? Date.parse(seit) : -Infinity;
+  const frueher=[];
+  (S.historie||[]).forEach(h=>{
+    if(!h || !Array.isArray(h.matrixSpur)) return;
+    if(S.tag && h.tagId===S.tag.tagId) return;
+    h.matrixSpur.forEach(e=>{ if(e && e.ts && Date.parse(e.ts)>t0) frueher.push(e); });
+  });
+  return frueher.concat(heute).map(exportSpurEintrag);
+}
 function syncExport(typ){
   const voll = (typ==='voll' || typ==='vollexport');
   const gewaehlt=syncKartenAuswahl(voll);
@@ -7396,7 +7755,10 @@ function syncExport(typ){
     kettenHistorieHeute: (S.meta.kettenHistorie && S.meta.kettenHistorie[heuteApp()]) ? S.meta.kettenHistorie[heuteApp()] : [],
     // §1.2 (v2.0.0): die Positions-Spur des Tages — x/y mit Zeitstempel,
     // inklusive der übersprungenen Abfragen (sie sind selbst ein Befund).
-    matrixSpur: (S.tag && Array.isArray(S.tag.matrixSpur)) ? S.tag.matrixSpur.slice() : [],
+    // §11 (v2.4.0): jeder Eintrag traegt quelle · gedanke · wirkung · mittel ·
+    // istGut · akku (leere optionale Felder als ""), dazu die noch nicht
+    // bestaetigten Eintraege VERGANGENER Tage (Tagebuch nach Tageswechsel).
+    matrixSpur: spurFuerExport(),
     matrixAbfragen: num(S.tag&&S.tag.matrixAbfragen),
     matrixUebersprungen: num(S.tag&&S.tag.matrixUebersprungen),
     ziele: { dfm:num(S.settings.tagesZielDfm,5000), privat:num(S.settings.tagesZielPrivat,800),
@@ -7780,6 +8142,24 @@ function syncImport(text){
    Der Zeitstempel wird ERST nach der Bestätigung fortgeschrieben. Geht ein
    Sync verloren, sammelt sich alles an, bis es wirklich angekommen ist. ══ */
 let syncVoll=false;
+/* §1.2 (v2.4.0): Das Import-Ergebnis steht jetzt an ZWEI Stellen (Sync-Sheet
+   und Import-Feld oben in den Einstellungen) — eine Formatierung fuer beide. */
+function importErgebnisHtml(res){
+  if(res.fehler) return '<div class="card" style="border-color:var(--bad)"><p class="d" style="color:var(--bad)">'+esc(res.fehler)+'</p></div>';
+      let kz='<b>'+res.neu+'</b> angelegt';
+      if(res.neu>0) kz+=' (DFM '+res.neuDfm+' · Privat '+res.neuPrivat+')';
+      kz+=' · <b>'+res.upd+'</b> aktualisiert · <b>'+res.arch+'</b> archiviert.';
+      if(res.gruppenNeu||res.gruppenUpd) kz+='<br>Gruppen: <b>'+num(res.gruppenNeu)+'</b> angelegt · <b>'+num(res.gruppenUpd)+'</b> aktualisiert.';
+      if(res.ketteGesetzt!=null) kz+='<br>Tageskette gesetzt: <b>'+res.ketteGesetzt+'</b> Einträge.';
+      if(res.wiederhergestellt) kz+='<br><span style="color:var(--gut)">♻︎ <b>Wiederherstellung</b>: '+
+        Object.keys(res.wiederhergestellt).map(f=>f+' '+res.wiederhergestellt[f]).join(' · ')+'</span>';
+      if(res.rahmenGesetzt!=null) kz+='<br>🕘 Tagesrahmen übernommen: <b>'+res.rahmenGesetzt+'</b> Segmente'+(tagOffen()?' (ersetzt ab jetzt, Gemessenes unberührt)':'')+'.';
+      if(res.korrigiert) kz+='<br><span style="color:var(--cyan)">§5.7-Korrekturen angewandt: <b>'+res.korrigiert+'</b> Felder (Protokoll in den Einstellungen).</span>';
+      if(res.uebersprungen && res.uebersprungen.length)
+        kz+='<br><span style="color:var(--warn)">Übersprungen ('+res.uebersprungen.length+'):</span><br>'+
+          res.uebersprungen.map(u=>'<span style="color:var(--warn)">· '+esc(u.was)+' — '+esc(u.grund)+'</span>').join('<br>');
+  return '<div class="card" style="border-color:'+((res.uebersprungen&&res.uebersprungen.length)?'var(--warn)':'var(--ok)')+'"><p class="d">'+kz+'</p></div>';
+}
 function oeffneSync(){ syncVoll=false; renderSyncSheet(); }
 function renderSyncSheet(){
   const paket=syncExport(syncVoll?'voll':'delta');
@@ -7917,6 +8297,13 @@ function resetKarten(){
 function renderEinst(){
   const s=S.settings;
   let h='';
+  // §1.2 (v2.4.0): Die Einstellungen oeffnen mit dem IMPORT — Paket einfuegen,
+  // importieren, fertig. Export, Delta, Vollexport bleiben hinter „Sync".
+  h+='<div class="card einst-import"><h3>Import</h3>'+
+     '<textarea id="einstImport" placeholder="Paket aus dem Chat hier einfügen …" '+
+       'style="min-height:96px;width:100%;font-family:ui-monospace,monospace;font-size:11px"></textarea>'+
+     '<div class="btnrow"><button class="btn prim" id="btnEinstImport" style="flex:1;min-height:44px">Importieren</button></div>'+
+     '<div id="einstImportErg"></div></div>';
   h+='<div class="card"><h3>Daten &amp; Sync</h3><p class="d">Sync mit dem Claude-Chat (nur DFM, Copy-Paste) und lokales Backup.</p>'+
     '<div class="btnrow"><button class="btn sm prim" id="btnSync">⇄ Sync (DFM)</button></div>'+
     '<div class="btnrow"><button class="btn sm" id="btnBackup">⬇︎ Backup</button></div>'+
@@ -9262,7 +9649,8 @@ function reinRausBalkenHtml(n, dom){
     const farbe=balanced?'var(--warn)':(r.raus>r.rein?'var(--ok)':'var(--bad)');
     if(haupt>0){
       const hh=Math.max(2,(haupt/maxV)*76);
-      g+='<rect x="'+x.toFixed(1)+'" y="'+(96-hh).toFixed(1)+'" width="'+bw+'" height="'+hh.toFixed(1)+'" rx="2" fill="'+farbe+'"/>';
+      // §9 (v2.4.0): runde Enden, weicher Verlauf nach unten (Bedeutungsfarbe bleibt)
+      g+='<rect x="'+x.toFixed(1)+'" y="'+(96-hh).toFixed(1)+'" width="'+bw+'" height="'+hh.toFixed(1)+'" rx="'+Math.min(bw/2,6).toFixed(1)+'" fill="'+farbe+'" style="mask:linear-gradient(#000,rgba(0,0,0,.35));-webkit-mask:linear-gradient(#000,rgba(0,0,0,.35))"/>';
       if(!balanced){ const anderer=Math.min(r.rein,r.raus);
         if(anderer>0) g+='<line x1="'+x.toFixed(1)+'" y1="'+Y(anderer).toFixed(1)+'" x2="'+(x+bw).toFixed(1)+'" y2="'+Y(anderer).toFixed(1)+'" stroke="'+(r.raus>r.rein?'var(--bad)':'var(--ok)')+'" stroke-width="2"/>'; }
     }
@@ -9417,8 +9805,11 @@ function belTagesDiagramm(){
   const X=x=>pL+((Math.max(vonX,Math.min(endX,x))-vonX)/spanX)*(W-pL-pR), Y=p=>pT+(1-p/maxY)*(H-pT-pB);
   function poly(pts,color,width,dash,clip){ if(!pts||!pts.length) return '';
     const seg=clip?pts.filter(p=>p.x<=bisX+0.001):pts; if(seg.length<1) return '';
-    const d=seg.map((p,i)=>(i?'L':'M')+X(p.x).toFixed(1)+' '+Y(p.p).toFixed(1)).join(' ');
-    return '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+width+'"'+(dash?' stroke-dasharray="'+dash+'" opacity="0.5"':'')+' stroke-linejoin="round" stroke-linecap="round"/>'; }
+    // §9 (v2.4.0): weiche Kurven (monoton — kumulierte Punkte fallen nie), Kopf als Kreis
+    const px=seg.map(p=>({x:X(p.x), y:Y(p.p)}));
+    const d=glattPfad(px);
+    const kopf=(!dash && clip) ? '<circle cx="'+px[px.length-1].x.toFixed(1)+'" cy="'+px[px.length-1].y.toFixed(1)+'" r="3.4" fill="'+color+'" stroke="#0b0b0c" stroke-width="1.2"/>' : '';
+    return '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+width+'"'+(dash?' stroke-dasharray="'+dash+'" opacity="0.5"':'')+' stroke-linejoin="round" stroke-linecap="round"/>'+kopf; }
   let g='';
   // U1: Stundenraster dynamisch — ganze Stunden im Fenster, Schrittweite nach Breite.
   const stdSchritt=spanX>16?4:spanX>9?3:spanX>5?2:1;
@@ -9656,20 +10047,25 @@ function belVerlaufDaten(){
 }
 /* Mini-Kurve (Verlauf über Zeit). werte: Zahlen oder null (Lücke). */
 function belKurve(werte, min, max, farbe){
-  const W=120, H=40, P=4, n=werte.length;
-  const lo=min!=null?min:Math.min.apply(null, werte.filter(v=>v!=null));
-  const hi=max!=null?max:Math.max.apply(null, werte.filter(v=>v!=null));
+  // §9 (v2.4.0): weich, Kreise als Datenpunkte, gestrichelter Schnitt; unverzerrt.
+  const W=240, H=64, P=7, n=werte.length;
+  const echt=werte.filter(v=>v!=null);
+  if(!echt.length) return '<svg viewBox="0 0 '+W+' '+H+'" width="100%"></svg>';
+  const lo=min!=null?min:Math.min.apply(null, echt);
+  const hi=max!=null?max:Math.max.apply(null, echt);
   const sp=Math.max(1e-9, hi-lo);
   const X=i=>P+(n>1?i/(n-1):0.5)*(W-2*P), Y=v=>H-P-((v-lo)/sp)*(H-2*P);
-  let pfad='', offen=false, punkte='';
-  werte.forEach((v,i)=>{ if(v==null){ offen=false; return; }
-    pfad+=(offen?'L':'M')+X(i).toFixed(1)+','+Y(v).toFixed(1); offen=true; });
+  let pfad='', teil=[];
+  const flush=()=>{ if(teil.length) pfad+=' '+glattPfad(teil); teil=[]; };
+  werte.forEach((v,i)=>{ if(v==null){ flush(); return; } teil.push({x:X(i), y:Y(v)}); });
+  flush();
+  const schnitt=echt.reduce((a,b)=>a+b,0)/echt.length;
   const letzter=werte.map((v,i)=>v!=null?i:-1).filter(i=>i>=0).pop();
-  if(letzter!=null) punkte='<circle cx="'+X(letzter).toFixed(1)+'" cy="'+Y(werte[letzter]).toFixed(1)+'" r="3.5" fill="'+(farbe||'var(--cyan)')+'" stroke="var(--txt)" stroke-width="1.2"/>';
-  return '<svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
-    '<line x1="0" y1="'+(H-P)+'" x2="'+W+'" y2="'+(H-P)+'" stroke="var(--line)"/>'+
-    (pfad?'<path d="'+pfad+'" fill="none" stroke="'+(farbe||'var(--cyan)')+'" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>':'')+
-    punkte+'</svg>';
+  let g='<line x1="'+P+'" y1="'+Y(schnitt).toFixed(1)+'" x2="'+(W-P)+'" y2="'+Y(schnitt).toFixed(1)+'" stroke="var(--mut2)" stroke-width="1" stroke-dasharray="4 4"/>'+
+    '<path d="'+pfad.trim()+'" fill="none" stroke="#bfc1c5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  werte.forEach((v,i)=>{ if(v!=null && i!==letzter) g+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="3" fill="#f4efe3"/>'; });
+  if(letzter!=null) g+='<circle cx="'+X(letzter).toFixed(1)+'" cy="'+Y(werte[letzter]).toFixed(1)+'" r="5" fill="#f4efe3" stroke="#0b0b0c" stroke-width="1.5"/>';
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" aria-hidden="true">'+g+'</svg>';
 }
 /* Zwei Füllungen auf einem Balken (fest + hell), plus Zielmarke. */
 function belDoppelBalken(fest, hell, marke, label){
@@ -9880,6 +10276,12 @@ function erledigteZeigen(){ return !!(S.ui && S.ui.suErledigt); }
 function istHeuteErledigt(k){
   if(!k) return false;
   if(k.status==='erledigt') return true;
+  /* §4 (v2.4.0) · BEFUND: Ein Counter verschwand nach dem ersten „+".
+     routErledigtHeute() zaehlt eine Tick-Karte schon ab einem Tick als
+     „heute erledigt" — richtig fuer Routinen-Quote und Serie, falsch fuer die
+     SICHTBARKEIT. Ein Counter bleibt sichtbar, egal wie oft er erhoeht wurde,
+     bis zum Tagesabschluss; weg ist er nur, wenn er abgehakt ist (oben). */
+  if(typeof istTickKarte==='function' && istTickKarte(k)) return false;
   if(k.rhythmus && typeof routErledigtHeute==='function' && routErledigtHeute(k)) return true;
   return false;
 }
@@ -10075,8 +10477,145 @@ function suSichtHtml(sv){
   if(sv==='art')     return suArtHtml();
   return suHeuteHtml();
 }
-/* 1 · Heute — die Kette in ihrer Reihenfolge (Standardsicht). */
-function suHeuteHtml(){
+/* ══ §2 (v2.4.0) · SICHT „HEUTE" ALS KALENDER ═════════════════════════
+   Eine Zeitachse statt der Liste:
+   · Karten MIT Uhrzeit stehen an ihrer Zeit (Dauer = Soll, mind. 15 Min).
+   · Karten OHNE Uhrzeit laufen in der Reihenfolge der Kette AB JETZT, mit
+     ihren restlichen Soll-Minuten hochgerechnet. Mit Tagesrahmen gilt die
+     Zuordnung des Zeitstrahls (Domaene → Segment ihres Typs); Termine
+     werden nicht ueberbucht, die Hochrechnung rueckt dahinter.
+   · Erledigtes und Bearbeitetes steht zur ECHTEN Zeit — aus den Sitzungen.
+   · Die laufende Karte ist hervorgehoben; die Jetzt-Linie zeigt die Uhrzeit.
+   Alles rein abgeleitet, nichts wird gespeichert. */
+const KAL_PX_STD = 72;          // Pixel je Stunde
+const KAL_MIN_H  = 26;          // Mindesthoehe eines Blocks (lesbar, tappbar)
+function kalStunde(iso){ const d=new Date(iso); return d.getHours()+d.getMinutes()/60+d.getSeconds()/3600; }
+function kalRestMin(k){ return Math.max(5, num(k.sollMin) - istSekLive(k)/60); }
+/* Die Bloecke des Tages. Rueckgabe: [{kid, von, bis, art, titel, k}] in Stunden. */
+function kalenderBloecke(ks){
+  const jetzt=jetztStunde();
+  const bl=[];
+  const laufId=(S.fokus && S.fokus.laeuft) ? S.fokus.karteId : null;
+  // 1 · Echte Zeit aus den Sitzungen (alle Karten, auch ausserhalb der Kette)
+  const sichtbar={}; ks.forEach(k=>sichtbar[k.id]=true);
+  S.karten.forEach(k=>{
+    if(!sichtbar[k.id] && k.status!=='erledigt') return;
+    if(!suFilterPasst(k)) return;
+    kartenSitzungenHeute(k.id).forEach(sz=>{
+      const von=kalStunde(sz.von), bis=sz.laufend ? jetzt : kalStunde(sz.bis);
+      if(!(bis>von)) return;
+      bl.push({ kid:k.id, k, von, bis, art: sz.laufend ? 'laeuft' : (k.status==='erledigt'?'erledigt':'bearbeitet') });
+    });
+  });
+  // 2 · Termine an ihrer Uhrzeit
+  const termine=[];
+  ks.forEach(k=>{
+    if(!k.uhrzeit || k.status!=='offen') return;
+    const [hh,mm]=String(k.uhrzeit).split(':').map(Number);
+    if(!Number.isFinite(hh)) return;
+    const von=hh+(num(mm)/60), bis=von+Math.max(15, num(k.sollMin))/60;
+    termine.push({von, bis});
+    bl.push({ kid:k.id, k, von, bis, art: k.id===laufId ? 'laeuft' : 'termin' });
+  });
+  termine.sort((a,b)=>a.von-b.von);
+  // 3 · Die Kette ab jetzt hochgerechnet
+  const rahmen=tagesRahmen();
+  let t=jetzt;
+  const lauf=laufId ? S.karten.find(k=>k.id===laufId) : null;
+  if(lauf && !lauf.uhrzeit){           // die laufende Karte belegt ihren Rest ab jetzt
+    const rest=kalRestMin(lauf)/60;
+    bl.push({ kid:lauf.id, k:lauf, von:t, bis:t+rest, art:'laeuft', plan:true });
+    t+=rest;
+  }
+  function freiAb(t0, dauer){
+    let x=t0, geschoben=true;
+    while(geschoben){ geschoben=false;
+      for(const tm of termine){ if(x<tm.bis && x+dauer>tm.von){ x=tm.bis; geschoben=true; } } }
+    return x;
+  }
+  ks.forEach(k=>{
+    if(k.uhrzeit || k.status!=='offen' || k.id===laufId) return;
+    const dauer=kalRestMin(k)/60;
+    let x=t;
+    if(rahmen){                       // wie der Zeitstrahl: Segment der eigenen Domaene
+      const segs=rahmenFenster(rahmen, k.domain==='dfm'?'dfm':'privat');
+      const seg=segs.find(f=>f[1]>x);
+      if(seg && x<seg[0]) x=seg[0];
+    }
+    x=freiAb(x, dauer);
+    bl.push({ kid:k.id, k, von:x, bis:x+dauer, art:'plan' });
+    t=x+dauer;
+  });
+  return bl;
+}
+/* Ueberlappende Bloecke nebeneinander (Spalten je Cluster). */
+function kalSpalten(bl){
+  const s=bl.slice().sort((a,b)=>a.von-b.von || a.bis-b.bis);
+  const pxH=b=>Math.max(KAL_MIN_H/KAL_PX_STD, b.bis-b.von);   // Mindesthoehe zaehlt mit
+  let cluster=[], ende=-1;
+  const fertig=()=>{ const lanes=[];
+    cluster.forEach(b=>{ let i=lanes.findIndex(e=>e<=b.von+1e-6); if(i<0){ i=lanes.length; lanes.push(0); }
+      lanes[i]=b.von+pxH(b); b.lane=i; });
+    cluster.forEach(b=>b.lanes=lanes.length); cluster=[]; };
+  s.forEach(b=>{ if(cluster.length && b.von>=ende-1e-6) fertig(); cluster.push(b); ende=Math.max(ende, b.von+pxH(b)); });
+  if(cluster.length) fertig();
+  return s;
+}
+/* Beim Oeffnen der Sicht steht die Jetzt-Linie im oberen Drittel — nicht der
+   Tagesbeginn. Nur auf ausdrueckliches Oeffnen, nie beim Live-Neuzeichnen. */
+function kalZuJetzt(){
+  const m=document.querySelector('main'), j=document.querySelector('#suBody .kal-jetzt'), tb=el('topbar');
+  if(!m || !j) return;
+  const oben=tb?tb.getBoundingClientRect().bottom:0;
+  const ziel=j.getBoundingClientRect().top - oben - Math.round(window.innerHeight*0.28);
+  if(ziel>0) m.scrollTop += ziel;
+}
+function suKalenderHtml(){
+  const ids=tagesKette(), by={}; S.karten.forEach(k=>by[k.id]=k);
+  const ks=suSichtbar(ids.map(id=>by[id]).filter(Boolean));
+  const offen=ks.filter(k=>k.status==='offen').length;
+  const bl=kalSpalten(kalenderBloecke(ks));
+  const jetzt=jetztStunde();
+  const fn=belTagFenster(belFensterDatum(jetztIso()));
+  let von=Math.floor(Math.min(fn.von>24?fn.von-24:fn.von, jetzt, ...bl.map(b=>b.von)));
+  let bis=Math.ceil(Math.max(jetzt+1, ...bl.map(b=>b.bis)));
+  von=Math.max(0, von); bis=Math.min(30, Math.max(bis, von+2));
+  const Y=h=>(h-von)*KAL_PX_STD;
+  let h='<div class="su-kopfzeile">'+ks.length+' in der Kette · '+offen+' offen'+suFilterText()+'</div>';
+  if(!bl.length && !(erledigteZeigen() && ks.some(k=>k.status==='erledigt'))){
+    return h+'<div class="leer">'+(erledigteZeigen()
+      ? 'Die Kette ist leer.'
+      : 'Nichts Offenes in der Kette'+suFilterText().replace(/<[^>]+>/g,'')+'. (Erledigtes ist ausgeblendet — Filter oben.)')+'</div>';
+  }
+  // Erledigtes OHNE Sitzung hat keine Uhrzeit — mit „Erledigte zeigen" steht es
+  // kompakt ueber dem Kalender, statt stillschweigend zu fehlen.
+  if(erledigteZeigen()){
+    const mitZeit={}; bl.forEach(b=>mitZeit[b.kid]=true);
+    const ohne=ks.filter(k=>k.status==='erledigt' && !mitZeit[k.id]);
+    if(ohne.length) h+='<div class="su-kopfzeile">Erledigt ohne Uhrzeit · '+ohne.length+'</div>'+
+      ohne.map(k=>kartenreiheHtml(k,'su-kal',{kompakt:true})).join('');
+  }
+  h+='<div class="kal" style="height:'+Math.round(Y(bis))+'px">';
+  for(let s=von;s<=bis;s++){
+    h+='<div class="kal-std" style="top:'+Math.round(Y(s))+'px"><span>'+String(s%24).padStart(2,'0')+'</span></div>';
+  }
+  const LBL={plan:'geplant', termin:'Termin', erledigt:'erledigt', bearbeitet:'bearbeitet', laeuft:'läuft'};
+  bl.forEach(b=>{
+    const top=Y(b.von), hoehe=Math.max(KAL_MIN_H, Y(b.bis)-Y(b.von)-2);
+    const breite=100/(b.lanes||1), links=(b.lane||0)*breite;
+    const min=Math.round((b.bis-b.von)*60);
+    h+='<div class="kal-b '+b.art+(b.k && b.k.domain==='dfm'?' dfm':' privat')+'" role="button" data-kalkarte="'+esc(b.kid)+'" data-kid="'+esc(b.kid)+'"'+
+       ' style="top:'+Math.round(top)+'px;height:'+Math.round(hoehe)+'px;left:calc('+links.toFixed(2)+'% + 2px);width:calc('+breite.toFixed(2)+'% - 4px)">'+
+       '<span class="kal-t">'+(b.art==='erledigt'?'✓ ':'')+esc(String(b.k.titel||'?'))+'</span>'+
+       '<span class="kal-m">'+belUhr(b.von)+' · '+min+'′ · '+LBL[b.art]+'</span></div>';
+  });
+  if(jetzt>=von && jetzt<=bis) h+='<div class="kal-jetzt" style="top:'+Math.round(Y(jetzt))+'px"><span>'+belUhr(jetzt)+'</span></div>';
+  return h+'</div>';
+}
+/* 1 · Heute — seit v2.4.0 der Kalender (suKalenderHtml). Die Listenform
+   bleibt als suHeuteListeHtml fuer Stellen, die die Kette als Liste zeigen. */
+function suHeuteHtml(){ return suKalenderHtml(); }
+function suHeuteListeHtml(){
   const ids=tagesKette(), by={}; S.karten.forEach(k=>by[k.id]=k);
   const ks=suSichtbar(ids.map(id=>by[id]).filter(Boolean));
   if(!ks.length) return '<div class="leer">'+(erledigteZeigen()
@@ -10131,6 +10670,7 @@ function suMatrixHtml(){
     h+='<div class="su-mxdot" style="left:'+px.toFixed(1)+'%;top:'+py.toFixed(1)+'%" title="deine Position"></div>';
   }
   h+='</div>';
+  h+='<button class="su-tagebuch" data-tagebuch="1">📓 Tagebuch — wo stehe ich gerade?</button>';
   h+='<div class="hint" style="padding:0 12px 6px">'+(p
       ? 'Dein Punkt liegt im Raster — '+esc(matrixLesart(p.x,p.y).replace(/<[^>]+>/g,''))
       : 'Noch keine Position heute. Sie wird beim Verlassen einer Karte abgefragt.')+'</div>';
@@ -10206,6 +10746,106 @@ function oeffneKettePosition(kid){
     '<button class="btn prim" data-kstart="'+kid+'">▶ Starten</button>';
   openSheet('Position in der Kette', h, foot);
 }
+/* ══ §6 (v2.4.0) · DAS TAGEBUCH ═══════════════════════════════════════
+   Die App erfasst Pascal bisher vor allem rechts in der Matrix, wenn er mit
+   einer Karte arbeitet. Die Zeit unten links, in der er haengt, blieb
+   „unbekannt". Ein Tagebuch-Eintrag ist eine POSITION mit optionalem Warum:
+   Gedanke · Wirkung · Mittel (oder „ist gut so") · Akku. Nur die Position
+   ist Pflicht — die Schwelle muss niedrig sein.
+   Der Eintrag landet in der Positions-Spur (quelle:'tagebuch') und zaehlt
+   in die Zeit je Matrix-Feld (v2.3 §8): er gilt bis zur naechsten Messung.
+   Er bucht KEINEN Bewegungsbonus und loest keinen Vorschlag aus — er ist
+   eine Beobachtung, kein Verlassen einer Karte. Der Buchungsdialog beim
+   Erledigen und Schieben bleibt, wie er ist. */
+function oeffneTagebuch(x, y){
+  if(!tagOffen()){ toast('Kein Tag gestartet — das Tagebuch schreibt in den laufenden Tag.'); return; }
+  const p = (x!=null && y!=null) ? {x:num(x), y:num(y)} : matrixPosOderMitte();
+  const a=akkuLive();
+  closeSheet();
+  matrixTmp={ kid:null, anlass:'tagebuch', tagebuch:true,
+    x:Math.max(-1,Math.min(1,p.x)), y:Math.max(-1,Math.min(1,p.y)),
+    akku:(a==null?null:Math.round(a)), akkuStart:(a==null?null:Math.round(a)),
+    gedanke:'', wirkung:'', mittel:'', istGut:null };
+  renderTagebuch();
+}
+function tagebuchFelderLesen(){
+  const t=matrixTmp; if(!t) return;
+  const g=el('tbGedanke'), w=el('tbWirkung'), m=el('tbMittel');
+  if(g) t.gedanke=g.value; if(w) t.wirkung=w.value; if(m) t.mittel=m.value;
+}
+function renderTagebuch(){
+  const t=matrixTmp; if(!t || !t.tagebuch) return;
+  let h='<p class="d"><b>Wo stehst du gerade?</b> Nur der Punkt ist Pflicht — alles andere darf leer bleiben.</p>';
+  h+=matrixPadHtml(t.x, t.y);
+  h+='<div class="field"><label>Welcher Gedanke?</label><input id="tbGedanke" maxlength="160" value="'+esc(t.gedanke)+'" placeholder="optional"></div>';
+  h+='<div class="field"><label>Was macht das mit mir?</label><input id="tbWirkung" maxlength="160" value="'+esc(t.wirkung)+'" placeholder="optional"></div>';
+  h+='<div class="field"><label>Mittel dagegen — oder ist es gut so?</label><div class="chips">'+
+     '<button class="chip '+(t.istGut===true?'on':'')+'" data-tbgut="1">ist gut so</button>'+
+     '<button class="chip '+(t.istGut===false?'on':'')+'" data-tbgut="0">Mittel: …</button></div>'+
+     (t.istGut===false?'<input id="tbMittel" maxlength="120" value="'+esc(t.mittel)+'" placeholder="z. B. 10 Min raus, Wasser, Anruf verschieben" style="margin-top:6px">':'')+
+     '</div>';
+  if(t.akku!=null){
+    h+='<div class="field mx-akku"><label>🔋 Akku jetzt <b id="mxAkkuV">'+Math.round(t.akku)+'%</b></label>'+
+       '<input type="range" min="0" max="'+AKKU_MAX+'" step="5" id="mxAkku" value="'+Math.round(t.akku)+'"></div>';
+  }
+  openSheet('Tagebuch', h, '<button class="btn ghost sm" data-close="1">Abbrechen</button>'+
+    '<button class="btn prim" data-tbgo="1">Speichern</button>');
+}
+/* Akku aus einem Dialog buchen — derselbe Weg wie der Matrix-Dialog. */
+function akkuAusDialogBuchen(t, kommentar){
+  const inp=el('mxAkku');
+  if(!(inp && t.akku!=null && S.tag && S.tag.akku!=null)) return null;
+  if(String(inp.value).trim()==='') return Math.round(akkuLive());   // kein Wert = nicht angefasst
+  const vorher=akkuLive();
+  const neuA=Math.max(0, Math.min(AKKU_MAX, num(inp.value,vorher)));
+  if(Math.abs(neuA-vorher)<0.05) return Math.round(vorher);
+  const pending=vorher-num(S.tag.akku);
+  S.tag.akku=Math.max(0, Math.min(AKKU_MAX, neuA-pending));
+  akkuSampleSchreiben();
+  if(!Array.isArray(S.meta.akkuEintraege)) S.meta.akkuEintraege=[];
+  S.meta.akkuEintraege.push({ ts:jetztIso(), datum:heuteApp(), kid:null, titel:null,
+    vorher:Math.round(vorher), nachher:Math.round(neuA), delta:Math.round((neuA-vorher)*10)/10, kommentar:kommentar||'' });
+  if(S.meta.akkuEintraege.length>300) S.meta.akkuEintraege=S.meta.akkuEintraege.slice(-300);
+  saveMeta();
+  return Math.round(neuA);
+}
+function tagebuchSpeichern(){
+  const t=matrixTmp; if(!t || !t.tagebuch){ closeSheet(); return; }
+  tagebuchFelderLesen();
+  const akku=akkuAusDialogBuchen(t, (t.gedanke||'').slice(0,80));
+  const eintrag={ ts:jetztIso(), x:Math.round(t.x*100)/100, y:Math.round(t.y*100)/100,
+    kid:null, anlass:'tagebuch', quelle:'tagebuch',
+    gedanke:String(t.gedanke||'').trim(), wirkung:String(t.wirkung||'').trim(),
+    mittel: t.istGut===false ? String(t.mittel||'').trim() : '',
+    istGut: t.istGut===true, akku: akku!=null ? akku : (akkuLive()!=null?Math.round(akkuLive()):null) };
+  matrixSpur().push(eintrag);
+  if(matrixSpur().length>400) S.tag.matrixSpur=matrixSpur().slice(-400);
+  saveTag();
+  matrixTmp=null;
+  closeSheet(); renderAlles();
+  toast('📓 Tagebuch-Eintrag gespeichert'); haptik(12);
+}
+/* Tipp in eine Matrix-Grafik → Tagebuch an genau dieser Stelle. Die Grafik
+   ist ein SVG mit viewBox; der Rand P ist ausserhalb der Felder. */
+function tagebuchAusMatrixKlick(e, svg){
+  const r=svg.getBoundingClientRect(); if(!(r.width>0 && r.height>0)) return;
+  const vb=(svg.getAttribute('viewBox')||'0 0 300 240').split(/\s+/).map(Number), W=vb[2], H=vb[3];
+  const P=num(svg.dataset.rand,6);
+  const fx=(e.clientX-r.left)/r.width*W, fy=(e.clientY-r.top)/r.height*H;
+  const x=((fx-P)/(W-2*P))*2-1, y=1-((fy-P)/(H-2*P))*2;
+  oeffneTagebuch(Math.max(-1,Math.min(1,x)), Math.max(-1,Math.min(1,y)));
+}
+/* ══ §7 (v2.4.0) · STATISTIK — die Matrix ganz oben ══════════════════ */
+function stMatrixTag(){
+  const gm=fbGrosseMatrix({klick:true});
+  const z=gm.zeit, tb=matrixSpur().filter(e=>e.quelle==='tagebuch').length;
+  const inner='<div class="st-mx">'+gm.svg+'</div>'+
+    '<div class="an-legend"><span><i style="background:var(--txt)"></i>Position</span>'+
+    '<span><i class="rhombus"></i>Tagebuch ('+tb+')</span></div>'+
+    '<div class="hint">Unbekannt: <b>'+Math.round(z.unbekannt)+' Min</b> — vor der ersten, nach der letzten Messung und übersprungene Abfragen. '+
+    'Tipp in ein Feld: Tagebuch-Eintrag genau dort.</div>';
+  return anModul('🧭','Der Tag in der Matrix', gm.n+' Messungen · '+Math.round(z.mess)+' Min Messzeit', inner);
+}
 function renderStatistik(){ renderStatistikBody(); }
 /* ══════════════════════════════════════════════════════════════════════
    §12 (v2.0.0) · STATISTIK — eine Seite, fünf Module
@@ -10219,6 +10859,7 @@ function renderStatistik(){ renderStatistikBody(); }
 function renderStatistikBody(){
   const host=el('statistikBody'); if(!host) return;
   let h='';
+  h+=stMatrixTag();          // §7 (v2.4.0): die Matrix ganz oben
   h+=stTagesverlauf();
   h+=stMatrixSpur();
   h+=stReinRaus();
@@ -10230,7 +10871,8 @@ function renderStatistikBody(){
 function stTagesverlauf(){
   let inner='';
   try{ inner=belTagesDiagramm(); }catch(e){ inner='<div class="an-leer">Tagesverlauf nicht verfügbar.</div>'; }
-  return anModul('📈','Tagesverlauf','Plan · Ist · Normaltag', inner);
+  // §1.3 (v2.4.0): Anker fuer den Sprung aus der Mini-Kurve der Statusleiste
+  return '<div id="stTagesverlaufAnker"></div>'+anModul('📈','Tagesverlauf','Plan · Ist · Normaltag', inner);
 }
 /* 2 · Matrix-Spur — Bewegung über den Tag, plus welches Werkzeug wann
    zurückgeholt hat. Das Wochentagsprofil geht hier auf. */
@@ -10293,12 +10935,14 @@ function stReinRaus(){
 function stEntwicklung(){
   const rm=rangMass();
   const of=outfitHeute();
-  let h='<div class="st-kpis">';
-  h+='<div class="st-kpi"><span class="k">Rang</span><b>'+(rm && rm.rang!=null?('R'+rm.rang):'—')+'</b>'+
-     '<span class="z">'+esc(rm&&rm.rang!=null?rangName(rm.rang):'sammelt')+'</span></div>';
-  h+='<div class="st-kpi"><span class="k">Kleidung</span><b>'+(of!=null?of:'—')+'</b><span class="z">heute</span></div>';
-  h+='<div class="st-kpi"><span class="k">Konto</span><b>'+fmtKurzP(konto())+'</b><span class="z">Münzen</span></div>';
-  h+='<div class="st-kpi"><span class="k">Kulisse</span><b>'+bgStufeAus(ausgabenAnzeige())+'/10</b><span class="z">ausgegeben</span></div>';
+  // §9 (v2.4.0): grosse Zahl, kleine Beschriftung, Trendpfeil (Rang gegen vor 4 Wochen)
+  let rangVor=null; try{ const w=belVerlaufDaten().wochen; rangVor=w.length>4 ? w[w.length-5].rang : null; }catch(e){}
+  const rTrend=(rm && rm.rang!=null && rangVor) ? (rm.rang-rangVor)/rangVor : undefined;
+  let h='<div class="gz-reihe">';
+  h+=grossZahl(rm && rm.rang!=null?('R'+rm.rang):'—', 'Rang', rTrend, 'gegen vor 4 Wochen');
+  h+=grossZahl(of!=null?String(of):'—', 'Kleidung heute');
+  h+=grossZahl(fmtKurzP(konto()).replace(/ P$/,''), 'Konto');
+  h+=grossZahl(bgStufeAus(ausgabenAnzeige())+'/10', 'Kulisse');
   h+='</div>';
   // Wochenverlauf der Tagespunkte aus der Historie
   const tage=[], werte=[];
@@ -10307,8 +10951,12 @@ function stEntwicklung(){
     werte.push(sn?Math.round(snapPunkte(sn,'alle')):null); }
   const hat=werte.filter(v=>v!=null).length;
   if(hat>=3){
-    try{ h+=anSvgLine(tage, [{vals:werte, farbe:'var(--ac)'}], {}); }catch(e){}
-    h+='<div class="hint">Tagespunkte der letzten 28 Tage · '+hat+' Messtage</div>';
+    // (bis v2.3 hiess der Schluessel „farbe" — anSvgLine liest „color"; die Linie war unsichtbar)
+    try{ h+=anSvgLine(tage, [{vals:werte, color:'#d9dadd'}], {schnitt:true}); }catch(e){}
+    h+='<div class="an-hint">Tagespunkte der letzten 28 Tage · '+hat+' Messtage · gestrichelt: dein Schnitt</div>';
+    // §9: die Verteilung — heute als leuchtende Saeule gegen „dein Schnitt, letzte 4 Wochen"
+    const heuteP=werte[werte.length-1], frueher=werte.slice(0,-1).filter(v=>v!=null);
+    h+=histogrammHtml(frueher, heuteP, {fmt:v=>fmtKurzP(v).replace(/ P$/,'')});
   } else {
     h+=anSammelt(hat,3);
   }
@@ -10395,7 +11043,9 @@ function konfetti(){
    17 · Event-Delegation
    ══════════════════════════════════════════════════════════════════════ */
 // Nav
-el('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-tab]'); if(b) setTab(b.dataset.tab); });
+el('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-tab]');
+  if(!b) return; setTab(b.dataset.tab);
+  if(b.dataset.tab==='suche' && suSicht()==='heute' && !suFrage()) kalZuJetzt(); });   // §2 (v2.4.0)
 /* §6 (v2.0.0): Neuanlage sitzt jetzt im ＋ der Sicht-Leiste. */
 // §3 (v1.6.0): Routinen-Schublade öffnen (Farbe folgt der aktiven Domäne)
 
@@ -10510,6 +11160,8 @@ el('fokusView').addEventListener('click', e=>{
   // §7 (v2.3.0): Ein Tipp im Zeitstrahl OEFFNET die Karte in der Fokusansicht
   // (Uhr steht, wie v2.1.1 §1) — er oeffnet nicht mehr den Detail-Dialog.
   const zsk=t.closest('[data-zskarte]'); if(zsk){ haptik(8); fokusKarteAnsehen(zsk.dataset.zskarte); return; }
+  // §6 (v2.4.0): Tipp in die grosse Matrix → Tagebuch an dieser Stelle
+  const tbm=t.closest('svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; }
   const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
   if(karteRowClick(t, e)) return;   // U1: Fokus-Liste = gleiche Karten-Zeilen-Aktionen wie der Stapel
   const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
@@ -10783,25 +11435,8 @@ el('sheet').addEventListener('click', e=>{
     if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
   if(t.closest('[data-tagdownload]')){ backupDownload(tagBackupPaket(), 'fokus-tagesabschluss-'+(S.tag?S.tag.tagId:'tag')+'.json'); return; }
   if(t.closest('[data-syncimport]')){ const ta=el('syncIn'); const res=syncImport(ta?ta.value:''); const box=el('syncErgebnis');
-    if(res.fehler){ if(box) box.innerHTML='<div class="card" style="border-color:var(--bad)"><p class="d" style="color:var(--bad)">'+esc(res.fehler)+'</p></div>'; }
-    else { renderAlles(); const exta=el('syncEx'); if(exta) exta.value=syncExportText('sync');
-      // §2.4 (v1.7.1): getrennt ausweisen — angelegt je Domäne, aktualisiert,
-      // übersprungen MIT Grund. Beim Neuaufbau muss auf einen Blick erkennbar
-      // sein, ob alles angekommen ist.
-      let kz='<b>'+res.neu+'</b> angelegt';
-      if(res.neu>0) kz+=' (DFM '+res.neuDfm+' · Privat '+res.neuPrivat+')';
-      kz+=' · <b>'+res.upd+'</b> aktualisiert · <b>'+res.arch+'</b> archiviert.';
-      if(res.gruppenNeu||res.gruppenUpd) kz+='<br>Gruppen: <b>'+num(res.gruppenNeu)+'</b> angelegt · <b>'+num(res.gruppenUpd)+'</b> aktualisiert.';
-      if(res.ketteGesetzt!=null) kz+='<br>Tageskette gesetzt: <b>'+res.ketteGesetzt+'</b> Einträge.';
-      if(res.wiederhergestellt) kz+='<br><span style="color:var(--gut)">♻︎ <b>Wiederherstellung</b>: '+
-        Object.keys(res.wiederhergestellt).map(f=>f+' '+res.wiederhergestellt[f]).join(' · ')+'</span>';
-      if(res.rahmenGesetzt!=null) kz+='<br>🕘 Tagesrahmen übernommen: <b>'+res.rahmenGesetzt+'</b> Segmente'+(tagOffen()?' (ersetzt ab jetzt, Gemessenes unberührt)':'')+'.';
-      if(res.korrigiert) kz+='<br><span style="color:var(--cyan)">§5.7-Korrekturen angewandt: <b>'+res.korrigiert+'</b> Felder (Protokoll in den Einstellungen).</span>';
-      if(res.uebersprungen && res.uebersprungen.length)
-        kz+='<br><span style="color:var(--warn)">Übersprungen ('+res.uebersprungen.length+'):</span><br>'+
-          res.uebersprungen.map(u=>'<span style="color:var(--warn)">· '+esc(u.was)+' — '+esc(u.grund)+'</span>').join('<br>');
-      if(box) box.innerHTML='<div class="card" style="border-color:'+((res.uebersprungen&&res.uebersprungen.length)?'var(--warn)':'var(--ok)')+'"><p class="d">'+kz+'</p></div>';
-      toast('Sync importiert'); haptik(15); }
+    if(!res.fehler){ renderAlles(); const exta=el('syncEx'); if(exta) exta.value=syncExportText('sync'); toast('Sync importiert'); haptik(15); }
+    if(box) box.innerHTML=importErgebnisHtml(res);
     return; }
 
   // ── Gruppen-Bulk-Zuordnung (§3.3 / Punkt 5g)
@@ -10825,6 +11460,10 @@ el('sheet').addEventListener('click', e=>{
     if(entwurf){ detailLies(); entwurf.faelligkeit=abZiel.dataset.abziel; renderDetail(); } return; }
   // ══ §1.2 (v2.0.0) · Der EINE Dialog für Matrix und Akku ══
   if(t.closest('[data-mxgo]')){ matrixDialogSpeichern(); return; }
+  if(t.closest('[data-tbgo]')){ tagebuchSpeichern(); return; }
+  const tbg=t.closest('[data-tbgut]'); if(tbg && matrixTmp && matrixTmp.tagebuch){
+    tagebuchFelderLesen(); const v=tbg.dataset.tbgut==='1';
+    matrixTmp.istGut = (matrixTmp.istGut===v) ? null : v; renderTagebuch(); return; }
   // ══ §6 (v2.0.0) · Kette aus der SUCHE heraus sortieren ══
   const kp=t.closest('[data-kpos]'); if(kp){
     if(ketteBewegen(kp.dataset.kpos, num(kp.dataset.n))){ haptik(10); toast('Position '+num(kp.dataset.n)); }
@@ -11139,7 +11778,13 @@ function stapelLiesEditor(){
 }
 
 // Belohnung/Statistik: Diagramm-Umschalter (Zeitraum/Domäne/Tageswahl) + Shop-Kauf
-el('belohnungBody').addEventListener('click', e=>{
+/* v2.4.0 · NEBENBEFUND: Die Umschalter des Tagesverlaufs (Domäne, ‹ Datum ›,
+   heute) hingen NUR an #belohnungBody — seit v2.2 stehen die Diagramme aber in
+   der Statistik. Dort waren es tote Knoepfe. Ein Handler fuer beide Seiten;
+   gezeichnet wird die Seite, die gerade offen ist. */
+function statNeuZeichnen(){ if(S.ui.tab==='statistik') renderStatistik(); else renderBelohnung(); }
+function statKlick(e){
+  const tbm=e.target.closest('svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; }   // §6/§7 (v2.4.0)
   if(e.target.closest('[data-album]')){ oeffneAlbum(); return; }   // §8 (1.9.0)
   // §4 (v2.2.0): Sprung zum Shop-Bereich der Seite
   // (main scrollt unter der fixen Kopfleiste — deshalb um deren Höhe versetzt)
@@ -11149,28 +11794,38 @@ el('belohnungBody').addEventListener('click', e=>{
   // §4 (v2.2.0): alle zwölf Stufen einer Shop-Kategorie auf-/zuklappen
   const bk=e.target.closest('[data-belkat]'); if(bk){ S.ui.belKatAuf=Object.assign({}, S.ui.belKatAuf);
     S.ui.belKatAuf[bk.dataset.belkat]=!S.ui.belKatAuf[bk.dataset.belkat]; saveUi(); renderBelohnung(); return; }
-  const zr=e.target.closest('[data-statzr]'); if(zr){ S.ui.statZeitraum=zr.dataset.statzr; saveUi(); renderBelohnung(); return; }
-  const dm=e.target.closest('[data-statdom]'); if(dm){ S.ui.statDomain=dm.dataset.statdom; saveUi(); renderBelohnung(); return; }
+  const zr=e.target.closest('[data-statzr]'); if(zr){ S.ui.statZeitraum=zr.dataset.statzr; saveUi(); statNeuZeichnen(); return; }
+  const dm=e.target.closest('[data-statdom]'); if(dm){ S.ui.statDomain=dm.dataset.statdom; saveUi(); statNeuZeichnen(); return; }
   const ut=e.target.closest('[data-urlaubtag]'); if(ut){ const iso=ut.dataset.urlaubtag;
     if(tagOffen() && S.tag.datum===iso){ S.tag.urlaubManuell=!urlaubHeute(); saveTag(); }
     else { let neu=null; (S.historie||[]).forEach(h2=>{ if(h2.datum===iso && !h2.luecke){ if(neu==null) neu=!h2.urlaub; h2.urlaub=neu; } }); saveHistorie(); }
-    renderBelohnung(); toast('Tag '+iso.slice(8)+'.'+iso.slice(5,7)+'. '+((tagOffen()&&S.tag.datum===iso?urlaubHeute():(S.historie.find(h2=>h2.datum===iso)||{}).urlaub)?'als Urlaub markiert':'als normaler Tag markiert'));
+    statNeuZeichnen(); toast('Tag '+iso.slice(8)+'.'+iso.slice(5,7)+'. '+((tagOffen()&&S.tag.datum===iso?urlaubHeute():(S.historie.find(h2=>h2.datum===iso)||{}).urlaub)?'als Urlaub markiert':'als normaler Tag markiert'));
     return; }
-  const pk=e.target.closest('[data-statpick]'); if(pk){ S.ui.statDatum=pk.dataset.statpick; S.ui.statZeitraum='tag'; saveUi(); renderBelohnung(); return; }
+  const pk=e.target.closest('[data-statpick]'); if(pk){ S.ui.statDatum=pk.dataset.statpick; S.ui.statZeitraum='tag'; saveUi(); statNeuZeichnen(); return; }
   // F1 (v1.3.3): Tagesauswahl im Tagesverlauf — ‹ › schrittweise, „heute" zurück auf live
   const st=e.target.closest('[data-statstep]'); if(st){ const n=num(st.dataset.statstep);
     const neu=anVorTage(statDatum(), -n); if(neu<=heuteApp()){ S.ui.statDatum = neu===heuteApp()?null:neu; saveUi(); renderBelohnung(); } return; }
-  if(e.target.closest('[data-statheute]')){ S.ui.statDatum=null; saveUi(); renderBelohnung(); return; }
+  if(e.target.closest('[data-statheute]')){ S.ui.statDatum=null; saveUi(); statNeuZeichnen(); return; }
   const kf=e.target.closest('[data-kauf]'); if(kf){ kaufen(kf.dataset.kauf); return; }
   if(e.target.closest('[data-analyse]')){ oeffneAnalyse(); return; }   // B1
-  const at=e.target.closest('[data-aufltoggle]'); if(at){ const k=at.dataset.aufltoggle; S.ui.auflAuf=S.ui.auflAuf||{}; S.ui.auflAuf[k]=!S.ui.auflAuf[k]; saveUi(); renderBelohnung(); return; }   // V2.3
-});
-el('belohnungBody').addEventListener('change', e=>{
-  if(e.target.id==='statDatum'||e.target.id==='statDatum2'){ const v=e.target.value||null; S.ui.statDatum=(v===heuteApp())?null:v; saveUi(); renderBelohnung(); }   // F1 + §5 (1.7.0): beide Picker teilen den Zustand · „heute" bleibt live
-});
+  const at=e.target.closest('[data-aufltoggle]'); if(at){ const k=at.dataset.aufltoggle; S.ui.auflAuf=S.ui.auflAuf||{}; S.ui.auflAuf[k]=!S.ui.auflAuf[k]; saveUi(); statNeuZeichnen(); return; }   // V2.3
+}
+el('belohnungBody').addEventListener('click', statKlick);
+el('statistikBody').addEventListener('click', statKlick);
+function statAenderung(e){
+  if(e.target.id==='statDatum'||e.target.id==='statDatum2'){ const v=e.target.value||null; S.ui.statDatum=(v===heuteApp())?null:v; saveUi(); statNeuZeichnen(); }   // F1 + §5 (1.7.0): beide Picker teilen den Zustand · „heute" bleibt live
+}
+el('belohnungBody').addEventListener('change', statAenderung);
+el('statistikBody').addEventListener('change', statAenderung);
 
 // Einstellungen (Sync / Migration / Backup / Regler)
 el('einstBody').addEventListener('click', e=>{
+  if(e.target.closest('#btnEinstImport')){
+    const ta=el('einstImport'), res=syncImport(ta?ta.value:'');
+    if(!res.fehler){ renderAlles(); toast('Import übernommen'); haptik(15); }
+    // renderAlles() zeichnet die Einstellungen neu — Ergebniskasten ERST DANACH holen
+    const box=el('einstImportErg'); if(box) box.innerHTML=importErgebnisHtml(res);
+    return; }
   if(e.target.closest('#btnSync')) oeffneSync();
   else if(e.target.closest('#btnBackup')) backupHtml();
   else if(e.target.closest('#btnReset')){ resetKarten(); return; }
@@ -11322,31 +11977,57 @@ function sucheTreffer(q){
   });
   return out.slice(0,25);
 }
+/* ══ §3 (v2.4.0) · DIE VOLLTEXTSUCHE HINTER DEM SUCHKNOPF ═════════════
+   Eigene Ansicht, eigene Filter (Domaene · Art · Status, Default Alle ·
+   Alle · Offen). Sie findet ALLES im Bestand — auch Routinen, die heute nicht
+   faellig sind; sie ist das Werkzeug zum Wiederfinden. Die Faelligkeitsregel
+   der Hauptseite (v2.3 §2) gilt hier bewusst NICHT. Treffer kompakt wie
+   v2.3 §1. Unter den Treffern — auch bei null — steht immer „Neu anlegen"
+   mit dem Suchbegriff als Titel. Umlaute in beiden Schreibweisen (sucheTreffer). */
+const SF_STATUS=[['offen','Offen'],['erledigt','Erledigt'],['alle','Alle']];
+let suchF={ dom:'alle', art:'alle', status:'offen' };
 function oeffneSuche(){
   baueSuchIndex();
+  suchF={ dom:'alle', art:'alle', status:'offen' };   // jede Suche beginnt mit den Defaults
   const o=el('suchOverlay'); o.hidden=false;
-  const inp=el('suchInput'); inp.value=''; el('suchList').innerHTML='';
+  const inp=el('suchInput'); inp.value='';
+  renderSuchTreffer();
   try{ inp.focus(); }catch(e){}
   setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 40);   // iOS: Tastatur zuverlässig öffnen
 }
 function schliesseSuche(){ const o=el('suchOverlay'); if(o) o.hidden=true; if(_suchDeb){ clearTimeout(_suchDeb); _suchDeb=null; } }
+function suchFilterPasst(k){
+  if(suchF.dom!=='alle' && k.domain!==suchF.dom) return false;
+  const art=kartenArt(k);
+  if(suchF.art==='aufgaben' && art!=='Aufgabe') return false;
+  if(suchF.art==='routinen' && art!=='Routine' && art!=='Counter') return false;
+  if(suchF.status==='offen' && k.status!=='offen') return false;
+  if(suchF.status==='erledigt' && k.status!=='erledigt') return false;
+  if(suchF.status==='alle' && k.status==='archiviert') return false;
+  return true;
+}
 function renderSuchTreffer(){
-  const q=el('suchInput').value, box=el('suchList');
-  if(!normSuche(q)){ box.innerHTML=''; return; }
-  const tr=sucheTreffer(q);
-  if(!tr.length){ box.innerHTML='<div class="such-leer">Kein Treffer für „'+esc(q)+'"</div>'; return; }
-  box.innerHTML=tr.map(o=>{ const k=o.k;
-    const dom=k.domain==='dfm'?'DFM':'Privat';
-    const fa=k.faelligkeit?(fmtDatum(k.faelligkeit)+(k.uhrzeit?' '+esc(k.uhrzeit):'')):'ohne Termin';
-    const extra=(k.status==='erledigt'?' · ✓':'')+(k.freeze?' · ❄︎':'');
-    return '<div class="such-row">'+
-      '<div class="such-main" data-suchdetail="'+k.id+'"><div class="such-t">'+esc(k.titel||'(ohne Titel)')+'</div>'+
-      '<div class="such-m">'+esc(kartenArtLabel(k))+' · '+dom+' · '+esc(fa)+extra+'</div></div>'+
-      (k.status==='offen'?'<button class="such-b" data-suchkette="'+k.id+'" aria-label="Kette">▤</button>':'')+
-      '<button class="such-b" data-suchstart="'+k.id+'" aria-label="Fokus starten">▶</button>'+
-      '<button class="such-b" data-suchdetail="'+k.id+'" aria-label="Detail öffnen">≡</button>'+
-    '</div>';
-  }).join('');
+  const q=el('suchInput').value, box=el('suchList'), fb=el('suchFilter');
+  const seg=(feld, werte)=>'<div class="su-seg" role="group">'+werte.map(([k,l])=>
+    '<button class="'+(suchF[feld]===k?'on':'')+'" data-sf="'+feld+'" data-v="'+k+'" aria-pressed="'+(suchF[feld]===k)+'">'+l+'</button>').join('')+'</div>';
+  if(fb) fb.innerHTML=
+    '<div class="su-frow"><span class="l">Domäne</span>'+seg('dom',SU_DOM)+'</div>'+
+    '<div class="su-frow"><span class="l">Art</span>'+seg('art',SU_ART)+'</div>'+
+    '<div class="su-frow"><span class="l">Status</span>'+seg('status',SF_STATUS)+'</div>';
+  const qq=String(q||'').trim();
+  const tr=qq ? sucheTreffer(qq).filter(o=>suchFilterPasst(o.k)) : [];
+  let h='';
+  if(qq) h+='<div class="su-kopfzeile">'+tr.length+' Treffer</div>';
+  h+=tr.map(o=>kartenreiheHtml(o.k, 'such', {kompakt:true})).join('');
+  if(qq && !tr.length) h+='<div class="such-leer">Kein Treffer für „'+esc(qq)+'".</div>';
+  h+='<button class="btn prim such-neu" data-suchneu="1">＋ Neu anlegen'+(qq?(' „'+esc(qq.slice(0,40))+'"'):'')+'</button>';
+  box.innerHTML=h;
+}
+function suchNeuAnlegen(){
+  const q=String((el('suchInput')||{}).value||'').trim();
+  schliesseSuche();
+  oeffneDetail(null);
+  if(q){ entwurf.titel=q; renderDetail(); }
 }
 function stapelFuerKarte(kid){ for(const st of S.stapel){ try{ if(stapelKarten(st).some(k=>k.id===kid)) return st; }catch(e){} } return null; }
 function suchFokusStarten(kid){
@@ -11373,7 +12054,12 @@ function zurBelohnung(){
   const m=document.querySelector('main'); if(m) m.scrollTop=0;
 }
 el('btnFigur').addEventListener('click', zurBelohnung);
-el('btnEinst').addEventListener('click', ()=>{ setTab('einst'); });
+el('btnKurve').addEventListener('click', ()=>{
+  // §1.3 (v2.4.0): Tipp auf die Mini-Kurve oeffnet den Tagesverlauf der Statistik.
+  setTab('statistik');
+  const m=document.querySelector('main'), z=el('stTagesverlaufAnker'), tb=el('topbar');
+  if(m && z){ const oben=tb?tb.getBoundingClientRect().bottom:0; m.scrollTop += z.getBoundingClientRect().top - oben - 8; }
+});
 /* §6: Freitext — findet alles, was in der App liegt, auch Erledigtes. */
 el('suFreitext').addEventListener('input', e=>{
   S.ui.suFrage=e.target.value; saveUi();
@@ -11404,7 +12090,9 @@ el('suSichten').addEventListener('click', e=>{
     renderSuche(); haptik(8);
     toast(erledigteZeigen()?'✓ Erledigte werden gezeigt':'Erledigte ausgeblendet'); return; }
   const b=e.target.closest('[data-susicht]');
-  if(b){ S.ui.suSicht=b.dataset.susicht; S.ui.suMatrixFeld=null; saveUi(); renderSuche(); haptik(8); return; }
+  if(b){ S.ui.suSicht=b.dataset.susicht; S.ui.suMatrixFeld=null; saveUi(); renderSuche(); haptik(8);
+    if(S.ui.suSicht==='heute') kalZuJetzt();
+    return; }
 });
 el('neuFab').addEventListener('click', ()=>oeffneDetail(null));
 /* ══ §1/§2 (v2.1.1) · KARTEN IN DER SUCHE ══════════════════════════════
@@ -11417,6 +12105,9 @@ const SU_BEDIENELEMENT = 'button,[data-check],[data-tickplus],[data-fokusstart],
   '[data-kette],[data-freeze],[data-archiv],[data-pqstart],[data-pqtick],[data-pqcheck],input,select,textarea,a';
 el('suBody').addEventListener('click', e=>{
   const t=e.target;
+  // §2 (v2.4.0): Tipp auf einen Kalenderblock oeffnet die Karte (Uhr steht).
+  const kb=t.closest('[data-kalkarte]'); if(kb){ haptik(8); fokusKarteAnsehen(kb.dataset.kalkarte); return; }
+  if(t.closest('[data-tagebuch]')){ haptik(8); oeffneTagebuch(); return; }   // §6 (v2.4.0)
   const mx=t.closest('[data-sumx]');
   if(mx){ S.ui.suMatrixFeld=(S.ui.suMatrixFeld===mx.dataset.sumx)?null:mx.dataset.sumx; saveUi(); renderSuche(); return; }
   // §2: Ein Schnellknopf loest seine Aktion aus — und NICHTS sonst. Das
@@ -11452,20 +12143,16 @@ el('suchClose').addEventListener('click', schliesseSuche);
 el('suchInput').addEventListener('input', ()=>{ if(_suchDeb) clearTimeout(_suchDeb); _suchDeb=setTimeout(renderSuchTreffer, 90); });   // minimaler Debounce
 el('suchInput').addEventListener('keydown', e=>{ if(e.key==='Escape'){ e.preventDefault(); schliesseSuche(); } });
 el('suchList').addEventListener('click', e=>{
-  // §11 (v1.12.0): Kettenfunktionen wie §9.2 (inkl. Uhrstart bei „ganz nach
-  // oben" im Aktions-Sheet); Tap auf eine ERLEDIGTE Karte oeffnet den
-  // Wiederholen-Dialog (§8).
-  const kb=e.target.closest('[data-suchkette]'); if(kb){ schliesseSuche(); oeffneKettePosition(kb.dataset.suchkette); return; }
-  const st=e.target.closest('[data-suchstart]'); if(st){
-    const k=(S.karten||[]).find(x=>x.id===st.dataset.suchstart);
-    if(k && k.status==='erledigt'){ schliesseSuche(); oeffneWiederholen(k.id); return; }
-    suchFokusStarten(st.dataset.suchstart); return; }
-  const de=e.target.closest('[data-suchdetail]'); if(de){
-    const k=(S.karten||[]).find(x=>x.id===de.dataset.suchdetail);
-    schliesseSuche();
-    if(k && k.status==='erledigt'){ oeffneWiederholen(k.id); return; }
-    oeffneDetail(de.dataset.suchdetail); return; }
+  if(e.target.closest('[data-suchneu]')){ suchNeuAnlegen(); return; }
+  // Tipp auf einen Treffer oeffnet die Karte (Fokusansicht, Uhr steht)
+  const row=e.target.closest('.krow[data-kid]');
+  if(row){ schliesseSuche(); haptik(8); fokusKarteAnsehen(row.dataset.kid); }
 });
+el('suchFilter').addEventListener('click', e=>{
+  const b=e.target.closest('[data-sf]'); if(!b) return;
+  suchF[b.dataset.sf]=b.dataset.v; haptik(6); renderSuchTreffer();
+});
+el('suchFab').addEventListener('click', ()=>{ haptik(8); oeffneSuche(); });
 el('suchOverlay').addEventListener('click', e=>{ if(e.target.id==='suchOverlay') schliesseSuche(); });   // Tap-außen
 /* Pull-down bei scrollTop 0 (Fokus/Stapel) öffnet die Suche — ohne pan-y zu
    stören (kein preventDefault; am oberen Rand scrollt ohnehin nichts). */
@@ -11688,14 +12375,19 @@ function anSvgLine(labels, series, opts){
   (opts.hlines||[]).forEach(h=>{ const y=yAt(h.y).toFixed(1); g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+h.color+'" stroke-width="1" stroke-dasharray="'+(h.dash||'3 3')+'"/>'+(h.label?'<text x="'+(W-pR)+'" y="'+(yAt(h.y)-2).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+h.color+'">'+esc(h.label)+'</text>':''); });
   g+='<text x="'+(pL-3)+'" y="'+(yAt(yMax)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anFmt(yMax)+'</text>'+
      '<text x="'+(pL-3)+'" y="'+(yAt(yMin)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anFmt(yMin)+'</text>';
-  series.forEach(s=>{ let d='',on=false;
-    s.vals.forEach((v,i)=>{ if(v==null){ on=false; return; } d+=(on?'L':'M')+xAt(i).toFixed(1)+' '+yAt(v).toFixed(1)+' '; on=true; });
-    if(d) g+='<path d="'+d+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.width||2)+'" stroke-linejoin="round" stroke-linecap="round"'+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+'/>';
-    if(s.dots!==false) s.vals.forEach((v,i)=>{ if(v!=null) g+='<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(v).toFixed(1)+'" r="2.1" fill="'+s.color+'"/>'; });
+  // §9 (v2.4.0): gestrichelter Schnitt, weiche Kurven, Kreise als Datenpunkte
+  if(opts.schnitt && series[0]){ const ev=series[0].vals.filter(v=>v!=null);
+    if(ev.length){ const m=ev.reduce((a,b)=>a+b,0)/ev.length, y=yAt(m).toFixed(1);
+      g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="var(--mut)" stroke-width="1" stroke-dasharray="5 4"/>'; } }
+  series.forEach(s=>{ let d='', teil=[];
+    const flush=()=>{ if(teil.length) d+=' '+glattPfad(teil); teil=[]; };
+    s.vals.forEach((v,i)=>{ if(v==null){ flush(); return; } teil.push({x:xAt(i), y:yAt(v)}); }); flush();
+    if(d.trim()) g+='<path d="'+d.trim()+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.width||2)+'" stroke-linejoin="round" stroke-linecap="round"'+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+'/>';
+    if(s.dots!==false) s.vals.forEach((v,i)=>{ if(v!=null) g+='<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(v).toFixed(1)+'" r="3.2" fill="#f4efe3" stroke="#0b0b0c" stroke-width="1"/>'; });
   });
   g+='<text x="'+xAt(0).toFixed(1)+'" y="'+(H-4)+'" text-anchor="start" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[0])+'</text>';
   if(n>1) g+='<text x="'+xAt(n-1).toFixed(1)+'" y="'+(H-4)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[n-1])+'</text>';
-  return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>';
+  return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'">'+g+'</svg>';
 }
 function anSvgScatter(pts, opts){
   const W=320,H=150,pL=30,pR=10,pT=10,pB=24;
