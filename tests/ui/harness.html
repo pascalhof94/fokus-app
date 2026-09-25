@@ -277,6 +277,18 @@ function bestandSchreiben(){
       var lay=d.getElementById('fokusLayer'), fb=d.querySelectorAll('#fokusView .fb')[1];
       if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
     },
+    /* ══ v2.8 · Screenshots: Fokusansicht komplett, Abhak-Leiste, Detail, Abhakbonus-Tabelle ══ */
+    echtFokus28:function(fw){ v28Vorbereiten(fw); fw.fokusStarten('a-3', null); fw.closeSheet();
+      var sh=fw.document.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(110%)'; }
+      fw.fokusKarteAnsehen('a-3'); fw.renderStatusbar(); },
+    echtAbhak:function(fw){ var d=fw.document; v28Vorbereiten(fw); fw.fokusKarteAnsehen('a-3');
+      var lay=d.getElementById('fokusLayer'), z=d.querySelector('#fokusView .zs'); if(lay && z) lay.scrollTop=Math.max(0, z.offsetTop-60); },
+    echtDetail28:function(fw){ var d=fw.document; v28Vorbereiten(fw); fw.oeffneDetail('r-zaehne');
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; }
+      var b=d.getElementById('sheetBody'), z=d.querySelector('#sheetBody .detail-nurabhaken'); if(b && z) b.scrollTop += z.getBoundingClientRect().top-160;
+      var v=d.querySelector('#sheetBody [data-vomgeraet]'); if(v) v.click(); },
+    einstAbhak:function(fw){ var d=fw.document; v28Vorbereiten(fw); fw.setTab('einst');
+      var m=d.querySelector('main'), z=d.querySelector('.einst-abhak'); if(m && z) m.scrollTop += z.getBoundingClientRect().top-150; },
     /* ══ v2.7 · Screenshots: Kalender in Bloecken, Aufklappen, Block-Auswahl, Korrekturen ══ */
     echtBloecke:function(fw){ v27Vorbereiten(fw); var d=fw.document, m=d.querySelector('main'), k=d.querySelector('#suBody .kal-bloecke'); if(m && k) m.scrollTop += k.getBoundingClientRect().top-190; },
     echtBloeckeAuf:function(fw){
@@ -710,7 +722,8 @@ function bestandSchreiben(){
         fw.matrixPosSetzen(-0.8, 0, null, 'diag');
         fw.closeSheet();
         fw.zeigeVorschlag(kid2);
-        var wz=fw.werkzeugReihenfolge().filter(function(k){ return k.id!==kid2; });
+        // v2.8.0 §1.2: Abhak-Karten werden nie vorgeschlagen
+        var wz=fw.werkzeugReihenfolge().filter(function(k){ return k.id!==kid2 && !fw.istAbhakKarte(k); });
         finding('diag · §9 (v2.3) Werkzeuge ausser der verlassenen Karte: '+wz.length);
         if(wz.length){
           pruef(!sheetAuf(), '§9 (v2.3): es oeffnet wieder ein Vorschlags-Sheet');
@@ -1835,6 +1848,63 @@ function bestandSchreiben(){
           pruef(/Harness-Block v2\.7/.test((d.querySelector('#suBody .kb-auf')||{}).textContent||''), 'v2.7 §1.5: neue Karte erscheint nicht im Block');
           freiMachen(); fw.setTab('suche');
         })();
+        /* ══ v2.8 · ABHAK-LEISTE, TAGESABLAUF-PLAY, DETAIL-KNOPF — elementFromPoint ══ */
+        (function(){
+          function mitte(e){ var r=e.getBoundingClientRect(); return {x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2)}; }
+          function tippe(e, wie){
+            if(!e){ pruef(false,'v2.8: '+wie+' fehlt'); return null; }
+            e.scrollIntoView({block:'center'});
+            var m=mitte(e), hit=d.elementFromPoint(m.x,m.y);
+            pruef(hit && (hit===e || e.contains(hit)), 'v2.8: '+wie+' verdeckt von '+beschreib(hit));
+            if(hit){ if(typeof hit.click==='function') hit.click(); else hit.dispatchEvent(new fw.MouseEvent('click',{bubbles:true})); }
+            return hit;
+          }
+          function lsK(id){ try{ return JSON.parse(localStorage.getItem('fokus2_karten')||'[]').filter(function(k){ return k.id===id; })[0]||null; }catch(e){ return null; } }
+          freiMachen(); fw.setTab('suche');
+          fw.syncImport(JSON.stringify(v27Paket(fw))); fw.syncImport(JSON.stringify(v28Paket()));
+          fw.fokusKarteAnsehen('a-3');
+          var zeilen=[].slice.call(d.querySelectorAll('#fokusView .al .al-z'));
+          var ids=zeilen.map(function(z){ return z.dataset.alkarte; });
+          finding('echt · v2.8 §1 Abhak-Leiste: '+ids.length+' Zeilen · '+ids.join(', ')+' · Zeilenhöhen '+zeilen.map(function(z){ return Math.round(z.getBoundingClientRect().height); }).join('/'));
+          pruef(ids.join(',')==='r-zaehne,r-10,r-12,r-11,c-harness', 'v2.8 §1: Reihenfolge nach Block und Kette stimmt nicht ('+ids.join(',')+')');
+          zeilen.forEach(function(z){ pruef(z.getBoundingClientRect().height>=44, 'v2.8 §1: Zeile '+z.dataset.alkarte+' niedriger als 44 px'); });
+          var sheetVor=d.getElementById('sheet').className.indexOf('on')>=0;
+          tippe(d.querySelector('#fokusView [data-alcheck="r-zaehne"]'),'Häkchen „Zähne putzen"');
+          var kz=lsK('r-zaehne');
+          finding('echt · v2.8 §1 Häkchen: status='+(kz&&kz.status)+' · gebucht '+(kz&&kz.punkteOverride)+' P · Dialog '+(d.getElementById('sheet').className.indexOf('on')>=0?'OFFEN':'keiner'));
+          pruef(kz && kz.status==='erledigt' && !sheetVor && d.getElementById('sheet').className.indexOf('on')<0, 'v2.8 §1: Häkchen hakt nicht ab oder öffnet einen Dialog');
+          var ids2=[].slice.call(d.querySelectorAll('#fokusView .al .al-z')).map(function(z){ return z.dataset.alkarte; });
+          pruef(ids2[ids2.length-1]==='r-zaehne' && !!d.querySelector('#fokusView .al-z.fertig[data-alkarte="r-zaehne"]'), 'v2.8 §1: erledigte Routine nicht ausgegraut am Ende');
+          tippe(d.querySelector('#fokusView [data-alcheck="c-harness"]'),'+1 am Counter');
+          var kc=lsK('c-harness');
+          pruef(kc && kc.ticksHeute===1 && /1× · /.test((d.querySelector('#fokusView .al-z[data-alkarte="c-harness"]')||{}).textContent||''), 'v2.8 §1: +1 zählt nicht / Zählstand fehlt');
+          tippe(d.querySelector('#fokusView [data-alplay="r-10"]'),'Play „Routine 10"');
+          var fo=lsFokus();
+          finding('echt · v2.8 §1 Play: läuft '+(fo&&fo.karteId)+' · '+(fo&&fo.laeuft));
+          pruef(fo && fo.karteId==='r-10' && fo.laeuft, 'v2.8 §1: Play startet die Karte nicht');
+          /* §1.3 Tagesablauf: Play je Zeile */
+          freiMachen(); fw.fokusKarteAnsehen('a-3');
+          var zp=d.querySelector('#fokusView .zs [data-zsplay]');
+          var zr=zp?zp.closest('.zs-k').getBoundingClientRect():null;
+          finding('echt · v2.8 §1.3 Tagesablauf: '+d.querySelectorAll('#fokusView .zs [data-zsplay]').length+' Play-Knöpfe · Zeilenhöhe '+(zr?Math.round(zr.height):'—')+' px · Abhak-Karten im Tagesablauf '+d.querySelectorAll('#fokusView .zs:not(.al) [data-zskarte="r-11"]').length);
+          pruef(zr && zr.height>=44, 'v2.8 §1.3: Tagesablauf-Zeile unter 44 px');
+          var zid=zp?zp.dataset.zsplay:null;
+          tippe(zp,'Play im Tagesablauf');
+          fo=lsFokus(); pruef(fo && fo.karteId===zid && fo.laeuft, 'v2.8 §1.3: Play im Tagesablauf startet nicht');
+          var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+          /* §1.1 Schalter + §4 Knopf im Detail */
+          freiMachen(); fw.fokusZeitEinbuchen && fw.fokusZeitEinbuchen(); fw.setTab('suche'); fw.oeffneDetail('a-9'); sheetRuhe();
+          tippe(d.querySelector('#sheetBody [data-chip="nurAbhaken"][data-val="ja"]'),'Schalter „nur abhaken: immer"'); sheetRuhe();
+          pruef(!!d.querySelector('#sheetBody [data-chip="nurAbhaken"][data-val="ja"].on'), 'v2.8 §1.1: Schalter wirkt nicht');
+          tippe(d.querySelector('#sheetBody [data-vomgeraet]'),'„Vom Gerät nehmen"'); sheetRuhe();
+          var ja=d.querySelector('#sheetBody [data-vomgeraetja]');
+          finding('echt · v2.8 §4 nach Tipp: Bestätigung '+(ja?'„'+((d.querySelector('#sheetBody .vg-frage')||{}).textContent||'').slice(0,60)+'…"':'fehlt'));
+          tippe(ja,'„Ja, vom Gerät nehmen"');
+          var weg=!lsK('a-9'), ls=JSON.parse(localStorage.getItem('fokus2_meta')||'{}');
+          finding('echt · v2.8 §4 a-9 vom Gerät: '+(weg?'weg':'NOCH DA')+' · gemeldet '+JSON.stringify((ls.vomGeraetGenommen||[]).map(function(x){ return x.id; })));
+          pruef(weg && (ls.vomGeraetGenommen||[]).some(function(x){ return x.id==='a-9'; }), 'v2.8 §4: vom Gerät nehmen wirkt nicht');
+          freiMachen(); fw.setTab('suche');
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
@@ -1866,6 +1936,15 @@ function bestandSchreiben(){
       karten:[ {id:'a-1', block:'f1a'}, {id:'a-2', block:'f1a'}, {id:'a-4', block:'f1b'}, {id:'a-5', block:'f1c'}, {id:'a-7', block:'f1c'},
                {id:'a-8', block:'fokus2'}, {id:'r-12', block:'senke'}, {id:'r-zaehne', block:'morgen'} ] };
   }
+  /* v2.8: Abhak-Karten im gelebten Bestand (dort tragen die Routinen 5 Soll-Min) —
+     per Paket markiert, dazu ein Counter; Bloecke aus v27Paket */
+  function v28Paket(){
+    return { appVersion:'2.8.0', karten:[
+      {id:'r-zaehne', nurAbhaken:true, block:'morgen'}, {id:'r-10', nurAbhaken:true, block:'senke'}, {id:'r-11', nurAbhaken:true, block:'fokus2'},
+      {id:'r-12', nurAbhaken:true, block:'senke'},
+      {id:'c-harness', domain:'privat', titel:'Liegestütze', ticksAktiv:true, matrixFeld:'werkzeug', block:'abschluss'} ] };
+  }
+  function v28Vorbereiten(fw){ v27Vorbereiten(fw); fw.syncImport(JSON.stringify(v28Paket())); fw.setTab('suche'); }
   function v27Vorbereiten(fw){
     var d=fw.document;
     d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
@@ -1906,7 +1985,7 @@ function bestandSchreiben(){
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
-  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender'||VIEW==='echtTempo'||VIEW==='echtMatrixSpur'||VIEW==='statistikOben'||VIEW==='echtGeld'||VIEW==='echtBloecke'||VIEW==='echtBloeckeAuf'||VIEW==='echtBlockNeu'||VIEW==='einstKorrekturen')
+  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender'||VIEW==='echtTempo'||VIEW==='echtMatrixSpur'||VIEW==='statistikOben'||VIEW==='echtGeld'||VIEW==='echtBloecke'||VIEW==='echtBloeckeAuf'||VIEW==='echtBlockNeu'||VIEW==='einstKorrekturen'||VIEW==='echtFokus28'||VIEW==='echtAbhak'||VIEW==='echtDetail28'||VIEW==='einstAbhak')
      ? bestandSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);

@@ -24,7 +24,8 @@ function extract(name){
 var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnteraufgabe','syncImport',
   'ketteState','ketteAutoIds','tagesKette','tagesKetteDom','ketteSetzen','ketteBewegen','ketteHistLog','kettenHistKappen',
   'geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon',
-  'bloeckeAusPaket','bloeckeFlach','tagesRahmen','tagesBloecke','karteBlockId'];
+  'bloeckeAusPaket','bloeckeFlach','tagesRahmen','tagesBloecke','karteBlockId',
+  'karteZurueckAufsGeraet','vomGeraetAblage','karteVomGeraet'];
 // v2.7.0 §1: Block-Konstanten gespiegelt (nicht extrahierbar)
 var BLOCK_TYPEN=['dfm','privat','pause','schlaf'], BLOCK_TYP_NAME={ dfm:'DFM', privat:'Privat', pause:'Pause', schlaf:'Schlaf' };
 // v2.6.0 §5: Geld-Konstanten gespiegelt (nicht extrahierbar) — Geld-Impact 0 … 500, Stufen fuer Altpakete

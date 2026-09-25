@@ -14,7 +14,7 @@ function extract(name){
 var GELD_STUFE={ hoch:300, mittel:200, niedrig:100 }, GELD_MAX=500;
 // v2.7.0: Sitzungs-Typen gespiegelt (§3 Korrekturen) — feste Bewertung/Sitzungs-id als Funktionen extrahiert
 var SITZUNG_TYPEN=['timer','autopause','nachtrag','korrektur'];
-var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','hatFestMin','sitzungIdVon','korrekturPunkteVerrechnen','geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon','basisRate','rate','akkuRate',
+var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','hatFestMin','sitzungIdVon','korrekturPunkteVerrechnen','daempfung','abhakArt','abhakSpalte','abhakbonusTabelleWert','geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon','basisRate','rate','akkuRate',
   'tickSumme','punkteFuerZeit','zeitquelleMin','subBonusErreicht','pausenStrafe','pausenStrafeLive','kartePunkte','kartenArt','laufendeSek',
   'heuteInvestiertMin','akkuLive','aktuelleTagId','tagOffen','kartePunkteHeute','tagesPunkteDomain','tagesPunkteLive',
   'punkteHeuteAnzeige','tagesZielDomain','wachTagAnteil','punkteHeuteDomain','istTickKarte','tickPunkte',
@@ -44,7 +44,8 @@ var PAUSENTIMER_MAX_MIN = 120;
 var RANG_MAX = 20;
 var AKKU_MAX = 150;   // §6.2 (v1.13.0)
 var KETTENHIST_TAGE = 7, KETTENHIST_ENTPRELL_S = 10;   // (v1.13.4)
-var DEFAULT_SETTINGS = { basisProStd:120, zeitGewicht:1.15, tickGewicht:1, geldGewicht:0.5, geldDeckel:1.5,
+var DEFAULT_SETTINGS = { abhakbonusTabelle:{ aufgabe:{werkzeug:200,ziel:150,zustand:0,ablenkung:0}, routineDfm:{werkzeug:60,ziel:60,zustand:0,ablenkung:0}, routinePrivat:{werkzeug:25,ziel:25,zustand:0,ablenkung:0} },   // v2.8.0 §2.1
+  daempfungPrivat:0.5, daempfungDfm:1, basisProStd:120, zeitGewicht:1.15, tickGewicht:1, geldGewicht:0.5, geldDeckel:1.5,
   geldScoreRef:200, tagesZielDfm:5000, tagesZielPrivat:3000, tageszielPunkteProStd:100, akkuProStd:-8,
   basisProStdPrivat:120, standardWertDfm:0, standardWertPrivat:0, sollFormWerktag:[[0,5],[6,9]] };
 var S = { karten:[], unteraufgaben:[], tag:null, fokus:null, historie:[], intraday:[], meta:{wohlstand:0}, settings:DEFAULT_SETTINGS };
@@ -150,9 +151,11 @@ ok('istTickKarte: Routine MIT ticksAktiv ist tickbar', istTickKarte(karte({rhyth
 ok('kartenArt: Routine mit Ticks bleibt Routine', kartenArt(karte({rhythmus:{typ:'taeglich'}, ticksAktiv:true}))==='Routine');
 ok('istTickKarte: timerFlag allein tickt NICHT mehr', istTickKarte(karte({timerFlag:true}))===false);
 ok('istTickKarte: normale Aufgabe = false', istTickKarte(karte({}))===false);
-ok('tickPunkte: ticksHeute × tickWert (Fallback)', Math.round(tickPunkte(karte({ticksAktiv:true, tickWert:8, ticksHeute:2})))===16);
-ok('tickPunkte: Einzelwerte schlagen den Default', Math.round(tickPunkte(karte({ticksAktiv:true, tickWert:8, ticksHeute:2, tickWerteHeute:[10,-5]})))===5);
-ok('tickPunkte: negativer tickWert zulässig', Math.round(tickPunkte(karte({ticksAktiv:true, tickWert:-15, ticksHeute:2})))===-30);
+// (v2.8.0: DFM-Counter — Daempfung 1,0; die private Daempfung prueft der Punkt danach)
+ok('tickPunkte: ticksHeute × tickWert (Fallback)', Math.round(tickPunkte(karte({domain:'dfm', ticksAktiv:true, tickWert:8, ticksHeute:2})))===16);
+ok('tickPunkte: Einzelwerte schlagen den Default', Math.round(tickPunkte(karte({domain:'dfm', ticksAktiv:true, tickWert:8, ticksHeute:2, tickWerteHeute:[10,-5]})))===5);
+ok('tickPunkte: negativer tickWert zulässig', Math.round(tickPunkte(karte({domain:'dfm', ticksAktiv:true, tickWert:-15, ticksHeute:2})))===-30);
+ok('v2.8 §2.2: privater Counter gedaempft ×0,5 (eigener Tickwert 8 × 2 → 8)', Math.round(tickPunkte(karte({domain:'privat', ticksAktiv:true, tickWert:8, ticksHeute:2})))===8);
 
 // 4) energieBatterie: gruen+gelb = akku, dunkel = 100−akku
 S.tag.akku=60; S.fokus=null;
@@ -196,13 +199,17 @@ ok('§2: tickWert null erbt den Standard (15)', tickWertEff(kErbt)===15);
 /* Nachtrag §2 (v2.0.0): Der Abhakbonus erbt nicht mehr vom Domaenen-
    Standardwert, sondern vom MATRIXFELD — er traegt jetzt die Barriere.
    Der Tick-Wert erbt weiterhin vom Domaenen-Standard (anderes Ding). */
-S.settings.abhakbonusFeld={ ziel:0, zustand:150, werkzeug:100, ablenkung:0 };
-ok('Nachtrag §2: Abhakbonus erbt je MATRIXFELD (Werkzeug 100)',
-  abhakbonusDefault(karte({domain:'privat', matrixFeld:'werkzeug', abhakbonus:null}))===100);
-ok('Nachtrag §2: Zustaende tragen die hoechste Barriere (150)',
-  abhakbonusDefault(karte({domain:'privat', matrixFeld:'zustand', abhakbonus:null}))===150);
-ok('Nachtrag §2: Zielarbeit traegt 0 (die Zeit bezahlt sie bereits)',
-  abhakbonusDefault(karte({domain:'dfm', matrixFeld:'ziel', abhakbonus:null}))===0);
+/* v2.8.0 §2.1: die Tabelle je ART ersetzt den einen Wert je Matrixfeld
+   (Aufgaben-Spalte = Pascals Werte: Werkzeug 200 · Ziel 150 · 0 · 0). */
+ok('v2.8 §2.1: Aufgabe Werkzeug 200 (Tabelle, DFM und Privat gleich)',
+  abhakbonusDefault(karte({domain:'privat', matrixFeld:'werkzeug', abhakbonus:null}))===200 &&
+  abhakbonusDefault(karte({domain:'dfm', matrixFeld:'werkzeug', abhakbonus:null}))===200);
+ok('v2.8 §2.1: Aufgabe Zustand 0 · Ziel 150',
+  abhakbonusDefault(karte({domain:'privat', matrixFeld:'zustand', abhakbonus:null}))===0 &&
+  abhakbonusDefault(karte({domain:'dfm', matrixFeld:'ziel', abhakbonus:null}))===150);
+ok('v2.8 §2.1: Routine DFM 60 · Routine Privat 25 (Werkzeug)',
+  abhakbonusDefault(karte({domain:'dfm', matrixFeld:'werkzeug', rhythmus:{typ:'taeglich'}}))===60 &&
+  abhakbonusDefault(karte({domain:'privat', matrixFeld:'werkzeug', rhythmus:{typ:'taeglich'}}))===25);
 ok('Nachtrag §2: Ablenkungen tragen 0', abhakbonusDefault(karte({matrixFeld:'ablenkung'}))===0);
 ok('§2: Standard-Änderung wirkt SOFORT auf erbende Tick-Karten', (function(){ S.settings.standardWertPrivat=25; var r=tickWertEff(kErbt)===25; S.settings.standardWertPrivat=15; return r; })());
 ok('§2: Override bleibt Override (kein Erben)', tickWertEff(kOvr)===0 && abhakbonusDefault(kOvr)===5);
@@ -294,11 +301,11 @@ S.fokus=null; S.intraday=[];
 S.settings.zeitGewicht=1;   // glatte Zahlen: 60 min × 400 P/Std = 400 P je Karte
 S.karten=[]; S.unteraufgaben=[]; S.meta.ketten=null; S.meta.kettenHistorie={};
 S.tag={ tagId:HEUTE+'-1', datum:heuteIso(), startTs:heuteIso()+'T09:00:00', endeTs:null, akku:75, istMinutenStart:{}, abzuegeBilanz:0, log:[] };
-for(var pi=1; pi<=6; pi++) S.karten.push(karte({ id:'pl'+pi, domain:'dfm', sollMin:60, punkteProStd:400, istSek:0, ticksHeute:0 }));
+for(var pi=1; pi<=6; pi++) S.karten.push(karte({ id:'pl'+pi, domain:'dfm', sollMin:60, punkteProStd:400, istSek:0, ticksHeute:0, abhakbonus:0 }));   // v2.8: Bonus 0, der Test misst die Kette
 // faellig, aber bewusst NICHT in der Kette (10.000 P Prognose)
-S.karten.push(karte({ id:'plFremd', domain:'dfm', sollMin:600, punkteProStd:1000, istSek:0, ticksHeute:0 }));
+S.karten.push(karte({ id:'plFremd', domain:'dfm', sollMin:600, punkteProStd:1000, istSek:0, ticksHeute:0, abhakbonus:0 }));
 // reiner Stapelbestand ohne Faelligkeit (5.000 P Prognose)
-S.karten.push(karte({ id:'plBestand', domain:'dfm', sollMin:300, punkteProStd:1000, istSek:0, ticksHeute:0, faelligkeit:null }));
+S.karten.push(karte({ id:'plBestand', domain:'dfm', sollMin:300, punkteProStd:1000, istSek:0, ticksHeute:0, abhakbonus:0, faelligkeit:null }));
 tagesKetteDom('dfm');   // Auto-Befuellung (6 + plFremd)
 ketteSetzen(['pl1','pl2','pl3','pl4','pl5','pl6'],'dfm');   // explizit: nur die 6
 ok('Nachtrag §5: Kette traegt exakt die 6 geplanten Karten',

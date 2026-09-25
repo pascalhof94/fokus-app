@@ -135,8 +135,9 @@ ok('5 Bewegung nach LINKS gibt keinen Bonus (nie negativ)',
      Math.abs(prog-erwartetProg)<0.01);
   ok('N1 BELEG Abschluss rechnet auf IST 90 Min ('+Math.round(ist)+' P)',
      Math.abs(ist-erwartetIst)<0.01);
+  // v2.8.0: Ziel-Aufgaben tragen jetzt 150 Abhakbonus in der Prognose — verglichen wird der ZEITanteil
   ok('N1 BELEG: zaeher Tag wird NICHT entwertet — Ist 90 > Prognose 60',
-     ist>prog);
+     ist>prog-abhakbonusDefault(k));
   var kurz=neueKarte({domain:'dfm', sollMin:60, matrixFeld:'ziel', istSek:30*60});
   ok('N1 BELEG: schneller als geplant bucht auch weniger ('+Math.round(kartePunkte(kurz))+' P)',
      kartePunkte(kurz)<kartePunktePrognose(kurz));
@@ -153,15 +154,15 @@ ok('N2 Default je MATRIXFELD: Zustaende 150 > Werkzeuge 100 > Ziele 0 = Ablenkun
    abhakbonusFeldDefault('ziel')===0 && abhakbonusFeldDefault('ablenkung')===0);
 ok('N2 zeitunabhaengig: er wirkt auch bei einer 5-Minuten-Karte voll', (function(){
      var kurz=neueKarte({domain:'privat', sollMin:5, matrixFeld:'werkzeug'});
-     return abhakbonusDefault(kurz)===100; })());
+     return abhakbonusDefault(kurz)===200; })());   // v2.8.0: Tabelle, Aufgabe Werkzeug 200
 ok('N2 Ein Kartenwert bleibt Override und schlaegt den Feld-Default',
    abhakbonusDefault(neueKarte({matrixFeld:'zustand', abhakbonus:5}))===5);
 ok('N2 Override 0 heisst ausdruecklich „kein Bonus"',
    abhakbonusDefault(neueKarte({matrixFeld:'zustand', abhakbonus:0}))===0);
 ok('N2 Die Defaults sind Settings, keine Konstanten', (function(){
-     S.settings.abhakbonusFeld.werkzeug=222;
+     S.settings.abhakbonusTabelle.aufgabe.werkzeug=222;   // v2.8.0: die Tabelle ist die Einstellung
      var r=abhakbonusDefault(neueKarte({matrixFeld:'werkzeug'}))===222;
-     S.settings.abhakbonusFeld.werkzeug=100; return r; })());
+     S.settings.abhakbonusTabelle.aufgabe.werkzeug=200; return r; })());
 /* ══ NACHTRAG §3 · Neue Ziele als Settings-Defaults (Abnahme N3) ══ */
 ok('N3 Werktag DFM 5.000 · Privat 800 (2. Nachtrag)',
    num(S.settings.tagesZielDfm)===5000 && num(S.settings.tagesZielPrivat)===800);
@@ -508,7 +509,7 @@ ok('29 Sechs Kategorien, zwoelf Stufen', KAT_KEYS.length===6 &&
 kopf('§14 Regression (Abnahme 30-31)');
 frisch();
 ok('30 Ticks und Tickwerte', (function(){
-     var k=neueKarte({domain:'privat', ticksAktiv:true, tickWert:8, ticksHeute:2});
+     var k=neueKarte({domain:'dfm', ticksAktiv:true, tickWert:8, ticksHeute:2});   // v2.8.0: DFM (privat waere gedaempft)
      return Math.round(tickPunkte(k))===Math.round(16*num(S.settings.tickGewicht)); })());
 ok('30 Unteraufgaben mit Bonus', (function(){
      S.karten=[neueKarte({id:'u1'})];
@@ -524,8 +525,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.7.0 · Build gesetzt', VERSION==='2.7.0' && UI_VERSION==='v2.7.0' &&
-   APP_BUILD==='2026-09-25-2');
+ok('31 APP_VERSION 2.8.0 · Build gesetzt', VERSION==='2.8.0' && UI_VERSION==='v2.8.0' &&
+   APP_BUILD==='2026-09-25-3');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -884,9 +885,9 @@ frisch();
 S.karten=[
   neueKarte({id:'dA', domain:'dfm',    titel:'Filter DFM Aufgabe', matrixFeld:'ziel', faelligkeit:H()}),
   neueKarte({id:'pA', domain:'privat', titel:'Filter Privat Aufgabe', matrixFeld:'ziel', faelligkeit:H()}),
-  neueKarte({id:'dR', domain:'dfm',    titel:'Filter DFM Routine', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', faelligkeit:H()}),
-  neueKarte({id:'pR', domain:'privat', titel:'Filter Privat Routine', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', faelligkeit:H()}),
-  neueKarte({id:'pC', domain:'privat', titel:'Filter Privat Counter', ticksAktiv:true, matrixFeld:'werkzeug', faelligkeit:H()}) ];
+  neueKarte({id:'dR', domain:'dfm',    titel:'Filter DFM Routine', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', sollMin:10, faelligkeit:H()}),   // v2.8: mit Soll-Minuten → keine Abhak-Karte, steht im Kalender
+  neueKarte({id:'pR', domain:'privat', titel:'Filter Privat Routine', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', sollMin:10, faelligkeit:H()}),
+  neueKarte({id:'pC', domain:'privat', titel:'Filter Privat Counter', ticksAktiv:true, matrixFeld:'werkzeug', sollMin:10, faelligkeit:H()}) ];
 S.karten.forEach(function(k){ k.letzteBearbeitung=jetztIso(); k.streak=1; });
 ketteSetzen(['dA','pA','dR','pR','pC']);
 suchIndex=[];
@@ -999,10 +1000,10 @@ S.karten=[
   neueKarte({id:'u1', domain:'dfm', titel:'Ueberfaellig gestern', matrixFeld:'ziel', faelligkeit:anVorTage(H(),3)}),
   neueKarte({id:'z1', domain:'dfm', titel:'Zukunft naechste Woche', matrixFeld:'ziel', faelligkeit:anVorTage(H(),-7)}),
   neueKarte({id:'o1', domain:'privat', titel:'Ohne Datum', matrixFeld:'ziel'}),
-  neueKarte({id:'rT', domain:'privat', titel:'Routine taeglich', matrixFeld:'werkzeug', rhythmus:{typ:'taeglich'}, faelligkeit:H()}),
+  neueKarte({id:'rT', domain:'privat', titel:'Routine taeglich', matrixFeld:'werkzeug', rhythmus:{typ:'taeglich'}, sollMin:10, faelligkeit:H()}),   // v2.8: Soll-Minuten → im Kalender
   neueKarte({id:'rN', domain:'privat', titel:'Routine alle 7 Tage', matrixFeld:'werkzeug',
              rhythmus:{typ:'alleNTage', n:7}, zuletztRoutine:anVorTage(H(),1), faelligkeit:H()}),
-  neueKarte({id:'cC', domain:'privat', titel:'Counter ohne Rhythmus', matrixFeld:'werkzeug', ticksAktiv:true, faelligkeit:H()}) ];
+  neueKarte({id:'cC', domain:'privat', titel:'Counter ohne Rhythmus', matrixFeld:'werkzeug', ticksAktiv:true, sollMin:10, faelligkeit:H()}) ];
 ketteSetzen(['h1','u1','z1','o1','rT','rN','cC']);
 suchIndex=[];
 function idsIn2(h){ var r=[], re=/data-kid="([^"]+)"/g, m; while((m=re.exec(h))) if(r.indexOf(m[1])<0) r.push(m[1]); return r; }
@@ -1011,7 +1012,9 @@ ok('§2 heute nicht fällige Routine (7-Tage) fehlt überall · Sicht Heute ['+h
 ok('§2 tägliche Routine und Counter bleiben', heute.indexOf('rT')>=0 && heute.indexOf('cC')>=0);
 ok('§2 auch der Freitext zeigt die nicht fällige nicht', idsIn2(suFreitextHtml('routine')).indexOf('rN')<0);
 S.ui.suArt='routinen';
-var nurRout=idsIn2(suHeuteHtml());
+// v2.8.0 §1.2: Abhak-Karten (Routinen ohne Soll-Minuten) stehen nicht mehr im KALENDER —
+// die Ausnahme gilt in der Suche weiter, hier in der Sicht „Art"
+var nurRout=idsIn2(suArtHtml());
 ok('§2 Ausnahme: Art-Filter „Routinen und Counter" zeigt auch die nicht fällige', nurRout.indexOf('rN')>=0);
 ok('§2 Ausnahme steht in der Kopfzeile', suHeuteHtml().indexOf('auch heute nicht fällige')>=0);
 ok('§2 Ausnahme wirkt auch im Freitext', idsIn2(suFreitextHtml('routine')).indexOf('rN')>=0);
@@ -1457,7 +1460,7 @@ var kc=neueKarte({id:'cnt', domain:'privat', titel:'Liegestütze', sollMin:30, m
 kc.ticksHeute=4; kc.tickWerteHeute=[25,25,25,25];
 S.karten=[kc];
 var zg=(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1), tg=(S.settings.tickGewicht!=null?S.settings.tickGewicht:1);
-var zeitP=punkteFuerZeit(kc,30)*zg, tickP=tickSumme(kc,4)*tg, bonP=abhakbonusDefault(kc);
+var zeitP=punkteFuerZeit(kc,30)*zg, tickP=tickSumme(kc,4)*tg*daempfung(kc), bonP=abhakbonusDefault(kc);   // v2.8.0: private Counter gedaempft
 var tw=tempoWerte(kc);
 print('   Counter „Liegestütze": Soll 30′ · 4 Ticks à 25 · Abhakbonus 100 · Rate '+rate(kc)+' P/Std · Zeit-Gewicht '+zg+' · Tick-Gewicht '+tg);
 print('   Prognose-Punkte = '+Math.round(zeitP*10)/10+' (Zeit) + '+tickP+' (Ticks) + '+bonP+' (Abhakbonus) = '+Math.round(tw.karte.prognoseP*10)/10+
@@ -1813,6 +1816,159 @@ ok('§3 Sitzungen im Export tragen ihre id', (syncExport('delta').karten.filter(
 /* Abhaken verrechnet nachgetragene Punkte (nie doppelt im Aktivitätsfenster) */
 var offenP=S.intraday.filter(function(e){ return e.typ==='korrektur' && e.kartenId==='kk' && e.offen; }).reduce(function(a,e){ return a+num(e.punkte); },0);
 ok('§3 beim Abhaken werden nachgetragene Punkte verrechnet ('+fmtP(offenP)+' P)', offenP>0 && Math.abs(korrekturPunkteVerrechnen(kK)-offenP)<1e-9 && korrekturPunkteVerrechnen(kK)===0);
+
+/* ══════════════════════════════════════════════════════════════════════
+   v2.8.0 „Abhak-Leiste" — Abnahme 1–10 (Layout/Klick per Harness)
+   ══════════════════════════════════════════════════════════════════════ */
+kopf('v2.8.0 §1 · Abhak-Karten und Abhak-Leiste');
+frisch(); _blockAuf={}; _blockKarten=null;
+var hA=jetztStunde();
+syncImport(JSON.stringify({ appVersion:'2.8.0', tagesRahmen:[
+    {id:'mo', name:'Morgen', von:hA-3, bis:hA-1, typ:'privat'},
+    {id:'fo', name:'DFM-Fokus 1', von:hA-1, bis:hA+1, typ:'dfm'},
+    {id:'ab', name:'Abschluss', von:hA+1, bis:hA+2, typ:'privat'} ],
+  karten:[
+    {id:'rZ', domain:'privat', titel:'Zähne', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', block:'mo'},
+    {id:'rW', domain:'privat', titel:'Wasser', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', block:'mo'},
+    {id:'rM', domain:'dfm', titel:'Mails', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', block:'fo'},
+    {id:'cL', domain:'privat', titel:'Liegestütze', ticksAktiv:true, matrixFeld:'werkzeug', block:'ab'},
+    {id:'rT', domain:'privat', titel:'Tagesabschluss', rhythmus:{typ:'taeglich'}, sollMin:15, festMin:15, block:'ab'},
+    {id:'rX', domain:'privat', titel:'Yoga mit Zeit', rhythmus:{typ:'taeglich'}, sollMin:20, nurAbhaken:true, block:'mo'},
+    {id:'rO', domain:'privat', titel:'Ohne Zeit, aber nicht abhaken', rhythmus:{typ:'taeglich'}, nurAbhaken:false, block:'fo'},
+    {id:'aK', domain:'dfm', titel:'Kalkulation Welle', sollMin:60, matrixFeld:'ziel', block:'fo'},
+    {id:'aW', domain:'dfm', titel:'Werkzeug-Aufgabe', sollMin:30, matrixFeld:'werkzeug', block:'fo'} ],
+  kette:['rW','rZ','aK','rM','aW','cL','rT','rX','rO'] }));
+S.karten.forEach(function(k){ if(!k.faelligkeit) k.faelligkeit=H(); });
+function kid(id){ return S.karten.filter(function(k){ return k.id===id; })[0]; }
+ok('§1.1 Regel: Routine/Counter OHNE Soll-Minuten = Abhak-Karte; mit Zeit nicht', istAbhakKarte(kid('rZ')) && istAbhakKarte(kid('cL')) && !istAbhakKarte(kid('rT')) && !istAbhakKarte(kid('aK')));
+ok('§1.1 Schalter überschreibt in beide Richtungen (Routine mit Zeit hinein · ohne Zeit heraus)', istAbhakKarte(kid('rX')) && !istAbhakKarte(kid('rO')));
+var al=abhakLeisteKarten().map(function(k){ return k.id; });
+ok('§1.2 Reihenfolge des Tages: nach Block (Morgen → Fokus → Abschluss), im Block nach Kette ('+al.join(',')+')', al.join(',')==='rW,rZ,rX,rM,cL');
+var alh=abhakLeisteHtml();
+ok('§1.2 je Zeile Titel · Häkchen (+1 beim Counter) · Play', /data-alcheck="rZ"/.test(alh) && /data-alplay="rZ"/.test(alh) && /data-alcheck="cL"[^>]*>\+1</.test(alh));
+var vorP=kartePunkte(kid('rZ'));
+leisteAbhaken('rZ');
+ok('§1.2 Häkchen ohne Buchungsdialog: erledigt, gebucht = Wert + Abhakbonus ('+kid('rZ').punkteOverride+' P)', kid('rZ').status==='erledigt' && abhakTmp===null && kid('rZ').punkteOverride===Math.round(vorP)+25);
+al=abhakLeisteKarten().map(function(k){ return k.id; });
+ok('§1.2 erledigte Routine rutscht ausgegraut ans Ende ('+al.join(',')+')', al[al.length-1]==='rZ' && /al-z[^"]* fertig/.test(abhakLeisteHtml()));
+karteTick('cL');
+al=abhakLeisteKarten().map(function(k){ return k.id; });
+ok('§1.2 Counter bleibt an seinem Platz und zeigt den Zählstand', al.indexOf('cL')===3 && /1× · /.test(abhakLeisteHtml()));
+ok('§1.2 der Haken-Handler: Counter → +1, sonst abhaken ohne Dialog', /kartenArt\(k\)==='Counter'\) karteTick\(k\.id\); else \{ leisteAbhaken\(k\.id\)/.test(src));
+S.ui.fokusZeigt=null; fokusKarteAnsehen('aK'); renderFokus();
+var fvA=el('fokusView').innerHTML;
+ok('§1.2 Abhak-Leiste ganz unten in der Fokusansicht', fvA.indexOf('Abhaken · ')>fvA.indexOf('Der Tag von oben nach unten'));
+var zs=zeitstrahlHtml();
+ok('§1.2 Abhak-Karten stehen NICHT im Tagesablauf, Aufgaben schon', zs.indexOf('Zähne')<0 && zs.indexOf('Kalkulation Welle')>=0);
+ok('§1.3 Tagesablauf: jede offene Kartenzeile hat Play (Tippfläche 44 px)', /data-zsplay="aK"/.test(zs) && /\.zs-k\{min-height:44px/.test(src) && /\.al-knopf\{[^}]*width:44px;height:44px/.test(src));
+var bk=kalenderBloecke(S.karten.filter(function(k){ return k.status==='offen'; }));
+ok('§1.2 Abhak-Karten sind keine eigenen Blöcke im Karten-Kalender', !bk.some(function(b){ return b.kid==='rW' || b.kid==='cL'; }) && bk.some(function(b){ return b.kid==='aK'; }));
+ok('§1.2 in der Suche bleiben sie', idsIn2(suFreitextHtml('wasser')).indexOf('rW')>=0);
+
+kopf('v2.8.0 §2 · Punkte: Routinen dämpfen, Aufgaben nicht');
+frisch();
+var rPW=neueKarte({domain:'privat', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug'});
+var rDW=neueKarte({domain:'dfm', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug'});
+var aW=neueKarte({domain:'privat', matrixFeld:'werkzeug', sollMin:30});
+print('   Abhakbonus: private Werkzeug-Routine '+abhakbonusDefault(rPW)+' · DFM-Routine '+abhakbonusDefault(rDW)+' · Werkzeug-Aufgabe '+abhakbonusDefault(aW));
+ok('§2.1 Tabelle: private Werkzeug-Routine 25 · DFM-Routine 60 · Werkzeug-Aufgabe 200', abhakbonusDefault(rPW)===25 && abhakbonusDefault(rDW)===60 && abhakbonusDefault(aW)===200);
+ok('§2.1 Zustand/Ablenkung 0, Ziel-Aufgabe 150, Counter wie Routine', abhakbonusDefault(neueKarte({matrixFeld:'zustand'}))===0 &&
+   abhakbonusDefault(neueKarte({matrixFeld:'ziel'}))===150 && abhakbonusDefault(neueKarte({domain:'privat', ticksAktiv:true, matrixFeld:'ziel'}))===25);
+var rZeit=neueKarte({domain:'privat', rhythmus:{typ:'taeglich'}, matrixFeld:'ziel', sollMin:60, istSek:3600, abhakbonus:0});
+var aZeit=neueKarte({domain:'privat', matrixFeld:'ziel', sollMin:60, istSek:3600, abhakbonus:0});
+var dZeit=neueKarte({domain:'dfm', rhythmus:{typ:'taeglich'}, matrixFeld:'ziel', sollMin:60, istSek:3600, abhakbonus:0});
+print('   60 Min Zeit: private Routine '+fmtP(kartePunkte(rZeit))+' P · private Aufgabe '+fmtP(kartePunkte(aZeit))+' P · DFM-Routine '+fmtP(kartePunkte(dZeit))+' P (Faktor 1,0)');
+ok('§2.2 private Routine mit Zeit bringt halbe Zeitpunkte, private Aufgabe volle', Math.abs(kartePunkte(rZeit)*2-kartePunkte(aZeit))<1e-9);
+ok('§2.2 DFM-Routinen ungedämpft (1,0)', Math.abs(kartePunkte(dZeit)-kartePunkte(aZeit)*num(S.settings.basisProStdDfm)/num(S.settings.basisProStdPrivat))<1e-9);
+var eig=neueKarte({domain:'privat', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', abhakbonus:100, ticksAktiv:true, tickWert:10, ticksHeute:3});
+ok('§2.3 eigener Abhakbonus schlägt die Tabelle und wird NICHT gedämpft (Entscheidung Pascal): 100', abhakbonusDefault(eig)===100);
+ok('§2.3 eigener Tickwert: Dämpfung wirkt trotzdem (3 × 10 × Tick-Gewicht × 0,5)', Math.abs(tickPunkte(eig)-30*num(S.settings.tickGewicht)*0.5)<1e-9);
+ok('§2.2 Faktoren sind Einstellungen', (function(){ S.settings.daempfungPrivat=0.8; var r=Math.abs(kartePunkte(rZeit)/kartePunkte(aZeit)-0.8)<1e-9; S.settings.daempfungPrivat=0.5; return r; })());
+S.meta.daempfungAb=H();
+ok('§2.4 nicht rückwirkend: eine nachgetragene Sitzung vor dem Update rechnet ungedämpft', Math.abs(sitzungPunkteFuer(rZeit,60,anVorTage(H(),3))-sitzungPunkteFuer(aZeit,60,anVorTage(H(),3)))<1e-9 &&
+   Math.abs(sitzungPunkteFuer(rZeit,60,H())*2-sitzungPunkteFuer(aZeit,60,H()))<1e-9);
+var tw8=tempoWerte(neueKarte({domain:'privat', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', sollMin:30}));
+ok('§2.5 Tempo-Prognose rechnet mit Dämpfung und Tabelle ('+fmtP(tw8.karte.prognose)+' P/Std = (30′ × 120 × 1,5 × ½ × 0,8 + 25) ÷ 0,5)', Math.abs(tw8.karte.prognose-(30/60*120*num(S.settings.zeitGewicht)*0.5*0.8+25)/0.5)<1e-6);
+(function(){
+  _store={}; _store['fokus2_settings']=JSON.stringify({ abhakbonusFeld:{ ziel:150, zustand:0, werkzeug:200, ablenkung:0 } });
+  _store['fokus2_meta']=JSON.stringify({ seeded:true, migration200:true, nachtrag200:true, nachtrag200b:true, dublettenFix201:true, einDatum210:true, geld260:true, urlaub260:true });
+  ladeAlles();
+  ok('§2.1 Migration: die Aufgaben-Spalte übernimmt Pascals Gerätewerte (200/150/0/0) · Dämpfung ab heute', JSON.stringify(S.settings.abhakbonusTabelle.aufgabe)===JSON.stringify({werkzeug:200,ziel:150,zustand:0,ablenkung:0}) && S.meta.daempfungAb===heuteApp());
+})();
+frisch(); S.karten=[neueKarte({id:'e1', domain:'privat', titel:'Mit eigenem Bonus', rhythmus:{typ:'taeglich'}, abhakbonus:80}), neueKarte({id:'e2', domain:'dfm', titel:'Mit eigenem Tick', ticksAktiv:true, tickWert:12}), neueKarte({id:'e3', titel:'Ohne'})];
+renderEinst();
+ok('§2.3 Einstellungen: Liste aller Karten mit eigenem Abhakbonus/Tickwert, je mit „↺ Tabelle"', /Karten mit eigenem Wert · 2/.test(el('einstBody').innerHTML) && /data-eigenreset="e1"/.test(el('einstBody').innerHTML) && el('einstBody').innerHTML.indexOf('Ohne</')<0);
+ok('§2.1 Tabelle in den Einstellungen, alle Werte einstellbar', (el('einstBody').innerHTML.match(/data-abt="/g)||[]).length===12);
+
+kopf('v2.8.0 §3 · Vorschlag folgt dem Block');
+frisch();
+var hV=jetztStunde();
+syncImport(JSON.stringify({ appVersion:'2.8.0', tagesRahmen:[
+    {id:'b1', name:'Jetzt-Block', von:hV-1, bis:hV+1, typ:'dfm'}, {id:'b2', name:'Danach', von:hV+1, bis:hV+2, typ:'dfm'} ],
+  karten:[ {id:'v1', domain:'dfm', titel:'Erste im Block', sollMin:30, block:'b1'}, {id:'v2', domain:'dfm', titel:'Zweite im Block', sollMin:30, block:'b1'},
+           {id:'vR', domain:'dfm', titel:'Abhak im Block', rhythmus:{typ:'taeglich'}, block:'b1'},
+           {id:'v3', domain:'dfm', titel:'Im nächsten Block', sollMin:30, block:'b2'} ],
+  kette:['vR','v2','v1','v3'] }));
+var bv=blockVorschlag(null);
+ok('§3 nächste offene Karte im laufenden Block in Kettenreihenfolge, Abhak-Karte übersprungen ('+(bv&&bv.karte.titel)+')', bv && bv.karte.id==='v2');
+bv=blockVorschlag('v2');
+ok('§3 die verlassene Karte zählt nicht', bv && bv.karte.id==='v1');
+kid('v1').status='erledigt'; kid('v2').status='erledigt';
+bv=blockVorschlag(null);
+ok('§3 leerer Block → erste offene Karte des nächsten Blocks', bv && bv.karte.id==='v3' && bv.block.id==='b2' && !bv.imLaufenden);
+S.fokus=null; S.tag.vorschlagGezeigt=[]; zeigeVorschlag('v2');
+ok('§3 der Vorschlag öffnet die Karte direkt, pausiert (kein Sprung in die Matrix-Sicht)', S.fokus && S.fokus.karteId==='v3' && S.fokus.laeuft===false && S.ui.fokusOffen===true && S.ui.suSicht!=='matrix');
+frisch();
+S.karten=[ neueKarte({id:'w1', domain:'privat', titel:'Werkzeug privat', matrixFeld:'werkzeug', sollMin:10, faelligkeit:H()}),
+           neueKarte({id:'w2', domain:'dfm', titel:'Werkzeug DFM', matrixFeld:'werkzeug', sollMin:10, faelligkeit:H()}),
+           neueKarte({id:'w3', domain:'dfm', titel:'Abhak-Werkzeug', matrixFeld:'werkzeug', rhythmus:{typ:'taeglich'}, faelligkeit:H()}) ];
+S.tag.vorschlagGezeigt=[]; zeigeVorschlag('x');
+ok('§3 ohne Blöcke die alte Regel: Werkzeug, DFM vor privat, Abhak-Karten nie', S.ui.suVorschlag && S.ui.suVorschlag.kid==='w2' && S.ui.suSicht==='matrix');
+
+kopf('v2.8.0 §4 · Vom Gerät nehmen');
+frisch();
+var kG=neueKarte({id:'g1', domain:'dfm', airtableId:'recGGGGGGGGGGGGGG', titel:'Angebot Kaiser', rhythmus:{typ:'taeglich'}, sollMin:20, streak:17, faelligkeit:H()});
+kG.istSek=1800; S.karten=[kG, neueKarte({id:'g2', domain:'dfm', titel:'Läuft gerade', sollMin:20, faelligkeit:H()})];
+S.unteraufgaben=[neueUnteraufgabe('g1',{id:'gu1', titel:'Teil A'})];
+S.historie=[{tagId:'x', datum:anVorTage(H(),1), punkteBilanz:500, log:[{itemId:'g1', punkte:500, art:'Routine', domain:'dfm'}], luecke:false}];
+S.intraday=[{ts:jetztIso(), kartenId:'g1', punkte:0, minuten:30, typ:'timer', id:'s-1'}];
+ketteSetzen(['g1','g2']);
+fokusStarten('g2');
+var rL=karteVomGeraet('g2','detail');
+ok('§4 nur ohne laufende Uhr', rL.ok===false && /Uhr läuft/.test(rL.grund) && kid('g2'));
+var rG=karteVomGeraet('g1','detail');
+ok('§4 Karte weg (auch aus Kette und Unteraufgaben), Historie und Intraday bleiben', rG.ok && !kid('g1') && tagesKette().indexOf('g1')<0 &&
+   !S.unteraufgaben.some(function(u){ return u.parentId==='g1'; }) && S.historie[0].log[0].itemId==='g1' && S.intraday.length===1);
+var exG=syncExport('delta');
+print('   Export: '+JSON.stringify({ vomGeraetGenommen:exG.vomGeraetGenommen.map(function(x){ return {id:x.id, airtableId:x.airtableId, titel:x.titel, ts:'…'}; }) }));
+ok('§4 Export meldet vomGeraetGenommen mit id, airtableId, titel, Zeitpunkt', exG.vomGeraetGenommen.length===1 && exG.vomGeraetGenommen[0].id==='g1' &&
+   exG.vomGeraetGenommen[0].airtableId==='recGGGGGGGGGGGGGG' && exG.vomGeraetGenommen[0].titel==='Angebot Kaiser' && !!exG.vomGeraetGenommen[0].ts);
+syncImport(JSON.stringify({appVersion:'2.8.0', karten:[{id:'recGGGGGGGGGGGGGG', titel:'Angebot Kaiser (neu)'}]}));
+var zurueck=S.karten.filter(function(k){ return k.airtableId==='recGGGGGGGGGGGGGG'; });
+ok('§4 erneut geschickt: wie eine BEKANNTE — keine Dublette, Serie/Ist-Zeit/Unteraufgaben zurück', zurueck.length===1 && zurueck[0].id==='g1' && zurueck[0].streak===17 &&
+   zurueck[0].istSek===1800 && zurueck[0].titel==='Angebot Kaiser (neu)' && S.unteraufgaben.some(function(u){ return u.id==='gu1'; }) && (S.meta.vomGeraetGenommen||[]).length===0);
+fokusZeitEinbuchen(); S.fokus=null;
+var rI=syncImport(JSON.stringify({appVersion:'2.8.0', karten:[{airtableId:'recGGGGGGGGGGGGGG', vomGeraet:true}, {id:'gibtsnicht', vomGeraet:true}]}));
+ok('§4 per Import: vomGeraet:true nimmt sie herunter (Match airtableId), Unbekanntes ohne Wirkung', !kid('g1') && rI.vomGeraetGenommen===1 && !S.karten.some(function(k){ return k.id==='gibtsnicht'; }));
+syncBestaetigen();
+ok('§4 die Liste gilt bis zum nächsten bestätigten Sync', (S.meta.vomGeraetGenommen||[]).length===0);
+oeffneDetail('g2');
+ok('§4 im Detail ein Knopf „Vom Gerät nehmen" mit Bestätigung', /data-vomgeraet="1"/.test(el('sheetBody').innerHTML) && /_vomGeraetFrage=true; renderDetail\(\)/.test(src) && /data-vomgeraetja/.test(src));
+closeSheet();
+
+kopf('v2.8.0 §6 · Export');
+frisch(); S.karten=[neueKarte({id:'n1', titel:'mit Schalter', nurAbhaken:true}), neueKarte({id:'n2', titel:'Regel'})];
+var ex8=syncExport('voll').karten;
+ok('§6 je Karte nurAbhaken (true · false · null)', ex8[0].nurAbhaken===true && ex8[1].nurAbhaken===null && 'vomGeraetGenommen' in syncExport('delta'));
+syncImport(JSON.stringify({appVersion:'2.8.0', karten:[{id:'n2', nurAbhaken:false}]}));
+ok('§6 Import nimmt nurAbhaken an', kid('n2').nurAbhaken===false);
+
+kopf('v2.8.0 §5 · Farben (Stichproben; die Tabelle steht im Report)');
+ok('§5 Statusleiste: Privat lila statt gelb', /\.ist\.privat\{background:linear-gradient\(90deg,#d8b4fe,#a855f7\)\}/.test(src));
+ok('§5 Linien tragen Farbe + Verlauf darunter (anSvgLine flaeche, leuchtende Punkte)', /s\.flaeche\) fl\+=flaecheSvg/.test(src) && /leuchten\(df,3\)/.test(src));
+ok('§5 Akku als eigener Verlauf rot → gelb → grün', /akkuVerlaufDef\(aid, Y\(0\), Y\(100\)\)/.test(src));
+ok('§5 Matrix-Verlauf: Linie in der Richtungsfarbe statt weiß', /stroke="url\(#'\+rid\+'\)"/.test(src));
+ok('§5 Belohnung: Balken/Ringe farbig (Münzen gold, Rang lila, Kulisse cyan)', /fbBalken\(frac, null, null, false, SPIEL_FARBE\.rang\)/.test(src) && /SPIEL_FARBE\.kulisse\)/.test(src));
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

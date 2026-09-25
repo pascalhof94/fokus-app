@@ -85,15 +85,15 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 /* S1 (v1.3.2): Ist zweifarbig gestapelt (DFM blau · Privat gelb), Soll-Layer
    8:30–22:00-Fenster in Rot — Fläche bei Rückstand, schmaler Marker bei Vorsprung */
 #statusbar .sb-bar .ist{position:absolute;top:0;bottom:0}
-#statusbar .sb-bar .ist.dfm{left:0;background:var(--blue)}
-#statusbar .sb-bar .ist.privat{background:var(--warn)}
+#statusbar .sb-bar .ist.dfm{left:0;background:linear-gradient(90deg,#93c5fd,#3b82f6)}                     /* §5 (v2.8.0): DFM blau */
+#statusbar .sb-bar .ist.privat{background:linear-gradient(90deg,#d8b4fe,#a855f7)}                     /* §5 (v2.8.0): Privat lila (vorher gelb) */
 #statusbar .sb-bar .soll{position:absolute;top:0;bottom:0;background:rgba(246,109,109,.55)}
 #statusbar .sb-bar .sollmark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--bad)}
 #statusbar .sb-bar .mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--blue);opacity:.8}
 #statusbar .sbph{flex:none;font-size:9.5px;color:var(--mut2);white-space:nowrap}
 #statusbar .sbph b{margin-left:2px;font-weight:800}
 #statusbar .sbph.d b{color:var(--blue)}
-#statusbar .sbph.p b{color:var(--warn)}
+#statusbar .sbph.p b{color:#c084fc}
 #statusbar .sbph.s b{color:var(--bad)}
 /* Zeile 2: fünf Zellen — Kopf, Wert, Zusatz */
 /* §1 (v2.6.0): vier Zellen, jede mindestens 44 px hoch */
@@ -1039,7 +1039,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .zs-rahmen,.zs-spalte{position:relative;display:flex;flex-direction:column;gap:4px}
 .zs-seg{position:relative;border:1px solid var(--li);border-radius:10px;overflow:hidden;background:var(--bg2);padding-left:44px}
 .zs-seg.t-dfm{border-left:3px solid var(--blue)}
-.zs-seg.t-privat{border-left:3px solid var(--warn)}
+.zs-seg.t-privat{border-left:3px solid #a855f7}   /* §5 (v2.8.0): Privat lila (vorher gelb) */
+.zs-seg.t-dfm{border-left-color:#3b82f6;background:linear-gradient(90deg,rgba(59,130,246,.10),var(--bg2) 60%)}
+.zs-seg.t-privat{background:linear-gradient(90deg,rgba(168,85,247,.10),var(--bg2) 60%)}
 .zs-seg.t-pause,.zs-seg.t-schlaf{border-left:3px solid var(--li);opacity:.6}
 .zs-uhr{position:absolute;left:6px;top:7px;font-size:10px;opacity:.5;font-variant-numeric:tabular-nums}
 /* „Abgearbeitetes färbt sich ein" — der Tag läuft sichtbar voll. */
@@ -1481,6 +1483,30 @@ body{background:var(--bg)}
 .korr-k{font-size:13px;line-height:1.35}.korr-k span{display:block;font-size:10.5px;color:var(--mut2)}
 .korr-z{font-size:11px;color:var(--mut);line-height:1.4;margin-top:3px}.korr-z span{display:inline-block;width:52px;color:var(--mut2)}
 .korr-e ul{margin:4px 0 0 16px;padding:0;font-size:11.5px}
+/* ══ §1 (v2.8.0) · Abhak-Leiste, Play im Tagesablauf (mind. 44 px) ══ */
+.zs-k{min-height:44px;box-sizing:border-box}
+.al-knopf{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--txt);
+  font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+.al-knopf:active{transform:scale(.94)}
+.al-knopf.al-play{color:var(--fc,#f2f2f3);border-color:color-mix(in srgb,var(--fc,#8e9197) 55%,transparent)}
+.al-knopf.al-tick{font-size:13px}
+.al-knopf.al-ok{border-color:transparent;background:none;color:var(--ok);cursor:default}
+.al{margin-top:14px}
+.al .zs-spalte{gap:3px}
+.al-z .t{white-space:normal;line-height:1.25}
+.al-z.fertig .t{text-decoration:line-through;opacity:.45}
+.al-z.fertig{opacity:.55}
+.al-z.kvis-spaeter:not(.fertig){opacity:1}   /* in der Leiste ist „ohne Datum" normal — nicht gedimmt */
+.al-stand{font-family:ui-monospace,monospace;opacity:.8!important}
+.zs-play{width:40px;height:40px}
+.detail-vomgeraet{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+.vg-frage{font-size:12.5px;color:var(--txt);line-height:1.4;margin-bottom:8px}
+.abt{display:grid;gap:4px;margin:6px 0 4px}
+.abt-z{display:grid;grid-template-columns:1.3fr repeat(3,1fr);gap:6px;align-items:center;font-size:12px}
+.abt-z input{min-height:44px;text-align:center;width:100%;box-sizing:border-box}
+.abt-kopf b{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.3px;text-align:center}
+.abt-h{margin:12px 0 4px;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+.abt-eigen small{color:var(--mut2);font-weight:400}
 /* ══ §1.4 (v2.7.0) · Kalender in Tagesbloecken ══ */
 .kal-block{position:absolute;z-index:2;box-sizing:border-box;border-radius:12px;padding:6px 10px;cursor:pointer;overflow:hidden;
   border:1px solid rgba(var(--kbc),.45);border-left:4px solid rgb(var(--kbc));background:linear-gradient(90deg,rgba(var(--kbc),.20),rgba(var(--kbc),.07));
@@ -1686,9 +1712,9 @@ body{background:var(--bg)}
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.7.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.7.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-25-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.8.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.8.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-25-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1869,7 +1895,20 @@ const DEFAULT_SETTINGS = {
   //   Zustände 150 · Werkzeuge 100 · Ziele 0 · Ablenkungen 0
   // Begründung siehe Report: Zielarbeit wird bereits über die Zeit bezahlt;
   // der Bonus existiert für die Karten, deren Schwere die Uhr NICHT abbildet.
-  abhakbonusFeld: { ziel:0, zustand:150, werkzeug:100, ablenkung:0 },
+  abhakbonusFeld: { ziel:0, zustand:150, werkzeug:100, ablenkung:0 },   // bis v2.7 (bleibt als Migrationsquelle)
+  // ══ §2.1 (v2.8.0) · ABHAKBONUS-TABELLE je Art ═══════════════════════
+  // „Aufgabe" = alles ohne Rhythmus und ohne Ticks (DFM und Privat gleich);
+  // Routinen und Counter nach Domaene. Ein eigener Wert an der Karte schlaegt
+  // die Tabelle. Die Aufgaben-Spalte uebernimmt bei der Migration Pascals
+  // Geraetewerte (siehe migration280).
+  abhakbonusTabelle: {
+    aufgabe:       { werkzeug:200, ziel:150, zustand:0, ablenkung:0 },
+    routineDfm:    { werkzeug:60,  ziel:60,  zustand:0, ablenkung:0 },
+    routinePrivat: { werkzeug:25,  ziel:25,  zustand:0, ablenkung:0 } },
+  // §2.2 (v2.8.0): Daempfung der ZEIT- und TICKpunkte von Routinen und Countern
+  // (private Aufgaben werden nie gedaempft; der Abhakbonus nie — Entscheidung Pascal)
+  daempfungPrivat: 0.5,
+  daempfungDfm: 1.0,
   // §2: Bonus für Bewegung nach rechts. Voller Ausschlag (ganz links → ganz
   // rechts) = dieser Wert; wer schon rechts stand, bekommt fast nichts.
   bewegungsBonus: 500,
@@ -1988,6 +2027,9 @@ function neueKarte(f={}){
     // Minuten, egal wie lange die Uhr lief (null = aus). Die gestoppte Zeit
     // wird trotzdem gebucht.
     festMin: null,
+    // §1.1 (v2.8.0): true = immer Abhak-Karte · false = nie · null = Regel
+    // (Routine/Counter ohne Soll-Minuten)
+    nurAbhaken: null,
     // ══ §4 (v2.1.0) · EIN DATUM ════════════════════════════════════════
     // Die v2.0-Trennung in Deadline und „Geplant für" ist zurückgenommen:
     // Pascal führt EIN Datum. Es gibt nur noch die Deadline — und sie ist ab
@@ -2810,6 +2852,22 @@ function ladeAlles(){
     if(log.tage.length) saveHistorie();
     saveMeta();
   }
+  // ══ §2 (v2.8.0) · ABHAKBONUS-TABELLE + DAEMPFUNG AB HEUTE ═════════════
+  // Die Aufgaben-Spalte uebernimmt Pascals Geraetewerte je Matrixfeld. Stand
+  // dort noch der alte Default (Zustand 150 · Werkzeug 100 · Ziel 0), gilt
+  // die neue Tabelle (Werkzeug 200 · Ziel 150 · 0 · 0). Die Daempfung gilt ab
+  // heute (meta.daempfungAb) — vergangene Tage rechnen ungedaempft.
+  if(!S.meta.abhak280){
+    const alt=S.settings.abhakbonusFeld||{}, ALT={ ziel:0, zustand:150, werkzeug:100, ablenkung:0 };
+    const altDefault=Object.keys(ALT).every(f=>num(alt[f],ALT[f])===ALT[f]);
+    const log={ ts:jetztIso(), quelle: altDefault ? 'Tabelle (Gerät hatte den alten Default)' : 'Gerätewerte übernommen', vorher:Object.assign({}, alt) };
+    S.settings.abhakbonusTabelle=JSON.parse(JSON.stringify(S.settings.abhakbonusTabelle||DEFAULT_SETTINGS.abhakbonusTabelle));
+    if(!altDefault) ['werkzeug','ziel','zustand','ablenkung'].forEach(f=>{ if(Number.isFinite(Number(alt[f]))) S.settings.abhakbonusTabelle.aufgabe[f]=Number(alt[f]); });
+    log.aufgabe=Object.assign({}, S.settings.abhakbonusTabelle.aufgabe);
+    S.meta.daempfungAb=heuteApp();
+    S.meta.abhak280Log=log; S.meta.abhak280=true;
+    DB.set('settings', S.settings); saveMeta();
+  }
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
              if(!S.tag.istMinutenStart) S.tag.istMinutenStart={};
@@ -3005,14 +3063,16 @@ function akkuLetzteMessung(kid){
 }
 /* Zeit-Punkte, optional zeitgestaffelt (§4-Port punkteFuerZeit): bisMin aufsteigend,
    letzte Stufe bisMin=null = „danach". Ohne Staffel: flache Rate. */
-function punkteFuerZeit(k, min){
+function punkteFuerZeit(k, min, datum){
+  // §2.2 (v2.8.0): Routinen/Counter gedaempft (je Domaene), Aufgaben nie
+  const dm=daempfung(k, datum);
   const st=k.zeitStufen;
   if(Array.isArray(st) && st.length){
     let p=0, ab=0;
     for(const s of st){ const bis=(s.bisMin==null?Infinity:num(s.bisMin)); p += Math.max(0, Math.min(min,bis)-ab)/60 * num(s.punkteProStd); ab=bis; if(min<=bis) break; }
-    return p * geldFaktor(k);
+    return p * geldFaktor(k) * dm;
   }
-  return min/60 * rate(k);
+  return min/60 * rate(k) * dm;
 }
 /* Ist-Sekunden inkl. gerade laufendem Timer (nur für die fokussierte Karte). */
 function istSekLive(k){
@@ -3084,7 +3144,7 @@ function pausenStrafeLive(k){
 function kartePunkte(k){
   if(k.punkteOverride!=null) return num(k.punkteOverride);   // U6-A: beim Abhaken gewählter Ist-Punktwert schlägt die Berechnung
   const zeitTerm = punkteFuerZeit(k, zeitquelleMin(k)) * (S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
-  const tickTerm = tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k);
+  const tickTerm = tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k) * daempfung(k);   // §2.2 (v2.8.0)
   // §1 (v1.7.1): festgeschriebene + live wachsende Pausentimer-Strafe. Der
   // 1-Sekunden-Ticker rendert kartePunkte-basierte Anzeigen ohnehin sekündlich —
   // damit wächst der Abzug ab Minute 120 sichtbar auf Fokusseite/Statusleiste.
@@ -3113,7 +3173,7 @@ function kartePunktePrognose(k){
 function kartePunkteGeplant(k){ return kartePunktePrognose(k); }
 /* A3: nur der Tick-Anteil (gebuchte Ticks) — für Counter/Timer, die heute
    getickt, aber weder erledigt noch als Fokus laufend sind. */
-function tickPunkte(k){ return tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k); }
+function tickPunkte(k){ return tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k) * daempfung(k); }
 /* Abgeleitetes „Art"-Etikett (§2.1) — nur Anzeige. */
 /* Kartenart REIN ABGELEITET (v1.0 hat kein typ-Feld; die 74 Bestandskarten
    tragen keins). Regel wie v0.38-Bestand verifiziert (34/9/31):
@@ -3635,12 +3695,54 @@ function werkzeugVorschlagGrund(k){
   return a<50 ? ('Akku bei '+Math.round(a)+' % — das ladende Werkzeug')
               : ('Akku bei '+Math.round(a)+' % — das kurze reicht');
 }
+/* ══ §3 (v2.8.0) · DER VORSCHLAG FOLGT DEM BLOCK ═══════════════════════
+   Mit Tagesbloecken ist der Vorschlag die NAECHSTE OFFENE KARTE IM LAUFENDEN
+   BLOCK, in der Reihenfolge der Kette (Karten des Blocks, die nicht in der
+   Kette liegen, danach). Abhak-Karten werden uebersprungen. Ist der laufende
+   Block leer, die erste offene Karte des naechsten Blocks (Zeitfolge; ein
+   Oberblock vor seinen Unterbloecken). Gezeigt wird die Karte DIREKT, pausiert
+   — wie eine neue Karte; der Sprung in die Matrix-Sicht (v2.3) entfaellt.
+   Ohne Bloecke gilt die alte Regel (Werkzeug, DFM vor privat). */
+function blockVorschlag(ausser){
+  const bl=tagesBloecke(); if(!bl) return null;
+  const folge=bl.slice().sort((a,b)=>a.von-b.von || a.tiefe-b.tiefe);
+  const lauf=laufenderBlock(bl);
+  let start;
+  if(lauf) start=folge.findIndex(b=>b.id===lauf.id);
+  else { let j=jetztStunde(); if(j<Math.min.apply(null, bl.map(b=>b.von))-6) j+=24; start=folge.findIndex(b=>b.von>=j); }
+  if(start<0) return null;
+  const kIdx={}; tagesKette().forEach((id,i)=>kIdx[id]=i);
+  for(let i=start;i<folge.length;i++){
+    const b=folge[i];
+    const ks=S.karten.filter(k=>k.status==='offen' && !k.freeze && k.id!==ausser && !istAbhakKarte(k) && karteBlockId(k, bl)===b.id)
+      .sort((x,y)=>(kIdx[x.id]!=null?kIdx[x.id]:9999)-(kIdx[y.id]!=null?kIdx[y.id]:9999) || String(x.titel||'').localeCompare(String(y.titel||'')));
+    if(ks.length) return { karte:ks[0], block:b, imLaufenden: !!(lauf && b.id===lauf.id) };
+  }
+  return null;
+}
+/* Die vorgeschlagene Karte oeffnen — pausiert, wie eine neue Karte (§6 v2.3). */
+function vorschlagOeffnen(k){
+  if(S.fokus && S.fokus.laeuft && S.fokus.karteId!==k.id) fokusZeitEinbuchen();
+  S.fokus={ karteId:k.id, laeuft:false, startMs:0, sessionSek:0, quelle:null };
+  S.ui.fokusOffen=true; S.ui.fokusZeigt=null;
+  saveFokus(); saveUi();
+  setTab('suche',{fokusLassen:true});
+  renderAlles();
+}
 function zeigeVorschlag(kid){
   if(!tagOffen() || !S.tag) return;
   if(!Array.isArray(S.tag.vorschlagGezeigt)) S.tag.vorschlagGezeigt=[];
   const marke=kid||'_frei';
   if(S.tag.vorschlagGezeigt.indexOf(marke)>=0) return;   // genau EINMAL je Karte
-  const ws=werkzeugReihenfolge().filter(k=>k.id!==kid);
+  if(tagesBloecke()){
+    S.tag.vorschlagGezeigt.push(marke); saveTag();
+    const bv=blockVorschlag(kid);
+    if(!bv){ toast('Keine offene Karte mehr in den Blöcken des Tages.'); return; }
+    vorschlagOeffnen(bv.karte);
+    toast('Weiter: „'+String(bv.karte.titel||'').slice(0,28)+'" · '+(bv.imLaufenden?'':'nächster Block ')+bv.block.name);
+    haptik(10); return;
+  }
+  const ws=werkzeugReihenfolge().filter(k=>k.id!==kid && !istAbhakKarte(k));   // §1.2 (v2.8.0): Abhak-Karten nie
   S.tag.vorschlagGezeigt.push(marke); saveTag();
   if(!ws.length){
     // Ehrliche Auskunft statt Ersatzvorschlag — ohne Werkzeug gibt es keinen.
@@ -4567,6 +4669,33 @@ function ampelGegen(v, basis, invert){
 }
 function ampelHex(stufe){ return (AMPEL_FARBE[stufe]||AMPEL_FARBE.grau)[0]; }
 function ampelBalken(stufe){ const a=AMPEL_FARBE[stufe]||AMPEL_FARBE.grau; return 'background:linear-gradient(90deg,'+a[1]+','+a[0]+')'; }
+/* ══ §5 (v2.8.0) · FARBIGER — die Bausteine ═════════════════════════════
+   Linien mit Bedeutung sind farbig (Ampel · DFM blau · Privat lila ·
+   Matrixfelder · Akku rot→gelb→gruen), unter Kurven ein weicher Verlauf in
+   der Linienfarbe, Punkte mit leichtem Leuchten. Grau NUR fuer Bezugsgroessen
+   (Normaltag, Plan, Ziel, Schnitt) — und dann gestrichelt. */
+const DOM_FARBE={ dfm:['#93c5fd','#3b82f6'], privat:['#d8b4fe','#a855f7'] };
+const SPIEL_FARBE={ muenzen:['#fde68a','#f2b84b'], rang:['#e9d5ff','#b98af7'], kulisse:['#a5f3fc','#22d3ee'] };
+/* weicher Verlauf unter einer Kurve (Pixelpunkte, x aufsteigend) */
+function flaecheSvg(pts, yBasis, farbe){
+  const q=(pts||[]).filter(p=>p && Number.isFinite(p.x) && Number.isFinite(p.y));
+  if(q.length<2) return '';
+  const id=svgId('fl');
+  return '<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+farbe+'" stop-opacity=".34"/><stop offset="1" stop-color="'+farbe+'" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+glattPfad(q)+' L'+q[q.length-1].x.toFixed(1)+' '+yBasis.toFixed(1)+' L'+q[0].x.toFixed(1)+' '+yBasis.toFixed(1)+' Z" fill="url(#'+id+')" stroke="none"/>';
+}
+function leuchten(farbe, px){ return 'filter:drop-shadow(0 0 '+(px||4)+'px '+farbe+')'; }
+/* Akku als eigener Verlauf: senkrecht rot (0 %) → gelb (50 %) → gruen (100 %) */
+function akkuVerlaufDef(id, yNull, yVoll){
+  return '<defs><linearGradient id="'+id+'" gradientUnits="userSpaceOnUse" x1="0" y1="'+yNull+'" x2="0" y2="'+yVoll+'">'+
+    '<stop offset="0" stop-color="'+AMPEL_FARBE.rot[0]+'"/><stop offset=".5" stop-color="'+AMPEL_FARBE.gelb[0]+'"/><stop offset="1" stop-color="'+AMPEL_FARBE.gruen[0]+'"/></linearGradient></defs>';
+}
+/* Matrix-Richtung: waagerecht rot („weg von") → gelb → gruen („hin zu") */
+function richtungVerlaufDef(id, xL, xR){
+  return '<defs><linearGradient id="'+id+'" gradientUnits="userSpaceOnUse" x1="'+xL+'" y1="0" x2="'+xR+'" y2="0">'+
+    '<stop offset="0" stop-color="'+AMPEL_FARBE.rot[0]+'"/><stop offset=".5" stop-color="'+AMPEL_FARBE.gelb[0]+'"/><stop offset="1" stop-color="'+AMPEL_FARBE.gruen[0]+'"/></linearGradient></defs>';
+}
+function richtungFarbe(x){ const v=num(x); return v<-0.33?AMPEL_FARBE.rot[0]:(v<0?AMPEL_FARBE.orange[0]:(v<0.33?AMPEL_FARBE.gelb[0]:AMPEL_FARBE.gruen[0])); }
 /* Balken, der EINE Karte zeigt: Matrixfeld = Grundfarbe (v2.4.1). */
 function karteBalken(k){ const c=MX_FARBE[matrixFeldVon(k)]||MX_FARBE.ziel; return 'background:linear-gradient(90deg,'+c[1]+','+c[0]+')'; }
 /* ══ §9 (v2.4.0) · FORMENSPRACHE NACH SLEEP CYCLE — die Bausteine ═════
@@ -4750,7 +4879,9 @@ function fbRing(frac, farbe, opt){
   const S0=opt.gross?104:(opt.mittel?64:44), sw=opt.gross?9:(opt.mittel?7:6), r=(S0-sw)/2-1, c=S0/2, u=2*Math.PI*r;
   const gid=svgId('rg');
   const w=f*2*Math.PI-Math.PI/2, kx=c+r*Math.cos(w), ky=c+r*Math.sin(w);
-  let g='<svg class="ring" width="'+S0+'" height="'+S0+'" viewBox="0 0 '+S0+' '+S0+'">'+
+  // §5 (v2.8.0): eine mitgegebene Farbe ([hell,kraeftig] oder eine) setzt den Verlauf
+  const fz=Array.isArray(farbe)?farbe:(farbe?[farbe,farbe]:null);
+  let g='<svg class="ring" width="'+S0+'" height="'+S0+'" viewBox="0 0 '+S0+' '+S0+'"'+(fz?' style="--rg1:'+fz[0]+';--rg2:'+fz[1]+';'+leuchten(fz[1],3)+'"':'')+'>'+
     '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--rg1,#ffffff)"/><stop offset="1" style="stop-color:var(--rg2,#8b8e94)"/></linearGradient></defs>'+
     '<circle cx="'+c+'" cy="'+c+'" r="'+r.toFixed(1)+'" fill="none" stroke="#26282c" stroke-width="'+sw+'"/>';
   if(f>0){
@@ -4766,9 +4897,11 @@ function fbRing(frac, farbe, opt){
   }
   return g+'</svg>';
 }
-function fbBalken(frac, marke, label, gut){
+function fbBalken(frac, marke, label, gut, farbe){
   const f=Math.max(0, Math.min(1, num(frac)));
-  let h='<div class="fbk-bar'+(marke!=null?' mitmarke':'')+'"><i'+(gut?' class="gut"':'')+' style="width:'+(f*100).toFixed(1)+'%"></i>';
+  // §5 (v2.8.0): farbe = [hell, kraeftig] → Verlauf mit leichtem Leuchten
+  const fs=Array.isArray(farbe) ? ';background:linear-gradient(90deg,'+farbe[0]+','+farbe[1]+');box-shadow:0 0 8px color-mix(in srgb,'+farbe[1]+' 45%,transparent)' : '';
+  let h='<div class="fbk-bar'+(marke!=null?' mitmarke':'')+'"><i'+(gut?' class="gut"':'')+' style="width:'+(f*100).toFixed(1)+'%'+fs+'"></i>';
   if(marke!=null){
     const m=Math.max(0, Math.min(1, num(marke)))*100;
     h+='<u style="left:'+m.toFixed(1)+'%"></u>';
@@ -4804,7 +4937,7 @@ function fbSchubAchse(x, rechts){
     '<line x1="6" y1="18" x2="'+(W-6)+'" y2="18" stroke="var(--line)" stroke-width="3" stroke-linecap="round"/>'+
     '<line x1="'+(W/2)+'" y1="13" x2="'+(W/2)+'" y2="23" stroke="var(--mut2)"/>'+
     '<line x1="'+px.toFixed(1)+'" y1="7" x2="'+zx.toFixed(1)+'" y2="7" stroke="'+(rechts?'var(--ok)':'var(--bad)')+'" stroke-width="2" marker-end="url(#fbPf2)"/>'+
-    '<circle cx="'+px.toFixed(1)+'" cy="18" r="4.5" fill="var(--blue)" stroke="var(--txt)" stroke-width="1.5"/></svg>';
+    '<circle cx="'+px.toFixed(1)+'" cy="18" r="4.5" fill="'+richtungFarbe(x)+'" stroke="var(--txt)" stroke-width="1.5" style="'+leuchten(richtungFarbe(x),3)+'"/></svg>';   // §5 (v2.8.0): Punkt in der Richtungsfarbe
 }
 /* 1 · Was diese Karte einbringt — Punkte, Münzen, Beitrag zum Tagessoll. */
 function fbWasDieseKarte(k){
@@ -4832,7 +4965,7 @@ function fbWasDieseKarte(k){
        :' — gebucht wird nach <b>Ist</b>, der Endwert weicht von der Prognose ab.</div></div>');
   h+=fbKachel('Anteil am Tagessoll', fbRing(anteil, null, {mittel:true, mitte:Math.round(anteil*100)+'%'}),
      fbWert(fmtP(p), 'Prognose von '+fmtP(zielH)), {voll:!bb});
-  if(bb) h+=fbKachel('Bewegungsbonus heute', '<div style="width:100%">'+fbBalken(bb/bbMax, null, null, true)+'</div>',
+  if(bb) h+=fbKachel('Bewegungsbonus heute', '<div style="width:100%">'+fbBalken(bb/bbMax, null, null, true, AMPEL_FARBE.gruen.slice().reverse())+'</div>',
                      fbWert('+'+fmtP(bb), 'von '+fmtP(bbMax)+' P', 'gut'), {breit:true});
   return h+'</div></div>';
 }
@@ -4895,10 +5028,12 @@ function fbGrosseMatrix(opt){
        (z.felder[f]>=1?Math.round(z.felder[f])+'′':'–')+'</text>';
   });
   // Die Linie durch den Tag — frühere Abschnitte blasser
+  // §5 (v2.8.0): die Tageslinie in der Richtungsfarbe (rot → gruen ueber x), fruehere Abschnitte blasser
+  const grid=svgId('gmr'); g+=richtungVerlaufDef(grid, P, W-P);
   for(let i=1;i<sp.length;i++){
-    const o=0.18+0.62*(i/Math.max(1,sp.length-1));
+    const o=0.25+0.65*(i/Math.max(1,sp.length-1));
     g+='<line x1="'+X(sp[i-1].x).toFixed(1)+'" y1="'+Y(sp[i-1].y).toFixed(1)+'" x2="'+X(sp[i].x).toFixed(1)+'" y2="'+Y(sp[i].y).toFixed(1)+
-       '" stroke="var(--txt)" stroke-width="1.6" stroke-linecap="round" opacity="'+o.toFixed(2)+'"/>';
+       '" stroke="url(#'+grid+')" stroke-width="2" stroke-linecap="round" opacity="'+o.toFixed(2)+'"/>';
   }
   sp.forEach((e,i)=>{
     const letzte=i===sp.length-1;
@@ -4939,7 +5074,7 @@ function fbWasIchBewege(k){
     const bbMax=Math.max(1, num(S.settings&&S.settings.bewegungsBonus,500));
     h+=fbKachel('Diese Karte schiebt', fbSchubAchse(p.x, zielX>0),
        fbWert(zielX>0?'→':'←', zielX>0?'nach rechts':'nach links', zielX>0?'gut':''));
-    h+=fbKachel('Bonus möglich', '<div style="width:100%">'+fbBalken(zielX>0?erwartet/bbMax:0, null, null, true)+'</div>',
+    h+=fbKachel('Bonus möglich', '<div style="width:100%">'+fbBalken(zielX>0?erwartet/bbMax:0, null, null, true, AMPEL_FARBE.gruen.slice().reverse())+'</div>',
        fbWert(zielX>0?('bis '+fmtP(erwartet)):'0', 'von '+fmtP(bbMax)+' P'), {breit:true});
   }
   return h+'</div></div>';
@@ -4974,7 +5109,7 @@ function fbWoIchStehe(){
   // §1.2 (v2.5.0): Outfit und Faktor F zeigen Pascal gegen normal → Ampelfarbe
   // (dieselbe Abweichung wie der Tagesziel-Ring: heute gegen deinen Schnitt zur selben Uhrzeit).
   const ampTag=ampelStil(ampelStufe(normalZurUhrzeit('alle').r));
-  h+=fbKachel('Outfit', fbRing(ofFrac, 'var(--purple)'),
+  h+=fbKachel('Outfit', fbRing(ofFrac, null),   // Ampel ueber die Kachel (v2.5 §1.2)
      fbWert(of!=null?String(of):'—', (of||1)>=20?'höchste Stufe':(fehlt>0?('noch '+fmtP(fehlt)+' P bis '+naechste):('Stufe '+naechste+' erreicht'))),
      {klasse:'amp', stil:ampTag});
   h+=fbKachel('Faktor F', '<div style="width:100%">'+fbBalken(num(F)/Fs, 1/Fs, '1,0', num(F)>=1)+'</div>',
@@ -4999,14 +5134,60 @@ function fbWoIchStehe(){
    aktuelle Uhrzeit als Linie. Abgearbeitetes färbt sich ein: der Tag läuft
    sichtbar voll. Quelle ist der TAGESRAHMEN plus die KETTE — nichts
    Erfundenes. Ohne Rahmen zeigt der Strahl die Kette ohne Uhrzeiten. ══ */
+/* ══ §1 (v2.8.0) · DIE ABHAK-LEISTE — unten in der Fokusansicht ════════
+   Die vielen kleinen Karten, die nur abgehakt werden, stoeren den Fluss durch
+   den Tagesplan. Sie stehen deshalb NICHT mehr im Tagesablauf, im Karten-
+   Kalender und im Vorschlag, sondern hier: schmal, im Design des Tagesablaufs,
+   in der Reihenfolge des Tages (nach Block — Morgen zuerst, Abschluss zuletzt —,
+   im Block nach Kette). Je Zeile Titel · Haekchen (abhaken, bei Countern +1) ·
+   Play. Abhaken hier fragt nicht (wie Pausieren, v2.1.1): gebucht wird der
+   berechnete Wert plus Abhakbonus. Erledigte Routinen rutschen ausgegraut ans
+   Ende, Counter bleiben an ihrem Platz und zeigen ihren Zaehlstand.
+   In der Suche bleiben sie. */
+function abhakLeisteKarten(){
+  const heute=heuteApp(), tid=aktuelleTagId(), bl=tagesBloecke()||[], ids=tagesKette();
+  const bIdx={}; bl.slice().sort((a,b)=>a.von-b.von || a.tiefe-b.tiefe).forEach((b,i)=>bIdx[b.id]=i);
+  const kIdx={}; ids.forEach((id,i)=>kIdx[id]=i);
+  const ks=S.karten.filter(k=>k.status!=='archiviert' && !k.freeze && istAbhakKarte(k) && (
+    k.rhythmus ? ((k.status==='offen' && routineFaellig(k, heute)) || routErledigtHeute(k))
+               : ((k.status==='offen' && (!k.faelligkeit || k.faelligkeit<=heute)) || (k.status==='erledigt' && k.tagId===tid))));
+  const fertig=k=>k.status==='erledigt' || (k.rhythmus && kartenArt(k)!=='Counter' && routErledigtHeute(k) && k.status!=='offen');
+  const schluessel=k=>{ const b=karteBlockId(k, bl); return [fertig(k)?1:0, b!=null?bIdx[b]:9999, kIdx[k.id]!=null?kIdx[k.id]:9999]; };
+  return ks.map(k=>({k, s:schluessel(k)})).sort((a,b)=>a.s[0]-b.s[0] || a.s[1]-b.s[1] || a.s[2]-b.s[2] || String(a.k.titel||'').localeCompare(String(b.k.titel||''))).map(x=>x.k);
+}
+function abhakLeisteHtml(){
+  const ks=abhakLeisteKarten(); if(!ks.length) return '';
+  const offen=ks.filter(k=>k.status==='offen').length;
+  let h='<div class="zs al"><div class="zs-h">Abhaken · '+offen+' offen · '+ks.length+' heute</div><div class="zs-spalte">';
+  ks.forEach(k=>{
+    const counter=kartenArt(k)==='Counter', fertig=k.status==='erledigt';
+    h+='<div class="zs-k al-z '+karteVisKlasse(k)+(fertig?' fertig':'')+'" style="'+karteVisStil(k)+'" data-alkarte="'+k.id+'" data-kid="'+k.id+'">'+
+       '<span class="t">'+esc(String(k.titel||'?'))+'</span>'+
+       (counter?'<span class="m al-stand">'+num(k.ticksHeute)+'× · '+fmtP(tickPunkte(k))+' P</span>':'')+
+       (fertig ? '<span class="al-knopf al-ok" aria-label="erledigt">✓</span>'
+               : '<button class="al-knopf'+(counter?' al-tick':'')+'" data-alcheck="'+k.id+'" aria-label="'+(counter?'Tick +1':'Abhaken')+'">'+(counter?'+1':'✓')+'</button>')+
+       '<button class="al-knopf al-play" data-alplay="'+k.id+'" aria-label="Starten">▶</button></div>';
+  });
+  return h+'</div></div>';
+}
+/* Abhaken ohne Dialog: berechneter Wert + Abhakbonus, wie der Dialog ihn vorbelegt. */
+function leisteAbhaken(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k || k.status!=='offen') return;
+  k.punkteOverride=Math.max(0, Math.round(kartePunkte(k)) + abhakbonusDefault(k));
+  karteAbhaken(kid);
+}
 function zeitstrahlHtml(){
   const rahmen=tagesRahmen();
   const ids=tagesKette(), by={}; S.karten.forEach(k=>by[k.id]=k);
-  const ks=ids.map(id=>by[id]).filter(Boolean);
+  // §1.2 (v2.8.0): Abhak-Karten stehen in der Abhak-Leiste, nicht im Tagesablauf
+  const ks=ids.map(id=>by[id]).filter(k=>k && !istAbhakKarte(k));
   const jetzt=jetztStunde();
   // v2.1.2 §2: jede Minutenzahl neben einem Mini-Balken (Anteil an der längsten Karte).
   const maxMin=Math.max(1, ...ks.map(k=>num(k.sollMin)));
   const mb=(k)=>'<span class="zs-mb" aria-hidden="true"><i style="width:'+Math.round(num(k.sollMin)/maxMin*100)+'%"></i></span>';
+  // §1.3 (v2.8.0): jede Zeile startet direkt — Play, mind. 44 px (Titel oeffnet wie bisher)
+  const zsPlay=(k)=>k.status==='offen' ? '<button class="al-knopf al-play zs-play" data-zsplay="'+k.id+'" aria-label="Starten">'+
+    ((S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id)?'⏸':'▶')+'</button>' : '';
   let h='<div class="zs"><div class="zs-h">Der Tag von oben nach unten</div>';
   if(!rahmen || !rahmen.length){
     if(!ks.length) return '';
@@ -5016,7 +5197,7 @@ function zeitstrahlHtml(){
       const fertig=k.status==='erledigt';
       h+='<div class="zs-k '+karteVisKlasse(k)+(fertig?' fertig':'')+'" style="'+karteVisStil(k)+'" data-zskarte="'+k.id+'">'+
          '<span class="n">'+(i+1)+'</span><span class="t">'+esc(String(k.titel||'?').slice(0,34))+'</span>'+
-         mb(k)+'<span class="m">'+num(k.sollMin)+'′</span></div>';
+         mb(k)+'<span class="m">'+num(k.sollMin)+'′</span>'+zsPlay(k)+'</div>';
     });
     return h+'</div></div>';
   }
@@ -5046,7 +5227,7 @@ function zeitstrahlHtml(){
     drin.slice(0,6).forEach(k=>{
       h+='<div class="zs-k '+karteVisKlasse(k)+(k.status==='erledigt'?' fertig':'')+'" style="'+karteVisStil(k)+'" data-zskarte="'+k.id+'">'+
          '<span class="t">'+esc(String(k.titel||'?').slice(0,30))+'</span>'+
-         mb(k)+'<span class="m">'+num(k.sollMin)+'′</span></div>';
+         mb(k)+'<span class="m">'+num(k.sollMin)+'′</span>'+zsPlay(k)+'</div>';
     });
     if(drin.length>6) h+='<div class="hint">+'+(drin.length-6)+' weitere</div>';
     h+='</div></div>';
@@ -5656,8 +5837,12 @@ function renderStatusSheet(){
       '<svg viewBox="0 0 '+W+' '+Hh+'" width="100%" height="'+Hh+'">'+
       '<line x1="'+pL+'" y1="'+(Hh-pB)+'" x2="'+(W-pR)+'" y2="'+(Hh-pB)+'" stroke="var(--line)"/>'+
       (kNorm?'<path d="'+pfad(kNorm)+'" fill="none" stroke="var(--mut2)" stroke-width="1.6" stroke-dasharray="4 3" opacity=".8"/>':'')+
-      '<path d="'+pfad(kHeute.filter(p=>p.x<=nowX+0.001))+'" fill="none" stroke="var(--purple)" stroke-width="2.4" stroke-linejoin="round"/>'+
-      '<circle cx="'+X(Math.min(nowX,bis)).toFixed(1)+'" cy="'+Y(kHeute[kHeute.length-1].p).toFixed(1)+'" r="3" fill="var(--purple)"/>'+
+      (function(){ // §5 (v2.8.0): heute in der Ampel mit Verlauf (vorher lila)
+        const af=(function(){ try{ return ampelHex(tagesAmpel().stufe); }catch(e){ return '#f2f2f3'; } })();
+        const hp=kHeute.filter(p=>p.x<=nowX+0.001);
+        return flaecheSvg(hp.map(p=>({x:X(p.x), y:Y(p.p)})), Hh-pB, af)+
+          '<path d="'+pfad(hp)+'" fill="none" stroke="'+af+'" stroke-width="2.4" stroke-linejoin="round"/>'+
+          '<circle cx="'+X(Math.min(nowX,bis)).toFixed(1)+'" cy="'+Y(kHeute[kHeute.length-1].p).toFixed(1)+'" r="3.4" fill="'+af+'" style="'+leuchten(af,4)+'"/>'; })()+
       '<text x="'+pL+'" y="'+(Hh-3)+'" fill="var(--mut2)" font-size="8">'+belUhr(von)+'</text>'+
       '<text x="'+(W-34)+'" y="'+(Hh-3)+'" fill="var(--mut2)" font-size="8">'+belUhr(bis)+'</text></svg>'+
       // §1.4 (v1.13.0): Farblegende
@@ -5681,7 +5866,7 @@ function renderStatusSheet(){
       }
     }
     return s; })();
-  h+='<div class="statringe" style="display:flex;gap:8px;margin-top:8px">'+scoreRingDomain('dfm','DFM','var(--blue)')+scoreRingDomain('privat','Privat','var(--warn)')+'</div>';
+  h+='<div class="statringe" style="display:flex;gap:8px;margin-top:8px">'+scoreRingDomain('dfm','DFM',DOM_FARBE.dfm[1])+scoreRingDomain('privat','Privat',DOM_FARBE.privat[1])+'</div>';
   h+=(function(){ // Batterieverlauf des Tages
     if(!(tagOffen() && S.tag)) return '';
     const av2=(S.tag.akkuVerlauf||[]).map(e=>({x:belX(e.ts), p:num(e.akku)}));
@@ -5691,7 +5876,12 @@ function renderStatusSheet(){
     const X=x=>pL+((Math.max(von,Math.min(bis,x))-von)/span)*(W-pL-pR), Y=p=>6+(1-p/100)*50;
     return '<div class="akkukarte" style="margin-top:8px"><div class="lbl"><span>Batterieverlauf</span><span>'+(now!=null?Math.round(now)+'%':'–')+'</span></div>'+
       '<svg viewBox="0 0 '+W+' '+Hh+'" width="100%" height="'+Hh+'">'+
-      '<polyline points="'+av2.map(e=>X(e.x).toFixed(1)+','+Y(e.p).toFixed(1)).join(' ')+'" fill="none" stroke="var(--ok)" stroke-width="2" stroke-linejoin="round"/></svg></div>'; })();
+      // §5 (v2.8.0): der Akku als eigener Verlauf — rot (leer) ueber gelb nach gruen (voll)
+      (function(){ const aid=svgId('akku'), pts=av2.map(e=>({x:X(e.x), y:Y(e.p)}));
+        return akkuVerlaufDef(aid, Y(0), Y(100))+flaecheSvg(pts, Y(0), AMPEL_FARBE.gelb[0])+
+          '<path d="'+glattPfad(pts)+'" fill="none" stroke="url(#'+aid+')" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>'+
+          '<circle cx="'+pts[pts.length-1].x.toFixed(1)+'" cy="'+pts[pts.length-1].y.toFixed(1)+'" r="3.4" fill="'+richtungFarbe((av2[av2.length-1].p-50)/50)+'" style="'+leuchten(richtungFarbe((av2[av2.length-1].p-50)/50),4)+'"/>'; })()+
+      '</svg></div>'; })();
   h+='</div>';
   // ── 5 · Was du heute schon geschafft hast ──
   const tid=aktuelleTagId();
@@ -5847,10 +6037,12 @@ function ampelKurveSvg(a){
   const pfad=pts=>glattPfad(pts.map(q=>({x:X(q.x), y:Y(q.p)})));   // §9: weich
   const heute=a.kHeute.filter(q=>q.x<=a.nowX+0.001);
   const letzt=heute[heute.length-1];
+  const af=(AMPEL_FARBE[a.stufe]||AMPEL_FARBE.grau)[0];   // §5 (v2.8.0): Verlauf unter der Ampel-Linie, Punkt leuchtet
   return '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+
+    flaecheSvg(heute.map(q=>({x:X(q.x), y:Y(q.p)})), H-P, af)+
     (a.kNorm?'<path d="'+pfad(a.kNorm)+'" fill="none" stroke="var(--mut2)" stroke-width="1.2" stroke-dasharray="2.5 2"/>':'')+
     '<path d="'+pfad(heute)+'" fill="none" stroke="var(--amp)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
-    (letzt?'<circle cx="'+X(letzt.x).toFixed(1)+'" cy="'+Y(letzt.p).toFixed(1)+'" r="2.6" fill="var(--amp)"/>':'')+
+    (letzt?'<circle cx="'+X(letzt.x).toFixed(1)+'" cy="'+Y(letzt.p).toFixed(1)+'" r="2.6" fill="var(--amp)" style="'+leuchten(af,3)+'"/>':'')+
     '</svg>';
 }
 function renderAmpelKurve(){
@@ -6305,7 +6497,7 @@ function fmtP(v){
 let _fokusExakt=false;
 function fokusBloeckeExakt(k){
   _fokusExakt=true;
-  try{ return fbWasDieseKarte(k)+fbWoIchStehe()+fbWasIchBewege(k)+zeitstrahlHtml(); }
+  try{ return fbWasDieseKarte(k)+fbWoIchStehe()+fbWasIchBewege(k)+zeitstrahlHtml()+abhakLeisteHtml(); }   // §1 (v2.8.0): Abhak-Leiste ganz unten
   finally{ _fokusExakt=false; }
 }
 function fmtKurzP(v){ if(_fokusExakt) return fmtP(v);
@@ -7101,6 +7293,7 @@ function oeffneDetail(kid){
   // §1.5 (v2.7.0): eine NEUE Karte liegt vorausgewaehlt im gerade laufenden Block
   if(!kid){ const lb=laufenderBlock(); if(lb){ orig.block=lb.id; orig.blockTag=heuteApp(); } }
   entwurfNeu = !kid;
+  _vomGeraetFrage = false;
   entwurf = JSON.parse(JSON.stringify(orig));
   entwurfSubs = kid ? JSON.parse(JSON.stringify(untermenge(kid))) : [];
   _detailMehrAuf = !entwurfNeu;   // Neuanlage: „Weitere Einstellungen" eingeklappt; Bearbeiten: offen
@@ -7113,6 +7306,7 @@ function chipGroup(feld, aktuell, opts, klasse){
     '<button class="chip '+(String(aktuell)===String(v)?('on '+(klasse||'')):'')+'" data-chip="'+feld+'" data-val="'+esc(v)+'">'+esc(t)+'</button>'
   ).join('')+'</div>';
 }
+let _vomGeraetFrage=false;   // §4 (v2.8.0): zweiter Schritt des „Vom Geraet nehmen"
 function renderDetail(){
   const _sbEl=el('sheetBody'), _scroll=_sbEl?_sbEl.scrollTop:0;   // V3: Scrollposition über Re-Render halten
   const k=entwurf, istDfm=k.domain==='dfm';
@@ -7188,6 +7382,12 @@ function renderDetail(){
   h+='<div class="field detail-fest"><label>Feste Bewertung (Min)'+(hatFestMin(k)?' <span style="color:var(--warn)">· feste Bewertung: '+num(k.festMin)+' Min</span>':'')+'</label>'+
     '<input type="number" inputmode="numeric" min="0" step="1" data-bind="festMin" value="'+(hatFestMin(k)?num(k.festMin):'')+'" placeholder="aus">'+
     '<div class="hint">gesetzt = die Punkte rechnen immer mit diesen Minuten, egal wie lange die Uhr läuft · die Zeit wird trotzdem gebucht</div></div>';
+  // §1.1 (v2.8.0): Schalter „nur abhaken" — ueberschreibt die Regel in beide Richtungen
+  { const regel=!!((k.rhythmus || istTickKarte(k)) && !(num(k.sollMin)>0));
+    const wert = k.nurAbhaken===true ? 'ja' : (k.nurAbhaken===false ? 'nein' : '');
+    h+='<div class="field detail-nurabhaken"><label>Nur abhaken'+(istAbhakKarte(k)?' <span style="color:var(--ok)">· steht in der Abhak-Leiste</span>':'')+'</label>'+
+      chipGroup('nurAbhaken', wert, [['','Regel ('+(regel?'ja':'nein')+')'],['ja','immer'],['nein','nie']])+
+      '<div class="hint">Regel: Routinen und Counter ohne Soll-Minuten werden nur abgehakt (Leiste unten in der Fokusansicht, nicht im Kalender und nicht im Vorschlag).</div></div>'; }
   // 7 Deadline
   h+='<div class="grid2">'+
     '<div class="field"><label>Deadline (Datum)</label><input type="date" data-bind="faelligkeit" value="'+esc(k.faelligkeit||'')+'"><div class="hint">leer = ohne Termin</div></div>'+
@@ -7306,6 +7506,15 @@ function renderDetail(){
   if(k.status==='erledigt') foot+='<button class="btn ghost sm" data-detailaktion="neustarten">🔄 Neu starten</button>';   // U6-A6
   if(!entwurfNeu) foot+='<button class="btn ghost sm" data-detailaktion="archiv">🗄</button>';
   foot+='<button class="btn prim" data-detailaktion="speichern">Speichern</button>';
+  // §4 (v2.8.0): vom Geraet nehmen — nur fuer bestehende Karten, mit kurzer Bestaetigung
+  if(!entwurfNeu && S.karten.some(x=>x.id===k.id)){
+    const laeuft=S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
+    h+='<div class="field detail-vomgeraet">'+(_vomGeraetFrage
+      ? '<div class="vg-frage">„'+esc(String(k.titel||'').slice(0,40))+'" vom Gerät nehmen? In Airtable bleibt sie offen und kommt mit dem nächsten Paket zurück, wenn der Chat sie schickt. Zeit und Punkte bleiben in der Historie.</div>'+
+        '<div class="btnrow"><button class="btn ghost sm" data-vomgeraetnein="1">Abbrechen</button><button class="btn warn sm" data-vomgeraetja="'+esc(k.id)+'">Ja, vom Gerät nehmen</button></div>'
+      : '<button class="btn ghost sm vg-knopf" data-vomgeraet="1"'+(laeuft?' disabled':'')+'>📤 Vom Gerät nehmen</button>'+
+        '<div class="hint">'+(laeuft?'Die Uhr läuft — erst pausieren.':'räumt die Karte aus der App, ohne sie zu archivieren')+'</div>')+'</div>';
+  }
   openSheet(entwurfNeu?'Neue Aufgabe':'Karte', h, foot, null);
   const _sb=el('sheetBody'); if(_sb) _sb.scrollTop=_scroll;   // V3: Scroll wiederherstellen → Folge-Taps treffen dasselbe Feld
   const _dt=el('sheetBody').querySelector('details.mehrfelder'); if(_dt) _dt.addEventListener('toggle',()=>{ _detailMehrAuf=_dt.open; });   // U6-D: Zustand halten
@@ -7685,6 +7894,52 @@ function karteAbhakenAuto(kid, fromDetail){
   // „Erledigen" legte dann unbemerkt eine neue Karte an.
   oeffneWiederholen(k.id);
 }
+/* ══ §4 (v2.8.0) · VOM GERAET NEHMEN ═══════════════════════════════════
+   Raeumt eine Karte aus der App, OHNE sie zu archivieren: in Airtable bleibt
+   sie offen und kommt mit dem naechsten Paket zurueck, wenn der Chat sie
+   schickt. Genommen wird nur ohne laufende Uhr. Zeit und Punkte bleiben in
+   Historie und Intraday-Log (die werden nicht angefasst).
+   Die Karte samt Unteraufgaben wandert in einen Ablageplatz (DB
+   karten_vomGeraet): kommt sie per Paket zurueck, wird sie wie eine BEKANNTE
+   behandelt — Serie, Ist-Zeit und App-Felder sind wieder da, keine Dublette.
+   Der Export meldet vomGeraetGenommen [{id, airtableId, titel, ts}] bis zum
+   naechsten bestaetigten Sync. */
+function vomGeraetAblage(){ const a=DB.get('karten_vomGeraet', {}); return (a && typeof a==='object') ? a : {}; }
+function karteVomGeraet(kid, quelle){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return {ok:false, grund:'Karte nicht auf dem Gerät'};
+  if(S.fokus && S.fokus.karteId===kid && S.fokus.laeuft) return {ok:false, grund:'die Uhr läuft — erst pausieren'};
+  const subs=untermenge(kid);
+  const ab=vomGeraetAblage();
+  ab[k.id]={ karte:JSON.parse(JSON.stringify(k)), unteraufgaben:JSON.parse(JSON.stringify(subs)), ts:jetztIso() };
+  const ids=Object.keys(ab).sort((a,b)=>String(ab[a].ts).localeCompare(String(ab[b].ts)));
+  while(ids.length>300){ delete ab[ids.shift()]; }
+  DB.set('karten_vomGeraet', ab);
+  S.karten=S.karten.filter(x=>x.id!==kid);
+  S.unteraufgaben=S.unteraufgaben.filter(u=>u.parentId!==kid);
+  try{ const st=ketteState(); st.ids=(st.ids||[]).filter(x=>x!==kid); }catch(e){}
+  if(S.fokus && S.fokus.karteId===kid){ S.fokus=null; saveFokus(); }
+  if(S.ui.fokusZeigt===kid){ S.ui.fokusZeigt=null; S.ui.fokusOffen=false; saveUi(); }
+  if(!Array.isArray(S.meta.vomGeraetGenommen)) S.meta.vomGeraetGenommen=[];
+  S.meta.vomGeraetGenommen=S.meta.vomGeraetGenommen.filter(x=>x.id!==k.id)
+    .concat([{ id:k.id, airtableId:k.airtableId||null, titel:k.titel||'', ts:jetztIso(), quelle:quelle||'detail' }]);
+  saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
+  try{ baueSuchIndex(); }catch(e){}
+  return {ok:true};
+}
+/* Beim Import: eine abgelegte Karte (id oder airtableId) zurueckholen. */
+function karteZurueckAufsGeraet(inc){
+  const ab=vomGeraetAblage();
+  const recId=/^rec[A-Za-z0-9]{14}$/.test(String(inc.id||'')) ? String(inc.id) : null;
+  const key=Object.keys(ab).find(id=>{ const k=ab[id].karte||{};
+    return (inc.airtableId && k.airtableId===inc.airtableId) || (recId && k.airtableId===recId) || (inc.id && k.id===inc.id); });
+  if(!key) return null;
+  const e=ab[key]; delete ab[key]; DB.set('karten_vomGeraet', ab);
+  const k=neueKarte(e.karte);
+  S.karten.push(k);
+  (e.unteraufgaben||[]).forEach(u=>{ if(!S.unteraufgaben.some(x=>x.id===u.id)) S.unteraufgaben.push(u); });
+  if(Array.isArray(S.meta.vomGeraetGenommen)) S.meta.vomGeraetGenommen=S.meta.vomGeraetGenommen.filter(x=>x.id!==k.id);
+  return k;
+}
 /* ══ §2 (v2.5.0) · WIEDER OEFFNEN: UNTERAUFGABEN UEBERNEHMEN ODER ENTFERNEN ══
    Nur bei ERLEDIGTEN Karten mit Unteraufgaben. Eine offene Karte behaelt
    ihren Fortschritt (keine Abfrage); Routinen setzen ihre Unteraufgaben beim
@@ -7762,8 +8017,38 @@ function abhakbonusFeldDefault(feld){
   const v=tab[feld];
   return Number.isFinite(Number(v)) ? Number(v) : 0;
 }
+/* ══ §2 (v2.8.0) · ROUTINEN DAEMPFEN, AUFGABEN NICHT ═══════════════════
+   Art fuer Bonus und Daempfung: Routine = Rhythmus, Counter = Ticks; alles
+   andere ist „Aufgabe". Der Abhakbonus kommt aus der Tabelle (Spalte nach
+   Art, bei Routinen/Countern nach Domaene), ein eigener Kartenwert schlaegt
+   sie. Die Daempfung wirkt auf Zeit- und Tickpunkte von Routinen/Countern —
+   auch mit eigenem Tickwert —, nie auf den Abhakbonus und nie auf Aufgaben.
+   Ab jetzt, nicht rueckwirkend: fuer Tage vor dem Update (meta.daempfungAb)
+   rechnet eine nachgetragene Sitzung ungedaempft. */
+function abhakArt(k){ return (k && (k.rhythmus || istTickKarte(k))) ? 'routine' : 'aufgabe'; }
+function abhakSpalte(k){ return abhakArt(k)==='aufgabe' ? 'aufgabe' : (k.domain==='dfm' ? 'routineDfm' : 'routinePrivat'); }
+function abhakbonusTabelleWert(spalte, feld){
+  const t=(S.settings && S.settings.abhakbonusTabelle) || {}, z=t[spalte] || {};
+  const v=z[feld]; if(Number.isFinite(Number(v))) return Number(v);
+  const d=(DEFAULT_SETTINGS.abhakbonusTabelle[spalte]||{})[feld]; return Number.isFinite(Number(d)) ? Number(d) : 0;
+}
 function abhakbonusDefault(k){
-  return k.abhakbonus!=null ? num(k.abhakbonus) : abhakbonusFeldDefault(matrixFeldVon(k));
+  return k.abhakbonus!=null ? num(k.abhakbonus) : abhakbonusTabelleWert(abhakSpalte(k), matrixFeldVon(k));
+}
+function daempfung(k, datum){
+  if(!k || abhakArt(k)!=='routine') return 1;
+  const ab=S.meta && S.meta.daempfungAb;
+  if(datum && ab && String(datum).slice(0,10)<ab) return 1;   // vor dem Update: ungedaempft
+  const f = k.domain==='dfm' ? S.settings.daempfungDfm : S.settings.daempfungPrivat;
+  return Number.isFinite(Number(f)) ? Math.max(0, Number(f)) : 1;
+}
+/* §1.1 (v2.8.0): Abhak-Karte = Routine oder Counter OHNE Soll-Minuten;
+   nurAbhaken true/false ueberschreibt die Regel in beide Richtungen. */
+function istAbhakKarte(k){
+  if(!k) return false;
+  if(k.nurAbhaken===true) return true;
+  if(k.nurAbhaken===false) return false;
+  return !!((k.rhythmus || istTickKarte(k)) && !(num(k.sollMin)>0));
 }
 function abhakDialog(kid, fromDetail){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
@@ -8319,7 +8604,7 @@ function korrKarte(ref){ if(ref==null||ref==='') return null; const r=String(ref
 function sitzungPunkteFuer(k, min, datum){
   if(!k || hatFestMin(k)) return 0;
   const kk=Object.assign({}, k, { status:'erledigt', tagId:datum, istSek:0 });   // Geld-Score bezogen auf DEN Tag
-  return punkteFuerZeit(kk, min)*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
+  return punkteFuerZeit(kk, min, datum)*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);   // Daempfung wie an DEM Tag
 }
 /* Offene Korrektur-Punkte einer Karte beim Abhaken verrechnen (sie stehen
    schon zu ihrer Zeit im Log). */
@@ -8606,6 +8891,7 @@ function kartenAbbildVoll(k, kette){
   o.punkteIst=Math.round(kartePunkte(k));
   o.matrixFeld=matrixFeldVon(k);          // §1: normalisiert, nie geraten
   o.punktePrognose=Math.round(kartePunktePrognose(k));   // Nachtrag §1: Soll-Wert
+  o.nurAbhaken=(k.nurAbhaken===true||k.nurAbhaken===false) ? k.nurAbhaken : null;   // §6 (v2.8.0)
   // §1/§2 (v2.7.0): block (nur wenn er heute gilt) und festMin immer als Feld
   o.block=karteBlockId(k);
   o.festMin=(k.festMin!=null && num(k.festMin)>0) ? num(k.festMin) : null;
@@ -8724,6 +9010,8 @@ function syncExport(typ){
     // §6 (v2.5.0): alle entfernten Unteraufgaben seit dem letzten bestaetigten Sync
     unteraufgabenEntfernt: entfernteUnteraufgaben().map(e=>({ id:e.id, parentId:e.parentId, titel:e.titel||'',
       airtableId:e.airtableId||null, entfernt:true, entferntTs:e.ts })),
+    // §4 (v2.8.0): was vom Geraet genommen wurde — bis zum naechsten bestaetigten Sync
+    vomGeraetGenommen: (Array.isArray(S.meta.vomGeraetGenommen) ? S.meta.vomGeraetGenommen.map(x=>({ id:x.id, airtableId:x.airtableId||null, titel:x.titel||'', ts:x.ts })) : []),
     // §7 (v2.6.0): die rueckwirkend als Urlaub markierten Tage — bis zum
     // naechsten bestaetigten Sync, damit der Chat sie in Airtable kennzeichnet
     urlaubNachgetragen: (Array.isArray(S.meta.urlaubNachgetragen) ? S.meta.urlaubNachgetragen.slice() : []),
@@ -8800,6 +9088,7 @@ function syncBestaetigen(){
   S.meta.letzterSyncBestaetigtTs=jetztIso();
   S.meta.entfernteUnteraufgaben=[];   // §6 (v2.5.0): gemeldet und bestaetigt — die Liste ist erledigt
   S.meta.urlaubNachgetragen=[];       // §7 (v2.6.0): dito — die nachgetragenen Urlaubstage sind angekommen
+  S.meta.vomGeraetGenommen=[];        // §4 (v2.8.0): dito — der Chat weiss, was nicht mehr auf dem Geraet liegt
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
   baueSuchIndex();
   return { abgeraeumt:weg, bestand:bleibt.length, ts:S.meta.letzterSyncBestaetigtTs };
@@ -8849,7 +9138,7 @@ function syncImport(text){
   // ausser den abgeleiteten Grössen, die der Export nur zum Lesen beilegt.
   const RESTORE_ABGELEITET = ['istMin','punkteIst','punktePrognose','unteraufgaben',
     'sitzungen','kette','kettenPosition','tagesabschnittEffektiv'];
-  let neu=0, neuDfm=0, neuPrivat=0, upd=0, arch=0;
+  let neu=0, neuDfm=0, neuPrivat=0, upd=0, arch=0, vomGeraetGenommen=0, vomGeraetNichtDa=0, vomGeraetZurueck=0;
   const neuAngelegt=[];   // FIX1: Neuanlagen dieses Laufs — ggf. als Bestandsübernahme markieren
   const uebersprungen=[]; // §2.4 (v1.7.1): alles, was nicht ankam — MIT Grund
   arr.forEach(inc=>{
@@ -8857,8 +9146,18 @@ function syncImport(text){
       uebersprungen.push({was:'Karte ohne id/airtableId/titel', grund:'nicht identifizierbar'}); return;
     }
     // Anker: App-id; sekundär airtableId (§8: airtableId→id-Match)
-    let lok = (inc.id && S.karten.find(k=>k.id===inc.id)) ||
-              (inc.airtableId && S.karten.find(k=>k.airtableId===inc.airtableId)) || null;
+    // §4 (v2.8.0): Match fuer vomGeraet ausdruecklich airtableId zuerst, dann id
+    let lok = (inc.vomGeraet===true)
+      ? ((inc.airtableId && S.karten.find(k=>k.airtableId===inc.airtableId)) || (inc.id && (S.karten.find(k=>k.id===inc.id) || S.karten.find(k=>k.airtableId===inc.id))) || null)
+      : ((inc.id && S.karten.find(k=>k.id===inc.id)) || (inc.airtableId && S.karten.find(k=>k.airtableId===inc.airtableId)) || null);
+    if(inc.vomGeraet===true){
+      if(!lok){ vomGeraetNichtDa++; return; }                          // schon weg — nichts zu tun
+      const r=karteVomGeraet(lok.id, 'import');
+      if(r.ok) vomGeraetGenommen++; else uebersprungen.push({was:'vomGeraet „'+esc(lok.titel||lok.id)+'"', grund:r.grund});
+      return;
+    }
+    // §4 (v2.8.0): eine vom Geraet genommene Karte kommt als BEKANNTE zurueck
+    if(!lok){ const zurueck=karteZurueckAufsGeraet(inc); if(zurueck){ lok=zurueck; vomGeraetZurueck++; } }
     // §3 (v1.13.1) · Vertrag 1.6: „id = recId wird in der App automatisch zur
     // airtableId" — der Zweitanker darf nie fehlen (sonst reißt der Match,
     // sobald die Karte umbenannt oder dupliziert wird).
@@ -8901,6 +9200,8 @@ function syncImport(text){
     // §1 (v2.7.0): block = id eines Blocks im Tagesrahmen, gilt fuer heute
     if(inc.block!==undefined){ const bid=(inc.block==null || String(inc.block).trim()==='') ? null : String(inc.block).trim();
       lok.block=bid; lok.blockTag=bid?heuteApp():null; }
+    // §1.1 (v2.8.0): nurAbhaken true · false · leer (= Regel)
+    if(inc.nurAbhaken!==undefined) lok.nurAbhaken = (inc.nurAbhaken===true||inc.nurAbhaken==='true') ? true : ((inc.nurAbhaken===false||inc.nurAbhaken==='false') ? false : null);
     // §2 (v2.7.0): festMin = Zahl (Minuten) oder leer
     if(inc.festMin!==undefined){ const fm=(inc.festMin==null || inc.festMin==='') ? null : Math.round(num(inc.festMin));
       lok.festMin=(fm!=null && fm>0) ? fm : null; }
@@ -9143,7 +9444,7 @@ function syncImport(text){
   // §5.6 (v1.13.0): erfolgreicher Import = geprüfte Planung
   S.meta.letzterImportTs=jetztIso(); saveMeta();
   return {neu, neuDfm, neuPrivat, upd, arch, ketteGesetzt, ketteUnbekannt, gruppenNeu, gruppenUpd,
-    rahmenGesetzt, korrigiert:korrigiert.length, korrekturen:korrekturNeu, uebersprungen, wiederhergestellt:whLog};
+    rahmenGesetzt, korrigiert:korrigiert.length, korrekturen:korrekturNeu, vomGeraetGenommen, vomGeraetZurueck, uebersprungen, wiederhergestellt:whLog};
 }
 
 /* Sync-Sheet (EIN Button in D6). */
@@ -9373,19 +9674,27 @@ function renderEinst(){
       ' · noch '+Math.round(avatarFortschritt().rest)+' P bis zum nächsten. Minimum 100.</p>';
   h+='</div>';
 
-  // ══ Nachtrag §2 · Abhakbonus je Matrixfeld — der Träger der Barriere ══
-  h+='<div class="card"><h3>Abhakbonus je Matrixfeld</h3>'+
-    '<p class="d">Er trägt seit v2.0 <b>Barriere, Priorität und Komplexität</b> in einem Wert — '+
-    'zeitunabhängig, damit er gerade bei <b>kurzen Karten mit hoher Hürde</b> wirkt. '+
-    'Je Karte im Detail überschreibbar; ein Kartenwert schlägt den Default.</p>';
-  MATRIX_FELDER.slice().sort((a,b)=>num(MATRIX_RANK[a])-num(MATRIX_RANK[b])).forEach(f=>{
-    h+='<div class="slider"><label>'+MATRIX_META[f].icon+' '+esc(MATRIX_META[f].name)+
-      '<small>'+esc(MATRIX_META[f].achse)+' · '+esc(MATRIX_META[f].richtung)+'</small></label>'+
-      '<input type="number" inputmode="numeric" step="10" data-abfeld="'+f+'" value="'+
-      abhakbonusFeldDefault(f)+'"></div>';
-  });
-  h+='<p class="d" style="margin-top:6px">Zielarbeit steht bewusst auf 0: sie wird bereits über die '+
-     'Zeit bezahlt. Der Bonus existiert für die Karten, deren Schwere die Uhr <b>nicht</b> abbildet.</p></div>';
+  // ══ §2.1 (v2.8.0) · Abhakbonus-Tabelle je Art — ersetzt den einen Wert je Matrixfeld ══
+  { const SP=[['aufgabe','Aufgabe'],['routineDfm','Routine DFM'],['routinePrivat','Routine Privat']];
+    h+='<div class="card einst-abhak"><h3>Abhakbonus je Art</h3>'+
+      '<p class="d">„Aufgabe" = alles ohne Rhythmus und ohne Ticks (DFM und Privat gleich); Routinen und Counter nach Domäne. '+
+      'Ein eigener Wert an der Karte schlägt die Tabelle.</p>'+
+      '<div class="abt"><div class="abt-z abt-kopf"><span></span>'+SP.map(x=>'<b>'+x[1]+'</b>').join('')+'</div>'+
+      ['werkzeug','ziel','zustand','ablenkung'].map(f=>'<div class="abt-z"><span>'+MATRIX_META[f].icon+' '+esc(MATRIX_META[f].name)+'</span>'+
+        SP.map(x=>'<input type="number" inputmode="numeric" step="5" data-abt="'+x[0]+'|'+f+'" value="'+abhakbonusTabelleWert(x[0],f)+'" aria-label="'+x[1]+' '+esc(MATRIX_META[f].name)+'">').join('')+'</div>').join('')+
+      '</div>'+
+      '<h4 class="abt-h">Dämpfung der Zeit- und Tickpunkte (Routinen und Counter)</h4>'+
+      '<div class="slider"><label>Privat<small>0,5 = halbe Punkte · Aufgaben nie</small></label><input type="number" inputmode="decimal" step="0.05" data-setting="daempfungPrivat" value="'+num(S.settings.daempfungPrivat,0.5)+'"></div>'+
+      '<div class="slider"><label>DFM<small>1,0 = ungedämpft</small></label><input type="number" inputmode="decimal" step="0.05" data-setting="daempfungDfm" value="'+num(S.settings.daempfungDfm,1)+'"></div>'+
+      '<p class="d" style="margin-top:6px">Gilt ab dem Update — vergangene Tage werden nicht nachgerechnet.</p>';
+    // §2.3: alle Karten mit eigenem Abhakbonus oder Tickwert — Pascal entscheidet, was zurück auf die Tabelle faellt
+    const eigen=S.karten.filter(k=>k.status!=='archiviert' && (k.abhakbonus!=null || k.tickWert!=null))
+      .sort((a,b)=>(a.domain+abhakArt(a)+a.titel).localeCompare(b.domain+abhakArt(b)+b.titel));
+    h+='<h4 class="abt-h">Karten mit eigenem Wert · '+eigen.length+'</h4>'+
+      (eigen.length ? eigen.map(k=>'<div class="kv abt-eigen"><span>'+esc(String(k.titel||'?').slice(0,32))+' <small>'+(k.domain==='dfm'?'DFM':'Privat')+' · '+kartenArt(k)+'</small></span>'+
+        '<b>'+(k.abhakbonus!=null?'Bonus '+num(k.abhakbonus)+' <small>(Tabelle '+abhakbonusTabelleWert(abhakSpalte(k),matrixFeldVon(k))+')</small>':'')+(k.abhakbonus!=null&&k.tickWert!=null?' · ':'')+(k.tickWert!=null?'Tick '+num(k.tickWert):'')+'</b>'+
+        '<button class="minibtn" data-eigenreset="'+k.id+'">↺ Tabelle</button></div>').join('')
+        : '<p class="d" style="color:var(--mut2)">Keine Karte trägt einen eigenen Wert.</p>')+'</div>'; }
 
   h+='<div class="card"><h3>Punktesystem</h3><p class="d">Alle Sätze live (§3.8). Farbe/Timer/Fokus (M2), Tageslogik (M3) und Sync (M4) laufen.</p>';
   const regler=[
@@ -9481,7 +9790,7 @@ function renderEinst(){
     const vs=profilVorschlag();
     const balken=(anteile,farbe)=>{ const mx=Math.max.apply(null,anteile.concat([0.001]));
       return '<svg viewBox="0 0 240 26" width="100%" height="26" preserveAspectRatio="none">'+
-        anteile.map((a,i)=>'<rect x="'+(i*10)+'" y="'+(24-(a/mx)*22).toFixed(1)+'" width="8" height="'+((a/mx)*22).toFixed(1)+'" rx="1" fill="'+farbe+'"/>').join('')+'</svg>'; };
+        anteile.map((a,i)=>'<rect x="'+(i*10)+'" y="'+(24-(a/mx)*22).toFixed(1)+'" width="8" height="'+((a/mx)*22).toFixed(1)+'" rx="2" fill="'+farbe+'" opacity="'+(0.45+0.55*(a/mx)).toFixed(2)+'"/>').join('')+'</svg>'; };   // §5 (v2.8.0): Deckkraft traegt die Hoehe
     let x='<div class="card"><h3>🕘 Tagesform (Werktag)</h3>'+
       '<p class="d">Die Form hängt am <b>Tagesstart</b> — ein später Start verschiebt alles mit. Stunden relativ zum Start; nach dem Form-Ende streckt sich die Treppe mit, solange der Tag läuft.</p>'+
       '<div class="kv"><span>Aktive Form (Std ab Start)</span><b>'+fmtF(form)+'</b></div>'+
@@ -10898,12 +11207,16 @@ function belTagesDiagramm(){
   // Die Nebenlinien bleiben monochrom: DFM hell, Privat grau.
   let ampHaupt='#f2f2f3';
   if(istHeute){ try{ ampHaupt=AMPEL_FARBE[ampelStufe(normalZurUhrzeit(dom).r)][0]; }catch(e){} }
-  const colD = dom==='dfm' ? ampHaupt : '#e9e9ec';
-  const colP = dom==='privat' ? ampHaupt : '#8e9197';
+  // §5 (v2.8.0): Nebenlinien farbig — DFM blau, Privat lila (vorher hell/grau);
+  // der Normaltag (Bezug) grau gestrichelt; unter der Hauptlinie ein Verlauf
+  const colD = dom==='dfm' ? ampHaupt : DOM_FARBE.dfm[1];
+  const colP = dom==='privat' ? ampHaupt : DOM_FARBE.privat[1];
   const colG = ampHaupt;
-  if(zeigD) g+=poly(wD,colD,1.4,'4 3');
-  if(zeigP) g+=poly(wP,colP,1.4,'4 3');
-  if(zeigG) g+=poly(wG,colG,1.4,'4 3');
+  const haupt = dom==='dfm' ? kD : (dom==='privat' ? kP : kG);
+  if(haupt && haupt.length){ const hs=haupt.filter(p=>p.x<=bisX+0.001).map(p=>({x:X(p.x), y:Y(p.p)})); g+=flaecheSvg(hs, H-pB, colG); }
+  if(zeigD) g+=poly(wD,'#8e9197',1.4,'4 3');
+  if(zeigP) g+=poly(wP,'#8e9197',1.4,'4 3');
+  if(zeigG) g+=poly(wG,'#c9cace',1.4,'4 3');
   if(zeigD) g+=poly(kD,colD,dom==='dfm'?2.6:1.8,null,true);
   if(zeigP) g+=poly(kP,colP,dom==='privat'?2.6:1.8,null,true);
   if(zeigG) g+=poly(kG,colG,2.8,null,true);
@@ -11138,17 +11451,21 @@ function belKurve(werte, min, max, farbe){
   flush();
   const schnitt=echt.reduce((a,b)=>a+b,0)/echt.length;
   const letzter=werte.map((v,i)=>v!=null?i:-1).filter(i=>i>=0).pop();
-  let g='<line x1="'+P+'" y1="'+Y(schnitt).toFixed(1)+'" x2="'+(W-P)+'" y2="'+Y(schnitt).toFixed(1)+'" stroke="var(--mut2)" stroke-width="1" stroke-dasharray="4 4"/>'+
-    '<path d="'+pfad.trim()+'" fill="none" stroke="#bfc1c5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
-  werte.forEach((v,i)=>{ if(v!=null && i!==letzter) g+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="3" fill="#f4efe3"/>'; });
-  if(letzter!=null) g+='<circle cx="'+X(letzter).toFixed(1)+'" cy="'+Y(werte[letzter]).toFixed(1)+'" r="5" fill="#f4efe3" stroke="#0b0b0c" stroke-width="1.5"/>';
+  // §5 (v2.8.0): die Linie in ihrer Farbe (vorher grau), Verlauf darunter, Punkte leuchten; Schnitt bleibt grau gestrichelt
+  const fb=(farbe && farbe.indexOf('var(')<0) ? farbe : '#d9dadd';
+  const pp=werte.map((v,i)=>v!=null?{x:X(i), y:Y(v)}:null).filter(Boolean);
+  let g=flaecheSvg(pp, H-P, fb)+'<line x1="'+P+'" y1="'+Y(schnitt).toFixed(1)+'" x2="'+(W-P)+'" y2="'+Y(schnitt).toFixed(1)+'" stroke="var(--mut2)" stroke-width="1" stroke-dasharray="4 4"/>'+
+    '<path d="'+pfad.trim()+'" fill="none" stroke="'+fb+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+  werte.forEach((v,i)=>{ if(v!=null && i!==letzter) g+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="3" fill="'+fb+'" style="'+leuchten(fb,3)+'"/>'; });
+  if(letzter!=null) g+='<circle cx="'+X(letzter).toFixed(1)+'" cy="'+Y(werte[letzter]).toFixed(1)+'" r="5" fill="'+fb+'" stroke="#0b0b0c" stroke-width="1.5" style="'+leuchten(fb,5)+'"/>';
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" aria-hidden="true">'+g+'</svg>';
 }
 /* Zwei Füllungen auf einem Balken (fest + hell), plus Zielmarke. */
-function belDoppelBalken(fest, hell, marke, label){
+function belDoppelBalken(fest, hell, marke, label, farbe){
   const f=Math.max(0,Math.min(1,num(fest))), h=Math.max(f,Math.min(1,num(hell)));
-  let s='<div class="fbk-bar mitmarke"><i class="hell" style="width:'+(h*100).toFixed(1)+'%"></i>'+
-    '<i style="width:'+(f*100).toFixed(1)+'%"></i>';
+  const fz=farbe||SPIEL_FARBE.muenzen;   // §5 (v2.8.0): Muenzen gold
+  let s='<div class="fbk-bar mitmarke"><i class="hell" style="width:'+(h*100).toFixed(1)+'%;background:color-mix(in srgb,'+fz[1]+' 30%,transparent)"></i>'+
+    '<i style="width:'+(f*100).toFixed(1)+'%;background:linear-gradient(90deg,'+fz[0]+','+fz[1]+');box-shadow:0 0 8px color-mix(in srgb,'+fz[1]+' 45%,transparent)"></i>';
   if(marke!=null){ const m=Math.max(0,Math.min(1,num(marke)))*100;
     s+='<u style="left:'+m.toFixed(1)+'%"></u>'+(label?'<em style="left:'+Math.max(12,Math.min(88,m)).toFixed(1)+'%">'+label+'</em>':''); }
   return s+'</div>';
@@ -11174,9 +11491,10 @@ function belHeuteNoch(){
   const rm=rangMass();
   let h='<div class="bw"><div class="fb-h">Was heute noch geht</div><div class="fb-kacheln">';
   h+='<div class="fbk voll"><div class="fbk-h">Bis zum Tagesziel</div><div class="fbk-r">'+
-     '<div class="fbk-g breit" aria-hidden="true">'+fbBalken(zi.ist/skala, zi.ziel/skala, 'Ziel '+fmtKurzP(zi.ziel), zi.ist>=zi.ziel)+'</div>'+
+     '<div class="fbk-g breit" aria-hidden="true">'+fbBalken(zi.ist/skala, zi.ziel/skala, 'Ziel '+fmtKurzP(zi.ziel), zi.ist>=zi.ziel,
+        (function(){ try{ return AMPEL_FARBE[ampelStufe(normalZurUhrzeit('alle').r)].slice().reverse(); }catch(e){ return null; } })())+'</div>'+   // §5 (v2.8.0): du gegen normal → Ampel
      fbWert(fehltZiel>0?('noch '+fmtKurzP(fehltZiel)):'erreicht', fmtKurzP(zi.ist)+' von '+fmtKurzP(zi.ziel), 'rechts'+(fehltZiel>0?'':' gut'))+'</div></div>';
-  h+=fbKachel('Nächstes Outfit', fbRing(ofFrac, 'var(--purple)'),
+  h+=fbKachel('Nächstes Outfit', fbRing(ofFrac, SPIEL_FARBE.rang),
      fbWert(of>=20?'20':('noch '+fmtKurzP(fehltOf)), of>=20?'höchste Stufe':('bis Outfit '+naechste)));
   // Münzen, die heute noch hereinkommen (bis zum Tagesziel, 1:1 aus Punkten)
   const heuteMgl=Math.round(fehltZiel*streakFaktor()), k=konto(), nk=belNaechsterKauf();
@@ -11185,12 +11503,12 @@ function belHeuteNoch(){
     h+=fbKachel('Münzen heute noch', '<div style="width:100%">'+belDoppelBalken(k/sk, (k+heuteMgl)/sk, nk.preis/sk, 'Kauf')+'</div>',
        fbWert('+'+fmtKurzP(heuteMgl).replace(/ P$/,''), 'bis Tagesziel'), {breit:true});
   } else {
-    h+=fbKachel('Münzen heute noch', fbRing(zi.ist/Math.max(1,zi.ziel), 'var(--warn)'),
+    h+=fbKachel('Münzen heute noch', fbRing(zi.ist/Math.max(1,zi.ziel), SPIEL_FARBE.muenzen),
        fbWert('+'+fmtKurzP(heuteMgl).replace(/ P$/,''), 'bis Tagesziel'));
   }
   // Rang: Abstand nach oben UND nach unten — der Rang fällt auch.
   if(rm.rang==null){
-    h+=fbKachel('Rang', '<div style="width:100%">'+fbBalken(rm.n/3, null, null)+'</div>',
+    h+=fbKachel('Rang', '<div style="width:100%">'+fbBalken(rm.n/3, null, null, false, SPIEL_FARBE.rang)+'</div>',
        fbWert(rm.n+'/3', 'Messtage bis zum Rang'), {voll:true, breit:true});
   } else {
     const basis=rm.rang>1 ? leistungsSchwelle(rm.rang) : 0;
@@ -11200,13 +11518,13 @@ function belHeuteNoch(){
     h+='<div class="fbk voll"><div class="fbk-h">Rang R'+rm.rang+' · „'+esc(rangName(rm.rang))+'"</div>'+
        '<div class="fbk-zz">'+fbWert(rm.rang>1?('↓ '+Math.round(puffer)):'—', rm.rang>1?('P/Std Puffer bis R'+(rm.rang-1)):'Boden der Leiter')+
        fbWert(rm.rang<RANG_MAX?('↑ '+Math.round(rm.rest)):'Top', rm.rang<RANG_MAX?('P/Std bis R'+(rm.rang+1)):'höchster Rang', 'rechts')+'</div>'+
-       '<div aria-hidden="true" class="bw-rangbar"><span>R'+rm.rang+'</span>'+fbBalken(frac, null, null)+'<span>'+(rm.rang<RANG_MAX?'R'+(rm.rang+1):'')+'</span></div>'+
+       '<div aria-hidden="true" class="bw-rangbar"><span>R'+rm.rang+'</span>'+fbBalken(frac, null, null, false, SPIEL_FARBE.rang)+'<span>'+(rm.rang<RANG_MAX?'R'+(rm.rang+1):'')+'</span></div>'+
        '<div class="fb-rechnung">Median '+Math.round(rm.median)+' P/Std über '+rm.n+' aktive Tage.</div></div>';
   }
   if(nk){
     const kat=BELOHNUNG[nk.kat], kann=k>=nk.preis;
     h+='<div class="fbk voll"><div class="fbk-h">Als Nächstes im Shop</div><div class="fbk-r">'+
-       '<div class="fbk-g" aria-hidden="true">'+fbRing(k/nk.preis, kann?'var(--ok)':'var(--warn)')+'</div>'+
+       '<div class="fbk-g" aria-hidden="true">'+fbRing(k/nk.preis, kann?AMPEL_FARBE.gruen.slice().reverse():SPIEL_FARBE.muenzen)+'</div>'+
        fbWert(kann?'jetzt':('noch '+Math.round(nk.preis-k)), kat.icon+' '+esc(kat.name)+' · Stufe '+nk.stufe+' · '+Math.round(nk.preis)+' 🪙')+'</div></div>';
   }
   return h+'</div></div>';
@@ -11216,26 +11534,26 @@ function belErklommen(){
   const vd=belVerlaufDaten(), rm=rangMass(), of=outfitHeute();
   let h='<div class="bw"><div class="fb-h">Was ich schon erklommen habe</div><div class="fb-kacheln">';
   const rw=vd.wochen.map(x=>x.rang), hat=rw.filter(v=>v!=null).length;
-  h+=fbKachel('Rang über 8 Wochen', hat>=1 ? belKurve(rw, 1, Math.max(4, Math.max.apply(null, rw.filter(v=>v!=null))+1), 'var(--purple)') : belKurve([0,0],0,1,'var(--line)'),
+  h+=fbKachel('Rang über 8 Wochen', hat>=1 ? belKurve(rw, 1, Math.max(4, Math.max.apply(null, rw.filter(v=>v!=null))+1), SPIEL_FARBE.rang[1]) : belKurve([0,0],0,1,'#6b6e74'),
      fbWert(rm.rang!=null?('R'+rm.rang):'—', rm.best?('Bestwert R'+rm.best):'sammelt noch'), {voll:true, breit:true});
-  h+=fbKachel('Outfit · heute und Bestwert', '<div style="width:100%">'+fbBalken(of/20, vd.outfitBest/20, 'Best', of>=vd.outfitBest)+'</div>',
+  h+=fbKachel('Outfit · heute und Bestwert', '<div style="width:100%">'+fbBalken(of/20, vd.outfitBest/20, 'Best', of>=vd.outfitBest, SPIEL_FARBE.rang)+'</div>',
      fbWert(String(of), 'Bestwert '+vd.outfitBest+' / 20'), {voll:true, breit:true});
   // Shop-Stand je Kategorie
   let rows='';
   KAT_KEYS.forEach(kk=>{
     const n=Math.max(0, num(S.belohnung.stufen[kk])), max=BELOHNUNG[kk].stufen.length;
     rows+='<div class="bw-katrow"><span class="ic">'+BELOHNUNG[kk].icon+'</span><span class="nm">'+esc(BELOHNUNG[kk].name)+'</span>'+
-      '<span class="bar" aria-hidden="true">'+fbBalken(n/max, null, null, n>=max)+'</span><b>'+n+'/'+max+'</b></div>';
+      '<span class="bar" aria-hidden="true">'+fbBalken(n/max, null, null, n>=max, n>=max?AMPEL_FARBE.gruen.slice().reverse():SPIEL_FARBE.muenzen)+'</span><b>'+n+'/'+max+'</b></div>';
   });
   h+='<div class="fbk voll"><div class="fbk-h">Shop-Stand je Kategorie</div>'+rows+'</div>';
   // Wohlstand, Konto, Kulisse
-  h+=fbKachel('Wohlstand · 28 Tage', belKurve(vd.wohlstand, null, null, 'var(--ok)'),
+  h+=fbKachel('Wohlstand · 28 Tage', belKurve(vd.wohlstand, null, null, AMPEL_FARBE.gruen[0]),
      fbWert(fmtKurzP(wohlstandLive()).replace(/ P$/,''), 'Punkte gesamt'), {breit:true});
   const ausg=ausgabenAnzeige(), k=konto(), ges=Math.max(1, k+ausg);
   h+=fbKachel('Konto', '<div style="width:100%">'+belDoppelBalken(k/ges, 1, null, null)+'</div>',
      fbWert(fmtKurzP(k).replace(/ P$/,''), Math.round(ausg)+' 🪙 ausgegeben'), {breit:true});
   const st=bgStufeAus(ausg), lo=st>1||ausg>=bgSchwelle(1) ? bgSchwelle(st) : 0, hi=st<10 ? bgSchwelle(st+1) : Math.max(ausg,1);
-  h+=fbKachel('Kulisse', '<div style="width:100%">'+fbBalken(st<10?(ausg-lo)/Math.max(1,hi-lo):1, null, null, st>=10)+'</div>',
+  h+=fbKachel('Kulisse', '<div style="width:100%">'+fbBalken(st<10?(ausg-lo)/Math.max(1,hi-lo):1, null, null, st>=10, SPIEL_FARBE.kulisse)+'</div>',
      fbWert(st+'/10', st<10?('noch '+Math.round(hi-ausg)+' 🪙 ausgeben'):'letzte Kulisse'), {voll:true, breit:true});
   return h+'</div></div>';
 }
@@ -11570,6 +11888,7 @@ function kalStunde(iso){ const d=new Date(iso); return d.getHours()+d.getMinutes
 function kalRestMin(k){ return Math.max(5, num(k.sollMin) - istSekLive(k)/60); }
 /* Die Bloecke des Tages. Rueckgabe: [{kid, von, bis, art, titel, k}] in Stunden. */
 function kalenderBloecke(ks){
+  ks=(ks||[]).filter(k=>!istAbhakKarte(k));   // §1.2 (v2.8.0): Abhak-Karten sind keine eigenen Bloecke
   const jetzt=jetztStunde();
   const bl=[];
   const laufId=(S.fokus && S.fokus.laeuft) ? S.fokus.karteId : null;
@@ -11577,7 +11896,7 @@ function kalenderBloecke(ks){
   const sichtbar={}; ks.forEach(k=>sichtbar[k.id]=true);
   S.karten.forEach(k=>{
     if(!sichtbar[k.id] && k.status!=='erledigt') return;
-    if(!suFilterPasst(k)) return;
+    if(!suFilterPasst(k) || istAbhakKarte(k)) return;
     kartenSitzungenHeute(k.id).forEach(sz=>{
       const von=kalStunde(sz.von), bis=sz.laufend ? jetzt : kalStunde(sz.bis);
       if(!(bis>von)) return;
@@ -12133,10 +12452,12 @@ function matrixVerlaufSvg(spur, opt){
   if(!pts.length) return '<svg viewBox="0 0 '+W+' '+H+'" class="mv-svg'+(gross?' gross':'')+'" aria-hidden="true">'+g+'</svg>';
   const pp=pts.map(e=>({x:X(e.x), y:Y(e.ts)}));
   const pfad=pp.length>1 ? vertikalPfad(pp) : '';
-  if(pfad) g+='<path d="'+pfad+'" fill="none" stroke="#f2f2f3" stroke-width="'+(gross?2.4:1.8)+'" stroke-linejoin="round" stroke-linecap="round"/>';
+  // §5 (v2.8.0): die Linie traegt die Richtung — rot links, gelb, gruen rechts (vorher weiss)
+  const rid=svgId('mvr');
+  if(pfad) g+=richtungVerlaufDef(rid, L, W-R)+'<path d="'+pfad+'" fill="none" stroke="url(#'+rid+')" stroke-width="'+(gross?2.6:2)+'" stroke-linejoin="round" stroke-linecap="round" style="'+leuchten('rgba(255,255,255,.25)',3)+'"/>';
   if(!gross){
-    const l=pp[pp.length-1];
-    g+='<circle cx="'+l.x.toFixed(1)+'" cy="'+l.y.toFixed(1)+'" r="2.6" fill="#f2f2f3"/>';
+    const l=pp[pp.length-1], lf=richtungFarbe(pts[pts.length-1].x);
+    g+='<circle cx="'+l.x.toFixed(1)+'" cy="'+l.y.toFixed(1)+'" r="2.8" fill="'+lf+'" style="'+leuchten(lf,3)+'"/>';
     return '<svg viewBox="0 0 '+W+' '+H+'" class="mv-svg" aria-hidden="true">'+g+'</svg>';
   }
   const byId={}; S.karten.forEach(k=>byId[k.id]=k);
@@ -12247,7 +12568,9 @@ function stEntwicklung(){
     // (bis v2.3 hiess der Schluessel „farbe" — anSvgLine liest „color"; die Linie war unsichtbar)
     // §4.2 (v2.6.0): jeder Tag gegen deinen Schnitt (gestrichelt) → Ampel
     const wAvg=anMean(werte.filter(v=>v!=null));
-    try{ h+=anSvgLine(tage, [{vals:werte, color:'#d9dadd', dotFarbe:v=>ampelHex(ampelGegen(v, wAvg))}], {schnitt:true}); }catch(e){}
+    // §5 (v2.8.0): Linie in der Ampel — die letzten 7 Tage gegen die 28
+    const w7=anMean(werte.slice(-7).filter(v=>v!=null)), lfE=ampelHex(ampelGegen(w7, wAvg));
+    try{ h+=anSvgLine(tage, [{vals:werte, color:lfE, flaeche:true, dotFarbe:v=>ampelHex(ampelGegen(v, wAvg))}], {schnitt:true}); }catch(e){}
     h+='<div class="an-hint">Tagespunkte der letzten 28 Tage · '+hat+' Messtage · gestrichelt: dein Schnitt</div>';
     // §9: die Verteilung — heute als leuchtende Saeule gegen „dein Schnitt, letzte 4 Wochen"
     const heuteP=werte[werte.length-1], frueher=werte.slice(0,-1).filter(v=>v!=null);
@@ -12487,6 +12810,14 @@ el('fokusView').addEventListener('click', e=>{
   const wdh=t.closest('[data-wiederholen]'); if(wdh){ oeffneWiederholen(wdh.dataset.wiederholen); return; }
   // §7 (v2.3.0): Ein Tipp im Zeitstrahl OEFFNET die Karte in der Fokusansicht
   // (Uhr steht, wie v2.1.1 §1) — er oeffnet nicht mehr den Detail-Dialog.
+  // §1 (v2.8.0): Abhak-Leiste und Play im Tagesablauf — vor dem Oeffnen der Zeile
+  const alc=t.closest('[data-alcheck]'); if(alc){ const k=S.karten.find(x=>x.id===alc.dataset.alcheck);
+    if(k){ if(kartenArt(k)==='Counter') karteTick(k.id); else { leisteAbhaken(k.id); toast('✓ „'+String(k.titel||'').slice(0,24)+'" abgehakt'); } } return; }
+  const alp=t.closest('[data-alplay],[data-zsplay]'); if(alp){ const id=alp.dataset.alplay||alp.dataset.zsplay;
+    haptik(10);
+    if(S.fokus && S.fokus.laeuft && S.fokus.karteId===id){ fokusZeitEinbuchen(); renderAlles(); return; }   // laeuft schon → Pause (ein Toggle)
+    fokusStarten(id); S.ui.fokusOffen=true; S.ui.fokusZeigt=null; saveUi(); renderAlles(); return; }
+  const alk=t.closest('[data-alkarte]'); if(alk){ haptik(8); fokusKarteAnsehen(alk.dataset.alkarte); return; }
   const zsk=t.closest('[data-zskarte]'); if(zsk){ haptik(8); fokusKarteAnsehen(zsk.dataset.zskarte); return; }
   // §6 (v2.4.0): Tipp in die grosse Matrix → Tagebuch an dieser Stelle
   const tbm=t.closest('svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; }
@@ -12902,9 +13233,18 @@ el('sheet').addEventListener('click', e=>{
     else if(feld==='timerFlag'){ entwurf.timerFlag = (val==='ja'); }
     else if(feld==='matrixFeld'){ entwurf.matrixFeld=matrixFeldVon({matrixFeld:val}); }
     else if(feld==='block'){ entwurf.block = val ? val : null; entwurf.blockTag = val ? heuteApp() : null; }   // §1.5 (v2.7.0)
+    else if(feld==='nurAbhaken'){ entwurf.nurAbhaken = val==='ja' ? true : (val==='nein' ? false : null); }   // §1.1 (v2.8.0)
     else { entwurf[feld]=val; }
     renderDetail(); return;
   }
+  // §4 (v2.8.0): Vom Geraet nehmen — erst fragen, dann nehmen
+  if(t.closest('[data-vomgeraet]')){ _vomGeraetFrage=true; renderDetail(); return; }
+  if(t.closest('[data-vomgeraetnein]')){ _vomGeraetFrage=false; renderDetail(); return; }
+  const vgj=t.closest('[data-vomgeraetja]'); if(vgj){ const id=vgj.dataset.vomgeraetja, tit=(entwurf&&entwurf.titel)||'';
+    const r=karteVomGeraet(id, 'detail'); _vomGeraetFrage=false;
+    if(r.ok){ closeSheet(); renderAlles(); toast('📤 „'+String(tit).slice(0,26)+'" vom Gerät genommen'); haptik(15); }
+    else { toast('Nicht genommen: '+r.grund); renderDetail(); }
+    return; }
   const wt=t.closest('[data-wtag]');
   if(wt){ const d=num(wt.dataset.wtag); const arr=(entwurf.rhythmus.tage||[]); entwurf.rhythmus.tage = arr.includes(d)?arr.filter(x=>x!==d):arr.concat([d]).sort(); renderDetail(); return; }
 
@@ -13183,6 +13523,9 @@ el('statistikBody').addEventListener('change', statAenderung);
 
 // Einstellungen (Sync / Migration / Backup / Regler)
 el('einstBody').addEventListener('click', e=>{
+  // §2.3 (v2.8.0): eigener Abhakbonus/Tickwert → zurueck auf die Tabelle
+  const er=e.target.closest('[data-eigenreset]'); if(er){ const k=S.karten.find(x=>x.id===er.dataset.eigenreset);
+    if(k){ k.abhakbonus=null; k.tickWert=null; beruehre(k); saveKarten(); renderEinst(); toast('↺ „'+String(k.titel||'').slice(0,24)+'" folgt wieder der Tabelle'); } return; }
   if(e.target.closest('#btnEinstImport')){
     const ta=el('einstImport'), res=syncImport(ta?ta.value:'');
     if(!res.fehler){ renderAlles(); toast('Import übernommen'); haptik(15); }
@@ -13269,6 +13612,12 @@ el('einstBody').addEventListener('change', e=>{
   const gn=e.target.dataset.grpname, gb=e.target.dataset.grpbonus;
   if(gn){ const g=S.routinenGruppen.find(x=>x.id===gn); if(g){ g.name=e.target.value; saveRoutGruppen(); } return; }
   if(gb){ const g=S.routinenGruppen.find(x=>x.id===gb); if(g){ g.komplettBonus=num(e.target.value); saveRoutGruppen(); renderStatusbar(); } return; }
+  // §2.1 (v2.8.0): Abhakbonus-Tabelle
+  const abt=e.target.dataset.abt;
+  if(abt){ const [sp,f]=abt.split('|');
+    S.settings.abhakbonusTabelle=JSON.parse(JSON.stringify(S.settings.abhakbonusTabelle||DEFAULT_SETTINGS.abhakbonusTabelle));
+    (S.settings.abhakbonusTabelle[sp]=S.settings.abhakbonusTabelle[sp]||{})[f]=num(e.target.value); saveSettings(); renderStatusbar();
+    toast('Abhakbonus '+sp+' · '+MATRIX_META[f].name+': '+num(e.target.value)+' P'); return; }
   // Nachtrag §2: Abhakbonus-Default je Matrixfeld
   const abf=e.target.dataset.abfeld;
   if(abf){ if(!S.settings.abhakbonusFeld || typeof S.settings.abhakbonusFeld!=='object') S.settings.abhakbonusFeld={};
@@ -13762,11 +14111,14 @@ function anSvgLine(labels, series, opts){
   if(opts.schnitt && series[0]){ const ev=series[0].vals.filter(v=>v!=null);
     if(ev.length){ const m=ev.reduce((a,b)=>a+b,0)/ev.length, y=yAt(m).toFixed(1);
       g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="var(--mut)" stroke-width="1" stroke-dasharray="5 4"/>'; } }
-  series.forEach(s=>{ let d='', teil=[];
-    const flush=()=>{ if(teil.length) d+=' '+glattPfad(teil); teil=[]; };
+  series.forEach(s=>{ let d='', teil=[], fl='';
+    // §5 (v2.8.0): s.flaeche → weicher Verlauf in der Linienfarbe unter der Kurve
+    const flush=()=>{ if(teil.length){ d+=' '+glattPfad(teil); if(s.flaeche) fl+=flaecheSvg(teil, H-pB, s.color); } teil=[]; };
     s.vals.forEach((v,i)=>{ if(v==null){ flush(); return; } teil.push({x:xAt(i), y:yAt(v)}); }); flush();
+    g+=fl;
     if(d.trim()) g+='<path d="'+d.trim()+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.width||2)+'" stroke-linejoin="round" stroke-linecap="round"'+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+'/>';
-    if(s.dots!==false) s.vals.forEach((v,i)=>{ if(v!=null) g+='<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(v).toFixed(1)+'" r="3.2" fill="'+(s.dotFarbe?s.dotFarbe(v,i):'#f4efe3')+'" stroke="#0b0b0c" stroke-width="1"/>'; });
+    if(s.dots!==false) s.vals.forEach((v,i)=>{ if(v!=null){ const df=s.dotFarbe?s.dotFarbe(v,i):(s.color&&s.color.indexOf('var(')<0?s.color:'#f4efe3');
+      g+='<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(v).toFixed(1)+'" r="3.2" fill="'+df+'" stroke="#0b0b0c" stroke-width="1" style="'+leuchten(df,3)+'"/>'; } });   // §5 (v2.8.0): Punkte leuchten
   });
   g+='<text x="'+xAt(0).toFixed(1)+'" y="'+(H-4)+'" text-anchor="start" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[0])+'</text>';
   if(n>1) g+='<text x="'+xAt(n-1).toFixed(1)+'" y="'+(H-4)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[n-1])+'</text>';
@@ -13783,7 +14135,7 @@ function anSvgScatter(pts, opts){
     if(den!==0){ const m=(nx*sxy-sx*sy)/den, b=(sy-m*sx)/nx;
       g+='<line x1="'+xAt(opts.xMin).toFixed(1)+'" y1="'+yAt(m*opts.xMin+b).toFixed(1)+'" x2="'+xAt(opts.xMax).toFixed(1)+'" y2="'+yAt(m*opts.xMax+b).toFixed(1)+'" stroke="#c9cace" stroke-width="1.2" stroke-dasharray="5 4"/>'; } }
   // v2.5.0 im v2.4-Stil: Datenpunkte als helle Kreise, Trend gestrichelt neutral
-  pts.forEach(p=>{ g+='<circle cx="'+xAt(p.x).toFixed(1)+'" cy="'+yAt(p.y).toFixed(1)+'" r="3.6" fill="'+(opts.dotFarbe?opts.dotFarbe(p):'#f4efe3')+'" stroke="#0b0b0c" stroke-width="1"/>'; });
+  pts.forEach(p=>{ const df=opts.dotFarbe?opts.dotFarbe(p):'#f4efe3'; g+='<circle cx="'+xAt(p.x).toFixed(1)+'" cy="'+yAt(p.y).toFixed(1)+'" r="3.6" fill="'+df+'" stroke="#0b0b0c" stroke-width="1" style="'+leuchten(df,3)+'"/>'; });
   g+='<text x="'+pL+'" y="'+(H-4)+'" font-size="8" fill="var(--mut2)">'+esc(opts.xlabel||'')+'</text>';
   g+='<text x="'+(pL-3)+'" y="'+(pT+6)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+esc(opts.ylabel||'')+'</text>';
   return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>';
@@ -13833,7 +14185,7 @@ function anModACWR(F,dom){
     const P=anAcwrReihe(F.alle,F.bis,F.span,dom,'punkte');
     const M=anAcwrReihe(F.alle,F.bis,F.span,dom,'min');
     const zf=AMPEL_FARBE[acwrStufe(P.current)][0];
-    inner=anSvgLine(P.labels,[{vals:P.vals,color:zf,dotFarbe:v=>AMPEL_FARBE[acwrStufe(v)][0]}],{yMin:0,yMax:2,height:132,hlines:[
+    inner=anSvgLine(P.labels,[{vals:P.vals,color:zf,flaeche:true,dotFarbe:v=>AMPEL_FARBE[acwrStufe(v)][0]}],{yMin:0,yMax:2,height:132,hlines:[
       {y:0.8,color:AMPEL_FARBE.gruen[0],dash:'2 3'},{y:1.3,color:AMPEL_FARBE.gelb[0],dash:'2 3',label:'Sweet-Spot 0,8–1,3'},{y:1.5,color:AMPEL_FARBE.rot[0],dash:'2 3'}]});
     const zone=v=> v==null?'—': v<0.8?'Unterlast':v<=1.3?'optimal':v<=1.5?'erhöht':'Overload';
     inner+='<div class="anmod-kpis acwr" style="'+ampelStil(acwrStufe(P.current))+'">'+
@@ -13860,8 +14212,11 @@ function anModLeistung(F,dom){
     // §4.2 (v2.6.0): Linie neutral, jeder Tag als Punkt in der Ampel gegen
     // deinen Schnitt im Zeitraum; der 7-Tage-Ø gestrichelt neutral
     const phAvg=anMean(ph.filter(x=>x!=null));
-    inner=anSvgLine(labels,[{vals:ph,color:'#d9dadd',dotFarbe:v=>ampelHex(ampelGegen(v, phAvg))},{vals:avg7,color:'#8e9197',dots:false,dash:'5 3'}],{y0:true,height:132});
-    inner+='<div class="an-legend"><span><i style="background:#d9dadd"></i>P/Std täglich (Punkt = Ampel gegen deinen Schnitt)</span><span><i style="background:#8e9197"></i>7-Tage-Ø (gestrichelt)</span></div>';
+    // §5 (v2.8.0): die Linie selbst in der Ampel — Zeitraum gegen die Vorperiode (vorher grau)
+    const phPrev0=anMean(F.prev.map(e=>anRate(e.datum)).filter(x=>x!=null));
+    const lf=ampelHex(ampelGegen(phAvg, phPrev0));
+    inner=anSvgLine(labels,[{vals:ph,color:lf,flaeche:true,dotFarbe:v=>ampelHex(ampelGegen(v, phAvg))},{vals:avg7,color:'#8e9197',dots:false,dash:'5 3'}],{y0:true,height:132});
+    inner+='<div class="an-legend"><span><i style="background:'+lf+'"></i>P/Std täglich (Linie: Zeitraum gegen Vorperiode · Punkt: Tag gegen deinen Schnitt)</span><span><i style="background:#8e9197"></i>7-Tage-Ø (gestrichelt, Bezug)</span></div>';
     // Domänen-Ziel-Erreichung (Bars)
     const doms= dom==='alle'?[['dfm','DFM'],['privat','Privat']]:[[dom,dom==='dfm'?'DFM':'Privat']];
     let bars='<div class="an-bars">';
@@ -14005,7 +14360,8 @@ function anModKalibrierung(F,dom){
     });
     // §4 (v2.5.0) im v2.4-Stil: neutrale Linie, Ziel 1,0 gestrichelt
     // §4.2 (v2.6.0): jeder Tag gegen das Ziel 1,0 → Ampel
-    inner=anSvgLine(labels,[{vals:ratio,color:'#d9dadd',dotFarbe:v=>ampelHex(ampelStufe(v-1))}],{yMin:0,yMax:Math.max(1.4,Math.max.apply(null,ratio.concat([1]))*1.1),height:132,hlines:[{y:1,color:'#c9cace',dash:'5 4',label:'Ziel 1,0'}]});
+    const rAvg=anMean(ratio.filter(v=>v!=null));   // §5 (v2.8.0): Linie in der Ampel des Ø gegen 1,0
+    inner=anSvgLine(labels,[{vals:ratio,color:ampelHex(rAvg==null?'grau':ampelStufe(rAvg-1)),flaeche:true,dotFarbe:v=>ampelHex(ampelStufe(v-1))}],{yMin:0,yMax:Math.max(1.4,Math.max.apply(null,ratio.concat([1]))*1.1),height:132,hlines:[{y:1,color:'#c9cace',dash:'5 4',label:'Ziel 1,0'}]});
     const cur=anMean(zielQuoten(F.cur, dom==='alle'?'alle':dom, e=>anPunkte(e,dom)));
     const prev=anMean(zielQuoten(F.prev, dom==='alle'?'alle':dom, e=>anPunkte(e,dom)));
     const treffer=ratio.filter(r=> r!=null && r>=0.8 && r<=1.2).length;
@@ -14031,6 +14387,7 @@ function anSvgFenster(series){
   g+='<text x="'+(pL-3)+'" y="'+(yAt(yMax)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anFmt(yMax)+'</text>';
   series.forEach(s=>{ const pts=[]; s.vals.forEach((v,i)=>{ if(v==null) return; pts.push({x:xAt(i), y:yAt(v)}); });
     const d=glattPfad(pts);   // v2.5.0: weich (v2.4-Stil)
+    if(s.glow) g+=flaecheSvg(pts, H-pB, s.color);   // §5 (v2.8.0): Verlauf unter der Heute-Kurve
     g+='<path d="'+d+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.width||2)+'"'+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+
        (s.glow?' style="filter:drop-shadow(0 0 4px '+s.color+')"':'')+' stroke-linejoin="round" stroke-linecap="round"/>';
     // §1 (v1.8.1): dezenter Endpunkt — markiert, wo eine gekürzte Kurve endet
@@ -14231,8 +14588,9 @@ function anSvgBacklog(labels, vals){
     '<text x="'+(pL-3)+'" y="'+(y0+3).toFixed(1)+'" text-anchor="end" font-size="8" font-weight="700" fill="var(--txt)">0</text>'+
     '<text x="'+(pL-3)+'" y="'+(yAt(mx)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+Math.round(mx)+'</text>'+
     (mn<0?'<text x="'+(pL-3)+'" y="'+(yAt(mn)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+Math.round(mn)+'</text>':'');
-  let d=''; vals.forEach((v,i)=>{ d+=(i?'L':'M')+xAt(i).toFixed(1)+' '+yAt(v).toFixed(1)+' '; });
-  g+='<path d="'+d+'" fill="none" stroke="#d9dadd" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  // §5 (v2.8.0): der DFM-Backlog in DFM-Blau, weich, mit Verlauf (vorher grau)
+  const bp=vals.map((v,i)=>({x:xAt(i), y:yAt(v)}));
+  g+=flaecheSvg(bp, y0, DOM_FARBE.dfm[1])+'<path d="'+glattPfad(bp)+'" fill="none" stroke="'+DOM_FARBE.dfm[1]+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
   g+='<text x="'+xAt(0).toFixed(1)+'" y="'+(H-4)+'" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[0])+'</text>';
   if(n>1) g+='<text x="'+xAt(n-1).toFixed(1)+'" y="'+(H-4)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[n-1])+'</text>';
   return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>';
@@ -14250,11 +14608,12 @@ function flowSaeulenSvg(days, rein, raus, gesch){
   const aktiv0=raus.filter((v,i)=>v>0||rein[i]>0);
   const rausAvg=aktiv0.length ? raus.reduce((a,b)=>a+b,0)/aktiv0.length : null;
   const gid=svgId('fs');
-  let g='<defs>'+['gruen','gelb','orange','rot','grau'].map(st=>'<linearGradient id="'+gid+st+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+AMPEL_FARBE[st][1]+'"/><stop offset="1" stop-color="'+AMPEL_FARBE[st][0]+'" stop-opacity=".35"/></linearGradient>').join('')+'</defs>';
+  let g='<defs>'+['gruen','gelb','orange','rot','grau'].map(st=>'<linearGradient id="'+gid+st+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+AMPEL_FARBE[st][1]+'"/><stop offset="1" stop-color="'+AMPEL_FARBE[st][0]+'" stop-opacity=".35"/></linearGradient>').join('')+
+    '<linearGradient id="'+gid+'rein" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+DOM_FARBE.dfm[0]+'"/><stop offset="1" stop-color="'+DOM_FARBE.dfm[1]+'" stop-opacity=".35"/></linearGradient></defs>';
   g+='<line x1="'+pL+'" y1="'+(H-pB)+'" x2="'+(W-pR)+'" y2="'+(H-pB)+'" stroke="#26282c"/>';
   days.forEach((d,i)=>{
     const x0=pL+i*slot+slot/2-bw-0.5;
-    if(rein[i]>0){ const h=Math.max(3,(rein[i]/mx)*(H-pT-pB)); g+='<rect x="'+x0.toFixed(1)+'" y="'+(H-pB-h).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+(bw/2).toFixed(1)+'" fill="#55585e"/>'; }
+    if(rein[i]>0){ const h=Math.max(3,(rein[i]/mx)*(H-pT-pB)); g+='<rect x="'+x0.toFixed(1)+'" y="'+(H-pB-h).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+(bw/2).toFixed(1)+'" fill="url(#'+gid+'rein)"/>'; }   // §5 (v2.8.0): rein = DFM blau
     if(raus[i]>0){ const h=Math.max(3,(raus[i]/mx)*(H-pT-pB)); g+='<rect x="'+(x0+bw+1).toFixed(1)+'" y="'+(H-pB-h).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+(bw/2).toFixed(1)+'" fill="url(#'+gid+ampelGegen(raus[i], rausAvg)+')"/>'; }
     if(gesch && gesch[i]>0){ const cx=pL+i*slot+slot/2; g+='<path d="M'+cx.toFixed(1)+' 3 l3.5 4.5 l-3.5 4.5 l-3.5 -4.5 z" fill="#fb923c"/>'; }
   });
@@ -14264,7 +14623,7 @@ function flowSaeulenSvg(days, rein, raus, gesch){
   g+='<text x="'+pL+'" y="'+(H-4)+'" font-size="8" fill="var(--mut2)">'+anKurzDatum(days[0])+'</text>'+
      '<text x="'+(W-pR)+'" y="'+(H-4)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anKurzDatum(days[n-1])+'</text>';
   return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'">'+g+'</svg>'+
-    '<div class="an-legend"><span><i style="background:linear-gradient(90deg,'+AMPEL_FARBE.rot[0]+','+AMPEL_FARBE.gelb[0]+','+AMPEL_FARBE.gruen[0]+')"></i>raus (Ampel gegen Ø raus)</span><span><i style="background:#55585e"></i>rein</span>'+
+    '<div class="an-legend"><span><i style="background:linear-gradient(90deg,'+AMPEL_FARBE.rot[0]+','+AMPEL_FARBE.gelb[0]+','+AMPEL_FARBE.gruen[0]+')"></i>raus (Ampel gegen Ø raus)</span><span><i style="background:'+DOM_FARBE.dfm[1]+'"></i>rein (DFM)</span>'+
     '<span><i style="background:#fb923c"></i>geschoben</span><span style="color:var(--mut)">- - Ø raus je aktivem Tag</span></div>';
 }
 function anModAufgabenFlow(F,dom){
@@ -14296,7 +14655,7 @@ function anModAufgabenFlow(F,dom){
   let cum=start; const backlog=days.map((x,i)=>{ cum+=((fl.created[x]||0)+(fl.wieder[x]||0))-(fl.abhaken[x]||0); return cum; });
   inner+='<div class="anmod-sub" style="margin-top:10px">Netto-Backlog (Startbestand '+start+' + neu/wiedereröffnet − raus; geschoben neutral):</div>'+anSvgBacklog(days, backlog)+
     // §1.4 (v1.13.0): auch die Zonen-Färbung ist benannt
-    '<div class="an-legend"><span><i style="background:#d9dadd"></i>Backlog</span><span><i style="background:rgba(62,207,142,.5)"></i>Zone über 0 (normaler Bestand)</span><span><i style="background:rgba(246,109,109,.5)"></i>Zone unter 0 (rechnerisches Minus)</span></div>';
+    '<div class="an-legend"><span><i style="background:'+DOM_FARBE.dfm[1]+'"></i>Backlog (DFM)</span><span><i style="background:rgba(62,207,142,.5)"></i>Zone über 0 (normaler Bestand)</span><span><i style="background:rgba(246,109,109,.5)"></i>Zone unter 0 (rechnerisches Minus)</span></div>';
   // Durchsatz & Balance (mit Vorperioden-Δ; H4.2: nur Tage mit Aktivität im Ø)
   const span=F.span, pDays=[]; for(let i=span;i>=1;i--) pDays.push(anVorTage(F.von,i));
   const prR=pDays.map(x=>reinRausTag(fl,x).rein), prE=pDays.map(x=>reinRausTag(fl,x).raus);
@@ -14383,14 +14742,19 @@ function anModRoutinenFlow(F,dom){
   // der Ampel (Tagesquote erfüllt ÷ fällig gegen die Quote des Zeitraums).
   // Die uebrigen Reihen sind Kategorien, kein Vergleich → neutral, per Strich.
   const qZeit=sumF>0?sumE/sumF:null;
+  // §5 (v2.8.0): Linien farbig — erfuellt in der Ampel (Quote gegen die Vorperiode) mit Verlauf,
+  // verpasst rot, geschoben orange; faellig (Bezug) und entschuldigt (zaehlt nicht) bleiben grau gestrichelt
+  const pF0=anSum(F.prev.map(e=>dsum(e.routErf)))+anSum(F.prev.map(e=>dsum(e.routVerp)));
+  const qPrev0=pF0>0 ? anSum(F.prev.map(e=>dsum(e.routErf)))/pF0 : null;
+  const qJetzt=(sumE+sumV)>0 ? sumE/(sumE+sumV) : null, erfF=ampelHex(ampelGegen(qJetzt, qPrev0));
   let inner=anSvgLine(days,[
     {vals:faellig,color:'#8e9197',dots:false,dash:'5 3'},
-    {vals:erf,color:'#f2f2f3',dotFarbe:(v,i)=>ampelHex(faellig[i]>0?ampelGegen(v/faellig[i], qZeit):'grau')},
-    {vals:verp,color:'#6b6e74',dots:false,dash:'3 2'},
-    {vals:ent,color:'#55585e',dots:false,dash:'2 4'},
-    {vals:ges,color:'#a3a6ab',dots:false,dash:'1 3'}
+    {vals:erf,color:erfF,flaeche:true,dotFarbe:(v,i)=>ampelHex(faellig[i]>0?ampelGegen(v/faellig[i], qZeit):'grau')},
+    {vals:verp,color:AMPEL_FARBE.rot[0],dots:false,dash:'3 2'},
+    {vals:ent,color:'#6b6e74',dots:false,dash:'2 4'},
+    {vals:ges,color:AMPEL_FARBE.orange[0],dots:false,dash:'1 3'}
   ],{y0:true,height:118});
-  inner+='<div class="an-legend"><span><i style="background:#8e9197"></i>fällig (gestrichelt)</span><span><i style="background:#f2f2f3"></i>erfüllt · Punkt = Ampel gegen deine Quote</span><span><i style="background:#6b6e74"></i>verpasst</span><span><i style="background:#55585e"></i>entschuldigt</span><span><i style="background:#a3a6ab"></i>geschoben</span></div>';
+  inner+='<div class="an-legend"><span><i style="background:#8e9197"></i>fällig (gestrichelt, Bezug)</span><span><i style="background:'+erfF+'"></i>erfüllt · Linie: Quote gegen Vorperiode · Punkt: Tag gegen deine Quote</span><span><i style="background:'+AMPEL_FARBE.rot[0]+'"></i>verpasst</span><span><i style="background:#6b6e74"></i>entschuldigt (zählt nicht)</span><span><i style="background:'+AMPEL_FARBE.orange[0]+'"></i>geschoben</span></div>';
   // Erfüllungsquote (entschuldigte raus — wie die bestehende Routinenquote) + Vorperiode
   const quote=(sumE+sumV)>0?Math.round(sumE/(sumE+sumV)*100):null;
   const pE=anSum(F.prev.map(e=>dsum(e.routErf))), pV=anSum(F.prev.map(e=>dsum(e.routVerp)));
