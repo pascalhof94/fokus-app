@@ -42,7 +42,9 @@ function tagOffen(){ return false; }
 function jetztStunde(){ return 13; }
 function tagesKette(){ return []; }
 var DB = { get:function(k,f){ return f; }, set:function(){}, del:function(){}, list:function(){ return []; } };
-var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnteraufgabe','settingsMerge','syncImport'];
+// v2.6.0 §5: Geld-Konstanten gespiegelt (nicht extrahierbar) — Geld-Impact 0 … 500, Stufen fuer Altpakete
+var GELD_STUFE={ hoch:300, mittel:200, niedrig:100 }, GELD_MAX=500;
+var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnteraufgabe','settingsMerge','syncImport','geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon'];
 eval(NAMES.map(extract).join('\n'));
 
 var fails=0; function ok(n,c){ print((c?'OK   ':'FAIL ')+n); if(!c) fails++; }

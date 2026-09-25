@@ -96,10 +96,13 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #statusbar .sbph.p b{color:var(--warn)}
 #statusbar .sbph.s b{color:var(--bad)}
 /* Zeile 2: fünf Zellen — Kopf, Wert, Zusatz */
-#statusbar .sb-r2{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-top:3px}
-#statusbar .sb-cell{min-width:0;text-align:center;line-height:1.15;overflow:hidden}
-/* §1 (v2.2.0): Die Rang-Zelle ist ein eigenes Tap-Ziel (→ Belohnungsseite) — 44 px. */
-#statusbar #sZRang{min-height:44px;cursor:pointer}
+/* §1 (v2.6.0): vier Zellen, jede mindestens 44 px hoch */
+#statusbar .sb-r2{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:3px}
+#statusbar .sb-cell{min-width:0;min-height:44px;text-align:center;line-height:1.15;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
+#statusbar #sZMatrix{cursor:pointer;padding:0 2px}
+#statusbar .sb-mv{display:block;height:30px;margin-top:1px}
+#statusbar .sb-mv svg{display:block;width:100%;height:30px}
+#statusbar #sZTempo .z{overflow:visible}
 #statusbar .sb-cell .k{display:block;font-size:8px;color:var(--mut2);text-transform:uppercase;letter-spacing:.4px}
 #statusbar .sb-cell .w{display:block;font-size:12px;font-weight:800;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #statusbar .sb-cell .z{display:block;font-size:8.5px;color:var(--mut2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -107,12 +110,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 /* §1.5 (v1.13.0): Tempo-Zelle nach Regel A — Ist-Rate groß, schmaler Balken
    mit Soll-Marke, nötige Rest-Rate klein daneben. */
 #statusbar .sb-cell .w small{font-size:8.5px;font-weight:700;color:var(--mut);margin-left:2px}
-#statusbar .sb-tempobar{position:relative;display:block;height:3px;border-radius:2px;background:#0a0f1a;margin:3px 5px 2px;overflow:visible}
-#statusbar .sb-tempobar i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--blue)}
-#statusbar .sb-tempobar u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--bad)}
-#statusbar #sZSerie .w{color:var(--warn)}
 #statusbar #sZKonto .w{color:var(--warn)}
-#statusbar #sZRang .w{color:var(--purple)}
 
 /* ══ §6 (v2.0.0) · Suchseite — Freitext oben, fünf wischbare Sichten ══ */
 .su-kopf{display:flex;align-items:center;gap:8px;padding:8px 12px 6px;position:sticky;top:0;z-index:5;background:var(--bg)}
@@ -1479,6 +1477,45 @@ body{background:var(--bg)}
 .kal-auf-z .m{flex:none;font-size:11px;color:var(--mut)}
 .kal-auf-z.kvis-spaeter{opacity:.55}
 
+/* ══ §2 (v2.6.0) · Tempo-Leiste ══ */
+.tl-wrap{margin-top:10px}
+.tl{position:relative;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:8px 12px 9px}
+.tl-h{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.tl-reihe{position:relative;height:17px}
+.tl-l{position:absolute;top:1px;font:800 12px/15px ui-monospace,monospace;white-space:nowrap}
+.tl-l.ich{color:var(--af)}.tl-l.ziel{color:#f2f2f3}.tl-l.kprog{color:var(--fc2,#b1f5c8)}.tl-l.klive{color:var(--fc,#4ade80)}
+.tl-bahn{position:relative;height:12px;border-radius:6px;background:#1a1c20;margin:2px 0}
+.tl-bahn .tl-ich{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,var(--af2),var(--af));box-shadow:0 0 10px color-mix(in srgb,var(--af) 45%,transparent)}
+.tl-bahn .tl-punkt{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--af);border:2px solid #0b0b0c}
+.tl-bahn .tl-ziel{position:absolute;top:-5px;bottom:-5px;width:0;margin-left:-1px;border-left:2px dashed #f2f2f3}
+.tl-bahn .tl-k{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;transform:rotate(45deg);border:2px solid #0b0b0c}
+.tl-bahn .tl-k.prog{background:var(--fc2,#b1f5c8)}
+.tl-bahn .tl-k.live{background:var(--fc,#4ade80);box-shadow:0 0 8px var(--fc,#4ade80)}
+.tl.kvis-spaeter .tl-k{opacity:.55}
+.tl.kvis-ueber .tl-k.live{box-shadow:0 0 14px var(--fc)}
+.tl-rechnung,.tl-hint{font-size:10.5px;color:var(--mut);margin-top:5px;line-height:1.35}
+.tl-rechnung b{color:var(--txt)}
+/* schmal in der Statusleiste */
+.tl.klein{display:block;background:none;border:0;padding:0;margin:4px 3px 1px}
+.tl.klein .tl-bahn{height:5px;border-radius:3px;margin:0}
+.tl.klein .tl-bahn .tl-punkt{width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-width:1px}
+.tl.klein .tl-bahn .tl-ziel{top:-3px;bottom:-3px;border-left-width:1.5px}
+.tl.klein .tl-bahn .tl-k{width:6px;height:6px;margin:-3px 0 0 -3px;border-width:1px}
+/* ══ §3 (v2.6.0) · Matrix-Verlauf ══ */
+.mv-gross{margin:4px 0 2px}
+.mv-gross svg{display:block;width:100%;height:auto}
+.mv-hit{cursor:pointer}
+.mv-hit.sel{stroke:#f2f2f3;stroke-opacity:.55;stroke-width:1.5;fill:rgba(242,242,243,.06)}
+.ms-info{font-size:12px;color:var(--mut);background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:6px 0;line-height:1.4;min-height:44px}
+.ms-info.on{color:var(--txt)}
+.ms-info span{color:var(--mut);font-size:11px}
+/* §5 (v2.6.0) · Geld-Impact: Regler + Textfeld */
+.geld-reihe{display:flex;align-items:center;gap:10px}
+.geld-reihe input[type=range]{flex:1;min-width:0;height:44px;margin:0;padding:0;border:0;background:transparent;-webkit-appearance:none;appearance:none}
+.geld-reihe input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:#26282c}
+.geld-reihe input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-10px;border-radius:50%;background:var(--blue);border:2px solid #0b0b0c;box-shadow:0 0 8px rgba(79,142,247,.5)}
+.geld-reihe input[type=number]{flex:none;width:76px;min-height:44px;text-align:center;font-weight:700}
+.geld-skala{font-weight:400;color:var(--mut2);font-size:10px;margin-left:4px}
 /* §1.2 (v2.5.0): ACWR-Kennzahlen in der Zonenfarbe */
 .anmod-kpis.acwr .ankpi:first-child .v,.anmod-kpis.acwr .ankpi:nth-child(2) .v{color:var(--af)}
 .fb-modul .anmod-sub{font-size:11px}
@@ -1510,12 +1547,13 @@ body{background:var(--bg)}
     <span class="sbph p">Pv<b id="sPhPrv">0</b></span>
     <span class="sbph s">Soll<b id="sPhSoll">0</b></span>
   </div>
+  <!-- §1 (v2.6.0): Zeile 2 von links Akku · Tempo · Konto · Matrix-Verlauf.
+       Serie und Rang fallen heraus (Belohnung bleibt ueber die Figur). -->
   <div class="sb-r2">
-    <div class="sb-cell" id="sZRang"><span class="k">Rang</span><b class="w">–</b><span class="z">–</span></div>
     <div class="sb-cell" id="sZAkku"><span class="k">Akku</span><b class="w">–%</b><span class="z">–</span></div>
-    <div class="sb-cell" id="sZTempo"><span class="k">Tempo</span><b class="w">→</b><span class="z">P/Std</span></div>
-    <div class="sb-cell" id="sZSerie"><span class="k">Serie</span><b class="w">🔥 0</b><span class="z">×1,00</span></div>
+    <div class="sb-cell" id="sZTempo"><span class="k">Tempo</span><b class="w">–</b><span class="z">P/Std</span></div>
     <div class="sb-cell" id="sZKonto"><span class="k">Konto</span><b class="w">0</b><span class="z">–</span></div>
+    <div class="sb-cell" id="sZMatrix" aria-label="Matrix-Verlauf heute — zur Matrix-Spur"><span class="k">Matrix</span><span class="sb-mv" id="sMv"></span></div>
   </div>
 </div>
 <div id="fkNav" hidden></div>
@@ -1626,9 +1664,9 @@ body{background:var(--bg)}
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.5.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.5.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-24-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.6.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.6.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-25-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1815,7 +1853,11 @@ const DEFAULT_SETTINGS = {
   // Werkzeug vor statt des Akku-Startwerts.
   vorschlagLernSchwelle: 12,
   geldGewicht: 0.5,            // geldFaktor = 1 + geldScoreNorm × geldGewicht (nur dfm)
-  geldDeckel: 1.5,            // Faktor-Obergrenze (~1,5)
+  // §5 (v2.6.0, Entscheidung Pascal): der Deckel faellt. Bis v2.5 kappte er
+  // bei ×1,5 — Geld-Score 200 und 300 brachten exakt dieselben Punkte. Ab
+  // jetzt linear: 100 → ×1,25 · 200 → ×1,5 · 300 → ×1,75 · 500 → ×2,25.
+  // null = kein Deckel (eine Zahl > 1 wuerde wieder kappen).
+  geldDeckel: null,
   geldScoreRef: 200,           // Referenz für geldScoreNorm = geldScore / Ref  (siehe Rückfrage)
   // ══ Nachtrag §3 (v2.0.0) · Ziele aus echten Daten ═════════════════════
   // 22 Tage mit gebuchter Zeit (06.08.–10.09.): Median 4.498 P/Tag DFM,
@@ -1912,7 +1954,9 @@ function neueKarte(f={}){
     notiz: '',
     kommentarClaude: '',              // U6-E: Hinweis an Claude für den nächsten Sync (Freitext, keine App-Logik)
     projekt: null,                    // nur dfm
-    geldScore: 0,                     // nur dfm — der Geld-Impact aus §2
+    // §5 (v2.6.0): Geld-Impact ist eine ZAHL 0 … 500 (vorher: geldScore vom
+    // Chat). Der Geld-Score wird daraus live gerechnet (geldScoreVon).
+    geldImpact: 0,                    // nur dfm
     // ══ §4 (v2.1.0) · EIN DATUM ════════════════════════════════════════
     // Die v2.0-Trennung in Deadline und „Geplant für" ist zurückgenommen:
     // Pascal führt EIN Datum. Es gibt nur noch die Deadline — und sie ist ab
@@ -1959,7 +2003,12 @@ function neueKarte(f={}){
     erstelltTs: jetztIso()
   }, f);
   if(!Array.isArray(k.tickKurve) || !k.tickKurve.length) k.tickKurve=[0];
-  if(k.domain!=='dfm'){ k.projekt=null; k.geldScore=0; }
+  // §5 (v2.6.0): Eine Altkarte mit geldScore und ohne geldImpact darf nicht
+  // vom Default 0 verdeckt werden — sie bleibt „ohne Impact", bis die
+  // Migration (geld260) sie umrechnet und ZAEHLT. Bis dahin rechnet
+  // geldImpactVon den Impact live aus dem Score zurueck.
+  if(f && f.geldScore!==undefined && f.geldImpact==null) k.geldImpact=null;
+  if(k.domain!=='dfm'){ k.projekt=null; k.geldImpact=0; }
   k.matrixFeld=matrixFeldVon(k);
   return k;
 }
@@ -2617,7 +2666,7 @@ function ladeAlles(){
       // Was die NEUE aus Airtable mitbrachte und die alte nicht hat, erben —
       // aber nie Serie, Ist-Zeit, Unteraufgaben oder Status der alten.
       if(alt.projekt==null && neu.projekt!=null) alt.projekt=neu.projekt;
-      if(!num(alt.geldScore) && num(neu.geldScore)) alt.geldScore=num(neu.geldScore);
+      if(!geldImpactVon(alt) && geldImpactVon(neu)) alt.geldImpact=geldImpactVon(neu);   // §5 (v2.6.0): Impact statt Score
       neu.status='archiviert';
       neu.notiz=(neu.notiz?neu.notiz+' · ':'')+'Dublette aus dem 38er-Import, zusammengeführt mit '+altId+' (v2.0.1).';
       beruehre(alt); beruehre(neu);
@@ -2654,6 +2703,80 @@ function ladeAlles(){
     });
     S.meta.einDatum210Log=log; S.meta.einDatum210=true;
     if(log.entfernt) saveKarten();
+    saveMeta();
+  }
+  // ══ §5 (v2.6.0) · GELD-IMPACT WIRD ZAHL ══════════════════════════════
+  // Die Karten trugen keine Stufe, sondern den fertigen geldScore vom Chat
+  // (Airtable-Geld-Score = Impact − Tage bis zum Datum). Entscheidung Pascal:
+  // Impact = Score + Tage bis zum Datum — am Umstellungstag ergibt sich
+  // derselbe Score. Eine erledigte Karte rechnet auf ihren Buchungstag.
+  // Traegt ein Altbestand doch eine Stufe, gilt Hoch 300 · Mittel 200 ·
+  // Niedrig 100. Begrenzt auf 0 … 500. Sicherung: karten_bak260.
+  if(!S.meta.geld260){
+    DB.set('karten_bak260', S.karten);
+    const log={ ts:jetztIso(), bezug:heuteApp(), karten:0, umgestellt:0, stufen:{hoch:0,mittel:0,niedrig:0},
+                ohneWert:0, gekappt:0, ueberDeckel:0, privat:0, deckel:'', beispiele:[] };
+    S.karten.forEach(k=>{
+      log.karten++;
+      if(k.domain!=='dfm'){ if(k.geldScore!==undefined || k.geldImpact!==0){ log.privat++; } k.geldImpact=0; delete k.geldScore; return; }
+      const alt=k.geldImpact, sc=k.geldScore;
+      let gi=null;
+      if(typeof alt==='string' && GELD_STUFE[alt.trim().toLowerCase()]!=null){ gi=GELD_STUFE[alt.trim().toLowerCase()]; log.stufen[alt.trim().toLowerCase()]++; }
+      else if(alt!=null && Number.isFinite(Number(alt)) && sc===undefined){ return; }   // schon Zahl
+      else if(sc!=null && sc!==''){
+        const roh=num(sc)+geldTageBis(k.faelligkeit, geldBezugstag(k));
+        gi=geldImpactAusScore(num(sc), k.faelligkeit, geldBezugstag(k));
+        if(roh<0 || roh>GELD_MAX) log.gekappt++;
+        if(geldScoreVon(Object.assign({}, k, {geldImpact:gi}))>200) log.ueberDeckel++;
+      }
+      if(gi==null){ gi=0; log.ohneWert++; }
+      k.geldImpact=gi; delete k.geldScore; log.umgestellt++;
+      if(log.beispiele.length<8 && sc!=null && num(sc)!==0) log.beispiele.push({ titel:String(k.titel||'').slice(0,40), geldScore:num(sc), datum:k.faelligkeit||null, geldImpact:gi });
+    });
+    // Der Deckel faellt (Entscheidung Pascal) — nur der alte Default 1,5 wird
+    // entfernt; ein bewusst gesetzter anderer Wert bliebe stehen.
+    if(Number(S.settings.geldDeckel)===1.5){ S.settings.geldDeckel=null; log.deckel='1,5 → kein Deckel'; DB.set('settings', S.settings); }
+    else log.deckel = S.settings.geldDeckel==null ? 'kein Deckel' : ('eigener Wert '+S.settings.geldDeckel+' — unberührt');
+    S.meta.geld260Log=log; S.meta.geld260=true;
+    saveKarten(); saveMeta();
+  }
+  // ══ §7 (v2.6.0) · NICHT GETRACKTE TAGE RUECKWIRKEND ALS URLAUB ════════
+  // Jeder VERGANGENE Tag der Historie ohne eine einzige Sitzung und ohne
+  // Punkte wird urlaub:true — er faellt damit aus Normaltag, Vergleichen,
+  // Belastung und Kalibrierung. „Sitzung" = gebuchte Zeit im Tagesaggregat
+  // ODER eine Buchung mit Minuten/Punkten im Intraday-Log innerhalb des
+  // Tagesfensters (Start bis Ende). „Ohne Punkte" = Tagesbilanz ≤ 0 — reine
+  // Abzuege (verpasste Routinen, Schiebe-Malus) sind keine erarbeiteten
+  // Punkte. Teilweise erfasste Tage bleiben unberuehrt. Traegt ein Datum
+  // mehrere Laeufe, zaehlt es nur, wenn ALLE leer sind. Die Liste reist bis
+  // zum naechsten bestaetigten Sync im Export (urlaubNachgetragen), damit der
+  // Chat dieselben Tage in Airtable kennzeichnen kann.
+  if(!S.meta.urlaub260){
+    const heute=heuteApp(), log={ ts:jetztIso(), bezug:heute, tage:[], negativ:[], geprueft:0, schonUrlaub:0, erfasst:0 };
+    const iv=(S.intraday||[]).filter(e=>e && e.ts && (num(e.minuten)>0 || num(e.punkte)>0)).map(e=>Date.parse(e.ts)).filter(Number.isFinite);
+    const leer=h=>{
+      const z=h.zeit||{};
+      if(num(z.dfm)+num(z.privat)>0) return false;
+      if(num(h.punkteBilanz)>0) return false;
+      const a=Date.parse(h.startTs||''), b=Date.parse(h.endeTs||'');
+      if(Number.isFinite(a) && Number.isFinite(b) && iv.some(t=>t>=a && t<=b)) return false;
+      if(!Number.isFinite(a) || !Number.isFinite(b)){   // ohne Fenster: Kalendertag
+        if(iv.some(t=>new Date(t).toISOString().slice(0,10)===h.datum)) return false; }
+      return true;
+    };
+    const jeDatum={};
+    (S.historie||[]).forEach(h=>{ if(!h || h.luecke || !h.datum || h.datum>=heute) return; (jeDatum[h.datum]=jeDatum[h.datum]||[]).push(h); });
+    Object.keys(jeDatum).sort().forEach(d=>{
+      const hs=jeDatum[d]; log.geprueft++;
+      if(hs.every(h=>h.urlaub)){ log.schonUrlaub++; return; }
+      if(!hs.every(leer)){ log.erfasst++; return; }
+      hs.forEach(h=>{ h.urlaub=true; });
+      log.tage.push(d);
+      if(hs.some(h=>num(h.punkteBilanz)<0)) log.negativ.push(d);
+    });
+    S.meta.urlaubNachgetragen=log.tage.slice();
+    S.meta.urlaub260Log=log; S.meta.urlaub260=true;
+    if(log.tage.length) saveHistorie();
     saveMeta();
   }
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
@@ -2694,9 +2817,85 @@ const saveBelohnung=()=>DB.set('belohnung', S.belohnung);
    an Pascal offen, siehe Zusammenfassung). */
 function geldFaktor(k){
   if(k.domain!=='dfm') return 1;
-  const norm = num(k.geldScore)/ (S.settings.geldScoreRef||200);
-  const f = 1 + norm*(S.settings.geldGewicht||0);
-  return Math.min(S.settings.geldDeckel||1.5, Math.max(1, f));
+  const norm = geldScoreVon(k)/ (S.settings.geldScoreRef||200);
+  const f = Math.max(1, 1 + norm*(S.settings.geldGewicht||0));
+  // §5 (v2.6.0): Deckel nur noch, wenn ausdruecklich gesetzt (Default null)
+  const deckel = S.settings.geldDeckel;
+  return (deckel!=null && Number(deckel)>1) ? Math.min(Number(deckel), f) : f;
+}
+/* ══ §5 (v2.6.0) · GELD-IMPACT ALS ZAHL ═════════════════════════════════
+   Geld-Impact = Zahl 0 … 500, ganzzahlig (vorher eine Stufe in Airtable,
+   in der App nur der fertige geldScore vom Chat).
+   Geld-Score  = Geld-Impact − Tage bis zum Datum — wie in Airtable, jetzt
+                 live in der App. Ohne Datum = Impact. Ueberfaellig steigt er.
+   Die PUNKTE folgen dem Geld-Score (Entscheidung Pascal), die Formel ist
+   unveraendert bis auf den Deckel: Faktor = 1 + Score ÷ 400, mindestens 1.
+   Bezugstag: der App-Tag; eine ERLEDIGTE Karte rechnet auf ihren
+   Buchungstag — ihr Wert bleibt stehen, statt taeglich zu wandern.
+   Alte Pakete mit Stufe: Hoch 300 · Mittel 200 · Niedrig 100. */
+const GELD_STUFE={ hoch:300, mittel:200, niedrig:100 };
+const GELD_MAX=500;
+function geldImpactNorm(v){
+  if(v==null || v==='') return null;
+  if(typeof v==='string'){
+    const s=v.trim().toLowerCase();
+    if(GELD_STUFE[s]!=null) return GELD_STUFE[s];
+    if(!/^-?\d+([.,]\d+)?$/.test(s)) return null;
+    v=Number(s.replace(',','.'));
+  }
+  const n=Number(v);
+  if(!Number.isFinite(n)) return null;
+  return Math.max(0, Math.min(GELD_MAX, Math.round(n)));
+}
+function geldTageBis(faelligkeit, bezug){
+  if(!faelligkeit || !/^\d{4}-\d{2}-\d{2}/.test(String(faelligkeit)) || !bezug) return 0;
+  return Math.round((Date.parse(String(faelligkeit).slice(0,10)+'T12:00:00Z')-Date.parse(String(bezug).slice(0,10)+'T12:00:00Z'))/86400000);
+}
+/* Migration/Altpakete: aus dem fertigen Score den Impact zurueckrechnen —
+   am Bezugstag ergibt sich damit exakt derselbe Score (Entscheidung Pascal). */
+function geldImpactAusScore(score, faelligkeit, bezug){
+  return Math.max(0, Math.min(GELD_MAX, Math.round(num(score)+geldTageBis(faelligkeit, bezug))));
+}
+function geldBezugstag(k){ return (k && k.status==='erledigt' && k.tagId) ? String(k.tagId).slice(0,10) : heuteApp(); }
+function geldImpactVon(k){
+  if(!k || k.domain!=='dfm') return 0;
+  if(k.geldImpact!=null && Number.isFinite(Number(k.geldImpact))) return Number(k.geldImpact);
+  if(k.geldScore!=null) return geldImpactAusScore(k.geldScore, k.faelligkeit, geldBezugstag(k));   // Altbestand vor der Migration
+  return 0;
+}
+function geldScoreVon(k){
+  if(!k || k.domain!=='dfm') return 0;
+  return geldImpactVon(k) - geldTageBis(k.faelligkeit, geldBezugstag(k));
+}
+/* Regler + Textfeld, beide synchron, gerastet auf ganze Zahlen 0 … 500.
+   modus 'bind' = Detail/Anlegen (data-bind="geldImpact"), 'folge' = Folge-
+   aufgabe im Abhak-Dialog (#abFolgeGeld). Die Zeile darunter rechnet den
+   Geld-Score live vor (Impact − Tage bis zum Datum). */
+function geldReglerHtml(wert, modus, k){
+  const v=geldImpactNorm(wert); const w=v==null?0:v;
+  const zahl = modus==='folge'
+    ? '<input type="number" inputmode="numeric" min="0" max="'+GELD_MAX+'" step="1" id="abFolgeGeld" data-geldzahl="1" value="'+w+'">'
+    : '<input type="number" inputmode="numeric" min="0" max="'+GELD_MAX+'" step="1" data-bind="geldImpact" data-geldzahl="1" value="'+w+'">';
+  return '<div class="field geld-feld"><label>Geld-Impact <span class="geld-skala">0 … '+GELD_MAX+'</span></label>'+
+    '<div class="geld-reihe"><input type="range" min="0" max="'+GELD_MAX+'" step="1" data-geldregler="1" value="'+w+'" aria-label="Geld-Impact">'+zahl+'</div>'+
+    '<div class="hint" data-geldhint="1">'+geldHintText(w, k && k.faelligkeit)+'</div></div>';
+}
+function geldHintText(impact, faelligkeit){
+  const t=geldTageBis(faelligkeit, heuteApp()), sc=num(impact)-t;
+  const f=Math.max(1, 1+sc/(S.settings.geldScoreRef||200)*(S.settings.geldGewicht||0));
+  return 'Geld-Score heute <b>'+sc+'</b> = '+num(impact)+(faelligkeit ? (t>=0?' − '+t:' + '+(-t))+' Tage bis zum Datum' : ' (ohne Datum)')+
+         ' · Punkte ×'+(Math.round(f*100)/100).toString().replace('.',',');
+}
+/* Regler und Textfeld gleichziehen; gibt den gerasteten Wert zurueck. */
+function geldReglerSync(quelle){
+  const feld=quelle.closest('.geld-feld'); if(!feld) return null;
+  const g=geldImpactNorm(quelle.value); const w=g==null?0:g;
+  const r=feld.querySelector('[data-geldregler]'), z=feld.querySelector('[data-geldzahl]');
+  if(r && r!==quelle) r.value=w;
+  if(z && (z!==quelle || (quelle.value!=='' && String(w)!==quelle.value))) z.value=w;
+  const dl=document.querySelector('#sheetBody [data-bind="faelligkeit"]') || el('abFolgeDl');
+  const hint=feld.querySelector('[data-geldhint]'); if(hint) hint.innerHTML=geldHintText(w, dl ? (dl.value||null) : null);
+  return w;
 }
 /* Wirksamer Stundensatz: Karten-Override punkteProStd schlägt die Treiber-Rate
    (v0.38 effektiveRate); geldFaktor bleibt v1.0-Zusatz (dfm gedeckelt, privat 1). */
@@ -3443,7 +3642,7 @@ function farbGruppe(k){
 }
 function farbTreiber(k){
   const g=farbGruppe(k);
-  if(g==='dfm')    return num(k.geldScore);       // Geld-Score
+  if(g==='dfm')    return geldScoreVon(k);        // Geld-Score (§5 v2.6.0: live aus dem Impact)
   if(g==='privat') return kartePunkte(k);         // Punkte-Prognose
   if(g==='wdh')    return num(k.streak);          // Streak
   return 0;
@@ -3485,7 +3684,8 @@ const FELDER = {
   titel:      {label:'Titel',     typ:'text'},
   notiz:      {label:'Notiz',     typ:'text'},
   projekt:    {label:'Projekt',   typ:'select', wert:k=>k.projekt||'', opt:()=>[['','(kein Projekt)']].concat(distinct('projekt').map(v=>[v,v]))},
-  geldScore:  {label:'Geld-Score',typ:'zahl'},
+  geldImpact: {label:'Geld-Impact',typ:'zahl', wert:k=>geldImpactVon(k)},   // §5 (v2.6.0): Zahl 0 … 500
+  geldScore:  {label:'Geld-Score',typ:'zahl', wert:k=>geldScoreVon(k)},     // live: Impact − Tage bis zum Datum
   faelligkeit:{label:'Fälligkeit',typ:'datum'},
   uhrzeit:    {label:'Termin',    typ:'select', wert:k=>k.uhrzeit?'ja':'nein', opt:()=>[['ja','hat Uhrzeit'],['nein','ohne']]},
   sollMin:    {label:'Soll-Min',  typ:'zahl'},
@@ -4240,7 +4440,7 @@ function renderFokus(){
   // Nie automatisch neu erstellt, nie automatisch wieder geöffnet.
   const aufgabeErledigt='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'">'+
     '<div class="tsub">✓ erledigt'+(k.tagId?' am '+esc(String(k.tagId).slice(0,10)):'')+
-    ' · ⏱ <b>'+tZeitKurz(istSekLive(k)/60)+'</b> · <b>'+Math.round(kartePunkte(k))+' P</b> gebucht</div></div>'+
+    ' · ⏱ <b>'+tZeitKurz(istSekLive(k)/60)+'</b> · <b>'+fmtP(kartePunkte(k))+' P</b> gebucht</div></div>'+
     '<div class="tzeile2">'+
     '<button class="tedit" style="width:auto;padding:0 14px;border-radius:22px" data-detail="'+k.id+'">✎ Punkte anpassen</button>'+
     '<span class="tgrp r"><button class="tedit" style="width:auto;padding:0 14px;border-radius:22px" data-wiederholen="'+k.id+'">↻ Wiederholen</button></span>'+
@@ -4249,7 +4449,7 @@ function renderFokus(){
   // (gleiche data-Attribute und Handler, reine Umplatzierung).
   const aufgabe='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'">'+
     '<div class="tsub">'+(k.domain==='dfm'?'DFM':'Privat')+' · '+matrixIcon(matrixFeldVon(k))+' '+esc(matrixName(matrixFeldVon(k)))+
-    ' · <span id="tGesamtP">'+Math.round(kartePunkteGeplant(k))+'</span> P gesamt</div></div>'+
+    ' · <span id="tGesamtP">'+fmtP(kartePunkteGeplant(k))+'</span> P gesamt</div></div>'+
     '<div class="tzeile2">'+
     '<button class="tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause">'+(laeuft?'⏸':'▶')+'</button>'+
     '<span class="tgrp">'+
@@ -4277,14 +4477,11 @@ function renderFokus(){
     '<button class="sw r'+(rechtsGeht?'':' aus')+'" data-fkswipe="1">Verlauf ▶</button></div>';
   host.innerHTML =
     '<div id="fokusAktiv" class="tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+(num(nav.hist)>0?'imverlauf ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
-      titel+kopf+stats+kpis+planbar+(k.status==='erledigt'?aufgabeErledigt:aufgabe)+swipeLeiste+'</div>'+
+      titel+kopf+stats+'<div id="tTempo" class="tl-wrap"></div>'+kpis+planbar+(k.status==='erledigt'?aufgabeErledigt:aufgabe)+swipeLeiste+'</div>'+
     fokusSubsHtml(k)+
     // §8 (v2.0.0): drei Belohnungsblöcke, kompakt untereinander — danach der
     // Zeitstrahl von oben nach unten.
-    fbWasDieseKarte(k)+
-    fbWoIchStehe()+
-    fbWasIchBewege(k)+
-    zeitstrahlHtml();
+    fokusBloeckeExakt(k);
   renderFkNav();
   fokusTacho(k);   // Ring, Timer, Kennzahlen, Balken befüllen
 }
@@ -4325,6 +4522,19 @@ function karteVisStil(k){
 }
 function karteVisKlasse(k){ return 'kvis kvis-'+karteKraft(k)+' kvis-'+(k&&k.domain==='dfm'?'dfm':'privat'); }
 function ampelStil(stufe){ const a=AMPEL_FARBE[stufe]||AMPEL_FARBE.grau; return '--af:'+a[0]+';--af2:'+a[1]; }
+/* §4.2 (v2.6.0): die v2.4.1-Regeln gelten jetzt auch in Statistik und
+   Detailanalyse. Ein Wert GEGEN SEINEN NORMALWERT (Schnitt des Zeitraums,
+   Ziel) → Ampelstufe mit denselben Schwellen; invert = weniger ist besser.
+   Ohne Basis grau. */
+function ampelGegen(v, basis, invert){
+  if(v==null || !Number.isFinite(Number(v)) || basis==null || !(Number(basis)>0)) return 'grau';
+  const r=Number(v)/Number(basis)-1;
+  return ampelStufe(invert ? -r : r);
+}
+function ampelHex(stufe){ return (AMPEL_FARBE[stufe]||AMPEL_FARBE.grau)[0]; }
+function ampelBalken(stufe){ const a=AMPEL_FARBE[stufe]||AMPEL_FARBE.grau; return 'background:linear-gradient(90deg,'+a[1]+','+a[0]+')'; }
+/* Balken, der EINE Karte zeigt: Matrixfeld = Grundfarbe (v2.4.1). */
+function karteBalken(k){ const c=MX_FARBE[matrixFeldVon(k)]||MX_FARBE.ziel; return 'background:linear-gradient(90deg,'+c[1]+','+c[0]+')'; }
 /* ══ §9 (v2.4.0) · FORMENSPRACHE NACH SLEEP CYCLE — die Bausteine ═════
    Uebernommen wird die Form, nicht die Marke: grosse Zahl mit kleiner
    Beschriftung und Trendpfeil im gefuellten Kreis · Hauptwert als Ring mit
@@ -4577,18 +4787,18 @@ function fbWasDieseKarte(k){
   // v2.4.1: Matrixfeld = Grundfarbe · Domaene = Hintergrund · Faelligkeit = Kraft
   let h='<div class="fb"><div class="fb-h">Was diese Karte einbringt</div><div class="fb-kacheln '+karteVisKlasse(k)+'" style="'+karteVisStil(k)+'">';
   h+='<div class="fbk voll"><div class="fbk-h">Punkte dieser Karte · Ist gegen Prognose</div>'+
-     '<div class="fbk-zz">'+fbWert(Math.round(jetzt), 'Stand jetzt · '+Math.round(istMin)+'′ Ist', jetzt>p?'gut':'')+
-     fbWert(Math.round(p), 'Prognose · ≈ '+fmtKurzP(muenzen).replace(/ P$/,'')+' Münzen', 'rechts')+'</div>'+
+     '<div class="fbk-zz">'+fbWert(fmtP(jetzt), 'Stand jetzt · '+Math.round(istMin)+'′ Ist', jetzt>p?'gut':'')+
+     fbWert(fmtP(p), 'Prognose · ≈ '+fmtP(muenzen)+' Münzen', 'rechts')+'</div>'+
      '<div aria-hidden="true">'+fbBalken(jetzt/skala, p/skala, 'Prognose', jetzt>p)+'</div>'+
-     '<div class="fb-rechnung">'+num(k.sollMin)+'′ Soll × '+Math.round(basisRate(k))+' P/Std × '+
+     '<div class="fb-rechnung">'+num(k.sollMin)+'′ Soll × '+fmtP(basisRate(k))+' P/Std × '+
      String(matrixFaktor(k)).replace('.',',')+' ('+matrixIcon(mf)+' '+esc(matrixName(mf))+')'+
      (k.domain==='dfm'?(' × '+(Math.round(geldFaktor(k)*100)/100).toString().replace('.',',')+' Geld'):'')+
-     (bonus?(' + '+Math.round(bonus)+' Abhakbonus'):'')+
+     (bonus?(' + '+fmtP(bonus)+' Abhakbonus'):'')+
      ' — gebucht wird nach <b>Ist</b>, der Endwert weicht von der Prognose ab.</div></div>';
   h+=fbKachel('Anteil am Tagessoll', fbRing(anteil, null, {mittel:true, mitte:Math.round(anteil*100)+'%'}),
-     fbWert(fmtKurzP(p), 'Prognose von '+fmtKurzP(zielH)), {voll:!bb});
+     fbWert(fmtP(p), 'Prognose von '+fmtP(zielH)), {voll:!bb});
   if(bb) h+=fbKachel('Bewegungsbonus heute', '<div style="width:100%">'+fbBalken(bb/bbMax, null, null, true)+'</div>',
-                     fbWert('+'+Math.round(bb), 'von '+Math.round(bbMax)+' P', 'gut'), {breit:true});
+                     fbWert('+'+fmtP(bb), 'von '+fmtP(bbMax)+' P', 'gut'), {breit:true});
   return h+'</div></div>';
 }
 /* Outfit-Schwellen als F — dieselbe Treppe wie outfitVon/outfitFehltBis. */
@@ -4694,7 +4904,7 @@ function fbWasIchBewege(k){
     h+=fbKachel('Diese Karte schiebt', fbSchubAchse(p.x, zielX>0),
        fbWert(zielX>0?'→':'←', zielX>0?'nach rechts':'nach links', zielX>0?'gut':''));
     h+=fbKachel('Bonus möglich', '<div style="width:100%">'+fbBalken(zielX>0?erwartet/bbMax:0, null, null, true)+'</div>',
-       fbWert(zielX>0?('bis '+Math.round(erwartet)):'0', 'von '+Math.round(bbMax)+' P'), {breit:true});
+       fbWert(zielX>0?('bis '+fmtP(erwartet)):'0', 'von '+fmtP(bbMax)+' P'), {breit:true});
   }
   return h+'</div></div>';
 }
@@ -4714,7 +4924,7 @@ function fbWoIchStehe(){
   { const pct=ges.ist/Math.max(1,ges.ziel), nz=normalZurUhrzeit('alle');
     h+='<div class="fbk voll fbk-held amp" style="'+ampelStil(ampelStufe(nz.r))+'"><div class="fbk-r">'+
        '<div class="fbk-g" aria-hidden="true">'+fbRing(pct, null, {gross:true, mitte:Math.round(pct*100)+'%', unter:'Tagesziel'})+'</div>'+
-       grossZahl(fmtKurzP(ges.ist), 'von '+fmtKurzP(ges.ziel)+(ges.we?' · Sa+So':'')+(nz.norm!=null?'<br>Schnitt jetzt '+fmtKurzP(nz.norm):''), nz.r, 'gegen deinen Schnitt zur selben Uhrzeit')+
+       grossZahl(fmtP(ges.ist), 'von '+fmtP(ges.ziel)+(ges.we?' · Sa+So':'')+(nz.norm!=null?'<br>Schnitt jetzt '+fmtP(nz.norm):''), nz.r, 'gegen deinen Schnitt zur selben Uhrzeit')+
        '</div></div>'; }
   [['dfm','DFM','var(--blue)'],['privat','Privat','var(--warn)']].forEach(([d,lbl])=>{
     const zi=zielUndIstHeute(d);
@@ -4722,14 +4932,14 @@ function fbWoIchStehe(){
     const nz=normalZurUhrzeit(d);
     h+='<div class="fbk voll amp" style="'+ampelStil(ampelStufe(nz.r))+'"><div class="fbk-h">'+lbl+(zi.we?' · Wochenende (Sa+So)':'')+'</div>'+
        '<div class="fbk-r"><div class="fbk-g breit" aria-hidden="true">'+
-       fbBalken(zi.ist/skala, zi.ziel/skala, 'Ziel '+fmtKurzP(zi.ziel), zi.ist>=zi.ziel)+'</div>'+
-       fbWert(fmtKurzP(zi.ist), Math.round(zi.ist/Math.max(1,zi.ziel)*100)+' % von '+fmtKurzP(zi.ziel), 'rechts', nz.r)+'</div></div>';
+       fbBalken(zi.ist/skala, zi.ziel/skala, 'Ziel '+fmtP(zi.ziel), zi.ist>=zi.ziel)+'</div>'+
+       fbWert(fmtP(zi.ist), Math.round(zi.ist/Math.max(1,zi.ziel)*100)+' % von '+fmtP(zi.ziel), 'rechts', nz.r)+'</div></div>';
   });
   // §1.2 (v2.5.0): Outfit und Faktor F zeigen Pascal gegen normal → Ampelfarbe
   // (dieselbe Abweichung wie der Tagesziel-Ring: heute gegen deinen Schnitt zur selben Uhrzeit).
   const ampTag=ampelStil(ampelStufe(normalZurUhrzeit('alle').r));
   h+=fbKachel('Outfit', fbRing(ofFrac, 'var(--purple)'),
-     fbWert(of!=null?String(of):'—', (of||1)>=20?'höchste Stufe':(fehlt>0?('noch '+fmtKurzP(fehlt)+' bis '+naechste):('Stufe '+naechste+' erreicht'))),
+     fbWert(of!=null?String(of):'—', (of||1)>=20?'höchste Stufe':(fehlt>0?('noch '+fmtP(fehlt)+' P bis '+naechste):('Stufe '+naechste+' erreicht'))),
      {klasse:'amp', stil:ampTag});
   h+=fbKachel('Faktor F', '<div style="width:100%">'+fbBalken(num(F)/Fs, 1/Fs, '1,0', num(F)>=1)+'</div>',
      fbWert(F!=null?F.toFixed(2).replace('.',','):'—', '1,0 = Ziel'), {breit:true, klasse:'amp', stil:ampTag});
@@ -4907,7 +5117,11 @@ function fokusStats(k){
   // §2 (v1.12.0): Konsument 3 — Kachel „Punkte heute / Ziel" ueber zielUndIstHeute()
   // §4.3 (v1.13.0): Anzeige über den Upgrade-Faktor (Ist UND Ziel — Quote bleibt)
   const zi=zielUndIstHeute(), istHeute=(zi.we?zi.ist:punkteHeuteAnzeige()), ziel=zi.ziel;
-  if(el('tPktW')){ el('tPktW').textContent=Math.round(istHeute)+'/'+fmtKurzP(ziel); el('tPktSub').textContent=Math.round(istHeute/ziel*100)+'% · Pkt'; }   // §2 (v1.12.0): 12k statt 12000 — passt in die Kachel
+  // §6 (v2.6.0): exakt mit Tausenderpunkt („2.534/5.000") — kein „k" mehr in der Fokusansicht
+  // (die Zahl steht allein — „16.882/5.800" passte bei 375 px nicht in die Kachel)
+  if(el('tPktW')){ el('tPktW').textContent=fmtP(istHeute); el('tPktSub').textContent='von '+fmtP(ziel)+' · '+Math.round(istHeute/ziel*100)+' %'; }
+  // §2 (v2.6.0): die Tempo-Leiste lebt mit dem Sekundentakt
+  if(el('tTempo')){ let tl=''; try{ tl=tempoLeisteHtml(tempoWerte(k)); }catch(e){ tl=''; } el('tTempo').innerHTML=tl; }
   let zeitIst=0, zeitPlan=0; S.karten.forEach(x=>{ if(!imTagesstrom(x)) return; zeitIst+=heuteInvestiertMin(x); zeitPlan+=num(x.sollMin); });
   if(el('tZeitW')){ el('tZeitW').textContent=tZeitKurz(zeitIst)+'/'+tZeitKurz(zeitPlan); el('tZeitSub').textContent='Aufg '+(zeitPlan>0?Math.round(num(k.sollMin)/zeitPlan*100):0)+'%'; }
 }
@@ -4922,8 +5136,8 @@ function fokusKpis(k){
   const restMin=Math.max(0,geplant-min);
   const subs=untermenge(k.id), fertig=subs.filter(u=>u.done).length;
   const kp=(cls,h,l,s)=>'<div class="tkpi'+(cls?' '+cls:'')+'"><div class="tkpi-h">'+h+'</div><div class="tkpi-l">'+l+'</div><div class="tkpi-s">'+s+'</div></div>';
-  box.innerHTML = kp(f1, Math.round(r), 'P/Std ⌀', 'Ziel '+Math.round(ziel))
-    + kp('', Math.round(earnedP), 'Punkte', proz+'% v. '+Math.round(planP))
+  box.innerHTML = kp(f1, fmtP(r), 'P/Std ⌀', 'Ziel '+fmtP(ziel))
+    + kp('', fmtP(earnedP), 'Punkte', proz+'% v. '+fmtP(planP))
     + kp('', tZeitKurz(min), 'bearbeitet', geplant>0?'Rest '+tZeitKurz(restMin):'Stoppuhr')
     + kp('', fertig+'/'+subs.length, 'Unteraufg.', (subs.length-fertig)+' offen');
 }
@@ -4938,8 +5152,8 @@ function fokusPlanbar(k){
   if(S.belohnung){ const bank=konto()-earnedP; KAT_KEYS.forEach(kk=>{ if(kaufSperre(kk)) return; const need=preisFuer(kk)-bank;
     if(need>0 && need<=maxP) marks+='<span class="tpb-mark" style="left:'+(need/maxP*100).toFixed(1)+'%"></span>'; }); }
   if(el('tpbMarks')) el('tpbMarks').innerHTML=marks;
-  let info='erhalten '+Math.round(gruen)+' · geplant '+Math.round(planP)+' · offen '+Math.round(gelb)+' P';
-  if(rot>0) info+=' · +'+Math.round(rot)+' über Plan';
+  let info='erhalten '+fmtP(gruen)+' · geplant '+fmtP(planP)+' · offen '+fmtP(gelb)+' P';
+  if(rot>0) info+=' · +'+fmtP(rot)+' über Plan';
   if(el('tpbInfo')) el('tpbInfo').textContent=info;
 }
 /* Unteraufgaben-Block unter dem Tacho (v0.38-Look): Häkchen · Titel · Minuten
@@ -4952,7 +5166,7 @@ function fokusSubsHtml(k){
     '<div class="uatitel"><span class="uat">'+esc(u.titel||'Teilschritt')+'</span></div>'+
     '<input class="uamin" type="number" inputmode="numeric" data-uamin="'+u.id+'" placeholder="0" value="'+(num(u.sollMin)>0?num(u.sollMin):'')+'" title="Minuten (zählen zur Kartenzeit)">'+
     (u.done
-      ? '<span class="uapunkte">+'+Math.round(num(u.bonusPunkte))+'</span>'
+      ? '<span class="uapunkte">+'+fmtP(u.bonusPunkte)+'</span>'
       : '<input class="uamin uabonus" type="number" inputmode="numeric" data-uabonus="'+u.id+'" placeholder="0" value="'+(u.bonusPunkte!=null?num(u.bonusPunkte):'')+'" title="Einmalige Zusatzpunkte (zählen zu den Kartenpunkten)">')+
     '<button class="uax" data-uadel="'+u.id+'">✕</button></div>').join('');
   // §9.4 (v1.8.0): Tick-Zeile OBERHALB der ersten Unteraufgabe — ＋ bucht mit
@@ -4961,7 +5175,7 @@ function fokusSubsHtml(k){
   const tickZeile = k.ticksAktiv
     ? '<div class="uareihe tickzeile"><button class="btn sm prim" data-ftick="'+k.id+'" style="flex:none">＋ Tick</button>'+
       '<input class="uamin" type="number" inputmode="numeric" step="5" id="fkTickWert" placeholder="'+tickWertEff(k)+'" title="§2 (v1.13.0): Eingabe setzt den DAUERHAFTEN Override dieser Karte (leer = '+(k.tickWert!=null?'Override '+num(k.tickWert):'Standard '+standardWert(k.domain))+')">'+
-      '<span class="tickstand" id="fkTickStand">'+num(k.ticksHeute)+' × · '+Math.round(tickSumme(k, num(k.ticksHeute)))+' P</span></div>'
+      '<span class="tickstand" id="fkTickStand">'+num(k.ticksHeute)+' × · '+fmtP(tickSumme(k, num(k.ticksHeute)))+' P</span></div>'
     : '';
   return '<div class="tacc'+(zu?' zu':'')+'"><div class="tacckopf" data-tacctoggle="1">☑ Unteraufgaben'+
     (k.ticksAktiv?' + Ticks':'')+
@@ -5183,7 +5397,7 @@ function renderFokusleiste(){
     el('fkTitle').classList.remove('idle');
     el('fkSub').hidden=false;
     el('fkTimer').textContent=mmss(istSekLive(k));
-    el('fkPts').textContent=Math.round(kartePunkte(k))+' P';
+    el('fkPts').textContent=fmtP(kartePunkte(k))+' P';
   } else {
     el('fkTitle').textContent='Kein Fokus aktiv';
     el('fkTitle').classList.add('idle');
@@ -5207,7 +5421,6 @@ function renderFkNav(){
   // U1: Karussell entfernt — Kartenwahl läuft über die Fokus-Liste. Nav bleibt aus.
   const nav=el('fkNav'); if(nav && !nav.hidden){ nav.hidden=true; nav.innerHTML=''; }
 }
-const PACE_PFEILE=['⇊','↓','↘','→','↗','↑','⇈'];
 /* Nächster möglicher/naher Kauf (nur Kategorie-Icon + Restpunkte — verrät
    KEINE Stufen-Inhalte): günstigste nicht gesperrte Kategorie. */
 function naechsterKaufHint(){
@@ -5663,47 +5876,32 @@ function renderStatusbar(){
   el('sPhDfm').textContent=Math.round(pDfm);
   el('sPhPrv').textContent=Math.round(pPriv);
   el('sPhSoll').textContent=urlaubHeute()?'🏖':(istWe?'WE':Math.round(sollStandGesamt()));
-  // Pace-Pfeil (7 Zonen relativ zum Soll) + Δ-P/Std-Anzeige (A2, unverändert)
+  // §1 (v2.6.0): vier Zellen — Kopf, Wert, Zusatz. Der Pace-Pfeil ist
+  // entfallen: die Tempo-Zelle zeigt die Leiste, die Farbe folgt der Ampel.
   const pw=paceWerte();
-  const z1=num(S.settings.pfeilZone1,5), z2=num(S.settings.pfeilZone2,15), z3=num(S.settings.pfeilZone3,40);
-  let idx=3, farbe='var(--mut)';
-  // §2 (v1.12.0): Pfeil-Zonen STAND-basiert (ist−soll relativ zum Soll) —
-  // im 18–21-Plateau steigt das Soll nicht, der Pfeil dreht dort nicht ins Rote.
-  if(!pw.we && pw.soll>0){ const abw=(pw.ist-pw.soll)/pw.soll*100;
-    if(abw>=z3) idx=6; else if(abw>=z2) idx=5; else if(abw>=z1) idx=4;
-    else if(abw<=-z3) idx=0; else if(abw<=-z2) idx=1; else if(abw<=-z1) idx=2;
-    if(idx>3) farbe='var(--ok)'; if(idx<3) farbe='var(--bad)'; }
-  // §1.2 (v1.10.0): fünf Zellen — Kopf, Wert, Zusatz.
-  // §3/§4 (v1.11.0): Rang = P/Std-Median, Sterne = Geld-Score-Maß.
-  const rm=rangMass();
   const zelle=(id,w,z,farb)=>{ const c=el(id); if(!c) return;
     c.querySelector('.w').innerHTML=w; c.querySelector('.z').innerHTML=z;
     if(farb) c.querySelector('.w').style.color=farb; };
-  zelle('sZRang', rm.rang!=null?('R'+rm.rang):'–',
-    rm.rang==null ? (rm.n+'/3 Tg')
-      : '—');
-  // Zelle 2: Akku + Reichweite (§1.2) — gekürzt auf die Uhrzeit („17:10" statt „bis 17:10")
+  // Zelle 1: Akku + Reichweite (§1.2) — gekürzt auf die Uhrzeit („17:10" statt „bis 17:10")
   const rw=akkuReichweite(eb);
   zelle('sZAkku', (eb.akku!=null?Math.round(eb.akku)+'%':'–'), rw);
-  // §1.5 (v1.13.0): Tempo-Zelle mit DREI Werten — Ist-Rate groß (Pfeil bleibt
-  // stand-basiert), darunter Balken mit Soll-Marke (die Differenz wird
-  // sichtbar, ohne gerechnet zu werden), rechts klein die nötige Rest-Rate.
+  // §2.2 (v2.6.0): Tempo = die Tempo-Leiste der Fokusansicht, schmal —
+  // „wo ich stehe" (Ampel) und Zieltempo; laeuft eine Karte, deren Marke.
   if(urlaubHeute()) zelle('sZTempo','🏖','Urlaub','var(--cyan)');
   else if(pw.we) zelle('sZTempo', fmtKurzP(pw.ist), 'WE von '+fmtKurzP(pw.ziel), 'var(--cyan)');
   else {
-    const scale=Math.max(1, pw.sollRate*2, pw.istRate*1.05);
-    const fillPct=Math.min(100, pw.istRate/scale*100), markPct=Math.min(98, pw.sollRate/scale*100);
+    const lk=(S.fokus && S.fokus.laeuft && S.fokus.karteId) ? S.karten.find(x=>x.id===S.fokus.karteId) : null;
+    const tw=tempoWerte(lk||null);
     zelle('sZTempo',
-      PACE_PFEILE[idx]+' '+Math.round(pw.istRate)+(pw.restRate!=null?' <small>'+(pw.restRate<=0?'✓':'→'+Math.round(pw.restRate))+'</small>':''),
-      '<span class="sb-tempobar"><i style="width:'+fillPct.toFixed(0)+'%;background:'+farbe.replace('var(--mut)','var(--blue)')+'"></i><u style="left:'+markPct.toFixed(0)+'%"></u></span>',
-      farbe);
+      fmtP(tw.ich)+(tw.ziel!=null?' <small>'+(tw.ziel<=0?'✓':'→'+fmtP(tw.ziel))+'</small>':''),
+      tempoLeisteHtml(tw, {klein:true}),
+      (AMPEL_FARBE[tw.stufe]||AMPEL_FARBE.grau)[0]);
   }
-  // Zelle 4: Serie
-  { const rs=routinenSerieBeste();
-    zelle('sZSerie', '🔥 '+rs.tage, rs.titel?String(rs.titel).slice(0,10):'Routinen'); }
-  // Zelle 5: Konto + Abstand zur nächsten Kulisse (gekürzt: nur die Zahl)
+  // Zelle 3: Konto + Abstand zur nächsten Kulisse (gekürzt: nur die Zahl)
   const bgSt=bgStufeAus(ausgabenAnzeige());
   zelle('sZKonto', fmtKurzP(k), bgSt<10 ? ('Kulisse '+Math.max(0,Math.round(bgSchwelle(bgSt+1)-ausgabenAnzeige()))+'') : 'Reise voll');
+  // Zelle 4 (§3.1 v2.6.0): Matrix-Verlauf — nur die Linie
+  if(el('sMv')) el('sMv').innerHTML=matrixVerlaufSvg(matrixSpur(), {klein:true});
   momentRangCheck();   // §6 (1.9.0): Rang/Stern/Meilenstein/Joker zentral erkennen
   }catch(e){ /* Statusleiste bleibt sichtbar, auch wenn ein Wert scheitert */ }
   layoutTopbar();
@@ -5962,8 +6160,23 @@ function wachTagAnteil(){ return Math.max(0, Math.min(1, tagStundenVergangen()/1
    (unabhängig vom manuellen Tagesstart) — nur für die Anzeige der Soll-Linie im
    Fortschrittsbalken; Punkte-Buchungen/Statistiken zählen unverändert ganztägig,
    auch außerhalb des Fensters. */
+/* §6 (v2.6.0): EXAKTE Punktzahl mit Tausenderpunkt (2534 → „2.534") —
+   die Fokusansicht zeigt jeden Punkt, keine Abkuerzung mit „k". */
+function fmtP(v){
+  const n=Math.round(num(v));
+  return (n<0?'-':'')+String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+}
 /* F4 (v1.3.3): kompakte Punktzahl für den Level-Chip (4320 → „4,3k"). */
-function fmtKurzP(v){ v=Math.round(num(v));
+/* §6 (v2.6.0): Solange die Fokusansicht rendert, schreiben auch die dort
+   eingebetteten Module (Detailanalyse-Originale) exakt statt mit „k". */
+let _fokusExakt=false;
+function fokusBloeckeExakt(k){
+  _fokusExakt=true;
+  try{ return fbWasDieseKarte(k)+fbWoIchStehe()+fbWasIchBewege(k)+zeitstrahlHtml(); }
+  finally{ _fokusExakt=false; }
+}
+function fmtKurzP(v){ if(_fokusExakt) return fmtP(v);
+  v=Math.round(num(v));
   if(v<1000) return v+' P';
   if(v<10000) return (Math.round(v/100)/10).toString().replace('.',',')+'k';
   return Math.round(v/1000)+'k';
@@ -6022,6 +6235,94 @@ function paceWerte(){
     istRate: verg>0.05 ? ist/verg : 0,
     restRate: ist>=ziel ? 0 : (rest>0.05 ? (ziel-ist)/rest : null),
     sollRate: ziel/sollFensterStunden() };
+}
+/* ══ §2 (v2.6.0) · DIE TEMPO-LEISTE — drei Marken in Punkten je Stunde ══
+   Uebernommen, nicht neu erfunden (paceWerte):
+     Wo ich stehe  = istRate  = Punkte heute ÷ vergangene Fensterstunden
+                     (dieselbe Zahl, die die Statusleiste als Tempo zeigte)
+     Zieltempo     = restRate = (Tagesziel − Punkte heute) ÷ verbleibende
+                     Fensterstunden (die „→728" der Statusleiste); 0 = Ziel erreicht
+   Was diese Karte bringt — Abhak- und Tickbonus eingerechnet:
+     Prognose = kartePunktePrognose ÷ Soll-Stunden  (Soll-Zeit + Ticks + Abhakbonus + offene Sub-Boni)
+     live     = (kartePunkte + Abhakbonus) ÷ Ist-Stunden — erst ab 1 Minute Ist,
+                vorher waere jede Zahl ein Bonus geteilt durch fast nichts
+   Farben: eigene Marke nach der Ampel (heute gegen den typischen Tag), die
+   Karte in ihrer Matrixfeld-Farbe (v2.4.1). Am Wochenende und im Urlaub
+   gibt es kein Tages-Tempo (wie bisher) — dann steht nur die Karte. */
+function tempoWerte(k){
+  const pw=paceWerte();
+  let stufe='grau'; try{ stufe=tagesAmpel().stufe; }catch(e){}
+  const o={ we:!!pw.we, urlaub:urlaubHeute(), stufe, ich:null, ziel:null, karte:null };
+  if(!o.we && !o.urlaub){ o.ich=num(pw.istRate); o.ziel=(pw.restRate==null?null:num(pw.restRate)); }
+  if(k){
+    const pP=kartePunktePrognose(k), sollH=num(k.sollMin)/60;
+    const istH=istSekLive(k)/3600, jetzt=kartePunkte(k)+abhakbonusDefault(k);
+    o.karte={ feld:matrixFeldVon(k), stil:karteVisStil(k), klasse:karteVisKlasse(k),
+      prognose: sollH>0 ? pP/sollH : null, prognoseP:pP, sollMin:num(k.sollMin),
+      live: istH>=1/60 ? jetzt/istH : null, jetztP:jetzt, istMin:istH*60 };
+  }
+  return o;
+}
+/* Beschriftungen einer Reihe als Intervalle packen: jede moechte mittig
+   ueber ihrer Marke stehen, keine darf die naechste beruehren oder ueber
+   den Rand ragen. Breite geschaetzt (12 px Monospace ≈ 7,6 px je Zeichen)
+   gegen eine konservative Leistenbreite von 300 px — auf breiteren
+   Bildschirmen wird der Abstand nur groesser. Rueckgabe: linke Kante in %. */
+function tempoLabelsVerteilen(arr){
+  const LUFT=2, a=arr.map(x=>Object.assign({}, x, { w:Math.min(100, String(x.lab).length*7.6/300*100+2) }))
+    .sort((x,y)=>x.pos-y.pos);
+  a.forEach(x=>{ x.l=Math.max(0, Math.min(100-x.w, x.pos-x.w/2)); });
+  for(let i=1;i<a.length;i++) a[i].l=Math.max(a[i].l, a[i-1].l+a[i-1].w+LUFT);
+  for(let i=a.length-1;i>=0;i--){
+    const grenze = i===a.length-1 ? 100 : a[i+1].l-LUFT;
+    if(a[i].l+a[i].w>grenze) a[i].l=grenze-a[i].w;
+  }
+  a.forEach(x=>{ x.l=Math.max(0, x.l); });
+  return a;
+}
+function tempoLeisteHtml(t, opt){
+  opt=opt||{}; const klein=!!opt.klein;
+  const m=[];
+  if(t.ich!=null)  m.push({art:'ich',  v:t.ich,  lab:'Ich '+fmtP(t.ich), reihe:'o'});
+  if(t.ziel!=null) m.push({art:'ziel', v:Math.max(0,t.ziel), lab:(t.ziel<=0?'Ziel ✓':'Ziel '+fmtP(t.ziel)), reihe:'o'});
+  const kt=t.karte;
+  if(kt && kt.prognose!=null) m.push({art:'kprog', v:kt.prognose, lab:'Karte '+fmtP(kt.prognose), reihe:'u'});
+  if(kt && kt.live!=null)     m.push({art:'klive', v:kt.live, lab:'live '+fmtP(kt.live), reihe:'u'});
+  if(!m.length) return '';
+  // Skala: der groesste Wert + Luft. Ein live-Ausreisser (Bonus auf wenige
+  // Minuten) darf die Leiste nicht plattdruecken — er steht dann am Rand (›).
+  const ruhig=m.filter(x=>x.art!=='klive').map(x=>x.v), live=m.find(x=>x.art==='klive');
+  let skala=Math.max(1, ...ruhig);
+  if(live) skala=Math.max(skala, Math.min(live.v, skala*2.5));
+  skala*=1.12;
+  m.forEach(x=>{ x.pos=Math.max(0, Math.min(100, x.v/skala*100)); x.raus=x.v>skala; });
+  const pct=v=>v.toFixed(1)+'%';
+  const ich=m.find(x=>x.art==='ich'), ziel=m.find(x=>x.art==='ziel');
+  let bahn='<div class="tl-bahn">';
+  if(ich) bahn+='<i class="tl-ich" style="width:'+pct(ich.pos)+'"></i>';
+  if(ziel) bahn+='<u class="tl-ziel" style="left:'+pct(ziel.pos)+'"></u>';
+  m.filter(x=>x.art==='kprog'||x.art==='klive').forEach(x=>{
+    bahn+='<b class="tl-k '+(x.art==='kprog'?'prog':'live')+(x.raus?' raus':'')+'" style="left:'+pct(x.pos)+'"></b>'; });
+  if(ich) bahn+='<b class="tl-punkt" style="left:'+pct(ich.pos)+'"></b>';
+  bahn+='</div>';
+  const stil=ampelStil(t.stufe)+(kt?';'+kt.stil:'');
+  const kl='tl '+(klein?'klein ':'')+(kt?kt.klasse:'');
+  if(klein) return '<span class="'+kl+'" style="'+stil+'" aria-hidden="true">'+bahn+'</span>';
+  const reihe=(r)=>{
+    const lab=tempoLabelsVerteilen(m.filter(x=>x.reihe===r).map(x=>({art:x.art, pos:x.pos, lab:x.lab+(x.raus?' ›':'')})));
+    return '<div class="tl-reihe '+r+'">'+lab.map(x=>
+      '<span class="tl-l '+x.art+'" style="left:'+pct(x.l)+'">'+esc(x.lab)+'</span>').join('')+'</div>';
+  };
+  let h='<div class="'+kl+'" style="'+stil+'"><div class="tl-h">Tempo · Punkte je Stunde</div>'+
+    reihe('o')+bahn+reihe('u');
+  if(t.we || t.urlaub) h+='<div class="tl-hint">'+(t.urlaub?'Urlaub':'Wochenende')+': kein Tages-Tempo — Sa+So zählen als ein Kontingent. Die Marke zeigt, was diese Karte je Stunde bringt.</div>';
+  if(kt){
+    h+='<div class="tl-rechnung">Karte: '+
+      (kt.prognose!=null ? 'Prognose '+fmtP(kt.prognoseP)+' P ÷ '+fbZahl(kt.sollMin/60,2)+' Soll-Std = <b>'+fmtP(kt.prognose)+'</b>' : 'ohne Soll-Minuten keine Prognose-Rate')+
+      (kt.live!=null ? ' · live '+fmtP(kt.jetztP)+' P ÷ '+fbZahl(kt.istMin/60,2)+' Ist-Std = <b>'+fmtP(kt.live)+'</b>' : ' · live ab 1 Min Ist')+
+      ' · Abhak- und Tickbonus eingerechnet</div>';
+  }
+  return h+'</div>';
 }
 /* §2 (v1.12.0): Konsument 2 — Pace je Domäne, ebenfalls Stand-basiert. */
 function paceDomain(dom){
@@ -6743,6 +7044,9 @@ function renderDetail(){
     '<div class="field"><label>Deadline (Datum)</label><input type="date" data-bind="faelligkeit" value="'+esc(k.faelligkeit||'')+'"><div class="hint">leer = ohne Termin</div></div>'+
     '<div class="field"><label>Uhrzeit (optional)</label><input type="time" data-bind="uhrzeit" value="'+esc(k.uhrzeit||'')+'"><div class="hint">gesetzt ⇒ Termin (blau)</div></div>'+
   '</div>';
+  // §5 (v2.6.0): Geld-Impact als Zahl — Regler + Textfeld, direkt unter dem
+  // Datum (der Geld-Score rechnet sich aus beiden). Nur DFM.
+  if(k.domain==='dfm') h+=geldReglerHtml(geldImpactVon(k), 'bind', k);
   // 8 Abhakbonus — §6.2 (v1.6.1): je Karte als Zahlenfeld einstellbar, NEGATIVE
   // Werte ausdrücklich zulässig (z. B. „Kopf vernebelt"). Leer = Domänen-Default.
   const domBonus = standardWert(k.domain);
@@ -6761,7 +7065,6 @@ function renderDetail(){
   if(istDfm){
     h+='<div class="grid2">'+
       '<div class="field"><label>Projekt</label><input data-bind="projekt" value="'+esc(k.projekt||'')+'" placeholder="aus Airtable"></div>'+
-      '<div class="field"><label>Geld-Impact (Score)</label><input type="number" inputmode="numeric" data-bind="geldScore" value="'+num(k.geldScore)+'"></div>'+
     '</div>';
   }
   // §4.2 (v1.10.0): was die App über die Akku-Wirkung dieser Karte gelernt hat
@@ -6883,7 +7186,7 @@ function detailSpeichern(){
   if(!entwurf) return;
   entwurf.titel = (entwurf.titel||'').trim();
   if(!entwurf.titel){ toast('Titel fehlt'); return; }
-  if(entwurf.domain!=='dfm'){ entwurf.projekt=null; entwurf.geldScore=0; }
+  if(entwurf.domain!=='dfm'){ entwurf.projekt=null; entwurf.geldImpact=0; }
   if(!Array.isArray(entwurf.tickKurve)||!entwurf.tickKurve.length) entwurf.tickKurve=[0];
   subParentAngleichen();
   // U6-D: Zeit-Ist-Nachtrag — Differenz zur bisher getrackten Zeit auf heute buchen
@@ -7196,7 +7499,7 @@ function karteNeuStarten(kid, opts){
   opts=opts||{};
   const o=S.karten.find(k=>k.id===kid); if(!o) return;
   const kopie=neueKarte({
-    domain:o.domain, titel:o.titel, matrixFeld:matrixFeldVon(o), projekt:o.projekt, geldScore:num(o.geldScore),
+    domain:o.domain, titel:o.titel, matrixFeld:matrixFeldVon(o), projekt:o.projekt, geldImpact:geldImpactVon(o),
     sollMin:num(o.sollMin),
     punkteProStd:o.punkteProStd, akkuProStd:o.akkuProStd, abhakbonus:o.abhakbonus,
     zeitStufen:o.zeitStufen?JSON.parse(JSON.stringify(o.zeitStufen)):null,
@@ -7392,13 +7695,13 @@ function renderAbhakDialog(){
        '<input id="abFolgeTitel" value="'+esc(k.titel||'')+'" style="width:100%;margin-bottom:6px" placeholder="Titel der Folgeaufgabe">'+
        '<div class="grid2">'+
          (k.domain==='dfm'
-           ? '<div class="field"><label>Projekt</label><input id="abFolgeProjekt" value="'+esc(k.projekt||'')+'"></div>'+
-             '<div class="field"><label>Geld-Impact</label><input type="number" inputmode="numeric" id="abFolgeGeld" value="'+num(k.geldScore)+'"></div>'
+           ? '<div class="field"><label>Projekt</label><input id="abFolgeProjekt" value="'+esc(k.projekt||'')+'"></div>'
            : '')+
          '<div class="field"><label>Deadline</label><input type="date" id="abFolgeDl" value="'+esc(heute)+'"></div>'+
          '<div class="field"><label>Soll-Min</label><input type="number" inputmode="numeric" id="abFolgeSoll" value="'+restMin+'"'+(t.offeneSubs>0?' readonly style="opacity:.6"':'')+'>'+
            (t.offeneSubs>0?'<div class="hint">= Σ mitwandernder Unteraufgaben</div>':'')+'</div>'+
        '</div>'+
+       (k.domain==='dfm' ? geldReglerHtml(geldImpactVon(k), 'folge', k) : '')+
        '<div class="field"><label>Matrixfeld</label>'+
          '<div class="chips" id="abFolgeMx">'+MATRIX_FELDER.map(f=>
            '<button class="chip '+((t.folgeMx||matrixFeldVon(k))===f?'on':'')+'" data-abfmx="'+f+'">'+
@@ -7438,7 +7741,7 @@ function folgeAufgabeAnlegen(k, f){
     domain:k.domain, titel,
     matrixFeld: f.matrixFeld || matrixFeldVon(k),
     projekt:    (f.projekt!==undefined ? f.projekt : k.projekt),
-    geldScore:  num(f.geldScore!==undefined ? f.geldScore : k.geldScore),
+    geldImpact: (f.geldImpact!==undefined && f.geldImpact!==null ? geldImpactNorm(f.geldImpact) : geldImpactVon(k)),
     notiz:      (f.notiz!==undefined ? f.notiz : ''),
     abhakbonus:k.abhakbonus,
     faelligkeit: (f.faelligkeit!==undefined ? (f.faelligkeit||null) : heuteApp()),
@@ -7490,7 +7793,7 @@ function abhakDialogConfirm(){
   if(t.folge) _folgeNeu=folgeAufgabeAnlegen(k, {
     titel:      el('abFolgeTitel') ? el('abFolgeTitel').value : '',
     projekt:    el('abFolgeProjekt') ? (el('abFolgeProjekt').value.trim()||null) : undefined,
-    geldScore:  el('abFolgeGeld') ? num(el('abFolgeGeld').value) : undefined,
+    geldImpact: el('abFolgeGeld') ? geldImpactNorm(el('abFolgeGeld').value) : undefined,
     faelligkeit:el('abFolgeDl') ? el('abFolgeDl').value : undefined,
     sollMin:    num(el('abFolgeSoll') ? el('abFolgeSoll').value : 0),
     matrixFeld: t.folgeMx || matrixFeldVon(k),
@@ -8001,6 +8304,9 @@ function syncExport(typ){
     // §6 (v2.5.0): alle entfernten Unteraufgaben seit dem letzten bestaetigten Sync
     unteraufgabenEntfernt: entfernteUnteraufgaben().map(e=>({ id:e.id, parentId:e.parentId, titel:e.titel||'',
       airtableId:e.airtableId||null, entfernt:true, entferntTs:e.ts })),
+    // §7 (v2.6.0): die rueckwirkend als Urlaub markierten Tage — bis zum
+    // naechsten bestaetigten Sync, damit der Chat sie in Airtable kennzeichnet
+    urlaubNachgetragen: (Array.isArray(S.meta.urlaubNachgetragen) ? S.meta.urlaubNachgetragen.slice() : []),
     matrixAbfragen: num(S.tag&&S.tag.matrixAbfragen),
     matrixUebersprungen: num(S.tag&&S.tag.matrixUebersprungen),
     ziele: { dfm:num(S.settings.tagesZielDfm,5000), privat:num(S.settings.tagesZielPrivat,800),
@@ -8071,6 +8377,7 @@ function syncBestaetigen(){
   S.unteraufgaben=(S.unteraufgaben||[]).filter(u=>ids.has(u.parentId));
   S.meta.letzterSyncBestaetigtTs=jetztIso();
   S.meta.entfernteUnteraufgaben=[];   // §6 (v2.5.0): gemeldet und bestaetigt — die Liste ist erledigt
+  S.meta.urlaubNachgetragen=[];       // §7 (v2.6.0): dito — die nachgetragenen Urlaubstage sind angekommen
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
   baueSuchIndex();
   return { abgeraeumt:weg, bestand:bleibt.length, ts:S.meta.letzterSyncBestaetigtTs };
@@ -8147,7 +8454,16 @@ function syncImport(text){
     else if(!lok.airtableId && recId && lok.domain==='dfm') lok.airtableId=recId;   // §3 (v1.13.1): Bestand heilen
     if(inc.titel!=null) lok.titel=inc.titel;
     if(inc.projekt!==undefined) lok.projekt=inc.projekt;
-    if(inc.geldScore!=null) lok.geldScore=num(inc.geldScore);
+    // §5 (v2.6.0): geldImpact als Zahl 0 … 500 — alte Pakete duerfen die
+    // Stufe schicken (hoch/mittel/niedrig → 300/200/100). Ein Altpaket, das
+    // nur geldScore traegt, wird wie die Migration zurueckgerechnet
+    // (Score + Tage bis zum Datum). geldImpact schlaegt geldScore.
+    { const gi=geldImpactNorm(inc.geldImpact);
+      if(gi!=null) lok.geldImpact=gi;
+      else if(inc.geldScore!=null && inc.geldScore!=='') lok.geldImpact=geldImpactAusScore(num(inc.geldScore),
+        (inc.faelligkeit!==undefined ? inc.faelligkeit : lok.faelligkeit), heuteApp());
+      if(lok.geldScore!==undefined) delete lok.geldScore;
+      if(lok.domain!=='dfm') lok.geldImpact=0; }
     if(inc.notiz!=null) lok.notiz=inc.notiz;
     if(inc.kommentarClaude!=null) lok.kommentarClaude=inc.kommentarClaude;             // U6-F (1.2.0)
     else if(inc.kommentarFuerClaude!=null) lok.kommentarClaude=inc.kommentarFuerClaude; // Abwärtskompat.: 1.1.0-Pakete
@@ -8193,6 +8509,12 @@ function syncImport(text){
         lok[f]=inc[f];                      // auch null — null IST ein Stand
       });
       if(inc.istSek===undefined && inc.istMin!==undefined) lok.istSek=Math.max(0,num(inc.istMin))*60;
+    }
+    // §5 (v2.6.0): eine Sicherung von vor 2.6 traegt noch geldScore — auch
+    // dann gilt: Impact zurueckrechnen, Altfeld nie speichern.
+    if(lok.geldScore!==undefined){
+      if(lok.geldImpact==null) lok.geldImpact=geldImpactAusScore(num(lok.geldScore), lok.faelligkeit, heuteApp());
+      delete lok.geldScore;
     }
     // Unteraufgaben — Match ausschließlich über App-id, nie über Titel.
     if(Array.isArray(inc.unteraufgaben)){
@@ -8632,7 +8954,6 @@ function renderEinst(){
     ['zeitGewicht','Zeit-Gewicht','',0.05],
     ['tickGewicht','Tick-Gewicht','',0.1],
     ['geldGewicht','Geld-Gewicht','nur DFM',0.1],
-    ['geldDeckel','Geld-Deckel','Faktor max',0.1],
     ['geldScoreRef','Geld-Score-Referenz','norm = Score / Ref',10],
     ['preisFaktor','Shop-Preis-Faktor','Belohnung §7',0.1]
   ];
@@ -8750,6 +9071,28 @@ function renderEinst(){
     '</div>';
   }
   // (v1.13.0): Migrationsprotokoll
+  // §5/§7 (v2.6.0): beide Migrationsprotokolle einsehbar — die Liste der
+  // Urlaubstage braucht der Chat, um dieselben Tage in Airtable zu kennzeichnen.
+  if(S.meta.urlaub260Log){
+    const L=S.meta.urlaub260Log, t=L.tage||[];
+    h+='<div class="card einst-urlaub260"><h3>🏖 Migration v2.6.0 — nicht getrackte Tage</h3>'+
+      '<div class="kv"><span>Als Urlaub nachgetragen</span><b>'+t.length+' Tag(e)</b></div>'+
+      '<div class="kv"><span>Geprüft · erfasst (unberührt) · schon Urlaub</span><b>'+num(L.geprueft)+' · '+num(L.erfasst)+' · '+num(L.schonUrlaub)+'</b></div>'+
+      (t.length?'<p class="d urlaub260-liste">'+t.map(d=>esc(d)).join(' · ')+'</p>':'')+
+      ((L.negativ||[]).length?'<p class="d" style="color:var(--mut2)">Darunter mit Abzügen ohne erarbeitete Punkte: '+L.negativ.map(esc).join(' · ')+'</p>':'')+
+      '<p class="d" style="color:var(--mut2)">'+((S.meta.urlaubNachgetragen||[]).length?'Reist im nächsten Export als <b>urlaubNachgetragen</b> mit, bis der Sync bestätigt ist.':'Mit dem Sync bestätigt.')+'</p>'+
+    '</div>';
+  }
+  if(S.meta.geld260Log){
+    const L=S.meta.geld260Log, st=L.stufen||{};
+    h+='<div class="card einst-geld260"><h3>💶 Migration v2.6.0 — Geld-Impact als Zahl</h3>'+
+      '<div class="kv"><span>DFM-Karten umgestellt (Impact = Score + Tage bis zum Datum)</span><b>'+num(L.umgestellt)+'</b></div>'+
+      '<div class="kv"><span>Stufen Hoch · Mittel · Niedrig → 300 · 200 · 100</span><b>'+num(st.hoch)+' · '+num(st.mittel)+' · '+num(st.niedrig)+'</b></div>'+
+      '<div class="kv"><span>ohne Wert (→ 0) · auf 0 … 500 begrenzt</span><b>'+num(L.ohneWert)+' · '+num(L.gekappt)+'</b></div>'+
+      '<div class="kv"><span>Score über 200 (bringt ohne Deckel mehr als bisher)</span><b>'+num(L.ueberDeckel)+'</b></div>'+
+      '<div class="kv"><span>Deckel</span><b>'+esc(L.deckel||'')+'</b></div>'+
+    '</div>';
+  }
   if(S.meta.migration1130Log){
     const L=S.meta.migration1130Log;
     h+='<div class="card"><h3>🕘 Migration v1.13.0 — der echte Tag</h3>'+
@@ -9844,6 +10187,9 @@ function reinRausEventsTag(datum, dom, mitRoutinen){
   });
   return evs;
 }
+/* §4.2 (v2.6.0): Rein/Raus zeigt dich gegen ausgeglichen — die Bedeutungs-
+   farben sind jetzt die Ampelfarben (mehr raus gruen · mehr rein rot ·
+   gleich gelb · geschoben orange). */
 function reinRausTagHtml(datum, dom){
   const fl=anFlowReihe(dom||'alle', {routinen:dom==='dfm'});
   const rrt=reinRausTag(fl, datum);
@@ -9856,7 +10202,7 @@ function reinRausTagHtml(datum, dom){
   if(!evs.length){
     inner='<div class="an-leer">Keine Aufgaben-Bewegung an diesem Tag.</div>';
   } else if(rrt.aufbau){
-    inner='<div class="an-leer" style="border-color:var(--warn)">Aufbautag (v1.8.1-Glättung) — gewertet als <b style="color:var(--warn)">ausbalanciert</b>, kein Ausschlag.</div>';
+    inner='<div class="an-leer" style="border-color:'+AMPEL_FARBE.gelb[0]+'">Aufbautag (v1.8.1-Glättung) — gewertet als <b style="color:'+AMPEL_FARBE.gelb[0]+'">ausbalanciert</b>, kein Ausschlag.</div>';
   } else {
     const W=320,Hh=110,pL=8,pR=8, span=Math.max(0.5,bis-von);
     const X=x=>pL+((x-von)/span)*(W-pL-pR);
@@ -9871,23 +10217,23 @@ function reinRausTagHtml(datum, dom){
     for(let i=0;i<steps.length-1;i++){
       const a=steps[i], b=steps[i+1];
       if(b.x-a.x<0.001) continue;
-      const farbe=a.net>0?'var(--ok)':a.net<0?'var(--bad)':'var(--warn)';
-      if(a.net===0){ g+='<line x1="'+X(a.x).toFixed(1)+'" y1="'+y0+'" x2="'+X(b.x).toFixed(1)+'" y2="'+y0+'" stroke="var(--warn)" stroke-width="2.4"/>'; }
+      const farbe=a.net>0?AMPEL_FARBE.gruen[0]:a.net<0?AMPEL_FARBE.rot[0]:AMPEL_FARBE.gelb[0];
+      if(a.net===0){ g+='<line x1="'+X(a.x).toFixed(1)+'" y1="'+y0+'" x2="'+X(b.x).toFixed(1)+'" y2="'+y0+'" stroke="'+AMPEL_FARBE.gelb[0]+'" stroke-width="2.4"/>'; }
       else g+='<rect x="'+X(a.x).toFixed(1)+'" y="'+Math.min(y0,Y(a.net)).toFixed(1)+'" width="'+(X(b.x)-X(a.x)).toFixed(1)+'" height="'+Math.abs(y0-Y(a.net)).toFixed(1)+'" fill="'+farbe+'" opacity=".55"/>'+
         '<line x1="'+X(a.x).toFixed(1)+'" y1="'+Y(a.net).toFixed(1)+'" x2="'+X(b.x).toFixed(1)+'" y2="'+Y(a.net).toFixed(1)+'" stroke="'+farbe+'" stroke-width="2"/>';
     }
     // §3.3: GESCHOBEN — nur orange Marken, färbt nichts ein
     evs.filter(e=>e.art==='geschoben').forEach(e=>{
-      g+='<path d="M'+X(e.x).toFixed(1)+' 8 l4 5 l-4 5 l-4 -5 z" fill="#f08c4b"/>'; });
+      g+='<path d="M'+X(e.x).toFixed(1)+' 8 l4 5 l-4 5 l-4 -5 z" fill="'+AMPEL_FARBE.orange[0]+'"/>'; });
     g+='<text x="'+pL+'" y="107" fill="var(--mut2)" font-size="8">'+belUhr(von)+'</text>'+
        '<text x="'+(W-38)+'" y="107" fill="var(--mut2)" font-size="8">'+belUhr(bis)+'</text>';
     inner='<svg viewBox="0 0 '+W+' '+Hh+'" width="100%" height="'+Hh+'">'+g+'</svg>';
   }
   const lage=rrt.aufbau?'ausbalanciert (Aufbautag)':(rrt.raus>rrt.rein?'mehr raus als rein':rrt.rein>rrt.raus?'mehr rein als raus':'ausgeglichen');
   return '<div class="card"><h3>'+(dom==='dfm'?'DFM':'Aufgaben')+' rein / raus'+(istHeute?' · heute':'')+'</h3>'+
-    '<div class="kv"><span>rein <b>'+rrt.rein+'</b> · raus <b>'+rrt.raus+'</b> · geschoben <b style="color:#f08c4b">'+rrt.geschoben+'</b></span><b style="color:'+(rrt.aufbau?'var(--warn)':rrt.raus>rrt.rein?'var(--ok)':rrt.rein>rrt.raus?'var(--bad)':'var(--warn)')+'">'+lage+'</b></div>'+
+    '<div class="kv"><span>rein <b>'+rrt.rein+'</b> · raus <b>'+rrt.raus+'</b> · geschoben <b style="color:'+AMPEL_FARBE.orange[0]+'">'+rrt.geschoben+'</b></span><b style="color:'+(rrt.aufbau?AMPEL_FARBE.gelb[0]:rrt.raus>rrt.rein?AMPEL_FARBE.gruen[0]:rrt.rein>rrt.raus?AMPEL_FARBE.rot[0]:AMPEL_FARBE.gelb[0])+'">'+lage+'</b></div>'+
     inner+
-    '<div class="an-legend"><span><i style="background:var(--ok)"></i>mehr raus (Fläche)</span><span><i style="background:var(--bad)"></i>mehr rein (Fläche)</span><span><i style="background:var(--warn)"></i>ausgeglichen</span><span><i style="background:#f08c4b"></i>geschoben (Marke)</span></div></div>';
+    '<div class="an-legend"><span><i style="background:'+AMPEL_FARBE.gruen[0]+'"></i>mehr raus (Fläche)</span><span><i style="background:'+AMPEL_FARBE.rot[0]+'"></i>mehr rein (Fläche)</span><span><i style="background:'+AMPEL_FARBE.gelb[0]+'"></i>ausgeglichen</span><span><i style="background:'+AMPEL_FARBE.orange[0]+'"></i>geschoben (Marke)</span></div></div>';
 }
 /* §3.3 · MEHRTAGESANSICHT: Balken folgt derselben Regel (Farbe = Lage, Höhe =
    dominanter Wert); der jeweils andere Wert als kleine farbige Linie auf
@@ -9906,15 +10252,15 @@ function reinRausBalkenHtml(n, dom){
     const x=pL+i*((W-pL-pR)/n);
     const balanced=r.aufbau || r.rein===r.raus;
     const haupt=balanced?Math.max(r.raus,r.rein):Math.max(r.rein,r.raus);
-    const farbe=balanced?'var(--warn)':(r.raus>r.rein?'var(--ok)':'var(--bad)');
+    const farbe=balanced?AMPEL_FARBE.gelb[0]:(r.raus>r.rein?AMPEL_FARBE.gruen[0]:AMPEL_FARBE.rot[0]);
     if(haupt>0){
       const hh=Math.max(2,(haupt/maxV)*76);
       // §9 (v2.4.0): runde Enden, weicher Verlauf nach unten (Bedeutungsfarbe bleibt)
       g+='<rect x="'+x.toFixed(1)+'" y="'+(96-hh).toFixed(1)+'" width="'+bw+'" height="'+hh.toFixed(1)+'" rx="'+Math.min(bw/2,6).toFixed(1)+'" fill="'+farbe+'" style="mask:linear-gradient(#000,rgba(0,0,0,.35));-webkit-mask:linear-gradient(#000,rgba(0,0,0,.35))"/>';
       if(!balanced){ const anderer=Math.min(r.rein,r.raus);
-        if(anderer>0) g+='<line x1="'+x.toFixed(1)+'" y1="'+Y(anderer).toFixed(1)+'" x2="'+(x+bw).toFixed(1)+'" y2="'+Y(anderer).toFixed(1)+'" stroke="'+(r.raus>r.rein?'var(--bad)':'var(--ok)')+'" stroke-width="2"/>'; }
+        if(anderer>0) g+='<line x1="'+x.toFixed(1)+'" y1="'+Y(anderer).toFixed(1)+'" x2="'+(x+bw).toFixed(1)+'" y2="'+Y(anderer).toFixed(1)+'" stroke="'+(r.raus>r.rein?AMPEL_FARBE.rot[0]:AMPEL_FARBE.gruen[0])+'" stroke-width="2"/>'; }
     }
-    if(r.geschoben>0) g+='<path d="M'+(x+bw/2).toFixed(1)+' 4 l3.5 4.5 l-3.5 4.5 l-3.5 -4.5 z" fill="#f08c4b"/>';
+    if(r.geschoben>0) g+='<path d="M'+(x+bw/2).toFixed(1)+' 4 l3.5 4.5 l-3.5 4.5 l-3.5 -4.5 z" fill="'+AMPEL_FARBE.orange[0]+'"/>';
   });
   // §3.4 (v2.5.0): gestrichelter Schnitt von „raus"
   { const akt=reihe.filter(r=>r.rein+r.raus>0); if(akt.length){ const m=akt.reduce((a,r)=>a+r.raus,0)/akt.length;
@@ -9928,7 +10274,7 @@ function reinRausBalkenHtml(n, dom){
     '<div class="gz-reihe">'+grossZahl(String(sumE), 'raus · '+n+' Tage', rTrend, 'gegen die '+n+' Tage davor')+
       grossZahl(String(sumR), 'rein · geschoben '+sumG, reinTrend, 'gegen die '+n+' Tage davor')+'</div>'+
     '<svg viewBox="0 0 '+W+' '+Hh+'" width="100%" height="'+Hh+'">'+g+'</svg>'+
-    '<div class="an-legend"><span><i style="background:var(--ok)"></i>mehr raus (Balken = raus)</span><span><i style="background:var(--bad)"></i>mehr rein (Balken = rein)</span><span><i style="background:var(--warn)"></i>gleich / Aufbautag</span><span><i style="background:#f08c4b"></i>geschoben (Marke)</span><span style="color:var(--mut2)">Linie = der jeweils andere Wert</span></div></div>';
+    '<div class="an-legend"><span><i style="background:'+AMPEL_FARBE.gruen[0]+'"></i>mehr raus (Balken = raus)</span><span><i style="background:'+AMPEL_FARBE.rot[0]+'"></i>mehr rein (Balken = rein)</span><span><i style="background:'+AMPEL_FARBE.gelb[0]+'"></i>gleich / Aufbautag</span><span><i style="background:'+AMPEL_FARBE.orange[0]+'"></i>geschoben (Marke)</span><span style="color:var(--mut2)">Linie = der jeweils andere Wert</span></div></div>';
 }
 /* Diagramm-Karte: Zeitraum-/Domänen-Umschalter + Picker + Chart + Kennzahlen.
    §5 (v1.7.0): wiederbelebt — war seit dem V2-Umbau nirgends mehr eingehängt
@@ -11186,11 +11532,11 @@ function renderStatistikBody(){
   const host=el('statistikBody'); if(!host) return;
   let h='';
   h+=stMatrixTag();          // §7 (v2.4.0): die Matrix ganz oben
+  h+=stTagesverlauf();       // §4.1 (v2.6.0): der Tagesverlauf direkt darunter
   // §3 (v2.5.0): die Detailanalyse zieht von der Belohnungsseite hierher —
   // sie zeigt Verhalten, keine Belohnung. Filter und Module wie im Original.
   h+='<div id="stDetailAnker"></div><div class="st-detail"><div class="st-detail-h">Detailanalyse</div>'+
      '<div class="an-filter st-anfilter">'+anFilterHtml()+'</div>'+anModuleHtml()+'</div>';
-  h+=stTagesverlauf();
   h+=stMatrixSpur();
   h+=stReinRaus();
   h+=stEntwicklung();
@@ -11204,33 +11550,121 @@ function stTagesverlauf(){
   // §1.3 (v2.4.0): Anker fuer den Sprung aus der Mini-Kurve der Statusleiste
   return '<div id="stTagesverlaufAnker"></div>'+anModul('📈','Tagesverlauf','Plan · Ist · Normaltag', inner);
 }
-/* 2 · Matrix-Spur — Bewegung über den Tag, plus welches Werkzeug wann
-   zurückgeholt hat. Das Wochentagsprofil geht hier auf. */
-function stMatrixSpur(){
-  const sp=(S.tag && Array.isArray(S.tag.matrixSpur)) ? S.tag.matrixSpur : [];
-  const echt=sp.filter(e=>!e.uebersprungen);
-  if(!echt.length) return anModul('🧭','Matrix-Spur','Bewegung über den Tag',
-    '<div class="an-leer">Noch keine Position heute. Sie wird bei jedem Verlassen einer Karte abgefragt.</div>');
-  const W=320, H=120, PL=8, PR=8, PT=10, PB=16;
-  const t0=Date.parse(echt[0].ts), t1=Date.parse(echt[echt.length-1].ts);
-  const spanne=Math.max(1, t1-t0);
-  const X=e=>PL+((Date.parse(e.ts)-t0)/spanne)*(W-PL-PR);
-  const Y=e=>PT+((1-num(e.x))/2)*(H-PT-PB);
-  const pts=echt.map(e=>X(e).toFixed(1)+','+Y(e).toFixed(1)).join(' ');
-  let g='<svg viewBox="0 0 '+W+' '+H+'" class="ansvg" preserveAspectRatio="none">';
-  // Mittellinie = die Kippkante zwischen „weg von" und „hin zu"
-  const ym=PT+(H-PT-PB)/2;
-  g+='<rect x="0" y="'+PT+'" width="'+W+'" height="'+((H-PT-PB)/2)+'" fill="rgba(62,207,142,.07)"/>';
-  g+='<rect x="0" y="'+ym+'" width="'+W+'" height="'+((H-PT-PB)/2)+'" fill="rgba(246,109,109,.07)"/>';
-  g+='<line x1="0" y1="'+ym+'" x2="'+W+'" y2="'+ym+'" stroke="var(--li)" stroke-width="1"/>';
-  g+='<polyline points="'+pts+'" fill="none" stroke="var(--ac)" stroke-width="2" stroke-linejoin="round"/>';
-  echt.forEach(e=>{
-    const k=e.kid?S.karten.find(c=>c.id===e.kid):null;
-    const wz=k && matrixFeldVon(k)==='werkzeug';
-    // v2.4.1: Kartenpunkte in der Feldfarbe ihrer Karte, freie Positionen grau
-    g+='<circle cx="'+X(e).toFixed(1)+'" cy="'+Y(e).toFixed(1)+'" r="'+(wz?4:3)+'" fill="'+(k?(MX_FARBE[matrixFeldVon(k)]||MX_FARBE.ziel)[0]:'#8e9197')+'"/>';
+/* ══ §3 (v2.6.0) · DER MATRIX-VERLAUF ══════════════════════════════════
+   Pascals Weg durch die Matrix ueber den Tag: Zeit SENKRECHT (oben frueh,
+   unten spaet), waagerecht die x-Position (links „weg von", rechts „hin zu"),
+   Hintergrund von rot (links) nach gruen (rechts). Jede Position — beim
+   Verlassen einer Karte, jeder Tagebuch-Eintrag — haengt unten einen Punkt
+   an; die Punkte sind weich verbunden (monoton in der Zeit, schwingt nicht
+   ueber die Messpunkte hinaus). Klein in der Statusleiste nur die Linie,
+   gross als „Matrix-Spur" in der Statistik. */
+function spurPunkte(sp){
+  // nach der ZEIT, nicht nach der Reihenfolge im Array (ein nachgetragener
+  // Eintrag darf die Zeitachse nicht umdrehen) — stabil bei gleicher Zeit
+  return (sp||[]).filter(e=>e && !e.uebersprungen && e.ts && Number.isFinite(Date.parse(e.ts)))
+    .map((e,i)=>({e,i,t:Date.parse(e.ts)})).sort((a,b)=>a.t-b.t || a.i-b.i).map(x=>x.e);
+}
+/* glattPfad rechnet y als Funktion von x — hier ist die ZEIT die unabhaengige
+   Achse und steht senkrecht. Also mit getauschten Achsen rechnen und jedes
+   Koordinatenpaar im fertigen Pfad zuruecktauschen. */
+function vertikalPfad(pts){
+  const d=glattPfad(pts.map(p=>({x:p.y, y:p.x})));
+  return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, '$2 $1');
+}
+function matrixVerlaufSvg(spur, opt){
+  opt=opt||{};
+  const pts=spurPunkte(spur);
+  const gross=!opt.klein;
+  const W=gross?320:84, L=gross?42:3, R=gross?10:3, T=gross?22:3;
+  const t0=pts.length?Date.parse(pts[0].ts):Date.now();
+  const tl=pts.length?Date.parse(pts[pts.length-1].ts):t0;
+  let a=t0, b=Math.max(tl, t0+30*60000);
+  let H, B=gross?14:3;
+  if(gross){
+    a=Math.floor(t0/3600000)*3600000; b=Math.max(Math.ceil(tl/3600000)*3600000, a+3600000);
+    const std=(b-a)/3600000; H=T+B+Math.max(170, Math.min(620, std*46));
+  } else H=30;
+  const X=x=>L+((Math.max(-1,Math.min(1,num(x)))+1)/2)*(W-L-R);
+  const Y=ts=>T+((Date.parse(ts)-a)/Math.max(1,b-a))*(H-T-B);
+  const gid=svgId('mv');
+  let g='<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="0">'+
+    '<stop offset="0" stop-color="'+AMPEL_FARBE.rot[0]+'" stop-opacity="'+(gross?'.34':'.42')+'"/>'+
+    '<stop offset=".5" stop-color="#2a2c30" stop-opacity=".15"/>'+
+    '<stop offset="1" stop-color="'+AMPEL_FARBE.gruen[0]+'" stop-opacity="'+(gross?'.34':'.42')+'"/></linearGradient></defs>'+
+    '<rect x="'+L+'" y="'+T+'" width="'+(W-L-R)+'" height="'+(H-T-B)+'" rx="'+(gross?10:5)+'" fill="url(#'+gid+')"/>'+
+    '<line x1="'+X(0).toFixed(1)+'" y1="'+T+'" x2="'+X(0).toFixed(1)+'" y2="'+(H-B)+'" stroke="#f2f2f3" stroke-opacity=".22" stroke-dasharray="3 3"/>';
+  if(gross){
+    g+='<text x="'+L+'" y="13" font-size="9" fill="'+AMPEL_FARBE.rot[0]+'">← weg von</text>'+
+       '<text x="'+(W-R)+'" y="13" font-size="9" text-anchor="end" fill="'+AMPEL_FARBE.gruen[0]+'">hin zu →</text>';
+    const std=(b-a)/3600000, schritt=std>9?2:1;
+    for(let h=0; h<=std+0.001; h+=schritt){
+      const ts=a+h*3600000, y=T+((ts-a)/Math.max(1,b-a))*(H-T-B), d=new Date(ts);
+      g+='<line x1="'+(L-3)+'" y1="'+y.toFixed(1)+'" x2="'+(W-R)+'" y2="'+y.toFixed(1)+'" stroke="#f2f2f3" stroke-opacity=".07"/>'+
+         '<text x="'+(L-6)+'" y="'+(y+3).toFixed(1)+'" font-size="9" text-anchor="end" fill="var(--mut2)">'+String(d.getHours()).padStart(2,'0')+':00</text>';
+    }
+  }
+  if(!pts.length) return '<svg viewBox="0 0 '+W+' '+H+'" class="mv-svg'+(gross?' gross':'')+'" aria-hidden="true">'+g+'</svg>';
+  const pp=pts.map(e=>({x:X(e.x), y:Y(e.ts)}));
+  const pfad=pp.length>1 ? vertikalPfad(pp) : '';
+  if(pfad) g+='<path d="'+pfad+'" fill="none" stroke="#f2f2f3" stroke-width="'+(gross?2.4:1.8)+'" stroke-linejoin="round" stroke-linecap="round"/>';
+  if(!gross){
+    const l=pp[pp.length-1];
+    g+='<circle cx="'+l.x.toFixed(1)+'" cy="'+l.y.toFixed(1)+'" r="2.6" fill="#f2f2f3"/>';
+    return '<svg viewBox="0 0 '+W+' '+H+'" class="mv-svg" aria-hidden="true">'+g+'</svg>';
+  }
+  const byId={}; S.karten.forEach(k=>byId[k.id]=k);
+  pts.forEach((e,i)=>{
+    const p=pp[i], k=e.kid?byId[e.kid]:null, tb=e.quelle==='tagebuch';
+    if(tb){
+      g+='<path d="M'+p.x.toFixed(1)+' '+(p.y-6).toFixed(1)+' l6 6 l-6 6 l-6 -6 z" fill="#f2f2f3" stroke="#0b0b0c" stroke-width="1.2"/>';
+    } else {
+      // v2.4.1: ein Punkt, der eine Karte zeigt, traegt deren Matrixfeld-Farbe
+      // (Grundfarbe) und die Domaene als Ring; freie Positionen neutral
+      const f=k ? (MX_FARBE[matrixFeldVon(k)]||MX_FARBE.ziel)[0] : '#8e9197';
+      const ring=k ? 'rgb('+DOM_RGB[k.domain==='dfm'?'dfm':'privat']+')' : '#0b0b0c';
+      g+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="5" fill="'+f+'" stroke="'+ring+'" stroke-width="2"/>';
+    }
   });
-  g+='</svg>';
+  // Tap-Ziele (ca. 44 px) ueber allem — spaetere liegen oben
+  pts.forEach((e,i)=>{ const p=pp[i];
+    g+='<circle class="mv-hit" data-mspunkt="'+i+'" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="20" fill="transparent"/>'; });
+  return '<svg viewBox="0 0 '+W+' '+H+'" class="mv-svg gross" width="100%">'+g+'</svg>';
+}
+/* Akku zur Uhrzeit einer Position: der Tagebuch-Eintrag traegt ihn selbst,
+   sonst der letzte Akku-Messwert davor (Akku-Verlauf des Tages). */
+function akkuZurZeit(ts){
+  const av=(S.tag && Array.isArray(S.tag.akkuVerlauf)) ? S.tag.akkuVerlauf : [], t=Date.parse(ts);
+  let w=null; av.forEach(x=>{ const tx=Date.parse(x.ts); if(Number.isFinite(tx) && tx<=t) w=num(x.akku); });
+  if(w==null && av.length) w=num(av[0].akku);
+  return w;
+}
+function matrixPunktInfoHtml(i){
+  const e=spurPunkte(matrixSpur())[i]; if(!e) return '';
+  const uhr=String(new Date(Date.parse(e.ts)).toTimeString()).slice(0,5);
+  const pos=(num(e.x)>=0?'hin zu ':'weg von ')+Math.round(Math.abs(num(e.x))*100)+' %';
+  const akku=(e.akku!=null && e.akku!=='') ? num(e.akku) : akkuZurZeit(e.ts);
+  let was;
+  if(e.quelle==='tagebuch'){
+    was='◆ Tagebuch: '+esc(e.gedanke||'(ohne Gedanke)')+(e.wirkung?' — '+esc(e.wirkung):'')+
+        (e.istGut?' · ist gut so':(e.mittel?' · Mittel: '+esc(e.mittel):''));
+  } else {
+    const k=e.kid?S.karten.find(c=>c.id===e.kid):null;
+    was = k ? matrixIcon(matrixFeldVon(k))+' '+esc(k.titel||'(ohne Titel)') : 'Position ohne Karte';
+  }
+  return '<b>'+uhr+'</b> · '+was+'<br><span>'+pos+' · Akku '+(akku!=null?Math.round(akku)+' %':'—')+'</span>';
+}
+/* 2 · Matrix-Spur — §3.2 (v2.6.0): der Matrix-Verlauf ausfuehrlich, mit
+   Uhrzeiten, Tagebuch-Rauten und Tipp auf einen Punkt. Darunter weiter,
+   welches Werkzeug wann zurueckgeholt hat. */
+function stMatrixSpur(){
+  const echt=spurPunkte(matrixSpur());
+  const anker='<div id="stMatrixSpurAnker"></div>';
+  if(!echt.length) return anker+anModul('🧭','Matrix-Spur','Bewegung über den Tag',
+    '<div class="an-leer">Noch keine Position heute. Sie wird bei jedem Verlassen einer Karte abgefragt.</div>');
+  const g='<div class="mv-gross">'+matrixVerlaufSvg(matrixSpur())+'</div>'+
+    '<div class="ms-info" id="msInfo">Tippe auf einen Punkt — Zeit, Karte oder Tagebuch-Text und Akku.</div>'+
+    '<div class="an-legend"><span><i style="background:'+MX_FARBE.ziel[0]+'"></i>Karte (Matrixfeld-Farbe, Ring = Domäne)</span>'+
+    '<span><i class="rhombus"></i>Tagebuch</span><span><i style="background:#8e9197"></i>ohne Karte</span></div>';
   // Welches Werkzeug hat wann zurückgeholt?
   const holt=echt.map((e,i)=>{
     if(i===0) return null;
@@ -11253,7 +11687,7 @@ function stMatrixSpur(){
   const skTxt='<div class="hint">Abfragen heute: <b>'+num(S.tag&&S.tag.matrixAbfragen)+'</b>'+
     ' · übersprungen: <b'+(sk>0.5?' style="color:var(--bad)"':'')+'>'+num(S.tag&&S.tag.matrixUebersprungen)+
     ' ('+Math.round(sk*100)+' %)</b></div>';
-  return anModul('🧭','Matrix-Spur','oben = hin zu · unten = weg von', g+liste+skTxt);
+  return anker+anModul('🧭','Matrix-Spur','oben früh · unten spät · links weg von · rechts hin zu', g+liste+skTxt);
 }
 /* 3 · Rein und Raus — übernommen, inklusive der 5-Uhr-Tagesfenster-Logik. */
 function stReinRaus(){
@@ -11284,7 +11718,9 @@ function stEntwicklung(){
   const hat=werte.filter(v=>v!=null).length;
   if(hat>=3){
     // (bis v2.3 hiess der Schluessel „farbe" — anSvgLine liest „color"; die Linie war unsichtbar)
-    try{ h+=anSvgLine(tage, [{vals:werte, color:'#d9dadd'}], {schnitt:true}); }catch(e){}
+    // §4.2 (v2.6.0): jeder Tag gegen deinen Schnitt (gestrichelt) → Ampel
+    const wAvg=anMean(werte.filter(v=>v!=null));
+    try{ h+=anSvgLine(tage, [{vals:werte, color:'#d9dadd', dotFarbe:v=>ampelHex(ampelGegen(v, wAvg))}], {schnitt:true}); }catch(e){}
     h+='<div class="an-hint">Tagespunkte der letzten 28 Tage · '+hat+' Messtage · gestrichelt: dein Schnitt</div>';
     // §9: die Verteilung — heute als leuchtende Saeule gegen „dein Schnitt, letzte 4 Wochen"
     const heuteP=werte[werte.length-1], frueher=werte.slice(0,-1).filter(v=>v!=null);
@@ -11490,9 +11926,10 @@ el('fkMid').addEventListener('click', ()=>{
   if(S.fokus && S.fokus.karteId) fokusAnsichtZeigen();
 });
 el('statusbar').addEventListener('click', e=>{
-  // §1 (v2.2.0): die Rang-Zelle fuehrt auf die Belohnungsseite; der Rest
-  // der Leiste oeffnet wie bisher das Status-Sheet.
-  if(e.target.closest('#sZRang')){ zurBelohnung(); return; }
+  // §1 (v2.6.0): die Rang-Zelle ist entfallen (Belohnung ueber die Figur).
+  // Der Matrix-Verlauf fuehrt zur ausfuehrlichen Matrix-Spur der Statistik;
+  // der Rest der Leiste oeffnet wie bisher das Status-Sheet.
+  if(e.target.closest('#sZMatrix')){ zurMatrixSpur(); return; }
   oeffneStatusSheet();
 });   // §2 (1.10.0): Sheet statt Live-Kurve
 
@@ -11546,7 +11983,7 @@ el('fokusView').addEventListener('click', e=>{
     karteTick(kid, true, inp?inp.value:null);
     saveKarten(); saveTag();
     const fk=S.karten.find(x=>x.id===kid), st=el('fkTickStand');
-    if(fk && st) st.textContent=num(fk.ticksHeute)+' × · '+Math.round(tickSumme(fk, num(fk.ticksHeute)))+' P';
+    if(fk && st) st.textContent=num(fk.ticksHeute)+' × · '+fmtP(tickSumme(fk, num(fk.ticksHeute)))+' P';
     renderStatusbar(); gruppeNachAenderung(kid);
     return; }
 });
@@ -11729,7 +12166,7 @@ el('sheet').addEventListener('click', e=>{
            // gespeichert wird über den normalen Speichern-Pfad, danach oben in die Kette.
       oeffneDetail(null);
       Object.assign(entwurf, { domain:k.domain, titel:k.titel, matrixFeld:matrixFeldVon(k), projekt:k.projekt,
-        geldScore:num(k.geldScore),
+        geldImpact:geldImpactVon(k),
         sollMin:num(k.sollMin), abhakbonus:k.abhakbonus, rhythmus:k.rhythmus?JSON.parse(JSON.stringify(k.rhythmus)):null,
         ticksAktiv:!!k.ticksAktiv, tickWert:(k.tickWert==null?null:num(k.tickWert)),
         faelligkeit:heuteApp(), vorgaengerAppId:k.id, vorgaengerAirtableId:k.airtableId||null, kettenOben:true });
@@ -12067,6 +12504,13 @@ el('sheetBody').addEventListener('input', e=>{
     if(av) av.textContent=tagStartTmp.akku+'%'; if(ar && feld!=='akku') ar.value=tagStartTmp.akku;
     return;
   }
+  // §5 (v2.6.0): Geld-Impact — Regler und Textfeld halten sich gegenseitig synchron
+  if(t.dataset.geldregler!=null || t.dataset.geldzahl!=null){
+    const w=geldReglerSync(t);
+    const feld=t.closest('.geld-feld');
+    if(entwurf && feld && feld.querySelector('[data-bind="geldImpact"]')) entwurf.geldImpact=w;
+    return;
+  }
   if(t.dataset.bind!=null && entwurf){ detailFeld(t.dataset.bind, t); return; }
   if(t.dataset.absubtitel!=null){ const u=S.unteraufgaben.find(x=>x.id===t.dataset.absubtitel); if(u){ u.titel=t.value; DB.set('unteraufgaben', S.unteraufgaben); } return; }
   if(t.dataset.absubmin!=null){ const u=S.unteraufgaben.find(x=>x.id===t.dataset.absubmin); if(u){ u.sollMin=num(t.value);
@@ -12106,7 +12550,8 @@ el('sheetBody').addEventListener('change', e=>{
 function detailFeld(bind, input){
   if(!entwurf) return;
   const v=input.value;
-  if(bind==='geldScore'||bind==='sollMin'){ entwurf[bind]=num(v); }
+  if(bind==='sollMin'){ entwurf[bind]=num(v); }
+  else if(bind==='geldImpact'){ const g=geldImpactNorm(v); entwurf.geldImpact = g==null?0:g; }   // §5 (v2.6.0): 0 … 500, ganzzahlig
   // §6.2 (v1.6.1): abhakbonus wie die anderen Overrides — leer = Domänen-Default,
   // sonst der eingegebene Wert INKLUSIVE negativer Beträge (kein Clamp).
   else if(bind==='tickWert'){ entwurf.tickWert = v===''?null:num(v); }   // §2 (1.13.0): leer = erbt Standard
@@ -12163,6 +12608,11 @@ function statKlick(e){
   const azr=e.target.closest('#statistikBody [data-anzr]'); if(azr){ S.ui.analyseZeitraum=azr.dataset.anzr; saveUi(); renderStatistik(); return; }
   const adm=e.target.closest('#statistikBody [data-andom]'); if(adm){ S.ui.analyseDomain=adm.dataset.andom; saveUi(); renderStatistik(); return; }
   const aar=e.target.closest('#statistikBody [data-anart]'); if(aar){ S.ui.analyseArt=aar.dataset.anart; saveUi(); renderStatistik(); return; }
+  // §3.2 (v2.6.0): Tipp auf einen Punkt der Matrix-Spur — Zeit, Karte/Tagebuch, Akku
+  const msp=e.target.closest('[data-mspunkt]'); if(msp){ const box=el('msInfo');
+    document.querySelectorAll('#statistikBody .mv-hit.sel').forEach(c=>c.classList.remove('sel'));
+    msp.classList.add('sel');
+    if(box){ box.innerHTML=matrixPunktInfoHtml(num(msp.dataset.mspunkt)); box.classList.add('on'); } haptik(6); return; }
   const tbm=e.target.closest('svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; }   // §6/§7 (v2.4.0)
   if(e.target.closest('[data-album]')){ oeffneAlbum(); return; }   // §8 (1.9.0)
   // §4 (v2.2.0): Sprung zum Shop-Bereich der Seite
@@ -12439,11 +12889,17 @@ function zurBelohnung(){
 }
 el('btnFigur').addEventListener('click', zurBelohnung);
 el('btnKurve').addEventListener('click', ()=>{
-  // §1.3 (v2.4.0): Tipp auf die Mini-Kurve oeffnet den Tagesverlauf der Statistik.
+  // §1 (v2.6.0): Tipp auf die Mini-Kurve oeffnet die Statistik, OBEN
+  // (dort stehen jetzt Matrix und direkt darunter der Tagesverlauf).
   setTab('statistik');
-  const m=document.querySelector('main'), z=el('stTagesverlaufAnker'), tb=el('topbar');
-  if(m && z){ const oben=tb?tb.getBoundingClientRect().bottom:0; m.scrollTop += z.getBoundingClientRect().top - oben - 8; }
+  const m=document.querySelector('main'); if(m) m.scrollTop=0;
 });
+function zurMatrixSpur(){
+  setTab('statistik');
+  const m=document.querySelector('main'), z=el('stMatrixSpurAnker'), tb=el('topbar');
+  if(m) m.scrollTop=0;
+  if(m && z){ const oben=tb?tb.getBoundingClientRect().bottom:0; m.scrollTop += z.getBoundingClientRect().top - oben - 8; }
+}
 /* §6: Freitext — findet alles, was in der App liegt, auch Erledigtes. */
 el('suFreitext').addEventListener('input', e=>{
   S.ui.suFrage=e.target.value; saveUi();
@@ -12569,7 +13025,7 @@ function anTageDiff(a,b){ return Math.round((new Date(b+'T12:00:00')-new Date(a+
 function anKurzDatum(iso){ return iso?iso.slice(8,10)+'.'+iso.slice(5,7):''; }
 function anWochentag(iso){ return (new Date(iso+'T12:00:00').getDay()+6)%7; }   // Mo=0 … So=6
 const AN_WT=['Mo','Di','Mi','Do','Fr','Sa','So'];
-function anFmt(v){ v=num(v); if(Math.abs(v)>=1000) return (Math.round(v/100)/10)+'k'; return (Math.round(v*10)/10).toString(); }
+function anFmt(v){ v=num(v); if(Math.abs(v)>=1000) return _fokusExakt ? fmtP(v) : (Math.round(v/100)/10)+'k'; return (Math.round(v*10)/10).toString(); }
 function anFmtUhr(h){ if(h==null||!isFinite(h)) return '—'; const hh=Math.floor(h), mm=Math.round((h-hh)*60); return String(hh).padStart(2,'0')+':'+String(mm%60).padStart(2,'0'); }
 
 /* ══ §2 (v1.7.0) · Kartenart als dritte Filterebene der Detailanalyse ══
@@ -12775,7 +13231,7 @@ function anSvgLine(labels, series, opts){
     const flush=()=>{ if(teil.length) d+=' '+glattPfad(teil); teil=[]; };
     s.vals.forEach((v,i)=>{ if(v==null){ flush(); return; } teil.push({x:xAt(i), y:yAt(v)}); }); flush();
     if(d.trim()) g+='<path d="'+d.trim()+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.width||2)+'" stroke-linejoin="round" stroke-linecap="round"'+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+'/>';
-    if(s.dots!==false) s.vals.forEach((v,i)=>{ if(v!=null) g+='<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(v).toFixed(1)+'" r="3.2" fill="'+(s.dotFarbe?s.dotFarbe(v):'#f4efe3')+'" stroke="#0b0b0c" stroke-width="1"/>'; });
+    if(s.dots!==false) s.vals.forEach((v,i)=>{ if(v!=null) g+='<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(v).toFixed(1)+'" r="3.2" fill="'+(s.dotFarbe?s.dotFarbe(v,i):'#f4efe3')+'" stroke="#0b0b0c" stroke-width="1"/>'; });
   });
   g+='<text x="'+xAt(0).toFixed(1)+'" y="'+(H-4)+'" text-anchor="start" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[0])+'</text>';
   if(n>1) g+='<text x="'+xAt(n-1).toFixed(1)+'" y="'+(H-4)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[n-1])+'</text>';
@@ -12792,7 +13248,7 @@ function anSvgScatter(pts, opts){
     if(den!==0){ const m=(nx*sxy-sx*sy)/den, b=(sy-m*sx)/nx;
       g+='<line x1="'+xAt(opts.xMin).toFixed(1)+'" y1="'+yAt(m*opts.xMin+b).toFixed(1)+'" x2="'+xAt(opts.xMax).toFixed(1)+'" y2="'+yAt(m*opts.xMax+b).toFixed(1)+'" stroke="#c9cace" stroke-width="1.2" stroke-dasharray="5 4"/>'; } }
   // v2.5.0 im v2.4-Stil: Datenpunkte als helle Kreise, Trend gestrichelt neutral
-  pts.forEach(p=>{ g+='<circle cx="'+xAt(p.x).toFixed(1)+'" cy="'+yAt(p.y).toFixed(1)+'" r="3.6" fill="#f4efe3" stroke="#0b0b0c" stroke-width="1"/>'; });
+  pts.forEach(p=>{ g+='<circle cx="'+xAt(p.x).toFixed(1)+'" cy="'+yAt(p.y).toFixed(1)+'" r="3.6" fill="'+(opts.dotFarbe?opts.dotFarbe(p):'#f4efe3')+'" stroke="#0b0b0c" stroke-width="1"/>'; });
   g+='<text x="'+pL+'" y="'+(H-4)+'" font-size="8" fill="var(--mut2)">'+esc(opts.xlabel||'')+'</text>';
   g+='<text x="'+(pL-3)+'" y="'+(pT+6)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+esc(opts.ylabel||'')+'</text>';
   return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>';
@@ -12807,7 +13263,10 @@ function anModReadiness(F,dom){
   if(pts.length<4){ inner=anSammelt(pts.length,4); }
   else{
     const yMax=Math.max.apply(null,pts.map(p=>p.y).concat([anZiel(dom)]));
-    inner=anSvgScatter(pts,{xMin:0,xMax:100,yMin:0,yMax:yMax*1.05,xlabel:'Start-Akku %  →',ylabel:'↑ Tagesscore'});
+    // §4.2 (v2.6.0): jeder Tag gegen deinen Schnitt im Zeitraum → Ampel
+    const yAvg=anMean(pts.map(p=>p.y));
+    inner=anSvgScatter(pts,{xMin:0,xMax:100,yMin:0,yMax:yMax*1.05,xlabel:'Start-Akku %  →',ylabel:'↑ Tagesscore',
+      dotFarbe:p=>ampelHex(ampelGegen(p.y, yAvg))});
     const rE=anMean(F.cur.filter(e=>e.akku!=null).map(e=>e.akku)), rP=anMean(pts.map(p=>p.y));
     const pE=anMean(F.prev.filter(e=>e.akku!=null).map(e=>e.akku)), pP=anMean(F.prev.map(e=>anPunkte(e,dom)));
     inner+='<div class="anmod-kpis">'+anKpi(Math.round(rE),'Ø Readiness',anDeltaPct(rE,pE),'%')+
@@ -12863,18 +13322,23 @@ function anModLeistung(F,dom){
     const anRate=datum=>tagesRateDetail(datum, dom).rate;
     const ph=F.cur.map(e=>anRate(e.datum));
     const avg7=anGleitend(ph,7);
-    inner=anSvgLine(labels,[{vals:ph,color:'var(--cyan)'},{vals:avg7,color:'var(--warn)',dots:false,dash:'5 3'}],{y0:true,height:132});
-    inner+='<div class="an-legend"><span><i style="background:var(--cyan)"></i>P/Std täglich</span><span><i style="background:var(--warn)"></i>7-Tage-Ø</span></div>';
+    // §4.2 (v2.6.0): Linie neutral, jeder Tag als Punkt in der Ampel gegen
+    // deinen Schnitt im Zeitraum; der 7-Tage-Ø gestrichelt neutral
+    const phAvg=anMean(ph.filter(x=>x!=null));
+    inner=anSvgLine(labels,[{vals:ph,color:'#d9dadd',dotFarbe:v=>ampelHex(ampelGegen(v, phAvg))},{vals:avg7,color:'#8e9197',dots:false,dash:'5 3'}],{y0:true,height:132});
+    inner+='<div class="an-legend"><span><i style="background:#d9dadd"></i>P/Std täglich (Punkt = Ampel gegen deinen Schnitt)</span><span><i style="background:#8e9197"></i>7-Tage-Ø (gestrichelt)</span></div>';
     // Domänen-Ziel-Erreichung (Bars)
-    const doms= dom==='alle'?[['dfm','DFM','var(--warn)'],['privat','Privat','var(--ok)']]:[[dom,dom==='dfm'?'DFM':'Privat',dom==='dfm'?'var(--warn)':'var(--ok)']];
+    const doms= dom==='alle'?[['dfm','DFM'],['privat','Privat']]:[[dom,dom==='dfm'?'DFM':'Privat']];
     let bars='<div class="an-bars">';
     doms.forEach(function(d){
       // §2 (v1.8.1): Ø der TAGES-Quoten statt Ø-Punkte ÷ Ein-Ziel — so gilt an
       // Wochenendtagen das 1500er-Teilziel und Sa/So erscheinen nicht mehr als
       // systematisch schlechte Tage.
       // §2.3 (v1.12.0): Ø der Zielerreichungs-Quoten — WE zaehlt als EIN Ereignis
-      const pct=Math.max(0,Math.min(1.3, anMean(zielQuoten(F.cur, d[0], e=>anPunkte(e,d[0])))||0));
-      bars+='<div class="an-bar"><span class="nm">'+d[1]+'</span><span class="track"><i style="width:'+Math.min(100,pct*100/1.3).toFixed(0)+'%;background:'+d[2]+'"></i></span><span class="vv">'+Math.round(pct*100)+'% Ziel</span></div>'; });
+      const roh=anMean(zielQuoten(F.cur, d[0], e=>anPunkte(e,d[0])));
+      const pct=Math.max(0,Math.min(1.3, roh||0));
+      // §4.2 (v2.6.0): Zielerreichung = du gegen dein Ziel → Ampel
+      bars+='<div class="an-bar"><span class="nm">'+d[1]+'</span><span class="track"><i style="width:'+Math.min(100,pct*100/1.3).toFixed(0)+'%;'+ampelBalken(roh==null?'grau':ampelStufe(roh-1))+'"></i></span><span class="vv">'+Math.round(pct*100)+'% Ziel</span></div>'; });
     bars+='</div>';
     inner+=bars;
     const phCur=anMean(ph.filter(x=>x!=null)), phPrev=anMean(F.prev.map(e=>anRate(e.datum)).filter(x=>x!=null));
@@ -12923,7 +13387,11 @@ function anModKonsistenz(F,dom){
   // Punkt exakt auf seiner Wochentagszeile. Zuvor blieb zusätzlich das letzte
   // .wk-<div> offen, wodurch Wochentagsprofil und KPIs in die Heatmap-Flexzeile
   // gerutscht sind (der sichtbare Versatz).
-  const col=v=> v==null?'var(--card2)': v<=0?'#3a2530': 'rgba(62,207,142,'+(0.2+0.8*Math.min(1,v/maxS)).toFixed(2)+')';
+  // §4.2 (v2.6.0): jeder Tag gegen deinen Schnitt der aktiven Tage → Ampel
+  // (die Deckkraft traegt weiter die Hoehe); ohne Wert leer, 0 = rot gedaempft
+  const aktivWerte=cells.map(c=>c.v).filter(v=>v!=null && v>0), hmAvg=aktivWerte.length?anMean(aktivWerte):null;
+  const col=v=> v==null?'var(--card2)': v<=0?'rgba(248,113,113,.28)':
+    ('color-mix(in srgb,'+ampelHex(ampelGegen(v, hmAvg))+' '+Math.round(45+55*Math.min(1,v/maxS))+'%,transparent)');
   const leer='<span class="cell" style="visibility:hidden"></span>';
   let hm='<div class="an-hmwrap"><div class="an-hmlab">'+AN_WT.map(n=>'<span>'+n+'</span>').join('')+'</div><div class="an-hm">';
   let offenSpalte=false, gefuellt=0;
@@ -12947,6 +13415,7 @@ function anModKonsistenz(F,dom){
   if(aktivTage.length>=7 || pg){ const byWt=[[],[],[],[],[],[],[]];
     aktivTage.forEach(c=>byWt[anWochentag(c.datum)].push(c.v||0));
     const avgs=byWt.map(a=>anMean(a)||0);
+    const wtAvg=anMean(avgs.filter(v=>v>0));
     const mx=Math.max.apply(null,avgs.concat([1], pg?[pg.ist, pg.prognose||0, pg.ziel]:[]))*1.04;
     wtBars='<div class="an-bars an-wt" style="margin-top:10px">'+avgs.map((v,i)=>{
       if(i===heuteWt && pg){
@@ -12958,7 +13427,8 @@ function anModKonsistenz(F,dom){
           '<span class="vv">'+anFmt(pg.ist)+'</span></div>';
       }
       if(aktivTage.length<7) return '';
-      return '<div class="an-bar"><span class="nm">'+AN_WT[i]+'</span><span class="track"><i style="width:'+(v/mx*100).toFixed(0)+'%"></i></span><span class="vv">'+anFmt(v)+'</span></div>';
+      // §4.2 (v2.6.0): Wochentag gegen den Schnitt aller Wochentage → Ampel
+      return '<div class="an-bar"><span class="nm">'+AN_WT[i]+'</span><span class="track"><i style="width:'+(v/mx*100).toFixed(0)+'%;'+ampelBalken(v>0?ampelGegen(v, wtAvg):'grau')+'"></i></span><span class="vv">'+anFmt(v)+'</span></div>';
     }).join('')+'</div>';
     if(pg) wtBars+='<div class="an-hint an-prog">Heute: <b>'+anFmt(pg.ist)+'</b> geschafft'+
       (pg.prognose!=null
@@ -12999,7 +13469,8 @@ function anModKalibrierung(F,dom){
       return q.length?q[0]:null;
     });
     // §4 (v2.5.0) im v2.4-Stil: neutrale Linie, Ziel 1,0 gestrichelt
-    inner=anSvgLine(labels,[{vals:ratio,color:'#d9dadd'}],{yMin:0,yMax:Math.max(1.4,Math.max.apply(null,ratio.concat([1]))*1.1),height:132,hlines:[{y:1,color:'#c9cace',dash:'5 4',label:'Ziel 1,0'}]});
+    // §4.2 (v2.6.0): jeder Tag gegen das Ziel 1,0 → Ampel
+    inner=anSvgLine(labels,[{vals:ratio,color:'#d9dadd',dotFarbe:v=>ampelHex(ampelStufe(v-1))}],{yMin:0,yMax:Math.max(1.4,Math.max.apply(null,ratio.concat([1]))*1.1),height:132,hlines:[{y:1,color:'#c9cace',dash:'5 4',label:'Ziel 1,0'}]});
     const cur=anMean(zielQuoten(F.cur, dom==='alle'?'alle':dom, e=>anPunkte(e,dom)));
     const prev=anMean(zielQuoten(F.prev, dom==='alle'?'alle':dom, e=>anPunkte(e,dom)));
     const treffer=ratio.filter(r=> r!=null && r>=0.8 && r<=1.2).length;
@@ -13226,7 +13697,7 @@ function anSvgBacklog(labels, vals){
     '<text x="'+(pL-3)+'" y="'+(yAt(mx)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+Math.round(mx)+'</text>'+
     (mn<0?'<text x="'+(pL-3)+'" y="'+(yAt(mn)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+Math.round(mn)+'</text>':'');
   let d=''; vals.forEach((v,i)=>{ d+=(i?'L':'M')+xAt(i).toFixed(1)+' '+yAt(v).toFixed(1)+' '; });
-  g+='<path d="'+d+'" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  g+='<path d="'+d+'" fill="none" stroke="#d9dadd" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
   g+='<text x="'+xAt(0).toFixed(1)+'" y="'+(H-4)+'" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[0])+'</text>';
   if(n>1) g+='<text x="'+xAt(n-1).toFixed(1)+'" y="'+(H-4)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anKurzDatum(labels[n-1])+'</text>';
   return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>';
@@ -13240,13 +13711,16 @@ function flowSaeulenSvg(days, rein, raus, gesch){
   const mx=Math.max(1, ...rein, ...raus);
   const slot=(W-pL-pR)/n, bw=Math.max(2, Math.min(10, slot/2-1.5));
   const Y=v=>H-pB-(v/mx)*(H-pT-pB);
+  // §4.2 (v2.6.0): jede raus-Saeule gegen den Schnitt raus je aktivem Tag → Ampel
+  const aktiv0=raus.filter((v,i)=>v>0||rein[i]>0);
+  const rausAvg=aktiv0.length ? raus.reduce((a,b)=>a+b,0)/aktiv0.length : null;
   const gid=svgId('fs');
-  let g='<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a7f3d0"/><stop offset="1" stop-color="#34d399" stop-opacity=".35"/></linearGradient></defs>';
+  let g='<defs>'+['gruen','gelb','orange','rot','grau'].map(st=>'<linearGradient id="'+gid+st+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+AMPEL_FARBE[st][1]+'"/><stop offset="1" stop-color="'+AMPEL_FARBE[st][0]+'" stop-opacity=".35"/></linearGradient>').join('')+'</defs>';
   g+='<line x1="'+pL+'" y1="'+(H-pB)+'" x2="'+(W-pR)+'" y2="'+(H-pB)+'" stroke="#26282c"/>';
   days.forEach((d,i)=>{
     const x0=pL+i*slot+slot/2-bw-0.5;
     if(rein[i]>0){ const h=Math.max(3,(rein[i]/mx)*(H-pT-pB)); g+='<rect x="'+x0.toFixed(1)+'" y="'+(H-pB-h).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+(bw/2).toFixed(1)+'" fill="#55585e"/>'; }
-    if(raus[i]>0){ const h=Math.max(3,(raus[i]/mx)*(H-pT-pB)); g+='<rect x="'+(x0+bw+1).toFixed(1)+'" y="'+(H-pB-h).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+(bw/2).toFixed(1)+'" fill="url(#'+gid+')"/>'; }
+    if(raus[i]>0){ const h=Math.max(3,(raus[i]/mx)*(H-pT-pB)); g+='<rect x="'+(x0+bw+1).toFixed(1)+'" y="'+(H-pB-h).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+(bw/2).toFixed(1)+'" fill="url(#'+gid+ampelGegen(raus[i], rausAvg)+')"/>'; }
     if(gesch && gesch[i]>0){ const cx=pL+i*slot+slot/2; g+='<path d="M'+cx.toFixed(1)+' 3 l3.5 4.5 l-3.5 4.5 l-3.5 -4.5 z" fill="#fb923c"/>'; }
   });
   const aktiv=raus.filter((v,i)=>v>0||rein[i]>0);
@@ -13255,7 +13729,7 @@ function flowSaeulenSvg(days, rein, raus, gesch){
   g+='<text x="'+pL+'" y="'+(H-4)+'" font-size="8" fill="var(--mut2)">'+anKurzDatum(days[0])+'</text>'+
      '<text x="'+(W-pR)+'" y="'+(H-4)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anKurzDatum(days[n-1])+'</text>';
   return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'">'+g+'</svg>'+
-    '<div class="an-legend"><span><i style="background:#34d399"></i>raus</span><span><i style="background:#55585e"></i>rein</span>'+
+    '<div class="an-legend"><span><i style="background:linear-gradient(90deg,'+AMPEL_FARBE.rot[0]+','+AMPEL_FARBE.gelb[0]+','+AMPEL_FARBE.gruen[0]+')"></i>raus (Ampel gegen Ø raus)</span><span><i style="background:#55585e"></i>rein</span>'+
     '<span><i style="background:#fb923c"></i>geschoben</span><span style="color:var(--mut)">- - Ø raus je aktivem Tag</span></div>';
 }
 function anModAufgabenFlow(F,dom){
@@ -13287,7 +13761,7 @@ function anModAufgabenFlow(F,dom){
   let cum=start; const backlog=days.map((x,i)=>{ cum+=((fl.created[x]||0)+(fl.wieder[x]||0))-(fl.abhaken[x]||0); return cum; });
   inner+='<div class="anmod-sub" style="margin-top:10px">Netto-Backlog (Startbestand '+start+' + neu/wiedereröffnet − raus; geschoben neutral):</div>'+anSvgBacklog(days, backlog)+
     // §1.4 (v1.13.0): auch die Zonen-Färbung ist benannt
-    '<div class="an-legend"><span><i style="background:var(--blue)"></i>Backlog</span><span><i style="background:rgba(62,207,142,.5)"></i>Zone über 0 (normaler Bestand)</span><span><i style="background:rgba(246,109,109,.5)"></i>Zone unter 0 (rechnerisches Minus)</span></div>';
+    '<div class="an-legend"><span><i style="background:#d9dadd"></i>Backlog</span><span><i style="background:rgba(62,207,142,.5)"></i>Zone über 0 (normaler Bestand)</span><span><i style="background:rgba(246,109,109,.5)"></i>Zone unter 0 (rechnerisches Minus)</span></div>';
   // Durchsatz & Balance (mit Vorperioden-Δ; H4.2: nur Tage mit Aktivität im Ø)
   const span=F.span, pDays=[]; for(let i=span;i>=1;i--) pDays.push(anVorTage(F.von,i));
   const prR=pDays.map(x=>reinRausTag(fl,x).rein), prE=pDays.map(x=>reinRausTag(fl,x).raus);
@@ -13310,8 +13784,11 @@ function anModAufgabenFlow(F,dom){
   const wtR=[0,0,0,0,0,0,0], wtE=[0,0,0,0,0,0,0];
   days.forEach((x,i)=>{ const w=anWochentag(x); wtR[w]+=rArr[i]; wtE[w]+=eArr[i]; });
   const mx=Math.max(1,Math.max.apply(null,wtR.concat(wtE)));
-  inner+='<div class="anmod-sub" style="margin-top:12px">Wochentagsprofil (Balken = rein, Zahl = rein/erledigt):</div><div class="an-bars">'+
-    AN_WT.map((n,i)=>'<div class="an-bar"><span class="nm">'+n+'</span><span class="track"><i style="width:'+(wtR[i]/mx*100).toFixed(0)+'%;background:var(--warn)"></i></span><span class="vv">'+wtR[i]+'/'+wtE[i]+'</span></div>').join('')+'</div>';
+  // §4.2 (v2.6.0): Balken = rein (neutral wie die rein-Saeulen), gefaerbt nach
+  // der Quote erledigt ÷ rein dieses Wochentags gegen die Quote des Zeitraums
+  const qAlle=sumR>0?sumE/sumR:null;
+  inner+='<div class="anmod-sub" style="margin-top:12px">Wochentagsprofil (Balken = rein, Farbe = erledigt ÷ rein gegen deinen Schnitt, Zahl = rein/erledigt):</div><div class="an-bars">'+
+    AN_WT.map((n,i)=>'<div class="an-bar"><span class="nm">'+n+'</span><span class="track"><i style="width:'+(wtR[i]/mx*100).toFixed(0)+'%;'+ampelBalken(wtR[i]>0?ampelGegen(wtE[i]/wtR[i], qAlle):'grau')+'"></i></span><span class="vv">'+wtR[i]+'/'+wtE[i]+'</span></div>').join('')+'</div>';
   // Alters-/Liegezeit
   const heute=heuteApp();
   const offen=S.karten.filter(k=>kartenArt(k)==='Aufgabe'&&ok(k)&&k.status==='offen'&&k.erstelltTs);
@@ -13367,14 +13844,18 @@ function anModRoutinenFlow(F,dom){
   const sumF=anSum(faellig), sumE=anSum(erf), sumV=anSum(verp), sumEnt=anSum(ent), sumGes=anSum(ges);
   if(sumF<3) return anModul('🔁','Routinen-Flow','Fällig vs. erfüllt vs. verpasst — Quote, Wochentage, Streaks, Ausreißer.', anSammelt(F.cur.length,3));
   // Trendkurve je Tag: fällig · erfüllt · verpasst · entschuldigt · geschoben
+  // §4.2 (v2.6.0): „erfüllt" zeigt dich gegen normal — jeder Tag als Punkt in
+  // der Ampel (Tagesquote erfüllt ÷ fällig gegen die Quote des Zeitraums).
+  // Die uebrigen Reihen sind Kategorien, kein Vergleich → neutral, per Strich.
+  const qZeit=sumF>0?sumE/sumF:null;
   let inner=anSvgLine(days,[
-    {vals:faellig,color:'var(--warn)'},
-    {vals:erf,color:'var(--ok)'},
-    {vals:verp,color:'var(--bad)',dots:false,dash:'3 2'},
-    {vals:ent,color:'var(--cyan)',dots:false,dash:'2 4'},
-    {vals:ges,color:'#f08c4b',dots:false,dash:'1 3'}
+    {vals:faellig,color:'#8e9197',dots:false,dash:'5 3'},
+    {vals:erf,color:'#f2f2f3',dotFarbe:(v,i)=>ampelHex(faellig[i]>0?ampelGegen(v/faellig[i], qZeit):'grau')},
+    {vals:verp,color:'#6b6e74',dots:false,dash:'3 2'},
+    {vals:ent,color:'#55585e',dots:false,dash:'2 4'},
+    {vals:ges,color:'#a3a6ab',dots:false,dash:'1 3'}
   ],{y0:true,height:118});
-  inner+='<div class="an-legend"><span><i style="background:var(--warn)"></i>fällig</span><span><i style="background:var(--ok)"></i>erfüllt</span><span><i style="background:var(--bad)"></i>verpasst</span><span><i style="background:var(--cyan)"></i>entschuldigt</span><span><i style="background:#f08c4b"></i>geschoben</span></div>';
+  inner+='<div class="an-legend"><span><i style="background:#8e9197"></i>fällig (gestrichelt)</span><span><i style="background:#f2f2f3"></i>erfüllt · Punkt = Ampel gegen deine Quote</span><span><i style="background:#6b6e74"></i>verpasst</span><span><i style="background:#55585e"></i>entschuldigt</span><span><i style="background:#a3a6ab"></i>geschoben</span></div>';
   // Erfüllungsquote (entschuldigte raus — wie die bestehende Routinenquote) + Vorperiode
   const quote=(sumE+sumV)>0?Math.round(sumE/(sumE+sumV)*100):null;
   const pE=anSum(F.prev.map(e=>dsum(e.routErf))), pV=anSum(F.prev.map(e=>dsum(e.routVerp)));
@@ -13383,8 +13864,8 @@ function anModRoutinenFlow(F,dom){
   const wtF=[0,0,0,0,0,0,0], wtE=[0,0,0,0,0,0,0];
   days.forEach((x,i)=>{ const w=anWochentag(x); wtF[w]+=faellig[i]; wtE[w]+=erf[i]; });
   const mx=Math.max(1,Math.max.apply(null,wtF));
-  inner+='<div class="anmod-sub" style="margin-top:12px">Wochentagsprofil (Balken = fällig, Zahl = fällig/erfüllt):</div><div class="an-bars">'+
-    AN_WT.map((n,i)=>'<div class="an-bar"><span class="nm">'+n+'</span><span class="track"><i style="width:'+(wtF[i]/mx*100).toFixed(0)+'%;background:var(--warn)"></i></span><span class="vv">'+wtF[i]+'/'+wtE[i]+'</span></div>').join('')+'</div>';
+  inner+='<div class="anmod-sub" style="margin-top:12px">Wochentagsprofil (Balken = fällig, Farbe = Quote gegen deinen Schnitt, Zahl = fällig/erfüllt):</div><div class="an-bars">'+
+    AN_WT.map((n,i)=>'<div class="an-bar"><span class="nm">'+n+'</span><span class="track"><i style="width:'+(wtF[i]/mx*100).toFixed(0)+'%;'+ampelBalken(wtF[i]>0?ampelGegen(wtE[i]/wtF[i], qZeit):'grau')+'"></i></span><span class="vv">'+wtF[i]+'/'+wtE[i]+'</span></div>').join('')+'</div>';
   // Streak-Übersicht: aktuelle Serie = App-Wert; längste Serie über die gesamte
   // verfügbare Historie rekonstruiert (nie persistiert; entschuldigt bricht nicht).
   const routinen=S.karten.filter(k=>k.rhythmus && k.status!=='archiviert' && (dom==='alle'||k.domain===dom));
@@ -13404,7 +13885,7 @@ function anModRoutinenFlow(F,dom){
     inner+='<div class="anmod-sub" style="margin-top:12px">Streaks (aktuell · längste):</div><div class="an-bars">'+
       topStreak.map(k=>{ const l=Math.max(1,laengste[k.id]);
         return '<div class="an-bar"><span class="nm" style="width:auto;min-width:34%;text-align:left">'+esc(k.titel||'?')+'</span>'+
-          '<span class="track"><i style="width:'+Math.min(100,num(k.streak)/l*100).toFixed(0)+'%;background:var(--ok)"></i></span>'+
+          '<span class="track"><i style="width:'+Math.min(100,num(k.streak)/l*100).toFixed(0)+'%;'+karteBalken(k)+'"></i></span>'+
           '<span class="vv">🔥'+num(k.streak)+' · '+laengste[k.id]+'</span></div>'; }).join('')+'</div>';
   }
   // Ausreißer: schlechteste Quote im Zeitraum (mind. 3 fällige Ereignisse)
@@ -13421,7 +13902,7 @@ function anModRoutinenFlow(F,dom){
   if(ausreisser.length){
     inner+='<div class="anmod-sub" style="margin-top:12px">Ausreißer (schlechteste Quote — Kandidaten zum Streichen oder Umbauen):</div><div class="an-bars">'+
       ausreisser.map(x=>'<div class="an-bar"><span class="nm" style="width:auto;min-width:34%;text-align:left">'+esc(x.k.titel||'?')+'</span>'+
-        '<span class="track"><i style="width:'+Math.round(x.q*100)+'%;background:var(--bad)"></i></span>'+
+        '<span class="track"><i style="width:'+Math.round(x.q*100)+'%;'+karteBalken(x.k)+'"></i></span>'+
         '<span class="vv">'+Math.round(x.q*100)+'% · '+x.verp+'× verpasst</span></div>').join('')+'</div>';
   }
   // Kennzahlen

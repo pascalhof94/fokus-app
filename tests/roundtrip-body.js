@@ -39,11 +39,11 @@ function bestandAufbauen(){
     streak:40, zuletztRoutine:H, freeze:false, sollMin:5, istSek:600,
     zeitStufen:[{bisMin:30,punkteProStd:200},{bisMin:null,punkteProStd:80}],
     strafPunkte:7, bewegungsBonus:120,
-    sortIndex:{'sys-dfm':3}, faelligkeit:H, uhrzeit:'07:30', geldScore:0,
+    sortIndex:{'sys-dfm':3}, faelligkeit:H, uhrzeit:'07:30', geldImpact:0,
     notiz:'Nassfutter', kommentarClaude:'bitte nicht verschieben' }));
   /* 2) Eine DFM-Aufgabe mit Abschluss-Stack und Unteraufgaben */
   S.karten.push(neueKarte({ id:'d-angebot', domain:'dfm', airtableId:'recAAAAAAAAAAAAAA',
-    titel:'Angebot rechnen', projekt:'Fertigung', geldScore:120, sollMin:90, istSek:1860,
+    titel:'Angebot rechnen', projekt:'Fertigung', geldImpact:120,   /* v2.6.0 §5: Zahl 0 … 500 statt geldScore */ sollMin:90, istSek:1860,
     status:'erledigt', tagId:H+'-1', punkteOverride:800, faelligkeit:H,
     geplantFuer:H, matrixFeld:'ziel',
     abschluesse:[{ts:H+'T10:00:00', tagId:H+'-1', punkteIstVorher:0, istMinVorher:0,

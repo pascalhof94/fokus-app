@@ -277,6 +277,27 @@ function bestandSchreiben(){
       var lay=d.getElementById('fokusLayer'), fb=d.querySelectorAll('#fokusView .fb')[1];
       if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
     },
+    /* ══ v2.6 · Screenshots: Statusleiste, Tempo-Leiste, Matrix-Spur, Geld-Regler ══ */
+    echtTempo:function(fw){
+      var d=fw.document; v26Vorbereiten(fw);
+      fw.fokusStarten('a-3', null); fw.closeSheet();
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(110%)'; }
+      fw.fokusKarteAnsehen('a-3'); fw.renderStatusbar();
+    },
+    echtMatrixSpur:function(fw){
+      var d=fw.document; v26Vorbereiten(fw); fw.renderStatusbar();
+      fw.zurMatrixSpur();
+      var h=d.querySelectorAll('#statistikBody .mv-hit')[3]; if(h) h.dispatchEvent(new fw.MouseEvent('click',{bubbles:true}));
+      var m=d.querySelector('main'), z=d.getElementById('stMatrixSpurAnker'); if(m && z) m.scrollTop += z.getBoundingClientRect().top - 150;
+    },
+    statistikOben:function(fw){ var d=fw.document; v26Vorbereiten(fw); fw.renderStatusbar(); fw.setTab('statistik'); d.querySelector('main').scrollTop=0; },
+    echtGeld:function(fw){
+      var d=fw.document; v26Vorbereiten(fw);
+      fw.oeffneDetail('a-1');
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; }
+      var rg=d.querySelector('#sheetBody [data-geldregler]'); if(rg){ rg.value='240'; rg.dispatchEvent(new fw.Event('input',{bubbles:true}));
+        var b=d.getElementById('sheetBody'); if(b) b.scrollTop += rg.getBoundingClientRect().top - 330; }
+    },
     /* v2.5 §2: Abfrage beim Wiederoeffnen (gelebter Bestand, Karte e-1) */
     echtWiederOeffnen:function(fw){
       var d=fw.document;
@@ -1195,7 +1216,7 @@ function bestandSchreiben(){
           var kid=(fw.tagesKette()||[])[0]; if(kid){ fw.fokusStarten(kid,null); freiMachen(); }
           tapAuf('#btnFigur','Figur (Fokusansicht offen)');
           freiMachen(); fw.setTab('suche');
-          tapAuf('#sZRang','Rang');
+          tapAuf('#btnFigur','Figur (v2.6: die Rang-Zelle ist entfallen)');
           /* §4/7: Kaufen von der neuen Seite — Konto sinkt, Stufe steigt */
           var kb=d.querySelector('#belohnungBody [data-kauf]');
           if(kb){
@@ -1476,9 +1497,10 @@ function bestandSchreiben(){
           finding('echt · v2.4 §1.4 Ampel: '+(d.getElementById('btnKurve').dataset.ampel||'—')+' · '+d.getElementById('btnKurve').getAttribute('aria-label'));
           if(bk){ bk.click();
             pruef((d.querySelector('.view.on')||{}).id==='v-statistik', 'v2.4 §1.3: Mini-Kurve oeffnet nicht die Statistik');
+            // v2.6.0 §1: die Mini-Kurve oeffnet die Statistik OBEN (Matrix, darunter der Tagesverlauf)
             var an=d.getElementById('stTagesverlaufAnker'), ar=an?an.getBoundingClientRect():null;
-            finding('echt · v2.4 §1.3 nach Tipp: Statistik, Tagesverlauf-Anker bei y='+(ar?Math.round(ar.top):'—'));
-            pruef(ar && ar.top>0 && ar.top<FH*0.4, 'v2.4 §1.3: der Tagesverlauf steht nicht oben im Bild'); }
+            finding('echt · v2.6 §1 nach Tipp: Statistik oben (scrollTop '+d.querySelector('main').scrollTop+'), Tagesverlauf-Anker bei y='+(ar?Math.round(ar.top):'—'));
+            pruef(d.querySelector('main').scrollTop===0, 'v2.6 §1: Mini-Kurve öffnet die Statistik nicht oben'); }
           /* §1.1/§1.2 · Einstellungen-Tab mit Import oben */
           var tabE=trifft('#nav button[data-tab="einst"]','Tab Einstellungen');
           if(tabE) tabE.click();
@@ -1608,8 +1630,9 @@ function bestandSchreiben(){
           /* §3 · Detailanalyse in der Statistik: Filter bedienbar */
           freiMachen(); fw.setTab('statistik');
           var sb=d.getElementById('statistikBody').innerHTML;
-          pruef(sb.indexOf('Der Tag in der Matrix')<sb.indexOf('Detailanalyse') && sb.indexOf('Detailanalyse')<sb.indexOf('Tagesverlauf'),
-                'v2.5 §3: Detailanalyse steht nicht unter der Matrix');
+          // v2.6.0 §4.1: Matrix · Tagesverlauf · dann die Detailanalyse
+          pruef(sb.indexOf('Der Tag in der Matrix')<sb.indexOf('Tagesverlauf') && sb.indexOf('Tagesverlauf')<sb.indexOf('Detailanalyse'),
+                'v2.6 §4.1: Reihenfolge Matrix · Tagesverlauf · Detailanalyse stimmt nicht');
           tippe('#statistikBody [data-anzr="30"]','Zeitraum 30 Tage (Statistik)');
           pruef(!!d.querySelector('#statistikBody [data-anzr="30"].on') && (d.querySelector('.view.on')||{}).id==='v-statistik',
                 'v2.5 §3: Zeitraum-Filter der Detailanalyse wirkt nicht');
@@ -1635,6 +1658,107 @@ function bestandSchreiben(){
           } else pruef(false, 'v2.5 §5: keine Gruppe im gelebten Bestand');
           freiMachen(); fw.setTab('suche');
         })();
+        /* ══ v2.6 · STATUSLEISTE, TEMPO-LEISTE, MATRIX-SPUR, GELD-REGLER ══ */
+        (function(){
+          function mitte(e){ var r=e.getBoundingClientRect(); return {x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2)}; }
+          function tap(h){ if(!h) return; if(typeof h.click==='function') h.click(); else h.dispatchEvent(new fw.MouseEvent('click',{bubbles:true})); }
+          function trifft(e, wie){
+            if(!e){ pruef(false,'v2.6: '+wie+' fehlt'); return null; }
+            var m=mitte(e), hit=d.elementFromPoint(m.x,m.y);
+            pruef(hit && (hit===e || e.contains(hit)), 'v2.6: '+wie+' verdeckt von '+beschreib(hit));
+            return hit;
+          }
+          /* Positionen mit echter Zeitspreizung in die Spur (die App schreibt
+             sonst alles auf „jetzt") — Karte, freie Position, Tagebuch */
+          freiMachen(); fw.setTab('suche');
+          var sp=fw.matrixSpur(), t0=Date.now()-6*3600000, vorher=fw.spurPunkte(sp).length;
+          [[-0.7,0.2,null,null],[-0.3,-0.1,'a-3',null],[0.15,0.3,'r-zaehne',null],[0.45,0.1,null,'tagebuch'],[0.8,-0.2,'a-notiz',null]].forEach(function(p,i){
+            var e={ ts:new Date(t0+i*80*60000).toISOString(), x:p[0], y:p[1], kid:p[2], anlass:p[3]||'verlassen' };
+            if(p[3]){ e.quelle='tagebuch'; e.gedanke='Kopf voll nach dem Call'; e.wirkung='zieht'; e.mittel='10 Min raus'; e.akku=48; }
+            sp.push(e); });
+          fw.fokusStarten('a-3', null); fw.closeSheet(); fw.fokusAnsichtSchliessen && fw.fokusAnsichtSchliessen();
+          freiMachen(); fw.renderStatusbar();
+          /* §1 · Zeile 2 */
+          var zellen=['sZAkku','sZTempo','sZKonto','sZMatrix'].map(function(id){ return d.getElementById(id); });
+          var r2=d.querySelector('#statusbar .sb-r2');
+          var ids=[].slice.call(r2.children).map(function(c){ return c.id; });
+          finding('echt · v2.6 §1 Statusleiste Zeile 2: '+ids.join(' · ')+' · Höhen '+zellen.map(function(c){ return c?Math.round(c.getBoundingClientRect().height):0; }).join('/')+' px · Breiten '+
+                  zellen.map(function(c){ return c?Math.round(c.getBoundingClientRect().width):0; }).join('/')+' px');
+          pruef(ids.join(',')==='sZAkku,sZTempo,sZKonto,sZMatrix', 'v2.6 §1: Reihenfolge der Zellen');
+          zellen.forEach(function(c){ if(!c) return;
+            pruef(c.getBoundingClientRect().height>=44, 'v2.6 §1: '+c.id+' niedriger als 44 px');
+            var w=c.querySelector('.w'); if(w) pruef(w.scrollWidth<=w.clientWidth+1, 'v2.6 §1: '+c.id+' Wert abgeschnitten ('+w.textContent+')');
+            trifft(c, c.id); });
+          var tzb=d.querySelector('#sZTempo .tl.klein');
+          finding('echt · v2.6 §2.2 Tempo-Zelle: „'+d.querySelector('#sZTempo .w').textContent+'" · Marken '+
+                  (tzb?tzb.querySelectorAll('.tl-punkt,.tl-ziel,.tl-k').length:0)+' (Ich · Ziel · laufende Karte)');
+          pruef(!!tzb && tzb.querySelectorAll('.tl-k').length>=1, 'v2.6 §2.2: laufende Karte fehlt in der Tempo-Zelle');
+          var mvp=d.querySelector('#sMv svg path');
+          pruef(!!mvp, 'v2.6 §3.1: Matrix-Verlauf in der Leiste fehlt');
+          /* Tipp auf die Matrix-Zelle → Matrix-Spur */
+          var hz=trifft(d.getElementById('sZMatrix'),'Matrix-Zelle'); tap(hz);
+          var an=d.getElementById('stMatrixSpurAnker'), tbb=d.getElementById('topbar').getBoundingClientRect().bottom;
+          finding('echt · v2.6 §3 Tipp auf die Matrix-Zelle: Tab '+((d.querySelector('.view.on')||{}).id)+' · Matrix-Spur bei y='+(an?Math.round(an.getBoundingClientRect().top):'—')+' (Kopf endet '+Math.round(tbb)+')');
+          pruef((d.querySelector('.view.on')||{}).id==='v-statistik' && an && Math.abs(an.getBoundingClientRect().top-tbb)<40, 'v2.6 §3: Matrix-Zelle führt nicht zur Matrix-Spur');
+          /* §3.2 · Tipp auf einen Punkt */
+          var hits=d.querySelectorAll('#statistikBody .mv-hit');
+          finding('echt · v2.6 §3.2 Matrix-Spur: '+hits.length+' Punkte · Rauten '+(d.getElementById('statistikBody').innerHTML.match(/l6 6 l-6 6/g)||[]).length);
+          pruef(hits.length===vorher+5, 'v2.6 §3.2: nicht jede Position ist ein Punkt ('+hits.length+' statt '+(vorher+5)+')');
+          var ziel=hits[3];   // nach Zeit sortiert: die fuenf gespreizten liegen vor dem frueheren Eintrag von „jetzt"
+          if(ziel){ ziel.scrollIntoView({block:'center'}); var hp=trifft(ziel,'Punkt 4 (Tagebuch)'); tap(hp);
+            var info=d.getElementById('msInfo');
+            finding('echt · v2.6 §3.2 Tipp auf die Raute: „'+(info?info.textContent:'—')+'"');
+            pruef(info && info.textContent.indexOf('Kopf voll')>=0 && /Akku 48 %/.test(info.textContent), 'v2.6 §3.2: Tipp zeigt Zeit/Text/Akku nicht');
+            var h2=hits[1]; h2.scrollIntoView({block:'center'}); var hp2=trifft(h2,'Punkt 2 (Karte)'); tap(hp2);
+            pruef(info && info.textContent.indexOf('Aufgabe 3')>=0, 'v2.6 §3.2: Tipp auf den Kartenpunkt zeigt die Karte nicht'); }
+          /* §1 · Mini-Tageskurve → Statistik oben */
+          d.querySelector('main').scrollTop=600;
+          var kb=trifft(d.getElementById('btnKurve'),'Mini-Tageskurve'); tap(kb);
+          finding('echt · v2.6 §1 Tipp auf die Mini-Kurve: Tab '+((d.querySelector('.view.on')||{}).id)+' · scrollTop '+d.querySelector('main').scrollTop);
+          pruef((d.querySelector('.view.on')||{}).id==='v-statistik' && d.querySelector('main').scrollTop===0, 'v2.6 §1: Mini-Kurve öffnet die Statistik nicht oben');
+          /* §2 · Tempo-Leiste in der Fokusansicht */
+          freiMachen(); fw.fokusKarteAnsehen('a-3');
+          var tl=d.querySelector('#tTempo .tl');
+          if(tl){ tl.scrollIntoView({block:'center'});
+            var labs=[].slice.call(tl.querySelectorAll('.tl-l')), ueber=0;
+            for(var i=0;i<labs.length;i++) for(var j=i+1;j<labs.length;j++){ var a=labs[i].getBoundingClientRect(), b=labs[j].getBoundingClientRect();
+              if(a.left<b.right-1 && b.left<a.right-1 && a.top<b.bottom-1 && b.top<a.bottom-1) ueber++; }
+            var tr=tl.getBoundingClientRect(), raus=labs.filter(function(l){ var r=l.getBoundingClientRect(); return r.left<tr.left-1 || r.right>tr.right+1; }).length;
+            finding('echt · v2.6 §2 Tempo-Leiste: '+labs.map(function(l){ return l.textContent; }).join(' · ')+' · Überlappungen '+ueber+' · über den Rand '+raus);
+            pruef(ueber===0 && raus===0, 'v2.6 §2: Beschriftungen überlappen oder ragen heraus');
+            pruef(!/\d+(,\d+)?k\b/.test(tl.textContent), 'v2.6 §2: „k" an einer Marke');
+            trifft(tl.querySelector('.tl-bahn'),'Tempo-Bahn');
+          } else pruef(false,'v2.6 §2: Tempo-Leiste fehlt in der Fokusansicht');
+          var fvText=d.getElementById('fokusView').textContent;
+          var kFund=fvText.match(/\b\d+(,\d+)?k\b/g);
+          finding('echt · v2.6 §6 Fokusansicht: „k"-Abkürzungen '+(kFund?kFund.join(', '):'keine')+' · Tausenderpunkte z. B. '+((fvText.match(/\d{1,3}\.\d{3}/)||['—'])[0]));
+          pruef(!kFund, 'v2.6 §6: „k" in der Fokusansicht');
+          var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+          /* §5 · Geld-Regler im Detail einer DFM-Karte */
+          freiMachen(); fw.setTab('suche'); fw.oeffneDetail('a-1'); sheetRuhe();
+          var rg=d.querySelector('#sheetBody [data-geldregler]'), zf=d.querySelector('#sheetBody [data-geldzahl]');
+          finding('echt · v2.6 §5 Geld-Impact a-1 (Altbestand geldScore 60): Regler '+(rg?rg.value:'—')+' · Feld '+(zf?zf.value:'—')+' · „'+((d.querySelector('#sheetBody [data-geldhint]')||{}).textContent||'')+'"');
+          if(rg && zf){
+            rg.scrollIntoView({block:'center'}); trifft(rg,'Geld-Regler'); trifft(zf,'Geld-Textfeld');
+            rg.value='275'; rg.dispatchEvent(new fw.Event('input',{bubbles:true}));
+            pruef(zf.value==='275', 'v2.6 §5: Regler zieht das Textfeld nicht nach ('+zf.value+')');
+            zf.value='640'; zf.dispatchEvent(new fw.Event('input',{bubbles:true}));
+            pruef(rg.value==='500' && zf.value==='500', 'v2.6 §5: Textfeld über 500 nicht begrenzt ('+zf.value+'/'+rg.value+')');
+            zf.value='123'; zf.dispatchEvent(new fw.Event('input',{bubbles:true}));
+            pruef(rg.value==='123', 'v2.6 §5: Textfeld zieht den Regler nicht nach');
+            var sv=d.querySelector('#sheetFoot [data-detailaktion="speichern"]'); pruef(!!sv,'v2.6 §5: Speichern-Knopf fehlt'); if(sv) sv.click();
+            var gespeichert=null; try{ gespeichert=JSON.parse(localStorage.getItem('fokus2_karten')).filter(function(k){ return k.id==='a-1'; })[0]; }catch(e){}
+            finding('echt · v2.6 §5 nach Speichern: geldImpact='+(gespeichert?gespeichert.geldImpact:'—')+' · geldScore '+(gespeichert&&gespeichert.geldScore!==undefined?'noch da':'weg'));
+            pruef(gespeichert && gespeichert.geldImpact===123 && gespeichert.geldScore===undefined, 'v2.6 §5: gespeicherter Geld-Impact stimmt nicht');
+          } else pruef(false,'v2.6 §5: Geld-Regler fehlt im Detail');
+          freiMachen();
+          /* §5/§7 · Migrationsprotokolle am gelebten Bestand */
+          var ls=JSON.parse(localStorage.getItem('fokus2_meta')||'{}'), gl=ls.geld260Log||{}, ul=ls.urlaub260Log||{};
+          finding('echt · v2.6 §5 Migration: '+gl.umgestellt+' DFM-Karten umgestellt · Stufen '+JSON.stringify(gl.stufen)+' · begrenzt '+gl.gekappt+' · Score >200 '+gl.ueberDeckel+' · Deckel '+gl.deckel);
+          finding('echt · v2.6 §7 Urlaub: '+(ul.tage||[]).length+' Tage nachgetragen · geprüft '+ul.geprueft);
+          pruef(ls.geld260===true && ls.urlaub260===true, 'v2.6: Migrationen nicht gelaufen');
+          fw.setTab('suche');
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
@@ -1650,6 +1774,18 @@ function bestandSchreiben(){
     function abschluss2(){ abschluss(); }
   }
 
+  /* v2.6: gelebter Bestand + gespreizte Positionen fuer die Screenshots */
+  function v26Vorbereiten(fw){
+    var d=fw.document;
+    d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+    var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+    fw.closeSheet(); fw.setTab('suche');
+    var s=fw.matrixSpur(), t0=Date.now()-6*3600000;
+    [[-0.7,0.2,null,null],[-0.35,-0.1,'a-3',null],[0.1,0.3,'r-zaehne',null],[-0.1,0.1,null,'tagebuch'],[0.45,0.2,'a-2',null],[0.8,-0.2,'a-notiz',null]].forEach(function(p,i){
+      var e={ ts:new Date(t0+i*65*60000).toISOString(), x:p[0], y:p[1], kid:p[2], anlass:p[3]||'verlassen' };
+      if(p[3]){ e.quelle='tagebuch'; e.gedanke='Kopf voll nach dem Call'; e.wirkung='zieht'; e.mittel='10 Min raus'; e.akku=48; }
+      s.push(e); });
+  }
   var frame=document.getElementById('app');
   function ladeIframe(cb){
     var f=document.getElementById('app');
@@ -1671,7 +1807,7 @@ function bestandSchreiben(){
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
-  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender')
+  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender'||VIEW==='echtTempo'||VIEW==='echtMatrixSpur'||VIEW==='statistikOben'||VIEW==='echtGeld')
      ? bestandSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);

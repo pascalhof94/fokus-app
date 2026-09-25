@@ -10,7 +10,9 @@ function extract(name){
   for(; j < src.length; j++){ var c2 = src[j]; if(c2==='{') depth++; else if(c2==='}'){ depth--; if(depth===0) return src.substring(m.index+1, j+1); } }
   throw 'kein Ende: ' + name;
 }
-var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','basisRate','rate','akkuRate',
+// v2.6.0 §5: Geld-Konstanten gespiegelt (nicht extrahierbar) — Geld-Impact 0 … 500, Stufen fuer Altpakete
+var GELD_STUFE={ hoch:300, mittel:200, niedrig:100 }, GELD_MAX=500;
+var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon','basisRate','rate','akkuRate',
   'tickSumme','punkteFuerZeit','zeitquelleMin','subBonusErreicht','pausenStrafe','pausenStrafeLive','kartePunkte','kartenArt','laufendeSek',
   'heuteInvestiertMin','akkuLive','aktuelleTagId','tagOffen','kartePunkteHeute','tagesPunkteDomain','tagesPunkteLive',
   'punkteHeuteAnzeige','tagesZielDomain','wachTagAnteil','punkteHeuteDomain','istTickKarte','tickPunkte',
