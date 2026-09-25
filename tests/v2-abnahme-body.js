@@ -525,8 +525,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.8.0 · Build gesetzt', VERSION==='2.8.0' && UI_VERSION==='v2.8.0' &&
-   APP_BUILD==='2026-09-25-3');
+ok('31 APP_VERSION 2.8.1 · Build gesetzt', VERSION==='2.8.1' && UI_VERSION==='v2.8.1' &&
+   APP_BUILD==='2026-09-25-4');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -1969,6 +1969,50 @@ ok('§5 Linien tragen Farbe + Verlauf darunter (anSvgLine flaeche, leuchtende Pu
 ok('§5 Akku als eigener Verlauf rot → gelb → grün', /akkuVerlaufDef\(aid, Y\(0\), Y\(100\)\)/.test(src));
 ok('§5 Matrix-Verlauf: Linie in der Richtungsfarbe statt weiß', /stroke="url\(#'\+rid\+'\)"/.test(src));
 ok('§5 Belohnung: Balken/Ringe farbig (Münzen gold, Rang lila, Kulisse cyan)', /fbBalken\(frac, null, null, false, SPIEL_FARBE\.rang\)/.test(src) && /SPIEL_FARBE\.kulisse\)/.test(src));
+
+/* ══ v2.8.1 · Hotfix: Wiederholungen und Zuruecksetzen per Paket ══ */
+kopf('v2.8.1 §1 · Karte erneut anlegen');
+frisch();
+var alt=neueKarte({id:'alt1', domain:'dfm', titel:'Angebot Welle', matrixFeld:'werkzeug', sollMin:90, geldImpact:240, faelligkeit:anVorTage(H(),3)});
+alt.status='erledigt'; alt.tagId=anVorTage(H(),3)+'-1'; alt.letzteBearbeitung=new Date(Date.now()-3*86400000).toISOString();
+var alt2=neueKarte({id:'alt2', domain:'privat', titel:'angebot welle', matrixFeld:'ziel', sollMin:10}); alt2.letzteBearbeitung=new Date(Date.now()-9*86400000).toISOString();
+S.karten=[alt, alt2];
+S.unteraufgaben=[neueUnteraufgabe('alt1',{id:'ua1', titel:'Zeichnung', sollMin:30, done:true}), neueUnteraufgabe('alt1',{id:'ua2', titel:'Kalkulation', sollMin:45, done:true}),
+                 neueUnteraufgabe('alt1',{id:'ua3', titel:'Freigabe', sollMin:15, done:false})];
+var altStand=JSON.stringify([alt, S.unteraufgaben]);
+ok('§1 bei mehreren Karten mit dem Titel die zuletzt bearbeitete (Groß/Klein egal)', vorlageFuerTitel(' Angebot  WELLE ')===alt);
+oeffneDetail(null);
+entwurf.titel='Angebot Welle'; el('detailVorlage').innerHTML=wdhVorlageHtml();
+ok('§1 der Anlege-Dialog bietet „Von … übernehmen" an', /data-wdhvon="alt1"/.test(el('detailVorlage').innerHTML));
+wdhUebernehmen('alt1');
+ok('§1 vorbelegt: Matrixfeld, Soll-Minuten, Geld-Impact, Domäne', entwurf.matrixFeld==='werkzeug' && entwurf.sollMin===90 && entwurf.geldImpact===240 && entwurf.domain==='dfm' && entwurf.wiederholungVon==='alt1');
+ok('§1 Unteraufgaben: je Stück wählbar, dazu „Alle übernehmen" / „Keine" (dieselbe Ansicht wie beim Wiederöffnen)',
+   (el('sheetBody').innerHTML.match(/data-wdhwahl="/g)||[]).length===6 && /data-wdhalle="uebernehmen"/.test(el('sheetBody').innerHTML) && /data-wdhalle="weglassen">Keine/.test(el('sheetBody').innerHTML) && /class="ro-z"/.test(el('sheetBody').innerHTML));
+ok('§1 zunächst alle übernommen, auf NICHT erledigt, mit neuen IDs', entwurfSubs.length===3 && entwurfSubs.every(function(u){ return !u.done && ['ua1','ua2','ua3'].indexOf(u.id)<0; }));
+Object.keys(wdhTmp.wahl).forEach(function(id){ wdhTmp.wahl[id]='weglassen'; }); wdhSubsNeu();
+ok('§1 „Keine" → keine Unteraufgabe', entwurfSubs.length===0);
+wdhTmp.wahl.ua2='uebernehmen'; wdhSubsNeu();
+ok('§1 einzeln: nur „Kalkulation"', entwurfSubs.length===1 && entwurfSubs[0].titel==='Kalkulation' && entwurfSubs[0].done===false);
+var neuId=entwurf.id; detailSpeichern();
+var neuK=S.karten.filter(function(k){ return k.id===neuId; })[0];
+ok('§1 eine eigene Karte mit eigener ID, Unteraufgabe übernommen', neuK && neuK.id!=='alt1' && untermenge(neuId).length===1 && untermenge(neuId)[0].titel==='Kalkulation' && !untermenge(neuId)[0].done);
+ok('§1 die alte Karte bleibt unverändert (samt Unteraufgaben)', JSON.stringify([S.karten.filter(function(k){return k.id==='alt1';})[0], S.unteraufgaben.filter(function(u){ return u.parentId==='alt1'; })])===altStand);
+var exW=syncExport('voll').karten;
+print('   Export: '+JSON.stringify(exW.filter(function(k){ return k.id===neuId; }).map(function(k){ return {id:'…', titel:k.titel, wiederholungVon:k.wiederholungVon}; })[0])+' · alte Karte wiederholungVon='+JSON.stringify(exW.filter(function(k){return k.id==='alt1';})[0].wiederholungVon));
+ok('§1 Export: wiederholungVon = id der Vorlage, sonst null', exW.filter(function(k){ return k.id===neuId; })[0].wiederholungVon==='alt1' && exW.filter(function(k){return k.id==='alt1';})[0].wiederholungVon===null);
+oeffneDetail(null); entwurf.titel='Ganz neuer Titel';
+ok('§1 ohne gleichen Titel kein Angebot', wdhVorlageHtml()==='');
+closeSheet();
+
+kopf('v2.8.1 §2 · Eigene Werte per Paket zurücksetzen');
+frisch();
+S.karten=[neueKarte({id:'ew1', domain:'privat', titel:'Mit eigenem Bonus', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', abhakbonus:80, ticksAktiv:true, tickWert:12}),
+          neueKarte({id:'ew2', domain:'privat', titel:'Bleibt', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', abhakbonus:70, ticksAktiv:true, tickWert:9})];
+syncImport(JSON.stringify({appVersion:'2.8.1', karten:[{id:'ew1', abhakbonus:null, tickWert:null}, {id:'ew2', titel:'Bleibt (umbenannt)'}]}));
+var e1=S.karten.filter(function(k){return k.id==='ew1';})[0], e2=S.karten.filter(function(k){return k.id==='ew2';})[0];
+print('   abhakbonus:null → '+JSON.stringify(e1.abhakbonus)+' (Tabelle '+abhakbonusDefault(e1)+') · tickWert:null → '+JSON.stringify(e1.tickWert)+' · Feld fehlt → Bonus '+e2.abhakbonus+', Tick '+e2.tickWert);
+ok('§2 abhakbonus:null / tickWert:null setzen den eigenen Wert zurück — danach gilt die Tabelle (25)', e1.abhakbonus===null && e1.tickWert===null && abhakbonusDefault(e1)===25);
+ok('§2 fehlt das Feld im Paket, bleibt der eigene Wert (70 / 9)', e2.abhakbonus===70 && e2.tickWert===9 && e2.titel==='Bleibt (umbenannt)');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

@@ -1905,6 +1905,45 @@ function bestandSchreiben(){
           pruef(weg && (ls.vomGeraetGenommen||[]).some(function(x){ return x.id==='a-9'; }), 'v2.8 §4: vom Gerät nehmen wirkt nicht');
           freiMachen(); fw.setTab('suche');
         })();
+        /* ══ v2.8.1 · ANLEGE-DIALOG MIT VORLAGE UND UNTERAUFGABEN-AUSWAHL ══ */
+        (function(){
+          function mitte(e){ var r=e.getBoundingClientRect(); return {x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2)}; }
+          function tippe(e, wie){
+            if(!e){ pruef(false,'v2.8.1: '+wie+' fehlt'); return null; }
+            e.scrollIntoView({block:'center'}); sheetRuhe();
+            var m=mitte(e), hit=d.elementFromPoint(m.x,m.y);
+            pruef(hit && (hit===e || e.contains(hit)), 'v2.8.1: '+wie+' verdeckt von '+beschreib(hit));
+            if(hit) hit.click(); sheetRuhe();
+            return hit;
+          }
+          function lsKarten(){ try{ return JSON.parse(localStorage.getItem('fokus2_karten')||'[]'); }catch(e){ return []; } }
+          function lsSubs(pid){ try{ return JSON.parse(localStorage.getItem('fokus2_unteraufgaben')||'[]').filter(function(u){ return u.parentId===pid; }); }catch(e){ return []; } }
+          freiMachen(); fw.setTab('suche');
+          var altSubs=lsSubs('e-1'), altVor=JSON.stringify(lsKarten().filter(function(k){ return k.id==='e-1'; })[0]);
+          fw.oeffneDetail(null); sheetRuhe();
+          var ti=d.querySelector('#sheetBody [data-bind="titel"]');
+          ti.value='Erledigt 1'; ti.dispatchEvent(new fw.Event('input',{bubbles:true}));
+          var ang=d.querySelector('#sheetBody [data-wdhvon]');
+          finding('echt · v2.8.1 §1 Titel „Erledigt 1": Angebot '+(ang?'„'+ang.textContent+'"':'fehlt')+' · Vorlage hat '+altSubs.length+' Unteraufgaben');
+          pruef(ang && ang.dataset.wdhvon==='e-1', 'v2.8.1 §1: kein Angebot bei gleichem Titel');
+          tippe(ang,'„Von … übernehmen"');
+          var rows=d.querySelectorAll('#sheetBody [data-wdhwahl][data-v="uebernehmen"]');
+          pruef(rows.length===altSubs.length && rows.length>0, 'v2.8.1 §1: Unteraufgaben-Auswahl fehlt ('+rows.length+')');
+          tippe(d.querySelector('#sheetBody [data-wdhalle="weglassen"]'),'„Keine"');
+          pruef(d.querySelectorAll('#sheetBody [data-wdhwahl][data-v="weglassen"].on').length===altSubs.length, 'v2.8.1 §1: „Keine" wirkt nicht');
+          tippe(d.querySelector('#sheetBody [data-wdhalle="uebernehmen"]'),'„Alle übernehmen"');
+          pruef(d.querySelectorAll('#sheetBody [data-wdhwahl][data-v="uebernehmen"].on').length===altSubs.length, 'v2.8.1 §1: „Alle übernehmen" wirkt nicht');
+          var erste=altSubs[0].id;
+          tippe(d.querySelector('#sheetBody [data-wdhwahl="'+erste+'"][data-v="weglassen"]'),'Zeile „weglassen"');
+          var sv=d.querySelector('#sheetFoot [data-detailaktion="speichern"]'); tippe(sv,'Speichern');
+          var neu=lsKarten().filter(function(k){ return k.titel==='Erledigt 1' && k.id!=='e-1'; })[0];
+          var ns=neu?lsSubs(neu.id):[];
+          finding('echt · v2.8.1 §1 gespeichert: neue Karte '+(neu?neu.id.slice(0,8)+'…':'—')+' · wiederholungVon='+(neu&&neu.wiederholungVon)+' · Unteraufgaben '+ns.map(function(u){ return u.titel+(u.done?' ✓':' ○'); }).join(', '));
+          pruef(neu && neu.wiederholungVon==='e-1' && ns.length===altSubs.length-1 && ns.every(function(u){ return !u.done; }), 'v2.8.1 §1: gespeicherte Wiederholung stimmt nicht');
+          pruef(JSON.stringify(lsKarten().filter(function(k){ return k.id==='e-1'; })[0])===altVor && lsSubs('e-1').length===altSubs.length, 'v2.8.1 §1: die alte Karte wurde verändert');
+          var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+          freiMachen(); fw.setTab('suche');
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});

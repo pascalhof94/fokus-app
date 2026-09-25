@@ -1500,6 +1500,9 @@ body{background:var(--bg)}
 .al-stand{font-family:ui-monospace,monospace;opacity:.8!important}
 .zs-play{width:40px;height:40px}
 .detail-vomgeraet{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+.wdh-box{margin:-4px 0 12px;padding:10px;border:1px dashed var(--line);border-radius:12px}
+.wdh-knopf{min-height:44px;width:100%}
+.wdh-k{font-size:12.5px;line-height:1.4;margin-bottom:4px}
 .vg-frage{font-size:12.5px;color:var(--txt);line-height:1.4;margin-bottom:8px}
 .abt{display:grid;gap:4px;margin:6px 0 4px}
 .abt-z{display:grid;grid-template-columns:1.3fr repeat(3,1fr);gap:6px;align-items:center;font-size:12px}
@@ -1712,9 +1715,9 @@ body{background:var(--bg)}
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.8.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.8.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-25-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.8.1';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.8.1';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-25-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2030,6 +2033,8 @@ function neueKarte(f={}){
     // §1.1 (v2.8.0): true = immer Abhak-Karte · false = nie · null = Regel
     // (Routine/Counter ohne Soll-Minuten)
     nurAbhaken: null,
+    // §1 (v2.8.1): id der Karte, von der diese Wiederholung angelegt wurde (null = keine)
+    wiederholungVon: null,
     // ══ §4 (v2.1.0) · EIN DATUM ════════════════════════════════════════
     // Die v2.0-Trennung in Deadline und „Geplant für" ist zurückgenommen:
     // Pascal führt EIN Datum. Es gibt nur noch die Deadline — und sie ist ab
@@ -7294,6 +7299,7 @@ function oeffneDetail(kid){
   if(!kid){ const lb=laufenderBlock(); if(lb){ orig.block=lb.id; orig.blockTag=heuteApp(); } }
   entwurfNeu = !kid;
   _vomGeraetFrage = false;
+  wdhTmp = null;   // §1 (v2.8.1)
   entwurf = JSON.parse(JSON.stringify(orig));
   entwurfSubs = kid ? JSON.parse(JSON.stringify(untermenge(kid))) : [];
   _detailMehrAuf = !entwurfNeu;   // Neuanlage: „Weitere Einstellungen" eingeklappt; Bearbeiten: offen
@@ -7307,6 +7313,72 @@ function chipGroup(feld, aktuell, opts, klasse){
   ).join('')+'</div>';
 }
 let _vomGeraetFrage=false;   // §4 (v2.8.0): zweiter Schritt des „Vom Geraet nehmen"
+/* ══ §1 (v2.8.1) · KARTE ERNEUT ANLEGEN ══════════════════════════════════
+   Eine Wiederholung ist gewollt eine NEUE Karte mit eigener ID. Gibt es eine
+   Karte mit gleichem Titel (offen oder erledigt; bei mehreren die zuletzt
+   bearbeitete), bietet der Anlege-Dialog an, von ihr zu uebernehmen:
+   Matrixfeld, Soll-Minuten, Geld-Impact, Domaene und Block — dazu die
+   Unteraufgaben je Stueck (uebernehmen/weglassen, „Alle uebernehmen" /
+   „Keine"; uebernommene stehen auf NICHT erledigt), in derselben Ansicht wie
+   beim Wiederoeffnen (v2.5). Die alte Karte bleibt unveraendert. Die neue
+   traegt wiederholungVon = id der Vorlage (Export), damit der Chat sie in
+   Airtable richtig zuordnet. */
+let wdhTmp=null;   // {kid, wahl:{subId:'uebernehmen'|'weglassen'}, kopien:{subId:sub}}
+function titelSchluessel(t){ return String(t||'').trim().replace(/\s+/g,' ').toLowerCase(); }
+function vorlageFuerTitel(titel, ausserId){
+  const t=titelSchluessel(titel); if(!t) return null;
+  const ks=S.karten.filter(k=>k.id!==ausserId && (k.status==='offen'||k.status==='erledigt') && titelSchluessel(k.titel)===t);
+  if(!ks.length) return null;
+  const zeit=k=>Date.parse(k.letzteBearbeitung||k.erstelltTs||'')||0;
+  return ks.sort((a,b)=>zeit(b)-zeit(a))[0];
+}
+function wdhSubsNeu(){
+  if(!wdhTmp || !entwurf) return;
+  const eigene=entwurfSubs.filter(u=>!Object.keys(wdhTmp.kopien).some(src=>wdhTmp.kopien[src]===u));
+  const gewaehlt=untermenge(wdhTmp.kid).filter(u=>wdhTmp.wahl[u.id]==='uebernehmen').map(u=>{
+    if(!wdhTmp.kopien[u.id]) wdhTmp.kopien[u.id]=neueUnteraufgabe(entwurf.id, { titel:u.titel, sollMin:num(u.sollMin), bonusPunkte:u.bonusPunkte, done:false });
+    return wdhTmp.kopien[u.id]; });
+  entwurfSubs=gewaehlt.concat(eigene);
+}
+function wdhUebernehmen(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k || !entwurf) return;
+  detailLies();
+  entwurf.domain=k.domain==='dfm'?'dfm':'privat';
+  entwurf.matrixFeld=matrixFeldVon(k);
+  entwurf.sollMin=num(k.sollMin);
+  entwurf.geldImpact=geldImpactVon(k);
+  if(entwurf.domain==='dfm' && k.projekt!=null && entwurf.projekt==null) entwurf.projekt=k.projekt;
+  const b=karteBlockId(k); if(b){ entwurf.block=b; entwurf.blockTag=heuteApp(); }
+  entwurf.wiederholungVon=k.id;
+  const wahl={}; untermenge(k.id).forEach(u=>wahl[u.id]='uebernehmen');
+  wdhTmp={ kid:k.id, wahl, kopien:{} };
+  wdhSubsNeu();
+  renderDetail();
+}
+function wdhVorlageHtml(){
+  if(!entwurfNeu || !entwurf) return '';
+  if(wdhTmp){
+    const v=S.karten.find(x=>x.id===wdhTmp.kid); const subs=v?untermenge(v.id):[];
+    let h='<div class="wdh-box"><div class="wdh-k">↻ Übernommen von „<b>'+esc(v?v.titel:'?')+'</b>" · '+(v&&v.status==='erledigt'?'erledigt':'offen')+
+      ' — Matrixfeld, Soll-Minuten, Geld-Impact, Domäne'+(karteBlockId(v)?' und Block':'')+'</div>';
+    if(subs.length){
+      h+='<div class="btnrow ro-alle"><button class="btn sm" data-wdhalle="uebernehmen">Alle übernehmen</button>'+
+         '<button class="btn sm" data-wdhalle="weglassen">Keine</button></div><div class="ro-liste">'+
+         subs.map(u=>{ const w=wdhTmp.wahl[u.id]||'uebernehmen';
+           return '<div class="ro-z"><span class="ro-t">'+(u.done?'✓ ':'')+esc(u.titel||'(ohne Titel)')+'</span>'+
+             '<span class="su-seg ro-seg" role="group">'+
+             '<button class="'+(w==='uebernehmen'?'on':'')+'" data-wdhwahl="'+u.id+'" data-v="uebernehmen" aria-pressed="'+(w==='uebernehmen')+'">übernehmen</button>'+
+             '<button class="'+(w==='weglassen'?'on':'')+'" data-wdhwahl="'+u.id+'" data-v="weglassen" aria-pressed="'+(w==='weglassen')+'">weglassen</button></span></div>'; }).join('')+
+         '</div><div class="hint">Übernommene Unteraufgaben stehen auf „nicht erledigt". Die alte Karte bleibt unverändert.</div>';
+    }
+    return h+'</div>';
+  }
+  const v=vorlageFuerTitel(entwurf.titel, entwurf.id);
+  if(!v) return '';
+  const n=untermenge(v.id).length;
+  return '<div class="wdh-box"><button class="btn sm wdh-knopf" data-wdhvon="'+esc(v.id)+'">↻ Von „'+esc(String(v.titel||'').slice(0,40))+'" übernehmen</button>'+
+    '<div class="hint">Gleicher Titel — '+(v.status==='erledigt'?'erledigt':'offen')+(n?' · '+n+' Unteraufgabe'+(n>1?'n':''):'')+'. Vorbelegt werden Matrixfeld, Soll-Minuten, Geld-Impact, Domäne und Block; die Unteraufgaben wählst du einzeln.</div></div>';
+}
 function renderDetail(){
   const _sbEl=el('sheetBody'), _scroll=_sbEl?_sbEl.scrollTop:0;   // V3: Scrollposition über Re-Render halten
   const k=entwurf, istDfm=k.domain==='dfm';
@@ -7352,6 +7424,8 @@ function renderDetail(){
         '</div><div class="hint">'+(entwurfNeu?'vorausgewählt: der gerade laufende Block':'die Zuordnung gilt für heute')+'</div></div>'; } }
   // 3 Titel
   h+='<div class="field"><label>Titel</label><input data-bind="titel" value="'+esc(k.titel)+'" placeholder="Was ist zu tun?"></div>';
+  // §1 (v2.8.1): gleicher Titel → Angebot „Von … uebernehmen" (nur beim Anlegen)
+  if(entwurfNeu) h+='<div id="detailVorlage">'+wdhVorlageHtml()+'</div>';
   // 4 Unteraufgaben (inline)
   h+='<div class="field"><label>Unteraufgaben</label><div id="subWrap">';
   subs.forEach(u=>{
@@ -8892,6 +8966,7 @@ function kartenAbbildVoll(k, kette){
   o.matrixFeld=matrixFeldVon(k);          // §1: normalisiert, nie geraten
   o.punktePrognose=Math.round(kartePunktePrognose(k));   // Nachtrag §1: Soll-Wert
   o.nurAbhaken=(k.nurAbhaken===true||k.nurAbhaken===false) ? k.nurAbhaken : null;   // §6 (v2.8.0)
+  o.wiederholungVon=k.wiederholungVon||null;   // §1 (v2.8.1): id der Vorlage oder null
   // §1/§2 (v2.7.0): block (nur wenn er heute gilt) und festMin immer als Feld
   o.block=karteBlockId(k);
   o.festMin=(k.festMin!=null && num(k.festMin)>0) ? num(k.festMin) : null;
@@ -9200,6 +9275,7 @@ function syncImport(text){
     // §1 (v2.7.0): block = id eines Blocks im Tagesrahmen, gilt fuer heute
     if(inc.block!==undefined){ const bid=(inc.block==null || String(inc.block).trim()==='') ? null : String(inc.block).trim();
       lok.block=bid; lok.blockTag=bid?heuteApp():null; }
+    if(inc.wiederholungVon!==undefined) lok.wiederholungVon = inc.wiederholungVon ? String(inc.wiederholungVon) : null;   // §1 (v2.8.1)
     // §1.1 (v2.8.0): nurAbhaken true · false · leer (= Regel)
     if(inc.nurAbhaken!==undefined) lok.nurAbhaken = (inc.nurAbhaken===true||inc.nurAbhaken==='true') ? true : ((inc.nurAbhaken===false||inc.nurAbhaken==='false') ? false : null);
     // §2 (v2.7.0): festMin = Zahl (Minuten) oder leer
@@ -9225,6 +9301,7 @@ function syncImport(text){
     }
     if(inc.punkteProStd!==undefined)   lok.punkteProStd = inc.punkteProStd==null?null:num(inc.punkteProStd);
     if(inc.akkuProStd!==undefined)     lok.akkuProStd   = inc.akkuProStd==null?null:num(inc.akkuProStd);
+    // §2 (v2.8.1): null setzt den eigenen Wert zurueck (danach gilt die Tabelle) — ein FEHLENDES Feld laesst ihn stehen
     if(inc.abhakbonus!==undefined)     lok.abhakbonus   = inc.abhakbonus==null?null:num(inc.abhakbonus);   // auch negativ
     if(inc.timerFlag!==undefined)      lok.timerFlag=!!inc.timerFlag;
     if(inc.keineAutoPause!==undefined) lok.keineAutoPause=!!inc.keineAutoPause;
@@ -13237,6 +13314,10 @@ el('sheet').addEventListener('click', e=>{
     else { entwurf[feld]=val; }
     renderDetail(); return;
   }
+  // §1 (v2.8.1): Wiederholung — von der Vorlage uebernehmen, Unteraufgaben waehlen
+  const wdhV=t.closest('[data-wdhvon]'); if(wdhV){ haptik(8); wdhUebernehmen(wdhV.dataset.wdhvon); return; }
+  const wdhW=t.closest('[data-wdhwahl]'); if(wdhW && wdhTmp){ detailLies(); wdhTmp.wahl[wdhW.dataset.wdhwahl]=wdhW.dataset.v; wdhSubsNeu(); renderDetail(); return; }
+  const wdhA=t.closest('[data-wdhalle]'); if(wdhA && wdhTmp){ detailLies(); Object.keys(wdhTmp.wahl).forEach(id=>wdhTmp.wahl[id]=wdhA.dataset.wdhalle); wdhSubsNeu(); renderDetail(); return; }
   // §4 (v2.8.0): Vom Geraet nehmen — erst fragen, dann nehmen
   if(t.closest('[data-vomgeraet]')){ _vomGeraetFrage=true; renderDetail(); return; }
   if(t.closest('[data-vomgeraetnein]')){ _vomGeraetFrage=false; renderDetail(); return; }
@@ -13379,7 +13460,10 @@ el('sheetBody').addEventListener('input', e=>{
     if(entwurf && feld && feld.querySelector('[data-bind="geldImpact"]')) entwurf.geldImpact=w;
     return;
   }
-  if(t.dataset.bind!=null && entwurf){ detailFeld(t.dataset.bind, t); return; }
+  if(t.dataset.bind!=null && entwurf){ detailFeld(t.dataset.bind, t);
+    // §1 (v2.8.1): beim Tippen des Titels das Vorlage-Angebot nachziehen (ohne Neuaufbau — der Fokus bleibt)
+    if(t.dataset.bind==='titel' && entwurfNeu && !wdhTmp){ const box=el('detailVorlage'); if(box) box.innerHTML=wdhVorlageHtml(); }
+    return; }
   if(t.dataset.absubtitel!=null){ const u=S.unteraufgaben.find(x=>x.id===t.dataset.absubtitel); if(u){ u.titel=t.value; DB.set('unteraufgaben', S.unteraufgaben); } return; }
   if(t.dataset.absubmin!=null){ const u=S.unteraufgaben.find(x=>x.id===t.dataset.absubmin); if(u){ u.sollMin=num(t.value);
     const k=abhakTmp&&S.karten.find(x=>x.id===abhakTmp.kid);
