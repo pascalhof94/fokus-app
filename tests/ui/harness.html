@@ -1879,9 +1879,10 @@ function bestandSchreiben(){
           var kc=lsK('c-harness');
           pruef(kc && kc.ticksHeute===1 && /1× · /.test((d.querySelector('#fokusView .al-z[data-alkarte="c-harness"]')||{}).textContent||''), 'v2.8 §1: +1 zählt nicht / Zählstand fehlt');
           tippe(d.querySelector('#fokusView [data-alplay="r-10"]'),'Play „Routine 10"');
-          var fo=lsFokus();
-          finding('echt · v2.8 §1 Play: läuft '+(fo&&fo.karteId)+' · '+(fo&&fo.laeuft));
+          var fo=lsFokus(), k10=lsK('r-10');
+          finding('echt · v2.8 §1 Play: läuft '+(fo&&fo.karteId)+' · '+(fo&&fo.laeuft)+' · v2.8.2 Bonus beim Start '+(k10&&k10.startBonus?k10.startBonus.punkte+' P':'—'));
           pruef(fo && fo.karteId==='r-10' && fo.laeuft, 'v2.8 §1: Play startet die Karte nicht');
+          pruef(k10 && k10.startBonus && k10.startBonus.punkte===25 && k10.status==='offen', 'v2.8.2 §1: Play bucht den Abhakbonus nicht beim Start');
           /* §1.3 Tagesablauf: Play je Zeile */
           freiMachen(); fw.fokusKarteAnsehen('a-3');
           var zp=d.querySelector('#fokusView .zs [data-zsplay]');
@@ -1942,6 +1943,14 @@ function bestandSchreiben(){
           pruef(neu && neu.wiederholungVon==='e-1' && ns.length===altSubs.length-1 && ns.every(function(u){ return !u.done; }), 'v2.8.1 §1: gespeicherte Wiederholung stimmt nicht');
           pruef(JSON.stringify(lsKarten().filter(function(k){ return k.id==='e-1'; })[0])===altVor && lsSubs('e-1').length===altSubs.length, 'v2.8.1 §1: die alte Karte wurde verändert');
           var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+          /* v2.8.2 §2: die Vorlage „Zähne putzen" traegt „Nur abhaken: immer" (aus dem v2.8-Paket) */
+          freiMachen(); fw.setTab('suche'); fw.oeffneDetail(null); sheetRuhe();
+          var ti2=d.querySelector('#sheetBody [data-bind="titel"]'); ti2.value='Zähne putzen'; ti2.dispatchEvent(new fw.Event('input',{bubbles:true}));
+          tippe(d.querySelector('#sheetBody [data-wdhvon="r-zaehne"]'),'„Von Zähne putzen übernehmen"');
+          var nurOn=d.querySelector('#sheetBody [data-chip="nurAbhaken"].on');
+          finding('echt · v2.8.2 §2 Vorlage „Zähne putzen": Nur abhaken → „'+(nurOn?nurOn.textContent:'—')+'"');
+          pruef(nurOn && nurOn.dataset.val==='ja', 'v2.8.2 §2: „Nur abhaken" wird nicht übernommen');
+          fw.closeSheet();
           freiMachen(); fw.setTab('suche');
         })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
@@ -1961,7 +1970,8 @@ function bestandSchreiben(){
 
   /* v2.7: ein Block-Paket (zwei Ebenen) um die aktuelle Uhrzeit — Namen wie Pascals Tag */
   function v27Paket(fw){
-    var n=new Date(), h0=Math.max(6, Math.min(18, n.getHours()+n.getMinutes()/60));
+    // v2.8.2: nicht mehr bei 18 Uhr kappen — abends enthielt sonst kein Block die Uhrzeit (Bloecke ueber 24 Uhr sind zulaessig)
+    var n=new Date(), h0=Math.max(6, n.getHours()+n.getMinutes()/60);
     return { appVersion:'2.7.0', tagesRahmen:[
       {id:'morgen', name:'Morgen', von:h0-5, bis:h0-3.5, typ:'privat'},
       {id:'fokus1', name:'DFM-Fokus 1', von:h0-3.5, bis:h0+0.5, typ:'dfm'},

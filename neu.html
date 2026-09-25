@@ -1715,9 +1715,9 @@ body{background:var(--bg)}
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.8.1';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.8.1';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-25-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.8.2';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.8.2';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-25-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1911,6 +1911,8 @@ const DEFAULT_SETTINGS = {
   // §2.2 (v2.8.0): Daempfung der ZEIT- und TICKpunkte von Routinen und Countern
   // (private Aufgaben werden nie gedaempft; der Abhakbonus nie — Entscheidung Pascal)
   daempfungPrivat: 0.5,
+  // §1 (v2.8.2): Neustart innerhalb dieser Minuten nach der Pause = derselbe Durchgang (kein zweiter Bonus)
+  durchgangPauseMin: 5,
   daempfungDfm: 1.0,
   // §2: Bonus für Bewegung nach rechts. Voller Ausschlag (ganz links → ganz
   // rechts) = dieser Wert; wer schon rechts stand, bekommt fast nichts.
@@ -2035,6 +2037,10 @@ function neueKarte(f={}){
     nurAbhaken: null,
     // §1 (v2.8.1): id der Karte, von der diese Wiederholung angelegt wurde (null = keine)
     wiederholungVon: null,
+    // §1 (v2.8.2): Abhak-Karten buchen ihren Bonus beim START. startBonus =
+    // {tag, punkte, n} (gilt nur fuer den Tag in tag), durchgang = {tag,
+    // startTs, pauseTs} — der laufende Durchgang (Pause < 5 Min = derselbe).
+    startBonus: null, durchgang: null,
     // ══ §4 (v2.1.0) · EIN DATUM ════════════════════════════════════════
     // Die v2.0-Trennung in Deadline und „Geplant für" ist zurückgenommen:
     // Pascal führt EIN Datum. Es gibt nur noch die Deadline — und sie ist ab
@@ -3155,7 +3161,7 @@ function kartePunkte(k){
   // damit wächst der Abzug ab Minute 120 sichtbar auf Fokusseite/Statusleiste.
   // §2 (v2.0.0): der Bewegungsbonus dieser Karte — festgeschrieben beim
   // Verlassen (Position vorher gegen Position nachher), nie live geschätzt.
-  return zeitTerm + tickTerm + subBonusErreicht(k) + num(k.bewegungsBonus)
+  return zeitTerm + tickTerm + subBonusErreicht(k) + num(k.bewegungsBonus) + startBonusHeute(k)   // §1 (v2.8.2)
          - num(k.strafPunkte) - pausenStrafeLive(k);
 }
 /* Prognose inkl. ALLER Unteraufgaben-Boni (erledigt + offen) — für „geplant". */
@@ -3172,7 +3178,8 @@ function kartePunktePrognose(k){
   // hinein — den gibt es erst, wenn die Bewegung stattgefunden hat.
   const sollP = kartePunkte(Object.assign({}, k,
     { istSek: num(k.sollMin)*60, bewegungsBonus:0 }));
-  return sollP + abhakbonusDefault(k) + subBonusOffen(k);
+  // §1 (v2.8.2): ist der Bonus schon beim Start gebucht (steckt in sollP), nicht noch einmal
+  return sollP + (durchgangAktiv(k) ? 0 : abhakbonusDefault(k)) + subBonusOffen(k);
 }
 /* Alt-Name — dieselbe Prognose, damit die Aufrufer unverändert bleiben. */
 function kartePunkteGeplant(k){ return kartePunktePrognose(k); }
@@ -3225,7 +3232,7 @@ function fokusZeitEinbuchen(){
   if(!S.fokus || !S.fokus.laeuft) return;
   const k=fokusKarte();
   const sek=(Date.now()-S.fokus.startMs)/1000;
-  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); logIntraday(k,{minuten:sek/60,typ:'timer'}); }   // v1.1: Akku-Drift; A7 berührt; B0 Log
+  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); logIntraday(k,{minuten:sek/60,typ:'timer'}); durchgangPause(k); }   // v1.1: Akku-Drift; A7 berührt; B0 Log; §1 (v2.8.2) Durchgang pausiert
   // §5 (v1.6.1) / §1 (v1.7.1): Beim Pausieren wird die bis dahin live angezeigte
   // Dauerlauf-Strafe festgeschrieben — DIESELBE Formel wie pausenStrafeLive,
   // dadurch springt der Wert beim Pausieren nicht. Reset des Zählers folgt
@@ -3238,6 +3245,7 @@ function fokusZeitEinbuchen(){
 }
 function fokusStarten(kid, quelle){
   const zk=S.karten.find(x=>x.id===kid);
+  const warSchonLauf=!!(S.fokus && S.fokus.karteId===kid && S.fokus.laeuft);   // §1 (v2.8.2): kein neuer Durchgang
   // §3.1 (v1.10.0): eine eingefrorene Karte wird beim Start sofort aktiv —
   // freeze fällt ohne Rückfrage (der alte „erst auftauen"-Toast entfällt).
   if(zk && zk.freeze){ zk.freeze=false; saveKarten(); }
@@ -3262,6 +3270,10 @@ function fokusStarten(kid, quelle){
   // Karte später gerechnet wird. Sie wird JETZT festgehalten — beim Aufnehmen,
   // nicht beim Verlassen; sonst misst der Bonus die falsche Strecke.
   if(zk && tagOffen()){ const p0=matrixPos(); zk.posVorher=p0?{x:p0.x,y:p0.y}:null; }
+  // §1 (v2.8.2): Abhak-Karte → Bonus beim Start (bzw. +1), je Durchgang einmal
+  if(zk && !warSchonLauf){ const dg=durchgangStart(zk);
+    if(dg) saveKarten();   // Bonus/Durchgang sofort sichern (sonst waere er nach einem Neuladen weg)
+    if(dg && dg.neu) toast(dg.tick ? ('+1 · „'+String(zk.titel||'').slice(0,24)+'"') : ('+'+fmtP(dg.bonus)+' P Abhakbonus · „'+String(zk.titel||'').slice(0,24)+'" läuft')); }
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
   fokusNavReset();           // U2: aktive Auswahl beendet die Swipe-Navigation
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
@@ -5178,7 +5190,7 @@ function abhakLeisteHtml(){
 /* Abhaken ohne Dialog: berechneter Wert + Abhakbonus, wie der Dialog ihn vorbelegt. */
 function leisteAbhaken(kid){
   const k=S.karten.find(x=>x.id===kid); if(!k || k.status!=='offen') return;
-  k.punkteOverride=Math.max(0, Math.round(kartePunkte(k)) + abhakbonusDefault(k));
+  k.punkteOverride=Math.max(0, Math.round(kartePunkte(k)) + (durchgangAktiv(k) ? 0 : abhakbonusDefault(k)));   // §1 (v2.8.2): nie zweimal je Durchgang
   karteAbhaken(kid);
 }
 function zeitstrahlHtml(){
@@ -6169,7 +6181,9 @@ function kartePunkteHeute(k){
   const reaktiviert = k.status==='offen' && k.punkteOverride!=null && k.tagId===tid;
   const gearbeitet = k.status==='offen' && k.punkteOverride==null && heuteInvestiertMin(k)>0;
   if(!(erl || laeuft || reaktiviert || gearbeitet)){
-    return (num(k.ticksHeute)>0 && istTickKarte(k)) ? tickPunkte(k) : 0;
+    // §1 (v2.8.2): ein beim Start gebuchter Bonus zaehlt sofort, auch ohne Minuten
+    const sb=(k.startBonus && k.startBonus.tag===tid) ? num(k.startBonus.punkte) : 0;
+    return ((num(k.ticksHeute)>0 && istTickKarte(k)) ? tickPunkte(k) : 0) + sb;
   }
   let pk = kartePunkte(k);
   if(k.punkteOverride==null && S.tag && S.tag.istMinutenStart){
@@ -7350,6 +7364,10 @@ function wdhUebernehmen(kid){
   if(entwurf.domain==='dfm' && k.projekt!=null && entwurf.projekt==null) entwurf.projekt=k.projekt;
   const b=karteBlockId(k); if(b){ entwurf.block=b; entwurf.blockTag=heuteApp(); }
   entwurf.wiederholungVon=k.id;
+  // §2 (v2.8.2): auch die Abhak-Eigenschaften — ohne eigenen Wert bleibt das Feld leer (= Tabelle)
+  entwurf.nurAbhaken=(k.nurAbhaken===true||k.nurAbhaken===false) ? k.nurAbhaken : null;
+  entwurf.abhakbonus=(k.abhakbonus!=null) ? num(k.abhakbonus) : null;
+  entwurf.tickWert=(k.tickWert!=null) ? num(k.tickWert) : null;
   const wahl={}; untermenge(k.id).forEach(u=>wahl[u.id]='uebernehmen');
   wdhTmp={ kid:k.id, wahl, kopien:{} };
   wdhSubsNeu();
@@ -7360,7 +7378,8 @@ function wdhVorlageHtml(){
   if(wdhTmp){
     const v=S.karten.find(x=>x.id===wdhTmp.kid); const subs=v?untermenge(v.id):[];
     let h='<div class="wdh-box"><div class="wdh-k">↻ Übernommen von „<b>'+esc(v?v.titel:'?')+'</b>" · '+(v&&v.status==='erledigt'?'erledigt':'offen')+
-      ' — Matrixfeld, Soll-Minuten, Geld-Impact, Domäne'+(karteBlockId(v)?' und Block':'')+'</div>';
+      ' — Matrixfeld, Soll-Minuten, Geld-Impact, Domäne'+(karteBlockId(v)?', Block':'')+', „Nur abhaken"'+
+      (v&&v.abhakbonus!=null?', eigener Abhakbonus '+num(v.abhakbonus):'')+(v&&v.tickWert!=null?', eigener Tickwert '+num(v.tickWert):'')+'</div>';
     if(subs.length){
       h+='<div class="btnrow ro-alle"><button class="btn sm" data-wdhalle="uebernehmen">Alle übernehmen</button>'+
          '<button class="btn sm" data-wdhalle="weglassen">Keine</button></div><div class="ro-liste">'+
@@ -8124,6 +8143,35 @@ function istAbhakKarte(k){
   if(k.nurAbhaken===false) return false;
   return !!((k.rhythmus || istTickKarte(k)) && !(num(k.sollMin)>0));
 }
+/* ══ §1 (v2.8.2) · ABHAKBONUS BEIM TIMER-START ══════════════════════════
+   Startet Pascal eine Abhak-Karte per Play, bucht die App den Bonus SOFORT —
+   wie ein Haken (Routine/Aufgabe: Abhakbonus, bei einer Routine zaehlt die
+   Serie einmal am Tag) bzw. wie +1 beim Counter. Die Uhr laeuft weiter, die
+   Zeit wird wie gewohnt gebucht (gedaempft nach Tabelle).
+   Ein Durchgang endet mit Pause; ein Neustart ist ein NEUER Durchgang und
+   bringt den Bonus erneut — ausser er kommt innerhalb von
+   durchgangPauseMin (Default 5) nach der Pause: dann derselbe Durchgang.
+   Erledigen nach einem Start bringt fuer denselben Durchgang keinen zweiten
+   Bonus. */
+function startBonusHeute(k){ return (k && k.startBonus && k.startBonus.tag===aktuelleTagId()) ? num(k.startBonus.punkte) : 0; }
+function durchgangAktiv(k){ return !!(k && k.durchgang && k.durchgang.tag===aktuelleTagId()); }
+function durchgangStart(k){
+  if(!k || !istAbhakKarte(k) || k.status!=='offen') return null;
+  const tid=aktuelleTagId(), jetzt=Date.now(), fenster=num(S.settings.durchgangPauseMin,5)*60000;
+  const d=durchgangAktiv(k) ? k.durchgang : null;
+  if(d && d.pauseTs && jetzt-Date.parse(d.pauseTs)<fenster){ d.pauseTs=null; return {neu:false}; }   // derselbe Durchgang
+  if(d && !d.pauseTs) return {neu:false};                                                             // laeuft bereits
+  k.durchgang={ tag:tid, startTs:jetztIso(), pauseTs:null };
+  if(kartenArt(k)==='Counter'){ karteTick(k.id, true); return {neu:true, tick:true}; }
+  const bonus=abhakbonusDefault(k);
+  const alt=(k.startBonus && k.startBonus.tag===tid) ? k.startBonus : { tag:tid, punkte:0, n:0 };
+  k.startBonus={ tag:tid, punkte:num(alt.punkte)+bonus, n:num(alt.n)+1 };
+  if(k.rhythmus) routineErledigtBuchen(k);            // die Serie zaehlt einmal am Tag
+  logIntraday(k,{punkte:bonus, typ:'startbonus'});
+  try{ momentBuchung(bonus); }catch(e){}
+  return {neu:true, bonus};
+}
+function durchgangPause(k){ if(durchgangAktiv(k) && !k.durchgang.pauseTs) k.durchgang.pauseTs=jetztIso(); }
 function abhakDialog(kid, fromDetail){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
   const hatOverride=k.punkteOverride!=null;                 // Re-Abhaken einer reaktivierten Karte
@@ -8132,7 +8180,7 @@ function abhakDialog(kid, fromDetail){
   // vorgeschlagen (angelegt wird sie erst mit „Erledigen").
   const offen=untermenge(kid).filter(u=>!u.done).length;
   abhakTmp={ kid, fromDetail, folge:offen>0, basis, max:Math.max(10, basis*2),
-    bonusDef: hatOverride ? 0 : abhakbonusDefault(k),       // Bonus steckt beim Re-Abhaken schon im Override → 0 vorbelegt
+    bonusDef: (hatOverride || durchgangAktiv(k)) ? 0 : abhakbonusDefault(k),   // Bonus steckt beim Re-Abhaken schon im Override → 0 vorbelegt; §1 (v2.8.2): beim Start gebucht → 0
     istMin:Math.round(istSekLive(k)/60),
     offeneSubs:untermenge(k.id).filter(u=>!u.done).length };
   renderAbhakDialog();
@@ -9763,7 +9811,9 @@ function renderEinst(){
       '<h4 class="abt-h">Dämpfung der Zeit- und Tickpunkte (Routinen und Counter)</h4>'+
       '<div class="slider"><label>Privat<small>0,5 = halbe Punkte · Aufgaben nie</small></label><input type="number" inputmode="decimal" step="0.05" data-setting="daempfungPrivat" value="'+num(S.settings.daempfungPrivat,0.5)+'"></div>'+
       '<div class="slider"><label>DFM<small>1,0 = ungedämpft</small></label><input type="number" inputmode="decimal" step="0.05" data-setting="daempfungDfm" value="'+num(S.settings.daempfungDfm,1)+'"></div>'+
-      '<p class="d" style="margin-top:6px">Gilt ab dem Update — vergangene Tage werden nicht nachgerechnet.</p>';
+      '<p class="d" style="margin-top:6px">Gilt ab dem Update — vergangene Tage werden nicht nachgerechnet.</p>'+
+      '<h4 class="abt-h">Abhak-Karten per Play</h4>'+
+      '<div class="slider"><label>Pause, die denselben Durchgang hält<small>Minuten · der Bonus kommt beim Start, ein Neustart danach ist ein neuer Durchgang</small></label><input type="number" inputmode="numeric" step="1" data-setting="durchgangPauseMin" value="'+num(S.settings.durchgangPauseMin,5)+'"></div>';
     // §2.3: alle Karten mit eigenem Abhakbonus oder Tickwert — Pascal entscheidet, was zurück auf die Tabelle faellt
     const eigen=S.karten.filter(k=>k.status!=='archiviert' && (k.abhakbonus!=null || k.tickWert!=null))
       .sort((a,b)=>(a.domain+abhakArt(a)+a.titel).localeCompare(b.domain+abhakArt(b)+b.titel));

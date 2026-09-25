@@ -525,8 +525,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.8.1 · Build gesetzt', VERSION==='2.8.1' && UI_VERSION==='v2.8.1' &&
-   APP_BUILD==='2026-09-25-4');
+ok('31 APP_VERSION 2.8.2 · Build gesetzt', VERSION==='2.8.2' && UI_VERSION==='v2.8.2' &&
+   APP_BUILD==='2026-09-25-5');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -2013,6 +2013,67 @@ var e1=S.karten.filter(function(k){return k.id==='ew1';})[0], e2=S.karten.filter
 print('   abhakbonus:null → '+JSON.stringify(e1.abhakbonus)+' (Tabelle '+abhakbonusDefault(e1)+') · tickWert:null → '+JSON.stringify(e1.tickWert)+' · Feld fehlt → Bonus '+e2.abhakbonus+', Tick '+e2.tickWert);
 ok('§2 abhakbonus:null / tickWert:null setzen den eigenen Wert zurück — danach gilt die Tabelle (25)', e1.abhakbonus===null && e1.tickWert===null && abhakbonusDefault(e1)===25);
 ok('§2 fehlt das Feld im Paket, bleibt der eigene Wert (70 / 9)', e2.abhakbonus===70 && e2.tickWert===9 && e2.titel==='Bleibt (umbenannt)');
+
+/* ══ v2.8.2 · Hotfix: Abhak-Karten beim Start, Wiederholung vollstaendig ══ */
+kopf('v2.8.2 §1 · Abhakbonus beim Timer-Start');
+frisch();
+var rS=neueKarte({id:'rS', domain:'privat', titel:'Dehnen', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', faelligkeit:H(), streak:4});
+var cS=neueKarte({id:'cS', domain:'privat', titel:'Liegestütze', ticksAktiv:true, matrixFeld:'werkzeug', faelligkeit:H()});
+var rE=neueKarte({id:'rE', domain:'privat', titel:'Wasser', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', faelligkeit:H()});
+S.karten=[rS, cS, rE];
+function vorMin(m){ return new Date(Date.now()-m*60000).toISOString(); }
+var p0=tagesPunkteDomain('privat');
+fokusStarten('rS');
+var p1=tagesPunkteDomain('privat');
+print('   Start „Dehnen" (private Werkzeug-Routine): Bonus '+startBonusHeute(rS)+' P · Tagespunkte privat '+Math.round(p0)+' → '+Math.round(p1)+' · Serie 4 → '+rS.streak);
+ok('§1 der Bonus ist sofort gespeichert (übersteht ein Neuladen)', ((DB.get('karten',[])||[]).filter(function(k){ return k.id==='rS'; })[0]||{}).startBonus && DB.get('karten',[]).filter(function(k){ return k.id==='rS'; })[0].startBonus.punkte===25);
+ok('§1 Start → Bonus sofort (25), die Uhr läuft, Serie zählt', startBonusHeute(rS)===25 && Math.round(p1-p0)===25 && S.fokus.laeuft && rS.status==='offen' && rS.streak===5);
+fokusZeitEinbuchen(); rS.durchgang.pauseTs=vorMin(3);
+fokusStarten('rS');
+print('   Pause, Neustart nach 3 Min: Bonus bleibt '+startBonusHeute(rS)+' P ('+rS.startBonus.n+' Durchgang)');
+ok('§1 Pause, Neustart nach 3 Min → kein zweiter Bonus (derselbe Durchgang)', startBonusHeute(rS)===25 && rS.startBonus.n===1);
+fokusZeitEinbuchen(); rS.durchgang.pauseTs=vorMin(10);
+fokusStarten('rS');
+print('   Pause, Neustart nach 10 Min: Bonus '+startBonusHeute(rS)+' P ('+rS.startBonus.n+' Durchgänge) · Serie '+rS.streak);
+ok('§1 Pause, Neustart nach 10 Min → neuer Durchgang, Bonus erneut (50) — die Serie zählt einmal', startBonusHeute(rS)===50 && rS.startBonus.n===2 && rS.streak===5);
+fokusZeitEinbuchen(); S.settings.durchgangPauseMin=15; rS.durchgang.pauseTs=vorMin(10);
+fokusStarten('rS');
+ok('§1 die 5 Minuten sind eine Einstellung (15 → Neustart nach 10 Min = derselbe Durchgang)', startBonusHeute(rS)===50);
+S.settings.durchgangPauseMin=5; fokusZeitEinbuchen(); S.fokus=null;
+fokusStarten('rE');
+var vorErl=kartePunkte(rE);
+leisteAbhaken('rE');
+print('   Start und Erledigen „Wasser": gebucht '+rE.punkteOverride+' P (Bonus 25 einmal + Zeit '+Math.round(vorErl-25)+' P)');
+ok('§1 Start und Erledigen → der Bonus nur einmal', rE.status==='erledigt' && rE.punkteOverride===Math.round(vorErl) && startBonusHeute(rE)===25);
+var rD=neueKarte({id:'rD', domain:'privat', titel:'Zweite', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', faelligkeit:H()}); S.karten.push(rD);
+fokusStarten('rD'); abhakDialog('rD');
+ok('§1 auch im Abhak-Dialog: nach einem Start ist der Bonus mit 0 vorbelegt', abhakTmp && abhakTmp.bonusDef===0);
+abhakTmp=null; closeSheet(); fokusZeitEinbuchen(); S.fokus=null;
+fokusStarten('cS');
+ok('§1 Counter: Start = +1', cS.ticksHeute===1);
+fokusZeitEinbuchen(); cS.durchgang.pauseTs=vorMin(2); fokusStarten('cS');
+ok('§1 Counter: Neustart nach 2 Min → kein zweites +1', cS.ticksHeute===1);
+fokusZeitEinbuchen(); S.fokus=null;
+var aufg=neueKarte({id:'aZ', domain:'privat', titel:'Aufgabe mit Zeit', sollMin:30, matrixFeld:'werkzeug', faelligkeit:H()}); S.karten.push(aufg);
+fokusStarten('aZ');
+ok('§1 normale Karten (keine Abhak-Karte) buchen beim Start nichts', startBonusHeute(aufg)===0 && !aufg.durchgang);
+fokusZeitEinbuchen(); S.fokus=null;
+ok('§1 das Häkchen in der Abhak-Leiste bleibt wie in v2.8 (ohne Start: Wert + Bonus)', (function(){
+   var k=neueKarte({id:'hk', domain:'privat', titel:'Nur Haken', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', faelligkeit:H()}); S.karten.push(k);
+   var v=Math.round(kartePunkte(k)); leisteAbhaken('hk'); return k.punkteOverride===v+25; })());
+ok('§1 Einstellung neben der Abhakbonus-Tabelle', (function(){ renderEinst(); return /data-setting="durchgangPauseMin"/.test(el('einstBody').innerHTML); })());
+
+kopf('v2.8.2 §2 · Wiederholung übernimmt auch Abhak-Eigenschaften');
+frisch();
+S.karten=[ neueKarte({id:'vA', domain:'privat', titel:'Morgenroutine', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', nurAbhaken:true, abhakbonus:80, ticksAktiv:true, tickWert:12}),
+           neueKarte({id:'vB', domain:'privat', titel:'Ohne Eigenes', matrixFeld:'ziel', sollMin:20}) ];
+oeffneDetail(null); entwurf.titel='Morgenroutine'; wdhUebernehmen('vA');
+ok('§2 „Nur abhaken", eigener Abhakbonus und Tickwert werden vorbelegt', entwurf.nurAbhaken===true && entwurf.abhakbonus===80 && entwurf.tickWert===12 &&
+   /eigener Abhakbonus 80/.test(el('sheetBody').innerHTML));
+closeSheet();
+oeffneDetail(null); entwurf.titel='Ohne Eigenes'; entwurf.abhakbonus=33; wdhUebernehmen('vB');
+ok('§2 ohne eigenen Wert an der Vorlage bleibt das Feld leer (= Tabelle)', entwurf.nurAbhaken===null && entwurf.abhakbonus===null && entwurf.tickWert===null);
+closeSheet();
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

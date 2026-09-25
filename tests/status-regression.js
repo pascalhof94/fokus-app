@@ -14,7 +14,7 @@ function extract(name){
 var GELD_STUFE={ hoch:300, mittel:200, niedrig:100 }, GELD_MAX=500;
 // v2.7.0: Sitzungs-Typen gespiegelt (§3 Korrekturen) — feste Bewertung/Sitzungs-id als Funktionen extrahiert
 var SITZUNG_TYPEN=['timer','autopause','nachtrag','korrektur'];
-var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','hatFestMin','sitzungIdVon','korrekturPunkteVerrechnen','daempfung','abhakArt','abhakSpalte','abhakbonusTabelleWert','geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon','basisRate','rate','akkuRate',
+var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','hatFestMin','sitzungIdVon','korrekturPunkteVerrechnen','daempfung','abhakArt','startBonusHeute','durchgangAktiv','abhakSpalte','abhakbonusTabelleWert','geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon','basisRate','rate','akkuRate',
   'tickSumme','punkteFuerZeit','zeitquelleMin','subBonusErreicht','pausenStrafe','pausenStrafeLive','kartePunkte','kartenArt','laufendeSek',
   'heuteInvestiertMin','akkuLive','aktuelleTagId','tagOffen','kartePunkteHeute','tagesPunkteDomain','tagesPunkteLive',
   'punkteHeuteAnzeige','tagesZielDomain','wachTagAnteil','punkteHeuteDomain','istTickKarte','tickPunkte',
