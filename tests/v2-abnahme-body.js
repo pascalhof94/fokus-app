@@ -524,8 +524,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.6.0 · Build gesetzt', VERSION==='2.6.0' && UI_VERSION==='v2.6.0' &&
-   APP_BUILD==='2026-09-25-1');
+ok('31 APP_VERSION 2.7.0 · Build gesetzt', VERSION==='2.7.0' && UI_VERSION==='v2.7.0' &&
+   APP_BUILD==='2026-09-25-2');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -1643,6 +1643,176 @@ kopf('v2.6.0 §7 · Nicht getrackte Tage rückwirkend als Urlaub');
   ok('§7 … bis der Sync bestätigt ist', (S.meta.urlaubNachgetragen||[]).length===0);
   ok('§7 fällt aus Normaltag und Vergleichen (tagIstUrlaub)', tagIstUrlaub(isoPlus(-5)) && !tagIstUrlaub(isoPlus(-1)));
 })();
+
+/* ══════════════════════════════════════════════════════════════════════
+   v2.7.0 „Blöcke" — Abnahme 1–12 (Layout/Klick per Harness)
+   ══════════════════════════════════════════════════════════════════════ */
+kopf('v2.7.0 §1 · Tagesblöcke');
+frisch(); _blockAuf={}; _blockKarten=null;
+var h0=jetztStunde();
+function uhr(x){ var m=Math.round(x*60); return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+var BLOCKPAKET={ appVersion:'2.7.0',
+  tagesRahmen:[
+    {id:'morgen', name:'Morgen', von:h0-4, bis:h0-2, typ:'privat'},
+    {id:'fokus1', name:'DFM-Fokus 1', von:h0-2, bis:h0+2, typ:'dfm'},
+      {id:'f1a', name:'Angebote', von:h0-2, bis:h0-0.25, parent:'fokus1'},
+      {id:'f1p', name:'Kaffee', von:h0-0.25, bis:h0+0.25, parent:'fokus1', typ:'pause'},
+      {id:'f1c', name:'Kalkulation', von:h0+0.25, bis:h0+2, parent:'fokus1'},
+    {id:'senke', name:'Senke', von:h0+2, bis:h0+3, typ:'privat'},
+    {id:'fokus2', name:'DFM-Fokus 2', von:h0+3, bis:h0+5, typ:'dfm'},
+    {id:'erholung', name:'Erholung', von:h0+5, bis:h0+6, typ:'privat'},
+    {id:'abschluss', name:'Abschluss', von:h0+6, bis:h0+6.5, typ:'privat'},
+    {id:'kaputt', name:'Außerhalb', von:h0+1.5, bis:h0+2.5, parent:'fokus1'} ],
+  karten:[ {id:'b1', domain:'dfm', titel:'Angebot Müller', block:'f1a'}, {id:'b2', domain:'dfm', titel:'Angebot Kaiser', block:'f1a'},
+           {id:'b3', domain:'dfm', titel:'Kalkulation Welle', block:'f1c'}, {id:'b4', domain:'privat', titel:'Einkaufen'},
+           {id:'b5', domain:'dfm', titel:'Review Fokus 2', block:'fokus2'} ],
+  kette:['b1','b2','b3','b4','b5'] };
+var rB=syncImport(JSON.stringify(BLOCKPAKET));
+var bl=tagesBloecke();
+ok('§1.1 Blöcke auf zwei Ebenen übernommen ('+bl.length+'), der Unterblock außerhalb abgewiesen und benannt',
+   bl.length===9 && (rB.uebersprungen||[]).some(function(u){ return /Außerhalb/.test(u.was) && /innerhalb/.test(u.grund); }));
+ok('§1.1 typ vom Oberblock geerbt (Angebote = dfm), eigener typ bleibt (Kaffee = pause)',
+   bl.filter(function(b){return b.id==='f1a';})[0].typ==='dfm' && bl.filter(function(b){return b.id==='f1p';})[0].typ==='pause');
+var fl=tagesRahmen(), dfmStd=rahmenFenster(fl,'dfm').reduce(function(a,f){return a+f[1]-f[0];},0);
+ok('§1.1 Soll-Form = tiefster Block je Abschnitt: DFM 4 + 2 Std − 30 Min Kaffee = '+dfmStd+' Std (nichts doppelt)', Math.abs(dfmStd-5.5)<1e-9);
+ok('§1.2 Karten gehören für heute zu ihrem Block', karteBlockId(S.karten.filter(function(k){return k.id==='b1';})[0])==='f1a' &&
+   S.karten.filter(function(k){return k.id==='b1';})[0].blockTag===heuteApp());
+var lb=laufenderBlock();
+ok('§1.4 laufender Block = der tiefste, der jetzt enthält ('+(lb&&lb.name)+')', lb && lb.id==='f1p');
+S.ui.suDom=null; S.ui.suArt=null;
+var kal=suKalenderHtml();
+var ebene1=(kal.match(/data-kalblock="(morgen|fokus1|senke|fokus2|erholung|abschluss)"/g)||[]).length;
+ok('§1.4 Ebene 1: sechs Balken mit Namen', ebene1===6 && kal.indexOf('DFM-Fokus 1')>=0 && kal.indexOf('Abschluss')>=0);
+ok('§1.4 Zahl der Karten je Block (offen/gesamt, Unterblöcke eingerechnet): DFM-Fokus 1 = 3/3', /DFM-Fokus 1<\/span><span class="kb-m">[^<]*<b>3<\/b>\/3 Karten/.test(kal));
+ok('§1.4 Farbe nach typ (DFM blau, privat lila) und der laufende Block hervorgehoben', /kal-block t-dfm laeuft/.test(kal) && /kal-block t-privat/.test(kal) && /\.kal-block\.t-dfm\{--kbc:59,130,246\}/.test(src));
+ok('§1.4 Jetzt-Linie bleibt', kal.indexOf('kal-jetzt')>=0);
+ok('§1.4 „Ohne Block" unter dem Kalender (Einkaufen)', /Ohne Block · 1/.test(kal) && kal.indexOf('Einkaufen')>kal.indexOf('Ohne Block'));
+_blockAuf.fokus1=true; kal=suKalenderHtml();
+ok('§1.4 Tipp klappt die Unterblöcke auf (Schiene + drei Unterblöcke)', /kal-block t-dfm[^"]*schiene/.test(kal) && /data-kalblock="f1a"/.test(kal) && /data-kalblock="f1p"/.test(kal) && /data-kalblock="f1c"/.test(kal));
+_blockKarten='f1a'; kal=suKalenderHtml();
+var panel=(kal.match(/<div class="kal-auf kb-auf"[\s\S]*?<\/div><div class="kal-jetzt|<div class="kal-auf kb-auf"[\s\S]*$/)||[''])[0];
+ok('§1.4 unterste Ebene zeigt NUR ihre Karten (Müller, Kaiser — nicht Welle)', panel.indexOf('Angebot Müller')>=0 && panel.indexOf('Angebot Kaiser')>=0 && panel.indexOf('Kalkulation Welle')<0);
+ok('§1.4 Tipp-Wege: data-kalblock im Such-Handler', /closest\('\[data-kalblock\]'\)/.test(src));
+_blockAuf={}; _blockKarten=null;
+/* §1.5 neue Karte */
+oeffneDetail(null);
+ok('§1.5 Anlege-Dialog: Block-Auswahl mit dem laufenden Block vorausgewählt', entwurf.block==='f1p' && /data-chip="block" data-val="f1p"/.test(el('sheetBody').innerHTML) &&
+   /chip kb-chip t-pause on" data-chip="block" data-val="f1p"/.test(el('sheetBody').innerHTML));
+entwurf.block='f1c'; entwurf.blockTag=heuteApp(); entwurf.titel='Neue Kalkulation'; var nid=entwurf.id; detailSpeichern();
+_blockAuf.fokus1=true; _blockKarten='f1c'; kal=suKalenderHtml(); _blockKarten=null; _blockAuf={};
+ok('§1.5 die neue Karte erscheint in ihrem Block', /Neue Kalkulation/.test(kal) && karteBlockId(S.karten.filter(function(k){return k.id===nid;})[0])==='f1c');
+/* §1.6 Export */
+var exB=syncExport('delta');
+var eb1=exB.karten.filter(function(k){return k.id==='b1';})[0], eb4=exB.karten.filter(function(k){return k.id==='b4';})[0];
+print('   Export-Ausschnitt: karten[b1].block='+JSON.stringify(eb1.block)+' · karten[b4].block='+JSON.stringify(eb4.block)+' · tagesRahmen['+exB.tagesRahmen.length+'] z. B. '+JSON.stringify(exB.tagesRahmen.filter(function(b){return b.id==='f1a';})[0]));
+ok('§1.6 Export trägt block je Karte und den Tagesrahmen mit Blöcken', eb1.block==='f1a' && eb4.block===null &&
+   exB.tagesRahmen.length===9 && exB.tagesRahmen.some(function(b){ return b.id==='f1a' && b.parent==='fokus1' && b.name==='Angebote'; }));
+/* §1 altes Paket */
+frisch();
+var rAlt=syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'o1', domain:'dfm', titel:'Alt'}], tagesRahmen:[{von:'09:00', bis:'12:00', typ:'dfm'},{von:'12:00', bis:'13:00', typ:'pause'},{von:'13:00', bis:'17:00', typ:'dfm'}]}));
+var blA=tagesBloecke();
+ok('§1.1 altes Paket ohne Block-Felder: jedes Segment ein Block der ersten Ebene, benannt nach typ ('+blA.map(function(b){return b.name;}).join(' · ')+')',
+   blA.length===3 && blA[0].name==='DFM' && blA[1].name==='Pause' && blA.every(function(b){ return b.parent===null; }) && !(rAlt.uebersprungen||[]).length &&
+   Math.abs(sollFensterStunden()-7)<1e-9);
+
+kopf('v2.7.0 §2 · Feste Bewertung');
+frisch();
+var kf=neueKarte({id:'tabs', domain:'privat', titel:'Tagesabschluss', sollMin:15, festMin:15, matrixFeld:'ziel', faelligkeit:H()});
+S.karten=[kf];
+kf.istSek=3*60; var p3=kartePunkte(kf);
+kf.istSek=40*60; var p40=kartePunkte(kf);
+var ohne=Object.assign({}, kf, {festMin:null}), p40o=kartePunkte(ohne);
+print('   „Tagesabschluss" festMin 15: 3 Min gestoppt → '+fmtP(p3)+' P · 40 Min → '+fmtP(p40)+' P (ohne feste Bewertung wären es '+fmtP(p40o)+' P) · Ist-Zeit bleibt '+Math.round(kf.istSek/60)+' Min');
+ok('§2 Punkte gleich, ob 3 oder 40 Minuten gestoppt', Math.abs(p3-p40)<1e-9 && p40o>p40);
+ok('§2 die gestoppte Zeit bleibt gebucht (istSek 40 Min)', kf.istSek===2400);
+var twf=tempoWerte(kf);
+ok('§2 Tempo-Prognose = Punkte aus festMin ÷ festMin-Stunden ('+fmtP(twf.karte.prognose)+')', Math.abs(twf.karte.prognose-kartePunktePrognose(kf)/0.25)<1e-9);
+syncImport(JSON.stringify({appVersion:'2.7.0', karten:[{id:'tabs', festMin:''},{id:'neu15', domain:'privat', titel:'Tagesabschluss 2', festMin:15}]}));
+ok('§2 Import: festMin Zahl oder leer', S.karten.filter(function(k){return k.id==='neu15';})[0].festMin===15 && S.karten.filter(function(k){return k.id==='tabs';})[0].festMin===null);
+ok('§2 Export trägt festMin je Karte', (function(){ var e=syncExport('voll').karten; return e.filter(function(k){return k.id==='neu15';})[0].festMin===15 && e.filter(function(k){return k.id==='tabs';})[0].festMin===null; })());
+entwurf=neueKarte({domain:'privat', festMin:15}); entwurfNeu=false; entwurfSubs=[]; renderDetail();
+ok('§2 im Detail sichtbar: „feste Bewertung: 15 Min"', el('sheetBody').innerHTML.indexOf('feste Bewertung: 15 Min')>=0);
+entwurf=null;
+
+kopf('v2.7.0 §3 · Korrekturen über den Sync');
+frisch();
+var GESTERN=anVorTage(H(),1);
+function gz(hhmm){ var d=new Date(GESTERN+'T00:00:00'); var t=hhmm.split(':'); d.setHours(+t[0],+t[1],0,0); return d.toISOString(); }
+var kK=neueKarte({id:'kk', domain:'dfm', titel:'Konzept Hallenkran', sollMin:120, matrixFeld:'ziel', projekt:'Fertigung', faelligkeit:H()});
+kK.istSek=1800;
+var kE=neueKarte({id:'ke', domain:'dfm', titel:'Angebot erledigt', sollMin:60, matrixFeld:'ziel', faelligkeit:GESTERN});
+kE.status='erledigt'; kE.tagId=GESTERN+'-1'; kE.punkteOverride=400; kE.istSek=3600;
+S.karten=[kK, kE];
+S.historie=[{ tagId:GESTERN+'-1', datum:GESTERN, laufindex:1, urlaub:false, spielZufluss:1200, startTs:gz('08:00'), endeTs:gz('18:00'), akku:60,
+  punkteBilanz:1000, abzuege:0, routinenBilanz:[], zeit:{dfm:5400,privat:0,projekte:{Fertigung:5400}}, luecke:false,
+  matrixSpur:[{id:'p1',ts:gz('08:30'),x:-0.6,y:0.2},{id:'p2',ts:gz('10:00'),x:0.4,y:0.4,kid:'kk'},{id:'p3',ts:gz('13:00'),x:0.7,y:-0.3}],
+  log:[{itemId:'ke', titel:'Angebot erledigt', domain:'dfm', art:'Aufgabe', punkte:400, ts:gz('12:00')}], akkuVerlauf:[], streak:0, erledigtHeute:1 }];
+S.intraday=[{id:'s-alt', ts:gz('09:30'), kartenId:'kk', domaene:'dfm', punkte:0, minuten:30, typ:'timer'},
+            {ts:gz('12:00'), kartenId:'ke', domaene:'dfm', punkte:400, minuten:0, typ:'abhaken'}];
+S.meta.muenzenGesamt=50000; S.meta.rangPunkte=40000; S.meta.wohlstand=90000;
+function aktFenster(){ return anStundenBuckets((S.intraday||[]).filter(function(e){ return e.ts && String(e.ts).slice(0,10)===GESTERN && num(e.punkte)>0; })); }
+function tagKurveEnde(){ var k=belTagKurve(GESTERN,'alle',5); return k[k.length-1].p; }
+var V={ bil:tagSnapshot(GESTERN).punkteBilanz, dfm:snapPunkte(tagSnapshot(GESTERN),'dfm'), min:Math.round(tagSnapshot(GESTERN).zeit.dfm/60),
+        ist:kK.istSek/60, ov:kE.punkteOverride, fenster11:aktFenster()[new Date(gz('11:00')).getHours()], kurve:tagKurveEnde(),
+        muenzen:S.meta.muenzenGesamt, matrix:matrixZeitFelder({spur:S.historie[0].matrixSpur, startTs:S.historie[0].startTs, endeTs:S.historie[0].endeTs}) };
+var KORR={ appVersion:'2.7.0', karten:[], korrekturen:[
+  { datum:GESTERN, grund:'Kranbesprechung am Vormittag nicht gestoppt',
+    sitzungen:[ {aktion:'hinzu', id:'s-k1', karteId:'kk', von:gz('10:00'), bis:gz('11:00')},
+                {aktion:'hinzu', karteId:'ke', von:'13:00', bis:'13:30'},
+                {aktion:'hinzu', karteId:'gibtsnicht', von:gz('14:00'), bis:gz('15:00')},
+                {aktion:'hinzu', karteId:'kk', von:gz('16:00'), bis:gz('15:00')} ],
+    positionen:[ {aktion:'entfernen', id:'p2'} ] },
+  { datum:anVorTage(H(),-2), grund:'Zukunft', tag:{urlaub:true} },
+  { datum:GESTERN, tag:{urlaub:true} } ] };
+var rK=syncImport(JSON.stringify(KORR));
+var dP1=sitzungPunkteFuer(kK,60,GESTERN), dP2=sitzungPunkteFuer(kE,30,GESTERN);
+var N={ bil:tagSnapshot(GESTERN).punkteBilanz, dfm:snapPunkte(tagSnapshot(GESTERN),'dfm'), min:Math.round(tagSnapshot(GESTERN).zeit.dfm/60),
+        ist:kK.istSek/60, ov:kE.punkteOverride, fenster11:aktFenster()[new Date(gz('11:00')).getHours()], kurve:tagKurveEnde(), muenzen:S.meta.muenzenGesamt,
+        matrix:matrixZeitFelder({spur:S.historie[0].matrixSpur, startTs:S.historie[0].startTs, endeTs:S.historie[0].endeTs}) };
+print('   Sitzung hinzu „Konzept Hallenkran" 10:00–11:00 = 60 Min × '+rate(kK)+' P/Std × Zeit-Gewicht '+S.settings.zeitGewicht+' = '+fmtP(dP1)+' P');
+print('   Sitzung hinzu „Angebot erledigt" 13:00–13:30 = '+fmtP(dP2)+' P → gebuchte Punkte '+V.ov+' → '+N.ov);
+print('   Tag '+GESTERN+' vorher/nachher: Bilanz '+V.bil+' → '+N.bil+' · DFM '+V.dfm+' → '+N.dfm+' · Minuten '+V.min+' → '+N.min+
+      ' · Aktivitätsfenster 11 Uhr '+V.fenster11+' → '+N.fenster11+' · Tagesverlauf Ende '+V.kurve+' → '+N.kurve+' · Münzen '+V.muenzen+' → '+N.muenzen);
+ok('§3 Karte: Ist-Minuten 30 → 90 (die nachgetragene Stunde)', V.ist===30 && N.ist===90);
+ok('§3 Karte: Punkte der offenen Karte rechnen live aus der Zeit', Math.abs(kartePunkte(kK)-(punkteFuerZeit(kK,90)*S.settings.zeitGewicht))<1e-6);
+ok('§3 erledigte Karte: gebuchte Punkte ± Punkte der Sitzung ('+V.ov+' → '+N.ov+')', Math.abs(N.ov-(V.ov+dP2))<0.1);
+ok('§3 Tageswerte: Bilanz und DFM steigen um beide Sitzungen, Minuten um 90', Math.abs(N.bil-(V.bil+dP1+dP2))<0.2 && Math.abs(N.dfm-(V.dfm+dP1+dP2))<0.2 && N.min===V.min+90);
+ok('§3 Aktivitätsfenster: die Stunde der Sitzung trägt ihre Punkte', Math.abs(N.fenster11-V.fenster11-Math.round(dP1*10)/10)<0.2);
+ok('§3 Tagesverlauf: das Tagesende liegt um beide Sitzungen höher', Math.abs(N.kurve-V.kurve-(Math.round(dP1*10)/10+Math.round(dP2*10)/10))<0.2);
+ok('§3 Konto zieht nach (Faktor des Tages '+fbZahl(1200/1000,2)+')', N.muenzen===V.muenzen+Math.round(dP1*1.2)+Math.round(dP2*1.2));
+print('   Matrix-Zeit vorher '+JSON.stringify(V.matrix.felder)+' · nachher '+JSON.stringify(N.matrix.felder));
+ok('§3 Position entfernen: Zeit je Matrix-Feld rechnet nach (die 10-Uhr-Messung „Werkzeuge" ist weg, ihre 3 Std gehen an die Messung davor)',
+   V.matrix.felder.werkzeug===180 && N.matrix.felder.werkzeug===0 && N.matrix.felder.ablenkung===V.matrix.felder.ablenkung+180 && Math.round(V.matrix.mess)===Math.round(N.matrix.mess));
+var namen=(rK.uebersprungen||[]).map(function(u){ return u.was+' — '+u.grund; });
+print('   abgewiesen: '+namen.join(' | '));
+ok('§3 ungültig abgewiesen und benannt: Karte unbekannt · bis vor von · Datum in der Zukunft · grund fehlt', namen.length===4 &&
+   namen.some(function(x){return /unbekannt/.test(x);}) && namen.some(function(x){return /bis liegt vor von/.test(x);}) &&
+   namen.some(function(x){return /Zukunft/.test(x);}) && namen.some(function(x){return /grund fehlt/.test(x);}));
+var prot=S.meta.korrekturProtokoll||[];
+ok('§3 Protokoll: Datum, Grund, vorher, nachher, Änderungen', prot.length===1 && prot[0].grund.indexOf('Kranbesprechung')>=0 && prot[0].vorher.punkte===Math.round(V.bil) &&
+   prot[0].nachher.punkte===Math.round(N.bil) && prot[0].aenderungen.length>=4);
+ok('§3 Protokoll nennt die LOKALE Uhrzeit (Position 10:00 entfernt — nicht die UTC-Ziffern)', prot[0].aenderungen.some(function(z){ return z.indexOf('Position entfernt: 10:00')===0; }));
+ok('§3 neue Korrekturen stehen nur im neuen Protokoll (kein Doppel im alten §5.7-Protokoll)', !(S.meta.syncKorrekturen||[]).some(function(x){ return /Kranbesprechung/.test(x.feld||''); }));
+renderEinst();
+ok('§3 in den Einstellungen als „Korrekturen" sichtbar', el('einstBody').innerHTML.indexOf('🩹 Korrekturen')>=0 && el('einstBody').innerHTML.indexOf('Kranbesprechung')>=0);
+var snapZustand=JSON.stringify([S.historie, S.intraday, S.karten, S.meta.muenzenGesamt]);
+syncImport(JSON.stringify(KORR));
+ok('§3 zweites Einspielen desselben Pakets ändert nichts', JSON.stringify([S.historie, S.intraday, S.karten, S.meta.muenzenGesamt])===snapZustand && (S.meta.korrekturProtokoll||[]).length===1);
+/* ändern + entfernen über id, Export trägt Sitzungs-ids */
+syncImport(JSON.stringify({appVersion:'2.7.0', karten:[], korrekturen:[{ datum:GESTERN, grund:'war nur 30 Minuten',
+  sitzungen:[{aktion:'aendern', id:'s-k1', karteId:'kk', von:gz('10:00'), bis:gz('10:30')}, {aktion:'entfernen', id:'s-alt'}] }]}));
+ok('§3 ändern (60 → 30 Min) und entfernen (die alte 30-Min-Sitzung) über die id: Ist 90 → 60 → 30', Math.round(kK.istSek/60)===30 &&
+   S.intraday.every(function(e){ return e.id!=='s-alt'; }));
+/* heute korrigierbar */
+var kH=neueKarte({id:'kh', domain:'privat', titel:'Heute vergessen', sollMin:30, faelligkeit:H()}); S.karten.push(kH);
+var vH=heuteInvestiertMin(kH), pH0=tagesPunkteDomain('privat');
+var b0=new Date(Date.now()-40*60000).toISOString(), b1=new Date(Date.now()-10*60000).toISOString();
+syncImport(JSON.stringify({appVersion:'2.7.0', karten:[], korrekturen:[{ datum:heuteApp(), grund:'heute vergessen', sitzungen:[{aktion:'hinzu', karteId:'kh', von:b0, bis:b1}] }]}));
+ok('§3 heute ist korrigierbar: 30 Min gebucht, Tagespunkte privat steigen ('+Math.round(pH0)+' → '+Math.round(tagesPunkteDomain('privat'))+')', vH===0 && Math.round(heuteInvestiertMin(kH))===30 && tagesPunkteDomain('privat')>pH0);
+ok('§3 Sitzungen im Export tragen ihre id', (syncExport('delta').karten.filter(function(k){return k.id==='kh';})[0].sitzungen||[]).some(function(x){ return x.id && x.korrektur; }));
+/* Abhaken verrechnet nachgetragene Punkte (nie doppelt im Aktivitätsfenster) */
+var offenP=S.intraday.filter(function(e){ return e.typ==='korrektur' && e.kartenId==='kk' && e.offen; }).reduce(function(a,e){ return a+num(e.punkte); },0);
+ok('§3 beim Abhaken werden nachgetragene Punkte verrechnet ('+fmtP(offenP)+' P)', offenP>0 && Math.abs(korrekturPunkteVerrechnen(kK)-offenP)<1e-9 && korrekturPunkteVerrechnen(kK)===0);
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

@@ -277,6 +277,27 @@ function bestandSchreiben(){
       var lay=d.getElementById('fokusLayer'), fb=d.querySelectorAll('#fokusView .fb')[1];
       if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
     },
+    /* ══ v2.7 · Screenshots: Kalender in Bloecken, Aufklappen, Block-Auswahl, Korrekturen ══ */
+    echtBloecke:function(fw){ v27Vorbereiten(fw); var d=fw.document, m=d.querySelector('main'), k=d.querySelector('#suBody .kal-bloecke'); if(m && k) m.scrollTop += k.getBoundingClientRect().top-190; },
+    echtBloeckeAuf:function(fw){
+      var d=fw.document; v27Vorbereiten(fw);
+      var b=d.querySelector('#suBody [data-kalblock="fokus1"]'); if(b) b.click();
+      var c=d.querySelector('#suBody [data-kalblock="f1a"]'); if(c) c.click();
+      var m=d.querySelector('main'); c=d.querySelector('#suBody [data-kalblock="f1a"]'); if(m && c) m.scrollTop += c.getBoundingClientRect().top-190;
+    },
+    echtBlockNeu:function(fw){
+      var d=fw.document; v27Vorbereiten(fw); fw.oeffneDetail(null);
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; }
+    },
+    einstKorrekturen:function(fw){
+      var d=fw.document; v27Vorbereiten(fw);
+      var dat=fw.anVorTage(fw.heuteApp(),1);   // relativ zum App-Tag (der Bestand hat einen seit Tagen offenen Tag)
+      fw.syncImport(JSON.stringify({ appVersion:'2.7.0', karten:[], korrekturen:[
+        { datum:dat, grund:'Kranbesprechung am Vormittag nicht gestoppt', sitzungen:[{aktion:'hinzu', id:'s-h1', karteId:'a-3', von:'10:00', bis:'11:00'}],
+          positionen:[{aktion:'hinzu', ts:'10:05', x:0.5, y:0.4}], tag:{tagesStart:'08:10'} },
+        { datum:dat, grund:'Karte gibt es nicht', sitzungen:[{aktion:'hinzu', karteId:'gibtsnicht', von:'14:00', bis:'15:00'}] } ] }));
+      fw.setTab('einst'); var m=d.querySelector('main'), z=d.querySelector('.einst-korrekturen'); if(m && z) m.scrollTop += z.getBoundingClientRect().top-150;
+    },
     /* ══ v2.6 · Screenshots: Statusleiste, Tempo-Leiste, Matrix-Spur, Geld-Regler ══ */
     echtTempo:function(fw){
       var d=fw.document; v26Vorbereiten(fw);
@@ -1759,6 +1780,61 @@ function bestandSchreiben(){
           pruef(ls.geld260===true && ls.urlaub260===true, 'v2.6: Migrationen nicht gelaufen');
           fw.setTab('suche');
         })();
+        /* ══ v2.7 · KALENDER-BLOECKE UND BLOCK-AUSWAHL — elementFromPoint ══ */
+        (function(){
+          function mitte(e){ var r=e.getBoundingClientRect(); return {x:Math.round(r.left+r.width/2), y:Math.round(r.top+Math.min(r.height/2,22))}; }
+          function tippe(e, wie){
+            if(!e){ pruef(false,'v2.7: '+wie+' fehlt'); return null; }
+            e.scrollIntoView({block:'center'});
+            var m=mitte(e), hit=d.elementFromPoint(m.x,m.y);
+            pruef(hit && (hit===e || e.contains(hit)), 'v2.7: '+wie+' verdeckt von '+beschreib(hit));
+            if(hit){ if(typeof hit.click==='function') hit.click(); else hit.dispatchEvent(new fw.MouseEvent('click',{bubbles:true})); }
+            return hit;
+          }
+          freiMachen(); fw.setTab('suche');
+          var r=fw.syncImport(JSON.stringify(v27Paket(fw)));
+          klick('[data-susicht="heute"]');
+          var e1=[].slice.call(d.querySelectorAll('#suBody .kal-block')).filter(function(b){ return ['morgen','fokus1','senke','fokus2','erholung','abschluss'].indexOf(b.dataset.kalblock)>=0; });
+          finding('echt · v2.7 §1 Kalender: '+e1.length+' Blöcke Ebene 1 · '+e1.map(function(b){ return (b.querySelector('.kb-t')||{}).textContent+' ('+((b.querySelector('.kb-m b')||{}).textContent||'?')+'/'+(((b.querySelector('.kb-m')||{}).textContent||'').match(/\/(\d+)/)||['',''])[1]+')'; }).join(' · ')+
+                  ' · laufend „'+((d.querySelector('#suBody .kal-block.laeuft .kb-t')||{}).textContent||'—')+'" · abgewiesen '+(r.uebersprungen||[]).length);
+          pruef(e1.length===6, 'v2.7 §1: nicht sechs Blöcke der ersten Ebene');
+          e1.forEach(function(b){ var hr=b.getBoundingClientRect(); pruef(hr.height>=44, 'v2.7 §1: Block '+b.dataset.kalblock+' niedriger als 44 px');
+            var t=b.querySelector('.kb-t'); if(t) pruef(t.scrollWidth<=t.clientWidth+1, 'v2.7 §1: Name '+t.textContent+' abgeschnitten'); });
+          pruef(!!d.querySelector('#suBody .kal-jetzt'), 'v2.7 §1: Jetzt-Linie fehlt');
+          pruef(/Ohne Block · \d+/.test(d.getElementById('suBody').textContent), 'v2.7 §1: Liste „Ohne Block" fehlt');
+          /* Tipp auf den Oberblock → Unterbloecke */
+          tippe(d.querySelector('#suBody [data-kalblock="fokus1"]'),'Block DFM-Fokus 1');
+          var kinder=d.querySelectorAll('#suBody [data-kalblock="f1a"],#suBody [data-kalblock="f1b"],#suBody [data-kalblock="f1c"]');
+          finding('echt · v2.7 §1 nach Tipp auf „DFM-Fokus 1": Schiene '+(!!d.querySelector('#suBody .kal-block.schiene'))+' · Unterblöcke '+kinder.length);
+          pruef(kinder.length===3 && !!d.querySelector('#suBody .kal-block.schiene'), 'v2.7 §1: Unterblöcke klappen nicht auf');
+          /* Tipp auf die unterste Ebene → nur ihre Karten */
+          tippe(d.querySelector('#suBody [data-kalblock="f1a"]'),'Unterblock Angebote');
+          var pan=d.querySelector('#suBody .kb-auf'), ids=pan?[].slice.call(pan.querySelectorAll('[data-kid]')).map(function(x){ return x.dataset.kid; }).filter(function(v,i,a){ return a.indexOf(v)===i; }):[];
+          finding('echt · v2.7 §1 Tipp auf „Angebote": Karten '+ids.join(', '));
+          pruef(ids.join(',')==='a-1,a-2', 'v2.7 §1: der Block zeigt nicht NUR seine Karten ('+ids.join(',')+')');
+          var zeile=pan?pan.querySelector('[data-kid="a-1"]'):null;
+          tippe(zeile,'Karte a-1 im Block');
+          pruef(fw.fokusAngezeigtId()==='a-1', 'v2.7 §1: Tipp auf die Karte öffnet sie nicht ('+fw.fokusAngezeigtId()+')');
+          var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+          /* Block-Auswahl im Anlege-Dialog */
+          freiMachen(); fw.setTab('suche'); fw.oeffneDetail(null); sheetRuhe();
+          var on=d.querySelector('#sheetBody [data-chip="block"].on');
+          finding('echt · v2.7 §1.5 Anlege-Dialog: '+d.querySelectorAll('#sheetBody [data-chip="block"]').length+' Block-Chips · vorausgewählt „'+(on?on.textContent:'—')+'"');
+          pruef(on && on.dataset.val==='f1c', 'v2.7 §1.5: laufender Block (Kalkulation) nicht vorausgewählt');
+          tippe(d.querySelector('#sheetBody [data-chip="block"][data-val="f1a"]'),'Block-Chip Angebote'); sheetRuhe();
+          pruef(!!d.querySelector('#sheetBody [data-chip="block"][data-val="f1a"].on'), 'v2.7 §1.5: Block-Wahl wirkt nicht');
+          var ti=d.querySelector('#sheetBody [data-bind="titel"]'); if(ti){ ti.value='Harness-Block v2.7'; ti.dispatchEvent(new fw.Event('input',{bubbles:true})); }
+          var sv=d.querySelector('#sheetFoot [data-detailaktion="speichern"]'); if(sv) sv.click();
+          var neu=null; try{ neu=JSON.parse(localStorage.getItem('fokus2_karten')).filter(function(k){ return k.titel==='Harness-Block v2.7'; })[0]; }catch(e){}
+          finding('echt · v2.7 §1.5 gespeichert: block='+(neu?neu.block:'—'));
+          pruef(neu && neu.block==='f1a', 'v2.7 §1.5: neue Karte liegt nicht im gewählten Block');
+          zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+          freiMachen(); fw.setTab('suche'); klick('[data-susicht="heute"]');
+          var f1=d.querySelector('#suBody [data-kalblock="fokus1"]'); if(f1 && f1.getAttribute('aria-expanded')!=='true') f1.click();
+          var a=d.querySelector('#suBody [data-kalblock="f1a"]'); if(a && !a.classList.contains('offen')) a.click();
+          pruef(/Harness-Block v2\.7/.test((d.querySelector('#suBody .kb-auf')||{}).textContent||''), 'v2.7 §1.5: neue Karte erscheint nicht im Block');
+          freiMachen(); fw.setTab('suche');
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
@@ -1774,6 +1850,29 @@ function bestandSchreiben(){
     function abschluss2(){ abschluss(); }
   }
 
+  /* v2.7: ein Block-Paket (zwei Ebenen) um die aktuelle Uhrzeit — Namen wie Pascals Tag */
+  function v27Paket(fw){
+    var n=new Date(), h0=Math.max(6, Math.min(18, n.getHours()+n.getMinutes()/60));
+    return { appVersion:'2.7.0', tagesRahmen:[
+      {id:'morgen', name:'Morgen', von:h0-5, bis:h0-3.5, typ:'privat'},
+      {id:'fokus1', name:'DFM-Fokus 1', von:h0-3.5, bis:h0+0.5, typ:'dfm'},
+        {id:'f1a', name:'Angebote', von:h0-3.5, bis:h0-1.5, parent:'fokus1'},
+        {id:'f1b', name:'Mails', von:h0-1.5, bis:h0-1, parent:'fokus1'},
+        {id:'f1c', name:'Kalkulation', von:h0-1, bis:h0+0.5, parent:'fokus1'},
+      {id:'senke', name:'Senke', von:h0+0.5, bis:h0+1.5, typ:'privat'},
+      {id:'fokus2', name:'DFM-Fokus 2', von:h0+1.5, bis:h0+4, typ:'dfm'},
+      {id:'erholung', name:'Erholung', von:h0+4, bis:h0+5.5, typ:'privat'},
+      {id:'abschluss', name:'Abschluss', von:h0+5.5, bis:h0+6, typ:'privat'} ],
+      karten:[ {id:'a-1', block:'f1a'}, {id:'a-2', block:'f1a'}, {id:'a-4', block:'f1b'}, {id:'a-5', block:'f1c'}, {id:'a-7', block:'f1c'},
+               {id:'a-8', block:'fokus2'}, {id:'r-12', block:'senke'}, {id:'r-zaehne', block:'morgen'} ] };
+  }
+  function v27Vorbereiten(fw){
+    var d=fw.document;
+    d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
+    var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
+    fw.closeSheet(); fw.syncImport(JSON.stringify(v27Paket(fw)));
+    fw.setTab('suche'); var b=d.querySelector('[data-susicht="heute"]'); if(b) b.click();
+  }
   /* v2.6: gelebter Bestand + gespreizte Positionen fuer die Screenshots */
   function v26Vorbereiten(fw){
     var d=fw.document;
@@ -1807,7 +1906,7 @@ function bestandSchreiben(){
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
-  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender'||VIEW==='echtTempo'||VIEW==='echtMatrixSpur'||VIEW==='statistikOben'||VIEW==='echtGeld')
+  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender'||VIEW==='echtTempo'||VIEW==='echtMatrixSpur'||VIEW==='statistikOben'||VIEW==='echtGeld'||VIEW==='echtBloecke'||VIEW==='echtBloeckeAuf'||VIEW==='echtBlockNeu'||VIEW==='einstKorrekturen')
      ? bestandSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);
