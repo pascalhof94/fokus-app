@@ -104,16 +104,18 @@ ok('4 Akku und Position sind orthogonal (Position aendert Akku nicht)', S.tag.ak
 kopf('§2 Punkte (Abnahme 5-6)');
 frisch();
 /* Kalibrier-Beleg: Feld „Ziele" = 1,0 reproduziert die alte Arithmetik exakt,
-   weil komplex/energie/blockade im Bestand auf 1,0 standen. */
-var kZiel=neueKarte({domain:'dfm', sollMin:45, matrixFeld:'ziel'});
+   weil komplex/energie/blockade im Bestand auf 1,0 standen.
+   v2.9.1 §1: Die Karten tragen Ist = Soll — gebucht wird nur noch Ist-Zeit
+   (vorher rechneten diese Belege ueber den Soll-Rueckfall, den es nicht mehr gibt). */
+var kZiel=neueKarte({domain:'dfm', sollMin:45, istSek:45*60, matrixFeld:'ziel'});
 var altFormel=45/60 * num(S.settings.basisProStdDfm) * 1*1*1 * num(S.settings.zeitGewicht);
 ok('5 BELEG: Zielkarte rechnet EXAKT wie v1.13.4 ('+Math.round(altFormel)+' P)',
    Math.abs(kartePunkte(kZiel)-altFormel)<0.01);
-var kPrv=neueKarte({domain:'privat', sollMin:30, matrixFeld:'ziel'});
+var kPrv=neueKarte({domain:'privat', sollMin:30, istSek:30*60, matrixFeld:'ziel'});
 ok('5 BELEG: dito privat ('+Math.round(kartePunkte(kPrv))+' P)',
    Math.abs(kartePunkte(kPrv) - 30/60*num(S.settings.basisProStdPrivat)*num(S.settings.zeitGewicht))<0.01);
 ok('5 Feldfaktoren wirken (Ziel > Zustand > Werkzeug > Ablenkung)', (function(){
-     var p=function(f){ return kartePunkte(neueKarte({domain:'privat', sollMin:30, matrixFeld:f})); };
+     var p=function(f){ return kartePunkte(neueKarte({domain:'privat', sollMin:30, istSek:30*60, matrixFeld:f})); };
      return p('ziel')>p('zustand') && p('zustand')>p('werkzeug') && p('werkzeug')>p('ablenkung') && p('ablenkung')===0; })());
 ok('5 Bewegungsbonus: ganz links → ganz rechts = voller Satz',
    Math.round(bewegungsBonusBerechnen({x:-1},{x:1}))===num(S.settings.bewegungsBonus,500));
@@ -142,8 +144,9 @@ ok('5 Bewegung nach LINKS gibt keinen Bonus (nie negativ)',
   ok('N1 BELEG: schneller als geplant bucht auch weniger ('+Math.round(kartePunkte(kurz))+' P)',
      kartePunkte(kurz)<kartePunktePrognose(kurz));
   var nie=neueKarte({domain:'dfm', sollMin:60, matrixFeld:'ziel', istSek:0});
-  ok('N1 Rueckfall: ohne jede Ist-Zeit gilt Soll (vergessener Timer kostet nicht alles)',
-     Math.abs(kartePunkte(nie)-60/60*num(S.settings.basisProStdDfm)*num(S.settings.zeitGewicht))<0.01);
+  // v2.9.1 §1 (Befund 26.09.): der Rueckfall auf Soll ist entfallen — er buchte die Prognose
+  ok('N1 (v2.9.1) KEIN Rueckfall mehr: ohne jede Ist-Zeit bringt die Zeit 0, die Prognose bleibt Prognose',
+     kartePunkte(nie)===0 && kartePunktePrognose(nie)>0);
   ok('N1 Die Prognose traegt KEINEN Bewegungsbonus',
      Math.abs(kartePunktePrognose(neueKarte({domain:'dfm',sollMin:60,matrixFeld:'ziel',bewegungsBonus:400}))
               - (erwartetProg+400)) > 1);
@@ -525,8 +528,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.9.0 · Build gesetzt', VERSION==='2.9.0' && UI_VERSION==='v2.9.0' &&
-   APP_BUILD==='2026-09-26-1');
+ok('31 APP_VERSION 2.9.1 · Build gesetzt', VERSION==='2.9.1' && UI_VERSION==='v2.9.1' &&
+   APP_BUILD==='2026-09-27-1');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -1145,6 +1148,8 @@ function ampelMit(istP, normP, n, weVergleich){
   tage.forEach(function(t){ S.intraday.push({ts:t+'T07:00:00', punkte:normP, minuten:30, domaene:'dfm', kartenId:'x'}); });
   // heute: Punkte vor jetzt
   S.intraday.push({ts:new Date(Date.now()-60000).toISOString(), punkte:istP, minuten:30, domaene:'dfm', kartenId:'x'});
+  // v2.9.1 §3: „heute" ist der Tagesstand, nicht das Log — die Karte, die ihn traegt
+  S.karten=[neueKarte({id:'x', domain:'dfm', status:'erledigt', tagId:aktuelleTagId(), punkteOverride:istP})];
   S.tag.startTs=new Date(Date.now()-6*3600000).toISOString();
   return tagesAmpel();
 }
@@ -1380,6 +1385,7 @@ function progTest(akkuHeute, mitAkku){
     if(mitAkku) S.historie.push({tagId:d+'-1', datum:d, punkteBilanz:3000, luecke:false, akkuVerlauf:[{ts:zeit(d,-60), akku:50}]});
   });
   S.intraday.push({ts:new Date(Date.now()-60000).toISOString(), punkte:500, minuten:30, domaene:'dfm', kartenId:'x'});
+  S.karten=[neueKarte({id:'x', domain:'dfm', status:'erledigt', tagId:aktuelleTagId(), punkteOverride:500})];   // v2.9.1 §3: der Tagesstand
   S.tag.startTs=new Date(Date.now()-6*3600000).toISOString(); S.tag.akku=akkuHeute;
   return prognoseHeute();
 }
@@ -1939,7 +1945,9 @@ var rL=karteVomGeraet('g2','detail');
 ok('§4 nur ohne laufende Uhr', rL.ok===false && /Uhr läuft/.test(rL.grund) && kid('g2'));
 var rG=karteVomGeraet('g1','detail');
 ok('§4 Karte weg (auch aus Kette und Unteraufgaben), Historie und Intraday bleiben', rG.ok && !kid('g1') && tagesKette().indexOf('g1')<0 &&
-   !S.unteraufgaben.some(function(u){ return u.parentId==='g1'; }) && S.historie[0].log[0].itemId==='g1' && S.intraday.length===1);
+   !S.unteraufgaben.some(function(u){ return u.parentId==='g1'; }) && S.historie[0].log[0].itemId==='g1' &&
+   // v2.9.1 §4: der Abgleich traegt die Punkte der 30-Min-Sitzung nach — der Eintrag selbst bleibt
+   S.intraday.some(function(e){ return e.id==='s-1' && e.minuten===30; }));
 var exG=syncExport('delta');
 print('   Export: '+JSON.stringify({ vomGeraetGenommen:exG.vomGeraetGenommen.map(function(x){ return {id:x.id, airtableId:x.airtableId, titel:x.titel, ts:'…'}; }) }));
 ok('§4 Export meldet vomGeraetGenommen mit id, airtableId, titel, Zeitpunkt', exG.vomGeraetGenommen.length===1 && exG.vomGeraetGenommen[0].id==='g1' &&
@@ -2192,6 +2200,194 @@ ok('§6 Import setzt Pflicht und einzelne Werte', kv.pflicht===true && kv.pflich
 oeffneDetail(null); entwurf.titel='Katzen füttern (umbenannt)'; wdhUebernehmen('vs1');
 ok('§6 „↻ Von … übernehmen" übernimmt Pflicht mit allen Werten', entwurf.pflicht===true && entwurf.pflichtWert===45 && entwurf.pflichtDeckel===15 && entwurf.pflichtAbzug===10 && entwurf.pflichtMin===-10);
 closeSheet();
+
+/* ══ v2.9.1 · HOTFIX „Abhaken bucht Prognose mit" ═══════════════════════
+   Befund 26.09.: beim Abhaken ohne gelaufene Uhr buchte die App die
+   Prognose (Soll-Rueckfall in kartePunkte) plus Bonus/Pflicht-Wert. */
+kopf('v2.9.1 §1 · Abhaken bucht nur, was heute verdient wurde');
+function kid291(id){ return S.karten.filter(function(k){ return k.id===id; })[0]; }
+function logKarte(id){ return Math.round(S.intraday.filter(function(e){ return e.kartenId===id && e.typ!=='schub' && logGehoertZuTag(e); }).reduce(function(a,e){ return a+num(e.punkte); },0)*10)/10; }
+function logS(t){ return Math.round(logSummeTag(t)*10)/10; }
+function bilanz(){ return Math.round(ohneLaufendeUhr(function(){ return tagesPunkteLive(); })*10)/10; }
+/* Zeitpunkte eines Satzes so waehlen, dass die Prognose genau `ziel` betraegt */
+function aufPrognose(k, ziel){ k.punkteProStd=0; var p0=kartePunktePrognose(k); k.punkteProStd=1; var p1=kartePunktePrognose(k); k.punkteProStd=(ziel-p0)/(p1-p0); return k; }
+frisch();
+S.karten=[
+  aufPrognose(neueKarte({id:'kz', domain:'privat', titel:'Katzen füttern', rhythmus:{typ:'taeglich'}, nurAbhaken:true, sollMin:30, matrixFeld:'werkzeug', faelligkeit:H()}), 400),
+  aufPrognose(neueKarte({id:'kk', domain:'privat', titel:'Kaffee trinken', rhythmus:{typ:'taeglich'}, nurAbhaken:true, sollMin:5, abhakbonus:25, matrixFeld:'werkzeug', faelligkeit:H()}), 82) ];
+var kz=kid291('kz'), kk=kid291('kk');
+var exKz=kartenAbbildVoll(kz, []);
+print('   unberührt: '+JSON.stringify({titel:kz.titel, punkteIst:exKz.punkteIst, punktePrognose:exKz.punktePrognose}));
+ok('§1 unberührte Karte: punkteIst 0, die Prognose (400) steht nur in punktePrognose', exKz.punkteIst===0 && exKz.punktePrognose===400 && kartePunkte(kz)===0);
+kz.pflicht=true; kz.pflichtWert=25; kz.pflichtDeckel=30; kz.pflichtAbzug=10; kz.pflichtMin=0;
+leisteAbhaken('kz');
+var abZ=kz.abschluesse[kz.abschluesse.length-1];
+print('   Katzen füttern (Prognose 400, Pflicht 25) → Haken bucht '+kartePunkteHeute(kz)+' · punkteIstVorher '+abZ.punkteIstVorher+' · Log '+logKarte('kz'));
+ok('§5 BELEG unberührte Routine, Prognose 400, Pflicht 25, Haken → 25 (vorher 400 + 25 = 425)', Math.round(kartePunkteHeute(kz))===25 && logKarte('kz')===25 && abZ.punkteIstVorher===25 && abZ.echt===true);
+leisteAbhaken('kk');
+print('   Kaffee trinken (Prognose '+Math.round(57+25)+' = Zeit 57 + Bonus 25) → Haken bucht '+kartePunkteHeute(kk));
+ok('§1 BELEG Kaffee trinken: Haken ohne Uhr → nur der Bonus 25 (vorher 57 + 25 = 82)', Math.round(kartePunkteHeute(kk))===25 && logKarte('kk')===25);
+ok('§1 Tagesbilanz = 50 = Summe des Logs', bilanz()===50 && logS()===50);
+
+/* Routine mit 10 Minuten echter Uhr → Zeitpunkte + Bonus, ohne Prognose */
+frisch();
+S.karten=[neueKarte({id:'ke', domain:'privat', titel:'Essen machen', rhythmus:{typ:'taeglich'}, sollMin:30, matrixFeld:'werkzeug', faelligkeit:H()})];
+var ke=kid291('ke');
+var progE=kartePunktePrognose(ke), zeit10=punkteFuerZeit(ke,10)*num(S.settings.zeitGewicht), bonusE=abhakbonusDefault(ke);
+fokusStarten('ke'); S.fokus.startMs=Date.now()-10*60000;
+abhakDialog('ke');
+var basisE=abhakTmp.basis;
+closeSheet(); abhakTmp=null;
+leisteAbhaken('ke');
+var eTimer=S.intraday.filter(function(e){ return e.kartenId==='ke' && e.typ==='timer'; })[0], eHaken=S.intraday.filter(function(e){ return e.kartenId==='ke' && e.typ==='abhaken'; })[0];
+print('   Essen machen: Prognose '+Math.round(progE)+' · 10 Min Uhr = '+Math.round(zeit10)+' P + Bonus '+bonusE+' = '+Math.round(kartePunkteHeute(ke))+' · Sitzung '+eTimer.punkte+' P · Haken '+eHaken.punkte+' P');
+ok('§5 BELEG Routine mit 10 Min Uhr → Zeitpunkte + Bonus, ohne Prognose', Math.abs(kartePunkteHeute(ke)-(zeit10+bonusE))<0.6 && kartePunkteHeute(ke)<progE);
+ok('§1 der Abhak-Dialog belegt mit den echten 10 Minuten vor, nicht mit der Prognose', Math.abs(basisE-zeit10)<1);
+ok('§4 die Sitzung trägt ihre Zeitpunkte, der Haken den Bonus', Math.abs(eTimer.punkte-zeit10)<0.2 && Math.abs(eHaken.punkte-bonusE)<0.6 && eTimer.minuten===10);
+
+/* Pflicht-Karte ueber dem Deckel → Ertrag nach Pflicht-Formel */
+frisch();
+S.karten=[neueKarte({id:'kt', domain:'privat', titel:'Toilette', rhythmus:{typ:'taeglich'}, nurAbhaken:true, matrixFeld:'werkzeug', faelligkeit:H(),
+  pflicht:true, pflichtWert:50, pflichtDeckel:30, pflichtAbzug:10, pflichtMin:-20})];
+fokusStarten('kt'); S.fokus.startMs=Date.now()-52*60000;
+leisteAbhaken('kt');
+var kt=kid291('kt');
+print('   Toilette 52 Min (Wert 50, Deckel 30, −10 je angefangene 10 Min) → '+kartePunkteHeute(kt)+' · Log '+logKarte('kt'));
+ok('§5 BELEG Pflicht über dem Deckel (52 Min) → 50 − 3×10 = 20, im Log dasselbe', kartePunkteHeute(kt)===20 && logKarte('kt')===20 && bilanz()===20);
+frisch();
+S.karten=[neueKarte({id:'kt', domain:'privat', titel:'Toilette', rhythmus:{typ:'taeglich'}, nurAbhaken:true, matrixFeld:'werkzeug', faelligkeit:H(),
+  pflicht:true, pflichtWert:50, pflichtDeckel:30, pflichtAbzug:10, pflichtMin:-20})];
+fokusStarten('kt'); S.fokus.startMs=Date.now()-95*60000;
+leisteAbhaken('kt');
+kt=kid291('kt');
+ok('§1 BELEG negativer Pflicht-Ertrag bleibt auch abgehakt negativ (95 Min → −20, v2.9.0 kappte hier bei 0)', kartePunkteHeute(kt)===-20 && bilanz()===-20 && logS()===-20);
+
+/* Mehrtaegige Aufgabe: Zeit von Vortagen zaehlt nur an IHREN Tagen */
+frisch();
+S.karten=[neueKarte({id:'km', domain:'dfm', titel:'Angebot Kran', sollMin:120, matrixFeld:'ziel', faelligkeit:H(), istSek:60*60})];
+S.tag.istMinutenStart={km:60};
+var km=kid291('km');
+fokusStarten('km'); S.fokus.startMs=Date.now()-30*60000;
+leisteAbhaken('km');
+var zg=num(S.settings.zeitGewicht), heuteM=(punkteFuerZeit(km,90)-punkteFuerZeit(km,60))*zg+abhakbonusDefault(km);
+print('   Angebot Kran: gestern 60 Min, heute 30 Min → heute '+Math.round(kartePunkteHeute(km))+' P (Override der Karte '+Math.round(km.punkteOverride)+' P)');
+ok('§1 BELEG mehrtägige Aufgabe: heute zählen nur die 30 Min von heute + Bonus (vorher: alle 90 Min, weil der Override die Vortage trug)', Math.abs(kartePunkteHeute(km)-heuteM)<1 && Math.abs(logKarte('km')-kartePunkteHeute(km))<0.1);
+
+/* Wieder oeffnen eines Abschlusses von VOR dem Fix: keine Prognose zurueck */
+frisch();
+S.karten=[neueKarte({id:'kv', domain:'privat', titel:'Vitamine', rhythmus:{typ:'taeglich'}, nurAbhaken:true, sollMin:10, matrixFeld:'werkzeug', faelligkeit:H(),
+  status:'erledigt', tagId:aktuelleTagId(), punkteOverride:143, abschluesse:[{ts:jetztIso(), tagId:aktuelleTagId(), punkteIstVorher:128, istMinVorher:0, bonusPunkte:15}]})];
+karteAbhaken('kv');
+var kv=kid291('kv');
+ok('§1 Zurückholen eines Alt-Abschlusses (Uhr nie gelaufen) stellt die Prognose 128 NICHT wieder her', kv.status==='offen' && kv.punkteOverride===null && kartePunkte(kv)===0);
+leisteAbhaken('kv');
+ok('§1 … erneut abgehakt: 15 (Bonus), nicht 128 + 15', Math.round(kartePunkteHeute(kv))===abhakbonusDefault(kv) && bilanz()===logS());
+
+kopf('v2.9.1 §3 · Korrektur am laufenden Tag');
+function tagMitPrognose(){
+  frisch();
+  S.tag.startTs=new Date(Date.now()-8*3600000).toISOString();
+  S.karten=[
+    neueKarte({id:'a1', domain:'privat', titel:'Katzen füttern', rhythmus:{typ:'taeglich'}, status:'erledigt', tagId:aktuelleTagId(), punkteOverride:482, faelligkeit:H()}),
+    neueKarte({id:'a2', domain:'privat', titel:'Essen machen', rhythmus:{typ:'taeglich'}, status:'erledigt', tagId:aktuelleTagId(), punkteOverride:320, faelligkeit:H()}),
+    neueKarte({id:'a3', domain:'dfm', titel:'Angebot', status:'erledigt', tagId:aktuelleTagId(), punkteOverride:1000, faelligkeit:H()}) ];
+  renderAlles();   // der Abgleich traegt den Bestand ins Log (wie beim ersten Start nach dem Update)
+}
+tagMitPrognose();
+var vor=bilanz();
+syncImport(JSON.stringify({appVersion:'2.9.1', karten:[], korrekturen:[{ datum:S.tag.datum, grund:'Prognose beim Abhaken mitgebucht', tag:{punktePrivat:65} }]}));
+renderAlles(); renderStatusbar();
+var am=(function(){ _ampelMemo=null; return tagesAmpel(); })(), nz=normalZurUhrzeit('alle'), kurve=syncExport('delta').kurvenHeute.stunden, zi=zielUndIstHeute();
+print('   (Tempo '+Math.round(paceWerte().ist)+' · Normal '+Math.round(nz.ist)+')');
+print('   offen: vorher '+vor+' → nachher '+bilanz()+' · Leiste Pv '+el('sPhPrv').textContent+' · heute '+el('fkRight').innerHTML.replace(/<[^>]+>/g,' ').trim()+' · Ampel '+Math.round(am.ist)+' · Tagesziel '+Math.round(zi.ist)+' · Kurve '+kurve[kurve.length-1].ist+' · Log '+logS());
+ok('§5 BELEG offener Tag: 1.802 → 1.065 — Statusleiste, „heute", Ampel, Tempo, Tagesziel-Ring und Kurve zeigen den korrigierten Wert',
+   vor===1802 && bilanz()===1065 && String(el('sPhPrv').textContent)==='65' && /<div class="pt">1065</.test(el('fkRight').innerHTML) &&
+   Math.round(am.ist)===1065 && Math.round(nz.ist)===1065 && Math.round(zi.ist)===1065 && kurve[kurve.length-1].ist===1065 && Math.round(paceWerte().ist)===1065);
+ok('§4 die Korrektur steht im Stunden-Log (Tagesbilanz = Summe des Logs)', logS()===1065);
+
+/* Pascals Fall 26.09. 23:53: Tag schon abgeschlossen, Korrektur landet im Snapshot */
+tagMitPrognose();
+tagAbschlussFinalisieren();
+var konto0=num(S.meta.muenzenGesamt);
+syncImport(JSON.stringify({appVersion:'2.9.1', karten:[], korrekturen:[{ datum:S.tag.datum, grund:'Prognose beim Abhaken mitgebucht', tag:{punktePrivat:65} }]}));
+renderFokusleiste(); _ampelMemo=null;
+var prot=S.meta.korrekturProtokoll[S.meta.korrekturProtokoll.length-1], am2=tagesAmpel();
+print('   abgeschlossen: Protokoll '+prot.vorher.punkte+' → '+prot.nachher.punkte+' · '+prot.aenderungen.join(' · ')+' · „heute" '+el('fkRight').innerHTML.replace(/<[^>]+>/g,' ').trim()+' · Ampel '+Math.round(am2.ist));
+ok('§5 BELEG abgeschlossener Tag (der Fall vom 26.09.): Protokoll 1.802 → 1.065, Konto zurückgebucht — und „heute" zeigt 1.065 statt 1.802',
+   prot.vorher.punkte===1802 && prot.nachher.punkte===1065 && num(S.meta.muenzenGesamt)<konto0 &&
+   /<div class="pt">1065</.test(el('fkRight').innerHTML) && Math.round(tagesPunkteLive())===1065 && Math.round(zielUndIstHeute().ist)===1065);
+ok('§3 auch Ampel und Stunden-Log des abgeschlossenen Tags stehen auf dem korrigierten Wert', Math.round(am2.ist)===1065 && logS(S.tag)===1065);
+
+kopf('v2.9.1 §4 · Jede Punktebuchung steht im Stunden-Log');
+frisch();
+S.tag.startTs=new Date(Date.now()-8*3600000).toISOString();
+S.karten=[
+  neueKarte({id:'r1', domain:'privat', titel:'Zähne', rhythmus:{typ:'taeglich'}, nurAbhaken:true, faelligkeit:H()}),
+  neueKarte({id:'r2', domain:'privat', titel:'Wecker', rhythmus:{typ:'taeglich'}, nurAbhaken:true, faelligkeit:H()}),
+  neueKarte({id:'c1', domain:'privat', titel:'Wasser', ticksAktiv:true, tickWert:7, faelligkeit:H()}),
+  neueKarte({id:'o1', domain:'dfm', titel:'Offene Arbeit', sollMin:60, matrixFeld:'ziel', faelligkeit:H()}),
+  neueKarte({id:'o2', domain:'dfm', titel:'Mit Unteraufgabe', sollMin:30, matrixFeld:'ziel', faelligkeit:H()}),
+  neueKarte({id:'s1', domain:'dfm', titel:'Wird geschoben', sollMin:30, faelligkeit:H()}),
+  neueKarte({id:'s2', domain:'dfm', titel:'Wird im Abschluss geschoben', sollMin:30, faelligkeit:H()}),
+  neueKarte({id:'w1', domain:'privat', titel:'Wieder geöffnet', rhythmus:{typ:'taeglich'}, nurAbhaken:true, faelligkeit:H()}),
+  neueKarte({id:'x1', domain:'dfm', titel:'Nur ausgewählt', sollMin:10, matrixFeld:'ziel', faelligkeit:H()}) ];
+S.unteraufgaben=[neueUnteraufgabe('o2',{id:'u1', titel:'Teil', bonusPunkte:40})];
+S.routinenGruppen=[{id:'g1', name:'Morgen', domain:'privat', mitglieder:['r1','r2'], komplettBonus:30, bonusTag:null}];
+leisteAbhaken('r1'); leisteAbhaken('r2');                          // Haken + Gruppen-Komplettbonus
+karteTick('c1'); karteTick('c1');                                   // Ticks
+fokusStarten('o1'); S.fokus.startMs=Date.now()-25*60000; fokusZeitEinbuchen();   // Sitzung, Karte bleibt offen
+fokusStarten('o2'); S.fokus.startMs=Date.now()-5*60000; fokusZeitEinbuchen();
+kid291('o2') && (S.unteraufgaben[0].done=true); buchungAbgleich(kid291('o2'),'unteraufgabe');   // Unteraufgabe an offener Karte
+schubProtokoll(kid291('s1'), anVorTage(H(),-1), 40);                // Schieben mit Abzug (Detail)
+karteSchieben(kid291('s2'), anVorTage(H(),-1), null, 30);          // Schieben im Abschluss (abzuegeBilanz)
+leisteAbhaken('w1'); karteAbhaken('w1');                            // abgehakt und wieder geöffnet
+fokusStarten('x1'); S.fokus.laeuft=false;          // nur ausgewählt, Uhr nie gelaufen
+var ausgleich=S.intraday.filter(function(e){ return e.typ==='ausgleich'; }).length;
+renderAlles();
+var typen={}; S.intraday.forEach(function(e){ if(logGehoertZuTag(e) && num(e.punkte)) typen[e.typ]=Math.round(((typen[e.typ]||0)+num(e.punkte))*10)/10; });
+print('   Log nach Typ: '+JSON.stringify(typen)+' · Bilanz '+bilanz()+' · Log '+logS());
+ok('§5 BELEG Tagesbilanz = Summe des Logs (Haken, Gruppenbonus, Ticks, Sitzungen offener Karten, Unteraufgabe, zwei Arten Schieben, Wiederöffnen)', bilanz()===logS() && bilanz()!==0);
+ok('§4 jede Buchung schreibt ihre eigene Zeile — kein Ausgleich nötig', ausgleich===0 && S.intraday.filter(function(e){ return e.typ==='ausgleich'; }).length===0);
+ok('§4 Gruppenbonus und Schiebe-Abzug stehen im Log (vorher fehlten sie)', typen.gruppenbonus===30 && typen.schub===-70);
+ok('§4 eine nur ausgewählte, nie gestartete Karte bringt 0 (vorher: ihre Prognose in der Bilanz, aber nicht im Log)', kartenBeitragHeute(kid291('x1'))===0);
+ok('§4 Sitzungen tragen ihre Punkte (25 Min offene Arbeit)', S.intraday.filter(function(e){ return e.kartenId==='o1' && e.typ==='timer'; })[0].punkte>0);
+/* Aenderung ohne eigene Buchung (Einstellung) → Ausgleich beim naechsten Rendern */
+S.settings.basisProStdDfm=num(S.settings.basisProStdDfm)*2; renderAlles();
+ok('§4 eine Einstellung ändert die Bilanz → renderAlles gleicht als „ausgleich" ab, Bilanz = Log', bilanz()===logS() && S.intraday.some(function(e){ return e.typ==='ausgleich'; }));
+/* Vom Geraet nehmen: heute gebuchte Punkte bleiben */
+var vorVG=bilanz(); karteVomGeraet('r1','detail');
+ok('§4 Vom Gerät nehmen: die heute gebuchten Punkte bleiben in Bilanz und Log', bilanz()===vorVG && logS()===vorVG);
+var exA=syncExport('delta');
+print('   Export logAbgleichHeute: '+JSON.stringify({bilanz:exA.logAbgleichHeute.bilanz, stundenLog:exA.logAbgleichHeute.stundenLog, differenz:exA.logAbgleichHeute.differenz, ausgleich:exA.logAbgleichHeute.ausgleich.length+' Zeile(n)'}));
+ok('§4 Export meldet Bilanz, Stunden-Log und Differenz des Tages', exA.logAbgleichHeute.differenz===0 && exA.logAbgleichHeute.bilanz===bilanz());
+/* Tagesabschluss: Snapshot-Bilanz = Log des Tages */
+tagAbschlussFinalisieren();
+ok('§4 Tagesabschluss: Bilanz des Snapshots = Summe des Logs des Tages', Math.round(S.historie[S.historie.length-1].punkteBilanz)===Math.round(logS(S.tag)));
+
+kopf('v2.9.1 §2 · Rückblick seit v2.8.0');
+frisch();
+S.meta.prognoseFixAb='2026-09-27';
+var kR=neueKarte({id:'kr', domain:'privat', titel:'Katzen füttern', rhythmus:{typ:'taeglich'}, sollMin:30, punkteProStd:5000, matrixFeld:'werkzeug',
+  abschluesse:[{ts:'2026-09-26T08:00:00.000Z', tagId:'2026-09-26', punkteIstVorher:482, istMinVorher:0, bonusPunkte:25}]});   // wie im Export vom 26.09.: der Prognosewert inkl. Bonus
+var kR2=neueKarte({id:'kr2', domain:'privat', titel:'Toilette', rhythmus:{typ:'taeglich'}, sollMin:15, matrixFeld:'werkzeug',
+  abschluesse:[{ts:'2026-09-26T09:00:00.000Z', tagId:'2026-09-26', punkteIstVorher:252, istMinVorher:27, bonusPunkte:15}]});
+S.karten=[kR, kR2];
+S.historie=[{tagId:'2026-09-26', datum:'2026-09-26', punkteBilanz:2825, startTs:'2026-09-26T05:00:00.000Z', endeTs:'2026-09-26T21:00:00.000Z', luecke:false,
+  log:[{itemId:'kr', titel:'Katzen füttern', domain:'privat', art:'Routine', punkte:482, ts:'2026-09-26T08:00:00.500Z'},
+       {itemId:'kr2', titel:'Toilette', domain:'privat', art:'Routine', punkte:267, ts:'2026-09-26T09:00:00.500Z'}], matrixSpur:[]}];
+S.intraday=[{ts:'2026-09-26T08:00:00.600Z', kartenId:'kr', domaene:'privat', punkte:482, minuten:0, typ:'abhaken'},
+            {ts:'2026-09-26T09:00:00.600Z', kartenId:'kr2', domaene:'privat', punkte:267, minuten:0, typ:'abhaken'}];
+var rb=syncExport('delta').rueckblickPrognose, t26=rb.filter(function(t){ return t.datum==='2026-09-26'; })[0];
+print('   Rückblick 26.09.: '+JSON.stringify({datum:t26.datum, bilanz:t26.bilanz, stundenLog:t26.stundenLog, prognoseSumme:t26.prognoseSumme, karten:t26.karten.map(function(x){ return {titel:x.titel, gebucht:x.gebucht, imStundenLog:x.imStundenLog, davonPrognose:x.davonPrognose, istMin:x.istMin}; })}));
+ok('§2 Rückblick: Katzen füttern gebucht 482, davon Prognose 457 (Uhr nie gelaufen)', t26.karten[0].karteId==='kr' && t26.karten[0].gebucht===482 && t26.karten[0].davonPrognose===457 && t26.karten[0].imStundenLog===482);
+ok('§2 Rückblick: Toilette lief 27 Min — kein Prognose-Anteil', t26.karten[1].davonPrognose===0 && t26.karten[1].istMin===27);
+ok('§2 Rückblick je Tag: Bilanz, Stunden-Log, Differenz, Summe der Prognose-Anteile', t26.bilanz===2825 && t26.stundenLog===749 && t26.differenz===2076 && t26.prognoseSumme===457 && t26.prognosePrivat===457);
+syncImport(JSON.stringify({appVersion:'2.9.1', karten:[], korrekturen:[{ datum:'2026-09-26', grund:'Prognose 457 bei Katzen füttern', tag:{punktePrivat:292} }]}));
+ok('§2 nach dem Korrektur-Paket steht die Korrektur im Rückblick des Tages', syncExport('delta').rueckblickPrognose.filter(function(t){ return t.datum==='2026-09-26'; })[0].korrekturen.length===1);
+var logKor=S.intraday.filter(function(e){ return e.typ==='korrektur-tag' && e.datum==='2026-09-26'; })[0];
+ok('§4 die Korrektur eines vergangenen Tags steht in DESSEN Stunden-Log (am Tagesende, nicht heute)', logKor && belFensterDatum(logKor.ts)==='2026-09-26' && logKor.punkte===-457);
+syncBestaetigen();
+ok('§2 … und nach dem bestätigten Sync fällt der Rückblick aus dem Export', syncExport('delta').rueckblickPrognose===undefined);
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

@@ -1733,9 +1733,9 @@ body{background:var(--bg)}
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.9.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.9.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-26-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.9.1';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.9.1';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-27-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1860,14 +1860,19 @@ function fmtVor(iso){ const m=minSeit(iso); if(!isFinite(m)) return '–'; if(m<
 function logIntraday(k, o){
   o=o||{};
   if(!Array.isArray(S.intraday)) S.intraday=[];
+  // §4 (v2.9.1): Punkte auf 0,001 genau (ganzzahlig — und selbst auf 0,1 —
+  // gerundet lief die Summe ueber viele Karten neben der Tagesbilanz her) und
+  // der App-Tag am Eintrag
   const e={ ts:jetztIso(), kartenId:k?k.id:null, domaene:k?k.domain:null,
-    punkte:Math.round(num(o.punkte)), minuten:Math.round(num(o.minuten)*10)/10, typ:o.typ||'?' };
+    punkte:logRund(o.punkte), minuten:Math.round(num(o.minuten)*10)/10, typ:o.typ||'?' };
+  if(S.tag && S.tag.tagId) e.tagId=S.tag.tagId;
   // §3 (v2.7.0): jede Sitzung bekommt eine id — der Chat kann sie korrigieren
   if(e.typ==='timer'||e.typ==='autopause'||e.typ==='nachtrag') e.id='s-'+uuid();
   if(o.ziel) e.ziel=String(o.ziel);   // §3.2 (v1.13.0): Schub-Ziel → „rein" am Zieltag
   S.intraday.push(e);
   if(S.intraday.length>20000) S.intraday=S.intraday.slice(-20000);   // Sicherungskappe
   DB.set('intraday', S.intraday);
+  return e;
 }
 function num(x, def){ const n=Number(x); return Number.isFinite(n)?n:(def===undefined?0:def); }
 function fmtDatum(iso){
@@ -2888,6 +2893,8 @@ function ladeAlles(){
   }
   // §2 (v2.9.0): Pflicht gilt ab dem Update — nachgetragene Sitzungen davor rechnen wie bisher
   if(!S.meta.pflicht290){ S.meta.pflichtAb=heuteApp(); S.meta.pflicht290=true; saveMeta(); }
+  // §2 (v2.9.1): bis zu diesem Tag reicht der Rueckblick (danach bucht die App ohne Prognose)
+  if(!S.meta.prognose291){ S.meta.prognoseFixAb=heuteApp(); S.meta.prognose291=true; saveMeta(); }
   // ══ §2 (v2.8.0) · ABHAKBONUS-TABELLE + DAEMPFUNG AB HEUTE ═════════════
   // Die Aufgaben-Spalte uebernimmt Pascals Geraetewerte je Matrixfeld. Stand
   // dort noch der alte Default (Zustand 150 · Werkzeug 100 · Ziel 0), gilt
@@ -3126,13 +3133,15 @@ function istSekLive(k){
      kartePunkte(k)          = ABSCHLUSS  → Ist  (diese Funktion)
      kartePunktePrognose(k)  = VORHERSAGE → Soll (§8, „was sie einbringt")
 
-   Rückfall auf Soll, wenn die Uhr NIE lief: sonst kostet ein vergessener
-   Timer die ganze Karte. Sobald Ist-Zeit vorliegt, gilt ausschließlich sie. */
+   §1 (v2.9.1): Der Rückfall auf Soll, wenn die Uhr NIE lief, ist ENTFALLEN.
+   Er machte aus jeder unberührten Karte ihre Prognose — und die wurde beim
+   Abhaken gebucht (26.09.: Katzen füttern 457 + 25 statt 25). Eine Prognose
+   fließt nie in eine Buchung: ohne Ist-Zeit bringt die Zeit 0 Punkte. Ein
+   vergessener Timer wird im Abhak-Dialog als Ist-Zeit nachgetragen. */
 function zeitquelleMin(k){
   // §2 (v2.7.0): feste Bewertung schlaegt alles — egal ob 3 oder 40 Minuten liefen
   if(k && k.festMin!=null && num(k.festMin)>0) return num(k.festMin);
-  const ist=istSekLive(k);
-  return ist>0 ? ist/60 : num(k.sollMin);
+  return istSekLive(k)/60;
 }
 function hatFestMin(k){ return !!(k && k.festMin!=null && num(k.festMin)>0); }
 /* §9 (v1.8.0): Die mehrstufige tickKurve ist abgelöst. Jeder Tick bucht den
@@ -3261,7 +3270,8 @@ function fokusZeitEinbuchen(){
   if(!S.fokus || !S.fokus.laeuft) return;
   const k=fokusKarte();
   const sek=(Date.now()-S.fokus.startMs)/1000;
-  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); logIntraday(k,{minuten:sek/60,typ:'timer'}); durchgangPause(k, sek); }   // v1.1: Akku-Drift; A7 berührt; B0 Log; §1 (v2.8.2) Durchgang pausiert
+  let _sitzung=null;
+  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); _sitzung=logIntraday(k,{minuten:sek/60,typ:'timer'}); durchgangPause(k, sek); }   // v1.1: Akku-Drift; A7 berührt; B0 Log; §1 (v2.8.2) Durchgang pausiert
   // §5 (v1.6.1) / §1 (v1.7.1): Beim Pausieren wird die bis dahin live angezeigte
   // Dauerlauf-Strafe festgeschrieben — DIESELBE Formel wie pausenStrafeLive,
   // dadurch springt der Wert beim Pausieren nicht. Reset des Zählers folgt
@@ -3269,6 +3279,9 @@ function fokusZeitEinbuchen(){
   if(k) k.strafPunkte=num(k.strafPunkte)+pausenStrafe(k, sek/60);
   S.fokus.sessionSek=num(S.fokus.sessionSek)+sek;               // v1.1: Session-Summe (v0.38-Port)
   S.fokus.laeuft=false; S.fokus.startMs=0;
+  // §4 (v2.9.1): die Sitzung traegt die Punkte, die sie der Tagesbilanz bringt
+  // (vorher stand sie mit 0 im Log, die Zeitpunkte erschienen erst beim Abhaken)
+  if(k && _sitzung) buchungAbgleich(k, _sitzung);
   akkuSampleSchreiben();                                        // v1.1: Energie-Stichprobe
   saveKarten(); saveFokus(); saveTag();
 }
@@ -3465,7 +3478,7 @@ function matrixPosSetzen(x, y, kid, anlass){
   if(k){
     const basis=k.posVorher||vorher;
     bonus=bewegungsBonusBerechnen(basis, {x,y});
-    if(bonus>0){ k.bewegungsBonus=num(k.bewegungsBonus)+bonus; beruehre(k); saveKarten(); }
+    if(bonus>0){ k.bewegungsBonus=num(k.bewegungsBonus)+bonus; beruehre(k); buchungAbgleich(k, 'bewegung'); saveKarten(); }   // §4 (v2.9.1)
     k.posVorher=null;
   }
   // §9-Lernspur: welche Karte hat WIE weit nach rechts gezogen. Global (nicht
@@ -3826,7 +3839,7 @@ function farbGruppe(k){
 function farbTreiber(k){
   const g=farbGruppe(k);
   if(g==='dfm')    return geldScoreVon(k);        // Geld-Score (§5 v2.6.0: live aus dem Impact)
-  if(g==='privat') return kartePunkte(k);         // Punkte-Prognose
+  if(g==='privat') return k.status==='offen' ? kartePunktePrognose(k) : kartePunkte(k);   // Punkte-Prognose (§1 v2.9.1: kartePunkte ist nur noch Ist)
   if(g==='wdh')    return num(k.streak);          // Streak
   return 0;
 }
@@ -4033,7 +4046,7 @@ function stapelKpi(ks){
   const alle=ks.length, offen=ks.filter(k=>k.status==='offen').length;
   let punkte=0, dauerSum=0, dauerN=0;
   ks.forEach(k=>{
-    punkte += kartePunkte(k);
+    punkte += k.status==='offen' ? kartePunktePrognose(k) : kartePunkte(k);   // §1 (v2.9.1): offen = Prognose
     const min = (num(k.istSek)>0)?num(k.istSek)/60:num(k.sollMin);
     if(min>0){ dauerSum+=min; dauerN++; }
   });
@@ -4823,7 +4836,7 @@ function prognoseHeute(){
   const zi=zielUndIstHeute();
   const live=tagOffen() ? Math.max(0,tagesPunkteDomain('dfm'))+Math.max(0,tagesPunkteDomain('privat')) : 0;
   const kHeute=belTagKurve(heuteF,'alle',von);
-  const ist=Math.max(kHeute[kHeute.length-1].p, live);
+  const ist=tagOffen() ? live : kHeute[kHeute.length-1].p;   // §3 (v2.9.1)
   const out={ ist, ziel:zi.ziel, n:vgl.length, prognose:null, rest:null, k:1, kGrund:'', akkuJetzt:null, akkuTyp:null };
   if(vgl.length<AMPEL_MIN_TAGE){ out.kGrund='kein Normaltag (weniger als '+AMPEL_MIN_TAGE+' Vergleichstage)'; return out; }
   const kurven=vgl.map(d=>belTagKurve(d,'alle',von));
@@ -4862,7 +4875,7 @@ function normalZurUhrzeit(dom){
   const kHeute=belTagKurve(heuteF, dom||'alle', von);
   const live=tagOffen() ? (dom && dom!=='alle' ? Math.max(0,tagesPunkteDomain(dom))
                           : Math.max(0,tagesPunkteDomain('dfm'))+Math.max(0,tagesPunkteDomain('privat'))) : 0;
-  const ist=Math.max(kHeute[kHeute.length-1].p, live);
+  const ist=tagOffen() ? live : kHeute[kHeute.length-1].p;   // §3 (v2.9.1)
   if(vgl.length<AMPEL_MIN_TAGE) return { ist, norm:null, r:null, n:vgl.length };
   const norm=vgl.map(d=>belKurveWert(belTagKurve(d, dom||'alle', von), nowX)).reduce((a,b)=>a+b,0)/vgl.length;
   return { ist, norm, r:(norm>=AMPEL_MIN_NORM ? ist/norm-1 : null), n:vgl.length };
@@ -5224,7 +5237,8 @@ function abhakLeisteHtml(){
 function leisteAbhaken(kid){
   const k=S.karten.find(x=>x.id===kid); if(!k || k.status!=='offen') return;
   // §2 (v2.9.0): laeuft die Uhr, erst einbuchen — der Abzug dieses Durchgangs wird dabei verrechnet
-  if(istPflicht(k) && S.fokus && S.fokus.laeuft && S.fokus.karteId===kid) fokusZeitEinbuchen();
+  // §4 (v2.9.1): fuer JEDE Karte — die Sitzung traegt ihre Zeitpunkte, der Haken nur den Bonus
+  if(S.fokus && S.fokus.laeuft && S.fokus.karteId===kid) fokusZeitEinbuchen();
   k.punkteOverride = istPflicht(k)
     ? Math.round(kartePunkte(k) + pflichtHakenZusatz(k))                   // Pflicht: Haken ohne Uhr = Wert, kein Abzug; darf negativ sein
     : Math.max(0, Math.round(kartePunkte(k)) + (durchgangAktiv(k) ? 0 : abhakbonusDefault(k)));   // §1 (v2.8.2): nie zweimal je Durchgang
@@ -6068,7 +6082,9 @@ function tagesAmpel(){
     .sort().reverse().slice(0,14);
   const kHeute=belTagKurve(heuteF,'alle',von);
   const live=tagOffen() ? Math.max(0,tagesPunkteDomain('dfm'))+Math.max(0,tagesPunkteDomain('privat')) : 0;
-  const ist=Math.max(kHeute[kHeute.length-1].p, live);
+  // §3 (v2.9.1): der Tagesstand, nicht das Maximum aus Log und Stand — sonst
+  // blieb nach einer Korrektur der alte (hoehere) Log-Wert stehen
+  const ist=tagOffen() ? live : kHeute[kHeute.length-1].p;
   kHeute.push({x:Math.max(von,Math.min(nowX,bis)), p:ist});
   let norm=null, kNorm=null;
   if(vgl.length>=AMPEL_MIN_TAGE){
@@ -6224,13 +6240,19 @@ function kartePunkteHeute(k){
     return ((num(k.ticksHeute)>0 && istTickKarte(k)) ? tickPunkte(k) : 0) + sb;
   }
   let pk = kartePunkte(k);
-  if(k.pflicht===true && k.punkteOverride==null) return pk;   // §2 (v2.9.0): Tagesertrag, darf negativ sein
-  if(k.punkteOverride==null && S.tag && S.tag.istMinutenStart){
+  // §2 (v2.9.0): Tagesertrag, darf negativ sein — §1 (v2.9.1): auch abgehakt
+  // (mit Override) nie bei 0 gekappt, sonst verschwand ein negativer Ertrag
+  if(k.pflicht===true) return pk;
+  // §1 (v2.9.1): Zeit von Vortagen ist an IHREN Tagen gezaehlt — sie wird auch
+  // abgezogen, wenn beim Abhaken ein Wert gewaehlt wurde (der Override traegt
+  // die ganze Karte) und wenn heute keine Minute dazukam. Heute zaehlt nur,
+  // was heute verdient wurde.
+  if(S.tag && S.tag.istMinutenStart){
     const basisMin=num(S.tag.istMinutenStart[k.id],0);
     // §2 (v2.7.0): bei fester Bewertung wurde der Zeitwert schon am Vortag voll
     // gezaehlt — heute kommt aus der Zeit nichts mehr hinzu (nie doppelt)
     if(basisMin>0 && hatFestMin(k)) pk -= punkteFuerZeit(k, num(k.festMin))*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
-    else if(basisMin>0 && num(k.istSek)/60 > basisMin) pk -= punkteFuerZeit(k, basisMin)*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
+    else if(basisMin>0) pk -= punkteFuerZeit(k, Math.min(basisMin, num(k.istSek)/60))*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   }
   return Math.max(0, pk);
 }
@@ -6238,6 +6260,11 @@ function tagesPunkteDomain(dom){
   let p=0;
   S.karten.forEach(k=>{ if(k.domain===dom) p+=kartePunkteHeute(k); });
   if(S.tag && Array.isArray(S.tag.log)) S.tag.log.forEach(e=>{ if((e.art==='schub'||e.art==='korrektur') && e.domain===dom) p+=num(e.punkte); });   // §3 (v2.7.0): + Korrekturen
+  // §3 (v2.9.1): Ist der Tag schon abgeschlossen, landet eine Korrektur der
+  // Tageswerte im Snapshot — „heute" zeigt sie trotzdem (Stand 26.09.: 2.825
+  // blieb stehen, obwohl das Protokoll 1.865 und das Konto −960 zeigte)
+  if(S.tag && S.tag.endeTs && Array.isArray(S.historie)) S.historie.forEach(h=>{ if(h.tagId!==S.tag.tagId || !Array.isArray(h.log)) return;
+    h.log.forEach(e=>{ if(e.itemId==='korrektur' && e.domain===dom && String(e.ts)>=String(S.tag.endeTs)) p+=num(e.punkte); }); });
   // §3 (1.6.1): heute gebuchte Komplett-Boni der Routinen-Gruppen. Bewusst inline
   // statt über einen Helfer — tagesPunkteDomain wird von der Regressionssuite
   // extrahiert und soll keine zusätzliche Funktionsabhängigkeit bekommen.
@@ -6771,6 +6798,7 @@ function energieBatterie(){
   return { akku, gruen, gelb, dunkel };
 }
 function renderAlles(){
+  try{ tagesAbgleich(); }catch(e){}   // §4 (v2.9.1): Stunden-Log = Tagesbilanz
   _phCache=null;   // §5 (1.8.0): P/h-Schnitte je Render frisch
   rangCacheBauen();
   renderFokusleiste();
@@ -6955,7 +6983,8 @@ function karteSchieben(k, datum, uhrzeit, abzug){
   // §3.2 (v1.13.0): Schub protokollieren — Abzug läuft hier über abzuegeBilanz,
   // deshalb Marker mit 0 Punkten (kein Doppelabzug); Ziel fürs „rein" am Zieltag.
   if(S.tag) (S.tag.log=S.tag.log||[]).push({ itemId:k.id, titel:k.titel||'', domain:k.domain, art:'schub', punkte:0, ts:jetztIso() });
-  logIntraday(k,{punkte:0, typ:'schub', ziel:datum||null});
+  // §4 (v2.9.1): der Abzug (ueber abzuegeBilanz) steht jetzt auch im Stunden-Log
+  logIntraday(k,{punkte:(num(abzug)>0 && S.tag)?-Math.abs(num(abzug)):0, typ:'schub', ziel:datum||null});
   if(k.rhythmus && tagOffen() && routineFaellig(k, heuteApp()) && !(S.tag.routinenBilanz||[]).some(b=>b.id===k.id))
     (S.tag.routinenBilanz=S.tag.routinenBilanz||[]).push({ id:k.id, titel:k.titel, geschoben:true });   // §3.1
   k.schiebeZaehler=num(k.schiebeZaehler)+1;   // §6.4
@@ -6978,6 +7007,7 @@ function tagAbschlussFinalisieren(){
     if(routErledigtHeute(k) || k.zuletztRoutine===S.tag.datum) return;
     routineBilanz(k, !urlaubHeute());
   });
+  try{ tagesAbgleich(); }catch(e){}                      // §4 (v2.9.1): das Log traegt die Bilanz vollstaendig
   const bilanz = tagesPunkteLive();                      // erledigte heute − Abzüge (+ nichts Laufendes mehr)
   S.tag.punkteBilanz = Math.round(bilanz);
   S.tag.endeTs = jetztIso();
@@ -7687,9 +7717,10 @@ function detailSpeichern(){
   if(!Array.isArray(entwurf.tickKurve)||!entwurf.tickKurve.length) entwurf.tickKurve=[0];
   subParentAngleichen();
   // U6-D: Zeit-Ist-Nachtrag — Differenz zur bisher getrackten Zeit auf heute buchen
+  let _nachtragE=null;
   if(entwurf._istMinEdit!=null){
     const delta = num(entwurf._istMinEdit) - Math.round(num(entwurf.istSek)/60);
-    if(delta!==0){ entwurf.istSek=Math.max(0, num(entwurf.istSek)+delta*60); if(delta>0) logIntraday(entwurf,{minuten:delta,typ:'nachtrag'}); }
+    if(delta!==0){ entwurf.istSek=Math.max(0, num(entwurf.istSek)+delta*60); if(delta>0) _nachtragE=logIntraday(entwurf,{minuten:delta,typ:'nachtrag'}); }
   }
   delete entwurf._istMinEdit;
   // §8 (v1.12.0): „Neu anlegen" aus dem Wiederholen-Dialog — die neue Karte
@@ -7711,6 +7742,7 @@ function detailSpeichern(){
   // Erledigt/archiviert + war im Fokus → Fokus beenden.
   if((entwurf.status==='erledigt'||entwurf.status==='archiviert') && S.fokus && S.fokus.karteId===entwurf.id){ S.fokus=null; saveFokus(); }
   beruehre(entwurf);                                     // A7: Edit zählt als Interaktion
+  if(_nachtragE) buchungAbgleich(entwurf, _nachtragE);   // §4 (v2.9.1): der Nachtrag traegt seine Punkte
   const neuId=entwurf.id;                                // closeSheet() raeumt entwurf weg
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   closeSheet(); renderAlles();
@@ -7759,7 +7791,7 @@ function karteTick(kid, fromDetail, wertOverride){
   k.ticksHeute = num(k.ticksHeute)+1;
   if(k.rhythmus && num(k.ticksHeute)===1) routineErledigtBuchen(k);   // §7: Streak bleibt intakt
   if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
-  beruehre(k); logIntraday(k,{punkte:tickPunkte(k)-vor,typ:'tick'});   // A7 + B0
+  beruehre(k); { const e=logIntraday(k,{punkte:tickPunkte(k)-vor,typ:'tick'}); buchungAbgleich(k, e); }   // A7 + B0; §4 (v2.9.1) abgeglichen
   momentBuchung(tickPunkte(k)-vor);                                    // §6.1 (1.9.0)
   haptik(12);
   if(!fromDetail){ saveKarten(); saveTag(); renderAlles(); }
@@ -7869,7 +7901,8 @@ function karteAbhaken(kid, fromDetail){
     logPunktEntfernen(k);                                 // v1.1: Punkt-Ereignis zurücknehmen (VOR override-Reset, damit der gebuchte Wert stimmt)
     abschlussZuruecknehmen(k);
     k.status='offen'; k.tagId=null;
-    logIntraday(k,{punkte:0, typ:'wiederoffen'});         // §3.2 (v1.13.0): Wiedereröffnung = „rein"
+    { const e=logIntraday(k,{punkte:0, typ:'wiederoffen'});   // §3.2 (v1.13.0): Wiedereröffnung = „rein"
+      buchungAbgleich(k, e); }                                // §4 (v2.9.1): was die Karte der Bilanz nimmt, nimmt sie dem Log
     if(k.rhythmus && k.zuletztRoutine===heuteApp()){ k.streak=Math.max(0,num(k.streak)-1); k.zuletztRoutine=null; }
   } else {
     // Läuft der Timer auf dieser Karte → erst Zeit einbuchen; danach rückt die
@@ -7886,8 +7919,13 @@ function karteAbhaken(kid, fromDetail){
     // §3 (v2.7.0): Punkte nachgetragener Sitzungen stehen schon zu IHRER Zeit
     // im Log — beim Abhaken nur der Rest, sonst zaehlten sie doppelt
     // v2.9.0: auch Startbonus (v2.8.2) und Pflicht-Ertraege stehen schon zu IHRER Zeit im Log
-    logIntraday(k,{punkte:kartePunkte(k)-korrekturPunkteVerrechnen(k)-startBonusHeute(k)-pflichtHeuteP(k),typ:'abhaken'}); // B0: Intraday-Buchung
-    momentBuchung(kartePunkte(k));                        // §6.1 (1.9.0)
+    // §1/§4 (v2.9.1): gebucht wird die Differenz zwischen dem, was die Karte
+    // HEUTE bringt, und dem, was schon im Log steht (Sitzungen, Startbonus,
+    // Pflicht, Korrekturen) — nie die Prognose, nie Zeit von Vortagen
+    korrekturPunkteVerrechnen(k);
+    const _e=logIntraday(k,{punkte:0, typ:'abhaken'});   // B0: Intraday-Buchung
+    const _d=buchungAbgleich(k, _e);
+    momentBuchung(_d);                                    // §6.1 (1.9.0)
     konfetti(); haptik(20);
   }
   beruehre(k);                                             // A7: jede Interaktion zählt
@@ -7942,6 +7980,7 @@ function abschlussSnapshot(k){
     tagId: aktuelleTagId(),
     punkteIstVorher: Math.round(kartePunkte(k)),
     istMinVorher: Math.round(num(k.istSek)/60),
+    echt: true,                       // §1 (v2.9.1): ohne Prognose-Rueckfall gerechnet
     bonusPunkte: bonus,
     subsDoneVorher: untermenge(k.id).filter(u=>u.done).map(u=>u.id),
     glaettung: glaettungBerechnen(k, bonus)
@@ -7958,6 +7997,9 @@ function abschlussZuruecknehmen(k){
   const s=k.abschluesse.pop();
   k.istSek=Math.max(0, num(s.istMinVorher)*60);
   k.punkteOverride = (s.punkteIstVorher!=null) ? num(s.punkteIstVorher) : null;
+  // §1 (v2.9.1): ein Snapshot von vor dem Fix trug bei nie gelaufener Uhr die
+  // Prognose — er wird nicht wiederhergestellt, die Karte rechnet neu
+  if(!s.echt && num(s.istMinVorher)===0 && !hatFestMin(k)) k.punkteOverride=null;
   const done=new Set(s.subsDoneVorher||[]);
   untermenge(k.id).forEach(u=>{ u.done = done.has(u.id); });
   DB.set('unteraufgaben', S.unteraufgaben);
@@ -8064,6 +8106,10 @@ function karteVomGeraet(kid, quelle){
   const ids=Object.keys(ab).sort((a,b)=>String(ab[a].ts).localeCompare(String(ab[b].ts)));
   while(ids.length>300){ delete ab[ids.shift()]; }
   DB.set('karten_vomGeraet', ab);
+  // §4 (v2.9.1): „Punkte bleiben" — was die Karte heute gebracht hat, bleibt
+  // als Zeile im Tages-Log stehen (sonst fiel es aus der Bilanz, das Log nicht)
+  if(tagOffen()){ const b=logRund(kartenBeitragHeute(k));
+    if(b) (S.tag.log=S.tag.log||[]).push({ itemId:k.id, titel:'Vom Gerät: '+(k.titel||''), domain:k.domain, art:'korrektur', punkte:b, ts:jetztIso(), vomGeraet:true }); saveTag(); }
   S.karten=S.karten.filter(x=>x.id!==kid);
   S.unteraufgaben=S.unteraufgaben.filter(u=>u.parentId!==kid);
   try{ const st=ketteState(); st.ids=(st.ids||[]).filter(x=>x!==kid); }catch(e){}
@@ -8086,6 +8132,8 @@ function karteZurueckAufsGeraet(inc){
   const e=ab[key]; delete ab[key]; DB.set('karten_vomGeraet', ab);
   const k=neueKarte(e.karte);
   S.karten.push(k);
+  // §4 (v2.9.1): zurueck am selben Tag — die Karte zaehlt wieder selbst
+  if(S.tag && Array.isArray(S.tag.log)) S.tag.log=S.tag.log.filter(x=>!(x.vomGeraet && x.itemId===k.id));
   (e.unteraufgaben||[]).forEach(u=>{ if(!S.unteraufgaben.some(x=>x.id===u.id)) S.unteraufgaben.push(u); });
   if(Array.isArray(S.meta.vomGeraetGenommen)) S.meta.vomGeraetGenommen=S.meta.vomGeraetGenommen.filter(x=>x.id!==k.id);
   return k;
@@ -8296,6 +8344,139 @@ function pflichtLiveDelta(k){
   if(!lauf || k.durchgang.pauseTs) return 0;
   const sek=num(k.durchgang.sek)+(Date.now()-S.fokus.startMs)/1000;
   return pflichtErtrag(pflichtWerte(k), sek/60) - num(k.durchgang.gebucht);
+}
+/* ══ §4 (v2.9.1) · STUNDEN-LOG = TAGESBILANZ ════════════════════════════
+   Bisher liefen drei Buchhaltungen nebeneinander: die Tagesbilanz (aus den
+   Karten gerechnet), das Stunden-Log (S.intraday) und das Ereignis-Log des
+   Tages. Zeit stand mit 0 Punkten im Stunden-Log, die Punkte kamen erst beim
+   Abhaken — gearbeitete, noch offene Karten, Gruppen-Boni, Tageskorrekturen
+   und Schiebe-Abzuege ueber abzuegeBilanz standen gar nicht darin.
+   Jetzt gilt: was eine Karte der Tagesbilanz bringt (ohne die gerade
+   laufende Uhr), steht auch im Stunden-Log. Jede Buchung schreibt die
+   Differenz in IHREN Eintrag (Sitzung, Haken, Tick …); was eine Buchung
+   nebenbei aendert (Einstellung, Import), gleicht renderAlles als
+   „ausgleich" ab. Tagesbilanz = Summe des Logs, jederzeit. */
+function logRund(x){ return Math.round(num(x)*1000)/1000; }
+const LOG_EPS=0.0005;
+function ohneLaufendeUhr(fn){
+  const f=S.fokus; if(!(f && f.laeuft)) return fn();
+  const alt={laeuft:f.laeuft, startMs:f.startMs};
+  f.laeuft=false;
+  try{ return fn(); } finally{ f.laeuft=alt.laeuft; f.startMs=alt.startMs; }
+}
+/* Gehoert ein Log-Eintrag zum laufenden App-Tag? Neue Eintraege tragen die
+   tagId; aeltere werden ueber ihr Datum bzw. ihre Zeit zugeordnet. */
+function logGehoertZuTag(e, tag){
+  tag=tag||S.tag; if(!e || !tag) return false;
+  if(e.tagId) return e.tagId===tag.tagId;
+  if(e.datum) return e.datum===tag.datum;
+  const t=String(e.ts||'');
+  return !!(tag.startTs && t>=String(tag.startTs) && (!tag.endeTs || t<=String(tag.endeTs)));
+}
+/* Was eine Karte heute zur Bilanz beitraegt — inkl. ihrer Korrektur-Zeilen
+   im Tages-Log (Karte an einem anderen Tag erledigt, §3 v2.7.0). */
+function kartenBeitragHeute(k){
+  let p=ohneLaufendeUhr(()=>kartePunkteHeute(k));
+  if(S.tag && Array.isArray(S.tag.log)) S.tag.log.forEach(e=>{ if(e.itemId===k.id && e.art==='korrektur') p+=num(e.punkte); });
+  return p;
+}
+function kartenLogHeute(kid){
+  let p=0;
+  (S.intraday||[]).forEach(e=>{ if(e.kartenId===kid && e.typ!=='schub' && logGehoertZuTag(e)) p+=num(e.punkte); });
+  return p;
+}
+/* Differenz zwischen Beitrag und Log buchen — in den uebergebenen Eintrag
+   (die Sitzung, der Haken) oder als eigene Zeile vom Typ `ziel`. */
+function buchungAbgleich(k, ziel){
+  if(!k || !tagOffen()) return 0;
+  const d=logRund(kartenBeitragHeute(k)-kartenLogHeute(k.id));
+  if(Math.abs(d)<LOG_EPS) return 0;
+  if(ziel && typeof ziel==='object'){ ziel.punkte=logRund(num(ziel.punkte)+d); DB.set('intraday', S.intraday); }
+  else logIntraday(k,{punkte:d, typ:ziel||'ausgleich'});
+  return d;
+}
+/* Alle Karten des Tages in EINEM Durchlauf abgleichen (renderAlles,
+   Tagesabschluss, Export). */
+function tagesAbgleich(){
+  if(!tagOffen()) return 0;
+  const sum={};
+  (S.intraday||[]).forEach(e=>{ if(e.kartenId && e.typ!=='schub' && logGehoertZuTag(e)) sum[e.kartenId]=(sum[e.kartenId]||0)+num(e.punkte); });
+  let n=0;
+  S.karten.forEach(k=>{
+    const d=logRund(kartenBeitragHeute(k)-(sum[k.id]||0));
+    if(Math.abs(d)>=LOG_EPS){ logIntraday(k,{punkte:d, typ:'ausgleich'}); n++; }
+  });
+  return n;
+}
+/* Summe des Stunden-Logs eines App-Tags (Standard: der laufende). */
+function logSummeTag(tag){
+  tag=tag||S.tag; let p=0;
+  (S.intraday||[]).forEach(e=>{ if(logGehoertZuTag(e, tag)) p+=num(e.punkte); });
+  return logRund(p);
+}
+/* Ein Log-Eintrag fuer einen VERGANGENEN Tag: er steht am Ende dieses Tages
+   (so faellt er in dessen Stunden-Fenster und nicht in das von heute). */
+function logEintragFuerTag(h, datum, o){
+  const ende=(h && h.endeTs) ? h.endeTs : new Date(datum+'T23:59:00').toISOString();
+  const e=Object.assign({ ts:ende, kartenId:null, domaene:null, punkte:0, minuten:0, typ:'korrektur-tag', datum }, o||{});
+  e.punkte=logRund(e.punkte);
+  if(h && h.tagId) e.tagId=h.tagId;
+  (S.intraday=S.intraday||[]).push(e);
+  return e;
+}
+/* ══ §2 (v2.9.1) · RUECKBLICK SEIT v2.8.0 ═══════════════════════════════
+   Fuer jeden Tag ab dem 25.09. bis zum Tag des Fixes: je Abschluss Karte,
+   gebucht und der Anteil, der aus der Prognose kam (Uhr nie gelaufen, keine
+   feste Bewertung: die Zeitpunkte auf Soll-Minuten). Dazu je Tag Bilanz,
+   Stunden-Log und die Werte, gegen die eine Tageskorrektur rechnet. Der
+   Chat korrigiert danach per korrekturen-Paket; die Liste reist im Export,
+   bis nach einem Korrektur-Paket ein Sync bestaetigt ist. */
+const RUECKBLICK_AB='2026-09-25';
+function rueckblickPrognose(){
+  const bis=(S.meta && S.meta.prognoseFixAb) || heuteApp();
+  const zg=(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
+  const ab=vomGeraetAblage();
+  const karten=S.karten.slice().concat(Object.keys(ab).map(id=>ab[id] && ab[id].karte).filter(Boolean));
+  const tage={};
+  const tagVon=d=>tage[d]||(tage[d]={ datum:d, karten:[] });
+  const nahe=(a,b,ms)=>Math.abs(Date.parse(a)-Date.parse(b))<=ms;
+  const tagLogs=d=>{ const out=[]; (S.historie||[]).forEach(h=>{ if(h.datum===d) (h.log||[]).forEach(e=>out.push(e)); });
+    if(S.tag && S.tag.datum===d && !(S.historie||[]).some(h=>h.tagId===S.tag.tagId)) (S.tag.log||[]).forEach(e=>out.push(e));
+    return out; };
+  karten.forEach(k=>{
+    (k.abschluesse||[]).forEach(s=>{
+      if(s.echt) return;                                        // nach dem Fix gebucht
+      const d=String(s.tagId||'').slice(0,10);
+      if(!d || d<RUECKBLICK_AB || d>bis) return;
+      const log=tagLogs(d).find(e=>e.itemId===k.id && e.art!=='schub' && e.art!=='korrektur' && nahe(e.ts, s.ts, 10000));
+      const sl=(S.intraday||[]).find(e=>e.kartenId===k.id && e.typ==='abhaken' && nahe(e.ts, s.ts, 10000));
+      const vorher=num(s.punkteIstVorher), sollMin=num(k.sollMin);
+      const prog = (num(s.istMinVorher)===0 && !hatFestMin(k) && sollMin>0)
+        ? Math.max(0, Math.min(vorher-num(s.bonusPunkte), Math.round(punkteFuerZeit(k, sollMin, d)*zg))) : 0;   // Bonus war echt
+      tagVon(d).karten.push({ karteId:k.id, airtableId:k.airtableId||null, titel:k.titel||'', domain:k.domain,
+        ts:s.ts, gebucht:log ? Math.round(num(log.punkte)) : null, imStundenLog:sl ? Math.round(num(sl.punkte)) : null,
+        davonPrognose:prog, istMin:num(s.istMinVorher), sollMin });
+    });
+  });
+  // jeder Tag im Zeitraum mit Snapshot oder Log erscheint — auch ohne Prognose-Anteil
+  (S.historie||[]).forEach(h=>{ if(h.datum>=RUECKBLICK_AB && h.datum<=bis && !h.luecke) tagVon(h.datum); });
+  if(S.tag && S.tag.datum>=RUECKBLICK_AB && S.tag.datum<=bis) tagVon(S.tag.datum);
+  return Object.keys(tage).sort().map(d=>{
+    const t=tage[d], st=korrTagStand(d);
+    let slog=0; (S.intraday||[]).forEach(e=>{ if(e.ts && belFensterDatum(e.ts)===d) slog+=num(e.punkte); });
+    const prog=t.karten.reduce((a,x)=>a+x.davonPrognose,0);
+    // bekannte Posten, die vor v2.9.1 in der Bilanz, aber nicht im Stunden-Log standen
+    const tl=tagLogs(d), hs=(S.historie||[]).filter(h=>h.datum===d && !h.luecke);
+    const grp=tl.filter(e=>e.art==='Gruppenbonus').reduce((a,e)=>a+num(e.punkte),0);
+    const abz=hs.length ? hs.reduce((a,h)=>a+num(h.abzuege),0) : ((S.tag && S.tag.datum===d) ? num(S.tag.abzuegeBilanz) : 0);
+    return { datum:d, bilanz:st.punkte, punkteDfm:st.dfm, punktePrivat:st.privat, stundenLog:Math.round(slog),
+      differenz:Math.round(st.punkte-slog), prognoseSumme:prog, gruppenBoniNichtImLog:Math.round(grp), abzuegeNichtImLog:Math.round(abz),
+      prognoseDfm:t.karten.filter(x=>x.domain==='dfm').reduce((a,x)=>a+x.davonPrognose,0),
+      prognosePrivat:t.karten.filter(x=>x.domain!=='dfm').reduce((a,x)=>a+x.davonPrognose,0),
+      korrekturen:((S.meta && S.meta.korrekturProtokoll)||[]).filter(e=>e.datum===d).map(e=>({ ts:e.ts, grund:e.grund,
+        vorher:e.vorher?e.vorher.punkte:null, nachher:e.nachher?e.nachher.punkte:null })),
+      karten:t.karten.sort((a,b)=>String(a.ts).localeCompare(String(b.ts))) };
+  });
 }
 /* ══ §3 (v2.9.0) · DIE PUNKTEKURVE „Punkte nach Dauer" ═════════════════
    x = Minuten 0–120, y = Punkte. Waagerecht beim Wert bis zum Deckel, danach
@@ -8600,6 +8781,8 @@ function folgeAufgabeAnlegen(k, f){
 function abhakDialogConfirm(){
   const t=abhakTmp; if(!t) return;
   const k=S.karten.find(x=>x.id===t.kid); if(!k){ abhakTmp=null; closeSheet(); return; }
+  // §4 (v2.9.1): laufende Uhr zuerst einbuchen — die Sitzung traegt ihre Punkte, der Haken den Rest
+  if(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id) fokusZeitEinbuchen();
   const raw=el('abPktN')?el('abPktN').value.trim():'';           // Zahlenfeld ist führend (auch > Regler-Max)
   const pkt=raw==='' ? t.basis : Math.max(0, Math.floor(num(raw)));   // leer = Default, sonst ganze Zahl ≥ 0
   const bonus=num(el('abBonus')?el('abBonus').value:t.bonusDef);
@@ -8692,6 +8875,7 @@ function gruppeBonusPruefen(g){
     if(S.tag){ (S.tag.log=S.tag.log||[]).push({ itemId:'grp-'+g.id, titel:'Komplett: '+g.name,
       domain:g.domain||'privat', art:'Gruppenbonus', punkte:p, ts:jetztIso() }); saveTag(); }
     if(S.meta) S.meta.gruppenBonus=Object.assign({}, S.meta.gruppenBonus, {[g.id]:{tag:tid, punkte:p}});
+    logIntraday({id:'grp-'+g.id, domain:g.domain||'privat'}, {punkte:p, typ:'gruppenbonus'});   // §4 (v2.9.1)
     saveMeta();
     toast('🎉 '+g.name+' komplett · +'+p+' P'); konfetti(); haptik(25);
   } else if(!komplett && g.bonusTag===tid){
@@ -8701,6 +8885,7 @@ function gruppeBonusPruefen(g){
       saveTag();
     }
     if(S.meta && S.meta.gruppenBonus){ delete S.meta.gruppenBonus[g.id]; saveMeta(); }
+    logIntraday({id:'grp-'+g.id, domain:g.domain||'privat'}, {punkte:-num(g.komplettBonus, KOMPLETT_BONUS_DEFAULT), typ:'gruppenbonus'});   // §4 (v2.9.1)
     toast(g.name+' nicht mehr komplett · Bonus zurückgenommen');
   }
 }
@@ -9024,7 +9209,10 @@ function korrTagStand(datum){
   const letzte=spur.filter(e=>e && e.ts).map(e=>e.ts).sort().pop();
   const z=heute ? matrixZeitFelder() : matrixZeitFelder({spur, startTs:h&&h.startTs, endeTs:(h&&h.endeTs)||letzte||null});
   const zeit=sn ? sn.zeit : {dfm:0,privat:0};
-  const dom=d=> heute ? tagesPunkteDomain(d) : snapPunkte(sn, d);
+  // §3 (v2.9.1): der abgeschlossene, noch aktuelle App-Tag rechnet seine Domaenen
+  // wie „heute" (aus den Karten) — das Ereignis-Log kennt z. B. offene Sitzungen nicht
+  const aktuellZu=!heute && S.tag && S.tag.endeTs && S.tag.datum===datum;
+  const dom=d=> (heute || aktuellZu) ? tagesPunkteDomain(d) : snapPunkte(sn, d);
   return { punkte:Math.round(sn?num(sn.punkteBilanz):0), dfm:Math.round(dom('dfm')), privat:Math.round(dom('privat')),
     istMin:Math.round((num(zeit&&zeit.dfm)+num(zeit&&zeit.privat))/60),
     sitzungen:(S.intraday||[]).filter(e=>e.ts && SITZUNG_TYPEN.indexOf(e.typ)>=0 && num(e.minuten)>=0.5 && belFensterDatum(sitzungVonMs(e)?new Date(sitzungVonMs(e)).toISOString():e.ts)===datum).length,
@@ -9094,13 +9282,19 @@ function korrekturAnwenden(kx, abgewiesen){
   const sitzungEntfernen=(e, k)=>{
     const min=num(e.minuten), dP=(e.typ==='korrektur') ? num(e.punkte) : sitzungPunkteFuer(k, min, datum);
     S.intraday=S.intraday.filter(x=>x!==e);
+    // §4 (v2.9.1): mit der Sitzung verlaesst ihr Log-Wert das Log, die Bilanz
+    // aendert sich um −dP — die Differenz steht als Ausgleich zur Zeit der Sitzung
+    const rest=logRund(num(e.punkte)-dP);
+    if(Math.abs(rest)>=LOG_EPS) (S.intraday=S.intraday||[]).push({ ts:e.ts, kartenId:k.id, domaene:k.domain, punkte:rest, minuten:0,
+      typ:'ausgleich', datum, tagId:e.tagId || (heute ? S.tag.tagId : (tagSn()||{}).tagId) || undefined, grund:String(kx.grund) });
     wirkung(k, -dP, -min, sitzungIdVon(e));
     return {min, dP};
   };
   const sitzungHinzu=(k, v, b, id)=>{
     const min=Math.round((b-v)/6000)/10, dP=sitzungPunkteFuer(k, min, datum);
     (S.intraday=S.intraday||[]).push({ id, ts:new Date(b).toISOString(), von:new Date(v).toISOString(), kartenId:k.id, domaene:k.domain,
-      punkte:Math.round(dP*10)/10, minuten:min, typ:'korrektur', datum, grund:String(kx.grund), offen:k.status==='offen' });
+      punkte:Math.round(dP*10)/10, minuten:min, typ:'korrektur', datum, grund:String(kx.grund), offen:k.status==='offen',
+      tagId:(heute ? S.tag.tagId : (tagSn()||{}).tagId) || undefined });   // §4 (v2.9.1)
     wirkung(k, dP, min, id);
     return {min, dP};
   };
@@ -9190,12 +9384,17 @@ function korrekturAnwenden(kx, abgewiesen){
         const ist=tagesPunkteDomain(dom), d=Math.round((ziel-ist)*10)/10;
         if(Math.abs(d)<0.5) return;
         (S.tag.log=S.tag.log||[]).push({ itemId:'korrektur', titel:'Korrektur: '+String(kx.grund).slice(0,40), domain:dom, art:'korrektur', punkte:d, ts:jetztIso() });
+        logIntraday({id:null, domain:dom}, {punkte:d, typ:'korrektur-tag'});   // §3/§4 (v2.9.1): Kurve, Ampel und Log folgen
         zeilen.push((dom==='dfm'?'DFM':'Privat')+'-Punkte '+fmtP(ist)+' → '+fmtP(ziel)); return;
       }
-      const h=tagSn(), ist=(h.log||[]).filter(e=>e.domain===dom).reduce((a,e)=>a+num(e.punkte),0), d=Math.round((ziel-ist)*10)/10;
+      const h=tagSn();
+      // §3 (v2.9.1): fuer den abgeschlossenen, noch aktuellen App-Tag gilt der Stand aus den Karten
+      const ist=(S.tag && S.tag.endeTs && h.tagId===S.tag.tagId) ? tagesPunkteDomain(dom) : (h.log||[]).filter(e=>e.domain===dom && !e.vomGeraet).reduce((a,e)=>a+num(e.punkte),0);
+      const d=Math.round((ziel-ist)*10)/10;
       if(Math.abs(d)<0.5) return;
       const bil0=num(h.punkteBilanz);
       h.log.push({ itemId:'korrektur', titel:'Korrektur: '+String(kx.grund).slice(0,40), domain:dom, art:'korrektur', punkte:d, ts:jetztIso() });
+      logEintragFuerTag(h, datum, { domaene:dom, punkte:d, grund:String(kx.grund) });   // §3/§4 (v2.9.1)
       h.punkteBilanz=Math.round((bil0+d)*10)/10;
       kontoNachziehen(h, bil0, d);
       zeilen.push((dom==='dfm'?'DFM':'Privat')+'-Punkte '+fmtP(ist)+' → '+fmtP(ziel));
@@ -9422,6 +9621,15 @@ function syncExport(typ){
     // §7 (v2.6.0): die rueckwirkend als Urlaub markierten Tage — bis zum
     // naechsten bestaetigten Sync, damit der Chat sie in Airtable kennzeichnet
     urlaubNachgetragen: (Array.isArray(S.meta.urlaubNachgetragen) ? S.meta.urlaubNachgetragen.slice() : []),
+    // §2 (v2.9.1): Rueckblick seit v2.8.0 — gebucht und davon Prognose, je Tag
+    // und Karte; bis nach einem Korrektur-Paket ein Sync bestaetigt ist
+    rueckblickPrognose: (S.meta.rueckblick291Fertig ? undefined : (function(){ try{ return rueckblickPrognose(); }catch(e){ return []; } })()),
+    // §4 (v2.9.1): Tagesbilanz gegen die Summe des Stunden-Logs (ohne laufende Uhr)
+    logAbgleichHeute: (function(){ try{ if(!tagOffen()) return null; tagesAbgleich();
+      const b=Math.round(ohneLaufendeUhr(()=>tagesPunkteLive())*10)/10, l=Math.round(logSummeTag()*10)/10;
+      const aus=(S.intraday||[]).filter(e=>e.typ==='ausgleich' && logGehoertZuTag(e)).map(e=>{ const k=S.karten.find(x=>x.id===e.kartenId);
+        return { karteId:e.kartenId, titel:k?(k.titel||''):'', punkte:e.punkte, ts:e.ts }; });
+      return { datum:S.tag.datum, bilanz:b, stundenLog:l, differenz:Math.round((b-l)*10)/10, ausgleich:aus }; }catch(e){ return null; } })(),
     matrixAbfragen: num(S.tag&&S.tag.matrixAbfragen),
     matrixUebersprungen: num(S.tag&&S.tag.matrixUebersprungen),
     ziele: { dfm:num(S.settings.tagesZielDfm,5000), privat:num(S.settings.tagesZielPrivat,800),
@@ -9496,6 +9704,7 @@ function syncBestaetigen(){
   S.meta.entfernteUnteraufgaben=[];   // §6 (v2.5.0): gemeldet und bestaetigt — die Liste ist erledigt
   S.meta.urlaubNachgetragen=[];       // §7 (v2.6.0): dito — die nachgetragenen Urlaubstage sind angekommen
   S.meta.vomGeraetGenommen=[];        // §4 (v2.8.0): dito — der Chat weiss, was nicht mehr auf dem Geraet liegt
+  if(S.meta.rueckblick291Korrigiert) S.meta.rueckblick291Fertig=true;   // §2 (v2.9.1): korrigiert und bestaetigt
   // §4 (v2.9.0): entschiedene Pflicht-Vorschlaege sind gemeldet — sie fallen weg (offene bleiben)
   S.karten.forEach(k=>{ if(k.pflichtVorschlag && k.pflichtVorschlag.status!=='offen') k.pflichtVorschlag=null; });
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
@@ -9758,6 +9967,8 @@ function syncImport(text){
         snaps.forEach(h2=>{
           const vorher=(h2[f]===undefined)?null:h2[f];
           h2[f]=(f==='urlaub')?!!kx[f] : (f==='startTs'||f==='endeTs')?String(kx[f]) : num(kx[f]);
+          // §4 (v2.9.1): auch die alte Form bucht die Differenz ins Stunden-Log jenes Tages
+          if(f==='punkteBilanz' && num(h2[f])!==num(vorher)) logEintragFuerTag(h2, kx.datum, { punkte:num(h2[f])-num(vorher), grund:'Korrektur punkteBilanz' });
           korrigiert.push({ts:jetztIso(), datum:kx.datum, feld:f, vorher, nachher:h2[f]});
         });
       });
@@ -9767,7 +9978,7 @@ function syncImport(text){
         if(!kx.grund || !String(kx.grund).trim()) uebersprungen.push({was:'Korrektur '+kx.datum, grund:'grund fehlt (Pflicht)'});
         else if(kx.datum>heuteApp()) uebersprungen.push({was:'Korrektur '+kx.datum, grund:'Datum liegt in der Zukunft'});
         else { const e=korrekturAnwenden(kx, uebersprungen);
-          if(e) korrekturNeu++; }   // protokolliert in meta.korrekturProtokoll (Einstellungen „Korrekturen")
+          if(e){ korrekturNeu++; S.meta.rueckblick291Korrigiert=true; } }   // protokolliert in meta.korrekturProtokoll (Einstellungen „Korrekturen"); §2 (v2.9.1)
       }
       if(Array.isArray(kx.karten)) kx.karten.forEach(kk=>{
         const lok2=(kk&&kk.id)?S.karten.find(x=>x.id===kk.id):null;
@@ -11184,7 +11395,8 @@ function tagSnapshot(iso){
 function snapPunkte(snap, dom){
   if(!snap) return 0;
   if(dom==='alle') return snap.punkteBilanz;
-  if(snap.log && snap.log.length) return snap.log.filter(e=>e.domain===dom).reduce((a,e)=>a+num(e.punkte),0);
+  // §4 (v2.9.1): die „Vom Gerät"-Zeile haelt nur die Tagesbilanz — im Ereignis-Log steht die Karte schon
+  if(snap.log && snap.log.length) return snap.log.filter(e=>e.domain===dom && !e.vomGeraet).reduce((a,e)=>a+num(e.punkte),0);
   return 0;
 }
 /* Ø-Punkte pro Stunde über die vergangenen Tage (domänengefiltert). */
@@ -11527,7 +11739,8 @@ function belWochentag(datum){ return new Date(datum+'T12:00:00').getDay(); }
 function belUhr(x){ x=((x%24)+24)%24; const h=Math.floor(x), m=Math.round((x-h)*60); return String(h).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
 /* Kumulative Punkte-Kurve eines 5→5-Fensters aus dem Intraday-Log. */
 function belTagKurve(fensterDatum, dom, startX){
-  const ent=(S.intraday||[]).filter(e=>e.ts && num(e.punkte)>0 && (dom==='alle'||e.domaene===dom) && belFensterDatum(e.ts)===fensterDatum)
+  // §3 (v2.9.1): Abzuege und Korrekturen zaehlen mit — die Kurve endet beim Tagesstand
+  const ent=(S.intraday||[]).filter(e=>e.ts && num(e.punkte)!==0 && (dom==='alle'||e.domaene===dom) && belFensterDatum(e.ts)===fensterDatum)
     .slice().sort((a,b)=> a.ts<b.ts?-1:1);
   let c=0; const pts=[{x:(startX==null?5:startX), p:0}];   // U1: Kurvenstart = Fensterstart
   ent.forEach(e=>{ c+=num(e.punkte); pts.push({x:belX(e.ts), p:c}); });
@@ -13253,10 +13466,10 @@ el('fokusView').addEventListener('click', e=>{
   const tbm=t.closest('svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; }
   const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
   if(karteRowClick(t, e)) return;   // U1: Fokus-Liste = gleiche Karten-Zeilen-Aktionen wie der Stapel
-  const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
+  const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); buchungAbgleich(S.karten.find(x=>x.id===u.parentId), 'unteraufgabe'); renderFokus(); } return; }
   // Unteraufgaben-Block (v0.38-Look)
   if(t.closest('[data-tacctoggle]')){ const acc=t.closest('.tacc'); const zu=acc.classList.toggle('zu'); S.ui.fokusSubsZu=zu; saveUi(); return; }
-  const ut=t.closest('[data-uatoggle]'); if(ut){ const u=S.unteraufgaben.find(x=>x.id===ut.dataset.uatoggle); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); } return; }
+  const ut=t.closest('[data-uatoggle]'); if(ut){ const u=S.unteraufgaben.find(x=>x.id===ut.dataset.uatoggle); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); buchungAbgleich(S.karten.find(x=>x.id===u.parentId), 'unteraufgabe'); renderFokus(); } return; }
   const ux=t.closest('[data-uadel]'); if(ux){ S.unteraufgaben=S.unteraufgaben.filter(x=>x.id!==ux.dataset.uadel); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); return; }
   const ua=t.closest('[data-uaadd]'); if(ua){ fokusSubAnlegen(ua.dataset.uaadd); return; }   // §4
   // §9.4 (v1.8.0) / §2.3 (v1.13.0): Tick aus der Fokus-Zeile — eine Eingabe im

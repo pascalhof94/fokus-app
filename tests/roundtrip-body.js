@@ -231,7 +231,10 @@ ok('4 Messprotokolle ueberleben (Akku-Messungen und -Eintraege)',
    S.meta.akkuEintraege[0].kommentar==='schlecht geschlafen');
 ok('4 Belohnung/Kulisse ueberlebt', S.belohnung && S.belohnung.stufen.fahrzeuge===3);
 ok('4 Historie und Intraday ueberleben (Rang rechnet wieder)',
-   S.historie.length===1 && S.intraday.length===1);
+   // v2.9.1 §4: die 31-Min-Sitzung des offenen Tags stand mit 0 P im Log — der
+   // Abgleich traegt ihre Punkte als „ausgleich" nach; der Original-Eintrag bleibt
+   S.historie.length===1 && S.intraday.filter(function(e){ return e.typ==='timer' && e.minuten===31; }).length===1 &&
+   S.intraday.every(function(e){ return e.typ==='timer' || e.typ==='ausgleich'; }));
 ok('4 Migrations-Flags ueberleben — die Migrationen laufen NICHT erneut',
    S.meta.migration1120===true && S.meta.rang1110===true && S.meta.zeit191===true);
 ok('4 Der Tag ueberlebt (Akku 72)', S.tag && S.tag.akku===72);

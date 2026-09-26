@@ -2036,6 +2036,50 @@ function bestandSchreiben(){
           pruef(pb && sb && pb.getBoundingClientRect().top < sb.getBoundingClientRect().top+200, 'v2.9 §5: öffnet nicht beim Abschnitt Punkte');
           freiMachen(); fw.setTab('suche');
         })();
+        /* ══ v2.9.1 · HAKEN IN DER ABHAK-LEISTE BUCHT KEINE PROGNOSE — elementFromPoint ══
+           Im gelebten Bestand tragen die Routinen 5 Soll-Minuten: vor dem Fix buchte
+           der Haken deren Prognose mit. Eine Zeile wird Pflicht (Wert 25), eine bleibt
+           normal (Bonus). Danach: Tagesbilanz = Summe des Stunden-Logs. */
+        (function(){
+          function mitte(e){ var r=e.getBoundingClientRect(); return {x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2)}; }
+          function tippe(e, wie){
+            if(!e){ pruef(false,'v2.9.1: '+wie+' fehlt'); return null; }
+            e.scrollIntoView({block:'center'});
+            var m=mitte(e), hit=d.elementFromPoint(m.x,m.y);
+            pruef(hit && (hit===e || e.contains(hit)), 'v2.9.1: '+wie+' verdeckt von '+beschreib(hit));
+            if(hit){ if(typeof hit.click==='function') hit.click(); else hit.dispatchEvent(new fw.MouseEvent('click',{bubbles:true})); }
+            return hit;
+          }
+          function lsK(id){ try{ return JSON.parse(localStorage.getItem('fokus2_karten')||'[]').filter(function(k){ return k.id===id; })[0]||null; }catch(e){ return null; } }
+          function lsLog(){ try{ return JSON.parse(localStorage.getItem('fokus2_intraday')||'[]'); }catch(e){ return []; } }
+          freiMachen(); fw.setTab('suche');
+          var fo=lsFokus(); if(fo && fo.laeuft) fw.fokusZeitEinbuchen();
+          fw.fokusKarteAnsehen('a-3');
+          var offen=[].slice.call(d.querySelectorAll('#fokusView .al .al-z:not(.fertig) [data-alcheck]')).map(function(b){ return b.dataset.alcheck; })
+            .filter(function(id){ var k=lsK(id); return k && k.rhythmus && !k.ticksAktiv && !k.pflicht && !(k.startBonus && k.startBonus.punkte) && !(Number(k.istSek)>0) && !(Number(k.ticksHeute)>0); });
+          pruef(offen.length>=2, 'v2.9.1: zu wenige offene Routinen in der Abhak-Leiste ('+offen.join(',')+')');
+          if(offen.length<2) return;
+          var idP=offen[0], idB=offen[1];
+          var progP=Math.round(fw.kartePunktePrognose(lsK(idP))), progB=Math.round(fw.kartePunktePrognose(lsK(idB)));
+          fw.syncImport(JSON.stringify({appVersion:'2.9.1', karten:[{id:idP, pflicht:true, pflichtWert:25, pflichtDeckel:30, pflichtAbzug:10, pflichtMin:0}]}));
+          fw.setTab('suche'); fw.fokusKarteAnsehen('a-3');
+          var bonusB=fw.abhakbonusDefault(lsK(idB));
+          tippe(d.querySelector('#fokusView [data-alcheck="'+idP+'"]'),'Häkchen „'+(lsK(idP)||{}).titel+'" (Pflicht 25)');
+          tippe(d.querySelector('#fokusView [data-alcheck="'+idB+'"]'),'Häkchen „'+(lsK(idB)||{}).titel+'" (Bonus)');
+          var kP=lsK(idP), kB=lsK(idB);
+          var logP=lsLog().filter(function(e){ return e.kartenId===idP && e.tagId; }).reduce(function(a,e){ return a+Number(e.punkte||0); },0);
+          var logB=lsLog().filter(function(e){ return e.kartenId===idB && e.tagId; }).reduce(function(a,e){ return a+Number(e.punkte||0); },0);
+          finding('echt · v2.9.1 §1 Haken „'+kP.titel+'" (5 Soll-Min, Prognose ohne Pflicht '+progP+' P, Pflicht 25) → gebucht '+kP.punkteOverride+' P · im Stunden-Log '+logP+' P');
+          finding('echt · v2.9.1 §1 Haken „'+kB.titel+'" (Prognose '+progB+' P = Zeit '+(progB-bonusB)+' + Bonus '+bonusB+') → gebucht '+kB.punkteOverride+' P · im Stunden-Log '+logB+' P');
+          pruef(kP.status==='erledigt' && kP.punkteOverride===25 && logP===25, 'v2.9.1 §1: Pflicht-Haken bucht nicht genau den Wert 25 ('+kP.punkteOverride+' / Log '+logP+')');
+          pruef(kB.status==='erledigt' && kB.punkteOverride===bonusB && logB===bonusB, 'v2.9.1 §1: Haken bucht mehr als den Bonus ('+kB.punkteOverride+' statt '+bonusB+')');
+          var bil=Math.round(fw.ohneLaufendeUhr(function(){ return fw.tagesPunkteLive(); })*10)/10, sum=Math.round(fw.logSummeTag()*10)/10;
+          var ex=fw.syncExport('delta').logAbgleichHeute;
+          finding('echt · v2.9.1 §4 Tagesbilanz '+bil+' · Summe Stunden-Log '+sum+' · Export-Differenz '+(ex&&ex.differenz)+' · Statusleiste Pv '+d.getElementById('sPhPrv').textContent+' = '+Math.round(Math.max(0,fw.tagesPunkteDomain('privat'))));
+          pruef(Math.abs(bil-sum)<0.05 && ex && ex.differenz===0, 'v2.9.1 §4: Tagesbilanz ≠ Stunden-Log ('+bil+' / '+sum+')');
+          pruef(String(d.getElementById('sPhPrv').textContent)===String(Math.round(Math.max(0,fw.tagesPunkteDomain('privat')))), 'v2.9.1 §3: Statusleiste zeigt nicht den Tagesstand');
+          freiMachen(); fw.setTab('suche');
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
