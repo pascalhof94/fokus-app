@@ -525,8 +525,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.8.2 · Build gesetzt', VERSION==='2.8.2' && UI_VERSION==='v2.8.2' &&
-   APP_BUILD==='2026-09-25-5');
+ok('31 APP_VERSION 2.9.0 · Build gesetzt', VERSION==='2.9.0' && UI_VERSION==='v2.9.0' &&
+   APP_BUILD==='2026-09-26-1');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -868,7 +868,8 @@ function kacheln(h){ return (h.match(/class="fbk[ "]/g)||[]).length; }
 function grafiken(h){ return (h.match(/<svg|class="fbk-bar/g)||[]).length; }
 ok('§2 Block 1: je Kachel eine Grafik ('+kacheln(b1)+' Kacheln)', kacheln(b1)>=2 && grafiken(b1)>=kacheln(b1));
 ok('§2/v2.3 §9 Block 2: DFM, Privat, Outfit, Faktor F (+Kurve) als Kacheln mit Grafik',
-   kacheln(b2)>=4 && grafiken(b2)>=4 && b2.indexOf('>DFM<')>=0 && b2.indexOf('>Privat<')>=0);
+   // (am Wochenende heissen die Kacheln „DFM · Wochenende (Sa+So)" — der Test ist wochentagsfest)
+   kacheln(b2)>=4 && grafiken(b2)>=4 && /fbk-h">DFM( · Wochenende \(Sa\+So\))?</.test(b2) && /fbk-h">Privat( · Wochenende \(Sa\+So\))?</.test(b2));
 ok('§2 Block 2: kein doppeltes „P P" mehr', b2.indexOf('P P')<0);
 ok('§2 Block 3 ohne Position: Matrix statt nackter Text', b3.indexOf('<svg')>=0);
 S.tag.matrixSpur=[{x:-0.6,y:0.4},{x:0.2,y:-0.2}];
@@ -1110,7 +1111,7 @@ ok('§8 Grafik fängt keine Klicks (pointer-events:none)', /\.fb-mx\{[^}]*pointe
 kopf('v2.3.0 §9/§10 · Wo ich heute stehe');
 var b9=fbWoIchStehe();
 ok('§9 DFM und Privat getrennt, je mit Zielmarke',
-   b9.indexOf('>DFM<')>=0 && b9.indexOf('>Privat<')>=0 && (b9.match(/fbk-bar mitmarke/g)||[]).length>=2);
+   /fbk-h">DFM( · Wochenende \(Sa\+So\))?</.test(b9) && /fbk-h">Privat( · Wochenende \(Sa\+So\))?</.test(b9) && (b9.match(/fbk-bar mitmarke/g)||[]).length>=2);   // wochentagsfest
 ok('§9 die Ziele sind die Domänen-Ziele',
    // v2.6.0 §6: exakt mit Tausenderpunkt statt „5k"
    b9.indexOf(fmtP(zielUndIstHeute('dfm').ziel))>=0 && b9.indexOf(fmtP(zielUndIstHeute('privat').ziel))>=0);
@@ -2073,6 +2074,123 @@ ok('§2 „Nur abhaken", eigener Abhakbonus und Tickwert werden vorbelegt', entw
 closeSheet();
 oeffneDetail(null); entwurf.titel='Ohne Eigenes'; entwurf.abhakbonus=33; wdhUebernehmen('vB');
 ok('§2 ohne eigenen Wert an der Vorlage bleibt das Feld leer (= Tabelle)', entwurf.nurAbhaken===null && entwurf.abhakbonus===null && entwurf.tickWert===null);
+closeSheet();
+
+/* ══════════════════════════════════════════════════════════════════════
+   v2.9.0 „Pflicht-Karten" — Abnahme 1–7 (Klick/Ziehen per Harness)
+   ══════════════════════════════════════════════════════════════════════ */
+kopf('v2.9.0 §1–§2 · Pflicht: Zahlenbeleg „Toilette"');
+frisch();
+var TOI={ domain:'privat', titel:'Toilette', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', faelligkeit:H(), pflicht:true, pflichtWert:50, pflichtDeckel:30, pflichtAbzug:10, pflichtMin:-20 };
+function toi(id){ var k=neueKarte(Object.assign({id:id}, TOI)); S.karten.push(k); return k; }
+function laufen(k, min){ fokusStarten(k.id); S.fokus.startMs=Date.now()-min*60000; fokusZeitEinbuchen(); S.fokus=null; }
+var tH=toi('tH'); leisteAbhaken('tH');
+var zeilen=['Haken ohne Uhr → '+tH.punkteOverride];
+var t12=toi('t12'); laufen(t12,12);  zeilen.push('Uhr 12 Min → '+pflichtHeuteP(t12));
+var t31=toi('t31'); laufen(t31,31);  zeilen.push('31 Min → '+pflichtHeuteP(t31));
+var t52=toi('t52'); laufen(t52,52);  zeilen.push('52 Min → '+pflichtHeuteP(t52));
+var t95=toi('t95'); laufen(t95,95);  zeilen.push('95 Min → '+pflichtHeuteP(t95));
+var t2=toi('t2'); laufen(t2,5); t2.durchgang.pauseTs=new Date(Date.now()-10*60000).toISOString(); laufen(t2,5);
+zeilen.push('zwei Durchgänge (10 Min Abstand) → '+pflichtHeuteP(t2)+' ('+t2.pflichtHeute.n+'×)');
+var t3=toi('t3'); laufen(t3,20); t3.durchgang.pauseTs=new Date(Date.now()-3*60000).toISOString(); laufen(t3,20);
+zeilen.push('Neustart nach 3 Min, 20+20 Min → '+pflichtHeuteP(t3)+' ('+t3.pflichtHeute.n+' Durchgang)');
+print('   Toilette (Wert 50 · Deckel 30 · Abzug 10 · Untergrenze −20): '+zeilen.join(' · '));
+ok('§2 Haken → 50', tH.punkteOverride===50 && tH.status==='erledigt');
+ok('§2 Uhr 12 Min → 50', pflichtHeuteP(t12)===50);
+ok('§2 31 Min → 40', pflichtHeuteP(t31)===40);
+ok('§2 52 Min → 20', pflichtHeuteP(t52)===20);
+ok('§2 95 Min → −20 (Untergrenze, darf negativ sein)', pflichtHeuteP(t95)===-20);
+ok('§2 zwei Durchgänge mit 10 Min Abstand → 100', pflichtHeuteP(t2)===100 && t2.pflichtHeute.n===2);
+ok('§2 Neustart nach 3 Min → derselbe Durchgang (20+20 = 40 Min → 40)', pflichtHeuteP(t3)===40 && t3.pflichtHeute.n===1);
+ok('§2 ein negativer Ertrag senkt die Tagespunkte (kein Abschneiden bei 0)', Math.round(kartePunkteHeute(t95))===-20);
+var vorE=pflichtHeuteP(t52); leisteAbhaken('t52');
+ok('§2 Erledigen nach dem Durchgang: kein zweiter Wert, kein Abhakbonus (52 Min → bleibt 20)', t52.punkteOverride===vorE);
+kopf('v2.9.0 §2 · keine Zeitpunkte, kein Abhakbonus, Matrix unverändert');
+frisch();
+var pz=neueKarte({id:'pz', domain:'privat', titel:'Essen machen', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', sollMin:30, faelligkeit:H(), pflicht:true, pflichtWert:60, pflichtDeckel:40, pflichtAbzug:10, pflichtMin:0});
+var ohneP=neueKarte({id:'op', domain:'privat', titel:'Essen machen (ohne Pflicht)', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', sollMin:30, faelligkeit:H()});
+S.karten=[pz, ohneP];
+laufen(pz,35); laufen(ohneP,35);
+print('   „Essen machen" 35 Min: Pflicht '+fmtP(kartePunkte(pz))+' P · ohne Pflicht wären es '+fmtP(kartePunkte(ohneP))+' P + Abhakbonus '+abhakbonusDefault(ohneP));
+ok('§2 Pflicht-Karte MIT Soll-Minuten bucht ebenfalls je Durchgang (Entscheidung Pascal)', pflichtHeuteP(pz)===60);
+ok('§2 keine Zeitpunkte, kein Abhakbonus, keine Dämpfung zusätzlich', kartePunkte(pz)===60 && abhakbonusDefault(pz)===0);
+ok('§2 das Matrixfeld bleibt und zählt in der Matrix wie bisher', matrixFeldVon(pz)==='werkzeug' && matrixFaktor(pz)===matrixFaktor(ohneP));
+var cz=neueKarte({id:'cz', domain:'privat', titel:'Wasser', ticksAktiv:true, tickWert:15, matrixFeld:'werkzeug', faelligkeit:H(), pflicht:true, pflichtWert:20, pflichtDeckel:5, pflichtAbzug:5, pflichtMin:0});
+S.karten.push(cz); karteTick('cz'); karteTick('cz');
+ok('§2 Counter: jedes +1 = der Wert (Entscheidung Pascal): 2 × 20', pflichtHeuteP(cz)===40 && cz.ticksHeute===2 && kartePunkte(cz)===40);
+var twp=tempoWerte(neueKarte(Object.assign({}, TOI)));
+ok('§2 Tempo: die Karte bringt Wert ÷ Deckel-Stunden (50 ÷ 0,5 = 100), Marke mit Zusatz „Pflicht"', Math.abs(twp.karte.prognose-100)<1e-9 && /Pflicht 100/.test(tempoLeisteHtml(twp)));
+ok('§2 Prognose = gebucht + Wert eines weiteren Durchgangs', kartePunktePrognose(neueKarte(Object.assign({}, TOI)))===50);
+S.meta.pflichtAb=H();
+ok('§2 ab dem Update: eine nachgetragene Sitzung davor rechnet wie bisher', sitzungPunkteFuer(pz,35,anVorTage(H(),2))>0 && sitzungPunkteFuer(pz,35,anVorTage(H(),2))!==60 && sitzungPunkteFuer(pz,35,H())===60);
+
+kopf('v2.9.0 §3 · Punktekurve im Detail');
+frisch();
+var kd=neueKarte({id:'kd', domain:'privat', titel:'Toilette', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', faelligkeit:H()});
+S.karten=[kd];
+S.intraday=[{id:'a1',ts:jetztIso(),kartenId:'kd',minuten:8,typ:'timer'},{id:'a2',ts:jetztIso(),kartenId:'kd',minuten:12,typ:'timer'},
+            {id:'a3',ts:jetztIso(),kartenId:'kd',minuten:14,typ:'timer'},{id:'a4',ts:jetztIso(),kartenId:'kd',minuten:45,typ:'timer'}];
+oeffneDetail('kd');
+ok('§1 Schalter „Pflicht" im Detail, direkt unter dem Matrixfeld (aus: keine Kurve)', /data-chip="pflicht" data-val="ja"/.test(el('sheetBody').innerHTML) &&
+   el('sheetBody').innerHTML.indexOf('id="pflichtBlock"')>el('sheetBody').innerHTML.indexOf('Matrixfeld') && el('sheetBody').innerHTML.indexOf('pf-svg')<0);
+entwurf.pflicht=true; entwurf.pflichtWert=50; entwurf.pflichtDeckel=30; entwurf.pflichtAbzug=10; entwurf.pflichtMin=-20;
+var blk=pflichtBlockHtml(entwurf);
+ok('§3 Kurve mit drei Griffen (Knick · Stufe · Untergrenze) und vier Plus/Minus-Zeilen', /data-pgriff="knick"/.test(blk) && /data-pgriff="stufe"/.test(blk) && /data-pgriff="min"/.test(blk) &&
+   (blk.match(/data-pfplus="/g)||[]).length===8 && /r="22" fill="transparent"/.test(blk));
+ok('§3 Kurve in der Farbe des Matrixfelds (Werkzeug)', blk.indexOf('stroke="'+MX_FARBE.werkzeug[0]+'"')>=0);
+ok('§3 echte Dauern als Punkte (4), über dem Deckel in der Abzugsfarbe (1)', (blk.match(/class="pf-dauer"/g)||[]).length===4 && (blk.match(/class="pf-dauer"[^>]*fill="#f87171"/g)||[]).length===1);
+var lz=pflichtLiveZeile(entwurf);
+print('   Live-Zeile: '+lz);
+ok('§3 Live-Zeile rechnet: typisch 14 Min → 50 · 1 von 4 über dem Deckel · längstes Mal 45 Min → 30 (2 angefangene 10er)', lz==='Typisch 14 Min → 50 P · 1 von 4 Mal über dem Deckel · längstes Mal (45 Min) → 30 P');
+var pts=pflichtStufen(pflichtWerte(entwurf));
+ok('§3 Stufenform: waagerecht bis 30′, dann je 10′ −10 bis −20', JSON.stringify(pts.slice(0,4))===JSON.stringify([{m:0,p:50},{m:30,p:50},{m:30,p:40},{m:40,p:40}]) && pts[pts.length-1].p===-20 && pts[pts.length-1].m===120);
+pflichtSetzen(entwurf,'wert',57); pflichtSetzen(entwurf,'deckel',150); pflichtSetzen(entwurf,'min',80);
+ok('§3 5er-Schritte und Grenzen (Wert 57 → 55 · Deckel ≤ 120 · Untergrenze ≤ Wert)', entwurf.pflichtWert===55 && entwurf.pflichtDeckel===120 && entwurf.pflichtMin===55);
+ok('§3 Plus/Minus und Ziehen schreiben dieselben Werte (ein Setter, ein Neuzeichnen)', /pflichtSetzen\(entwurf, f,/.test(src) && /pflichtSetzen\(entwurf,'wert',pkt\)/.test(src) && /pflichtNeuZeichnen\(true\)/.test(src));
+closeSheet();
+kd.pflichtWert=null; oeffneDetail('kd'); entwurf.pflicht=true; pflichtInit(entwurf);
+ok('§1 Einschalten belegt je Karte vor, kein globaler Standard (Deckel = typische Dauer 14 → 15)', entwurf.pflichtWert>=5 && entwurf.pflichtDeckel===15 && entwurf.pflichtAbzug===10 && entwurf.pflichtMin===0);
+closeSheet();
+
+kopf('v2.9.0 §4 · Vorschlag von Claude als Zweitkurve');
+frisch();
+S.karten=[neueKarte({id:'vs1', domain:'privat', titel:'Katzen füttern', rhythmus:{typ:'taeglich'}, matrixFeld:'werkzeug', faelligkeit:H()})];
+syncImport(JSON.stringify({appVersion:'2.9.0', karten:[{id:'vs1', pflichtVorschlag:{wert:40, deckel:15, abzug:10, min:-10, grund:'bisher ~170 P am Tag für zweimal füttern'}}]}));
+var kv=S.karten[0];
+oeffneDetail('vs1');
+ok('§4 der Vorschlag erscheint grau gestrichelt mit Grund und zwei Knöpfen', /class="pf-vorschlag"/.test(el('sheetBody').innerHTML) && /stroke-dasharray="5 4" class="pf-vorschlag"/.test(el('sheetBody').innerHTML) &&
+   /bisher ~170 P/.test(el('sheetBody').innerHTML) && /data-pfvorschlag="uebernehmen"/.test(el('sheetBody').innerHTML) && /data-pfvorschlag="verwerfen"/.test(el('sheetBody').innerHTML));
+ok('§4 Export meldet den Vorschlag mit Status „offen"', syncExport('voll').karten[0].pflichtVorschlag.status==='offen');
+entwurf.pflichtVorschlag.status='uebernommen'; entwurf.pflicht=true; entwurf.pflichtWert=40; entwurf.pflichtDeckel=15; entwurf.pflichtAbzug=10; entwurf.pflichtMin=-10;
+entwurf.titel='Katzen füttern'; detailSpeichern();
+kv=S.karten.filter(function(k){ return k.id==='vs1'; })[0];
+ok('§4 „Übernehmen" setzt die vier Werte, danach verschwindet der Vorschlag aus der Kurve', kv.pflicht===true && kv.pflichtWert===40 && kv.pflichtMin===-10 && !pflichtVorschlagOffen(kv) && pflichtBlockHtml(kv).indexOf('pf-vorschlag')<0);
+ok('§4 der Knopf-Handler setzt Werte + Status', /v\.status='uebernommen'/.test(src) && /else v\.status='verworfen'/.test(src));
+var exV=syncExport('voll').karten.filter(function(k){ return k.id==='vs1'; })[0];
+print('   Export: '+JSON.stringify({pflicht:exV.pflicht, pflichtWert:exV.pflichtWert, pflichtDeckel:exV.pflichtDeckel, pflichtAbzug:exV.pflichtAbzug, pflichtMin:exV.pflichtMin, pflichtVorschlag:exV.pflichtVorschlag}));
+ok('§4 Export meldet „uebernommen" bis zum bestätigten Sync', exV.pflichtVorschlag.status==='uebernommen');
+syncBestaetigen();
+ok('§4 … danach ist er weg', S.karten.filter(function(k){ return k.id==='vs1'; })[0].pflichtVorschlag===null);
+syncImport(JSON.stringify({appVersion:'2.9.0', karten:[{id:'vs1', pflichtVorschlag:{wert:30, deckel:10, abzug:5, min:0, grund:'zweiter Versuch'}}]}));
+kv=S.karten.filter(function(k){ return k.id==='vs1'; })[0]; kv.pflichtVorschlag.status='verworfen';
+ok('§4 „Verwerfen": Werte bleiben, Vorschlag weg, Export meldet „verworfen"', kv.pflichtWert===40 && !pflichtVorschlagOffen(kv) && syncExport('voll').karten.filter(function(k){ return k.id==='vs1'; })[0].pflichtVorschlag.status==='verworfen');
+
+kopf('v2.9.0 §5–§6 · Einstellungen, Import/Export, Wiederholung');
+renderEinst();
+var eh=el('einstBody').innerHTML;
+ok('§5 Liste „Pflicht-Karten" mit Mini-Kurve, vier Werten und Tipp zur Karte', /Pflicht-Karten · 1/.test(eh) && /pf-svg mini/.test(eh) && /data-pflichtoeffnen="vs1"/.test(eh) && /40 P · Deckel 15′ · −10 je 10′ · min -10/.test(eh));
+syncImport(JSON.stringify({appVersion:'2.9.0', karten:[{id:'vs1', pflichtVorschlag:{wert:35, deckel:15, abzug:10, min:-10, grund:'dritter'}}]}));
+renderEinst();
+ok('§5 Karten mit offenem Vorschlag sind markiert', /Vorschlag offen/.test(el('einstBody').innerHTML));
+syncImport(JSON.stringify({appVersion:'2.9.0', karten:[{id:'vs1', pflicht:false}]}));
+kv=S.karten.filter(function(k){ return k.id==='vs1'; })[0];
+ok('§6 pflicht:false schaltet ab, die Werte bleiben gespeichert', kv.pflicht===false && kv.pflichtWert===40 && kv.pflichtDeckel===15);
+syncImport(JSON.stringify({appVersion:'2.9.0', karten:[{id:'vs1', titel:'Katzen füttern (umbenannt)'}]}));
+ok('§6 Feld fehlt = unverändert', kv.pflicht===false && kv.pflichtWert===40 && kv.titel==='Katzen füttern (umbenannt)');
+syncImport(JSON.stringify({appVersion:'2.9.0', karten:[{id:'vs1', pflicht:true, pflichtWert:45}]}));
+ok('§6 Import setzt Pflicht und einzelne Werte', kv.pflicht===true && kv.pflichtWert===45 && kv.pflichtDeckel===15);
+oeffneDetail(null); entwurf.titel='Katzen füttern (umbenannt)'; wdhUebernehmen('vs1');
+ok('§6 „↻ Von … übernehmen" übernimmt Pflicht mit allen Werten', entwurf.pflicht===true && entwurf.pflichtWert===45 && entwurf.pflichtDeckel===15 && entwurf.pflichtAbzug===10 && entwurf.pflichtMin===-10);
 closeSheet();
 
 print('');

@@ -277,6 +277,12 @@ function bestandSchreiben(){
       var lay=d.getElementById('fokusLayer'), fb=d.querySelectorAll('#fokusView .fb')[1];
       if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
     },
+    /* ══ v2.9 · Screenshots: Punktekurve im Detail, Liste in den Einstellungen ══ */
+    echtPflicht:function(fw){ var d=fw.document; v29Vorbereiten(fw); fw.oeffneDetail('r-zaehne');
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; }
+      var b=d.getElementById('sheetBody'), z=d.getElementById('pflichtBlock'); if(b && z) b.scrollTop += z.getBoundingClientRect().top-b.getBoundingClientRect().top-8; },
+    einstPflicht:function(fw){ var d=fw.document; v29Vorbereiten(fw); fw.setTab('einst');
+      var m=d.querySelector('main'), z=d.querySelector('.einst-pflicht'); if(m && z) m.scrollTop += z.getBoundingClientRect().top-150; },
     /* ══ v2.8 · Screenshots: Fokusansicht komplett, Abhak-Leiste, Detail, Abhakbonus-Tabelle ══ */
     echtFokus28:function(fw){ v28Vorbereiten(fw); fw.fokusStarten('a-3', null); fw.closeSheet();
       var sh=fw.document.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(110%)'; }
@@ -1953,6 +1959,83 @@ function bestandSchreiben(){
           fw.closeSheet();
           freiMachen(); fw.setTab('suche');
         })();
+        /* ══ v2.9 · PFLICHT: SCHALTER, GRIFFE, PLUS/MINUS, VORSCHLAG — elementFromPoint ══ */
+        (function(){
+          function mitte(e){ var r=e.getBoundingClientRect(); return {x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2)}; }
+          function tippe(e, wie){
+            if(!e){ pruef(false,'v2.9: '+wie+' fehlt'); return null; }
+            // Ruhelage nur fuer ein OFFENES Sheet erzwingen — sonst holt sie ein geschlossenes zurueck
+            function ruhe(){ if(d.getElementById('sheet').className.indexOf('on')>=0) sheetRuhe(); else sheetRuheAus(); }
+            e.scrollIntoView({block:'center'}); ruhe();
+            var m=mitte(e), hit=d.elementFromPoint(m.x,m.y);
+            pruef(hit && (hit===e || e.contains(hit)), 'v2.9: '+wie+' verdeckt von '+beschreib(hit));
+            if(hit){ if(typeof hit.click==='function') hit.click(); else hit.dispatchEvent(new fw.MouseEvent('click',{bubbles:true})); }
+            ruhe(); return hit;
+          }
+          function wert(f){ var e=d.getElementById('pfV-'+f); return e ? Number(String(e.textContent).replace(/\./g,'').replace('−','-')) : NaN; }
+          /* einen Griff ziehen: Treffer per elementFromPoint, dann Zeiger-Ereignisse wie am iPhone */
+          function ziehe(griff, dx, dy){
+            var g=d.querySelector('#pflichtBlock [data-pgriff="'+griff+'"]'); if(!g){ pruef(false,'v2.9: Griff '+griff+' fehlt'); return; }
+            g.scrollIntoView({block:'center'}); sheetRuhe();
+            var hitC=g.querySelector('circle'); var r=hitC.getBoundingClientRect();
+            pruef(r.width>=40 && r.height>=40, 'v2.9: Griff '+griff+' Tippfläche '+Math.round(r.width)+' px < 44');
+            var x=Math.round(r.left+r.width/2), y=Math.round(r.top+r.height/2), hit=d.elementFromPoint(x,y);
+            pruef(hit && g.contains(hit), 'v2.9: Griff '+griff+' verdeckt von '+beschreib(hit));
+            var o={bubbles:true, cancelable:true, pointerId:7, isPrimary:true, pointerType:'touch'};
+            (hit||g).dispatchEvent(new fw.PointerEvent('pointerdown', Object.assign({clientX:x, clientY:y}, o)));
+            for(var i=1;i<=4;i++) d.body.dispatchEvent(new fw.PointerEvent('pointermove', Object.assign({clientX:x+dx*i/4, clientY:y+dy*i/4}, o)));
+            d.body.dispatchEvent(new fw.PointerEvent('pointerup', Object.assign({clientX:x+dx, clientY:y+dy}, o)));
+            sheetRuhe();
+          }
+          freiMachen(); fw.setTab('suche');
+          fw.oeffneDetail('r-13'); sheetRuhe();
+          tippe(d.querySelector('#sheetBody [data-chip="pflicht"][data-val="ja"]'),'Schalter „Pflicht an"');
+          var svg=d.querySelector('#pflichtBlock .pf-svg');
+          finding('echt · v2.9 §1 Schalter: Kurve '+(svg?'da':'fehlt')+' · Griffe '+d.querySelectorAll('#pflichtBlock [data-pgriff]').length+' · Plus/Minus '+d.querySelectorAll('#pflichtBlock [data-pfplus]').length+
+                  ' · Startwerte '+['wert','deckel','abzug','min'].map(wert).join('/'));
+          pruef(svg && d.querySelectorAll('#pflichtBlock [data-pgriff]').length===3 && d.querySelectorAll('#pflichtBlock [data-pfplus]').length===8, 'v2.9 §1: Kurve/Griffe/Zeilen fehlen');
+          var w0=wert('wert');
+          tippe(d.querySelector('#pflichtBlock [data-pfplus="wert"][data-d="5"]'),'Plus beim Wert');
+          pruef(wert('wert')===w0+5, 'v2.9 §3: Plus beim Wert wirkt nicht ('+w0+' → '+wert('wert')+')');
+          tippe(d.querySelector('#pflichtBlock [data-pfplus="abzug"][data-d="-5"]'),'Minus beim Abzug');
+          var vor={wert:wert('wert'), deckel:wert('deckel'), abzug:wert('abzug'), min:wert('min')};
+          var knickY0=d.querySelector('#pflichtBlock [data-pgriff="knick"] circle').getAttribute('cy');
+          ziehe('knick', 50, -30);
+          var nach1={wert:wert('wert'), deckel:wert('deckel')};
+          var knickY1=d.querySelector('#pflichtBlock [data-pgriff="knick"] circle').getAttribute('cy');
+          finding('echt · v2.9 §3 Knick gezogen (+50 px rechts, 30 px hoch): Wert '+vor.wert+' → '+nach1.wert+' · Deckel '+vor.deckel+' → '+nach1.deckel+' · Kurve synchron: Knick y '+knickY0+' → '+knickY1);
+          pruef(nach1.wert>vor.wert && nach1.deckel>vor.deckel && nach1.wert%5===0 && nach1.deckel%5===0 && knickY1!==knickY0, 'v2.9 §3: Knick ziehen wirkt nicht / nicht synchron');
+          ziehe('stufe', 0, 30);
+          finding('echt · v2.9 §3 Stufe gezogen (30 px runter): Abzug '+vor.abzug+' → '+wert('abzug'));
+          pruef(wert('abzug')>vor.abzug, 'v2.9 §3: Stufe ziehen wirkt nicht');
+          ziehe('min', 0, 40);
+          finding('echt · v2.9 §3 Untergrenze gezogen (40 px runter): '+vor.min+' → '+wert('min')+' (darf unter 0)');
+          pruef(wert('min')<vor.min && wert('min')<0, 'v2.9 §3: Untergrenze ziehen wirkt nicht / nicht unter 0');
+          var live=(d.getElementById('pfLive')||{}).textContent||'';
+          finding('echt · v2.9 §3 Live-Zeile: „'+live+'"');
+          tippe(d.querySelector('#sheetFoot [data-detailaktion="speichern"]'),'Speichern');
+          var k13=null; try{ k13=JSON.parse(localStorage.getItem('fokus2_karten')).filter(function(k){ return k.id==='r-13'; })[0]; }catch(e){}
+          pruef(k13 && k13.pflicht===true && k13.pflichtWert===nach1.wert, 'v2.9 §1: gespeicherte Pflicht-Werte stimmen nicht');
+          var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+          /* §4 Vorschlag übernehmen */
+          freiMachen(); fw.syncImport(JSON.stringify(v29Paket(fw))); fw.setTab('suche'); fw.oeffneDetail('r-zaehne'); sheetRuhe();
+          pruef(!!d.querySelector('#pflichtBlock .pf-vorschlag'), 'v2.9 §4: Vorschlag nicht gestrichelt in der Kurve');
+          tippe(d.querySelector('#pflichtBlock [data-pfvorschlag="uebernehmen"]'),'„Übernehmen"');
+          finding('echt · v2.9 §4 nach „Übernehmen": '+['wert','deckel','abzug','min'].map(wert).join('/')+' · Vorschlag in der Kurve: '+(d.querySelector('#pflichtBlock .pf-vorschlag')?'noch da':'weg'));
+          pruef(wert('wert')===40 && wert('deckel')===20 && wert('min')===-10 && !d.querySelector('#pflichtBlock .pf-vorschlag'), 'v2.9 §4: Übernehmen setzt die Werte nicht');
+          tippe(d.querySelector('#sheetFoot [data-detailaktion="speichern"]'),'Speichern');
+          zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
+          var ex=fw.syncExport('delta').karten.filter(function(k){ return k.id==='r-zaehne'; })[0];
+          pruef(ex && ex.pflichtVorschlag && ex.pflichtVorschlag.status==='uebernommen', 'v2.9 §4: Export meldet den Status nicht');
+          /* §5 Liste in den Einstellungen → Tipp öffnet die Karte bei „Punkte" */
+          freiMachen(); fw.setTab('einst');
+          var z=d.querySelector('.einst-pflicht [data-pflichtoeffnen="r-zaehne"]');
+          finding('echt · v2.9 §5 Einstellungen: '+d.querySelectorAll('.einst-pflicht [data-pflichtoeffnen]').length+' Pflicht-Karten · Mini-Kurven '+d.querySelectorAll('.einst-pflicht .pf-svg.mini').length);
+          tippe(z,'Pflicht-Karte in der Liste'); sheetRuhe();
+          var pb=d.getElementById('pflichtBlock'), sb=d.getElementById('sheetBody');
+          pruef(pb && sb && pb.getBoundingClientRect().top < sb.getBoundingClientRect().top+200, 'v2.9 §5: öffnet nicht beim Abschnitt Punkte');
+          freiMachen(); fw.setTab('suche');
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
@@ -1993,6 +2076,17 @@ function bestandSchreiben(){
       {id:'r-12', nurAbhaken:true, block:'senke'},
       {id:'c-harness', domain:'privat', titel:'Liegestütze', ticksAktiv:true, matrixFeld:'werkzeug', block:'abschluss'} ] };
   }
+  /* v2.9: echte Dauern (als Korrektur-Sitzungen am Vortag des App-Tags) und
+     eine Pflicht-Karte mit offenem Vorschlag von Claude */
+  function v29Paket(fw){
+    var dat=fw.anVorTage(fw.heuteApp(),1);
+    var sz=[['08:00','08:08'],['12:00','12:12'],['14:00','14:14'],['16:00','16:45'],['18:00','18:25'],['20:00','20:31']].map(function(v,i){
+      return {aktion:'hinzu', id:'s-pf-'+i, karteId:'r-zaehne', von:v[0], bis:v[1]}; });
+    return { appVersion:'2.9.0', karten:[{ id:'r-zaehne', pflicht:true, pflichtWert:50, pflichtDeckel:30, pflichtAbzug:10, pflichtMin:-20,
+        pflichtVorschlag:{ wert:40, deckel:20, abzug:10, min:-10, grund:'Zähne sind nach 20 Min erledigt — länger heißt meist Handy.' } }],
+      korrekturen:[{ datum:dat, grund:'Harness: echte Dauern für die Pflicht-Kurve', sitzungen:sz }] };
+  }
+  function v29Vorbereiten(fw){ v28Vorbereiten(fw); fw.syncImport(JSON.stringify(v29Paket(fw))); fw.setTab('suche'); }
   function v28Vorbereiten(fw){ v27Vorbereiten(fw); fw.syncImport(JSON.stringify(v28Paket())); fw.setTab('suche'); }
   function v27Vorbereiten(fw){
     var d=fw.document;
@@ -2034,7 +2128,7 @@ function bestandSchreiben(){
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
-  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender'||VIEW==='echtTempo'||VIEW==='echtMatrixSpur'||VIEW==='statistikOben'||VIEW==='echtGeld'||VIEW==='echtBloecke'||VIEW==='echtBloeckeAuf'||VIEW==='echtBlockNeu'||VIEW==='einstKorrekturen'||VIEW==='echtFokus28'||VIEW==='echtAbhak'||VIEW==='echtDetail28'||VIEW==='einstAbhak')
+  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender'||VIEW==='echtTempo'||VIEW==='echtMatrixSpur'||VIEW==='statistikOben'||VIEW==='echtGeld'||VIEW==='echtBloecke'||VIEW==='echtBloeckeAuf'||VIEW==='echtBlockNeu'||VIEW==='einstKorrekturen'||VIEW==='echtFokus28'||VIEW==='echtAbhak'||VIEW==='echtDetail28'||VIEW==='einstAbhak'||VIEW==='echtPflicht'||VIEW==='einstPflicht')
      ? bestandSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);

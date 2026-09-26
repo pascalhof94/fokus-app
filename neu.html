@@ -1483,6 +1483,24 @@ body{background:var(--bg)}
 .korr-k{font-size:13px;line-height:1.35}.korr-k span{display:block;font-size:10.5px;color:var(--mut2)}
 .korr-z{font-size:11px;color:var(--mut);line-height:1.4;margin-top:3px}.korr-z span{display:inline-block;width:52px;color:var(--mut2)}
 .korr-e ul{margin:4px 0 0 16px;padding:0;font-size:11.5px}
+/* ══ §3 (v2.9.0) · Pflicht-Kurve ══ */
+.pf-kurve{margin:8px 0 2px;border:1px solid var(--line);border-radius:14px;background:var(--card2);padding:4px 2px}
+.pf-svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.pf-griff{cursor:grab}
+.pf-live{font-size:11.5px;color:var(--mut);line-height:1.4;margin:4px 2px 8px}
+.pf-z{display:flex;align-items:center;gap:8px;min-height:44px;border-top:1px solid var(--line)}
+.pf-lab{flex:0 0 86px;font-size:12.5px}
+.pf-pm{flex:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font-size:20px;font-weight:700;padding:0}
+.pf-wert{flex:0 0 52px;text-align:center;font:800 15px/1 ui-monospace,monospace}
+.pf-einheit{flex:1;min-width:0;font-size:10.5px;color:var(--mut2);line-height:1.25}
+.pf-an{color:var(--mut2);font-weight:400}
+.pf-vs{margin-top:8px;padding:8px 10px;border:1px dashed #a3a6ab;border-radius:12px;font-size:12px;line-height:1.4}
+.pf-vs span{color:var(--mut)}
+.pf-liste-z{display:flex;align-items:center;gap:10px;min-height:52px;border-top:1px solid var(--line);cursor:pointer}
+.pf-mini{flex:0 0 96px}.pf-mini svg{display:block;width:96px;height:auto}
+.pf-liste-t{flex:1;min-width:0;display:flex;flex-direction:column;font-size:12.5px}
+.pf-liste-t small{color:var(--mut);font-size:11px}
+.pf-badge{align-self:flex-start;margin:2px 0;display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;border:1px dashed #a3a6ab;color:var(--txt)}
 /* ══ §1 (v2.8.0) · Abhak-Leiste, Play im Tagesablauf (mind. 44 px) ══ */
 .zs-k{min-height:44px;box-sizing:border-box}
 .al-knopf{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--txt);
@@ -1715,9 +1733,9 @@ body{background:var(--bg)}
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.8.2';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.8.2';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-25-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.9.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.9.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-26-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2041,6 +2059,11 @@ function neueKarte(f={}){
     // {tag, punkte, n} (gilt nur fuer den Tag in tag), durchgang = {tag,
     // startTs, pauseTs} — der laufende Durchgang (Pause < 5 Min = derselbe).
     startBonus: null, durchgang: null,
+    // §1 (v2.9.0): PFLICHT — eine zweite Eigenschaft neben dem Matrixfeld.
+    // Alle Werte je Karte, kein globaler Standard. pflichtHeute = {tag, punkte, n}
+    // (gebuchte Ertraege des Tages); pflichtVorschlag = Claudes Zweitkurve.
+    pflicht: false, pflichtWert: null, pflichtDeckel: null, pflichtAbzug: null, pflichtMin: null,
+    pflichtHeute: null, pflichtVorschlag: null,
     // ══ §4 (v2.1.0) · EIN DATUM ════════════════════════════════════════
     // Die v2.0-Trennung in Deadline und „Geplant für" ist zurückgenommen:
     // Pascal führt EIN Datum. Es gibt nur noch die Deadline — und sie ist ab
@@ -2863,6 +2886,8 @@ function ladeAlles(){
     if(log.tage.length) saveHistorie();
     saveMeta();
   }
+  // §2 (v2.9.0): Pflicht gilt ab dem Update — nachgetragene Sitzungen davor rechnen wie bisher
+  if(!S.meta.pflicht290){ S.meta.pflichtAb=heuteApp(); S.meta.pflicht290=true; saveMeta(); }
   // ══ §2 (v2.8.0) · ABHAKBONUS-TABELLE + DAEMPFUNG AB HEUTE ═════════════
   // Die Aufgaben-Spalte uebernimmt Pascals Geraetewerte je Matrixfeld. Stand
   // dort noch der alte Default (Zustand 150 · Werkzeug 100 · Ziel 0), gilt
@@ -3154,6 +3179,8 @@ function pausenStrafeLive(k){
 }
 function kartePunkte(k){
   if(k.punkteOverride!=null) return num(k.punkteOverride);   // U6-A: beim Abhaken gewählter Ist-Punktwert schlägt die Berechnung
+  // §2 (v2.9.0): Pflicht — der gebuchte Ertrag (live mit dem laufenden Durchgang) ersetzt Zeit-, Tick- und Bonuspunkte
+  if(istPflicht(k)) return pflichtHeuteP(k) + pflichtLiveDelta(k) + subBonusErreicht(k) + num(k.bewegungsBonus) - num(k.strafPunkte) - pausenStrafeLive(k);
   const zeitTerm = punkteFuerZeit(k, zeitquelleMin(k)) * (S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   const tickTerm = tickSumme(k, num(k.ticksHeute)) * (S.settings.tickGewicht!=null?S.settings.tickGewicht:1) * geldFaktor(k) * daempfung(k);   // §2.2 (v2.8.0)
   // §1 (v1.7.1): festgeschriebene + live wachsende Pausentimer-Strafe. Der
@@ -3173,6 +3200,8 @@ function kartePunkte(k){
    Läuft die Uhr bereits länger als das Soll, ist die Prognose die Ist-Lage —
    sonst zeigte sie einen Wert unterhalb des schon Verdienten. */
 function kartePunktePrognose(k){
+  // §2 (v2.9.0): Pflicht — was schon gebucht ist plus der Wert eines weiteren Durchgangs
+  if(istPflicht(k)) return kartePunkte(k) + pflichtHakenZusatz(k) + subBonusOffen(k);
   // Reine Soll-Rechnung: die Ist-Zeit darf hier NICHT durchschlagen (sonst
   // waere es keine Vorhersage mehr), und der Bewegungsbonus gehoert nicht
   // hinein — den gibt es erst, wenn die Bewegung stattgefunden hat.
@@ -3232,7 +3261,7 @@ function fokusZeitEinbuchen(){
   if(!S.fokus || !S.fokus.laeuft) return;
   const k=fokusKarte();
   const sek=(Date.now()-S.fokus.startMs)/1000;
-  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); logIntraday(k,{minuten:sek/60,typ:'timer'}); durchgangPause(k); }   // v1.1: Akku-Drift; A7 berührt; B0 Log; §1 (v2.8.2) Durchgang pausiert
+  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); logIntraday(k,{minuten:sek/60,typ:'timer'}); durchgangPause(k, sek); }   // v1.1: Akku-Drift; A7 berührt; B0 Log; §1 (v2.8.2) Durchgang pausiert
   // §5 (v1.6.1) / §1 (v1.7.1): Beim Pausieren wird die bis dahin live angezeigte
   // Dauerlauf-Strafe festgeschrieben — DIESELBE Formel wie pausenStrafeLive,
   // dadurch springt der Wert beim Pausieren nicht. Reset des Zählers folgt
@@ -3273,7 +3302,8 @@ function fokusStarten(kid, quelle){
   // §1 (v2.8.2): Abhak-Karte → Bonus beim Start (bzw. +1), je Durchgang einmal
   if(zk && !warSchonLauf){ const dg=durchgangStart(zk);
     if(dg) saveKarten();   // Bonus/Durchgang sofort sichern (sonst waere er nach einem Neuladen weg)
-    if(dg && dg.neu) toast(dg.tick ? ('+1 · „'+String(zk.titel||'').slice(0,24)+'"') : ('+'+fmtP(dg.bonus)+' P Abhakbonus · „'+String(zk.titel||'').slice(0,24)+'" läuft')); }
+    if(dg && dg.neu) toast(dg.pflicht!=null ? ('Pflicht +'+fmtP(dg.pflicht)+' P · „'+String(zk.titel||'').slice(0,24)+'" läuft')
+      : (dg.tick ? ('+1 · „'+String(zk.titel||'').slice(0,24)+'"') : ('+'+fmtP(dg.bonus)+' P Abhakbonus · „'+String(zk.titel||'').slice(0,24)+'" läuft'))); }
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
   fokusNavReset();           // U2: aktive Auswahl beendet die Swipe-Navigation
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
@@ -4980,6 +5010,9 @@ function fbWasDieseKarte(k){
      (bonus?(' + '+fmtP(bonus)+' Abhakbonus'):'')+
      (hatFestMin(k)?' — die Punkte bleiben so, egal wie lange die Uhr läuft; die Zeit wird trotzdem gebucht.</div></div>'
        :' — gebucht wird nach <b>Ist</b>, der Endwert weicht von der Prognose ab.</div></div>');
+  // §2 (v2.9.0): bei Pflicht ersetzt der Wert die Rechnung — die Zeile sagt das
+  if(istPflicht(k)){ const w=pflichtWerte(k);
+    h=h.replace(/<div class="fb-rechnung">[\s\S]*?<\/div><\/div>$/, '<div class="fb-rechnung"><b>Pflicht:</b> '+fmtP(w.wert)+' P bis '+w.deckel+'′, danach −'+w.abzug+' je angefangene 10′, mindestens '+fmtP(w.min)+' P · heute '+fmtP(pflichtHeuteP(k))+' P gebucht · Matrixfeld '+matrixIcon(mf)+' '+esc(matrixName(mf))+' zählt weiter in der Matrix.</div></div>'); }
   h+=fbKachel('Anteil am Tagessoll', fbRing(anteil, null, {mittel:true, mitte:Math.round(anteil*100)+'%'}),
      fbWert(fmtP(p), 'Prognose von '+fmtP(zielH)), {voll:!bb});
   if(bb) h+=fbKachel('Bewegungsbonus heute', '<div style="width:100%">'+fbBalken(bb/bbMax, null, null, true, AMPEL_FARBE.gruen.slice().reverse())+'</div>',
@@ -5190,7 +5223,11 @@ function abhakLeisteHtml(){
 /* Abhaken ohne Dialog: berechneter Wert + Abhakbonus, wie der Dialog ihn vorbelegt. */
 function leisteAbhaken(kid){
   const k=S.karten.find(x=>x.id===kid); if(!k || k.status!=='offen') return;
-  k.punkteOverride=Math.max(0, Math.round(kartePunkte(k)) + (durchgangAktiv(k) ? 0 : abhakbonusDefault(k)));   // §1 (v2.8.2): nie zweimal je Durchgang
+  // §2 (v2.9.0): laeuft die Uhr, erst einbuchen — der Abzug dieses Durchgangs wird dabei verrechnet
+  if(istPflicht(k) && S.fokus && S.fokus.laeuft && S.fokus.karteId===kid) fokusZeitEinbuchen();
+  k.punkteOverride = istPflicht(k)
+    ? Math.round(kartePunkte(k) + pflichtHakenZusatz(k))                   // Pflicht: Haken ohne Uhr = Wert, kein Abzug; darf negativ sein
+    : Math.max(0, Math.round(kartePunkte(k)) + (durchgangAktiv(k) ? 0 : abhakbonusDefault(k)));   // §1 (v2.8.2): nie zweimal je Durchgang
   karteAbhaken(kid);
 }
 function zeitstrahlHtml(){
@@ -6183,9 +6220,11 @@ function kartePunkteHeute(k){
   if(!(erl || laeuft || reaktiviert || gearbeitet)){
     // §1 (v2.8.2): ein beim Start gebuchter Bonus zaehlt sofort, auch ohne Minuten
     const sb=(k.startBonus && k.startBonus.tag===tid) ? num(k.startBonus.punkte) : 0;
+    if(k.pflicht===true) return (k.pflichtHeute && k.pflichtHeute.tag===tid) ? num(k.pflichtHeute.punkte) : 0;   // §2 (v2.9.0)
     return ((num(k.ticksHeute)>0 && istTickKarte(k)) ? tickPunkte(k) : 0) + sb;
   }
   let pk = kartePunkte(k);
+  if(k.pflicht===true && k.punkteOverride==null) return pk;   // §2 (v2.9.0): Tagesertrag, darf negativ sein
   if(k.punkteOverride==null && S.tag && S.tag.istMinutenStart){
     const basisMin=num(S.tag.istMinutenStart[k.id],0);
     // §2 (v2.7.0): bei fester Bewertung wurde der Zeitwert schon am Vortag voll
@@ -6600,10 +6639,12 @@ function tempoWerte(k){
   if(!o.we && !o.urlaub){ o.ich=num(pw.istRate); o.ziel=(pw.restRate==null?null:num(pw.restRate)); }
   if(k){
     // §2 (v2.7.0): feste Bewertung → Prognose = Punkte aus festMin ÷ festMin-Stunden
-    const pP=kartePunktePrognose(k), sollH=(hatFestMin(k)?num(k.festMin):num(k.sollMin))/60;
+    const pfl=istPflicht(k), pw=pflichtWerte(k);
+    // §2 (v2.9.0): Pflicht — die Karte bringt Wert ÷ Deckel-Stunden
+    const pP=pfl ? pw.wert : kartePunktePrognose(k), sollH=(pfl ? pw.deckel : (hatFestMin(k)?num(k.festMin):num(k.sollMin)))/60;
     const istH=istSekLive(k)/3600, jetzt=kartePunkte(k)+abhakbonusDefault(k);
     o.karte={ feld:matrixFeldVon(k), stil:karteVisStil(k), klasse:karteVisKlasse(k),
-      prognose: sollH>0 ? pP/sollH : null, prognoseP:pP, sollMin:sollH*60, fest:hatFestMin(k),
+      prognose: sollH>0 ? pP/sollH : null, prognoseP:pP, sollMin:sollH*60, fest:hatFestMin(k), pflicht:pfl,
       live: istH>=1/60 ? jetzt/istH : null, jetztP:jetzt, istMin:istH*60 };
   }
   return o;
@@ -6631,7 +6672,7 @@ function tempoLeisteHtml(t, opt){
   if(t.ich!=null)  m.push({art:'ich',  v:t.ich,  lab:'Ich '+fmtP(t.ich), reihe:'o'});
   if(t.ziel!=null) m.push({art:'ziel', v:Math.max(0,t.ziel), lab:(t.ziel<=0?'Ziel ✓':'Ziel '+fmtP(t.ziel)), reihe:'o'});
   const kt=t.karte;
-  if(kt && kt.prognose!=null) m.push({art:'kprog', v:kt.prognose, lab:'Karte '+fmtP(kt.prognose), reihe:'u'});
+  if(kt && kt.prognose!=null) m.push({art:'kprog', v:kt.prognose, lab:(kt.pflicht?'Pflicht ':'Karte ')+fmtP(kt.prognose), reihe:'u'});   // §2 (v2.9.0): Zusatz „Pflicht"
   if(kt && kt.live!=null)     m.push({art:'klive', v:kt.live, lab:'live '+fmtP(kt.live), reihe:'u'});
   if(!m.length) return '';
   // Skala: der groesste Wert + Luft. Ein live-Ausreisser (Bonus auf wenige
@@ -6663,7 +6704,7 @@ function tempoLeisteHtml(t, opt){
   if(t.we || t.urlaub) h+='<div class="tl-hint">'+(t.urlaub?'Urlaub':'Wochenende')+': kein Tages-Tempo — Sa+So zählen als ein Kontingent. Die Marke zeigt, was diese Karte je Stunde bringt.</div>';
   if(kt){
     h+='<div class="tl-rechnung">Karte: '+
-      (kt.prognose!=null ? 'Prognose '+fmtP(kt.prognoseP)+' P ÷ '+fbZahl(kt.sollMin/60,2)+(kt.fest?' Std (feste Bewertung)':' Soll-Std')+' = <b>'+fmtP(kt.prognose)+'</b>' : 'ohne Soll-Minuten keine Prognose-Rate')+
+      (kt.prognose!=null ? (kt.pflicht?'Pflicht-Wert ':'Prognose ')+fmtP(kt.prognoseP)+' P ÷ '+fbZahl(kt.sollMin/60,2)+(kt.pflicht?' Std (Deckel)':(kt.fest?' Std (feste Bewertung)':' Soll-Std'))+' = <b>'+fmtP(kt.prognose)+'</b>' : (kt.pflicht?'Pflicht ohne Deckel — keine Rate':'ohne Soll-Minuten keine Prognose-Rate'))+
       (kt.live!=null ? ' · live '+fmtP(kt.jetztP)+' P ÷ '+fbZahl(kt.istMin/60,2)+' Ist-Std = <b>'+fmtP(kt.live)+'</b>' : ' · live ab 1 Min Ist')+
       ' · Abhak- und Tickbonus eingerechnet</div>';
   }
@@ -7368,6 +7409,9 @@ function wdhUebernehmen(kid){
   entwurf.nurAbhaken=(k.nurAbhaken===true||k.nurAbhaken===false) ? k.nurAbhaken : null;
   entwurf.abhakbonus=(k.abhakbonus!=null) ? num(k.abhakbonus) : null;
   entwurf.tickWert=(k.tickWert!=null) ? num(k.tickWert) : null;
+  // §6 (v2.9.0): Pflicht mit allen Werten
+  entwurf.pflicht=k.pflicht===true;
+  ['pflichtWert','pflichtDeckel','pflichtAbzug','pflichtMin'].forEach(f=>{ entwurf[f]=(k[f]==null)?null:num(k[f]); });
   const wahl={}; untermenge(k.id).forEach(u=>wahl[u.id]='uebernehmen');
   wdhTmp={ kid:k.id, wahl, kopien:{} };
   wdhSubsNeu();
@@ -7433,6 +7477,8 @@ function renderDetail(){
       '<div class="hint">'+esc(MATRIX_META[mf].achse)+' · '+esc(MATRIX_META[mf].richtung)+
       ' — '+esc(MATRIX_META[mf].hint)+' · Faktor ×'+String(matrixFaktor(k)).replace('.',',')+'</div></div>';
   }
+  // §3 (v2.9.0): Pflicht mit Punktekurve — direkt unter dem Matrixfeld
+  h+=pflichtBlockHtml(k);
   // §1.5 (v2.7.0): Block-Auswahl — nur wenn heute ein Tagesrahmen gilt
   { const bl=tagesBloecke();
     if(bl){ const akt=karteBlockId(k, bl);
@@ -7696,6 +7742,16 @@ function detailSpeichern(){
 function karteTick(kid, fromDetail, wertOverride){
   const k = kid ? S.karten.find(x=>x.id===kid) : entwurf;
   if(!k) return;
+  // §2 (v2.9.0, Entscheidung Pascal): Pflicht-Counter — jedes +1 zaehlt wie ein Haken: der Wert
+  if(istPflicht(k)){
+    if(!Array.isArray(k.tickWerteHeute)) k.tickWerteHeute=[];
+    k.tickWerteHeute.push(0); k.ticksHeute=num(k.ticksHeute)+1;
+    pflichtDurchgangNeu(k, false);
+    if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
+    beruehre(k); haptik(12);
+    if(!fromDetail){ saveKarten(); saveTag(); renderAlles(); }
+    return;
+  }
   const vor=tickPunkte(k);
   const wert = (wertOverride!=null && wertOverride!=='') ? num(wertOverride) : tickWertEff(k);   // §2 (1.13.0): erbt Standard
   if(!Array.isArray(k.tickWerteHeute)) k.tickWerteHeute=[];
@@ -7829,7 +7885,8 @@ function karteAbhaken(kid, fromDetail){
     logPunktSchreiben(k);                                 // v1.1: Punkt-Ereignis (Verlauf/Kennzahlen)
     // §3 (v2.7.0): Punkte nachgetragener Sitzungen stehen schon zu IHRER Zeit
     // im Log — beim Abhaken nur der Rest, sonst zaehlten sie doppelt
-    logIntraday(k,{punkte:kartePunkte(k)-korrekturPunkteVerrechnen(k),typ:'abhaken'}); // B0: Intraday-Buchung
+    // v2.9.0: auch Startbonus (v2.8.2) und Pflicht-Ertraege stehen schon zu IHRER Zeit im Log
+    logIntraday(k,{punkte:kartePunkte(k)-korrekturPunkteVerrechnen(k)-startBonusHeute(k)-pflichtHeuteP(k),typ:'abhaken'}); // B0: Intraday-Buchung
     momentBuchung(kartePunkte(k));                        // §6.1 (1.9.0)
     konfetti(); haptik(20);
   }
@@ -8126,6 +8183,7 @@ function abhakbonusTabelleWert(spalte, feld){
   const d=(DEFAULT_SETTINGS.abhakbonusTabelle[spalte]||{})[feld]; return Number.isFinite(Number(d)) ? Number(d) : 0;
 }
 function abhakbonusDefault(k){
+  if(istPflicht(k)) return 0;   // §2 (v2.9.0): der Pflicht-Wert ersetzt den Abhakbonus
   return k.abhakbonus!=null ? num(k.abhakbonus) : abhakbonusTabelleWert(abhakSpalte(k), matrixFeldVon(k));
 }
 function daempfung(k, datum){
@@ -8156,11 +8214,12 @@ function istAbhakKarte(k){
 function startBonusHeute(k){ return (k && k.startBonus && k.startBonus.tag===aktuelleTagId()) ? num(k.startBonus.punkte) : 0; }
 function durchgangAktiv(k){ return !!(k && k.durchgang && k.durchgang.tag===aktuelleTagId()); }
 function durchgangStart(k){
-  if(!k || !istAbhakKarte(k) || k.status!=='offen') return null;
+  if(!k || k.status!=='offen' || !(istAbhakKarte(k) || istPflicht(k))) return null;   // §2 (v2.9.0): jede Pflicht-Karte
   const tid=aktuelleTagId(), jetzt=Date.now(), fenster=num(S.settings.durchgangPauseMin,5)*60000;
   const d=durchgangAktiv(k) ? k.durchgang : null;
   if(d && d.pauseTs && jetzt-Date.parse(d.pauseTs)<fenster){ d.pauseTs=null; return {neu:false}; }   // derselbe Durchgang
   if(d && !d.pauseTs) return {neu:false};                                                             // laeuft bereits
+  if(istPflicht(k)){ const w=pflichtDurchgangNeu(k, true); return {neu:true, pflicht:w}; }
   k.durchgang={ tag:tid, startTs:jetztIso(), pauseTs:null };
   if(kartenArt(k)==='Counter'){ karteTick(k.id, true); return {neu:true, tick:true}; }
   const bonus=abhakbonusDefault(k);
@@ -8171,11 +8230,229 @@ function durchgangStart(k){
   try{ momentBuchung(bonus); }catch(e){}
   return {neu:true, bonus};
 }
-function durchgangPause(k){ if(durchgangAktiv(k) && !k.durchgang.pauseTs) k.durchgang.pauseTs=jetztIso(); }
+function durchgangPause(k, sek){
+  if(!durchgangAktiv(k) || k.durchgang.pauseTs) return;
+  k.durchgang.pauseTs=jetztIso();
+  if(istPflicht(k)) pflichtVerrechnen(k, num(sek));   // §2 (v2.9.0): Abzug aus der Zeit dieses Durchgangs
+}
+/* ══ §1–§2 (v2.9.0) · PFLICHT-KARTEN ═══════════════════════════════════
+   Routinen, die ohnehin gemacht werden muessen, sind in der Matrix oft
+   Werkzeuge und brachten dadurch zu viele Punkte. Die Matrix beschreibt die
+   Richtung, nicht ob etwas Pflicht ist — deshalb eine eigene Eigenschaft.
+     Ertrag je Durchgang = Wert                                   (Dauer ≤ Deckel)
+                         = max(Untergrenze, Wert − Abzug × ceil((Dauer − Deckel)/10))
+   Der Wert ERSETZT Zeitpunkte, Tickpunkte, Abhakbonus und Daempfung. Je
+   Durchgang (5-Minuten-Regel wie v2.8.2): Wert beim Start gebucht, der Abzug
+   bei Pause/Erledigen aus der gestoppten Zeit dieses Durchgangs verrechnet.
+   Reiner Haken ohne Uhr = Wert, kein Abzug. Counter: jedes +1 = der Wert
+   (Entscheidung Pascal). Gilt fuer JEDE Pflicht-Karte, auch mit Soll-Minuten
+   (Entscheidung Pascal). Das Matrixfeld bleibt und zaehlt in allen
+   Matrix-Auswertungen wie bisher. Ab dem Update, nicht rueckwirkend. */
+function istPflicht(k){ return !!(k && k.pflicht===true); }
+function pflichtWerte(k){
+  return { wert:num(k&&k.pflichtWert,0), deckel:Math.max(0,num(k&&k.pflichtDeckel,0)),
+           abzug:Math.max(0,num(k&&k.pflichtAbzug,0)), min:num(k&&k.pflichtMin,0) };
+}
+function pflichtErtrag(w, dauerMin){
+  const d=Math.max(0, num(dauerMin));
+  if(d<=w.deckel+1e-9) return w.wert;
+  return Math.max(w.min, w.wert - w.abzug*Math.ceil((d-w.deckel)/10 - 1e-9));
+}
+function pflichtHeuteP(k){ return (k && k.pflichtHeute && k.pflichtHeute.tag===aktuelleTagId()) ? num(k.pflichtHeute.punkte) : 0; }
+function pflichtBuchen(k, punkte){
+  const tid=aktuelleTagId();
+  const alt=(k.pflichtHeute && k.pflichtHeute.tag===tid) ? k.pflichtHeute : { tag:tid, punkte:0, n:0 };
+  k.pflichtHeute={ tag:tid, punkte:Math.round((num(alt.punkte)+punkte)*10)/10, n:num(alt.n)+(punkte===undefined?0:0) };
+  return k.pflichtHeute;
+}
+/* Ein neuer Durchgang: der Wert wird gebucht (Serie einmal am Tag). */
+function pflichtDurchgangNeu(k, mitUhr){
+  const w=pflichtWerte(k), tid=aktuelleTagId();
+  if(mitUhr) k.durchgang={ tag:tid, startTs:jetztIso(), pauseTs:null, sek:0, gebucht:w.wert };
+  pflichtBuchen(k, w.wert); k.pflichtHeute.n=num(k.pflichtHeute.n)+1;
+  if(k.rhythmus) routineErledigtBuchen(k);
+  logIntraday(k,{punkte:w.wert, typ:'pflicht'});
+  try{ momentBuchung(w.wert); }catch(e){}
+  return w.wert;
+}
+/* Bei Pause: Zeit des Durchgangs fortschreiben, Ertrag neu, Differenz buchen. */
+function pflichtVerrechnen(k, sek){
+  const d=k.durchgang; if(!d) return 0;
+  d.sek=num(d.sek)+Math.max(0,num(sek));
+  const ziel=pflichtErtrag(pflichtWerte(k), d.sek/60), diff=Math.round((ziel-num(d.gebucht))*10)/10;
+  if(diff){ pflichtBuchen(k, diff); d.gebucht=ziel; logIntraday(k,{punkte:diff, typ:'pflicht'}); }
+  return diff;
+}
+/* Laeuft der Durchgang noch (Uhr an oder Pause kuerzer als das Fenster)? */
+function durchgangLaeuft(k){
+  if(!durchgangAktiv(k)) return false;
+  const d=k.durchgang; if(!d.pauseTs) return true;
+  return Date.now()-Date.parse(d.pauseTs) < num(S.settings.durchgangPauseMin,5)*60000;
+}
+/* Live-Ertrag des laufenden Durchgangs (fuer Anzeige und Tempo). */
+function pflichtLiveDelta(k){
+  if(!istPflicht(k) || !durchgangAktiv(k)) return 0;
+  const lauf=S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id && S.fokus.startMs;
+  if(!lauf || k.durchgang.pauseTs) return 0;
+  const sek=num(k.durchgang.sek)+(Date.now()-S.fokus.startMs)/1000;
+  return pflichtErtrag(pflichtWerte(k), sek/60) - num(k.durchgang.gebucht);
+}
+/* ══ §3 (v2.9.0) · DIE PUNKTEKURVE „Punkte nach Dauer" ═════════════════
+   x = Minuten 0–120, y = Punkte. Waagerecht beim Wert bis zum Deckel, danach
+   in 10-Minuten-Stufen abwaerts bis zur Untergrenze. Farbe = Matrixfeld der
+   Karte (v2.4.1). Drei Griffe (Tipp-Flaeche 44 px): Knick (Wert/Deckel),
+   Stufe (Abzug), Untergrenze (rechter Rand). Darunter die echten Dauern der
+   Karte als Punkte (ueber dem Deckel in der Abzugsfarbe). Claudes Vorschlag
+   grau gestrichelt. Kurve, Plus/Minus und Live-Zeile sind immer synchron —
+   sie werden aus DENSELBEN Werten neu gezeichnet. */
+const PF_W=320, PF_H=196, PF_L=36, PF_R=14, PF_T=14, PF_B=46;
+function pflichtStufen(w){
+  const pts=[{m:0,p:w.wert},{m:Math.min(120,w.deckel),p:w.wert}];
+  let v=w.wert, t=w.deckel;
+  if(t>=120) return pts;
+  if(!(w.abzug>0)){ pts.push({m:120,p:v}); return pts; }
+  while(t<120){
+    const nv=Math.max(w.min, v-w.abzug);
+    pts.push({m:t,p:nv});
+    const t2=Math.min(120,t+10); pts.push({m:t2,p:nv});
+    v=nv; t=t2;
+    if(v<=w.min){ if(t<120) pts.push({m:120,p:v}); break; }
+  }
+  return pts;
+}
+function pflichtSkala(k){
+  const w=pflichtWerte(k), vs=pflichtVorschlagOffen(k);
+  const hi=Math.max(w.wert, vs?num(vs.wert):0, 10), lo=Math.min(0, w.min, vs?num(vs.min):0);
+  return { top:Math.ceil((hi+10)/10)*10, bot:Math.floor((lo-10)/10)*10 };
+}
+function pflichtVorschlagOffen(k){ const v=k && k.pflichtVorschlag; return (v && v.status==='offen') ? v : null; }
+function pflichtDauern(k){
+  return (S.intraday||[]).filter(e=>e && e.kartenId===k.id && SITZUNG_TYPEN.indexOf(e.typ)>=0 && num(e.minuten)>=0.5).map(e=>num(e.minuten));
+}
+function pflichtLiveZeile(k){
+  const w=pflichtWerte(k), ds=pflichtDauern(k);
+  if(!ds.length) return 'Noch keine gestoppte Sitzung — die Kurve zeigt, was jede Dauer bringen würde.';
+  const sort=ds.slice().sort((a,b)=>a-b), med=sort[Math.floor(sort.length/2)], lang=sort[sort.length-1];
+  const ueber=ds.filter(d=>d>w.deckel).length;
+  return 'Typisch '+Math.round(med)+' Min → '+fmtP(pflichtErtrag(w,med))+' P · '+ueber+' von '+ds.length+' Mal über dem Deckel · längstes Mal ('+Math.round(lang)+' Min) → '+fmtP(pflichtErtrag(w,lang))+' P';
+}
+function pflichtKurveSvg(k, opt){
+  opt=opt||{};
+  const mini=!!opt.mini, W=mini?120:PF_W, H=mini?40:PF_H, L=mini?2:PF_L, R=mini?2:PF_R, T=mini?3:PF_T, B=mini?3:PF_B;
+  const w=pflichtWerte(k), vs=pflichtVorschlagOffen(k), sk=opt.skala||pflichtSkala(k);
+  const yB=H-B, X=m=>L+Math.max(0,Math.min(120,m))/120*(W-L-R), Y=p=>T+(sk.top-p)/Math.max(1,sk.top-sk.bot)*(yB-T);
+  const farbe=(MX_FARBE[matrixFeldVon(k)]||MX_FARBE.ziel)[0];
+  const pfad=pts=>pts.map((q,i)=>(i?'L':'M')+X(q.m).toFixed(1)+' '+Y(q.p).toFixed(1)).join(' ');
+  let g='';
+  if(!mini){
+    [0,30,60,90,120].forEach(m=>{ g+='<line x1="'+X(m).toFixed(1)+'" y1="'+T+'" x2="'+X(m).toFixed(1)+'" y2="'+yB+'" stroke="#f2f2f3" stroke-opacity=".06"/>'+
+      '<text x="'+X(m).toFixed(1)+'" y="'+(yB+11)+'" font-size="8.5" text-anchor="middle" fill="var(--mut2)">'+m+'′</text>'; });
+    [sk.top, 0, sk.bot].forEach(p=>{ g+='<text x="'+(L-5)+'" y="'+(Y(p)+3).toFixed(1)+'" font-size="8.5" text-anchor="end" fill="var(--mut2)">'+fmtP(p)+'</text>'; });
+  }
+  g+='<line x1="'+L+'" y1="'+Y(0).toFixed(1)+'" x2="'+(W-R)+'" y2="'+Y(0).toFixed(1)+'" stroke="#f2f2f3" stroke-opacity=".25"/>';
+  if(vs){ const vw={ wert:num(vs.wert), deckel:Math.max(0,num(vs.deckel)), abzug:Math.max(0,num(vs.abzug)), min:num(vs.min) };
+    g+='<path d="'+pfad(pflichtStufen(vw))+'" fill="none" stroke="#a3a6ab" stroke-width="'+(mini?1.2:1.8)+'" stroke-dasharray="5 4" class="pf-vorschlag"/>'; }
+  if(k.pflicht===true){
+    const pts=pflichtStufen(w);
+    // Flaeche als echte Stufen (nicht geglaettet — die Kurve IST eine Treppe)
+    { const fid=svgId('pff');
+      g+='<defs><linearGradient id="'+fid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+farbe+'" stop-opacity=".30"/><stop offset="1" stop-color="'+farbe+'" stop-opacity=".04"/></linearGradient></defs>'+
+         '<path d="'+pfad(pts)+' L'+X(pts[pts.length-1].m).toFixed(1)+' '+Y(0).toFixed(1)+' L'+X(0).toFixed(1)+' '+Y(0).toFixed(1)+' Z" fill="url(#'+fid+')" stroke="none"/>'; }
+    g+='<line x1="'+L+'" y1="'+Y(w.min).toFixed(1)+'" x2="'+(W-R)+'" y2="'+Y(w.min).toFixed(1)+'" stroke="'+AMPEL_FARBE.rot[0]+'" stroke-opacity=".7" stroke-dasharray="4 4" class="pf-min"/>';
+    g+='<path d="'+pfad(pts)+'" fill="none" stroke="'+farbe+'" stroke-width="'+(mini?1.8:2.6)+'" stroke-linejoin="round" style="'+leuchten(farbe,3)+'"/>';
+    if(!mini){
+      const griff=(id, x, y, lab)=>'<g class="pf-griff" data-pgriff="'+id+'" aria-label="'+lab+'"><circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="22" fill="transparent"/>'+
+        '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="7" fill="'+farbe+'" stroke="#0b0b0c" stroke-width="2" style="'+leuchten(farbe,4)+'"/></g>';
+      g+=griff('knick', X(Math.min(120,w.deckel)), Y(w.wert), 'Knick: Wert und Deckel');
+      if(w.deckel<120) g+=griff('stufe', X(Math.min(120,w.deckel+10)), Y(Math.max(w.min, w.wert-w.abzug)), 'Stufe: Abzug');
+      g+=griff('min', W-R-8, Y(w.min), 'Untergrenze');
+    }
+  }
+  if(!mini){   // echte Dauern als Punkte im Band unter der x-Achse
+    const ds=pflichtDauern(k), yBand=H-16;
+    g+='<text x="'+L+'" y="'+(yBand-8)+'" font-size="8" fill="var(--mut2)">deine Dauern</text>';
+    ds.forEach(d=>{ const f=d>w.deckel && k.pflicht===true ? AMPEL_FARBE.rot[0] : farbe;
+      g+='<circle class="pf-dauer" cx="'+X(Math.min(120,d)).toFixed(1)+'" cy="'+yBand+'" r="3.4" fill="'+f+'" fill-opacity=".85" style="'+leuchten(f,2)+'"/>'; });
+  }
+  return '<svg class="pf-svg'+(mini?' mini':'')+'" viewBox="0 0 '+W+' '+H+'" width="100%" data-pfskala="'+sk.top+'|'+sk.bot+'"'+(mini?' aria-hidden="true"':'')+'>'+g+'</svg>';
+}
+/* Startwerte beim Einschalten — je Karte, kein globaler Standard: der Wert
+   aus der heutigen Prognose (auf 5 gerundet), der Deckel aus Soll-Minuten
+   oder der typischen Dauer, Abzug 10, Untergrenze 0. */
+function pflichtInit(k){
+  if(k.pflichtWert!=null) return;
+  const alt=Object.assign({}, k, {pflicht:false});
+  const ds=pflichtDauern(k).sort((a,b)=>a-b), med=ds.length?ds[Math.floor(ds.length/2)]:0;
+  const r5=v=>Math.max(5, Math.round(num(v)/5)*5);
+  k.pflichtWert=Math.min(200, r5(kartePunktePrognose(alt)));
+  k.pflichtDeckel=r5(num(k.sollMin)>0 ? k.sollMin : (med||30));
+  k.pflichtAbzug=10; k.pflichtMin=0;
+}
+function pflichtBlockHtml(k){
+  const an=k.pflicht===true, vs=pflichtVorschlagOffen(k), w=pflichtWerte(k);
+  let h='<div class="field detail-pflicht" id="pflichtBlock"><label>Pflicht'+(an?' <span class="pf-an">· Punkte nach Dauer</span>':'')+'</label>'+
+    chipGroup('pflicht', an?'ja':'nein', [['nein','aus'],['ja','an']])+
+    '<div class="hint">Für Karten, die ohnehin gemacht werden müssen: ein fester Wert je Durchgang statt Zeitpunkten und Abhakbonus. Das Matrixfeld bleibt und zählt in der Matrix weiter.</div>';
+  if(an || vs){
+    h+='<div class="pf-kurve" id="pfKurve">'+pflichtKurveSvg(k)+'</div>';
+    if(an) h+='<div class="pf-live" id="pfLive">'+pflichtLiveZeile(k)+'</div>';
+  }
+  if(an){
+    const zeile=(f,lab,wert,einheit)=>'<div class="pf-z"><span class="pf-lab">'+lab+'</span>'+
+      '<button class="pf-pm" data-pfplus="'+f+'" data-d="-5" aria-label="'+lab+' minus 5">−</button>'+
+      '<b class="pf-wert" id="pfV-'+f+'">'+fmtP(wert)+'</b>'+
+      '<button class="pf-pm" data-pfplus="'+f+'" data-d="5" aria-label="'+lab+' plus 5">+</button><span class="pf-einheit">'+einheit+'</span></div>';
+    h+=zeile('wert','Wert',w.wert,'P fürs Erledigen')+zeile('deckel','Deckel',w.deckel,'Min bleibt es beim Wert')+
+       zeile('abzug','Abzug',w.abzug,'P je angefangene 10 Min darüber')+zeile('min','Untergrenze',w.min,'P, darf unter 0');
+  }
+  if(vs){
+    h+='<div class="pf-vs"><b>Vorschlag von Claude</b> (grau gestrichelt): '+fmtP(vs.wert)+' P bis '+num(vs.deckel)+'′, −'+num(vs.abzug)+' je 10′, mindestens '+fmtP(vs.min)+
+       (vs.grund?'<br><span>'+esc(vs.grund)+'</span>':'')+
+       '<div class="btnrow"><button class="btn sm" data-pfvorschlag="verwerfen">Verwerfen</button><button class="btn prim sm" data-pfvorschlag="uebernehmen">Übernehmen</button></div></div>';
+  }
+  return h+'</div>';
+}
+function pflichtNeuZeichnen(nurKurve){
+  if(!entwurf) return;
+  if(nurKurve){ const kv=el('pfKurve'); if(kv) kv.innerHTML=pflichtKurveSvg(entwurf, _pfDrag?{skala:_pfDrag.skala}:null);
+    ['wert','deckel','abzug','min'].forEach(f=>{ const e2=el('pfV-'+f); if(e2) e2.textContent=fmtP(pflichtWerte(entwurf)[f]); });
+    const lz=el('pfLive'); if(lz) lz.innerHTML=pflichtLiveZeile(entwurf); return; }
+  const b=el('pflichtBlock'); if(b) b.outerHTML=pflichtBlockHtml(entwurf);
+}
+/* Werte setzen — 5er-Schritte, Grenzen: Wert ≥ 0, Deckel 0–120, Abzug ≥ 0, Untergrenze ≤ Wert. */
+function pflichtSetzen(k, f, v){
+  const r=Math.round(num(v)/5)*5;
+  if(f==='wert'){ k.pflichtWert=Math.max(0, Math.min(500, r)); if(num(k.pflichtMin)>k.pflichtWert) k.pflichtMin=k.pflichtWert; }
+  else if(f==='deckel') k.pflichtDeckel=Math.max(0, Math.min(120, r));
+  else if(f==='abzug') k.pflichtAbzug=Math.max(0, Math.min(500, r));
+  else if(f==='min') k.pflichtMin=Math.max(-500, Math.min(num(k.pflichtWert), r));
+}
+let _pfDrag=null;
+function pflichtDragStart(e, g){
+  const svg=g.ownerSVGElement || g.closest('svg'); if(!svg || !entwurf) return;
+  const [top,bot]=String(svg.getAttribute('data-pfskala')||'').split('|').map(Number);
+  _pfDrag={ griff:g.dataset.pgriff, rect:svg.getBoundingClientRect(), skala:{top, bot} };
+  try{ e.preventDefault(); }catch(x){}
+}
+function pflichtDragMove(e){
+  if(!_pfDrag || !entwurf) return;
+  const r=_pfDrag.rect, sk=_pfDrag.skala;
+  const xs=(e.clientX-r.left)*(PF_W/r.width), ys=(e.clientY-r.top)*(PF_H/r.height);
+  const min=(xs-PF_L)/(PF_W-PF_L-PF_R)*120, pkt=sk.top-(ys-PF_T)/(PF_H-PF_B-PF_T)*(sk.top-sk.bot);
+  const g=_pfDrag.griff;
+  if(g==='knick'){ pflichtSetzen(entwurf,'wert',pkt); pflichtSetzen(entwurf,'deckel',min); }
+  else if(g==='stufe'){ pflichtSetzen(entwurf,'abzug', num(entwurf.pflichtWert)-pkt); }
+  else if(g==='min'){ pflichtSetzen(entwurf,'min',pkt); }
+  pflichtNeuZeichnen(true);
+  try{ e.preventDefault(); }catch(x){}
+}
+function pflichtDragEnde(){ if(_pfDrag){ _pfDrag=null; pflichtNeuZeichnen(true); } }
+/* Haken: ohne laufenden Durchgang = ein neuer (Wert, kein Abzug). */
+function pflichtHakenZusatz(k){ return (istPflicht(k) && !durchgangLaeuft(k)) ? pflichtWerte(k).wert : 0; }
 function abhakDialog(kid, fromDetail){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
   const hatOverride=k.punkteOverride!=null;                 // Re-Abhaken einer reaktivierten Karte
-  const basis=Math.round(kartePunkte(k));                   // bei Override = bereits gebuchte Punkte, sonst berechnet
+  const basis=Math.round(kartePunkte(k) + (hatOverride?0:pflichtHakenZusatz(k)));   // bei Override = bereits gebuchte Punkte, sonst berechnet; §2 (v2.9.0) Pflicht-Haken = Wert
   // §5 (v1.6.0): Bei offenen Unteraufgaben wird die Folgeaufgabe von sich aus
   // vorgeschlagen (angelegt wird sie erst mit „Erledigen").
   const offen=untermenge(kid).filter(u=>!u.done).length;
@@ -8725,6 +9002,8 @@ function korrUhr(iso){ return iso ? belUhr(kalStunde(iso)) : '—'; }   // lokal
 function korrKarte(ref){ if(ref==null||ref==='') return null; const r=String(ref); return S.karten.find(k=>k.id===r) || S.karten.find(k=>k.airtableId===r) || null; }
 function sitzungPunkteFuer(k, min, datum){
   if(!k || hatFestMin(k)) return 0;
+  // §2 (v2.9.0): Pflicht ab dem Update — eine nachgetragene Sitzung ist ein Durchgang
+  if(istPflicht(k) && (!S.meta.pflichtAb || !datum || String(datum).slice(0,10)>=S.meta.pflichtAb)) return pflichtErtrag(pflichtWerte(k), min);
   const kk=Object.assign({}, k, { status:'erledigt', tagId:datum, istSek:0 });   // Geld-Score bezogen auf DEN Tag
   return punkteFuerZeit(kk, min, datum)*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);   // Daempfung wie an DEM Tag
 }
@@ -9015,6 +9294,11 @@ function kartenAbbildVoll(k, kette){
   o.punktePrognose=Math.round(kartePunktePrognose(k));   // Nachtrag §1: Soll-Wert
   o.nurAbhaken=(k.nurAbhaken===true||k.nurAbhaken===false) ? k.nurAbhaken : null;   // §6 (v2.8.0)
   o.wiederholungVon=k.wiederholungVon||null;   // §1 (v2.8.1): id der Vorlage oder null
+  // §6 (v2.9.0): Pflicht immer als Felder; der Vorschlag mit Status offen | uebernommen | verworfen
+  o.pflicht=k.pflicht===true;
+  ['pflichtWert','pflichtDeckel','pflichtAbzug','pflichtMin'].forEach(f=>{ o[f]=(k[f]==null)?null:num(k[f]); });
+  o.pflichtVorschlag=k.pflichtVorschlag ? { wert:k.pflichtVorschlag.wert, deckel:k.pflichtVorschlag.deckel, abzug:k.pflichtVorschlag.abzug,
+    min:k.pflichtVorschlag.min, grund:k.pflichtVorschlag.grund||'', status:k.pflichtVorschlag.status||'offen' } : null;
   // §1/§2 (v2.7.0): block (nur wenn er heute gilt) und festMin immer als Feld
   o.block=karteBlockId(k);
   o.festMin=(k.festMin!=null && num(k.festMin)>0) ? num(k.festMin) : null;
@@ -9212,6 +9496,8 @@ function syncBestaetigen(){
   S.meta.entfernteUnteraufgaben=[];   // §6 (v2.5.0): gemeldet und bestaetigt — die Liste ist erledigt
   S.meta.urlaubNachgetragen=[];       // §7 (v2.6.0): dito — die nachgetragenen Urlaubstage sind angekommen
   S.meta.vomGeraetGenommen=[];        // §4 (v2.8.0): dito — der Chat weiss, was nicht mehr auf dem Geraet liegt
+  // §4 (v2.9.0): entschiedene Pflicht-Vorschlaege sind gemeldet — sie fallen weg (offene bleiben)
+  S.karten.forEach(k=>{ if(k.pflichtVorschlag && k.pflichtVorschlag.status!=='offen') k.pflichtVorschlag=null; });
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben); saveMeta();
   baueSuchIndex();
   return { abgeraeumt:weg, bestand:bleibt.length, ts:S.meta.letzterSyncBestaetigtTs };
@@ -9324,6 +9610,12 @@ function syncImport(text){
     if(inc.block!==undefined){ const bid=(inc.block==null || String(inc.block).trim()==='') ? null : String(inc.block).trim();
       lok.block=bid; lok.blockTag=bid?heuteApp():null; }
     if(inc.wiederholungVon!==undefined) lok.wiederholungVon = inc.wiederholungVon ? String(inc.wiederholungVon) : null;   // §1 (v2.8.1)
+    // §6 (v2.9.0): Pflicht — Feld fehlt = unveraendert; pflicht:false schaltet ab, die Werte bleiben
+    if(inc.pflicht!==undefined) lok.pflicht = (inc.pflicht===true || inc.pflicht==='true');
+    ['pflichtWert','pflichtDeckel','pflichtAbzug','pflichtMin'].forEach(f=>{ if(inc[f]!==undefined) lok[f] = (inc[f]===null||inc[f]==='') ? null : num(inc[f]); });
+    if(inc.pflichtVorschlag!==undefined){ const v=inc.pflichtVorschlag;
+      lok.pflichtVorschlag = (v && typeof v==='object') ? { wert:num(v.wert), deckel:Math.max(0,num(v.deckel)), abzug:Math.max(0,num(v.abzug)), min:num(v.min),
+        grund:v.grund!=null?String(v.grund):'', status:'offen', ts:jetztIso() } : null; }
     // §1.1 (v2.8.0): nurAbhaken true · false · leer (= Regel)
     if(inc.nurAbhaken!==undefined) lok.nurAbhaken = (inc.nurAbhaken===true||inc.nurAbhaken==='true') ? true : ((inc.nurAbhaken===false||inc.nurAbhaken==='false') ? false : null);
     // §2 (v2.7.0): festMin = Zahl (Minuten) oder leer
@@ -9799,6 +10091,17 @@ function renderEinst(){
       ' · noch '+Math.round(avatarFortschritt().rest)+' P bis zum nächsten. Minimum 100.</p>';
   h+='</div>';
 
+  // ══ §5 (v2.9.0) · Pflicht-Karten ══
+  { const pk=S.karten.filter(k=>k.status!=='archiviert' && (k.pflicht===true || pflichtVorschlagOffen(k)))
+      .sort((a,b)=>(pflichtVorschlagOffen(b)?1:0)-(pflichtVorschlagOffen(a)?1:0) || String(a.titel||'').localeCompare(String(b.titel||'')));
+    h+='<div class="card einst-pflicht"><h3>Pflicht-Karten · '+pk.length+'</h3>'+
+      '<p class="d">Ein fester Wert je Durchgang statt Zeitpunkten und Abhakbonus. Tipp öffnet die Karte beim Abschnitt Punkte.</p>'+
+      (pk.length ? pk.map(k=>{ const w=pflichtWerte(k), vs=pflichtVorschlagOffen(k);
+        return '<div class="pf-liste-z" role="button" data-pflichtoeffnen="'+k.id+'">'+
+          '<span class="pf-mini">'+pflichtKurveSvg(k,{mini:true})+'</span>'+
+          '<span class="pf-liste-t"><b>'+esc(String(k.titel||'?').slice(0,34))+'</b>'+(vs?' <span class="pf-badge">Vorschlag offen</span>':'')+
+          '<small>'+(k.pflicht===true ? fmtP(w.wert)+' P · Deckel '+w.deckel+'′ · −'+w.abzug+' je 10′ · min '+fmtP(w.min) : 'noch keine Pflicht')+'</small></span></div>'; }).join('')
+        : '<p class="d" style="color:var(--mut2)">Noch keine Pflicht-Karte. Im Detail einer Karte „Pflicht" einschalten.</p>')+'</div>'; }
   // ══ §2.1 (v2.8.0) · Abhakbonus-Tabelle je Art — ersetzt den einen Wert je Matrixfeld ══
   { const SP=[['aufgabe','Aufgabe'],['routineDfm','Routine DFM'],['routinePrivat','Routine Privat']];
     h+='<div class="card einst-abhak"><h3>Abhakbonus je Art</h3>'+
@@ -13361,9 +13664,18 @@ el('sheet').addEventListener('click', e=>{
     else if(feld==='matrixFeld'){ entwurf.matrixFeld=matrixFeldVon({matrixFeld:val}); }
     else if(feld==='block'){ entwurf.block = val ? val : null; entwurf.blockTag = val ? heuteApp() : null; }   // §1.5 (v2.7.0)
     else if(feld==='nurAbhaken'){ entwurf.nurAbhaken = val==='ja' ? true : (val==='nein' ? false : null); }   // §1.1 (v2.8.0)
+    else if(feld==='pflicht'){ entwurf.pflicht = (val==='ja'); if(entwurf.pflicht) pflichtInit(entwurf); detailLies(); pflichtNeuZeichnen(); return; }   // §1 (v2.9.0)
     else { entwurf[feld]=val; }
     renderDetail(); return;
   }
+  // §3 (v2.9.0): Plus/Minus und Vorschlag der Pflicht-Kurve
+  const pfp=t.closest('[data-pfplus]'); if(pfp && entwurf){ const f=pfp.dataset.pfplus;
+    pflichtSetzen(entwurf, f, num(pflichtWerte(entwurf)[f])+num(pfp.dataset.d)); pflichtNeuZeichnen(true); haptik(5); return; }
+  const pfv=t.closest('[data-pfvorschlag]'); if(pfv && entwurf && entwurf.pflichtVorschlag){ const v=entwurf.pflichtVorschlag;
+    if(pfv.dataset.pfvorschlag==='uebernehmen'){ entwurf.pflicht=true; entwurf.pflichtWert=num(v.wert); entwurf.pflichtDeckel=Math.max(0,num(v.deckel));
+      entwurf.pflichtAbzug=Math.max(0,num(v.abzug)); entwurf.pflichtMin=num(v.min); v.status='uebernommen'; }
+    else v.status='verworfen';
+    v.statusTs=jetztIso(); pflichtNeuZeichnen(); haptik(8); return; }
   // §1 (v2.8.1): Wiederholung — von der Vorlage uebernehmen, Unteraufgaben waehlen
   const wdhV=t.closest('[data-wdhvon]'); if(wdhV){ haptik(8); wdhUebernehmen(wdhV.dataset.wdhvon); return; }
   const wdhW=t.closest('[data-wdhwahl]'); if(wdhW && wdhTmp){ detailLies(); wdhTmp.wahl[wdhW.dataset.wdhwahl]=wdhW.dataset.v; wdhSubsNeu(); renderDetail(); return; }
@@ -13489,6 +13801,11 @@ el('sheetBody').addEventListener('pointerdown', e=>{
 el('sheetBody').addEventListener('pointermove', e=>{ if(_dmxZieht) dmxFeldSetzenAusEvent(e); });
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>el('sheetBody').addEventListener(ev, ()=>{ _dmxZieht=false; }));
 ['pointerup','pointercancel'].forEach(ev=>el('sheetBody').addEventListener(ev, ()=>{ _mxZieht=false; }));
+/* §3 (v2.9.0): Griffe der Pflicht-Kurve ziehen — Zeiger bleibt beim Griff, auch ausserhalb des SVG */
+el('sheetBody').addEventListener('pointerdown', e=>{ const g=e.target.closest && e.target.closest('[data-pgriff]'); if(g) pflichtDragStart(e, g); });
+window.addEventListener('pointermove', pflichtDragMove, {passive:false});
+window.addEventListener('pointerup', pflichtDragEnde);
+window.addEventListener('pointercancel', pflichtDragEnde);
 el('sheetBody').addEventListener('input', e=>{
   if(e.target.id==='mxAkku'){ const v=el('mxAkkuV'); if(v) v.textContent=Math.round(num(e.target.value))+'%'; if(matrixTmp) matrixTmp.akku=num(e.target.value); }
   const t=e.target;
@@ -13657,6 +13974,9 @@ el('statistikBody').addEventListener('change', statAenderung);
 
 // Einstellungen (Sync / Migration / Backup / Regler)
 el('einstBody').addEventListener('click', e=>{
+  // §5 (v2.9.0): Pflicht-Karte oeffnen, beim Abschnitt Punkte
+  const pfo=e.target.closest('[data-pflichtoeffnen]'); if(pfo){ oeffneDetail(pfo.dataset.pflichtoeffnen);
+    const sb=el('sheetBody'), b=el('pflichtBlock'); if(sb && b && b.getBoundingClientRect) sb.scrollTop += b.getBoundingClientRect().top - sb.getBoundingClientRect().top - 12; return; }
   // §2.3 (v2.8.0): eigener Abhakbonus/Tickwert → zurueck auf die Tabelle
   const er=e.target.closest('[data-eigenreset]'); if(er){ const k=S.karten.find(x=>x.id===er.dataset.eigenreset);
     if(k){ k.abhakbonus=null; k.tickWert=null; beruehre(k); saveKarten(); renderEinst(); toast('↺ „'+String(k.titel||'').slice(0,24)+'" folgt wieder der Tabelle'); } return; }
