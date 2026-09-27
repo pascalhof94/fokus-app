@@ -1,8 +1,8 @@
 {
   "id": "/neu.html",
-  "name": "Fokus App v1.0 Debug",
-  "short_name": "Fokus v1",
-  "description": "Fokus App v1.0 (Debug) - neu.html, eigenstaendig neben der v0.38 (index.html).",
+  "name": "Fokus",
+  "short_name": "Fokus",
+  "description": "Fokus App (neu.html)",
   "lang": "de",
   "start_url": "./neu.html",
   "scope": "./",
@@ -11,7 +11,15 @@
   "background_color": "#0d1420",
   "theme_color": "#0d1420",
   "icons": [
-    { "src": "icon-neu-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-neu-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "icon-neu-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-neu-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }

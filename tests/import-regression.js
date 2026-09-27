@@ -29,7 +29,10 @@ var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnte
   // v2.9.1 §4: die alte Korrektur-Form bucht die Differenz ins Stunden-Log jenes Tages
   'logEintragFuerTag','belFensterDatum','logRund',
   // v3.0.0 §12: Bausteine des Routinen-Systems im Import
-  'v3FelderUebernehmen','leer','wtNorm','eingabeVon'];
+  'v3FelderUebernehmen','leer','wtNorm','eingabeVon',
+  // v3.1.0 §4: Karten-Korrektur und Feldmeldung im Import
+  'kartenKorrektur','felderMelden','kartenFelderBekannt','kurz','syncTuerVorschau','bereichVorschau','schemaPruefen','schemaWert','pfadLesen','pfadSchreiben','einstStandard'];
+var _kartenFelder=null, UNTER_FELDER_BEKANNT=new Set(['id','parentId','titel','sollMin','done','bonusPunkte','airtableId','staffel','staffelDanach','tagesziel','tageslimit','entfernt','entferntTs','tickLog','tickProtokoll','punkteHeute','ziel','ticksHeute']);   // v3.1.0: gespiegelt
 var WT_KURZ={ mo:1, di:2, mi:3, do:4, fr:5, sa:6, so:7 };   // v3.0.0: Konstante gespiegelt (nicht extrahierbar)
 var DATENVERTRAG='2.0.0';   // v3.0.1: Import-Gate-Konstante gespiegelt (nicht extrahierbar)
 // v2.7.0 §1: Block-Konstanten gespiegelt (nicht extrahierbar)

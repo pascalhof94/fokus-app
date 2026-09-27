@@ -15,6 +15,8 @@ var GELD_STUFE={ hoch:300, mittel:200, niedrig:100 }, GELD_MAX=500;
 // v2.7.0: Sitzungs-Typen gespiegelt (§3 Korrekturen) — feste Bewertung/Sitzungs-id als Funktionen extrahiert
 var SITZUNG_TYPEN=['timer','autopause','nachtrag','korrektur'];
 var NAMES = ['num',
+  // v3.1.0 §1.1: ein Override gilt bei Routinen/Countern nur an seinem Tag
+  'overrideGilt','istRoutineOderCounter','tickAnzahlHeute',
   // v3.0.0 §1–§3: Routinen-System (Modus, Staffel, Unter-Zaehler, privates Tagesziel)
   'istV3','modusVon','istStaffel','leer','unterZaehler','unterZaehlerPunkte','istUnterZaehler','staffelPunkteHeute','ticksHeuteV3','privatZielDynamisch','routineMaxPunkte','staffelBisZiel','ausnahmeTag','wochentagNr','wtNorm','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','hatFestMin','sitzungIdVon','korrekturPunkteVerrechnen','daempfung','abhakArt','startBonusHeute','durchgangAktiv','istPflicht','pflichtWerte','pflichtErtrag','pflichtHeuteP','pflichtLiveDelta','durchgangLaeuft','pflichtHakenZusatz','abhakSpalte','abhakbonusTabelleWert','geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon','basisRate','rate','akkuRate',
   'tickSumme','punkteFuerZeit','zeitquelleMin','subBonusErreicht','pausenStrafe','pausenStrafeLive','kartePunkte','kartenArt','laufendeSek',

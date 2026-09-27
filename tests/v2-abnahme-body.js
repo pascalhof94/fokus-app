@@ -533,8 +533,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.0.1 · Build gesetzt', VERSION==='3.0.1' && UI_VERSION==='v3.0.1' &&
-   APP_BUILD==='2026-09-27-4');
+ok('31 APP_VERSION 3.1.0 · Build gesetzt', VERSION==='3.1.0' && UI_VERSION==='v3.1.0' &&
+   APP_BUILD==='2026-09-27-5');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -1871,7 +1871,8 @@ ok('§1.2 erledigte Routine rutscht ausgegraut ans Ende ihres Blocks (v3.0 §4) 
 karteTick('cL');
 al=abhakLeisteKarten().map(function(k){ return k.id; });
 ok('§1.2 Counter bleibt an seinem Platz und zeigt den Zählstand im Zähler-Feld', al.indexOf('cL')===5 && /data-alzahl="cL"[^>]*>1×</.test(abhakLeisteHtml()));
-ok('§1.2 der Haken-Handler: Counter → +1, sonst abhaken ohne Dialog', /kartenArt\(k\)==='Counter'\) karteTick\(k\.id\); else \{ leisteAbhaken\(k\.id\)/.test(src));
+// v3.1.0 §1.2: +1 ist immer ein Tick; abgeschlossen wird nur bei erreichtem Tageslimit (altTick)
+ok('§1.2 der +1-Handler: Tick ohne Dialog, Abschluss nur beim Tageslimit (v3.1)', /const p=altTick\(k\); saveKarten\(\)/.test(src) && /if\(istTickKarte\(k\)\)\{ karteTick\(k\.id, true\)/.test(src));
 S.ui.fokusZeigt=null; fokusKarteAnsehen('aK'); renderFokus();
 var fvA=el('fokusView').innerHTML;
 ok('§1.2 Routinen-Leiste ganz unten in der Fokusansicht', fvA.indexOf('Routinen und Counter · ')>fvA.indexOf('Der Tag von oben nach unten'));

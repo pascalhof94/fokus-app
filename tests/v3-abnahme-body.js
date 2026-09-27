@@ -166,7 +166,7 @@ imp([
   {id:'essen', domain:'privat', titel:'Essen', modus:'staffel', staffel:[100], tagesziel:3, rhythmus:{typ:'taeglich'}},
   {id:'zaehne', domain:'privat', titel:'Zähne putzen', modus:'staffel', staffel:[50,100], tageslimit:2, rhythmus:{typ:'taeglich'},
     unteraufgaben:[{id:'zs', titel:'Zahnseide', staffel:[50], tageslimit:1}]},
-  {id:'runde', domain:'privat', titel:'Geschirr', modus:'staffel', staffel:[100], tageslimit:1, rhythmus:{typ:'alleNTage', n:2}, serienfaktor:true, serienFaktor:1.4},
+  {id:'runde', domain:'privat', titel:'Geschirr', modus:'staffel', staffel:[100], tageslimit:1, rhythmus:{typ:'alleNTage', n:2}, serienfaktor:true, serienFaktor:1.4, korrektur:true},   // v3.1: Stand-Felder nur mit korrektur:true
   {id:'bad', domain:'privat', titel:'Bad putzen', modus:'staffel', staffel:[300], tageslimit:1, rhythmus:{typ:'wochenende'}},
   {id:'mails', domain:'dfm', titel:'Mails & Post', modus:'staffel', staffel:[100,60], staffelDanach:50, rhythmus:{typ:'wochentage', tage:[1,2,3,4,5]}} ]);
 var teile=['auf','ab','schlaf','katzen','kaffee','essen','zaehne','runde'].map(function(id){ return id+' '+Math.round(routineMaxPunkte(kid(id))); });
@@ -314,20 +314,183 @@ ok('9 jede Ansicht beginnt oben: setTab, Sortierung, Filter, Fokus und Sheet ruf
 
 /* ══ 12 · Version ═════════════════════════════════════════════════════ */
 kopf('12 · Version');
-ok('12 APP_VERSION 3.0.1 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.0.1' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'x', titel:'x'}]})).fehler);
+ok('12 APP_VERSION 3.1.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.1.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'x', titel:'x'}]})).fehler);
 
 kopf('Nachtrag v3.0.1 · eine Versionskonstante');
 frisch(); S.tag=neuerTag(MO,1);
-var lit=(src.match(/'3\.0\.1'/g)||[]).length, ex3=syncExport('delta');
+var lit=(src.match(new RegExp("'"+APP_VERSION.replace(/\./g,'\\.')+"'",'g'))||[]).length, ex3=syncExport('delta');
 renderEinst(); var einst=el('einstBody').innerHTML;
-ok('v3.0.1 die Versionszahl steht genau EINMAL im Code (APP_VERSION)', lit===1 && /const APP_VERSION = '3\.0\.1';/.test(src));
+ok('v3.0.1 die Versionszahl steht genau EINMAL im Code (APP_VERSION)', lit===1 && src.indexOf("const APP_VERSION = '"+APP_VERSION+"';")>=0);
 ok('v3.0.1 VERSION und UI_VERSION sind Aliase von APP_VERSION', /const VERSION = APP_VERSION;/.test(src) && /const UI_VERSION = 'v'\+APP_VERSION;/.test(src));
-ok('v3.0.1 Einstellungen (Info und Fuß) und Export zeigen dieselbe Version', /Fokus App v3\.0\.1 · Build 2026-09-27-4/.test(einst) && /<span>Version<\/span><b>v3\.0\.1</.test(einst) && ex3.appVersion==='3.0.1' &&
-   tagBackupPaket().appVersion==='3.0.1');
+ok('v3.0.1 Einstellungen (Info und Fuß) und Export zeigen dieselbe Version', einst.indexOf('Fokus App v'+APP_VERSION+' · Build '+APP_BUILD)>=0 && einst.indexOf('<span>Version</span><b>v'+APP_VERSION+'<')>=0 && ex3.appVersion===APP_VERSION &&
+   tagBackupPaket().appVersion===APP_VERSION);
 ok('v3.0.1 der Seitentitel liest APP_VERSION, kein fester Titel mehr', /<title>Fokus<\/title>/.test(src) && /document\.title='Fokus '\+UI_VERSION/.test(src) && src.indexOf('Fokus v1')<0);
-ok('v3.0.1 die .md des Abschlusses nennt Version und Build', /- App: v3\.0\.1 · Build 2026-09-27-4/.test(abschlussMarkdown()));
+ok('v3.0.1 die .md des Abschlusses nennt Version und Build', abschlussMarkdown().indexOf('- App: v'+APP_VERSION+' · Build '+APP_BUILD)>=0);
 ok('v3.0.1 das Gate prüft gegen DATENVERTRAG (2.0.0), nicht gegen die App-Version', DATENVERTRAG==='2.0.0' && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'g', titel:'g'}]})).fehler &&
    /älter als 2\.0\.0/.test(syncImport(JSON.stringify({appVersion:'1.13.5', karten:[{id:'g', titel:'g'}]})).fehler));
+
+/* ══════════════════════════════════════════════════════════════════════
+   v3.1.0 „Sync-Tür" — §1 die drei Fehler vom 27.09.
+   ══════════════════════════════════════════════════════════════════════ */
+kopf('v3.1 §1.1 · keine Prognose, auch ohne modus (die acht Karten vom 27.09.)');
+frisch();
+var GE=anVorTage(MO,1);
+function alt(id, titel, extra){ return neueKarte(Object.assign({id:id, domain:'privat', titel:titel, rhythmus:{typ:'taeglich'}, nurAbhaken:true, matrixFeld:'werkzeug', faelligkeit:GE}, extra||{})); }
+S.karten=[
+  alt('duschen','Duschen',{pflicht:true, pflichtWert:40, pflichtDeckel:20, pflichtAbzug:10, pflichtMin:0, rhythmus:{typ:'alleNTage', n:2}, sollMin:15}),
+  alt('rasieren','Rasieren',{pflicht:true, pflichtWert:20, pflichtDeckel:10, pflichtAbzug:10, pflichtMin:0, rhythmus:{typ:'alleNTage', n:2}, sollMin:5}),
+  alt('haare','Haare machen',{pflicht:true, pflichtWert:20, pflichtDeckel:10, pflichtAbzug:10, pflichtMin:0, sollMin:10}),
+  alt('fruehstueck','Frühstücken',{sollMin:20}),
+  alt('vitamine','Vitamine',{sollMin:10, abhakbonus:15}),
+  alt('essenM','Essen machen',{pflicht:true, pflichtWert:40, pflichtDeckel:40, pflichtAbzug:10, pflichtMin:0, sollMin:30}),
+  alt('kaffee','Kaffee trinken',{sollMin:5, abhakbonus:25}),
+  alt('toilette','Toilette',{pflicht:true, pflichtWert:50, pflichtDeckel:30, pflichtAbzug:10, pflichtMin:-20, sollMin:10}) ];
+/* der Stand vom Vortag, wie er vor v2.9.1 gebucht wurde: Werte mit Prognose, zum Teil offen gelassen */
+S.tag=neuerTag(GE,1); S.tag.startTs=GE+'T05:00:00.000Z';
+var alteWerte={duschen:203, rasieren:140, haare:39, fruehstueck:113, vitamine:143, essenM:95, kaffee:82, toilette:135};
+S.karten.forEach(function(k){ k.punkteOverride=alteWerte[k.id]; k.status=(k.id==='fruehstueck'||k.id==='vitamine')?'offen':'erledigt'; k.tagId=(k.status==='erledigt')?S.tag.tagId:null;
+  k.zuletztRoutine=GE; k.abschluesse=[{ts:GE+'T08:00:00.000Z', tagId:S.tag.tagId, punkteIstVorher:alteWerte[k.id], istMinVorher:0, bonusPunkte:15, echt:true}]; });
+S.tag.endeTs=GE+'T22:00:00.000Z';
+tagStarten(70, MO);
+ok('1.1 der Tagesstart setzt JEDE Routine zurück — auch die heute nicht fälligen (Duschen, Rasieren alle 2 Tage)', S.karten.every(function(k){ return k.status==='offen' && k.punkteOverride===null; }) && !routineFaellig(kid('duschen'), MO));
+/* ein Alt-Override, der trotzdem an einer offenen Karte haengt, zaehlt nicht mehr */
+kid('fruehstueck').punkteOverride=113;
+S.fokus={ karteId:'fruehstueck', laeuft:false, startMs:0, sessionSek:0 }; fokusKarteAnsehen('fruehstueck'); renderAlles();   // angetippt und ausgewählt, nicht gestartet
+var aus1=S.intraday.filter(function(e){ return e.typ==='ausgleich' && e.kartenId==='fruehstueck'; });
+ok('1.1 Frühstücken antippen: kein Ausgleich, 0 P (vorher 113 aus dem Vortag)', aus1.length===0 && kartenBeitragHeute(kid('fruehstueck'))===0);
+kid('fruehstueck').punkteOverride=null;
+function uhr(id, min){ fokusStarten(id); S.fokus.startMs=Date.now()-min*60000; fokusZeitEinbuchen(); }
+leisteTicken('vitamine'); leisteTicken('kaffee'); leisteTicken('essenM');
+uhr('toilette', 12); uhr('toilette', 8);    // zwei Durchgaenge (Neustart nach der Pause > 5 Min)
+kid('toilette').durchgang.pauseTs=new Date(Date.now()-10*60000).toISOString(); uhr('toilette', 10);
+uhr('duschen', 17); leisteAbhaken('duschen');
+uhr('rasieren', 1); leisteAbhaken('rasieren');
+uhr('haare', 5); leisteAbhaken('haare');
+var werte={}; ['duschen','rasieren','haare','fruehstueck','vitamine','essenM','kaffee','toilette'].forEach(function(id){ werte[id]=Math.round(kartePunkteHeute(kid(id))); });
+print('   gebucht: '+JSON.stringify(werte));
+ok('1.1 Duschen 17 Min → 40 (Pflicht, vorher 243) · Rasieren 1 Min → 20 (160) · Haare 5 Min → 20 (59)', werte.duschen===40 && werte.rasieren===20 && werte.haare===20);
+ok('1.1 Frühstücken 0 (113) · Vitamine 15 (143) · Essen machen 40 (95) · Kaffee trinken 25 (82) · Toilette 2 Durchgänge 100 (135)',
+   werte.fruehstueck===0 && werte.vitamine===15 && werte.essenM===40 && werte.kaffee===25 && werte.toilette===100);
+renderAlles();
+ok('1.1 keine Ausgleich-Zeile trägt eine Prognose — Tagesbilanz = Summe des Logs', S.intraday.filter(function(e){ return e.typ==='ausgleich'; }).length===0 && bilanzGleichLog() &&
+   Math.round(ohneLaufendeUhr(function(){ return tagesPunkteLive(); }))===40+20+20+0+15+40+25+100);
+/* Wieder oeffnen: ein Abschluss vom Vortag bringt seinen Wert nicht zurueck */
+var k7=kid('kaffee'); k7.status='erledigt'; k7.tagId=aktuelleTagId(); k7.abschluesse.push({ts:GE+'T09:00:00.000Z', tagId:GE+'-1', punkteIstVorher:82, istMinVorher:0, echt:true});
+karteAbhaken('kaffee');
+ok('1.1 Wiederöffnen stellt keinen Wert vom Vortag her (82)', !overrideGilt(kid('kaffee')) && kartePunkte(kid('kaffee'))===25);
+
+kopf('v3.1 §1.2 · ein Tick schließt nur bei erreichtem Tageslimit');
+frisch(); S.tag=neuerTag(MO,1); S.tag.startTs=MO+'T05:00:00.000Z';
+S.karten=[ neueKarte({id:'musik', domain:'privat', titel:'Musik anmachen', rhythmus:{typ:'taeglich'}, ticksAktiv:true, tickWert:10, faelligkeit:MO}),
+           neueKarte({id:'musik1', domain:'privat', titel:'Musik anmachen (Tageslimit 1)', rhythmus:{typ:'taeglich'}, ticksAktiv:true, tickWert:10, tageslimit:1, faelligkeit:MO}),
+           neueKarte({id:'zaehneAlt', domain:'privat', titel:'Zähne putzen (ohne modus, ohne Ticks)', rhythmus:{typ:'taeglich'}, abhakbonus:25, faelligkeit:MO}),
+           neueKarte({id:'musikV3', domain:'privat', titel:'Musik (modus staffel, ohne Limit)', modus:'staffel', staffel:[10], rhythmus:{typ:'taeglich'}, faelligkeit:MO}) ];
+leisteTicken('musik'); leisteTicken('musik'); leisteTicken('musik1'); leisteTicken('zaehneAlt'); leisteTicken('musikV3');
+print('   Status: '+['musik','musik1','zaehneAlt','musikV3'].map(function(id){ return id+' '+kid(id).status+' ('+kid(id).ticksHeute+'×)'; }).join(' · '));
+ok('1.2 „Musik anmachen" (Rhythmus + Ticks, ohne Tageslimit): 2× +1 → offen (vorher: abgehakt)', kid('musik').status==='offen' && kid('musik').ticksHeute===2);
+ok('1.2 mit Tageslimit 1: +1 → erledigt', kid('musik1').status==='erledigt');
+ok('1.2 alte Routine ohne Ticks: +1 → offen, bucht den Abhakbonus, zählt als heute erledigt (Serie)', kid('zaehneAlt').status==='offen' && Math.round(kartePunkteHeute(kid('zaehneAlt')))===25 && routErledigtHeute(kid('zaehneAlt')) && kid('zaehneAlt').streak===1);
+ok('1.2 Staffel ohne Tageslimit: offen', kid('musikV3').status==='offen');
+
+kopf('v3.1 §1.3 · Routinen und Counter erzeugen keine Folgekarten');
+frisch(); S.tag=neuerTag(MO,1);
+S.karten=[ neueKarte({id:'zp', domain:'privat', titel:'Zähne putzen', rhythmus:{typ:'taeglich'}, faelligkeit:MO}),
+           neueKarte({id:'ds', domain:'privat', titel:'Duschen', rhythmus:{typ:'alleNTage', n:2}, faelligkeit:MO}) ];
+S.unteraufgaben=[neueUnteraufgabe('zp',{id:'zs1', titel:'Zahnseide'}), neueUnteraufgabe('ds',{id:'ds1', titel:'Haare waschen'})];
+var vor=S.karten.length;
+abhakDialog('zp', false); var folgeZp=abhakTmp.folge; abhakDialogConfirm();
+abhakDialog('ds', false); abhakDialogConfirm();
+fokusStarten('zp');
+ok('1.3 Erledigen von „Zähne putzen" und „Duschen" (mit offener Unteraufgabe) erzeugt keine Karte', folgeZp===false && S.karten.length===vor &&
+   !S.karten.some(function(k){ return k.vorgaengerAppId; }) && kid('zp').status==='erledigt');
+ok('1.3 der Abhak-Dialog bietet bei Routinen keine Folgeaufgabe an', (function(){ kid('ds').status='offen'; abhakDialog('ds', false); var h=el('sheetBody').innerHTML; closeSheet(); abhakTmp=null; return h.indexOf('data-abfolge')<0; })());
+ok('1.3 ▶ auf einer erledigten Routine legt keine Dublette an', S.karten.length===vor);
+
+/* ══ v3.1 §2–§6 · Sync-Tür ═════════════════════════════════════════════ */
+kopf('v3.1 §2/§6 · einstellungen per Paket — erst Zusammenfassung, dann Übernehmen');
+frisch(); S.tag=neuerTag(MO,1);
+var paketE={ appVersion:'3.1.0', einstellungen:{ grund:'im Chat am 27.09. besprochen',
+  ziele:{ privat:{basis:'routinen', plus:750}, grund:'Ziel aus den fälligen Routinen' },
+  abhakbonus:{ aufgabe:{ werkzeug:180 } },
+  schlaf:{ bedarfStd:7.5 },
+  punkte:{ basisDfm:200, farbe:'blau' },
+  quatsch:{ x:1 } } };
+var vorS=JSON.stringify(S.settings);
+var r1=syncImport(JSON.stringify(paketE));
+var vs=r1.vorschau.einstellungen;
+print('   Vorschau: '+vs.aenderungen.map(function(a){ return a.bereich+'.'+a.feld+' '+kurz(a.vorher)+' → '+kurz(a.nachher); }).join(' | ')+' · unbekannt '+vs.unbekannt.join(', '));
+ok('§6 ohne „Übernehmen" ändert das Paket nichts, es kommt eine Zusammenfassung zurück', r1.freigabeNoetig===true && JSON.stringify(S.settings)===vorS && vs.aenderungen.length===4);
+ok('§6 unbekannte Felder werden gemeldet (einstellungen.quatsch, punkte.farbe)', vs.unbekannt.indexOf('einstellungen.quatsch')>=0 && vs.unbekannt.indexOf('einstellungen.punkte.farbe')>=0);
+oeffneSyncFreigabe(JSON.stringify(paketE), r1.vorschau, 'einst');
+var fh=el('sheetBody').innerHTML;
+ok('§6 die Zusammenfassung nennt Bereich, Feld, vorher → nachher und hat „Übernehmen"', /ziele\.privat/.test(fh) && /schlaf\.bedarfStd/.test(fh) && /7 → 7\.5/.test(fh) && /data-freigabego/.test(el('sheetFoot').innerHTML));
+var r2=syncFreigabeAnwenden();
+ok('§4 nach „Übernehmen": privat = Routinen + 750, Abhakbonus Aufgabe/Werkzeug 180, Schlafbedarf 7,5, Grundrate DFM 200',
+   S.settings.tagesZielPrivatModus==='routinen' && S.settings.tagesZielPrivatSockel===750 && S.settings.abhakbonusTabelle.aufgabe.werkzeug===180 &&
+   S.settings.schlafBedarfStd===7.5 && S.settings.basisProStdDfm===200 && r2.tuer.einstellungen===4);
+ok('§6 vorher wurde gesichert', !!DB.get('import_bak',null) && DB.get('import_bak',{}).settings.schlafBedarfStd===7);
+var pe=(S.meta.korrekturProtokoll||[]).filter(function(e){ return e.art==='einstellungen'; });
+print('   Protokoll: '+pe.map(function(e){ return e.bereich+' · '+e.grund+' · '+e.aenderungen.join(' / '); }).join(' ‖ '));
+ok('§5 jede Änderung steht im Protokoll — mit Grund aus dem Paket und vorher/nachher', pe.length===4 && pe.some(function(e){ return e.bereich==='ziele' && e.grund==='Ziel aus den fälligen Routinen'; }) &&
+   pe.some(function(e){ return e.bereich==='schlaf' && e.grund==='im Chat am 27.09. besprochen' && /schlaf\.bedarfStd: 7 → 7\.5/.test(e.aenderungen[0]); }));
+syncImport(JSON.stringify({appVersion:'3.1.0', einstellungen:{ schlaf:{ bedarfStd:null } }}), {freigabe:true});
+ok('§6 null setzt auf den Standard (Schlafbedarf 7), ein fehlendes Feld ändert nichts', S.settings.schlafBedarfStd===7 && S.settings.basisProStdDfm===200);
+var rF=syncImport(JSON.stringify({appVersion:'3.1.0', einstellungen:{ daempfung:{ privat:3 } }}));
+ok('§6 ungültige Werte werden abgewiesen (Dämpfung 3 > 1)', rF.vorschau.einstellungen.fehler.length===1 && /größer als 1/.test(rF.vorschau.einstellungen.fehler[0].grund));
+syncImport(JSON.stringify({appVersion:'3.1.0', einstellungen:{ ziele:{ weModus:'getrennt' }, erholung:{ zeitzielMin:90 }, tagesabschluss:{ abzugStandard:30, fragen:['Ein Wort?','Plus?','Minus?'] },
+  tagesstruktur:{ bloecke:[{name:'Morgen', minMin:60, maxMin:90, typ:'privat'},{name:'DFM-Fokus 1', minMin:180, maxMin:240, typ:'dfm'}] } }}), {freigabe:true});
+var kE=neueKarte({id:'erh', domain:'privat', titel:'ADHS-Erholung', modus:'zeit', rolle:'erholung', rhythmus:{typ:'taeglich'}}); S.karten.push(kE);
+ok('§2 Erholung (rolle „erholung"): Zeitziel 90 und Akku 30 %/120 Min aus den Einstellungen', zeitzielVon(kE)===90 && akkuRate(kE)===15 && zielText(kE)==='0/90′');
+ok('§2 Tagesabschluss: Reflexionsfragen und Standard-Abzug aus den Einstellungen', reflexionsFrage(0)==='Ein Wort?' && S.settings.abschlussAbzugStandard===30);
+ok('§2 Wochenende getrennt: der Sonntag zählt den Samstag nicht mit', S.settings.weModus==='getrennt' && /weModus==='getrennt'\) return s;/.test(src));
+renderEinst();
+ok('§2 Tagesstruktur wird gezeigt; alle Parameter haben ein Eingabefeld (auch Grundrate, Zeit-Gewicht, Matrix-Faktoren)', /DFM-Fokus 1[\s\S]*180–240 Min/.test(el('einstBody').innerHTML) &&
+   /data-tuer="einstellungen\|punkte\|matrixFaktoren\|werkzeug"/.test(el('einstBody').innerHTML) && /data-tuer="einstellungen\|punkte\|basisDfm"/.test(el('einstBody').innerHTML) &&
+   /data-tuer="statistik\|ampel\|gruen"/.test(el('einstBody').innerHTML));
+
+kopf('v3.1 §3 · statistik per Paket');
+var pS={ appVersion:'3.1.0', statistik:{ grund:'Statistik entrümpeln', zeitfenster:14, ampel:{ gruen:0.3 }, module:{ ausgeblendet:['belastung','acwr'] } } };
+var rS=syncImport(JSON.stringify(pS));
+ok('§3 Zusammenfassung vor dem Anwenden (3 Änderungen)', rS.freigabeNoetig && rS.vorschau.statistik.aenderungen.length===3);
+syncImport(JSON.stringify(pS), {freigabe:true});
+renderStatistik(); var sh=el('statistikBody').innerHTML;
+ok('§3 Zeitfenster 14 Tage, Ampelgrenze 0,3 (0,25 ist jetzt gelb), Belastung und ACWR ausgeblendet', analyseFenster().span===14 && ampelStufe(0.25)==='gelb' && ampelStufe(0.31)==='gruen' &&
+   sh.indexOf('data-stmodul="belastung"')<0 && sh.indexOf('data-stmodul="tagesverlauf"')>=0);
+ok('§3 unbekanntes Modul wird abgewiesen', syncImport(JSON.stringify({appVersion:'3.1.0', statistik:{ module:{ ausgeblendet:['gibtsnicht'] } }})).vorschau.statistik.fehler.length===1);
+ok('§3 Statistik-Änderungen im Protokoll', (S.meta.korrekturProtokoll||[]).some(function(e){ return e.art==='statistik' && e.grund==='Statistik entrümpeln'; }));
+
+kopf('v3.1 §4 · Kartendetails vollständig');
+frisch(); S.tag=neuerTag(MO,1);
+imp([{id:'li', domain:'dfm', titel:'LinkedIn', modus:'zeit', rhythmus:{typ:'taeglich'}, serienfaktor:true,
+  unteraufgaben:[{id:'u1', titel:'Lead eingepflegt', staffel:[50]}, {id:'u2', titel:'Nachricht an Lead', staffel:[80], tagesziel:3}]}]);
+imp([{id:'li', unteraufgaben:[{id:'u1', titel:'Lead in Airtable eingepflegt'}, {id:'u2', staffel:[90]}, {id:'u3', titel:'Airtable', staffel:[50]}]}]);
+ok('§4 Unter-Zähler anlegen, umbenennen, Staffel ändern', S.unteraufgaben.length===3 && sub('u1').titel==='Lead in Airtable eingepflegt' && JSON.stringify(sub('u2').staffel)==='[90]' && sub('u3').titel==='Airtable');
+var rE=imp([{id:'li', unteraufgaben:[{id:'u3', entfernt:true}]}]);
+ok('§4 Unter-Zähler entfernen mit entfernt:true', !sub('u3') && S.unteraufgaben.length===2 && rE.subsEntfernt===1);
+var rK=imp([{id:'li', serienFaktor:1.6, streak:12}]);
+print('   ohne korrektur: '+rK.uebersprungen.map(function(u){ return u.was+' — '+u.grund; }).join(' | '));
+ok('§4 serienFaktor und streak ohne korrektur:true abgelehnt (gemeldet)', kid('li').serienFaktor===1 && kid('li').streak===0 && rK.uebersprungen.filter(function(u){ return /nur mit korrektur:true/.test(u.grund); }).length===2);
+imp([{id:'li', serienFaktor:1.6, streak:12, korrektur:true, grund:'Serie aus Airtable nachgetragen'}]);
+ok('§4 mit korrektur:true angenommen und protokolliert', kid('li').serienFaktor===1.6 && kid('li').streak===12 &&
+   (S.meta.korrekturProtokoll||[]).some(function(e){ return e.art==='karte' && e.grund==='Serie aus Airtable nachgetragen' && e.aenderungen.length===2; }));
+var rU=imp([{id:'li', titel:'LinkedIn', lieblingsfarbe:'grün'}]);
+ok('§4 unbekannte Kartenfelder werden gemeldet und ignoriert; ein zurückgeschickter Export ist kein Fehler', rU.uebersprungen.some(function(u){ return /lieblingsfarbe/.test(u.was); }) &&
+   imp([syncExport('delta').karten[0]]).uebersprungen.length===0);
+imp([{id:'li', domain:'privat'}]);
+ok('§4 Domäne einer bekannten Karte ist schreibbar', kid('li').domain==='privat');
+
+kopf('v3.1 §5 · Export: vollständiger Ist-Stand');
+frisch(); S.tag=neuerTag(MO,1);
+var ev=syncExport('voll');
+var nE=Object.keys(EINST_SCHEMA).reduce(function(a,b){ return a+Object.keys(EINST_SCHEMA[b]).length; },0), nS=Object.keys(STAT_SCHEMA).reduce(function(a,b){ return a+Object.keys(STAT_SCHEMA[b]).length; },0);
+var hE=Object.keys(ev.einstellungen).reduce(function(a,b){ return a+Object.keys(ev.einstellungen[b]).length; },0), hS=Object.keys(ev.statistik).reduce(function(a,b){ return a+Object.keys(ev.statistik[b]).length; },0);
+ok('§5 Vollexport trägt einstellungen ('+hE+' Felder) und statistik ('+hS+' Felder) vollständig — auch die Standards', hE===nE && hS===nS && ev.einstellungen.schlaf.bedarfStd===7 && ev.statistik.ampel.gruen===0.2);
+ok('§5 Delta ohne Änderung: ohne die beiden Bereiche', syncExport('delta').einstellungen===undefined && syncExport('delta').statistik===undefined);
+syncImport(JSON.stringify({appVersion:'3.1.0', einstellungen:{ serienfaktor:{ max:2.5 } }}), {freigabe:true});
+ok('§5 Delta nach einer Änderung: einstellungen dabei (statistik nicht)', syncExport('delta').einstellungen && syncExport('delta').einstellungen.serienfaktor.max===2.5 && syncExport('delta').statistik===undefined);
+syncBestaetigen();
+ok('§5 nach dem bestätigten Sync fällt es wieder weg', syncExport('delta').einstellungen===undefined);
+ok('§5 ein zurückgeschickter Vollexport ist ohne Abweichung und braucht keine Freigabe', !syncImport(JSON.stringify(syncExport('voll'))).freigabeNoetig);
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

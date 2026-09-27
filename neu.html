@@ -1535,6 +1535,13 @@ body{background:var(--bg)}
 .abv3-z .t{flex:1 1 60%;min-width:0}
 .abv3-z .t small{display:block;opacity:.6;font-size:11px}
 .abv3-z .chip{min-height:44px}
+.slider.tuer-feld{flex-wrap:wrap}.tuer-feld label{flex:1 1 100%;min-width:0;overflow-wrap:anywhere}
+.tuer-feld>input,.tuer-feld>select{flex:0 0 auto}.tuer-feld>textarea{flex:1 1 100%;width:100%;box-sizing:border-box;overflow-wrap:anywhere;word-break:break-all}
+.tuer-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;flex:1 1 100%}.slider .tuer-4 input{width:100%;min-width:0;box-sizing:border-box}
+.tuer-det summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
+.tuer-z small{display:block;opacity:.6;font-size:11px}
+.kv.tuer-z{gap:10px}.tuer-z>b{min-width:0;overflow-wrap:anywhere;text-align:right}.tuer-z>span{flex:0 0 auto;max-width:45%}
+.korr-tuer ul{margin:4px 0 0 16px}
 .abv3-prog{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;font-size:13px;line-height:1.5}
 .al-z.kvis-spaeter:not(.fertig){opacity:1}   /* in der Leiste ist „ohne Datum" normal — nicht gedimmt */
 .al-stand{font-family:ui-monospace,monospace;opacity:.8!important}
@@ -1762,11 +1769,11 @@ body{background:var(--bg)}
    sie — ueber die beiden Alias-Namen, die der Code seit v1.x benutzt.
    Der DATENVERTRAG ist etwas anderes: die aelteste Paket-Version, die der
    Import annimmt (Gate) — er bleibt 2.0, additiv erweitert. */
-const APP_VERSION = '3.0.1';
+const APP_VERSION = '3.1.0';
 const VERSION = APP_VERSION;                  // Alias: appVersion im Export
 const UI_VERSION = 'v'+APP_VERSION;           // Alias: Anzeige
 const DATENVERTRAG = '2.0.0';                 // Import-Gate: Pakete ab dieser appVersion
-const APP_BUILD = '2026-09-27-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-09-27-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 try{ document.title='Fokus '+UI_VERSION; }catch(e){}
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
@@ -1979,6 +1986,23 @@ const DEFAULT_SETTINGS = {
   schlafSchuldMaxStd: 30,      // §7: Deckel der Schlafschuld
   schlafPunkteStufen: [{abStd:7, punkte:100},{abStd:6, punkte:70},{abStd:5, punkte:30}],   // §7: darunter 0, kein Abzug fuer langen Schlaf
   schlafAufstehenUm: '08:00',  // §6: Prognose „Aufstehen um 08:00 → Akku X %"
+  // ══ §2/§3 (v3.1.0) · Sync-Tür — was bisher fest im Code stand, ist jetzt ein Parameter ══
+  tagesZielPrivatModus: 'auto', // auto (Routinen, sobald eine Karte modus traegt) · routinen · fest
+  weModus: 'gemeinsam',        // Wochenende: gemeinsames Budget Sa+So · getrennt (je Tag das volle WE-Ziel)
+  erholungZeitzielMin: 120,    // Karten mit rolle „erholung": Zeitziel, wenn die Karte keins traegt
+  erholungAkkuJe120Min: 30,    // … und Akku-Ladung (Prozent je 120 Minuten)
+  abschlussAbzugStandard: 0,   // Tagesabschluss: Abzug beim Ueberspringen „mit Abzug", wenn die Karte keinen traegt
+  reflexionsFragen: ['Wie war der Tag in einem Wort?','Was hat Energie gegeben?','Was hat Energie gekostet?'],
+  tagesStruktur: [],           // Standardbloecke [{name, minMin, maxMin, typ}] — Claude plant damit, die App zeigt sie
+  statistik: {
+    reihenfolge: ['matrix','tagesverlauf','detail','matrixSpur','reinRaus','entwicklung','belastung'],
+    ausgeblendet: [],
+    zeitfenster: 7,            // Detailanalyse: 7 · 14 · 30 Tage
+    typischerTag: { tage:28, ampelTage:14, methode:'mittel', weGetrennt:true },
+    ampel: { gruen:0.2, gelb:0, orange:-0.2, minTage:3, minNorm:20 },
+    belastung: { akutTage:7, chronischTage:28, unter:0.8, optimalBis:1.3, erhoehtBis:1.5 },
+    matrixZeit: { letzteZaehlt:false, gueltigMaxMin:null }
+  },
   daempfungDfm: 1.0,
   // §2: Bonus für Bewegung nach rechts. Voller Ausschlag (ganz links → ganz
   // rechts) = dieser Wert; wer schon rechts stand, bekommt fast nichts.
@@ -2018,6 +2042,187 @@ const DEFAULT_SETTINGS = {
   }
 };
 
+/* ══ §2–§6 (v3.1.0) · DIE SYNC-TÜR ═════════════════════════════════════
+   Alles, was Pascal und Claude im Chat entscheiden, kommt ueber das Paket in
+   die App — ohne neuen Bauauftrag. Zwei neue Bereiche neben karten:
+     einstellungen  Ziele · Abhakbonus · Daempfung · Pflicht · Schlaf ·
+                    Erholung · Serienfaktor · Tagesabschluss · Tagesstruktur ·
+                    Punkte-Engine · Belohnung · Tagesform
+     statistik      Module und Reihenfolge · Zeitfenster · typischer Tag ·
+                    Ampel · Belastung · Matrix-Zeit
+   Regeln: ein fehlendes Feld aendert nichts, null setzt auf den Standard,
+   unbekannte Felder werden gemeldet und ignoriert. Vor dem Anwenden zeigt die
+   App eine Zusammenfassung (vorher → nachher) und braucht „Übernehmen";
+   dann Sicherung, Anwenden, Protokoll mit dem grund aus dem Paket.
+   Beide Bereiche beschreibt EIN Schema — Vorschau, Anwenden, Export und der
+   Editor in den Einstellungen lesen dasselbe. */
+const FELDER4=['werkzeug','ziel','zustand','ablenkung'];
+const STAT_MODULE=[['matrix','Der Tag in der Matrix'],['tagesverlauf','Tagesverlauf'],['detail','Detailanalyse'],['matrixSpur','Matrix-Spur'],
+  ['reinRaus','Rein und Raus'],['entwicklung','Entwicklung'],['belastung','Belastung']];
+const STAT_DETAIL=[['readiness','Bereitschaft'],['acwr','Belastungssteuerung'],['leistung','Leistung'],['konsistenz','Konsistenz'],
+  ['verhalten','Verhalten'],['aufgabenFlow','Aufgaben-Flow'],['routinenFlow','Routinen-Flow']];
+const Z=(p,o)=>Object.assign({p, t:'zahl'}, o||{});
+const EINST_SCHEMA={
+  ziele:{ dfm:Z('tagesZielDfm',{min:0}), privat:{spezial:'zielPrivat'}, weDfm:Z('zielWeDfm',{min:0}), wePrivat:Z('zielWePrivat',{min:0}),
+    weModus:{p:'weModus', t:'wahl', werte:['gemeinsam','getrennt']} },
+  abhakbonus:{ aufgabe:{p:'abhakbonusTabelle.aufgabe', t:'feldtab'}, routineDfm:{p:'abhakbonusTabelle.routineDfm', t:'feldtab'},
+    routinePrivat:{p:'abhakbonusTabelle.routinePrivat', t:'feldtab'} },
+  daempfung:{ dfm:Z('daempfungDfm',{min:0, max:1}), privat:Z('daempfungPrivat',{min:0, max:1}) },
+  pflicht:{ pauseToleranzMin:Z('durchgangPauseMin',{min:0, max:60}) },
+  schlaf:{ bedarfStd:Z('schlafBedarfStd',{min:3, max:14}), punkteStufen:{p:'schlafPunkteStufen', t:'stufen'}, ladungProStd:Z('schlafLadungProStd',{min:1, max:50}),
+    schuldMaxStd:Z('schlafSchuldMaxStd',{min:0, max:100}), schuldProzentJeStd:Z('schlafSchuldProzentJeStd',{min:0, max:50}), aufstehenUm:{p:'schlafAufstehenUm', t:'uhrzeit'} },
+  erholung:{ zeitzielMin:Z('erholungZeitzielMin',{min:0, max:600}), akkuJe120Min:Z('erholungAkkuJe120Min',{min:0, max:100}) },
+  serienfaktor:{ schritt:Z('serienfaktorSchritt',{min:0, max:1}), max:Z('serienfaktorMax',{min:1, max:5}) },
+  tagesabschluss:{ abzugStandard:Z('abschlussAbzugStandard',{min:0}), fragen:{p:'reflexionsFragen', t:'texte'} },
+  tagesstruktur:{ bloecke:{p:'tagesStruktur', t:'bloecke'} },
+  punkte:{ basisDfm:Z('basisProStdDfm',{min:0}), basisPrivat:Z('basisProStdPrivat',{min:0}), zeitGewicht:Z('zeitGewicht',{min:0, max:10}),
+    tickGewicht:Z('tickGewicht',{min:0, max:10}), matrixFaktoren:{p:'matrixFaktor', t:'feldtab'}, geldNenner:{spezial:'geldNenner'},
+    geldDeckel:{p:'geldDeckel', t:'zahlNull'}, standardWertDfm:Z('standardWertDfm'), standardWertPrivat:Z('standardWertPrivat'),
+    subBonusDfm:Z('subBonusDfm',{min:0}), subBonusPrivat:Z('subBonusPrivat',{min:0}), tickMinuten:Z('tickMinutenStandard',{min:0, max:240}),
+    bewegungsBonus:Z('bewegungsBonus',{min:0}), privatSockel:Z('tagesZielPrivatSockel',{min:0}) },
+  belohnung:{ preisFaktor:Z('preisFaktor',{min:0}), punkteProLevel:Z('punkteProLevel',{min:100}) },
+  tagesform:{ werktag:{p:'sollFormWerktag', t:'fenster'} }
+};
+const STAT_SCHEMA={
+  module:{ reihenfolge:{p:'statistik.reihenfolge', t:'module'}, ausgeblendet:{p:'statistik.ausgeblendet', t:'moduleAlle'} },
+  zeitfenster:{ tage:{p:'statistik.zeitfenster', t:'wahl', werte:[7,14,30]} },
+  typischerTag:{ tage:Z('statistik.typischerTag.tage',{min:7, max:120}), ampelTage:Z('statistik.typischerTag.ampelTage',{min:3, max:60}),
+    methode:{p:'statistik.typischerTag.methode', t:'wahl', werte:['mittel','median']}, weGetrennt:{p:'statistik.typischerTag.weGetrennt', t:'bool'} },
+  ampel:{ gruen:Z('statistik.ampel.gruen',{min:-1, max:2}), gelb:Z('statistik.ampel.gelb',{min:-1, max:2}), orange:Z('statistik.ampel.orange',{min:-1, max:2}),
+    minTage:Z('statistik.ampel.minTage',{min:1, max:30}), minNorm:Z('statistik.ampel.minNorm',{min:0}) },
+  belastung:{ akutTage:Z('statistik.belastung.akutTage',{min:1, max:28}), chronischTage:Z('statistik.belastung.chronischTage',{min:7, max:120}),
+    unter:Z('statistik.belastung.unter',{min:0, max:3}), optimalBis:Z('statistik.belastung.optimalBis',{min:0, max:3}), erhoehtBis:Z('statistik.belastung.erhoehtBis',{min:0, max:5}) },
+  matrixZeit:{ letzteZaehlt:{p:'statistik.matrixZeit.letzteZaehlt', t:'bool'}, gueltigMaxMin:{p:'statistik.matrixZeit.gueltigMaxMin', t:'zahlNull'} }
+};
+function pfadLesen(o, p){ return String(p).split('.').reduce((a,k)=>(a==null ? undefined : a[k]), o); }
+function pfadSchreiben(o, p, v){ const t=String(p).split('.'); let a=o; for(let i=0;i<t.length-1;i++){ if(!a[t[i]] || typeof a[t[i]]!=='object') a[t[i]]={}; a=a[t[i]]; } a[t[t.length-1]]=v; }
+function einstStandard(p){ const v=pfadLesen(DEFAULT_SETTINGS, p); return v===undefined ? null : JSON.parse(JSON.stringify(v)); }
+function statParam(p){ const v=pfadLesen(S.settings, 'statistik.'+p); return v===undefined ? einstStandard('statistik.'+p) : v; }
+/* Lesen eines Schema-Feldes (fuer Export, Vorschau, Editor) */
+function schemaWert(f){
+  if(f.spezial==='zielPrivat'){ const m=S.settings.tagesZielPrivatModus||'auto';
+    return m==='fest' ? num(S.settings.tagesZielPrivat) : { basis:(m==='routinen'?'routinen':'auto'), plus:num(S.settings.tagesZielPrivatSockel,750), fest:num(S.settings.tagesZielPrivat) }; }
+  if(f.spezial==='geldNenner') return Math.round(num(S.settings.geldScoreRef,200)/Math.max(0.0001, num(S.settings.geldGewicht,0.5))*100)/100;
+  const v=pfadLesen(S.settings, f.p);
+  return JSON.parse(JSON.stringify(v===undefined ? einstStandard(f.p) : v));
+}
+function schemaAbbild(schema){
+  const o={}; Object.keys(schema).forEach(b=>{ o[b]={}; Object.keys(schema[b]).forEach(n=>{ o[b][n]=schemaWert(schema[b][n]); }); }); return o;
+}
+function kurz(v){ if(v==null) return '—'; if(typeof v==='object') return JSON.stringify(v).slice(0,90); return String(v); }
+/* Einen neuen Wert pruefen — liefert {ok, wert, schritte:[[pfad, wert]]} oder {fehler} */
+function schemaPruefen(f, roh){
+  const std=(p)=>einstStandard(p);
+  if(f.spezial==='zielPrivat'){
+    if(roh===null) return { ok:true, anzeige:'Standard (auto, +750)', schritte:[['tagesZielPrivatModus','auto'],['tagesZielPrivatSockel',750],['tagesZielPrivat',std('tagesZielPrivat')]] };
+    if(typeof roh==='number' || (typeof roh==='string' && roh.trim()!=='' && Number.isFinite(Number(roh)))) return { ok:true, anzeige:num(roh), schritte:[['tagesZielPrivatModus','fest'],['tagesZielPrivat',Math.max(0,num(roh))]] };
+    if(roh && typeof roh==='object' && roh.basis==='routinen') return { ok:true, anzeige:{basis:'routinen', plus:num(roh.plus,750)}, schritte:[['tagesZielPrivatModus','routinen'],['tagesZielPrivatSockel',Math.max(0,num(roh.plus,750))]] };
+    return { fehler:'Zahl oder {basis:"routinen", plus:N} erwartet' };
+  }
+  if(f.spezial==='geldNenner'){
+    if(roh===null) return { ok:true, anzeige:400, schritte:[['geldScoreRef',200],['geldGewicht',0.5]] };
+    const n=Number(roh); if(!Number.isFinite(n) || n<=0) return { fehler:'Zahl > 0 erwartet' };
+    return { ok:true, anzeige:n, schritte:[['geldScoreRef',n],['geldGewicht',1]] };
+  }
+  if(roh===null) return { ok:true, anzeige:std(f.p), schritte:[[f.p, std(f.p)]] };
+  const t=f.t;
+  if(t==='zahl' || t==='zahlNull'){
+    if(t==='zahlNull' && (roh===''||roh==null)) return { ok:true, anzeige:null, schritte:[[f.p, null]] };
+    const n=Number(roh); if(!Number.isFinite(n)) return { fehler:'Zahl erwartet' };
+    if(f.min!=null && n<f.min) return { fehler:'kleiner als '+f.min };
+    if(f.max!=null && n>f.max) return { fehler:'größer als '+f.max };
+    return { ok:true, anzeige:n, schritte:[[f.p, n]] };
+  }
+  if(t==='bool'){ if(typeof roh!=='boolean') return { fehler:'true oder false erwartet' }; return { ok:true, anzeige:roh, schritte:[[f.p, roh]] }; }
+  if(t==='wahl'){ const w=f.werte.find(x=>String(x)===String(roh)); if(w===undefined) return { fehler:'erlaubt: '+f.werte.join(' · ') }; return { ok:true, anzeige:w, schritte:[[f.p, w]] }; }
+  if(t==='uhrzeit'){ if(!/^\d{1,2}:\d{2}$/.test(String(roh))) return { fehler:'HH:MM erwartet' }; return { ok:true, anzeige:String(roh), schritte:[[f.p, String(roh)]] }; }
+  if(t==='texte'){ if(!Array.isArray(roh) || !roh.every(x=>typeof x==='string')) return { fehler:'Liste von Texten erwartet' }; return { ok:true, anzeige:roh, schritte:[[f.p, roh.slice()]] }; }
+  if(t==='stufen'){ if(!Array.isArray(roh) || !roh.every(x=>x && Number.isFinite(Number(x.abStd)) && Number.isFinite(Number(x.punkte)))) return { fehler:'Liste {abStd, punkte} erwartet' };
+    const v=roh.map(x=>({abStd:num(x.abStd), punkte:num(x.punkte)})).sort((a,b)=>b.abStd-a.abStd); return { ok:true, anzeige:v, schritte:[[f.p, v]] }; }
+  if(t==='bloecke'){ if(!Array.isArray(roh) || !roh.every(x=>x && x.name)) return { fehler:'Liste {name, minMin, maxMin, typ} erwartet' };
+    const v=roh.map(x=>({ name:String(x.name), minMin:num(x.minMin, num(x.min)), maxMin:num(x.maxMin, num(x.max)), typ:x.typ?String(x.typ):null })); return { ok:true, anzeige:v, schritte:[[f.p, v]] }; }
+  if(t==='fenster'){ if(!Array.isArray(roh) || !roh.every(x=>Array.isArray(x) && x.length===2 && num(x[1])>num(x[0]))) return { fehler:'Liste [von, bis] in Stunden ab Tagesstart erwartet' }; return { ok:true, anzeige:roh, schritte:[[f.p, roh.map(x=>[num(x[0]),num(x[1])])]] }; }
+  if(t==='feldtab'){
+    if(!roh || typeof roh!=='object' || Array.isArray(roh)) return { fehler:'Objekt {werkzeug, ziel, zustand, ablenkung} erwartet' };
+    const schritte=[], unbekannt=[];
+    Object.keys(roh).forEach(k=>{ if(FELDER4.indexOf(k)<0){ unbekannt.push(k); return; }
+      const v=roh[k]; if(v===null) schritte.push([f.p+'.'+k, std(f.p+'.'+k)]); else if(Number.isFinite(Number(v))) schritte.push([f.p+'.'+k, Number(v)]); else unbekannt.push(k+' (keine Zahl)'); });
+    return { ok:true, anzeige:roh, schritte, unbekannt };
+  }
+  if(t==='module' || t==='moduleAlle'){
+    const erlaubt=(t==='module' ? STAT_MODULE : STAT_MODULE.concat(STAT_DETAIL)).map(x=>x[0]);
+    if(!Array.isArray(roh)) return { fehler:'Liste von Modul-Namen erwartet ('+erlaubt.join(', ')+')' };
+    const falsch=roh.filter(x=>erlaubt.indexOf(x)<0); if(falsch.length) return { fehler:'unbekannte Module: '+falsch.join(', ')+' (erlaubt: '+erlaubt.join(', ')+')' };
+    let v=roh.filter((x,i)=>roh.indexOf(x)===i);
+    if(t==='module') v=v.concat(erlaubt.filter(x=>v.indexOf(x)<0));   // nicht genannte Module haengen in Standardfolge hinten an
+    return { ok:true, anzeige:v, schritte:[[f.p, v]] };
+  }
+  return { fehler:'Feldtyp unbekannt' };
+}
+/* Vorschau eines Paketbereichs — aendert nichts */
+function bereichVorschau(art, teil, schema){
+  const out={ art, aenderungen:[], unbekannt:[], fehler:[], gruende:{} };
+  if(!teil || typeof teil!=='object' || Array.isArray(teil)){ if(teil!==undefined) out.fehler.push({was:art, grund:'Objekt erwartet'}); return out; }
+  const topGrund=teil.grund!=null ? String(teil.grund) : '';
+  // statistik: zeitfenster darf als Zahl direkt kommen
+  if(art==='statistik' && teil.zeitfenster!==undefined && (typeof teil.zeitfenster!=='object' || teil.zeitfenster===null)) teil=Object.assign({}, teil, { zeitfenster:{ tage:teil.zeitfenster } });
+  Object.keys(teil).forEach(b=>{
+    if(b==='grund') return;
+    const sb=schema[b]; if(!sb){ out.unbekannt.push(art+'.'+b); return; }
+    const bt=teil[b]; if(!bt || typeof bt!=='object' || Array.isArray(bt)){ out.fehler.push({was:art+'.'+b, grund:'Objekt erwartet'}); return; }
+    out.gruende[b]=(bt.grund!=null ? String(bt.grund) : topGrund) || '';
+    Object.keys(bt).forEach(n=>{
+      if(n==='grund') return;
+      const f=sb[n]; if(!f){ out.unbekannt.push(art+'.'+b+'.'+n); return; }
+      if(bt[n]===undefined) return;
+      const pr=schemaPruefen(f, bt[n]);
+      if(pr.fehler){ out.fehler.push({was:art+'.'+b+'.'+n, grund:pr.fehler}); return; }
+      (pr.unbekannt||[]).forEach(u=>out.unbekannt.push(art+'.'+b+'.'+n+'.'+u));
+      const vorher=schemaWert(f);
+      // nachher: Schritte auf einer Kopie ausprobieren, dann wie beim Lesen abbilden
+      const kopie=JSON.parse(JSON.stringify(S.settings)); const alt=S.settings; S.settings=kopie;
+      pr.schritte.forEach(x=>pfadSchreiben(kopie, x[0], x[1]));
+      const nachher=schemaWert(f); S.settings=alt;
+      if(JSON.stringify(vorher)===JSON.stringify(nachher)) return;
+      out.aenderungen.push({ bereich:b, feld:n, vorher, nachher, schritte:pr.schritte, grund:out.gruende[b] });
+    });
+  });
+  return out;
+}
+function syncTuerVorschau(paket){
+  return { einstellungen:(paket.einstellungen!==undefined ? bereichVorschau('einstellungen', paket.einstellungen, EINST_SCHEMA) : null),
+           statistik:(paket.statistik!==undefined ? bereichVorschau('statistik', paket.statistik, STAT_SCHEMA) : null),
+           karten:Array.isArray(paket.karten) ? paket.karten.length : 0 };
+}
+/* Anwenden (nach „Übernehmen"): Sicherung, Werte, Protokoll */
+function syncTuerAnwenden(vs){
+  const teile=[vs.einstellungen, vs.statistik].filter(x=>x && x.aenderungen.length);
+  if(!teile.length) return 0;
+  DB.set('settings_bakimport', { ts:jetztIso(), settings:JSON.parse(JSON.stringify(S.settings)) });
+  let n=0;
+  teile.forEach(t=>{
+    const proBereich={};
+    t.aenderungen.forEach(a=>{ a.schritte.forEach(x=>pfadSchreiben(S.settings, x[0], x[1])); n++;
+      (proBereich[a.bereich]=proBereich[a.bereich]||[]).push(a); });
+    Object.keys(proBereich).forEach(b=>{ const as=proBereich[b];
+      protokollEintrag(t.art, (as[0].grund||'(ohne Grund)'), as.map(a=>b+'.'+a.feld+': '+kurz(a.vorher)+' → '+kurz(a.nachher)),
+        { bereich:b, vorher:as.map(a=>({feld:a.feld, wert:a.vorher})), nachher:as.map(a=>({feld:a.feld, wert:a.nachher})) }); });
+    S.meta[t.art==='statistik' ? 'statistikGeaendertTs' : 'einstGeaendertTs']=jetztIso();
+  });
+  if(vs.statistik && vs.statistik.aenderungen.some(a=>a.bereich==='zeitfenster')) S.ui.analyseZeitraum=null;   // das Paket setzt den Standard — die gemerkte Wahl faellt
+  saveSettings(); saveMeta(); saveUi();
+  return n;
+}
+function protokollEintrag(art, grund, zeilen, extra){
+  if(!Array.isArray(S.meta.korrekturProtokoll)) S.meta.korrekturProtokoll=[];
+  S.meta.korrekturProtokoll=S.meta.korrekturProtokoll.concat([Object.assign({ ts:jetztIso(), datum:heuteApp(), art, grund:String(grund||''), aenderungen:zeilen }, extra||{})]).slice(-200);
+}
+/* Export: voll = immer vollstaendig; delta = nur nach einer Aenderung seit dem letzten bestaetigten Sync */
+function syncTuerExport(voll, art){
+  const ts=S.meta[art==='statistik' ? 'statistikGeaendertTs' : 'einstGeaendertTs'], seit=S.meta.letzterSyncBestaetigtTs;
+  if(!voll && !(ts && (!seit || ts>seit))) return undefined;
+  return schemaAbbild(art==='statistik' ? STAT_SCHEMA : EINST_SCHEMA);
+}
 /* §3.1 Karte — vollständiges Schema, fehlende Felder mit Defaults. */
 /* ══════════════════════════════════════════════════════════════════════
    §2.1 (v1.6.0) · Tagesabschnitte für Privat-Karten. Grenzen als Konstanten
@@ -2221,6 +2426,10 @@ const S = {
 };
 function settingsMerge(gespeichert){
   const s=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  // §3 (v3.1.0): statistik ist zwei Ebenen tief — neue Unterfelder behalten ihren Standard
+  const tief=(ziel, quelle)=>{ Object.keys(quelle||{}).forEach(k=>{ const v=quelle[k];
+    if(v && typeof v==='object' && !Array.isArray(v) && ziel[k] && typeof ziel[k]==='object' && !Array.isArray(ziel[k])) tief(ziel[k], v); else ziel[k]=v; }); };
+  if(gespeichert && gespeichert.statistik && typeof gespeichert.statistik==='object'){ tief(s.statistik, gespeichert.statistik); gespeichert=Object.assign({}, gespeichert); delete gespeichert.statistik; }
   for(const [k,v] of Object.entries(gespeichert||{})){
     if(v && typeof v==='object' && !Array.isArray(v) && typeof s[k]==='object') Object.assign(s[k], v);
     else s[k]=v;
@@ -3158,6 +3367,7 @@ function akkuRate(k){
   if(g && g.quelle==='Karte') return g.rate;
   // §2 (v3.0.0): akkuLadung = Akku-% je Minute (ADHS-Erholung, Date Night: 30 % je 120 Min) — gelernt schlaegt sie
   if(k && k.akkuLadung!=null && k.akkuLadung!=='' && Number.isFinite(Number(k.akkuLadung))) return Number(k.akkuLadung)*60;
+  if(erholungsKarte(k)) return num(S.settings.erholungAkkuJe120Min,30)/2;   // §2 (v3.1.0): % je 120 Min → % je Std
   if(g) return g.rate;
   return S.settings.akkuProStd!=null?S.settings.akkuProStd:-8;
 }
@@ -3248,8 +3458,22 @@ function pausenStrafeLive(k){
   if(!(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id && S.fokus.startMs)) return 0;
   return pausenStrafe(k, (Date.now()-S.fokus.startMs)/60000);
 }
+/* §1.1 (v3.1.0): Ein beim Abhaken gewaehlter Wert (punkteOverride) gilt bei
+   Routinen und Countern NUR an dem Tag, an dem er gesetzt wurde. Befund
+   27.09.: Werte vom Vortag (darin noch die Prognose von vor v2.9.1) hingen an
+   Karten, die morgens nicht zurueckgesetzt worden waren — beim ersten
+   Antippen holte der Abgleich sie als „Ausgleich" ins Log (Vitamine 143 statt
+   15), beim Abschliessen kamen sie obendrauf (Duschen 203 + 40 = 243). Bei
+   Aufgaben bleibt der Override der Endwert der Karte. */
+function istRoutineOderCounter(k){ return !!(k && (k.rhythmus || k.ticksAktiv || istV3(k))); }
+function overrideGilt(k){
+  if(!k || k.punkteOverride==null) return false;
+  if(!istRoutineOderCounter(k)) return true;
+  return (k.overrideTag || k.tagId) === aktuelleTagId();
+}
+function overrideSetzen(k, wert){ k.punkteOverride=(wert==null ? null : wert); k.overrideTag=(wert==null ? null : aktuelleTagId()); }
 function kartePunkte(k){
-  if(k.punkteOverride!=null) return num(k.punkteOverride);   // U6-A: beim Abhaken gewählter Ist-Punktwert schlägt die Berechnung
+  if(overrideGilt(k)) return num(k.punkteOverride);   // U6-A: beim Abhaken gewählter Ist-Punktwert schlägt die Berechnung · §1.1 (v3.1.0): nur an seinem Tag
   const uz=unterZaehlerPunkte(k);   // §3.2 (v3.0.0): Unter-Zaehler zaehlen zur Karte
   // §2 (v2.9.0): Pflicht — der gebuchte Ertrag (live mit dem laufenden Durchgang) ersetzt Zeit-, Tick- und Bonuspunkte
   if(istPflicht(k)) return pflichtHeuteP(k) + pflichtLiveDelta(k) + subBonusErreicht(k) + num(k.bewegungsBonus) - num(k.strafPunkte) - pausenStrafeLive(k) + uz;
@@ -3365,6 +3589,8 @@ function fokusStarten(kid, quelle){
   if(zk && zk.freeze){ zk.freeze=false; saveKarten(); }
   // V1.3: Timer-Start auf einer erledigten Karte öffnet IMMER ein frisches Duplikat
   // (ersetzt das UP6b-„in-place wieder öffnen"). Ein Codepfad über karteNeuStarten.
+  // §1.3 (v3.1.0): eine erledigte Routine/ein Counter wird nicht als neue Karte geoeffnet (das waren Dubletten)
+  if(zk && zk.status==='erledigt' && istRoutineOderCounter(zk)){ toast('„'+String(zk.titel||'').slice(0,24)+'" ist für heute erledigt'); return; }
   if(zk && zk.status==='erledigt'){ karteNeuStarten(kid, {starten:true}); return; }
   // §3 (v2.1.1): WECHSEL zaehlt fuer die alte Karte wie Pausieren — Uhr
   // stoppt, Zeit wird gebucht, KEIN Dialog. (Aendert v2.0.1 §2.) Der
@@ -4901,19 +5127,19 @@ const PROGNOSE_K_MIN=0.5, PROGNOSE_K_MAX=1.5;
 function prognoseHeute(){
   const nowIso=jetztIso(), heuteF=belFensterDatum(nowIso), nowX=belX(nowIso);
   const fn=belTagFenster(heuteF), von=fn.von, bis=Math.max(fn.bis, nowX);
-  const heuteWE=istWochenendTag(heuteF), grenze=anVorTage(heuteF,28);
+  const heuteWE=istWochenendTag(heuteF), grenze=anVorTage(heuteF,num(statParam('typischerTag.tage'),28));   // §3 (v3.1.0)
   const iv=S.intraday||[], tage={};
   iv.forEach(e=>{ if(e.ts && num(e.punkte)>0) tage[belFensterDatum(e.ts)]=true; });
-  const vgl=Object.keys(tage).filter(d=>d<heuteF && d>=grenze && istWochenendTag(d)===heuteWE && !tagIstUrlaub(d));
+  const vgl=Object.keys(tage).filter(d=>d<heuteF && d>=grenze && typGleicheArt(d, heuteWE) && !tagIstUrlaub(d));
   const zi=zielUndIstHeute();
   const live=tagOffen() ? Math.max(0,tagesPunkteDomain('dfm'))+Math.max(0,tagesPunkteDomain('privat')) : 0;
   const kHeute=belTagKurve(heuteF,'alle',von);
   const ist=tagOffen() ? live : kHeute[kHeute.length-1].p;   // §3 (v2.9.1)
   const out={ ist, ziel:zi.ziel, n:vgl.length, prognose:null, rest:null, k:1, kGrund:'', akkuJetzt:null, akkuTyp:null };
-  if(vgl.length<AMPEL_MIN_TAGE){ out.kGrund='kein Normaltag (weniger als '+AMPEL_MIN_TAGE+' Vergleichstage)'; return out; }
+  if(vgl.length<ampelMinTage()){ out.kGrund='kein Normaltag (weniger als '+ampelMinTage()+' Vergleichstage)'; return out; }
   const kurven=vgl.map(d=>belTagKurve(d,'alle',von));
-  const jetztN=kurven.map(k=>belKurveWert(k,nowX)).reduce((a,b)=>a+b,0)/kurven.length;
-  const endeN=kurven.map(k=>belKurveWert(k,bis)).reduce((a,b)=>a+b,0)/kurven.length;
+  const jetztN=typAgg(kurven.map(k=>belKurveWert(k,nowX)));
+  const endeN=typAgg(kurven.map(k=>belKurveWert(k,bis)));
   out.rest=Math.max(0, endeN-jetztN);
   // typischer Akku zur selben Uhrzeit: letzter Messwert vor „jetzt" je Vergleichstag
   const akkuWerte=[];
@@ -4925,14 +5151,14 @@ function prognoseHeute(){
   });
   const aj=akkuLive();
   out.akkuJetzt = aj==null ? null : Math.round(aj);
-  if(akkuWerte.length>=AMPEL_MIN_TAGE && aj!=null){
+  if(akkuWerte.length>=ampelMinTage() && aj!=null){
     out.akkuTyp=Math.round(akkuWerte.reduce((a,b)=>a+b,0)/akkuWerte.length);
     const roh=aj/Math.max(1,out.akkuTyp);
     out.k=Math.max(PROGNOSE_K_MIN, Math.min(PROGNOSE_K_MAX, roh));
     out.kRoh=roh;
     if(roh!==out.k) out.kGrund='begrenzt (roh '+(Math.round(roh*100)/100).toString().replace('.',',')+')';
   } else {
-    out.k=1; out.kGrund = aj==null ? 'k = 1 — kein Akku-Wert heute' : 'k = 1 — typischer Akku fehlt (weniger als '+AMPEL_MIN_TAGE+' Tage mit Akku-Verlauf)';
+    out.k=1; out.kGrund = aj==null ? 'k = 1 — kein Akku-Wert heute' : 'k = 1 — typischer Akku fehlt (weniger als '+ampelMinTage()+' Tage mit Akku-Verlauf)';
   }
   out.prognose=ist+out.rest*out.k;
   return out;
@@ -4941,16 +5167,16 @@ function normalZurUhrzeit(dom){
   const iv=S.intraday||[];
   const nowIso=jetztIso(), heuteF=belFensterDatum(nowIso), nowX=belX(nowIso);
   const fn=belTagFenster(heuteF), von=fn.von;
-  const heuteWE=istWochenendTag(heuteF), grenze=anVorTage(heuteF,28);
+  const heuteWE=istWochenendTag(heuteF), grenze=anVorTage(heuteF,num(statParam('typischerTag.tage'),28));   // §3 (v3.1.0)
   const tage={}; iv.forEach(e=>{ if(e.ts && num(e.punkte)>0) tage[belFensterDatum(e.ts)]=true; });
-  const vgl=Object.keys(tage).filter(d=>d<heuteF && d>=grenze && istWochenendTag(d)===heuteWE && !tagIstUrlaub(d));
+  const vgl=Object.keys(tage).filter(d=>d<heuteF && d>=grenze && typGleicheArt(d, heuteWE) && !tagIstUrlaub(d));
   const kHeute=belTagKurve(heuteF, dom||'alle', von);
   const live=tagOffen() ? (dom && dom!=='alle' ? Math.max(0,tagesPunkteDomain(dom))
                           : Math.max(0,tagesPunkteDomain('dfm'))+Math.max(0,tagesPunkteDomain('privat'))) : 0;
   const ist=tagOffen() ? live : kHeute[kHeute.length-1].p;   // §3 (v2.9.1)
-  if(vgl.length<AMPEL_MIN_TAGE) return { ist, norm:null, r:null, n:vgl.length };
-  const norm=vgl.map(d=>belKurveWert(belTagKurve(d, dom||'alle', von), nowX)).reduce((a,b)=>a+b,0)/vgl.length;
-  return { ist, norm, r:(norm>=AMPEL_MIN_NORM ? ist/norm-1 : null), n:vgl.length };
+  if(vgl.length<ampelMinTage()) return { ist, norm:null, r:null, n:vgl.length };
+  const norm=typAgg(vgl.map(d=>belKurveWert(belTagKurve(d, dom||'alle', von), nowX)));
+  return { ist, norm, r:(norm>=ampelMinNorm() ? ist/norm-1 : null), n:vgl.length };
 }
 /* Histogramm: Verteilung aus gerundeten Saeulen, der heutige Wert als
    leuchtende Saeule. werte = Vergangenheit (dein Schnitt, 4 Wochen). */
@@ -5128,8 +5354,10 @@ function matrixZeitFelder(q){
   sp.forEach((e,i)=>{
     const bis = (i+1<sp.length) ? Date.parse(sp[i+1].ts) : jetzt;
     const dt=Math.max(0, (bis-Date.parse(e.ts))/60000);
-    if(i+1>=sp.length || e.uebersprungen) unbekannt += dt;      // nach der letzten / nach einem Übersprung
-    else felder[matrixFeldAusXY(e.x, e.y)] += dt;
+    // §3 (v3.1.0): Parameter — zaehlt die Zeit nach der letzten Position mit? wie lange gilt eine Position hoechstens?
+    const mz=statParam('matrixZeit')||{}, gMax=(mz.gueltigMaxMin==null||mz.gueltigMaxMin==='') ? Infinity : Math.max(0,num(mz.gueltigMaxMin));
+    if(e.uebersprungen || (i+1>=sp.length && !mz.letzteZaehlt)) unbekannt += dt;      // nach der letzten / nach einem Übersprung
+    else { const f=Math.min(dt, gMax); felder[matrixFeldAusXY(e.x, e.y)] += f; unbekannt += dt-f; }
   });
   const mess=felder.ablenkung+felder.zustand+felder.werkzeug+felder.ziel+unbekannt;
   return { felder, unbekannt, mess };
@@ -5309,7 +5537,7 @@ function leisteAktiv(k){
 function hMin(min){ min=Math.max(0, Math.round(num(min))); return Math.floor(min/60)+':'+String(min%60).padStart(2,'0'); }
 function leistenZeileHtml(k){
   const v3=istV3(k), counter=kartenArt(k)==='Counter', aus=!leisteAktiv(k);
-  const fertig=k.status==='erledigt' || (!v3 && k.rhythmus && !counter && routErledigtHeute(k));
+  const fertig=k.status==='erledigt';   // §1.2 (v3.1.0): fertig heisst abgeschlossen (Tageslimit) — ein Tick allein schliesst nicht
   const offen=!!(S.ui.alOffen && S.ui.alOffen[k.id]);
   let laeuft=!!(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id), zahl, voll=false, subs=[];
   if(k.rolle==='schlafen'){
@@ -5318,7 +5546,7 @@ function leistenZeileHtml(k){
     zahl+=' ▾';
   } else {
     subs=v3 ? unterZaehler(k) : [];
-    zahl=v3 ? zielText(k) : (counter ? num(k.ticksHeute)+'×' : (fertig ? '1×' : '0×'));
+    zahl=v3 ? zielText(k) : ((counter || tickAnzahlHeute(k)>0) ? num(k.ticksHeute)+'×' : (fertig ? '1×' : '0×'));
     voll=v3 && (!leer(k.tagesziel) || !leer(k.tageslimit) || !leer(k.zeitziel)) && zielErreicht(k);   // gruen nur, wenn es ein Ziel gibt
     if(subs.length) zahl+=' '+(offen?'▴':'▾');
   }
@@ -5351,6 +5579,36 @@ function abhakLeisteHtml(){
   ks.forEach(k=>{ h+=leistenZeileHtml(k); });
   return h+'</div></div>';
 }
+/* §1.2 (v3.1.0): Tick einer Karte ohne modus. Ein Tick schliesst NUR ab, wenn
+   ein tageslimit erreicht ist — Counter nie, auch mit Rhythmus (Befund
+   „Musik anmachen": Rhythmus + Ticks galt als Routine und wurde abgehakt).
+   Eine alte Routine ohne Ticks bleibt nach +1 offen (Entscheidung Pascal);
+   der Tick bucht ihren Abhakbonus bzw. Pflicht-Wert und zaehlt als „heute
+   erledigt" fuer Serie und Quote. */
+function altTick(k){
+  if(!k || k.status!=='offen') return null;
+  if(limitErreicht(k)){ toast('„'+String(k.titel||'').slice(0,24)+'" ist für heute erledigt'); return null; }
+  let p=0;
+  if(istTickKarte(k)){ karteTick(k.id, true); p=null; }
+  else {
+    const tid=aktuelleTagId();
+    if(istPflicht(k)) p=pflichtDurchgangNeu(k, false);
+    else {
+      p=abhakbonusDefault(k);
+      const alt=(k.startBonus && k.startBonus.tag===tid) ? k.startBonus : { tag:tid, punkte:0, n:0 };
+      k.startBonus={ tag:tid, punkte:num(alt.punkte)+p, n:num(alt.n)+1 };
+      const e=logIntraday(k,{punkte:0, typ:'tick'}); buchungAbgleich(k, e);
+      try{ momentBuchung(p); }catch(x){}
+    }
+    k.ticksHeute=num(k.ticksHeute)+1;
+    tickLogHeute(k).push({ ts:jetztIso(), nr:k.ticksHeute, basis:p, faktor:1, punkte:p, min:0, uhr:false });
+    if(k.rhythmus) routineErledigtBuchen(k);
+    if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
+    beruehre(k);
+  }
+  if(limitErreicht(k) || (istTickKarte(k) && !leer(k.tageslimit) && num(k.ticksHeute)>=num(k.tageslimit))) routineErledigen(k);
+  return p;
+}
 /* +1 aus der Leiste — je nach Karte ein Tick, ein Haken oder ihre Rolle */
 function leisteTicken(kid){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
@@ -5364,7 +5622,9 @@ function leisteTicken(kid){
     if(t) toast((t.punkte>=0?'+':'−')+fmtP(Math.abs(t.punkte))+' P · „'+String(k.titel||'').slice(0,24)+'" '+zielText(k));
     return;
   }
-  if(kartenArt(k)==='Counter') karteTick(k.id); else { leisteAbhaken(k.id); toast('✓ „'+String(k.titel||'').slice(0,24)+'" abgehakt'); }
+  // §1.2 (v3.1.0): auch ohne modus ist +1 ein Tick — abgeschlossen wird nur bei erreichtem Tageslimit
+  const p=altTick(k); saveKarten(); saveTag(); renderAlles();
+  if(p!=null) toast('+'+fmtP(p)+' P · „'+String(k.titel||'').slice(0,24)+'" '+num(k.ticksHeute)+'×');
 }
 /* ▶/⏸ aus der Leiste */
 function leistePlay(kid){
@@ -5400,9 +5660,9 @@ function leisteAbhaken(kid){
   // §2 (v2.9.0): laeuft die Uhr, erst einbuchen — der Abzug dieses Durchgangs wird dabei verrechnet
   // §4 (v2.9.1): fuer JEDE Karte — die Sitzung traegt ihre Zeitpunkte, der Haken nur den Bonus
   if(S.fokus && S.fokus.laeuft && S.fokus.karteId===kid) fokusZeitEinbuchen();
-  k.punkteOverride = istPflicht(k)
+  overrideSetzen(k, istPflicht(k)
     ? Math.round(kartePunkte(k) + pflichtHakenZusatz(k))                   // Pflicht: Haken ohne Uhr = Wert, kein Abzug; darf negativ sein
-    : Math.max(0, Math.round(kartePunkte(k)) + (durchgangAktiv(k) ? 0 : abhakbonusDefault(k)));   // §1 (v2.8.2): nie zweimal je Durchgang
+    : Math.max(0, Math.round(kartePunkte(k)) + (durchgangAktiv(k) ? 0 : abhakbonusDefault(k))));   // §1 (v2.8.2): nie zweimal je Durchgang
   karteAbhaken(kid);
 }
 function zeitstrahlHtml(){
@@ -6225,10 +6485,16 @@ function renderStatusSheet(){
    ab 3 Vergleichstagen UND mindestens 20 P im Normaltag zu dieser Uhrzeit —
    dieselbe Schwelle wie der Einordnungssatz im Status-Sheet. Sonst grau.
      gruen  > +20 %   ·  gelb  0 … +20 %  ·  orange  0 … −20 %  ·  rot  < −20 % */
-const AMPEL_MIN_TAGE=3, AMPEL_MIN_NORM=20;
+/* §3 (v3.1.0): AMPEL_MIN_* bleiben als Namen — sie lesen jetzt den Parameter (statistik.ampel) */
+function ampelMinTage(){ return Math.max(1, num(statParam('ampel.minTage'),3)); }
+function ampelMinNorm(){ return Math.max(0, num(statParam('ampel.minNorm'),20)); }
+/* typischer Tag: Mittel oder Median ueber die Vergleichstage */
+function typAgg(werte){ if(!werte.length) return 0; if(statParam('typischerTag.methode')==='median') return medianVon(werte); return werte.reduce((a,b)=>a+b,0)/werte.length; }
+function typGleicheArt(d, heuteWE){ return statParam('typischerTag.weGetrennt')===false ? true : istWochenendTag(d)===heuteWE; }
 function ampelStufe(r){
   if(r==null) return 'grau';
-  return r>0.2 ? 'gruen' : (r>=0 ? 'gelb' : (r>=-0.2 ? 'orange' : 'rot'));
+  const a=statParam('ampel')||{};   // §3 (v3.1.0): Grenzen als Parameter
+  return r>num(a.gruen,0.2) ? 'gruen' : (r>=num(a.gelb,0) ? 'gelb' : (r>=num(a.orange,-0.2) ? 'orange' : 'rot'));
 }
 let _ampelMemo=null, _ampelKey='';
 function tagesAmpel(){
@@ -6239,8 +6505,8 @@ function tagesAmpel(){
   const fn=belTagFenster(heuteF), von=fn.von, bis=Math.max(fn.bis, nowX);
   const heuteWE=istWochenendTag(heuteF);
   const tage={}; iv.forEach(e=>{ if(e.ts && num(e.punkte)>0) tage[belFensterDatum(e.ts)]=true; });
-  const vgl=Object.keys(tage).filter(d=>d<heuteF && istWochenendTag(d)===heuteWE && !tagIstUrlaub(d))
-    .sort().reverse().slice(0,14);
+  const vgl=Object.keys(tage).filter(d=>d<heuteF && typGleicheArt(d, heuteWE) && !tagIstUrlaub(d))
+    .sort().reverse().slice(0,num(statParam('typischerTag.ampelTage'),14));   // §3 (v3.1.0)
   const kHeute=belTagKurve(heuteF,'alle',von);
   const live=tagOffen() ? Math.max(0,tagesPunkteDomain('dfm'))+Math.max(0,tagesPunkteDomain('privat')) : 0;
   // §3 (v2.9.1): der Tagesstand, nicht das Maximum aus Log und Stand — sonst
@@ -6248,13 +6514,13 @@ function tagesAmpel(){
   const ist=tagOffen() ? live : kHeute[kHeute.length-1].p;
   kHeute.push({x:Math.max(von,Math.min(nowX,bis)), p:ist});
   let norm=null, kNorm=null;
-  if(vgl.length>=AMPEL_MIN_TAGE){
+  if(vgl.length>=ampelMinTage()){
     const kurven=vgl.map(d=>belTagKurve(d,'alle',von));
-    norm=kurven.map(k=>belKurveWert(k,nowX)).reduce((a,b)=>a+b,0)/kurven.length;
+    norm=typAgg(kurven.map(k=>belKurveWert(k,nowX)));
     kNorm=[]; const schritt=Math.max(0.25,(bis-von)/24);
-    for(let x=von;x<=bis+0.001;x+=schritt) kNorm.push({x, p:kurven.map(k=>belKurveWert(k,x)).reduce((a,b)=>a+b,0)/kurven.length});
+    for(let x=von;x<=bis+0.001;x+=schritt) kNorm.push({x, p:typAgg(kurven.map(k=>belKurveWert(k,x)))});
   }
-  const belastbar = norm!=null && norm>=AMPEL_MIN_NORM;
+  const belastbar = norm!=null && norm>=ampelMinNorm();
   const r = belastbar ? (ist/norm-1) : null;
   _ampelMemo={ stufe:ampelStufe(r), r, ist, norm, n:vgl.length, we:heuteWE, kHeute, kNorm, von, bis, nowX, belastbar };
   _ampelKey=key;
@@ -6394,8 +6660,8 @@ function kartePunkteHeute(k){
   const laeuftId = S.fokus ? S.fokus.karteId : null;
   const erl = k.status==='erledigt' && k.tagId===tid;
   const laeuft = k.id===laeuftId && k.status==='offen';
-  const reaktiviert = k.status==='offen' && k.punkteOverride!=null && k.tagId===tid;
-  const gearbeitet = k.status==='offen' && k.punkteOverride==null && heuteInvestiertMin(k)>0;
+  const reaktiviert = k.status==='offen' && overrideGilt(k) && k.tagId===tid;
+  const gearbeitet = k.status==='offen' && !overrideGilt(k) && heuteInvestiertMin(k)>0;
   if(!(erl || laeuft || reaktiviert || gearbeitet)){
     // §1 (v2.8.2): ein beim Start gebuchter Bonus zaehlt sofort, auch ohne Minuten
     const sb=(k.startBonus && k.startBonus.tag===tid) ? num(k.startBonus.punkte) : 0;
@@ -6451,12 +6717,15 @@ function tagesZielDomain(dom){ return dom==='dfm' ? num(S.settings.tagesZielDfm,
    keine Karte das Routinen-System traegt (Katalog noch nicht eingespielt),
    gilt der eingestellte Wert. Wochenende unveraendert (zielTag). */
 function privatZielDynamisch(datum){
-  if(!S.karten.some(istV3)) return num(S.settings.tagesZielPrivat,800);
+  // §2 (v3.1.0): Modus per Paket — fest (Zahl) · routinen ({basis:"routinen", plus}) · auto (wie v3.0)
+  const modus=S.settings.tagesZielPrivatModus||'auto';
+  if(modus==='fest') return num(S.settings.tagesZielPrivat,800);
+  if(modus==='auto' && !S.karten.some(istV3)) return num(S.settings.tagesZielPrivat,800);
   const d=datum||heuteApp();
   let p=0;
   S.karten.forEach(k=>{
     if(k.domain==='dfm' || k.status==='archiviert' || k.freeze) return;
-    if(!(k.rolle || (k.rhythmus && routineFaellig(k, d)))) return;
+    if(!(istSonderRolle(k) || (k.rhythmus && routineFaellig(k, d)))) return;
     p+=routineMaxPunkte(k);
   });
   return Math.round(p + num(S.settings.tagesZielPrivatSockel,750));
@@ -6707,6 +6976,7 @@ function sollStandGesamt(datum, stunde){ return sollStand('dfm',datum,stunde)+so
 /* Wochenend-Ist: Sa+So gemeinsam — am Sonntag zählt der Samstag dazu. */
 function weIstDomain(dom){
   let s=Math.max(0, tagesPunkteDomain(dom));
+  if(S.settings.weModus==='getrennt') return s;   // §2 (v3.1.0): getrennt = jeder Wochenendtag fuer sich (Entscheidung Pascal)
   if(new Date().getDay()===0){ const sn=tagSnapshot(anVorTage(heuteApp(),1)); if(sn) s+=Math.max(0,snapPunkte(sn,dom)); }
   return s;
 }
@@ -7118,10 +7388,20 @@ function tagStarten(akkuProzent, datumTest){
       untermenge(k.id).forEach(u=>u.done=false);
       return;
     }
-    if(k.rhythmus && routineFaellig(k, datum)){
-      k.faelligkeit=datum; k.status='offen';
-      k.ticksHeute=0; k.tickWerteHeute=[]; k.istSek=0; k.tagId=null; k.punkteOverride=null;   // Tages-Ist 0 (V1.3: Override zurücksetzen), Historie bleibt
+    // §1.1 (v3.1.0): JEDE Routine beginnt bei null — auch eine heute nicht faellige
+    // (sonst blieb ihr Wert vom Vortag stehen und kam beim naechsten Antippen zurueck)
+    if(k.rhythmus && k.status!=='archiviert'){
+      if(routineFaellig(k, datum)) k.faelligkeit=datum;
+      k.status='offen';
+      k.ticksHeute=0; k.tickWerteHeute=[]; k.istSek=0; k.tagId=null; overrideSetzen(k, null);   // Tages-Ist 0 (V1.3: Override zurücksetzen), Historie bleibt
+      k.startBonus=null; k.durchgang=null;
       untermenge(k.id).forEach(u=>u.done=false);
+      return;
+    }
+    // §1.1 (v3.1.0): Counter ohne Rhythmus — Ticks und Tageswert des Vortags fallen (die Ist-Zeit bleibt)
+    if(k.ticksAktiv && k.status!=='archiviert'){
+      k.ticksHeute=0; k.tickWerteHeute=[]; overrideSetzen(k, null);
+      if(k.status==='erledigt'){ k.status='offen'; k.tagId=null; }
     }
   });
   // v1.1: Tagesbasis der Ist-Minuten je Karte (heute-investiert startet bei 0,
@@ -7176,7 +7456,7 @@ function abv3ZeileRoutine(k, probe){
   const v3=istV3(k), w=(probe||[]).find(x=>x.id===k.id)||{}, e=S.tag.abschlussEntscheid[k.id]||null;
   const erf=v3 ? zielErreicht(k) : routErledigtHeute(k);
   const zahl=v3 ? zielText(k) : (kartenArt(k)==='Counter' ? num(k.ticksHeute)+'×' : (erf?'1×':'0×'));
-  const abzugWert=v3 ? Math.abs(num(k.abzugOhneStreak||k.abzugJeTagUeberfaellig||0)) : 0;
+  const abzugWert=v3 ? Math.abs(num(k.abzugOhneStreak||k.abzugJeTagUeberfaellig||S.settings.abschlussAbzugStandard||0)) : 0;   // §2 (v3.1.0): Standard-Abzug
   let h='<div class="abv3-z"><span class="t">'+esc(k.titel||'?')+'<small>'+esc(zahl)+' · '+fmtP(kartePunkteHeute(k))+' P · Serie '+num(k.streak)+
     (erf && (!v3 || !leer(k.tagesziel) || !leer(k.tageslimit) || !leer(k.zeitziel)) ? ' · <span style="color:var(--ok)">Ziel erreicht</span>':'')+
     (!erf && e==null && w.abzug ? ' · <span style="color:var(--bad)">sonst −'+w.abzug+' P</span>' : '')+
@@ -7195,9 +7475,9 @@ function renderAbschlussV3(){
     const akku=(r.akku!=null ? num(r.akku) : Math.round(num(akkuLive(), 50)));
     const p=schlafPrognose(akku);
     h+='<div class="field akkubox"><label>Akku jetzt <b id="abv3AkkuV">'+Math.round(akku)+' %</b></label><input type="range" min="0" max="100" step="5" data-abv3feld="akku" value="'+Math.round(akku)+'"></div>'+
-      '<div class="field"><label>Wie war der Tag in einem Wort? <span class="hint">(optional)</span></label><input data-abv3feld="wort" value="'+esc(r.wort||'')+'"></div>'+
-      '<div class="field"><label>Was hat Energie gegeben? <span class="hint">(optional)</span></label><textarea data-abv3feld="energieGegeben" style="min-height:54px">'+esc(r.energieGegeben||'')+'</textarea></div>'+
-      '<div class="field"><label>Was hat Energie gekostet? <span class="hint">(optional)</span></label><textarea data-abv3feld="energieGekostet" style="min-height:54px">'+esc(r.energieGekostet||'')+'</textarea></div>'+
+      '<div class="field"><label>'+esc(reflexionsFrage(0))+' <span class="hint">(optional)</span></label><input data-abv3feld="wort" value="'+esc(r.wort||'')+'"></div>'+
+      '<div class="field"><label>'+esc(reflexionsFrage(1))+' <span class="hint">(optional)</span></label><textarea data-abv3feld="energieGegeben" style="min-height:54px">'+esc(r.energieGegeben||'')+'</textarea></div>'+
+      '<div class="field"><label>'+esc(reflexionsFrage(2))+' <span class="hint">(optional)</span></label><textarea data-abv3feld="energieGekostet" style="min-height:54px">'+esc(r.energieGekostet||'')+'</textarea></div>'+
       '<div class="abv3-prog" id="abv3Prog">🌙 Für 100 % Akku bis <b>'+belUhr(kalStunde(p.bisTs))+'</b> schlafen ('+String(p.brauchtStd).replace('.',',')+' Std)<br>'+
         '⏰ Aufstehen um '+esc(p.aufstehenUm)+' → Akku <b>'+p.akkuBeiAufstehen+' %</b>'+(p.schuldStd>0?'<br><span class="hint">Schlafschuld '+String(p.schuldStd).replace('.',',')+' Std</span>':'')+'</div>';
   } else if(st===2){
@@ -7236,6 +7516,42 @@ function renderAbschlussV3(){
   openSheet('🌙 Tagesabschluss', h, foot);
   abv3.aktiv=true;
 }
+/* §2 (v3.1.0): die drei Reflexionsfragen kommen aus den Einstellungen */
+/* §2/§3 (v3.1.0): Editor aller Parameter — was bisher keine Eingabe hatte, bekommt eine */
+function tuerEditorHtml(){
+  const zeile=(art,b,n,f)=>{
+    const v=schemaWert(f), id=art+'|'+b+'|'+n;
+    let inp;
+    if(f.t==='feldtab') inp='<span class="tuer-4">'+FELDER4.map(k=>'<input type="number" inputmode="decimal" step="any" data-tuer="'+id+'|'+k+'" value="'+num(v&&v[k])+'" aria-label="'+esc(b+'.'+n+'.'+k)+'" title="'+k+'">').join('')+'</span>';
+    else if(f.t==='wahl') inp='<select data-tuer="'+id+'">'+f.werte.map(w=>'<option'+(String(w)===String(v)?' selected':'')+'>'+w+'</option>').join('')+'</select>';
+    else if(f.t==='bool') inp='<select data-tuer="'+id+'"><option'+(v?' selected':'')+'>true</option><option'+(!v?' selected':'')+'>false</option></select>';
+    else if(f.t==='zahl' || f.t==='zahlNull' || f.spezial==='geldNenner') inp='<input type="number" inputmode="decimal" step="any" data-tuer="'+id+'" value="'+(v==null?'':v)+'">';
+    else if(f.t==='uhrzeit') inp='<input data-tuer="'+id+'" value="'+esc(v)+'">';
+    else inp='<textarea data-tuer="'+id+'" style="min-height:44px;font-family:ui-monospace,monospace;font-size:11px">'+esc(JSON.stringify(v))+'</textarea>';
+    return '<div class="slider tuer-feld"><label>'+esc(b+'.'+n)+'</label>'+inp+'</div>';
+  };
+  const teil=(art,schema,titel)=>'<h4 class="abt-h">'+titel+'</h4>'+Object.keys(schema).map(b=>Object.keys(schema[b]).map(n=>zeile(art,b,n,schema[b][n])).join('')).join('');
+  const st=(S.settings.tagesStruktur||[]);
+  return '<div class="card einst-tuer"><h3>Alle Parameter</h3>'+
+    '<p class="d">Dieselben Felder, die ein Paket unter <code>einstellungen</code> und <code>statistik</code> setzen kann. Eine Änderung hier wirkt sofort und steht im Protokoll.</p>'+
+    (st.length ? '<div class="kvblock" style="margin-bottom:8px">'+st.map(x=>'<div class="kv"><span>'+esc(x.name)+(x.typ?' <small>'+esc(x.typ)+'</small>':'')+'</span><b>'+num(x.minMin)+'–'+num(x.maxMin)+' Min</b></div>').join('')+'</div>'
+      : '<p class="d" style="color:var(--mut2)">Tagesstruktur: noch keine Standardblöcke (kommen per Paket).</p>')+
+    '<details class="tuer-det"><summary>Einstellungen und Statistik bearbeiten</summary>'+teil('einstellungen',EINST_SCHEMA,'Einstellungen')+teil('statistik',STAT_SCHEMA,'Statistik')+'</details></div>';
+}
+function tuerEditorAendern(elx){
+  const [art,b,n,sub]=String(elx.dataset.tuer).split('|'), schema=art==='statistik'?STAT_SCHEMA:EINST_SCHEMA, f=schema[b]&&schema[b][n]; if(!f) return;
+  let roh=elx.value;
+  if(sub) roh={ [sub]: roh==='' ? null : Number(roh) };
+  else if(f.t==='bool') roh=(roh==='true');
+  else if(f.t==='zahl' || f.t==='zahlNull' || f.spezial==='geldNenner') roh = roh==='' ? null : Number(roh);
+  else if(f.t==='wahl'){ const w=f.werte.find(x=>String(x)===roh); roh=w; }
+  else if(f.t!=='uhrzeit'){ try{ roh=JSON.parse(roh); }catch(e){ toast('Kein gültiges JSON'); return; } }
+  const vs=bereichVorschau(art, { [b]: { [n]: roh, grund:'in den Einstellungen geändert' } }, schema);
+  if(vs.fehler.length){ toast(vs.fehler[0].was+': '+vs.fehler[0].grund); renderEinst(); return; }
+  const nn=syncTuerAnwenden(art==='statistik' ? {statistik:vs} : {einstellungen:vs});
+  if(nn){ toast(b+'.'+n+' geändert'); renderStatusbar(); }
+}
+function reflexionsFrage(i){ const f=S.settings.reflexionsFragen; const std=DEFAULT_SETTINGS.reflexionsFragen; return (Array.isArray(f) && f[i]) ? String(f[i]) : std[i]; }
 function abschlussV3Download(){
   const md=abschlussMarkdown(), d=new Date(), p2=x=>String(x).padStart(2,'0');
   const name=String(d.getFullYear()).slice(2)+p2(d.getMonth()+1)+p2(d.getDate())+'_Tagesabschluss.md';
@@ -8361,10 +8677,12 @@ function abschlussZuruecknehmen(k){
   }
   const s=k.abschluesse.pop();
   k.istSek=Math.max(0, num(s.istMinVorher)*60);
-  k.punkteOverride = (s.punkteIstVorher!=null) ? num(s.punkteIstVorher) : null;
+  overrideSetzen(k, (s.punkteIstVorher!=null) ? num(s.punkteIstVorher) : null);
   // §1 (v2.9.1): ein Snapshot von vor dem Fix trug bei nie gelaufener Uhr die
   // Prognose — er wird nicht wiederhergestellt, die Karte rechnet neu
-  if(!s.echt && num(s.istMinVorher)===0 && !hatFestMin(k)) k.punkteOverride=null;
+  if(!s.echt && num(s.istMinVorher)===0 && !hatFestMin(k)) overrideSetzen(k, null);
+  // §1.1 (v3.1.0): bei Routinen und Countern nur ein Abschluss von HEUTE — ein alter Wert kommt nicht zurueck
+  if(istRoutineOderCounter(k) && String(s.tagId||'')!==aktuelleTagId()) overrideSetzen(k, null);
   const done=new Set(s.subsDoneVorher||[]);
   untermenge(k.id).forEach(u=>{ u.done = done.has(u.id); });
   DB.set('unteraufgaben', S.unteraufgaben);
@@ -8635,7 +8953,7 @@ function durchgangStart(k){
   if(d && d.pauseTs && jetzt-Date.parse(d.pauseTs)<fenster){ d.pauseTs=null; return {neu:false}; }   // derselbe Durchgang
   if(d && !d.pauseTs) return {neu:false};                                                             // laeuft bereits
   // §3.1 (v3.0.0): Routinen-System — ein Durchgang ist EIN Tick, gebucht beim Start (Entscheidung Pascal)
-  if(istV3(k)){ if(k.rolle) return null; const t=routineTick(k,{uhr:true}); return t ? {neu:true, v3:t} : {neu:false}; }
+  if(istV3(k)){ if(istSonderRolle(k)) return null; const t=routineTick(k,{uhr:true}); return t ? {neu:true, v3:t} : {neu:false}; }
   if(istPflicht(k)){ const w=pflichtDurchgangNeu(k, true); return {neu:true, pflicht:w}; }
   k.durchgang={ tag:tid, startTs:jetztIso(), pauseTs:null };
   if(kartenArt(k)==='Counter'){ karteTick(k.id, true); return {neu:true, tick:true}; }
@@ -8731,6 +9049,11 @@ function pflichtLiveDelta(k){
 function istV3(k){ const m=k && k.modus; return m==='zeit' || m==='pflicht' || m==='staffel'; }
 function modusVon(k){ if(istV3(k)) return k.modus; return (k && k.pflicht===true) ? 'pflicht' : 'zeit'; }
 function istStaffel(k){ return !!(k && (k.modus==='staffel' || k.rolle==='schlafen')); }
+/* Aufstehen, Tagesabschluss und Schlafen haben eigene Wege; „erholung" ist eine normale Karte mit Standardwerten */
+function istSonderRolle(k){ return !!(k && (k.rolle==='aufstehen' || k.rolle==='tagesabschluss' || k.rolle==='schlafen')); }
+/* §2 (v3.1.0, Entscheidung Pascal): rolle „erholung" nimmt Zeitziel und Akku-Ladung aus den Einstellungen, wenn sie keine eigenen traegt */
+function zeitzielVon(k){ if(k && !leer(k.zeitziel)) return num(k.zeitziel); return (k && k.rolle==='erholung') ? num(S.settings.erholungZeitzielMin,120) : null; }
+function erholungsKarte(k){ return !!(k && (k.rolle==='erholung' || (k.zaehltZu && S.karten.some(x=>x.rolle==='erholung' && (x.id===k.zaehltZu || x.airtableId===k.zaehltZu || x.titel===k.zaehltZu))))); }
 function leer(v){ return v==null || v===''; }
 function staffelWert(x, nr){
   const a=Array.isArray(x && x.staffel) ? x.staffel : [];
@@ -8780,7 +9103,7 @@ function zeitzielMinuten(k){
 }
 function zielErreicht(k){
   if(!k) return false;
-  if(!leer(k.zeitziel) && num(k.zeitziel)>0) return zeitzielMinuten(k)>=num(k.zeitziel);
+  if(zeitzielVon(k)>0) return zeitzielMinuten(k)>=zeitzielVon(k);
   const n=tickAnzahlHeute(k);
   if(!leer(k.tagesziel) && num(k.tagesziel)>0) return n>=num(k.tagesziel);
   if(!leer(k.tageslimit) && num(k.tageslimit)>0) return n>=num(k.tageslimit);
@@ -8788,7 +9111,7 @@ function zielErreicht(k){
 }
 function zielText(x){
   const n=tickAnzahlHeute(x);
-  if(x && !leer(x.zeitziel) && num(x.zeitziel)>0) return Math.round(zeitzielMinuten(x))+'/'+num(x.zeitziel)+'′';
+  if(x && x.parentId===undefined && zeitzielVon(x)>0) return Math.round(zeitzielMinuten(x))+'/'+zeitzielVon(x)+'′';
   if(x && !leer(x.tagesziel) && num(x.tagesziel)>0) return n+'/'+num(x.tagesziel);
   if(x && !leer(x.tageslimit) && num(x.tageslimit)>0) return n+'/'+num(x.tageslimit);
   return n+'×';
@@ -8809,7 +9132,7 @@ function routineMaxPunkte(k){
   if(k.rolle==='schlafen') p=Math.max(0, ...schlafStufen().map(x=>x.punkte), 0);
   else if(modusVon(k)==='pflicht') p=pflichtWerte(k).wert*n;
   else if(k.modus==='staffel') p=staffelBisZiel(k)*f;
-  else if(istV3(k)) p=punkteFuerZeit(k, !leer(k.zeitziel) ? num(k.zeitziel) : num(k.sollMin))*zg + abhakbonusDefault(k)*n;
+  else if(istV3(k)) p=punkteFuerZeit(k, zeitzielVon(k)!=null ? zeitzielVon(k) : num(k.sollMin))*zg + abhakbonusDefault(k)*n;
   else return Math.max(0, kartePunktePrognose(Object.assign({}, k, {ticksHeute:0, punkteOverride:null})));
   return p + unterZaehler(k).reduce((a,u)=>a+Math.max(0, staffelBisZiel(u)),0);
 }
@@ -8820,7 +9143,7 @@ function routineTick(k, opt){
   if(limitErreicht(k)){ if(!opt.still) toast('„'+String(k.titel||'').slice(0,24)+'" ist für heute erledigt'); return null; }
   const datum=appDatum(), m=modusVon(k);
   if(tickAnzahlHeute(k)===0){ serienFaktorFortschreiben(k, datum); k.letzterTickTag=datum; }
-  const nr=tickAnzahlHeute(k)+1, min=(opt.uhr || k.rolle) ? 0 : tickMinutenVon(k);   // Aufstehen/Abschluss/Schlafen zaehlen keine Zeit
+  const nr=tickAnzahlHeute(k)+1, min=(opt.uhr || istSonderRolle(k)) ? 0 : tickMinutenVon(k);   // Aufstehen/Abschluss/Schlafen zaehlen keine Zeit
   let basis=0, faktor=1;
   if(m==='staffel'){ basis=staffelWert(k,nr); faktor=k.serienfaktor ? (num(k.serienFaktor,1)||1) : 1; }
   else if(m==='pflicht') basis=pflichtWerte(k).wert;
@@ -8895,7 +9218,7 @@ function routineHeuteSichtbar(k){
   if(!k || k.status==='archiviert' || k.freeze) return false;
   const d=appDatum(), tid=aktuelleTagId();
   if(k.status==='erledigt') return k.tagId===tid;                     // heute erledigt: grau
-  if(k.rolle || k.immerSichtbar) return true;
+  if(istSonderRolle(k) || k.immerSichtbar) return true;
   if(k.rhythmus){
     if(routineFaellig(k, d) || ueberfaelligTage(k, d)>0) return true;
     const t=tageBisFaellig(k, d); return t!=null && !leer(k.vorlaufTage) && t<=num(k.vorlaufTage);
@@ -8944,7 +9267,7 @@ function routinenAuswerten(datum, entscheid, probe){
     const ue=ueberfaelligTage(k, datum);
     if(!erf && e!=='ueberspringen' && !leer(k.abzugJeTagUeberfaellig) && ue>0){
       abzug+=Math.abs(num(k.abzugJeTagUeberfaellig)); grund=(grund?grund+' · ':'')+ue+'. Tag überfällig'; }
-    if(e==='abzug' && !abzug){ abzug=Math.abs(num(k.abzugOhneStreak||k.abzugJeTagUeberfaellig||0)); grund='im Abschluss mit Abzug übersprungen'; }
+    if(e==='abzug' && !abzug){ abzug=Math.abs(num(k.abzugOhneStreak||k.abzugJeTagUeberfaellig||S.settings.abschlussAbzugStandard||0)); grund='im Abschluss mit Abzug übersprungen'; }
     if(!probe){
       k.streak=streak; k.letzteErfuellung=letzte; if(k.serienfaktor) k.serienFaktor=faktor;
       if(abzug) routineAbzugBuchen(k, abzug, grund);
@@ -9095,7 +9418,7 @@ function abschlussV3Aufgaben(){
 /* Routinen und Counter des Tages (Schritt 2) */
 function abschlussV3Routinen(){
   // dieselbe Auswahl und Reihenfolge wie die Routinen-Leiste (ohne Aufstehen, Abschluss, Schlafen)
-  return abhakLeisteKarten().filter(k=>!k.rolle);
+  return abhakLeisteKarten().filter(k=>!istSonderRolle(k));
 }
 function abschlussV3Entscheiden(kid, wahl){
   abschlussV3Stand();
@@ -9138,9 +9461,9 @@ function abschlussMarkdown(){
   zeilen.push('- App: '+UI_VERSION+' · Build '+APP_BUILD);
   zeilen.push('- Punkte heute: **'+fmtP(tagesPunkteLive())+'** (DFM '+fmtP(tagesPunkteDomain('dfm'))+' · Privat '+fmtP(tagesPunkteDomain('privat'))+')');
   if(r.akku!=null) zeilen.push('- Akku am Abend: '+Math.round(r.akku)+' %');
-  if(r.wort) zeilen.push('- Der Tag in einem Wort: '+r.wort);
-  if(r.energieGegeben) zeilen.push('- Energie gegeben: '+r.energieGegeben);
-  if(r.energieGekostet) zeilen.push('- Energie gekostet: '+r.energieGekostet);
+  if(r.wort) zeilen.push('- '+reflexionsFrage(0)+' '+r.wort);
+  if(r.energieGegeben) zeilen.push('- '+reflexionsFrage(1)+' '+r.energieGegeben);
+  if(r.energieGekostet) zeilen.push('- '+reflexionsFrage(2)+' '+r.energieGekostet);
   if(ta.schlafPrognose) zeilen.push('- Schlaf: für 100 % bis '+belUhr(kalStunde(ta.schlafPrognose.bisTs))+' schlafen · Aufstehen um '+ta.schlafPrognose.aufstehenUm+' → Akku '+ta.schlafPrognose.akkuBeiAufstehen+' %');
   const rs=(ta.routinen||[]).filter(x=>x.id);
   if(rs.length){ zeilen.push('', '## Routinen und Counter');
@@ -9180,9 +9503,58 @@ function v3FelderUebernehmen(z, inc, unter){
     serienfaktor:bool, immerSichtbar:bool, vorlaufTage:zahl, gruppePflicht:text,
     folgekarte:v=>(v && typeof v==='object') ? JSON.parse(JSON.stringify(v)) : null,
     akkuLadung:zahl, eingabe:v=>leer(v) ? null : eingabeVon({eingabe:v}),
-    rolle:v=>(v==='aufstehen'||v==='tagesabschluss'||v==='schlafen') ? v : null };
+    rolle:v=>(v==='aufstehen'||v==='tagesabschluss'||v==='schlafen'||v==='erholung') ? v : null };
   Object.keys(F).forEach(f=>{ if(inc[f]!==undefined) z[f]=F[f](inc[f]); });
-  if(!unter && inc.serienFaktor!==undefined && !leer(inc.serienFaktor)) z.serienFaktor=Math.max(1, Math.min(num(S.settings.serienfaktorMax,2), num(inc.serienFaktor)));
+}
+/* ══ §4 (v3.1.0) · KARTENDETAILS VOLLSTAENDIG ══════════════════════════
+   Stand-Felder — Serie, Serienfaktor, letzte Erfuellung, Status, Ticks des
+   Tages — sind per Paket schreibbar, aber NUR mit korrektur:true an der
+   Karte (damit es nicht versehentlich passiert, wenn der Chat einen Export
+   zurueckschickt). Ohne korrektur:true wird eine abweichende Angabe gemeldet
+   und nicht uebernommen. Jede Korrektur steht im Protokoll. */
+function ticksSetzen(x, n){
+  n=Math.max(0, Math.round(num(n)));
+  const ts=tickLogHeute(x);
+  while(ts.length>n) ts.pop();
+  while(ts.length<n){ const nr=ts.length+1, b=staffelWert(x, nr), f=(x.serienfaktor ? (num(x.serienFaktor,1)||1) : 1);
+    ts.push({ ts:jetztIso(), nr, basis:b, faktor:f, punkte:logRund(b*f), min:0, uhr:false, korrektur:true }); }
+  if(x.parentId===undefined){ x.ticksHeute=n;
+    if(!istV3(x) && istTickKarte(x)){ x.tickWerteHeute=(x.tickWerteHeute||[]).slice(0,n); while(x.tickWerteHeute.length<n) x.tickWerteHeute.push(tickWertEff(x)); } }
+  else if(limitErreicht(x)) x.done=true;
+}
+function kartenKorrektur(k, inc, uebersprungen){
+  const F={ serienFaktor:v=>Math.max(1, Math.min(num(S.settings.serienfaktorMax,2), num(v,1))), streak:v=>Math.max(0, Math.round(num(v))),
+    letzteErfuellung:v=>leer(v) ? null : String(v).slice(0,10), status:v=>(v==='offen'||v==='erledigt') ? v : undefined,
+    ticksHeute:v=>Math.max(0, Math.round(num(v))) };
+  const zeilen=[];
+  Object.keys(F).forEach(f=>{
+    if(inc[f]===undefined) return;
+    const neu=F[f](inc[f]); if(neu===undefined) return;
+    const alt = f==='ticksHeute' ? (istV3(k) ? tickAnzahlHeute(k) : num(k.ticksHeute)) : k[f];
+    if(JSON.stringify(alt)===JSON.stringify(neu)) return;
+    if(inc.korrektur!==true){ uebersprungen.push({was:'Karte „'+String(k.titel||k.id).slice(0,30)+'" · '+f, grund:'nur mit korrektur:true (jetzt '+kurz(alt)+', Paket '+kurz(neu)+')'}); return; }
+    if(f==='ticksHeute') ticksSetzen(k, neu);
+    else if(f==='status'){ k.status=neu; k.tagId = neu==='erledigt' ? aktuelleTagId() : null; }
+    else k[f]=neu;
+    zeilen.push('„'+String(k.titel||k.id).slice(0,30)+'" · '+f+': '+kurz(alt)+' → '+kurz(neu));
+  });
+  if(zeilen.length){ buchungAbgleich(k, 'korrektur'); protokollEintrag('karte', inc.grund||'Korrektur per Paket', zeilen); }
+}
+/* Welche Felder ein Paket an einer Karte tragen darf — alles andere wird gemeldet */
+let _kartenFelder=null;
+function kartenFelderBekannt(){
+  if(_kartenFelder) return _kartenFelder;
+  _kartenFelder=new Set(Object.keys(neueKarte({})).concat([
+    'unteraufgaben','korrektur','grund','vomGeraet','geldScore','kommentarFuerClaude','sitzungen','kettenPosition',
+    // was der Export nur zum Lesen beilegt (ein zurueckgeschickter Export ist kein Fehler)
+    'istMin','punkteIst','punktePrognose','tickProtokoll','punkteUnterZaehler','ziel','zielErreicht','overrideTag',
+    'serienFaktor','streak','letzteErfuellung','ticksHeute','zeitmessung','schiebeZaehler','wiederOffenTag','flowBaseline','flowDoneBaseline','ungeplant','posVorher']));
+  return _kartenFelder;
+}
+const UNTER_FELDER_BEKANNT=new Set(['id','parentId','titel','sollMin','done','bonusPunkte','airtableId','staffel','staffelDanach','tagesziel','tageslimit',
+  'entfernt','entferntTs','tickLog','tickProtokoll','punkteHeute','ziel','ticksHeute']);
+function felderMelden(was, inc, bekannt, uebersprungen){
+  Object.keys(inc||{}).forEach(f=>{ if(!bekannt.has(f)) uebersprungen.push({was:was+' · '+f, grund:'unbekanntes Feld — ignoriert'}); });
 }
 /* ══ §4 (v2.9.1) · STUNDEN-LOG = TAGESBILANZ ════════════════════════════
    Bisher liefen drei Buchhaltungen nebeneinander: die Tagesbilanz (aus den
@@ -9531,12 +9903,12 @@ function pflichtDragEnde(){ if(_pfDrag){ _pfDrag=null; pflichtNeuZeichnen(true);
 function pflichtHakenZusatz(k){ return (istPflicht(k) && !durchgangLaeuft(k)) ? pflichtWerte(k).wert : 0; }
 function abhakDialog(kid, fromDetail){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
-  const hatOverride=k.punkteOverride!=null;                 // Re-Abhaken einer reaktivierten Karte
+  const hatOverride=overrideGilt(k);                        // Re-Abhaken einer reaktivierten Karte (§1.1 v3.1.0: nur von heute)
   const basis=Math.round(kartePunkte(k) + (hatOverride?0:pflichtHakenZusatz(k)));   // bei Override = bereits gebuchte Punkte, sonst berechnet; §2 (v2.9.0) Pflicht-Haken = Wert
   // §5 (v1.6.0): Bei offenen Unteraufgaben wird die Folgeaufgabe von sich aus
   // vorgeschlagen (angelegt wird sie erst mit „Erledigen").
   const offen=untermenge(kid).filter(u=>!u.done).length;
-  abhakTmp={ kid, fromDetail, folge:offen>0, basis, max:Math.max(10, basis*2),
+  abhakTmp={ kid, fromDetail, folge:offen>0 && !istRoutineOderCounter(k), basis, max:Math.max(10, basis*2),   // §1.3 (v3.1.0): nie bei Routinen/Countern
     bonusDef: (hatOverride || durchgangAktiv(k)) ? 0 : abhakbonusDefault(k),   // Bonus steckt beim Re-Abhaken schon im Override → 0 vorbelegt; §1 (v2.8.2): beim Start gebucht → 0
     istMin:Math.round(istSekLive(k)/60),
     offeneSubs:untermenge(k.id).filter(u=>!u.done).length };
@@ -9601,10 +9973,13 @@ function renderAbhakDialog(){
      '</div>';
   // §5: Bei offenen Unteraufgaben deutlich darauf hinweisen und die Folgeaufgabe
   // als vollständig editierbaren Vorschlag anbieten (angelegt wird erst beim ✅).
-  if(t.offeneSubs>0) h+='<div class="hinweisbox">Es sind noch <b>'+t.offeneSubs+'</b> Unteraufgabe(n) offen. '+
+  // §1.3 (v3.1.0): Routinen und Counter erzeugen nie Folgekarten — ihre Unteraufgaben beginnen morgen neu
+  const _rc=istRoutineOderCounter(k);
+  if(t.offeneSubs>0 && !_rc) h+='<div class="hinweisbox">Es sind noch <b>'+t.offeneSubs+'</b> Unteraufgabe(n) offen. '+
     'Sie wandern in die Folgeaufgabe und bringen ihre Punkte dort ein — nichts doppelt, nichts verschenkt.</div>';
-  h+='<div class="field"><label>Folgeaufgabe</label><div class="chips"><button class="chip '+(t.folge?'on lila':'')+'" data-abfolge="1">'+(t.folge?'✓ wird angelegt':'＋ anlegen')+'</button></div>';
-  if(t.folge){
+  if(!_rc) h+='<div class="field"><label>Folgeaufgabe</label><div class="chips"><button class="chip '+(t.folge?'on lila':'')+'" data-abfolge="1">'+(t.folge?'✓ wird angelegt':'＋ anlegen')+'</button></div>';
+  else h+='<div>';
+  if(t.folge && !_rc){
     const heute=heuteApp();
     h+='<div style="margin-top:8px">'+
        '<input id="abFolgeTitel" value="'+esc(k.titel||'')+'" style="width:100%;margin-bottom:6px" placeholder="Titel der Folgeaufgabe">'+
@@ -9650,6 +10025,7 @@ function renderAbhakDialog(){
    die abgehakten bleiben an der abgeschlossenen Aufgabe. Die Folgeaufgabe merkt
    sich ihre Vorgängerin (vorgaengerAppId / vorgaengerAirtableId). */
 function folgeAufgabeAnlegen(k, f){
+  if(istRoutineOderCounter(k)) return null;   // §1.3 (v3.1.0): Routinen und Counter erzeugen nie Folgekarten
   f=f||{};
   const titel=(f.titel||'').trim() || (k.titel||'');
   const neu=neueKarte({
@@ -9705,7 +10081,7 @@ function abhakDialogConfirm(){
     saveMeta();
   }
   k.abhakbonus=bonus;                                   // Wahl je Karte merken
-  k.punkteOverride=Math.max(0, pkt+bonus);              // gebuchte Ist-Punkte (Slider + Bonus)
+  overrideSetzen(k, Math.max(0, pkt+bonus));            // gebuchte Ist-Punkte (Slider + Bonus)
   let _folgeNeu=null;
   if(t.folge) _folgeNeu=folgeAufgabeAnlegen(k, {
     titel:      el('abFolgeTitel') ? el('abFolgeTitel').value : '',
@@ -9757,6 +10133,8 @@ function routErledigtHeute(k){
   // dem Wiederöffnen fertig") entfällt — eine heute wieder geöffnete Karte
   // ist OFFEN, ihre Ticks bleiben aber gebucht (Streak/Quote unberührt).
   if(istTickKarte(k)) return abgehakt || (num(k.ticksHeute)>0 && k.wiederOffenTag!==heuteApp());
+  // §1.2 (v3.1.0): eine Routine ohne Ticks bleibt nach +1 offen — der Tick zaehlt als erledigt
+  if(k.rhythmus && tickAnzahlHeute(k)>0) return true;
   return abgehakt;
 }
 function gruppeStand(g){
@@ -10527,6 +10905,9 @@ function syncExport(typ){
     // §7 (v2.6.0): die rueckwirkend als Urlaub markierten Tage — bis zum
     // naechsten bestaetigten Sync, damit der Chat sie in Airtable kennzeichnet
     urlaubNachgetragen: (Array.isArray(S.meta.urlaubNachgetragen) ? S.meta.urlaubNachgetragen.slice() : []),
+    // §5 (v3.1.0): der vollstaendige Ist-Stand aller Parameter — voll immer, Delta nur nach einer Aenderung
+    einstellungen: syncTuerExport(voll, 'einstellungen'),
+    statistik: syncTuerExport(voll, 'statistik'),
     // §12 (v3.0.0): Tagesabschluss (Reflexion, Schlaf-Prognose, Wertung, Uebersprungenes, Geschobenes),
     // Morgen (Aufstehzeit, Akku Prognose/Gefuehl, Schlaf) und die Serien der Pflicht-Gruppen
     tagesabschluss: (function(){ try{ return tagesabschlussExport(); }catch(e){ return null; } })(),
@@ -10630,7 +11011,7 @@ function syncExportText(typ){ return JSON.stringify(syncExport(typ), null, 2); }
    rückwirkende Reparatur desselben Musters. */
 const SYNC_BESTAND_SCHWELLE = 10;
 /* Import eines Pakets aus dem Claude-Chat (§8-Hoheitsregeln). */
-function syncImport(text){
+function syncImport(text, opt){
   let paket; try{ paket=JSON.parse(text); }catch(e){ return {fehler:'Ungültiges JSON'}; }
   // §6.1 (v1.6.1): Das appVersion-Gate gilt jetzt AUSNAHMSLOS — auch für
   // Array-Pakete. Der v0.38-Konverter wird nicht mehr gebraucht.
@@ -10646,10 +11027,22 @@ function syncImport(text){
     const w=v=>{ const t=String(v).split('.').map(x=>num(x)); return (t[0]||0)*10000+(t[1]||0)*100+(t[2]||0); };
     if(w(av)<w(DATENVERTRAG)) return {fehler:'Paket-appVersion '+av+' ist älter als '+DATENVERTRAG+' — bitte im Chat ein Paket nach Vertrag '+DATENVERTRAG.slice(0,3)+' anfordern (eine Kette, matrixFeld, Positions-Spur).'};
   }
-  const arr = (paket && paket.karten) || null;
+  // ══ §6 (v3.1.0) · SYNC-TÜR: einstellungen/statistik erst nach „Übernehmen" ══
+  // Eine Wiederherstellung bringt die Einstellungen ueber ihren eigenen Block zurueck — dort sind die beiden Bereiche nur Spiegel.
+  const hatTuer = !!paket && !Array.isArray(paket) && !paket.wiederherstellung && (paket.einstellungen!==undefined || paket.statistik!==undefined);
+  let tuerVs=null;
+  if(hatTuer){
+    tuerVs=syncTuerVorschau(paket);
+    // ein zurueckgeschickter Export ohne Abweichung braucht keine Freigabe — es gibt nichts anzuwenden
+    const etwas=[tuerVs.einstellungen, tuerVs.statistik].some(t=>t && (t.aenderungen.length || t.unbekannt.length || t.fehler.length));
+    if(etwas && !(opt && opt.freigabe)) return { freigabeNoetig:true, vorschau:tuerVs };   // nichts angewendet
+    // §6: Sicherung vor dem Anwenden
+    try{ DB.set('import_bak', { ts:jetztIso(), settings:S.settings, karten:S.karten, unteraufgaben:S.unteraufgaben }); }catch(e){}
+  }
+  const arr = (paket && paket.karten) || (hatTuer ? [] : null);
   // §3 (v2.7.0): ein reines Korrektur-Paket darf ein LEERES karten-Array tragen
-  // (das Array selbst bleibt Pflicht — Vertrag 2.0)
-  if(!Array.isArray(arr) || (!arr.length && !Array.isArray(paket.korrekturen))) return {fehler:'Keine Karten im Paket'};
+  // (das Array selbst bleibt Pflicht — Vertrag 2.0) · §2 (v3.1.0): ebenso ein reines Einstellungs-Paket
+  if(!Array.isArray(arr) || (!arr.length && !Array.isArray(paket.korrekturen) && !hatTuer)) return {fehler:'Keine Karten im Paket'};
   // ══ §5 (v1.13.5) · WIEDERHERSTELLUNG ════════════════════════════════
   // Normalerweise ist die App Hoheit über Status, Ist-Zeit und Punkte — ein
   // Chat-Paket darf sie NIE überschreiben. Eine Wiederherstellung ist etwas
@@ -10666,7 +11059,7 @@ function syncImport(text){
   // ausser den abgeleiteten Grössen, die der Export nur zum Lesen beilegt.
   const RESTORE_ABGELEITET = ['istMin','punkteIst','punktePrognose','unteraufgaben',
     'sitzungen','kette','kettenPosition','tagesabschnittEffektiv'];
-  let neu=0, neuDfm=0, neuPrivat=0, upd=0, arch=0, vomGeraetGenommen=0, vomGeraetNichtDa=0, vomGeraetZurueck=0;
+  let neu=0, neuDfm=0, neuPrivat=0, upd=0, arch=0, vomGeraetGenommen=0, vomGeraetNichtDa=0, vomGeraetZurueck=0, subsEntfernt=0;
   const neuAngelegt=[];   // FIX1: Neuanlagen dieses Laufs — ggf. als Bestandsübernahme markieren
   const uebersprungen=[]; // §2.4 (v1.7.1): alles, was nicht ankam — MIT Grund
   arr.forEach(inc=>{
@@ -10699,7 +11092,11 @@ function syncImport(text){
       S.karten.push(lok); neu++; if(dom==='dfm') neuDfm++; else neuPrivat++;
       neuAngelegt.push(lok);
     }
-    else upd++;   // §2.1: bei bekannter Karte wird ein mitgeschicktes domain IGNORIERT
+    else {
+      upd++;
+      // §4 (v3.1.0): die Domaene ist per Paket schreibbar (vorher §2.1 v1.7.1: bei bekannter Karte ignoriert)
+      if((inc.domain==='dfm' || inc.domain==='privat') && inc.domain!==lok.domain){ lok.domain=inc.domain; if(lok.domain!=='dfm'){ lok.projekt=null; lok.geldImpact=0; } }
+    }
     // Airtable-Hoheit → übernehmen
     if(inc.airtableId!=null) lok.airtableId=inc.airtableId;
     else if(!lok.airtableId && recId && lok.domain==='dfm') lok.airtableId=recId;   // §3 (v1.13.1): Bestand heilen
@@ -10737,6 +11134,13 @@ function syncImport(text){
         grund:v.grund!=null?String(v.grund):'', status:'offen', ts:jetztIso() } : null; }
     // §12 (v3.0.0): Bausteine des Routinen-Systems — Feld fehlt = unveraendert
     v3FelderUebernehmen(lok, inc, false);
+    // §4 (v3.1.0): weitere Detailfelder
+    if(inc.zeitStufen!==undefined) lok.zeitStufen = Array.isArray(inc.zeitStufen) ? JSON.parse(JSON.stringify(inc.zeitStufen)) : null;
+    if(inc.gruppeId!==undefined) lok.gruppeId = inc.gruppeId ? String(inc.gruppeId) : null;
+    if(inc.nachtnotiz!==undefined) lok.nachtnotiz = inc.nachtnotiz ? String(inc.nachtnotiz) : '';
+    // §4 (v3.1.0): Stand-Felder (Serie, Faktor, Status, Ticks) nur mit korrektur:true
+    kartenKorrektur(lok, inc, uebersprungen);
+    felderMelden('Karte „'+String(lok.titel||lok.id).slice(0,30)+'"', inc, kartenFelderBekannt(), uebersprungen);
     // §1.1 (v2.8.0): nurAbhaken true · false · leer (= Regel)
     if(inc.nurAbhaken!==undefined) lok.nurAbhaken = (inc.nurAbhaken===true||inc.nurAbhaken==='true') ? true : ((inc.nurAbhaken===false||inc.nurAbhaken==='false') ? false : null);
     // §2 (v2.7.0): festMin = Zahl (Minuten) oder leer
@@ -10789,12 +11193,19 @@ function syncImport(text){
     if(Array.isArray(inc.unteraufgaben)){
       const wegIds=new Set(((S.meta && Array.isArray(S.meta.entfernteUnteraufgaben)) ? S.meta.entfernteUnteraufgaben : []).map(e=>e.id));   // §6 (v2.5.0)
       inc.unteraufgaben.forEach(iu=>{
+        // §4 (v3.1.0): entfernt:true entfernt die Unteraufgabe bzw. den Unter-Zaehler aus der App
+        if(iu && iu.entfernt===true && iu.id){ const vor=S.unteraufgaben.length; S.unteraufgaben=S.unteraufgaben.filter(u=>!(u.parentId===lok.id && u.id===iu.id));
+          if(S.unteraufgaben.length<vor) subsEntfernt++; return; }
         if(iu && (iu.entfernt || (iu.id && wegIds.has(iu.id)))) return;   // entfernt ist entfernt, bis der Sync es bestaetigt
         let lu = S.unteraufgaben.find(u=>u.parentId===lok.id && u.id===iu.id);
         if(!lu){ lu=neueUnteraufgabe(lok.id, { id: iu.id||uuid() }); S.unteraufgaben.push(lu); }
         if(iu.titel!=null) lu.titel=iu.titel;        // Definition beidseitig
         if(iu.sollMin!=null) lu.sollMin=num(iu.sollMin);
         v3FelderUebernehmen(lu, iu, true);            // §3.2 (v3.0.0): Unter-Zaehler (Staffel, Tagesziel, Tageslimit)
+        if(iu.bonusPunkte!==undefined && !restore) lu.bonusPunkte = iu.bonusPunkte==null ? 0 : num(iu.bonusPunkte);   // §4 (v3.1.0)
+        if(iu.ticksHeute!==undefined){ if(inc.korrektur===true){ ticksSetzen(lu, num(iu.ticksHeute)); buchungAbgleich(lok, 'korrektur'); }
+          else if(num(iu.ticksHeute)!==tickAnzahlHeute(lu)) uebersprungen.push({was:'Unter-Zähler „'+String(lu.titel||'').slice(0,30)+'" · ticksHeute', grund:'nur mit korrektur:true an der Karte'}); }
+        felderMelden('Unteraufgabe „'+String(lu.titel||lu.id).slice(0,30)+'"', iu, UNTER_FELDER_BEKANNT, uebersprungen);
         if(restore){                                  // §5: done und Bonus gehören zum Stand
           if(iu.done!==undefined) lu.done=!!iu.done;
           if(iu.bonusPunkte!==undefined) lu.bonusPunkte=num(iu.bonusPunkte);
@@ -10982,10 +11393,22 @@ function syncImport(text){
   // und jeder normale Import danach legte Karten an, die nie in den Index
   // kamen — bis zum naechsten Kaltstart der App.
   baueSuchIndex();
+  // §2/§3/§6 (v3.1.0): einstellungen und statistik — Vorschau ist bestaetigt, jetzt anwenden
+  let tuer=null;
+  if(tuerVs){
+    const n=syncTuerAnwenden(tuerVs);
+    tuer={ geaendert:n, einstellungen:tuerVs.einstellungen?tuerVs.einstellungen.aenderungen.length:0, statistik:tuerVs.statistik?tuerVs.statistik.aenderungen.length:0 };
+    [tuerVs.einstellungen, tuerVs.statistik].forEach(t=>{ if(!t) return;
+      t.unbekannt.forEach(u=>uebersprungen.push({was:u, grund:'unbekanntes Feld — ignoriert'}));
+      t.fehler.forEach(f=>uebersprungen.push({was:f.was, grund:f.grund})); });
+    saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
+  }
+  if(subsEntfernt){ DB.set('unteraufgaben', S.unteraufgaben); }
   // §5.6 (v1.13.0): erfolgreicher Import = geprüfte Planung
   S.meta.letzterImportTs=jetztIso(); saveMeta();
   return {neu, neuDfm, neuPrivat, upd, arch, ketteGesetzt, ketteUnbekannt, gruppenNeu, gruppenUpd,
-    rahmenGesetzt, korrigiert:korrigiert.length, korrekturen:korrekturNeu, vomGeraetGenommen, vomGeraetZurueck, uebersprungen, wiederhergestellt:whLog};
+    rahmenGesetzt, korrigiert:korrigiert.length, korrekturen:korrekturNeu, vomGeraetGenommen, vomGeraetZurueck, uebersprungen, wiederhergestellt:whLog,
+    subsEntfernt, tuer};
 }
 
 /* Sync-Sheet (EIN Button in D6). */
@@ -11006,10 +11429,38 @@ function importErgebnisHtml(res){
         Object.keys(res.wiederhergestellt).map(f=>f+' '+res.wiederhergestellt[f]).join(' · ')+'</span>';
       if(res.rahmenGesetzt!=null) kz+='<br>🕘 Tagesrahmen übernommen: <b>'+res.rahmenGesetzt+'</b> Segmente'+(tagOffen()?' (ersetzt ab jetzt, Gemessenes unberührt)':'')+'.';
       if(res.korrigiert) kz+='<br><span style="color:var(--cyan)">§5.7-Korrekturen angewandt: <b>'+res.korrigiert+'</b> Felder (Protokoll in den Einstellungen).</span>';
+      if(res.tuer) kz+='<br><span style="color:var(--cyan)">Sync-Tür: <b>'+res.tuer.einstellungen+'</b> Einstellung(en) · <b>'+res.tuer.statistik+'</b> Statistik-Parameter geändert (Protokoll in den Einstellungen).</span>';
+      if(res.subsEntfernt) kz+='<br>Unteraufgaben entfernt: <b>'+res.subsEntfernt+'</b>.';
       if(res.uebersprungen && res.uebersprungen.length)
         kz+='<br><span style="color:var(--warn)">Übersprungen ('+res.uebersprungen.length+'):</span><br>'+
           res.uebersprungen.map(u=>'<span style="color:var(--warn)">· '+esc(u.was)+' — '+esc(u.grund)+'</span>').join('<br>');
   return '<div class="card" style="border-color:'+((res.uebersprungen&&res.uebersprungen.length)?'var(--warn)':'var(--ok)')+'"><p class="d">'+kz+'</p></div>';
+}
+/* ══ §6 (v3.1.0) · ZUSAMMENFASSUNG VOR DEM ANWENDEN ══ */
+let _freigabe=null;
+function oeffneSyncFreigabe(text, vs, quelle){
+  _freigabe={ text, quelle:quelle||'einst' };
+  const block=(t, titel)=>{ if(!t) return '';
+    let h='<h4 class="abt-h">'+titel+' · '+t.aenderungen.length+' Änderung'+(t.aenderungen.length===1?'':'en')+'</h4>';
+    h+= t.aenderungen.length ? t.aenderungen.map(a=>'<div class="kv tuer-z"><span>'+esc(a.bereich+'.'+a.feld)+(a.grund?'<small>'+esc(a.grund)+'</small>':'')+'</span><b>'+esc(kurz(a.vorher))+' → '+esc(kurz(a.nachher))+'</b></div>').join('')
+      : '<p class="d" style="color:var(--mut2)">Keine Änderung gegenüber dem Ist-Stand.</p>';
+    if(t.unbekannt.length) h+='<p class="d" style="color:var(--warn)">Unbekannt, wird ignoriert: '+t.unbekannt.map(esc).join(' · ')+'</p>';
+    if(t.fehler.length) h+='<p class="d" style="color:var(--bad)">Nicht übernehmbar: '+t.fehler.map(f=>esc(f.was)+' — '+esc(f.grund)).join(' · ')+'</p>';
+    return h; };
+  const h='<p class="d">Das Paket ändert Einstellungen'+(vs.statistik?' bzw. die Statistik':'')+'. Erst prüfen, dann übernehmen. '+
+    'Vorher legt die App eine Sicherung an; jede Änderung steht danach im Protokoll.</p>'+
+    block(vs.einstellungen,'Einstellungen')+block(vs.statistik,'Statistik')+
+    (vs.karten ? '<p class="d">Außerdem im Paket: <b>'+vs.karten+'</b> Karte(n).</p>' : '');
+  openSheet('Paket prüfen', h, '<button class="btn ghost sm" data-close="1">Abbrechen</button><button class="btn prim" style="min-height:44px" data-freigabego="1">Übernehmen</button>');
+}
+function syncFreigabeAnwenden(){
+  if(!_freigabe) return null;
+  const f=_freigabe; _freigabe=null;
+  const res=syncImport(f.text, {freigabe:true});
+  closeSheet(); renderAlles();
+  if(!res.fehler){ toast('Übernommen · '+num(res.tuer&&res.tuer.geaendert)+' Einstellung(en)'+(res.upd||res.neu?' · '+(num(res.upd)+num(res.neu))+' Karte(n)':'')); haptik(15); }
+  if(f.quelle==='einst'){ setTab('einst'); const box=el('einstImportErg'); if(box) box.innerHTML=importErgebnisHtml(res); }
+  return res;
 }
 function oeffneSync(){ syncVoll=false; renderSyncSheet(); }
 function renderSyncSheet(){
@@ -11268,6 +11719,8 @@ function renderEinst(){
   });
   h+='</div>';
 
+  // ══ §2/§3 (v3.1.0) · Alle Parameter — dasselbe Schema wie das Paket ══
+  h+=tuerEditorHtml();
   // Vorlagen-Verwaltung (§3.4)
   h+='<div class="card"><h3>Vorlagen</h3><p class="d">Aus jeder Karten-Detailansicht mit „☆ Als Vorlage speichern" anlegen; beim Anlegen neuer Karten wählbar.</p>';
   if(!S.vorlagen.length) h+='<p class="d" style="color:var(--mut2)">Noch keine Vorlagen.</p>';
@@ -11373,11 +11826,14 @@ function renderEinst(){
     const mx=x=>'Matrix-Zeit ⚠ '+x.ablenkung+' · 🌀 '+x.zustand+' · 🔧 '+x.werkzeug+' · 🎯 '+x.ziel+' · ? '+x.unbekannt+' Min';
     h+='<div class="card einst-korrekturen"><h3>🩹 Korrekturen</h3>'+
       '<p class="d">Was im Chat geklärt und per Sync zurückgespielt wurde — mit Grund und dem Stand des Tages vorher und nachher.</p>'+
-      (kp.length ? kp.slice(0,15).map(e=>'<div class="korr-e">'+
+      (kp.length ? kp.slice(0,15).map(e=> e.art ? ('<div class="korr-e korr-tuer">'+   // §5 (v3.1.0): Einstellungen, Statistik, Karten per Paket
+        '<div class="korr-k"><b>'+esc(e.datum)+'</b> · '+esc({einstellungen:'Einstellungen', statistik:'Statistik', karte:'Karten'}[e.art]||e.art)+(e.bereich?' · '+esc(e.bereich):'')+' · '+esc(e.grund)+
+        '<span>'+esc(String(e.ts).slice(0,16).replace('T',' '))+'</span></div>'+
+        '<ul>'+(e.aenderungen||[]).map(z=>'<li>'+esc(z)+'</li>').join('')+'</ul></div>') : ('<div class="korr-e">'+
         '<div class="korr-k"><b>'+esc(e.datum)+'</b> · '+esc(e.grund)+'<span>'+esc(String(e.ts).slice(0,16).replace('T',' '))+'</span></div>'+
         '<div class="korr-z"><span>vorher</span>'+esc(st(e.vorher))+'<br><span></span>'+esc(mx(e.vorher.matrix))+'</div>'+
         '<div class="korr-z"><span>nachher</span>'+esc(st(e.nachher))+'<br><span></span>'+esc(mx(e.nachher.matrix))+'</div>'+
-        '<ul>'+e.aenderungen.map(z=>'<li>'+esc(z)+'</li>').join('')+'</ul></div>').join('')
+        '<ul>'+e.aenderungen.map(z=>'<li>'+esc(z)+'</li>').join('')+'</ul></div>')).join('')
         +(kp.length>15?'<p class="d" style="color:var(--mut2)">… und '+(kp.length-15)+' ältere.</p>':'')
         : '<p class="d" style="color:var(--mut2)">Noch keine Korrektur eingespielt.</p>')+
     '</div>'; }
@@ -13971,16 +14427,13 @@ function renderStatistik(){ renderStatistikBody(); }
 function renderStatistikBody(){
   const host=el('statistikBody'); if(!host) return;
   let h='';
-  h+=stMatrixTag();          // §7 (v2.4.0): die Matrix ganz oben
-  h+=stTagesverlauf();       // §4.1 (v2.6.0): der Tagesverlauf direkt darunter
-  // §3 (v2.5.0): die Detailanalyse zieht von der Belohnungsseite hierher —
-  // sie zeigt Verhalten, keine Belohnung. Filter und Module wie im Original.
-  h+='<div id="stDetailAnker"></div><div class="st-detail"><div class="st-detail-h">Detailanalyse</div>'+
-     '<div class="an-filter st-anfilter">'+anFilterHtml()+'</div>'+anModuleHtml()+'</div>';
-  h+=stMatrixSpur();
-  h+=stReinRaus();
-  h+=stEntwicklung();
-  h+=stBelastung();
+  // §3 (v3.1.0): Reihenfolge und Sichtbarkeit kommen aus dem Parameter statistik.reihenfolge / .ausgeblendet
+  const BAU={ matrix:()=>stMatrixTag(), tagesverlauf:()=>stTagesverlauf(),
+    detail:()=>'<div id="stDetailAnker"></div><div class="st-detail"><div class="st-detail-h">Detailanalyse</div>'+
+      '<div class="an-filter st-anfilter">'+anFilterHtml()+'</div>'+anModuleHtml()+'</div>',
+    matrixSpur:()=>stMatrixSpur(), reinRaus:()=>stReinRaus(), entwicklung:()=>stEntwicklung(), belastung:()=>stBelastung() };
+  const aus=statParam('ausgeblendet')||[];
+  (statParam('reihenfolge')||STAT_MODULE.map(x=>x[0])).forEach(id=>{ if(BAU[id] && aus.indexOf(id)<0) h+='<div data-stmodul="'+id+'">'+BAU[id]()+'</div>'; });
   host.innerHTML=h;
 }
 /* 1 · Tagesverlauf — Plan, Ist, Normaltag. Übernommen, läuft. */
@@ -14201,14 +14654,14 @@ function belastungWerte(spur, akkuVerlauf){
   return { links: gesamtMs>0 ? linksMs/gesamtMs : 0, rate };
 }
 function belastungNormal(){
-  const heute=heuteApp(), we=istWochenendTag(heute), grenze=anVorTage(heute,28);
+  const heute=heuteApp(), we=istWochenendTag(heute), grenze=anVorTage(heute,num(statParam('typischerTag.tage'),28));   // §3 (v3.1.0)
   const tage=(S.historie||[]).filter(h=>h && !h.luecke && h.datum && h.datum<heute && h.datum>=grenze &&
-    istWochenendTag(h.datum)===we && !h.urlaub && Array.isArray(h.matrixSpur))
+    typGleicheArt(h.datum, we) && !h.urlaub && Array.isArray(h.matrixSpur))
     .map(h=>belastungWerte(h.matrixSpur, h.akkuVerlauf)).filter(Boolean);
-  if(tage.length<AMPEL_MIN_TAGE) return null;
+  if(tage.length<ampelMinTage()) return null;
   const rates=tage.map(t=>t.rate).filter(r=>r!=null);
   return { links: tage.reduce((a,t)=>a+t.links,0)/tage.length,
-           rate: rates.length>=AMPEL_MIN_TAGE ? rates.reduce((a,b)=>a+b,0)/rates.length : null, n:tage.length };
+           rate: rates.length>=ampelMinTage() ? rates.reduce((a,b)=>a+b,0)/rates.length : null, n:tage.length };
 }
 function stBelastung(){
   const sp=(S.tag && Array.isArray(S.tag.matrixSpur)) ? S.tag.matrixSpur.filter(e=>!e.uebersprungen) : [];
@@ -14244,7 +14697,7 @@ function stBelastung(){
      (akkuRateTag!=null?((akkuRateTag>0?'+':'')+Math.round(akkuRateTag)):'—')+'</b><span class="z">'+
      ((bn && bn.rate!=null)?('Ø '+(bn.rate>0?'+':'')+Math.round(bn.rate)+' %/Std'):'%/Std')+'</span></div>';
   h+='</div>';
-  if(!bn) h+='<div class="an-hint">Grau: noch keine Vergleichsbasis (mind. '+AMPEL_MIN_TAGE+' vergleichbare Tage mit Positionen in den letzten 4 Wochen).</div>';
+  if(!bn) h+='<div class="an-hint">Grau: noch keine Vergleichsbasis (mind. '+ampelMinTage()+' vergleichbare Tage mit Positionen in den letzten 4 Wochen).</div>';
   // Die Aussage in einem Satz — das ist der Punkt des Moduls.
   let satz;
   if(linksPct>0.5) satz='Du hast heute mehr Zeit links als rechts verbracht. Das ist der teure Teil des Tages — nicht die Arbeit selbst.';
@@ -14731,7 +15184,9 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-tagcopy]')){ const ta=el('tagEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){}
     if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
   if(t.closest('[data-tagdownload]')){ backupDownload(tagBackupPaket(), 'fokus-tagesabschluss-'+(S.tag?S.tag.tagId:'tag')+'.json'); return; }
+  if(t.closest('[data-freigabego]')){ syncFreigabeAnwenden(); return; }
   if(t.closest('[data-syncimport]')){ const ta=el('syncIn'); const res=syncImport(ta?ta.value:''); const box=el('syncErgebnis');
+    if(res.freigabeNoetig){ oeffneSyncFreigabe(ta.value, res.vorschau, 'sync'); return; }
     if(!res.fehler){ renderAlles(); const exta=el('syncEx'); if(exta) exta.value=syncExportText('sync'); toast('Sync importiert'); haptik(15); }
     if(box) box.innerHTML=importErgebnisHtml(res);
     return; }
@@ -15181,6 +15636,7 @@ el('einstBody').addEventListener('click', e=>{
     if(k){ k.abhakbonus=null; k.tickWert=null; beruehre(k); saveKarten(); renderEinst(); toast('↺ „'+String(k.titel||'').slice(0,24)+'" folgt wieder der Tabelle'); } return; }
   if(e.target.closest('#btnEinstImport')){
     const ta=el('einstImport'), res=syncImport(ta?ta.value:'');
+    if(res.freigabeNoetig){ oeffneSyncFreigabe(ta.value, res.vorschau, 'einst'); return; }   // §6 (v3.1.0)
     if(!res.fehler){ renderAlles(); toast('Import übernommen'); haptik(15); }
     // renderAlles() zeichnet die Einstellungen neu — Ergebniskasten ERST DANACH holen
     const box=el('einstImportErg'); if(box) box.innerHTML=importErgebnisHtml(res);
@@ -15270,13 +15726,15 @@ el('einstBody').addEventListener('change', e=>{
   if(abt){ const [sp,f]=abt.split('|');
     S.settings.abhakbonusTabelle=JSON.parse(JSON.stringify(S.settings.abhakbonusTabelle||DEFAULT_SETTINGS.abhakbonusTabelle));
     (S.settings.abhakbonusTabelle[sp]=S.settings.abhakbonusTabelle[sp]||{})[f]=num(e.target.value); saveSettings(); renderStatusbar();
+    S.meta.einstGeaendertTs=jetztIso(); saveMeta();   // §5 (v3.1.0): Delta-Export meldet die Einstellungen
     toast('Abhakbonus '+sp+' · '+MATRIX_META[f].name+': '+num(e.target.value)+' P'); return; }
   // Nachtrag §2: Abhakbonus-Default je Matrixfeld
   const abf=e.target.dataset.abfeld;
   if(abf){ if(!S.settings.abhakbonusFeld || typeof S.settings.abhakbonusFeld!=='object') S.settings.abhakbonusFeld={};
     S.settings.abhakbonusFeld[abf]=num(e.target.value); saveSettings(); renderStatusbar();
     toast(MATRIX_META[abf].icon+' Abhakbonus '+esc(MATRIX_META[abf].name)+': '+num(e.target.value)+' P'); return; }
-  const t=e.target; if(t.dataset.setting){ S.settings[t.dataset.setting]=num(t.value); saveSettings();
+  if(e.target.dataset && e.target.dataset.tuer){ tuerEditorAendern(e.target); return; }   // §2/§3 (v3.1.0)
+  const t=e.target; if(t.dataset.setting){ S.settings[t.dataset.setting]=num(t.value); saveSettings(); S.meta.einstGeaendertTs=jetztIso(); saveMeta();
     // v1.5.1: Level-Kosten wirken sofort — Anzeige (Statusleiste/Belohnung/Hinweis) nachziehen.
     if(t.dataset.setting==='punkteProLevel'){ renderStatusbar(); renderEinst(); } }
 });
@@ -15703,7 +16161,7 @@ function zielQuoten(tage, dom, punkteVon){
 /* Fenster gemäß S.ui (Zeitraum-Preset / frei) inkl. Vorperiode gleicher Länge. */
 function analyseFenster(){
   const alle=analyseRohTage();
-  const zr=S.ui.analyseZeitraum||'7';
+  const zr=S.ui.analyseZeitraum||String(num(statParam('zeitfenster'),7));   // §3 (v3.1.0): Standard aus dem Parameter
   let von, bis, span;
   if(zr==='frei'){ bis=S.ui.analyseBis||heuteApp(); von=S.ui.analyseVon||anVorTage(bis,6); span=anTageDiff(von,bis)+1; }
   else { span=num(zr,7); bis=heuteApp(); von=anVorTage(bis,span-1); }
@@ -15820,7 +16278,8 @@ function anAcwrReihe(alle, bis, span, dom, metric){
   const startAll=alle.length?alle[0].datum:bis;
   const reihe=anKalenderReihe(alle, startAll, bis);
   const load=reihe.map(x=> x.e ? (metric==='min'?anMin(x.e,dom):anPunkte(x.e,dom)) : 0);
-  const acwr=load.map((_,i)=>{ if(i<7) return null; const ac=anMean(load.slice(i-6,i+1)); const ch=anMean(load.slice(Math.max(0,i-27),i+1)); return (ch&&ch>0)?ac/ch:null; });
+  const bz=statParam('belastung')||{}, akT=Math.max(1,num(bz.akutTage,7)), chT=Math.max(akT,num(bz.chronischTage,28));   // §3 (v3.1.0)
+  const acwr=load.map((_,i)=>{ if(i<akT) return null; const ac=anMean(load.slice(i-akT+1,i+1)); const ch=anMean(load.slice(Math.max(0,i-chT+1),i+1)); return (ch&&ch>0)?ac/ch:null; });
   // nur die letzten `span` Tage anzeigen
   const from=Math.max(0, reihe.length-span);
   return { labels:reihe.slice(from).map(x=>x.datum), vals:acwr.slice(from), current:acwr[acwr.length-1] };
@@ -15830,7 +16289,8 @@ function anAcwrReihe(alle, bis, span, dom, metric){
    erschiene Ueberlastung gruen. Dieselben vier Ampelfarben:
    0,8–1,3 gruen (optimal) · 1,3–1,5 gelb (erhoeht) · ueber 1,5 rot
    (Overload) · unter 0,8 orange (Unterlast). */
-function acwrStufe(v){ if(v==null || !Number.isFinite(v)) return 'grau'; return v<0.8?'orange':(v<=1.3?'gruen':(v<=1.5?'gelb':'rot')); }
+function acwrStufe(v){ if(v==null || !Number.isFinite(v)) return 'grau'; const b=statParam('belastung')||{};   // §3 (v3.1.0): Schwellen als Parameter
+  return v<num(b.unter,0.8)?'orange':(v<=num(b.optimalBis,1.3)?'gruen':(v<=num(b.erhoehtBis,1.5)?'gelb':'rot')); }
 function anModACWR(F,dom){
   let inner;
   if(F.alle.length<8){ inner=anSammelt(F.alle.length,8); }
@@ -16495,11 +16955,16 @@ function anModuleHtml(){
   if(!F.alle.length){ h+=anLeer('Noch keine abgeschlossenen Tage. Starte einen Tag und schließe ihn ab — dann füllt sich die Analyse.'); }
   else{
     // §4 (v2.5.0): die Kalibrierung steht jetzt in den Einstellungen
-    h+=anModReadiness(F,dom)+anModACWR(F,dom)+anModLeistung(F,dom)+anModKonsistenz(F,dom)+anModVerhalten(F,dom);
+    const aus=statParam('ausgeblendet')||[], an=id=>aus.indexOf(id)<0;   // §3 (v3.1.0)
+    if(an('readiness')) h+=anModReadiness(F,dom);
+    if(an('acwr')) h+=anModACWR(F,dom);
+    if(an('leistung')) h+=anModLeistung(F,dom);
+    if(an('konsistenz')) h+=anModKonsistenz(F,dom);
+    if(an('verhalten')) h+=anModVerhalten(F,dom);
     // §4 (v1.7.0): der Kartenart-Filter entscheidet, welche Flow-Module laufen.
     // „Alle" = beide untereinander, jedes mit eigener Überschrift.
-    if(art==='alle' || art==='aufgabe') h+=anModAufgabenFlow(F,dom);
-    if(art==='alle' || art==='routine') h+=anModRoutinenFlow(F,dom);
+    if((art==='alle' || art==='aufgabe') && an('aufgabenFlow')) h+=anModAufgabenFlow(F,dom);
+    if((art==='alle' || art==='routine') && an('routinenFlow')) h+=anModRoutinenFlow(F,dom);
     if(art==='counter') h+=anModul('📥📤','Zu- & Abgang','Flow für Counter.',
       anLeer('Counter kennen keinen Abschluss und keine Fälligkeit — einen Zu-/Abgangs-Flow gibt es für sie strukturell nicht. Ihre Ticks stecken in Konsistenz, Leistung und Verhalten.'));
   }

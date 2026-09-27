@@ -47,7 +47,10 @@ var GELD_STUFE={ hoch:300, mittel:200, niedrig:100 }, GELD_MAX=500;
 var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnteraufgabe','settingsMerge','syncImport','geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon',
   'karteZurueckAufsGeraet','vomGeraetAblage','karteVomGeraet',
   // v3.0.0 §12: Bausteine des Routinen-Systems im Import
-  'v3FelderUebernehmen','leer','wtNorm','eingabeVon'];
+  'v3FelderUebernehmen','leer','wtNorm','eingabeVon',
+  // v3.1.0 §4: Karten-Korrektur und Feldmeldung im Import
+  'kartenKorrektur','felderMelden','kartenFelderBekannt','kurz','syncTuerVorschau','bereichVorschau','schemaPruefen','schemaWert','pfadLesen','pfadSchreiben','einstStandard'];
+var _kartenFelder=null, UNTER_FELDER_BEKANNT=new Set(['id','parentId','titel','sollMin','done','bonusPunkte','airtableId','staffel','staffelDanach','tagesziel','tageslimit','entfernt','entferntTs','tickLog','tickProtokoll','punkteHeute','ziel','ticksHeute']);   // v3.1.0: gespiegelt
 var WT_KURZ={ mo:1, di:2, mi:3, do:4, fr:5, sa:6, so:7 };   // v3.0.0: Konstante gespiegelt (nicht extrahierbar)
 var DATENVERTRAG='2.0.0';   // v3.0.1: Import-Gate-Konstante gespiegelt (nicht extrahierbar)
 eval(NAMES.map(extract).join('\n'));
@@ -81,9 +84,11 @@ imp({ appVersion:'2.0.0', karten:[{ id:'n-prv', titel:'Private Routine v2' }] })
 ok('Re-Import: nur 1 Karte (kein Duplikat)', S.karten.filter(function(k){return k.id==='n-prv';}).length===1);
 ok('Re-Import: rhythmus unangetastet', prv.rhythmus && prv.rhythmus.typ==='taeglich');
 ok('Re-Import: abhakbonus unangetastet', prv.abhakbonus===-25);
-/* 4) §2.1: domain einer BEKANNTEN Karte wird ignoriert. */
-imp({ appVersion:'2.0.0', karten:[{ id:'n-dfm', domain:'privat', titel:'DFM bleibt DFM' }] });
-ok('bekannte Karte: domain-Wechsel ignoriert', dfm.domain==='dfm');
+/* 4) v3.1.0 §4: die Domaene einer BEKANNTEN Karte ist per Paket schreibbar (vorher §2.1: ignoriert).
+   Ein Wechsel nach privat raeumt Projekt und Geld-Impact. */
+imp({ appVersion:'2.0.0', karten:[{ id:'n-dfm', domain:'privat', titel:'DFM wird privat' }] });
+ok('bekannte Karte: domain-Wechsel wird übernommen (v3.1)', dfm.domain==='privat' && dfm.projekt===null && dfm.geldImpact===0);
+imp({ appVersion:'2.0.0', karten:[{ id:'n-dfm', domain:'dfm' }] });
 /* 5) §2.3: Gruppen — Auflösung per Titel UND App-ID, Unauflösbares gemeldet. */
 var r5=imp({ appVersion:'2.0.0', karten:[{ id:'n-prv' }],
   gruppen:[{ id:'g1', name:'Runde', domain:'privat', mitglieder:['Private Routine v2','n-cnt','Fehlt'], komplettBonus:150 }] });

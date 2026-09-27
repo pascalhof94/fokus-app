@@ -276,6 +276,14 @@ function bestandSchreiben(){
       var lay=d.getElementById('fokusLayer'), fb=d.querySelectorAll('#fokusView .fb')[1];
       if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
     },
+    /* ══ v3.1 · Screenshots: Zusammenfassung vor dem Anwenden, Protokoll ══ */
+    echtFreigabe31:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.fokusAnsichtSchliessen(); fw.setTab('einst');
+      var ta=d.getElementById('einstImport'); ta.value=JSON.stringify({appVersion:'3.1.0', einstellungen:{ grund:'Harness: Sync-Tür', ziele:{ privat:{basis:'routinen', plus:750} }, schlaf:{ bedarfStd:7.5 }, punkte:{ basisDfm:200 } }, statistik:{ grund:'Harness: Statistik', zeitfenster:14, module:{ ausgeblendet:['belastung'] } }}); d.getElementById('btnEinstImport').click();
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; } },
+    einstProtokoll31:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.fokusAnsichtSchliessen(); fw.setTab('einst');
+      var ta=d.getElementById('einstImport'); ta.value=JSON.stringify({appVersion:'3.1.0', einstellungen:{ grund:'Harness: Sync-Tür', ziele:{ privat:{basis:'routinen', plus:750} }, schlaf:{ bedarfStd:7.5 }, punkte:{ basisDfm:200 } }, statistik:{ grund:'Harness: Statistik', zeitfenster:14, module:{ ausgeblendet:['belastung'] } }}); d.getElementById('btnEinstImport').click();
+      var go=d.querySelector('[data-freigabego]'); if(go) go.click();
+      var m=d.querySelector('main'), z=d.querySelector('.einst-korrekturen'); if(m && z) m.scrollTop += z.getBoundingClientRect().top-150; },
     /* ══ v3.0 · Screenshots: Routinen-Leiste, Tagesabschluss, Nacht, Aufstehen, Suche ══ */
     echtLeiste30:function(fw){ var d=fw.document; v30Vorbereiten(fw);
       ['v3-kaffee','v3-kaffee','v3-essen','v3-zaehne'].forEach(function(id){ var b=d.querySelector('#fokusView [data-alcheck="'+id+'"]'); if(b) b.click(); });
@@ -1851,10 +1859,11 @@ function bestandSchreiben(){
           var sheetVor=d.getElementById('sheet').className.indexOf('on')>=0;
           tippe(d.querySelector('#fokusView [data-alcheck="r-zaehne"]'),'Häkchen „Zähne putzen"');
           var kz=lsK('r-zaehne');
-          finding('echt · v2.8 §1 Häkchen: status='+(kz&&kz.status)+' · gebucht '+(kz&&kz.punkteOverride)+' P · Dialog '+(d.getElementById('sheet').className.indexOf('on')>=0?'OFFEN':'keiner'));
-          pruef(kz && kz.status==='erledigt' && !sheetVor && d.getElementById('sheet').className.indexOf('on')<0, 'v2.8 §1: Häkchen hakt nicht ab oder öffnet einen Dialog');
+          finding('echt · v2.8 §1 Häkchen: status='+(kz&&kz.status)+' · Ticks heute '+(kz&&kz.ticksHeute)+' · Dialog '+(d.getElementById('sheet').className.indexOf('on')>=0?'OFFEN':'keiner'));
+          // v3.1.0 §1.2 (Pascal: „Nie abschließen"): +1 an einer alten Routine ohne Tageslimit zaehlt einen Tick, der Status bleibt offen
+          pruef(kz && kz.status==='offen' && Number(kz.ticksHeute)===1 && !sheetVor && d.getElementById('sheet').className.indexOf('on')<0, 'v2.8 §1: Häkchen zählt keinen Tick, schließt ab oder öffnet einen Dialog');
           var ids2=[].slice.call(d.querySelectorAll('#fokusView .al .al-z')).map(function(z){ return z.dataset.alkarte; });
-          pruef(ids2[0]==='r-zaehne' && !!d.querySelector('#fokusView .al-z.fertig[data-alkarte="r-zaehne"]'), 'v2.8 §1: erledigte Routine nicht ausgegraut am Ende ihres Blocks (v3.0: sie ist allein im Block „Morgen")');
+          pruef(ids2[0]==='r-zaehne' && !d.querySelector('#fokusView .al-z.fertig[data-alkarte="r-zaehne"]'), 'v2.8 §1: Routine ohne Tageslimit nach +1 ausgegraut oder verschoben (v3.1 §1.2: sie bleibt offen)');
           tippe(d.querySelector('#fokusView [data-alcheck="c-harness"]'),'+1 am Counter');
           var kc=lsK('c-harness');
           pruef(kc && kc.ticksHeute===1 && /^1×/.test((d.querySelector('#fokusView [data-alzahl="c-harness"]')||{}).textContent||''), 'v2.8 §1: +1 zählt nicht / Zählstand fehlt (v3.0: im Zähler-Feld)');
@@ -2043,10 +2052,11 @@ function bestandSchreiben(){
           var kP=lsK(idP), kB=lsK(idB);
           var logP=lsLog().filter(function(e){ return e.kartenId===idP && e.tagId; }).reduce(function(a,e){ return a+Number(e.punkte||0); },0);
           var logB=lsLog().filter(function(e){ return e.kartenId===idB && e.tagId; }).reduce(function(a,e){ return a+Number(e.punkte||0); },0);
-          finding('echt · v2.9.1 §1 Haken „'+kP.titel+'" (5 Soll-Min, Prognose ohne Pflicht '+progP+' P, Pflicht 25) → gebucht '+kP.punkteOverride+' P · im Stunden-Log '+logP+' P');
-          finding('echt · v2.9.1 §1 Haken „'+kB.titel+'" (Prognose '+progB+' P = Zeit '+(progB-bonusB)+' + Bonus '+bonusB+') → gebucht '+kB.punkteOverride+' P · im Stunden-Log '+logB+' P');
-          pruef(kP.status==='erledigt' && kP.punkteOverride===25 && logP===25, 'v2.9.1 §1: Pflicht-Haken bucht nicht genau den Wert 25 ('+kP.punkteOverride+' / Log '+logP+')');
-          pruef(kB.status==='erledigt' && kB.punkteOverride===bonusB && logB===bonusB, 'v2.9.1 §1: Haken bucht mehr als den Bonus ('+kB.punkteOverride+' statt '+bonusB+')');
+          finding('echt · v2.9.1 §1 Haken „'+kP.titel+'" (5 Soll-Min, Prognose ohne Pflicht '+progP+' P, Pflicht 25) → Tick '+kP.ticksHeute+' · im Stunden-Log '+logP+' P');
+          finding('echt · v2.9.1 §1 Haken „'+kB.titel+'" (Prognose '+progB+' P = Zeit '+(progB-bonusB)+' + Bonus '+bonusB+') → Tick '+kB.ticksHeute+' · im Stunden-Log '+logB+' P');
+          // v3.1.0 §1.2: der Haken ist ein Tick — Status bleibt offen, gebucht wird nur der verdiente Wert (Log), keine Prognose
+          pruef(kP.status==='offen' && Number(kP.ticksHeute)===1 && logP===25, 'v2.9.1 §1: Pflicht-Haken bucht nicht genau den Wert 25 (Log '+logP+', Status '+kP.status+')');
+          pruef(kB.status==='offen' && Number(kB.ticksHeute)===1 && logB===bonusB, 'v2.9.1 §1: Haken bucht mehr als den Bonus (Log '+logB+' statt '+bonusB+')');
           var bil=Math.round(fw.ohneLaufendeUhr(function(){ return fw.tagesPunkteLive(); })*10)/10, sum=Math.round(fw.logSummeTag()*10)/10;
           var ex=fw.syncExport('delta').logAbgleichHeute;
           finding('echt · v2.9.1 §4 Tagesbilanz '+bil+' · Summe Stunden-Log '+sum+' · Export-Differenz '+(ex&&ex.differenz)+' · Statusleiste Pv '+d.getElementById('sPhPrv').textContent+' = '+Math.round(Math.max(0,fw.tagesPunkteDomain('privat'))));
@@ -2169,6 +2179,35 @@ function bestandSchreiben(){
           fw.fokusAnsichtSchliessen(); pruef(main.scrollTop===0, 'v3.0 §9: nach dem Schließen des Fokus nicht oben');
           freiMachen(); fw.setTab('suche');
         })();
+        /* ══ v3.1 · SYNC-TÜR: Zusammenfassung, „Übernehmen", Protokoll — elementFromPoint ══ */
+        (function(){
+          function tippe(e, wie){
+            if(!e){ pruef(false,'v3.1: '+wie+' fehlt'); return null; }
+            function ruhe(){ if(d.getElementById('sheet').className.indexOf('on')>=0) sheetRuhe(); else sheetRuheAus(); }
+            e.scrollIntoView({block:'center'}); ruhe();
+            var r=e.getBoundingClientRect(); pruef(r.height>=40, 'v3.1: '+wie+' niedriger als 44 px ('+Math.round(r.height)+')');
+            var hit=d.elementFromPoint(Math.round(r.left+r.width/2), Math.round(r.top+r.height/2));
+            pruef(hit && (hit===e || e.contains(hit)), 'v3.1: '+wie+' verdeckt von '+beschreib(hit));
+            if(hit) hit.click(); ruhe(); return hit;
+          }
+          function lsSet(){ try{ return JSON.parse(localStorage.getItem('fokus2_settings')||'{}'); }catch(e){ return {}; } }
+          freiMachen(); fw.setTab('einst');
+          var vor=lsSet();
+          var ta=d.getElementById('einstImport'); ta.value=JSON.stringify({appVersion:'3.1.0', einstellungen:{ grund:'Harness: Sync-Tür', ziele:{ privat:{basis:'routinen', plus:750} }, schlaf:{ bedarfStd:7.5 }, punkte:{ basisDfm:200 } }, statistik:{ grund:'Harness: Statistik', zeitfenster:14, module:{ ausgeblendet:['belastung'] } }});
+          tippe(d.getElementById('btnEinstImport'),'„Importieren" (Einstellungen)'); sheetRuhe();
+          var zeilen=d.querySelectorAll('#sheetBody .tuer-z').length, titel=d.getElementById('sheetTitel').textContent;
+          var nach0=lsSet();
+          finding('echt · v3.1 §6 Zusammenfassung „'+titel+'": '+zeilen+' Änderungen · vor „Übernehmen" unverändert: Schlafbedarf '+nach0.schlafBedarfStd+', Grundrate '+nach0.basisProStdDfm);
+          pruef(/Paket prüfen/.test(titel) && zeilen===5 && nach0.schlafBedarfStd===vor.schlafBedarfStd, 'v3.1 §6: keine Zusammenfassung oder schon angewendet');
+          tippe(d.querySelector('#sheetFoot [data-freigabego]'),'„Übernehmen"');
+          var nach=lsSet(), prot=[].slice.call(d.querySelectorAll('#einstBody .korr-tuer')).map(function(e){ return e.textContent.replace(/\s+/g,' ').slice(0,90); });
+          finding('echt · v3.1 §4 nach „Übernehmen": Schlafbedarf '+nach.schlafBedarfStd+' · Grundrate DFM '+nach.basisProStdDfm+' · privat '+nach.tagesZielPrivatModus+' +'+nach.tagesZielPrivatSockel+' · Zeitfenster '+(nach.statistik&&nach.statistik.zeitfenster)+' · Protokoll '+prot.length+' Einträge, z. B. „'+(prot[0]||'—')+'"');
+          pruef(nach.schlafBedarfStd===7.5 && nach.basisProStdDfm===200 && nach.tagesZielPrivatModus==='routinen' && nach.statistik.zeitfenster===14 && prot.length>=5, 'v3.1: Übernehmen wirkt nicht / Protokoll fehlt');
+          var sum=d.querySelector('#einstBody .tuer-det summary'); tippe(sum,'„Einstellungen und Statistik bearbeiten"');
+          var feld=d.querySelector('#einstBody [data-tuer="einstellungen|punkte|zeitGewicht"]');
+          pruef(!!feld && feld.getBoundingClientRect().height>0, 'v3.1 §2: Eingabe Zeit-Gewicht fehlt');
+          freiMachen(); fw.setTab('suche');
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
@@ -2278,7 +2317,7 @@ function bestandSchreiben(){
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
-  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender'||VIEW==='echtTempo'||VIEW==='echtMatrixSpur'||VIEW==='statistikOben'||VIEW==='echtGeld'||VIEW==='echtBloecke'||VIEW==='echtBloeckeAuf'||VIEW==='echtBlockNeu'||VIEW==='einstKorrekturen'||VIEW==='echtFokus28'||VIEW==='echtAbhak'||VIEW==='echtDetail28'||VIEW==='einstAbhak'||VIEW==='echtPflicht'||VIEW==='einstPflicht'||/^echt[A-Za-z]*30$/.test(VIEW))
+  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender'||VIEW==='echtTempo'||VIEW==='echtMatrixSpur'||VIEW==='statistikOben'||VIEW==='echtGeld'||VIEW==='echtBloecke'||VIEW==='echtBloeckeAuf'||VIEW==='echtBlockNeu'||VIEW==='einstKorrekturen'||VIEW==='echtFokus28'||VIEW==='echtAbhak'||VIEW==='echtDetail28'||VIEW==='einstAbhak'||VIEW==='echtPflicht'||VIEW==='einstPflicht'||/^echt[A-Za-z]*30$/.test(VIEW)||VIEW==='echtFreigabe31'||VIEW==='einstProtokoll31')
      ? bestandSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);
