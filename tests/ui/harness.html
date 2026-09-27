@@ -203,11 +203,10 @@ function bestandSchreiben(){
   var AKTIONEN={
     /* ══ v2.0.0 · zwei Navigationsziele, fuenf Sichten ══ */
     heute:    function(fw){ sicht(fw,'heute'); },
-    matrix:   function(fw){ sicht(fw,'matrix');
-                            var q=fw.document.querySelector('[data-sumx="werkzeug"]'); if(q) q.click(); },
-    oft:      function(fw){ sicht(fw,'oft'); },
+    /* v3.0.0 §8: vier Sortierungen — Matrix, Oft und Art sind entfallen */
     faellig:  function(fw){ sicht(fw,'faellig'); },
-    art:      function(fw){ sicht(fw,'art'); },
+    neueste:  function(fw){ sicht(fw,'neueste'); },
+    erledigte:function(fw){ sicht(fw,'erledigte'); },
     freitext: function(fw){ fw.setTab('suche');
                             var i=fw.document.getElementById('suFreitext');
                             i.value='a'; i.dispatchEvent(new fw.Event('input',{bubbles:true})); },
@@ -277,6 +276,30 @@ function bestandSchreiben(){
       var lay=d.getElementById('fokusLayer'), fb=d.querySelectorAll('#fokusView .fb')[1];
       if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
     },
+    /* ══ v3.0 · Screenshots: Routinen-Leiste, Tagesabschluss, Nacht, Aufstehen, Suche ══ */
+    echtLeiste30:function(fw){ var d=fw.document; v30Vorbereiten(fw);
+      ['v3-kaffee','v3-kaffee','v3-essen','v3-zaehne'].forEach(function(id){ var b=d.querySelector('#fokusView [data-alcheck="'+id+'"]'); if(b) b.click(); });
+      var z=d.querySelector('#fokusView [data-alzahl="v3-mails"]'); if(z) z.click();
+      var s1=d.querySelector('#fokusView [data-alsub="v3-m1"]'); if(s1) s1.click();
+      var lay=d.getElementById('fokusLayer'), al=d.querySelector('#fokusView .zs.al'); if(lay && al) lay.scrollTop=Math.max(0, al.offsetTop-40); },
+    echtAbschluss30:function(fw){ var d=fw.document; v30Vorbereiten(fw);
+      ['v3-kaffee','v3-essen','v3-essen'].forEach(function(id){ var b=d.querySelector('#fokusView [data-alcheck="'+id+'"]'); if(b) b.click(); });
+      fw.oeffneAbschlussV3(2);
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; } },
+    echtAbschlussMd30:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.oeffneAbschlussV3(1);
+      var w=d.querySelector('#sheetBody [data-abv3feld="wort"]'); if(w){ w.value='zäh, aber gut'; w.dispatchEvent(new fw.Event('input',{bubbles:true})); }
+      fw.oeffneAbschlussV3(4);
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; } },
+    echtNacht30:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.oeffneAbschlussV3(4); fw.abschlussV3SchliessenUI();
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(110%)'; }
+      var lay=d.getElementById('fokusLayer'), al=d.querySelector('#fokusView .zs.al'); if(lay && al) lay.scrollTop=Math.max(0, al.offsetTop-40); },
+    echtAufstehen30:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.oeffneAbschlussV3(4); fw.abschlussV3SchliessenUI();
+      var p=d.querySelector('#fokusView [data-alplay="v3-schlaf"]'); if(p) p.click();
+      fw.oeffneAufstehen();
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; } },
+    echtSuche30:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.fokusAnsichtSchliessen(); fw.setTab('suche');
+      var a=d.querySelector('[data-suart="routinen"]'); if(a) a.click();
+      var n=d.querySelector('[data-susicht="neueste"]'); if(n) n.click(); },
     /* ══ v2.9 · Screenshots: Punktekurve im Detail, Liste in den Einstellungen ══ */
     echtPflicht:function(fw){ var d=fw.document; v29Vorbereiten(fw); fw.oeffneDetail('r-zaehne');
       var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; }
@@ -452,8 +475,9 @@ function bestandSchreiben(){
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
       var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
       fw.closeSheet(); fw.setTab('suche');
-      var b=d.querySelector('[data-sudom="alle"]'); if(b) b.click();
-      b=d.querySelector('[data-suart="alle"]'); if(b) b.click();
+      /* v3.0.0 §8: kein „Alle"-Knopf mehr — ein zweiter Tipp auf die aktive Wahl hebt sie auf */
+      (function(){ for(var i=0;i<4;i++){ var o=d.querySelector('#suFilter button.on'); if(!o) break; o.click(); } })();
+      var b;
       b=d.querySelector('[data-susicht="matrix"]'); if(b) b.click();
       b=d.querySelector('[data-sumx="werkzeug"]'); if(b) b.click();
     },
@@ -592,7 +616,7 @@ function bestandSchreiben(){
       try{
         /* ── §6 · Sichtwechsel: jede der fuenf Sichten ist per Tap erreichbar ── */
         fw.setTab('suche');
-        ['heute','matrix','oft','faellig','art'].forEach(function(v){
+        ['heute','faellig','neueste','erledigte'] /* v3.0.0 §8 */.forEach(function(v){
           var b=d.querySelector('[data-susicht="'+v+'"]');
           pruef(!!b, '§6: Sicht-Knopf „'+v+'" fehlt');
           if(b){ b.click();
@@ -642,7 +666,7 @@ function bestandSchreiben(){
           pruef(!!fw.fokusKarte() && fw.fokusKarte().id===erste,
                 '§1: nach dem Wegschieben ist keine Karte mehr die laufende');
           /* JETZT muss die Suche bedienbar sein: alle fuenf Sichten + Freitext */
-          ['heute','matrix','oft','faellig','art'].forEach(function(v){
+          ['heute','faellig','neueste','erledigte'] /* v3.0.0 §8 */.forEach(function(v){
             var b=d.querySelector('[data-susicht=\"'+v+'\"]');
             pruef(!!b, '§1: Sicht „'+v+'" fehlt bei laufender Karte');
             if(b){ b.click();
@@ -656,7 +680,7 @@ function bestandSchreiben(){
                   '§1: Freitext liefert nichts, waehrend eine Karte laeuft');
             ff.value=''; ff.dispatchEvent(new fw.Event('input',{bubbles:true})); }
           /* Eine Kartenzeile in der Suche muss anklickbar sein (kein Schleier) */
-          klick('[data-susicht=\"art\"]');   // v2.4: „Heute" ist der Kalender, Listen stehen in den anderen Sichten
+          klick('[data-susicht=\"neueste\"]');   // v2.4: „Heute" ist der Kalender, Listen stehen in den anderen Sichten (v3.0: „Neueste")
           var reihe=d.querySelector('#suBody [data-kette]');
           pruef(!!reihe, '§1: keine Kartenzeile in der Suche erreichbar');
           /* Zurueck ueber die Leiste */
@@ -764,8 +788,9 @@ function bestandSchreiben(){
         /* ── §10 · Tagesabschluss: nur abraeumen und exportieren ── */
         fw.setTab('suche');
         fw.oeffneTagAbschluss();
-        pruef(!!d.querySelector('[data-abfinish]'), '§10: Abschluss-Knopf fehlt');
-        pruef(!d.querySelector('[data-abweiter]'), '§10: es gibt noch einen zweiten Schritt');
+        // v3.0.0 §6: der Tagesabschluss ist die Ansicht mit vier Schritten und einem „Schließen"
+        pruef(!!d.querySelector('[data-abv3zu]'), '§10: Abschluss-Knopf fehlt');
+        pruef(d.querySelectorAll('#sheetBody [data-abv3schritt]').length===4, '§10 (v3.0): nicht die vier Schritte');
         fw.closeSheet();
 
         /* ── Merge 21.09. · Der VOLLEXPORT traegt die Routinen-Bausteine ──
@@ -809,8 +834,9 @@ function bestandSchreiben(){
         var exFeld=d.getElementById('syncEx');
         /* §4 (v2.1.0): Der DATENVERTRAG bleibt 2.0 (Gate), die App-Version
            zieht auf 2.1.0 — sie reist als appVersion mit. */
-        pruef(!!exFeld && /"appVersion":\s*"2\./.test(exFeld.value),
-              '§11: Export traegt keine 2.x-appVersion');
+        // v3.0.0: die App heisst 3.0.0, der Datenvertrag bleibt 2.0 (additiv)
+        pruef(!!exFeld && /"appVersion":\s*"3\./.test(exFeld.value),
+              '§11: Export traegt keine 3.x-appVersion');
         pruef(((lsGetMeta()||{}).letzterSyncBestaetigtTs||null)===tsVor,
               '§11: der Zeitstempel wurde schon VOR der Bestaetigung fortgeschrieben');
         klick('[data-syncbestaetigt]');
@@ -977,11 +1003,11 @@ function bestandSchreiben(){
           pruef(ta===abKnopf || (ta&&abKnopf.contains(ta)) || (ta&&ta.closest&&ta.closest('[data-tagclose]')),
                 '§3: der Abschluss-Knopf ist verdeckt von '+beschreib(ta));
           abKnopf.click();
-          pruef(!!d.querySelector('[data-abfinish]'), '§3: der Abschluss oeffnet nicht');
+          pruef(!!d.querySelector('[data-abv3zu]'), '§3: der Abschluss oeffnet nicht (v3.0: Ansicht mit vier Schritten)');
           fw.closeSheet();
         }
         /* Und danach ist die Suche weiter bedienbar */
-        ['heute','matrix','faellig'].forEach(function(v){
+        ['heute','neueste','faellig'].forEach(function(v){   /* v3.0.0 §8 */
           var b=d.querySelector('[data-susicht="'+v+'"]'); if(b) b.click();
           pruef(b && d.querySelector('[data-susicht="'+v+'"]').className.indexOf('on')>=0,
                 '§3: Sicht „'+v+'" nach dem Abschluss-Dialog nicht schaltbar');
@@ -1001,7 +1027,7 @@ function bestandSchreiben(){
             if(tr===fab || fab.contains(tr)) return 'ok';
             return 'verdeckt von '+beschreib(tr);
           }
-          ['heute','matrix','oft','faellig','art'].forEach(function(v){
+          ['heute','faellig','neueste','erledigte'] /* v3.0.0 §8 */.forEach(function(v){
             var b=d.querySelector('[data-susicht="'+v+'"]'); if(b) b.click();
             var r=plusTrifft(v);
             pruef(r==='ok', '§2: Plus in Sicht „'+v+'" — '+r);
@@ -1027,69 +1053,25 @@ function bestandSchreiben(){
           /* ACHTUNG: renderSuche baut die Sicht-Leiste NEU. Ein vorher
              gegriffenes Element ist danach abgehaengt — ein Klick darauf
              tut nichts. Deshalb nach jedem Sichtwechsel frisch abfragen. */
-          klick('[data-susicht="art"]');
-          var f=d.querySelector('[data-suerl]');
-          pruef(!!f, '§3: Filter „Erledigte zeigen" fehlt');
+          /* v3.0.0 §8: „Erledigte" ist eine der vier Sortierungen */
+          klick('[data-susicht="neueste"]');
+          var ohneE=d.querySelectorAll('#suBody .krow.fertig, #suBody .krow.erl').length;
+          var f=d.querySelector('[data-susicht="erledigte"]');
+          pruef(!!f, '§3: Sortierung „Erledigte" fehlt');
           if(f){
             var rf=f.getBoundingClientRect();
             var tf=d.elementFromPoint(Math.round(rf.left+rf.width/2), Math.round(rf.top+rf.height/2));
-            pruef(tf===f || f.contains(tf), '§3: der Filter ist verdeckt von '+beschreib(tf));
-            var ohne=d.querySelectorAll('#suBody .krow').length;
-            d.querySelector('[data-suerl]').click();
-            var mit=d.querySelectorAll('#suBody .krow').length;
-            finding('echt · §3 Sicht „Art": ohne Erledigte '+ohne+' Zeilen, mit '+mit);
-            pruef(mit>ohne, '§3: der Filter zeigt nicht MEHR Karten ('+ohne+' → '+mit+')');
-            d.querySelector('[data-suerl]').click();   // zurueck
+            pruef(tf===f || f.contains(tf), '§3: die Sortierung ist verdeckt von '+beschreib(tf));
+            if(tf) tf.click();
+            var mit=d.querySelectorAll('#suBody .krow[data-kid]').length;
+            finding('echt · §3 (v3.0) Sortierung „Erledigte": '+mit+' Zeilen · in „Neueste" erledigt markiert '+ohneE);
+            pruef(mit>0 && ohneE===0, '§3: „Erledigte" zeigt nichts oder „Neueste" zeigt Erledigtes');
+            klick('[data-susicht="heute"]');
           }
         })();
-        /* ══ §1 (v2.1.0) · DER GANZE ABSCHLUSS ═════════════════════════ */
-        freiMachen();
-        (function(){
-          klick('[data-susicht="heute"]');
-          var abk=d.querySelector('[data-tagclose]');
-          pruef(!!abk, '§1: Abschluss-Knopf fehlt');
-          if(!abk) return;
-          abk.click();
-          pruef(!!d.querySelector('[data-abfinish]'), '§1: Abschluss oeffnet nicht');
-          /* §1.1 Routinen laufen automatisch — der Block ist da */
-          pruef(d.getElementById('sheetBody').innerHTML.indexOf('laufen automatisch')>=0,
-                '§1.1: kein Hinweis, dass Routinen automatisch laufen');
-          var durch=d.querySelector('[data-abdurch]');
-          var alle =d.querySelector('[data-aballemorgen]');
-          finding('echt · §1 Abschluss: Durchgehen-Knopf '+(!!durch)+' · Alle-auf-morgen '+(!!alle)+
-                  ' · faellige Aufgaben '+fw.abschlussKarten().length);
-          if(durch){
-            /* §1.3 Durchgang oeffnet DENSELBEN Anlege-Dialog */
-            durch.click();
-            pruef(!!d.querySelector('#sheetBody [data-bind="titel"]'),
-                  '§1.3: der Durchgang oeffnet nicht den Anlege-Dialog');
-            pruef(!!d.querySelector('#sheetBody #dmxPad'),
-                  '§1.3: das Matrixfeld (Pad) fehlt im Durchgang');
-            pruef(d.getElementById('sheetBody').innerHTML.indexOf('Karte 1 von')>=0,
-                  '§1.3: kein Fortschritt im Durchgang');
-            /* §1.4 Default morgen */
-            var dz=d.querySelector('#sheetBody [data-bind="faelligkeit"]');
-            pruef(!!dz && dz.value===fw.morgenIso(), '§1.4: Default ist nicht morgen ('+(dz&&dz.value)+')');
-            var w=d.querySelector('[data-abweiter]');
-            pruef(!!w, '§1.3: kein „Weiter"-Knopf');
-            if(w) w.click();
-            pruef(!!d.querySelector('#sheetBody [data-bind="titel"]') ||
-                  !!d.querySelector('[data-abfinish]'),
-                  '§1.3: „Weiter" fuehrt weder zur naechsten Karte noch zurueck');
-            fw.closeSheet();
-          }
-          /* §1.5 Alle auf morgen */
-          abk=d.querySelector('[data-tagclose]'); if(abk) abk.click();
-          var alle2=d.querySelector('[data-aballemorgen]');
-          if(alle2){
-            var vorher=fw.abschlussKarten().length;
-            alle2.click();
-            var nachher=fw.abschlussKarten().length;
-            finding('echt · §1.5 Alle auf morgen: '+vorher+' → '+nachher+' faellig');
-            pruef(nachher===0, '§1.5: es sind noch '+nachher+' Karten faellig');
-          }
-          fw.closeSheet();
-        })();
+        /* ══ §1 (v2.1.0) · DER GANZE ABSCHLUSS — seit v3.0.0 §6 ersetzt durch die
+           Ansicht mit vier Schritten (geprueft im v3.0-Block unten) ══ */
+        finding('echt · §1 (v2.1.0) alter Abschluss-Durchgang: ersetzt durch v3.0 §6 (vier Schritte)');
         /* ══════════════════════════════════════════════════════════════
            v2.1.1 · KARTE ANTIPPEN, SCHNELLKNOEPFE, DIALOGREGELN, SUCHE
            ══════════════════════════════════════════════════════════════ */
@@ -1106,7 +1088,7 @@ function bestandSchreiben(){
         })();
         /* §1 · Tipp auf den Kartenkoerper — Titel, Metazeile, freie Flaeche */
         (function(){
-          klick('[data-susicht="art"]');   // v2.4: Kartenzeilen in einer Listen-Sicht
+          klick('[data-susicht="neueste"]');   // v2.4: Kartenzeilen in einer Listen-Sicht (v3.0: „Neueste")
           var row=d.querySelector('#suBody .krow[data-kid]');
           pruef(!!row, '§1: keine Kartenzeile');
           if(!row) return;
@@ -1174,8 +1156,8 @@ function bestandSchreiben(){
           if(pp){ pp.click();
             pruef(!(d.getElementById('sheet').className.indexOf('on')>=0), '§3: Pausieren oeffnet einen Dialog');
             var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click();
-            var b=d.querySelector('[data-susicht="matrix"]'); if(b) b.click();
-            pruef(b && d.querySelector('[data-susicht="matrix"]').className.indexOf('on')>=0,
+            var b=d.querySelector('[data-susicht="neueste"]'); if(b) b.click();
+            pruef(b && d.querySelector('[data-susicht="neueste"]').className.indexOf('on')>=0,
                   '§3: nach dem Pausieren ist die Suche nicht bedienbar'); }
         })();
         /* §5 · Freitext am gelebten Bestand */
@@ -1216,8 +1198,8 @@ function bestandSchreiben(){
           pruef(fw.fokusKarte() && fw.fokusKarte().id===startMs, 'v2.1.2 §1: Tab „'+ziel+'" hat die laufende Karte verloren');
           pruef(!(d.getElementById('sheet').className.indexOf('on')>=0), 'v2.1.2 §1: Tab „'+ziel+'" oeffnet einen Dialog');
           if(ziel==='suche'){
-            var b=d.querySelector('[data-susicht="matrix"]'); if(b) b.click();
-            pruef(b && d.querySelector('[data-susicht="matrix"]').className.indexOf('on')>=0,
+            var b=d.querySelector('[data-susicht="neueste"]'); if(b) b.click();
+            pruef(b && d.querySelector('[data-susicht="neueste"]').className.indexOf('on')>=0,
                   'v2.1.2 §1: nach Tab „Suche" ist die Sicht nicht schaltbar');
             klick('[data-susicht="heute"]');
             var row=d.querySelector('#suBody .krow[data-kid]');
@@ -1291,31 +1273,10 @@ function bestandSchreiben(){
             finding('echt · v2.2 §2 '+c[0]+' + '+c[1]+': '+zeilen.length+' Zeilen in „Heute" · Kopf „'+kopf+'" · gespeichert suDom='+ui.suDom+' suArt='+ui.suArt);
             pruef(ui.suDom===c[0] && ui.suArt===c[1], 'v2.2 §2: Filterwahl nicht im Speicher');
           });
-          klick('[data-sudom="alle"]'); klick('[data-suart="alle"]');
+          (function(){ for(var i=0;i<4;i++){ var o=d.querySelector('#suFilter button.on'); if(!o) break; o.click(); } })();   // v3.0.0 §8: Wahl aufheben = beides
         })();
-        /* ══ v2.2 §3 · MATRIX-FELD ANTIPPEN — MESSUNG ══════════════════ */
-        (function(){
-          freiMachen(); fw.setTab('suche'); klick('[data-susicht="matrix"]');
-          ['ablenkung','werkzeug','zustand','ziel'].forEach(function(f){
-            var q=d.querySelector('[data-sumx="'+f+'"]'); if(!q){ pruef(false,'v2.2 §3: Feld '+f+' fehlt'); return; }
-            var r=q.getBoundingClientRect(), x=Math.round(r.left+r.width/2), y=Math.round(r.top+r.height/2);
-            var hit=d.elementFromPoint(x,y), kette=[], e=hit;
-            while(e && kette.length<4){ kette.push(beschreib(e)); e=e.parentElement; }
-            pruef(hit && q.contains(hit), 'v2.2 §3: Feld '+f+' verdeckt von '+beschreib(hit));
-            if(hit) hit.click();
-            var zur=d.querySelector('#suBody .su-mxzurueck'), kz=d.querySelector('#suBody .su-kopfzeile');
-            var zeilen=d.querySelectorAll('#suBody .krow[data-kid]').length, leer=d.querySelector('#suBody .leer');
-            var kr=kz?kz.getBoundingClientRect():null;
-            finding('echt · v2.2 §3 Feld '+f+' ('+x+','+y+'): Treffer '+kette.join(' < ')+' · Liste „'+(kz?kz.textContent:'-')+
-              '" bei y='+(kr?Math.round(kr.top):'-')+' · Zeilen '+zeilen+(leer?(' · „'+leer.textContent+'"'):''));
-            pruef(zur && kz && kr.top<FH*0.75, 'v2.2 §3: Feld '+f+' zeigt keine Liste im Bild');
-            pruef(zeilen>0 || leer, 'v2.2 §3: Feld '+f+' ohne Karten und ohne Hinweis');
-            if(zur){ var zr=zur.getBoundingClientRect(), zh=d.elementFromPoint(Math.round(zr.left+20), Math.round(zr.top+zr.height/2));
-              pruef(zh===zur, 'v2.2 §3: Zurück verdeckt von '+beschreib(zh)); if(zh) zh.click(); }
-            pruef(!!d.querySelector('#suBody .su-mxgrid'), 'v2.2 §3: Zurück fuehrt nicht zum Raster');
-          });
-          klick('[data-susicht="heute"]');
-        })();
+        /* ══ v2.2 §3 · MATRIX-FELD in der Suche — seit v3.0.0 §8 entfallen (vier Sortierungen) ══ */
+        finding('echt · v2.2 §3 Matrix-Sicht der Suche: entfallen (v3.0 §8)');
         /* const S liegt nicht auf window — Uhr-Zustand und Ist-Zeit kommen
            deshalb aus dem echten localStorage (same-origin iframe). */
         /* Der Dialog faehrt per CSS-Transition hoch; headless laeuft sie nie ab,
@@ -1331,7 +1292,7 @@ function bestandSchreiben(){
           var k=a.filter(function(x){ return x.id===id; })[0]; return k?Number(k.istSek||0):0; }catch(e){ return 0; } }
         /* ══ v2.3 §1–§3 · SUCHE: kompakt, nur Faelliges, Ungeplantes ans Ende ══ */
         (function(){
-          freiMachen(); fw.setTab('suche'); klick('[data-sudom="alle"]'); klick('[data-suart="alle"]');
+          freiMachen(); fw.setTab('suche'); (function(){ for(var i=0;i<4;i++){ var o=d.querySelector('#suFilter button.on'); if(!o) break; o.click(); } })();   // v3.0.0 §8
           klick('[data-susicht="heute"]');
           var reihen=[].slice.call(d.querySelectorAll('#suBody .krow[data-kid]'));
           var gedimmt=reihen.map(function(r){ return r.className.indexOf('eingefroren')>=0; });
@@ -1363,7 +1324,7 @@ function bestandSchreiben(){
           klick('[data-suart="routinen"]');
           var mitAus=d.querySelectorAll('#suBody .krow[data-kid]').length;
           var kopf=(d.querySelector('#suBody .su-kopfzeile')||{}).textContent||'';
-          klick('[data-suart="alle"]');
+          (function(){ for(var i=0;i<4;i++){ var o=d.querySelector('#suFilter button.on'); if(!o) break; o.click(); } })();   // v3.0.0 §8: Wahl aufheben
           var ohneAus=d.querySelectorAll('#suBody .krow[data-kid]').length;
           finding('echt · v2.3 §2 Sicht Heute: ohne Ausnahme '+ohneAus+' Zeilen · Art-Filter „Routinen" '+mitAus+
                   ' Zeilen · Kopf „'+kopf+'"');
@@ -1378,14 +1339,14 @@ function bestandSchreiben(){
           freiMachen();
           var vs=d.querySelector('#suBody .su-vorschlag');
           var erste=d.querySelector('#suBody .krow[data-kid]');
-          var mx=d.querySelector('.su-mxzurueck');
+          var mx=d.querySelector('[data-susicht="heute"].on');   // v3.0.0 §8: Vorschlag oben in „Heute"
           var r=vs?vs.getBoundingClientRect():null;
           var oben=r?d.elementFromPoint(Math.round(r.left+r.width/2), Math.round(r.top+r.height/2)):null;
-          finding('echt · v2.3 §4 nach dem Vorschlag: Sicht '+(mx?'Matrix/Feld offen':'NICHT Matrix')+
+          finding('echt · v2.3 §4 nach dem Vorschlag: Sicht '+(mx?'Heute (v3.0)':'NICHT Heute')+
                   ' · Vorschlagszeile '+(vs?('„'+vs.textContent.slice(0,46)+'" bei y='+Math.round(r.top)):'fehlt')+
                   ' · erste Karte '+(erste?erste.querySelector('.ktitle').textContent.slice(0,28):'—')+
                   ' · Domaene '+(wz[0]?wz[0].domain:'—'));
-          pruef(!!mx && !!vs, 'v2.3 §4: kein Sprung in die Werkzeug-Liste mit Vorschlag');
+          pruef(!!mx && !!vs, 'v2.3 §4: kein Sprung in „Heute" mit Vorschlag (v3.0)');
           pruef(!!oben, 'v2.3 §4: Vorschlagszeile ausserhalb des Bildes');
           pruef(erste && erste.dataset.kid===wz[0].id, 'v2.3 §4: der Vorschlag steht nicht oben');
           pruef(!(d.getElementById('sheet').className.indexOf('on')>=0), 'v2.3 §4: es oeffnet wieder ein Sheet');
@@ -1487,6 +1448,7 @@ function bestandSchreiben(){
                     Math.round(z.felder.zustand)+'′ · Werkzeuge '+Math.round(z.felder.werkzeug)+'′ · Ziele '+
                     Math.round(z.felder.ziel)+'′ · unbekannt '+Math.round(z.unbekannt)+'′ = '+Math.round(summe)+'′ Messzeit');
             pruef(Math.abs(summe-z.mess)<0.5, 'v2.3 §8: Summe der Felder + unbekannt != Messzeit');
+            mx.scrollIntoView({block:'center'});   // v3.0.0 §9: die Fokusansicht beginnt oben — die Matrix erst ins Bild holen
             var mr=mx.getBoundingClientRect();
             var hit2=d.elementFromPoint(Math.round(mr.left+mr.width/2), Math.round(mr.top+mr.height/2));
             /* v2.4 §6: die grosse Matrix IST jetzt ein Einstieg ins Tagebuch */
@@ -1571,10 +1533,9 @@ function bestandSchreiben(){
             pruef((fNach.karteId||null)===laufVor && lsLaeuft()===laeuftVor, 'v2.4 §2: Tipp hat die Uhr veraendert');
             var zu=d.querySelector('[data-fokuszu]'); if(zu) zu.click(); }
           /* §6 · Tagebuch aus der Suche (Knopf) und aus der Statistik (Feld) */
-          freiMachen(); fw.setTab('suche'); klick('[data-susicht="matrix"]');
-          var tbk=d.querySelector('#suBody [data-tagebuch]');
-          if(tbk){ tbk.scrollIntoView({block:'center'}); }
-          var ht=trifft('#suBody [data-tagebuch]','Tagebuch-Knopf (Suche/Matrix)');
+          /* v3.0.0 §8: der Tagebuch-Knopf stand in der entfallenen Matrix-Sicht; das Tagebuch bleibt ueber die Fokus- und die Statistik-Matrix erreichbar */
+          freiMachen(); fw.setTab('suche');
+          var ht=null; finding('echt · v2.4 §6 Tagebuch-Knopf der Suche: mit der Matrix-Sicht entfallen (v3.0 §8)');
           if(ht){ ht.click(); sheetRuhe();
             pruef(!!d.querySelector('#sheetBody #tbGedanke'), 'v2.4 §6: Knopf oeffnet kein Tagebuch');
             fw.closeSheet(); sheetRuheAus(); freiMachen(); }
@@ -1609,7 +1570,7 @@ function bestandSchreiben(){
             pruef(!!d.querySelector('#statistikBody [data-statdom="dfm"].on'), 'v2.4: Domaenen-Umschalter der Statistik wirkt nicht');
             var da=d.querySelector('#statistikBody [data-statdom="alle"]'); if(da) da.click(); }
           /* §4 · Counter bleibt nach „+" sichtbar */
-          fw.setTab('suche'); klick('[data-susicht="art"]');
+          fw.setTab('suche'); klick('[data-susicht="neueste"]');   // v3.0.0 §8
           var tp=d.querySelector('#suBody [data-tickplus]');
           if(tp){ var ck=tp.dataset.tickplus;
             for(var i=0;i<3;i++){ var t2=d.querySelector('#suBody [data-tickplus="'+ck+'"]'); if(!t2) break;
@@ -1872,7 +1833,8 @@ function bestandSchreiben(){
           var zeilen=[].slice.call(d.querySelectorAll('#fokusView .al .al-z'));
           var ids=zeilen.map(function(z){ return z.dataset.alkarte; });
           finding('echt · v2.8 §1 Abhak-Leiste: '+ids.length+' Zeilen · '+ids.join(', ')+' · Zeilenhöhen '+zeilen.map(function(z){ return Math.round(z.getBoundingClientRect().height); }).join('/'));
-          pruef(ids.join(',')==='r-zaehne,r-10,r-12,r-11,c-harness', 'v2.8 §1: Reihenfolge nach Block und Kette stimmt nicht ('+ids.join(',')+')');
+          // v3.0.0 §4: die Leiste traegt alle Routinen und Counter — die mit Block zuerst, in Block- und Kettenfolge
+          pruef(ids.slice(0,5).join(',')==='r-zaehne,r-10,r-12,r-11,c-harness', 'v2.8 §1: Reihenfolge nach Block und Kette stimmt nicht ('+ids.slice(0,6).join(',')+'…)');
           zeilen.forEach(function(z){ pruef(z.getBoundingClientRect().height>=44, 'v2.8 §1: Zeile '+z.dataset.alkarte+' niedriger als 44 px'); });
           var sheetVor=d.getElementById('sheet').className.indexOf('on')>=0;
           tippe(d.querySelector('#fokusView [data-alcheck="r-zaehne"]'),'Häkchen „Zähne putzen"');
@@ -1880,10 +1842,10 @@ function bestandSchreiben(){
           finding('echt · v2.8 §1 Häkchen: status='+(kz&&kz.status)+' · gebucht '+(kz&&kz.punkteOverride)+' P · Dialog '+(d.getElementById('sheet').className.indexOf('on')>=0?'OFFEN':'keiner'));
           pruef(kz && kz.status==='erledigt' && !sheetVor && d.getElementById('sheet').className.indexOf('on')<0, 'v2.8 §1: Häkchen hakt nicht ab oder öffnet einen Dialog');
           var ids2=[].slice.call(d.querySelectorAll('#fokusView .al .al-z')).map(function(z){ return z.dataset.alkarte; });
-          pruef(ids2[ids2.length-1]==='r-zaehne' && !!d.querySelector('#fokusView .al-z.fertig[data-alkarte="r-zaehne"]'), 'v2.8 §1: erledigte Routine nicht ausgegraut am Ende');
+          pruef(ids2[0]==='r-zaehne' && !!d.querySelector('#fokusView .al-z.fertig[data-alkarte="r-zaehne"]'), 'v2.8 §1: erledigte Routine nicht ausgegraut am Ende ihres Blocks (v3.0: sie ist allein im Block „Morgen")');
           tippe(d.querySelector('#fokusView [data-alcheck="c-harness"]'),'+1 am Counter');
           var kc=lsK('c-harness');
-          pruef(kc && kc.ticksHeute===1 && /1× · /.test((d.querySelector('#fokusView .al-z[data-alkarte="c-harness"]')||{}).textContent||''), 'v2.8 §1: +1 zählt nicht / Zählstand fehlt');
+          pruef(kc && kc.ticksHeute===1 && /^1×/.test((d.querySelector('#fokusView [data-alzahl="c-harness"]')||{}).textContent||''), 'v2.8 §1: +1 zählt nicht / Zählstand fehlt (v3.0: im Zähler-Feld)');
           tippe(d.querySelector('#fokusView [data-alplay="r-10"]'),'Play „Routine 10"');
           var fo=lsFokus(), k10=lsK('r-10');
           finding('echt · v2.8 §1 Play: läuft '+(fo&&fo.karteId)+' · '+(fo&&fo.laeuft)+' · v2.8.2 Bonus beim Start '+(k10&&k10.startBonus?k10.startBonus.punkte+' P':'—'));
@@ -2080,6 +2042,121 @@ function bestandSchreiben(){
           pruef(String(d.getElementById('sPhPrv').textContent)===String(Math.round(Math.max(0,fw.tagesPunkteDomain('privat')))), 'v2.9.1 §3: Statusleiste zeigt nicht den Tagesstand');
           freiMachen(); fw.setTab('suche');
         })();
+        /* ══ v3.0 · ROUTINEN-LEISTE, UNTER-ZAEHLER, TAGESABSCHLUSS, SUCHE — elementFromPoint ══ */
+        (function(){
+          function mitte(e){ var r=e.getBoundingClientRect(); return {x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2)}; }
+          function tippe(e, wie){
+            if(!e){ pruef(false,'v3.0: '+wie+' fehlt'); return null; }
+            function ruhe(){ if(d.getElementById('sheet').className.indexOf('on')>=0) sheetRuhe(); else sheetRuheAus(); }
+            e.scrollIntoView({block:'center'}); ruhe();
+            var r=e.getBoundingClientRect();
+            pruef(r.width>=40 && r.height>=40, 'v3.0: '+wie+' Tippfläche '+Math.round(r.width)+'×'+Math.round(r.height)+' px < 44');
+            var m=mitte(e), hit=d.elementFromPoint(m.x,m.y);
+            pruef(hit && (hit===e || e.contains(hit)), 'v3.0: '+wie+' verdeckt von '+beschreib(hit));
+            if(hit){ if(typeof hit.click==='function') hit.click(); else hit.dispatchEvent(new fw.MouseEvent('click',{bubbles:true})); }
+            ruhe(); return hit;
+          }
+          function lsK(id){ try{ return JSON.parse(localStorage.getItem('fokus2_karten')||'[]').filter(function(k){ return k.id===id; })[0]||null; }catch(e){ return null; } }
+          function lsU(id){ try{ return JSON.parse(localStorage.getItem('fokus2_unteraufgaben')||'[]').filter(function(u){ return u.id===id; })[0]||null; }catch(e){ return null; } }
+          function nTicks(x){ return x && x.tickLog && Array.isArray(x.tickLog.ticks) ? x.tickLog.ticks.length : 0; }
+          function q(sel){ return d.querySelector(sel); }
+          freiMachen(); var fo0=lsFokus(); if(fo0 && fo0.laeuft) fw.fokusZeitEinbuchen();
+          fw.syncImport(JSON.stringify(v30Paket())); fw.setTab('suche'); fw.fokusKarteAnsehen('a-3');
+          var zeilen=[].slice.call(d.querySelectorAll('#fokusView .zs.al > .zs-spalte > .al-z:not(.al-sub)')).map(function(z){ return z.dataset.alkarte; });
+          var aufg=zeilen.filter(function(id){ var k=lsK(id); return k && !k.rhythmus && !k.ticksAktiv && !k.modus; });
+          finding('echt · v3.0 §4 Routinen-Leiste: '+zeilen.length+' Zeilen · erste '+zeilen[0]+' · letzte '+zeilen.slice(-2).join(', ')+' · Aufgaben darin '+aufg.length);
+          pruef(aufg.length===0, 'v3.0 §4: Aufgaben in der Routinen-Leiste ('+aufg.join(',')+')');
+          pruef(zeilen[0]==='v3-auf' && zeilen[zeilen.length-1]==='v3-schlaf' && zeilen[zeilen.length-2]==='v3-ab', 'v3.0 §4: Aufstehen zuerst / Abschluss und Schlafen zuletzt');
+          /* +1 · Zaehler · Unter-Zaehler */
+          tippe(q('#fokusView [data-alcheck="v3-kaffee"]'),'+1 „Kaffee"'); tippe(q('#fokusView [data-alcheck="v3-kaffee"]'),'+1 „Kaffee" (2)');
+          tippe(q('#fokusView [data-alcheck="v3-kaffee"]'),'+1 „Kaffee" (3)'); tippe(q('#fokusView [data-alcheck="v3-kaffee"]'),'+1 „Kaffee" (4)');
+          var kk=lsK('v3-kaffee'), kp=(kk&&kk.tickLog?kk.tickLog.ticks:[]).map(function(t){ return t.punkte; });
+          finding('echt · v3.0 §1 Kaffee 4× +1 per elementFromPoint: '+kp.join(', ')+' · Zähler „'+(q('#fokusView [data-alzahl="v3-kaffee"]')||{}).textContent+'"');
+          pruef(kp.join(',')==='50,50,0,-50', 'v3.0 §1: Kaffee-Staffel stimmt nicht ('+kp.join(',')+')');
+          tippe(q('#fokusView [data-alcheck="v3-zaehne"]'),'+1 „Zähne"'); tippe(q('#fokusView [data-alcheck="v3-zaehne"]'),'+1 „Zähne" (2)');
+          pruef(lsK('v3-zaehne').status==='erledigt' && !q('#fokusView [data-alcheck="v3-zaehne"]'), 'v3.0 §2: Tageslimit 2 erledigt die Karte nicht / +1 bleibt');
+          tippe(q('#fokusView [data-alzahl="v3-mails"]'),'Zähler „Mails & Post" (aufklappen)');
+          var subs=d.querySelectorAll('#fokusView .al-sub [data-alsub]');
+          finding('echt · v3.0 §3.2 Mails aufgeklappt: '+subs.length+' Unter-Zähler · Zeilenhöhe '+(subs[0]?Math.round(subs[0].closest('.al-z').getBoundingClientRect().height):'—')+' px');
+          pruef(subs.length===4, 'v3.0 §3.2: Unter-Zähler klappen nicht auf');
+          tippe(q('#fokusView [data-alsub="v3-m2"]'),'+1 Unter-Zähler „Dokumente einscannen"'); tippe(q('#fokusView [data-alsub="v3-m2"]'),'+1 Unter-Zähler (2)');
+          var m2=lsU('v3-m2');
+          finding('echt · v3.0 §3.2 Unter-Zähler „Dokumente einscannen" 2× +1: '+nTicks(m2)+' Ticks · Karte „Mails & Post" läuft nicht · '+fw.fmtP(fw.kartePunkteHeute(lsK('v3-mails')))+' P');
+          pruef(nTicks(m2)===2 && !(lsFokus()&&lsFokus().karteId==='v3-mails'&&lsFokus().laeuft), 'v3.0 §3.2: Unter-Zähler-Tick fehlt oder startet die Karte');
+          /* Eingabe beim Tick */
+          tippe(q('#fokusView [data-alcheck="v3-elvanse"]'),'+1 „Elvanse" (Eingabe)'); sheetRuhe();
+          var ein=q('#sheetBody #tickEingabe'); pruef(!!ein, 'v3.0 §2: Eingabe „Dosis" wird nicht abgefragt');
+          if(ein){ ein.value='30'; tippe(q('#sheetFoot [data-tickeingabe="v3-elvanse"]'),'„+1 buchen" mit Dosis'); }
+          var ev=lsK('v3-elvanse'), evt=ev&&ev.tickLog&&ev.tickLog.ticks[0];
+          finding('echt · v3.0 §2 Elvanse: Tick mit Eingabe '+(evt?evt.eingabe+' mg · '+evt.punkte+' P':'—'));
+          pruef(evt && String(evt.eingabe)==='30', 'v3.0 §2: Eingabewert nicht gespeichert');
+          /* ▶/⏸ ein Toggle */
+          tippe(q('#fokusView [data-alplay="v3-essen"]'),'▶ „Essen"');
+          var f1=lsFokus(); var es=lsK('v3-essen');
+          tippe(q('#fokusView [data-alplay="v3-essen"]'),'⏸ „Essen"');
+          var f2=lsFokus();
+          finding('echt · v3.0 §3.1 ▶ Essen: läuft '+(f1&&f1.laeuft)+' · Tick beim Start '+nTicks(es)+' (100 P) · ⏸ → läuft '+(f2&&f2.laeuft));
+          pruef(f1 && f1.karteId==='v3-essen' && f1.laeuft && nTicks(es)===1 && f2 && !f2.laeuft, 'v3.0 §3.1: ▶/⏸ als Toggle mit Tick beim Start stimmt nicht');
+          /* ══ Tagesabschluss ══ */
+          fw.fokusKarteAnsehen('a-3');
+          tippe(q('#fokusView [data-alcheck="v3-ab"]'),'+1 „Tagesabschluss"'); sheetRuhe();
+          pruef(/Tagesabschluss/.test(d.getElementById('sheetTitel').textContent), 'v3.0 §6: „Tagesabschluss" öffnet die Ansicht nicht');
+          var schritte=d.querySelectorAll('#sheetBody [data-abv3schritt]').length;
+          tippe(q('#sheetBody [data-abv3schritt="2"]'),'Schritt 2');
+          var ue=q('#sheetBody [data-abv3wahl="v3-essen"][data-v="ueberspringen"]');
+          tippe(ue,'„überspringen" bei Essen');
+          pruef(!!q('#sheetBody [data-abv3wahl="v3-essen"][data-v="ueberspringen"].on'), 'v3.0 §6: „überspringen" wird nicht markiert');
+          tippe(q('#sheetBody [data-abv3schritt="3"]'),'Schritt 3');
+          var hk=q('#sheetBody [data-abv3haken]'), hid=hk?hk.dataset.abv3haken:null;
+          if(hk){ tippe(hk,'„✓ abhaken" in Schritt 3'); sheetRuhe();
+            pruef(!!q('#sheetFoot [data-abgo]'), 'v3.0 §6: Abhaken öffnet nicht den normalen Dialog');
+            tippe(q('#sheetFoot [data-abgo]'),'„✅ Erledigen"'); sheetRuhe();
+            finding('echt · v3.0 §6 Schritt 3 abgehakt „'+(lsK(hid)||{}).titel+'": status '+(lsK(hid)||{}).status+' · zurück in „'+d.getElementById('sheetTitel').textContent+'", Schritt 3 aktiv '+!!q('#sheetBody [data-abv3schritt="3"].on'));
+            pruef((lsK(hid)||{}).status==='erledigt' && /Tagesabschluss/.test(d.getElementById('sheetTitel').textContent) && !!q('#sheetBody [data-abv3schritt="3"].on'), 'v3.0 §6: nach dem Abhaken nicht zurück im Abschluss');
+          } else finding('echt · v3.0 §6 Schritt 3: keine offene Aufgabe mit Deadline heute im Bestand');
+          tippe(q('#sheetBody [data-abv3schritt="4"]'),'Schritt 4');
+          var md=(q('#sheetBody #abv3Md')||{}).value||'';
+          tippe(q('#sheetBody [data-abv3copy]'),'„Text kopieren"');
+          tippe(q('#sheetBody [data-abv3dl]'),'„Herunterladen"');
+          finding('echt · v3.0 §6 Schritte '+schritte+' · .md Zeile 1 „'+md.split('\n')[0]+'" · '+md.length+' Zeichen · endet mit JSON-Block '+/```json[\s\S]*```\n?$/.test(md));
+          pruef(schritte===4 && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(md.split('\n')[0]) && /```json[\s\S]*```\n?$/.test(md), 'v3.0 §6: vier Schritte / .md-Form stimmt nicht');
+          tippe(q('#sheetFoot [data-abv3zu]'),'„✓ Schließen"');
+          var tg=JSON.parse(localStorage.getItem('fokus2_tag')||'null');
+          var aus=[].slice.call(d.querySelectorAll('#fokusView .al-z:not(.al-sub)')).filter(function(z){ return z.className.indexOf(' aus')<0 || Number(fw.getComputedStyle(z).opacity)>0.5; }).map(function(z){ return z.dataset.alkarte; });   // Klasse UND sichtbare Deckkraft
+          finding('echt · v3.0 §6 geschlossen: Tag abgeschlossen '+!!(tg&&tg.endeTs)+' · aktiv nur noch '+aus.join(', ')+' · Fokus zeigt '+(q('#fokusView')?'Schlafen':'—'));
+          pruef(tg && tg.endeTs && aus.every(function(id){ return id==='v3-schlaf' || id==='v3-auf'; }) && aus.indexOf('v3-schlaf')>=0, 'v3.0 §6: nach dem Schließen ist nicht alles außer Schlafen grau');
+          /* Schlafen ▶ und Aufstehen */
+          tippe(q('#fokusView [data-alplay="v3-schlaf"]'),'▶ „Schlafen"');
+          var sl=JSON.parse(localStorage.getItem('fokus2_meta')||'{}').schlaf;
+          pruef(sl && sl.laeuft, 'v3.0 §7: Schlafen startet nicht');
+          tippe(q('#fokusView [data-alcheck="v3-auf"]'),'+1 „Aufstehen"'); sheetRuhe();
+          var aufR=q('#sheetBody #aufAkku');
+          finding('echt · v3.0 §5 Aufstehen: Frage '+(aufR?'„Wie voll fühlt sich der Akku an?" vorbelegt '+aufR.value+' %':'fehlt')+' · Priorisierung '+(q('#sheetBody [data-tsprio]')?'DA':'keine'));
+          pruef(!!aufR && !q('#sheetBody [data-tsprio]'), 'v3.0 §5: Aufstehen fragt nicht / Priorisierung noch da');
+          tippe(q('#sheetFoot [data-aufgo]'),'„Aufstehen"');
+          var tg2=JSON.parse(localStorage.getItem('fokus2_tag')||'null'), sl2=JSON.parse(localStorage.getItem('fokus2_meta')||'{}').schlaf;
+          finding('echt · v3.0 §5 nach „Aufstehen": neuer Tag '+(tg2&&tg2.tagId)+' offen '+!!(tg2&&!tg2.endeTs)+' · Aufstehzeit '+(tg2&&tg2.morgen&&tg2.morgen.aufstehTs?'gesetzt':'—')+' · Schlafen gestoppt '+!(sl2&&sl2.laeuft));
+          pruef(tg2 && !tg2.endeTs && tg2.morgen && tg2.morgen.aufstehTs && !(sl2&&sl2.laeuft), 'v3.0 §5: Aufstehen startet den Tag nicht / stoppt Schlafen nicht');
+          /* ══ Suche: zwei Filter, vier Sortierungen, jede Ansicht oben ══ */
+          freiMachen(); fw.setTab('suche');
+          var main=d.querySelector('main');
+          (function(){ for(var i=0;i<4;i++){ var o=d.querySelector('#suFilter button.on'); if(!o) break; o.click(); } })();   // Ausgangslage: keine Wahl = beides
+          tippe(q('#suFilter [data-suart="aufgaben"]'),'Filter „Aufgaben"');
+          tippe(q('#suFilter [data-sudom="dfm"]'),'Filter „DFM"');
+          ['faellig','neueste','erledigte','heute'].forEach(function(sv){
+            main.scrollTop=400;
+            tippe(q('#suSichten [data-susicht="'+sv+'"]'),'Sortierung „'+sv+'"');
+            pruef(main.scrollTop===0, 'v3.0 §9: Sortierung „'+sv+'" beginnt nicht oben ('+main.scrollTop+')');
+          });
+          var ui=JSON.parse(localStorage.getItem('fokus2_ui')||'{}');
+          finding('echt · v3.0 §8 Suche: Filter '+ui.suArt+' + '+ui.suDom+' · Sortierungen '+d.querySelectorAll('#suSichten [data-susicht]').length+' · nach jedem Wechsel scrollTop 0');
+          pruef(ui.suArt==='aufgaben' && ui.suDom==='dfm' && d.querySelectorAll('#suSichten [data-susicht]').length===4, 'v3.0 §8: Filter/Sortierungen stimmen nicht');
+          tippe(q('#suFilter [data-suart="aufgaben"]'),'Filter „Aufgaben" aufheben'); tippe(q('#suFilter [data-sudom="dfm"]'),'Filter „DFM" aufheben');
+          main.scrollTop=300; fw.fokusKarteAnsehen('a-3'); var lay=d.getElementById('fokusLayer');
+          pruef(!lay || lay.scrollTop===0, 'v3.0 §9: Fokus öffnet nicht oben');
+          fw.fokusAnsichtSchliessen(); pruef(main.scrollTop===0, 'v3.0 §9: nach dem Schließen des Fokus nicht oben');
+          freiMachen(); fw.setTab('suche');
+        })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
         (fw.S_kartenListe||[]).forEach(function(){});
@@ -2130,6 +2207,23 @@ function bestandSchreiben(){
         pflichtVorschlag:{ wert:40, deckel:20, abzug:10, min:-10, grund:'Zähne sind nach 20 Min erledigt — länger heißt meist Handy.' } }],
       korrekturen:[{ datum:dat, grund:'Harness: echte Dauern für die Pflicht-Kurve', sitzungen:sz }] };
   }
+  /* v3.0: ein Ausschnitt aus Pascals Katalog (§11) — Rollen, Staffeln, Unter-Zaehler, Eingabe */
+  function v30Paket(){
+    var T={typ:'taeglich'};
+    return { appVersion:'3.0.0', karten:[
+      {id:'v3-auf', domain:'privat', titel:'Aufstehen und in den Tag starten', rolle:'aufstehen', modus:'pflicht', pflichtWert:25, tageslimit:1, rhythmus:T},
+      {id:'v3-kaffee', domain:'privat', titel:'Kaffee', modus:'staffel', staffel:[50,50,0], staffelDanach:-50, immerSichtbar:true, matrixFeld:'werkzeug'},
+      {id:'v3-zaehne', domain:'privat', titel:'Zähne putzen', modus:'staffel', staffel:[50,100], tageslimit:2, rhythmus:T, matrixFeld:'werkzeug',
+        unteraufgaben:[{id:'v3-zs', titel:'Zahnseide', staffel:[50], tageslimit:1}]},
+      {id:'v3-essen', domain:'privat', titel:'Essen', modus:'staffel', staffel:[100], tagesziel:3, tickMinuten:30, rhythmus:T, abzugOhneStreak:100, matrixFeld:'werkzeug'},
+      {id:'v3-elvanse', domain:'privat', titel:'Elvanse nehmen', modus:'staffel', staffel:[50], tageslimit:1, rhythmus:T, eingabe:{label:'Dosis', einheit:'mg'}},
+      {id:'v3-mails', domain:'dfm', titel:'Mails & Post', modus:'staffel', staffel:[100,60], staffelDanach:50, rhythmus:T, matrixFeld:'werkzeug',
+        unteraufgaben:[{id:'v3-m1', titel:'Post öffnen/sortieren', staffel:[50]}, {id:'v3-m2', titel:'Dokumente einscannen', staffel:[50]},
+                       {id:'v3-m3', titel:'Dokumente mit Claude erfassen', staffel:[50]}, {id:'v3-m4', titel:'Airtable & Sync', staffel:[50]}]},
+      {id:'v3-ab', domain:'privat', titel:'Tagesabschluss', rolle:'tagesabschluss', modus:'pflicht', pflichtWert:50, tageslimit:1, rhythmus:T},
+      {id:'v3-schlaf', domain:'privat', titel:'Schlafen', rolle:'schlafen', modus:'staffel', rhythmus:T} ] };
+  }
+  function v30Vorbereiten(fw){ v28Vorbereiten(fw); fw.syncImport(JSON.stringify(v30Paket())); fw.setTab('suche'); fw.fokusKarteAnsehen('a-3'); }
   function v29Vorbereiten(fw){ v28Vorbereiten(fw); fw.syncImport(JSON.stringify(v29Paket(fw))); fw.setTab('suche'); }
   function v28Vorbereiten(fw){ v27Vorbereiten(fw); fw.syncImport(JSON.stringify(v28Paket())); fw.setTab('suche'); }
   function v27Vorbereiten(fw){
@@ -2172,7 +2266,7 @@ function bestandSchreiben(){
   if(VIEW==='diag'){ diagSequenz(); return; }   // §8 (v1.13.0): Klick-Diagnose
 
   /* §1 (v2.0.2): echtSuche laeuft gegen den GELEBTEN Bestand. */
-  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender'||VIEW==='echtTempo'||VIEW==='echtMatrixSpur'||VIEW==='statistikOben'||VIEW==='echtGeld'||VIEW==='echtBloecke'||VIEW==='echtBloeckeAuf'||VIEW==='echtBlockNeu'||VIEW==='einstKorrekturen'||VIEW==='echtFokus28'||VIEW==='echtAbhak'||VIEW==='echtDetail28'||VIEW==='einstAbhak'||VIEW==='echtPflicht'||VIEW==='einstPflicht')
+  ((VIEW==='echtSuche'||VIEW==='abschluss21'||VIEW==='durchgang21'||VIEW==='echtFilter'||VIEW==='echtMatrixFeld'||VIEW==='echtBelohnung'||VIEW==='echtShopAuf'||VIEW==='echtFreitext'||VIEW==='echtVorschlag'||VIEW==='echtSuchknopf'||VIEW==='echtWiederOeffnen'||VIEW==='echtKalender'||VIEW==='echtTempo'||VIEW==='echtMatrixSpur'||VIEW==='statistikOben'||VIEW==='echtGeld'||VIEW==='echtBloecke'||VIEW==='echtBloeckeAuf'||VIEW==='echtBlockNeu'||VIEW==='einstKorrekturen'||VIEW==='echtFokus28'||VIEW==='echtAbhak'||VIEW==='echtDetail28'||VIEW==='einstAbhak'||VIEW==='echtPflicht'||VIEW==='einstPflicht'||/^echt[A-Za-z]*30$/.test(VIEW))
      ? bestandSchreiben : fixtureSchreiben)();
   ladeIframe(function(fw){
     konsoleWaechter(fw);

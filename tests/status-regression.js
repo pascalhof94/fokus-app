@@ -14,7 +14,9 @@ function extract(name){
 var GELD_STUFE={ hoch:300, mittel:200, niedrig:100 }, GELD_MAX=500;
 // v2.7.0: Sitzungs-Typen gespiegelt (§3 Korrekturen) — feste Bewertung/Sitzungs-id als Funktionen extrahiert
 var SITZUNG_TYPEN=['timer','autopause','nachtrag','korrektur'];
-var NAMES = ['num','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','hatFestMin','sitzungIdVon','korrekturPunkteVerrechnen','daempfung','abhakArt','startBonusHeute','durchgangAktiv','istPflicht','pflichtWerte','pflichtErtrag','pflichtHeuteP','pflichtLiveDelta','durchgangLaeuft','pflichtHakenZusatz','abhakSpalte','abhakbonusTabelleWert','geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon','basisRate','rate','akkuRate',
+var NAMES = ['num',
+  // v3.0.0 §1–§3: Routinen-System (Modus, Staffel, Unter-Zaehler, privates Tagesziel)
+  'istV3','modusVon','istStaffel','leer','unterZaehler','unterZaehlerPunkte','istUnterZaehler','staffelPunkteHeute','ticksHeuteV3','privatZielDynamisch','routineMaxPunkte','staffelBisZiel','ausnahmeTag','wochentagNr','wtNorm','heuteIso','jetztIso','heuteApp','istSekLive','geldFaktor','hatFestMin','sitzungIdVon','korrekturPunkteVerrechnen','daempfung','abhakArt','startBonusHeute','durchgangAktiv','istPflicht','pflichtWerte','pflichtErtrag','pflichtHeuteP','pflichtLiveDelta','durchgangLaeuft','pflichtHakenZusatz','abhakSpalte','abhakbonusTabelleWert','geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon','basisRate','rate','akkuRate',
   'tickSumme','punkteFuerZeit','zeitquelleMin','subBonusErreicht','pausenStrafe','pausenStrafeLive','kartePunkte','kartenArt','laufendeSek',
   'heuteInvestiertMin','akkuLive','aktuelleTagId','tagOffen','kartePunkteHeute','tagesPunkteDomain','tagesPunkteLive',
   'punkteHeuteAnzeige','tagesZielDomain','wachTagAnteil','punkteHeuteDomain','istTickKarte','tickPunkte',
@@ -52,6 +54,7 @@ var S = { karten:[], unteraufgaben:[], tag:null, fokus:null, historie:[], intrad
 var _rangMemo=null, _rangMemoKey='';
 function untermengeStub(){ return []; }
 eval(extract('num'));
+var WT_KURZ={ mo:1, di:2, mi:3, do:4, fr:5, sa:6, so:7 };   // v3.0.0: Konstante gespiegelt
 eval(NAMES.filter(function(n){return n!=='num'&&n!=='untermenge';}).map(extract).join('\n'));
 function untermenge(id){ return S.unteraufgaben.filter(function(u){return u.parentId===id;}); }
 // §2 (v1.12.0): weIstDomain braucht am Sonntag den Samstags-Snapshot — hier

@@ -45,7 +45,10 @@ var DB = { get:function(k,f){ return f; }, set:function(){}, del:function(){}, l
 // v2.6.0 §5: Geld-Konstanten gespiegelt (nicht extrahierbar) — Geld-Impact 0 … 500, Stufen fuer Altpakete
 var GELD_STUFE={ hoch:300, mittel:200, niedrig:100 }, GELD_MAX=500;
 var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnteraufgabe','settingsMerge','syncImport','geldImpactNorm','geldTageBis','geldImpactAusScore','geldBezugstag','geldImpactVon','geldScoreVon',
-  'karteZurueckAufsGeraet','vomGeraetAblage','karteVomGeraet'];
+  'karteZurueckAufsGeraet','vomGeraetAblage','karteVomGeraet',
+  // v3.0.0 §12: Bausteine des Routinen-Systems im Import
+  'v3FelderUebernehmen','leer','wtNorm','eingabeVon'];
+var WT_KURZ={ mo:1, di:2, mi:3, do:4, fr:5, sa:6, so:7 };   // v3.0.0: Konstante gespiegelt (nicht extrahierbar)
 eval(NAMES.map(extract).join('\n'));
 
 var fails=0; function ok(n,c){ print((c?'OK   ':'FAIL ')+n); if(!c) fails++; }
