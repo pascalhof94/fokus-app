@@ -314,7 +314,20 @@ ok('9 jede Ansicht beginnt oben: setTab, Sortierung, Filter, Fokus und Sheet ruf
 
 /* ══ 12 · Version ═════════════════════════════════════════════════════ */
 kopf('12 · Version');
-ok('12 APP_VERSION 3.0.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', VERSION==='3.0.0' && UI_VERSION==='v3.0.0' && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'x', titel:'x'}]})).fehler);
+ok('12 APP_VERSION 3.0.1 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.0.1' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'x', titel:'x'}]})).fehler);
+
+kopf('Nachtrag v3.0.1 · eine Versionskonstante');
+frisch(); S.tag=neuerTag(MO,1);
+var lit=(src.match(/'3\.0\.1'/g)||[]).length, ex3=syncExport('delta');
+renderEinst(); var einst=el('einstBody').innerHTML;
+ok('v3.0.1 die Versionszahl steht genau EINMAL im Code (APP_VERSION)', lit===1 && /const APP_VERSION = '3\.0\.1';/.test(src));
+ok('v3.0.1 VERSION und UI_VERSION sind Aliase von APP_VERSION', /const VERSION = APP_VERSION;/.test(src) && /const UI_VERSION = 'v'\+APP_VERSION;/.test(src));
+ok('v3.0.1 Einstellungen (Info und Fuß) und Export zeigen dieselbe Version', /Fokus App v3\.0\.1 · Build 2026-09-27-4/.test(einst) && /<span>Version<\/span><b>v3\.0\.1</.test(einst) && ex3.appVersion==='3.0.1' &&
+   tagBackupPaket().appVersion==='3.0.1');
+ok('v3.0.1 der Seitentitel liest APP_VERSION, kein fester Titel mehr', /<title>Fokus<\/title>/.test(src) && /document\.title='Fokus '\+UI_VERSION/.test(src) && src.indexOf('Fokus v1')<0);
+ok('v3.0.1 die .md des Abschlusses nennt Version und Build', /- App: v3\.0\.1 · Build 2026-09-27-4/.test(abschlussMarkdown()));
+ok('v3.0.1 das Gate prüft gegen DATENVERTRAG (2.0.0), nicht gegen die App-Version', DATENVERTRAG==='2.0.0' && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'g', titel:'g'}]})).fehler &&
+   /älter als 2\.0\.0/.test(syncImport(JSON.stringify({appVersion:'1.13.5', karten:[{id:'g', titel:'g'}]})).fehler));
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

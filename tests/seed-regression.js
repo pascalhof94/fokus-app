@@ -49,6 +49,7 @@ var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnte
   // v3.0.0 §12: Bausteine des Routinen-Systems im Import
   'v3FelderUebernehmen','leer','wtNorm','eingabeVon'];
 var WT_KURZ={ mo:1, di:2, mi:3, do:4, fr:5, sa:6, so:7 };   // v3.0.0: Konstante gespiegelt (nicht extrahierbar)
+var DATENVERTRAG='2.0.0';   // v3.0.1: Import-Gate-Konstante gespiegelt (nicht extrahierbar)
 eval(NAMES.map(extract).join('\n'));
 
 var fails=0; function ok(n,c){ print((c?'OK   ':'FAIL ')+n); if(!c) fails++; }

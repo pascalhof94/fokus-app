@@ -837,6 +837,18 @@ function bestandSchreiben(){
         // v3.0.0: die App heisst 3.0.0, der Datenvertrag bleibt 2.0 (additiv)
         pruef(!!exFeld && /"appVersion":\s*"3\./.test(exFeld.value),
               '§11: Export traegt keine 3.x-appVersion');
+        /* Nachtrag v3.0.1: Einstellungen (Fuss und Info), Sync-Titel, Seitentitel und Export zeigen DIESELBE Version */
+        (function(){
+          var exV=((exFeld&&exFeld.value.match(/"appVersion":\s*"([^"]+)"/))||[])[1];
+          var syncT=d.getElementById('sheetTitel').textContent;
+          fw.closeSheet(); fw.setTab('einst');
+          var fuss=(d.getElementById('einstVersion')||{}).textContent||'';
+          var info=[].slice.call(d.querySelectorAll('#einstBody .kv')).filter(function(z){ return /^Version/.test(z.textContent); }).map(function(z){ return z.textContent; })[0]||'';
+          finding('diag · v3.0.1 Version: Export '+exV+' · Fuß „'+fuss+'" · Info „'+info+'" · Sync „'+syncT+'" · Titel „'+d.title+'"');
+          pruef(exV && fuss.indexOf('v'+exV)>=0 && info.indexOf('v'+exV)>=0 && syncT.indexOf('v'+exV)>=0 && d.title==='Fokus v'+exV,
+                'v3.0.1: Versionsangaben weichen voneinander ab');
+          fw.setTab('suche'); fw.oeffneSync(); exFeld=d.getElementById('syncEx');
+        })();
         pruef(((lsGetMeta()||{}).letzterSyncBestaetigtTs||null)===tsVor,
               '§11: der Zeitstempel wurde schon VOR der Bestaetigung fortgeschrieben');
         klick('[data-syncbestaetigt]');

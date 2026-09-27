@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Fokus v1">
+<meta name="apple-mobile-web-app-title" content="Fokus">
 <meta name="theme-color" content="#0d1420">
-<title>Fokus v1.0</title>
+<title>Fokus</title>
 <link rel="manifest" href="manifest-neu.json">
 <link rel="apple-touch-icon" href="apple-touch-icon-neu.png">
 <style>
@@ -1755,9 +1755,19 @@ body{background:var(--bg)}
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '3.0.0';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v3.0.0';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-27-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+/* ══ Nachtrag v3.0.1 · EINE Versionskonstante ════════════════════════
+   APP_VERSION ist die einzige Stelle mit der App-Version. Anzeige (Info,
+   Fuss der Einstellungen, Seitentitel), Export (appVersion in Delta,
+   Vollexport, Tagesabschluss, Backup) und die .md des Abschlusses lesen
+   sie — ueber die beiden Alias-Namen, die der Code seit v1.x benutzt.
+   Der DATENVERTRAG ist etwas anderes: die aelteste Paket-Version, die der
+   Import annimmt (Gate) — er bleibt 2.0, additiv erweitert. */
+const APP_VERSION = '3.0.1';
+const VERSION = APP_VERSION;                  // Alias: appVersion im Export
+const UI_VERSION = 'v'+APP_VERSION;           // Alias: Anzeige
+const DATENVERTRAG = '2.0.0';                 // Import-Gate: Pakete ab dieser appVersion
+const APP_BUILD = '2026-09-27-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+try{ document.title='Fokus '+UI_VERSION; }catch(e){}
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -9125,6 +9135,7 @@ function abschlussMarkdown(){
   const kopf=jetzt.getFullYear()+'-'+p2(jetzt.getMonth()+1)+'-'+p2(jetzt.getDate())+' '+p2(jetzt.getHours())+':'+p2(jetzt.getMinutes());
   const ex=syncExport('delta'), ta=ex.tagesabschluss||{}, r=(ta.reflexion||{});
   const zeilen=[kopf, '', '# Tagesabschluss '+(S.tag?S.tag.datum:''), ''];
+  zeilen.push('- App: '+UI_VERSION+' · Build '+APP_BUILD);
   zeilen.push('- Punkte heute: **'+fmtP(tagesPunkteLive())+'** (DFM '+fmtP(tagesPunkteDomain('dfm'))+' · Privat '+fmtP(tagesPunkteDomain('privat'))+')');
   if(r.akku!=null) zeilen.push('- Akku am Abend: '+Math.round(r.akku)+' %');
   if(r.wort) zeilen.push('- Der Tag in einem Wort: '+r.wort);
@@ -10623,18 +10634,17 @@ function syncImport(text){
   let paket; try{ paket=JSON.parse(text); }catch(e){ return {fehler:'Ungültiges JSON'}; }
   // §6.1 (v1.6.1): Das appVersion-Gate gilt jetzt AUSNAHMSLOS — auch für
   // Array-Pakete. Der v0.38-Konverter wird nicht mehr gebraucht.
-  if(Array.isArray(paket)) return {fehler:'Array-Paket ohne appVersion — nicht zulässig. Bitte ein Paket nach Vertrag 2.0 anfordern.'};
+  if(Array.isArray(paket)) return {fehler:'Array-Paket ohne appVersion — nicht zulässig. Bitte ein Paket nach Vertrag '+DATENVERTRAG.slice(0,3)+' anfordern.'};
   const av=paket && paket.appVersion;
-  if(av==null || av==='') return {fehler:'Paket ohne appVersion — bitte im Chat ein Paket nach Vertrag 2.0 anfordern.'};
-  if(/^0\./.test(String(av)))  return {fehler:'Altformat appVersion '+av+' — dieses Paket wird nicht mehr verarbeitet (Vertrag ab 2.0).'};
+  if(av==null || av==='') return {fehler:'Paket ohne appVersion — bitte im Chat ein Paket nach Vertrag '+DATENVERTRAG.slice(0,3)+' anfordern.'};
+  if(/^0\./.test(String(av)))  return {fehler:'Altformat appVersion '+av+' — dieses Paket wird nicht mehr verarbeitet (Vertrag ab '+DATENVERTRAG.slice(0,3)+').'};
   // §7 (v1.13.0): Gate auf App-Version 1.13.0 hochgezogen — Vertrag 1.6
   // (Tagesrahmen, Korrekturblock, Rein/Raus, Akku-Einträge, Upgrade-Faktor).
   // §11 (v2.0.0): Gate auf 2.0 hochgezogen — Vertrag 2.0 (eine Kette,
   // matrixFeld, Positions-Spur; die sechs Alt-Felder gibt es nicht mehr).
   {
-    const teile=String(av).split('.').map(x=>num(x));
-    const wert=(teile[0]||0)*10000+(teile[1]||0)*100+(teile[2]||0);
-    if(wert<20000) return {fehler:'Paket-appVersion '+av+' ist älter als 2.0.0 — bitte im Chat ein Paket nach Vertrag 2.0 anfordern (eine Kette, matrixFeld, Positions-Spur).'};
+    const w=v=>{ const t=String(v).split('.').map(x=>num(x)); return (t[0]||0)*10000+(t[1]||0)*100+(t[2]||0); };
+    if(w(av)<w(DATENVERTRAG)) return {fehler:'Paket-appVersion '+av+' ist älter als '+DATENVERTRAG+' — bitte im Chat ein Paket nach Vertrag '+DATENVERTRAG.slice(0,3)+' anfordern (eine Kette, matrixFeld, Positions-Spur).'};
   }
   const arr = (paket && paket.karten) || null;
   // §3 (v2.7.0): ein reines Korrektur-Paket darf ein LEERES karten-Array tragen
@@ -11029,10 +11039,10 @@ function renderSyncSheet(){
      '<p class="d" style="margin-top:0">Erst die Bestätigung schreibt den Zeitstempel fort und räumt erledigte Karten ab. '+
      'Vorher bleibt alles stehen — ein verlorener Sync darf nichts verschlucken.</p>'+
      '<div class="btnrow"><button class="btn sm" data-syncbestaetigt="1">✓ Ist im Chat angekommen</button></div></div>';
-  h+='<div class="field"><label>Import (Paket aus dem Chat)</label><textarea id="syncIn" placeholder="{ &quot;appVersion&quot;: &quot;2.0.0&quot;, &quot;karten&quot;: [ … ] }" style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px"></textarea></div>';
+  h+='<div class="field"><label>Import (Paket aus dem Chat)</label><textarea id="syncIn" placeholder="{ &quot;appVersion&quot;: &quot;'+APP_VERSION+'&quot;, &quot;karten&quot;: [ … ] }" style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px"></textarea></div>';
   h+='<div id="syncErgebnis"></div>';
   const foot='<button class="btn ghost sm" data-close="1">Schließen</button><button class="btn prim" data-syncimport="1">Importieren</button>';
-  openSheet('Sync · Vertrag 2.0', h, foot);
+  openSheet('Sync · '+UI_VERSION+' · Vertrag '+DATENVERTRAG.slice(0,3), h, foot);
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -11268,9 +11278,10 @@ function renderEinst(){
   h+=gruppenVerwaltungHtml();
 
   h+='<div class="card"><h3>Info</h3>'+
-    '<div class="kv"><span>Version</span><b>'+UI_VERSION+' · M1–M5 + Rückbau</b></div>'+
+    '<div class="kv"><span>Version</span><b>'+UI_VERSION+'</b></div>'+
     '<div class="kv"><span>Build</span><b>'+APP_BUILD+'</b></div>'+
-    '<div class="kv"><span>Sync-Vertrag (appVersion)</span><b>'+VERSION+'</b></div>'+
+    '<div class="kv"><span>Export (appVersion)</span><b>'+APP_VERSION+'</b></div>'+
+    '<div class="kv"><span>Datenvertrag (Import ab)</span><b>'+DATENVERTRAG+'</b></div>'+
     '<div class="kv"><span>Karten</span><b>'+S.karten.length+'</b></div>'+
     '<div class="kv"><span>Stapel</span><b>'+S.stapel.length+'</b></div>'+
     '<div class="kv"><span>Wohlstand (live)</span><b>'+Math.round(wohlstandLive())+'</b></div>'+
@@ -11439,7 +11450,7 @@ function renderEinst(){
     (S.meta.panoramaResetBackup?'<button class="btn sm" data-panoundo="1">↩︎ Letzten Reset rückgängig</button>':'')+'</div>'+
     '<div class="kv" style="margin-top:8px"><span>Aktueller Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
   '</div>';
-  h+='<div style="text-align:center;color:var(--mut2);font-size:11px;margin-top:6px">Fokus App '+UI_VERSION+' · neu.html · index.html bleibt Fallback</div>';
+  h+='<div style="text-align:center;color:var(--mut2);font-size:11px;margin-top:6px" id="einstVersion">Fokus App '+UI_VERSION+' · Build '+APP_BUILD+'</div>';
   el('einstBody').innerHTML=h;
 }
 /* §4 (v1.8.1): Wohlstand-Reset per Button — exakt die Offset-Mechanik der
