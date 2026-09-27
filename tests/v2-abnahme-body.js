@@ -528,8 +528,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 2.9.1 · Build gesetzt', VERSION==='2.9.1' && UI_VERSION==='v2.9.1' &&
-   APP_BUILD==='2026-09-27-1');
+ok('31 APP_VERSION 2.9.2 · Build gesetzt', VERSION==='2.9.2' && UI_VERSION==='v2.9.2' &&
+   APP_BUILD==='2026-09-27-2');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -2364,7 +2364,7 @@ ok('§4 Export meldet Bilanz, Stunden-Log und Differenz des Tages', exA.logAbgle
 tagAbschlussFinalisieren();
 ok('§4 Tagesabschluss: Bilanz des Snapshots = Summe des Logs des Tages', Math.round(S.historie[S.historie.length-1].punkteBilanz)===Math.round(logS(S.tag)));
 
-kopf('v2.9.1 §2 · Rückblick seit v2.8.0');
+kopf('v2.9.1 §2 · Rückblick (seit v2.9.2 ab dem 21.09.)');
 frisch();
 S.meta.prognoseFixAb='2026-09-27';
 var kR=neueKarte({id:'kr', domain:'privat', titel:'Katzen füttern', rhythmus:{typ:'taeglich'}, sollMin:30, punkteProStd:5000, matrixFeld:'werkzeug',
@@ -2388,6 +2388,43 @@ var logKor=S.intraday.filter(function(e){ return e.typ==='korrektur-tag' && e.da
 ok('§4 die Korrektur eines vergangenen Tags steht in DESSEN Stunden-Log (am Tagesende, nicht heute)', logKor && belFensterDatum(logKor.ts)==='2026-09-26' && logKor.punkte===-457);
 syncBestaetigen();
 ok('§2 … und nach dem bestätigten Sync fällt der Rückblick aus dem Export', syncExport('delta').rueckblickPrognose===undefined);
+
+kopf('v2.9.2 · Nachtrag §2: Rückblick ab dem 21.09., Lücken benannt');
+frisch();
+S.meta.prognoseFixAb='2026-09-27';
+var kR3=neueKarte({id:'kr3', domain:'privat', titel:'Katzen füttern', rhythmus:{typ:'taeglich'}, sollMin:30, punkteProStd:5000, matrixFeld:'werkzeug',
+  abschluesse:[{ts:'2026-09-21T08:00:00.000Z', tagId:'2026-09-21', punkteIstVorher:482, istMinVorher:0, bonusPunkte:25},
+               {ts:'2026-09-26T08:00:00.000Z', tagId:'2026-09-26', punkteIstVorher:482, istMinVorher:0, bonusPunkte:25}]});
+S.karten=[kR3];
+S.historie=[
+  {tagId:'2026-09-21', datum:'2026-09-21', punkteBilanz:1700, startTs:'2026-09-21T05:00:00.000Z', endeTs:'2026-09-21T20:00:00.000Z', luecke:false,
+   log:[{itemId:'kr3', titel:'Katzen füttern', domain:'privat', art:'Routine', punkte:482, ts:'2026-09-21T08:00:00.500Z'},
+        {itemId:'weg1', titel:'Angebot Müller', domain:'dfm', art:'Aufgabe', punkte:640, ts:'2026-09-21T10:00:00.500Z'}]},
+  {tagId:'2026-09-26', datum:'2026-09-26', punkteBilanz:482, startTs:'2026-09-26T05:00:00.000Z', endeTs:'2026-09-26T20:00:00.000Z', luecke:false,
+   log:[{itemId:'kr3', titel:'Katzen füttern', domain:'privat', art:'Routine', punkte:482, ts:'2026-09-26T08:00:00.500Z'}]} ];
+S.intraday=[
+  {ts:'2026-09-21T08:00:00.600Z', kartenId:'kr3', domaene:'privat', punkte:482, minuten:0, typ:'abhaken'},
+  {ts:'2026-09-21T10:00:00.600Z', kartenId:'weg1', domaene:'dfm', punkte:640, minuten:0, typ:'abhaken'},
+  {ts:'2026-09-23T11:00:00.600Z', kartenId:'kr3', domaene:'privat', punkte:0, minuten:0, typ:'wiederoffen'},
+  {ts:'2026-09-26T08:00:00.600Z', kartenId:'kr3', domaene:'privat', punkte:482, minuten:0, typ:'abhaken'} ];
+var rb2=syncExport('delta').rueckblickPrognose;
+function rTag(d){ return rb2.filter(function(t){ return t.datum===d; })[0]; }
+print('   Tage: '+rb2.map(function(t){ return t.datum.slice(8)+'.'+t.datum.slice(5,7)+' '+t.rekonstruierbar; }).join(' · '));
+ok('§2 der Rückblick beginnt am 21.09. und nennt JEDEN Tag bis zum Fix (21.–27.09. = 7 Tage)', rb2.length===7 && rb2[0].datum==='2026-09-21' && rb2[6].datum==='2026-09-27');
+var t21=rTag('2026-09-21');
+print('   21.09.: '+JSON.stringify({rekonstruierbar:t21.rekonstruierbar, fehlt:t21.fehlt, karten:t21.karten.map(function(x){ return x.titel+' '+x.gebucht+'/'+x.davonPrognose; }), ohneKarte:t21.ohneKarte}));
+ok('§2 21.09.: Katzen füttern gebucht 482, davon Prognose 457', t21.karten.length===1 && t21.karten[0].gebucht===482 && t21.karten[0].davonPrognose===457);
+ok('§2 21.09.: die abgeräumte Karte steht mit gebucht 640, Stunden-Log 640, „Uhr lief vorher: nein", Prognose-Anteil null', t21.ohneKarte.length===1 &&
+   t21.ohneKarte[0].karteId==='weg1' && t21.ohneKarte[0].gebucht===640 && t21.ohneKarte[0].imStundenLog===640 && t21.ohneKarte[0].uhrLiefVorher===false && t21.ohneKarte[0].davonPrognose===null);
+ok('§2 21.09. heißt „teilweise" und sagt warum', t21.rekonstruierbar==='teilweise' && t21.fehlt.length===1 && /nicht mehr auf dem Gerät/.test(t21.fehlt[0]));
+var t22=rTag('2026-09-22'), t23=rTag('2026-09-23');
+ok('§2 22.09. ohne Snapshot und ohne Log: „nein", beide Gründe genannt', t22.rekonstruierbar==='nein' && t22.fehlt.length===2 && t22.bilanz===null && /kein Tages-Snapshot/.test(t22.fehlt[0]) && /keine Einträge/.test(t22.fehlt[1]));
+ok('§2 23.09. nur Stunden-Log, kein Snapshot: „teilweise"', t23.rekonstruierbar==='teilweise' && t23.fehlt.length===1 && /kein Tages-Snapshot/.test(t23.fehlt[0]));
+ok('§2 26.09. vollständig: „ja", nichts fehlt', rTag('2026-09-26').rekonstruierbar==='ja' && rTag('2026-09-26').fehlt.length===0 && rTag('2026-09-26').prognoseSumme===457);
+ok('§2 der laufende Tag (27.09.) hat keinen Snapshot, zählt aber nicht als fehlend', rTag('2026-09-27').fehlt.every(function(f){ return !/Snapshot/.test(f); }));
+S.intraday=S.intraday.filter(function(e){ return e.ts>'2026-09-24'; });
+var rb3=syncExport('delta').rueckblickPrognose;
+ok('§2 gekapptes Stunden-Log wird benannt („beginnt erst am 26.09.")', /Stunden-Log gekappt — es beginnt erst am 2026-09-26/.test(rb3[0].fehlt.join(' ')));
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

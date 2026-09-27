@@ -1733,9 +1733,9 @@ body{background:var(--bg)}
 /* ══════════════════════════════════════════════════════════════════════
    0 · Konstanten
    ══════════════════════════════════════════════════════════════════════ */
-const VERSION = '2.9.1';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
-const UI_VERSION = 'v2.9.1';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
-const APP_BUILD = '2026-09-27-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const VERSION = '2.9.2';                    // Datenvertrag/Sync-appVersion — Vertrag 2.0 (2.0.1: Fokus und Suche entkoppelt)
+const UI_VERSION = 'v2.9.2';                 // reiner Anzeige-Stand der App (entkoppelt von VERSION)
+const APP_BUILD = '2026-09-27-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -8424,32 +8424,42 @@ function logEintragFuerTag(h, datum, o){
   (S.intraday=S.intraday||[]).push(e);
   return e;
 }
-/* ══ §2 (v2.9.1) · RUECKBLICK SEIT v2.8.0 ═══════════════════════════════
-   Fuer jeden Tag ab dem 25.09. bis zum Tag des Fixes: je Abschluss Karte,
-   gebucht und der Anteil, der aus der Prognose kam (Uhr nie gelaufen, keine
-   feste Bewertung: die Zeitpunkte auf Soll-Minuten). Dazu je Tag Bilanz,
-   Stunden-Log und die Werte, gegen die eine Tageskorrektur rechnet. Der
-   Chat korrigiert danach per korrekturen-Paket; die Liste reist im Export,
-   bis nach einem Korrektur-Paket ein Sync bestaetigt ist. */
-const RUECKBLICK_AB='2026-09-25';
+/* ══ §2 (v2.9.1, Nachtrag v2.9.2) · RUECKBLICK SEIT v2.0 ════════════════
+   Der Soll-Rueckfall bestand seit v2.0 (21.09.). Fuer JEDEN Tag vom 21.09.
+   bis zum Tag des Fixes: je Abschluss Karte, gebucht und der Anteil, der aus
+   der Prognose kam (Uhr nie gelaufen, keine feste Bewertung: die Zeitpunkte
+   auf Soll-Minuten). Dazu je Tag Bilanz, Stunden-Log und die Werte, gegen die
+   eine Tageskorrektur rechnet — und ehrlich, was auf dem Geraet FEHLT:
+     rekonstruierbar 'ja' | 'teilweise' | 'nein' und fehlt[] mit Grund.
+   Fehlen kann: der Tages-Snapshot (Tag nie abgeschlossen), das Stunden-Log
+   (leer oder vor der Kappung), und Karten, die nach einem bestaetigten Sync
+   abgeraeumt wurden — deren Abschluss-Stapel ist weg. Fuer sie steht, was
+   Tages- und Stunden-Log noch wissen (gebucht, lief je eine Uhr), der
+   Prognose-Anteil bleibt null (Soll-Minuten und Bonus sind nicht mehr da).
+   Die Liste reist im Export, bis nach einem Korrektur-Paket ein Sync
+   bestaetigt ist. */
+const RUECKBLICK_AB='2026-09-21';
 function rueckblickPrognose(){
   const bis=(S.meta && S.meta.prognoseFixAb) || heuteApp();
   const zg=(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1);
   const ab=vomGeraetAblage();
   const karten=S.karten.slice().concat(Object.keys(ab).map(id=>ab[id] && ab[id].karte).filter(Boolean));
+  const aufGeraet={}; karten.forEach(k=>aufGeraet[k.id]=true);
+  const iv=S.intraday||[];
   const tage={};
-  const tagVon=d=>tage[d]||(tage[d]={ datum:d, karten:[] });
+  const tagVon=d=>tage[d]||(tage[d]={ datum:d, karten:[], ohneKarte:[] });
   const nahe=(a,b,ms)=>Math.abs(Date.parse(a)-Date.parse(b))<=ms;
   const tagLogs=d=>{ const out=[]; (S.historie||[]).forEach(h=>{ if(h.datum===d) (h.log||[]).forEach(e=>out.push(e)); });
     if(S.tag && S.tag.datum===d && !(S.historie||[]).some(h=>h.tagId===S.tag.tagId)) (S.tag.log||[]).forEach(e=>out.push(e));
     return out; };
+  const istAbschlussZeile=e=>e && e.itemId && e.art!=='schub' && e.art!=='korrektur' && e.art!=='Gruppenbonus';
   karten.forEach(k=>{
     (k.abschluesse||[]).forEach(s=>{
       if(s.echt) return;                                        // nach dem Fix gebucht
       const d=String(s.tagId||'').slice(0,10);
       if(!d || d<RUECKBLICK_AB || d>bis) return;
-      const log=tagLogs(d).find(e=>e.itemId===k.id && e.art!=='schub' && e.art!=='korrektur' && nahe(e.ts, s.ts, 10000));
-      const sl=(S.intraday||[]).find(e=>e.kartenId===k.id && e.typ==='abhaken' && nahe(e.ts, s.ts, 10000));
+      const log=tagLogs(d).find(e=>e.itemId===k.id && istAbschlussZeile(e) && nahe(e.ts, s.ts, 10000));
+      const sl=iv.find(e=>e.kartenId===k.id && e.typ==='abhaken' && nahe(e.ts, s.ts, 10000));
       const vorher=num(s.punkteIstVorher), sollMin=num(k.sollMin);
       const prog = (num(s.istMinVorher)===0 && !hatFestMin(k) && sollMin>0)
         ? Math.max(0, Math.min(vorher-num(s.bonusPunkte), Math.round(punkteFuerZeit(k, sollMin, d)*zg))) : 0;   // Bonus war echt
@@ -8458,24 +8468,49 @@ function rueckblickPrognose(){
         davonPrognose:prog, istMin:num(s.istMinVorher), sollMin });
     });
   });
-  // jeder Tag im Zeitraum mit Snapshot oder Log erscheint — auch ohne Prognose-Anteil
-  (S.historie||[]).forEach(h=>{ if(h.datum>=RUECKBLICK_AB && h.datum<=bis && !h.luecke) tagVon(h.datum); });
-  if(S.tag && S.tag.datum>=RUECKBLICK_AB && S.tag.datum<=bis) tagVon(S.tag.datum);
-  return Object.keys(tage).sort().map(d=>{
-    const t=tage[d], st=korrTagStand(d);
-    let slog=0; (S.intraday||[]).forEach(e=>{ if(e.ts && belFensterDatum(e.ts)===d) slog+=num(e.punkte); });
+  // Abschluesse von Karten, die nicht mehr auf dem Geraet liegen: aus Tages- und Stunden-Log
+  const uhrVor=(kid, ts)=>iv.some(e=>e.kartenId===kid && num(e.minuten)>0 && String(e.ts)<=String(ts));
+  const ohne=(d, kid, titel, domain, ts, gebucht, imLog)=>{
+    const t=tagVon(d); if(t.ohneKarte.some(x=>x.karteId===kid && nahe(x.ts, ts, 10000))) return;
+    t.ohneKarte.push({ karteId:kid, titel:titel||'', domain:domain||null, ts, gebucht, imStundenLog:imLog,
+      uhrLiefVorher:uhrVor(kid, ts), davonPrognose:null });
+  };
+  const alleTage=[]; for(let d=RUECKBLICK_AB; d<=bis; d=anVorTage(d,-1)){ alleTage.push(d); if(alleTage.length>400) break; }
+  alleTage.forEach(d=>{
+    tagLogs(d).forEach(e=>{ if(!istAbschlussZeile(e) || aufGeraet[e.itemId]) return;
+      const sl=iv.find(x=>x.kartenId===e.itemId && x.typ==='abhaken' && nahe(x.ts, e.ts, 10000));
+      ohne(d, e.itemId, e.titel, e.domain, e.ts, Math.round(num(e.punkte)), sl ? Math.round(num(sl.punkte)) : null); });
+  });
+  iv.forEach(e=>{ if(e.typ!=='abhaken' || !e.kartenId || aufGeraet[e.kartenId] || !e.ts) return;
+    const d=belFensterDatum(e.ts); if(d<RUECKBLICK_AB || d>bis) return;
+    ohne(d, e.kartenId, '', e.domaene, e.ts, null, Math.round(num(e.punkte))); });
+  // Stunden-Log gekappt? Dann beginnt es erst mit seinem aeltesten Eintrag
+  const logAb=iv.reduce((m,e)=>(e.ts && (!m || String(e.ts)<m)) ? String(e.ts) : m, null);
+  const logAbTag=logAb ? belFensterDatum(logAb) : null;
+  return alleTage.map(d=>{
+    const t=tagVon(d), st=korrTagStand(d);
+    const hs=(S.historie||[]).filter(h=>h.datum===d && !h.luecke);
+    const offenHeute=!!(S.tag && S.tag.datum===d && !S.tag.endeTs);
+    let slog=0, nLog=0; iv.forEach(e=>{ if(e.ts && belFensterDatum(e.ts)===d){ slog+=num(e.punkte); nLog++; } });
     const prog=t.karten.reduce((a,x)=>a+x.davonPrognose,0);
+    const fehlt=[];
+    if(!hs.length && !offenHeute) fehlt.push('kein Tages-Snapshot (Tag nie abgeschlossen oder als Lücke gebucht) — Bilanz und Tages-Log fehlen');
+    if(!nLog) fehlt.push(logAbTag && d<logAbTag ? 'Stunden-Log gekappt — es beginnt erst am '+logAbTag : 'keine Einträge im Stunden-Log');
+    if(t.ohneKarte.length) fehlt.push(t.ohneKarte.length+' Abschluss/Abschlüsse von Karten, die nicht mehr auf dem Gerät liegen (nach bestätigtem Sync abgeräumt) — Prognose-Anteil nicht bestimmbar');
+    const rek = (!hs.length && !offenHeute && !nLog) ? 'nein' : (fehlt.length ? 'teilweise' : 'ja');
     // bekannte Posten, die vor v2.9.1 in der Bilanz, aber nicht im Stunden-Log standen
-    const tl=tagLogs(d), hs=(S.historie||[]).filter(h=>h.datum===d && !h.luecke);
+    const tl=tagLogs(d);
     const grp=tl.filter(e=>e.art==='Gruppenbonus').reduce((a,e)=>a+num(e.punkte),0);
     const abz=hs.length ? hs.reduce((a,h)=>a+num(h.abzuege),0) : ((S.tag && S.tag.datum===d) ? num(S.tag.abzuegeBilanz) : 0);
-    return { datum:d, bilanz:st.punkte, punkteDfm:st.dfm, punktePrivat:st.privat, stundenLog:Math.round(slog),
-      differenz:Math.round(st.punkte-slog), prognoseSumme:prog, gruppenBoniNichtImLog:Math.round(grp), abzuegeNichtImLog:Math.round(abz),
+    return { datum:d, rekonstruierbar:rek, fehlt,
+      bilanz:(hs.length||offenHeute) ? st.punkte : null, punkteDfm:st.dfm, punktePrivat:st.privat, stundenLog:Math.round(slog),
+      differenz:(hs.length||offenHeute) ? Math.round(st.punkte-slog) : null, prognoseSumme:prog, gruppenBoniNichtImLog:Math.round(grp), abzuegeNichtImLog:Math.round(abz),
       prognoseDfm:t.karten.filter(x=>x.domain==='dfm').reduce((a,x)=>a+x.davonPrognose,0),
       prognosePrivat:t.karten.filter(x=>x.domain!=='dfm').reduce((a,x)=>a+x.davonPrognose,0),
       korrekturen:((S.meta && S.meta.korrekturProtokoll)||[]).filter(e=>e.datum===d).map(e=>({ ts:e.ts, grund:e.grund,
         vorher:e.vorher?e.vorher.punkte:null, nachher:e.nachher?e.nachher.punkte:null })),
-      karten:t.karten.sort((a,b)=>String(a.ts).localeCompare(String(b.ts))) };
+      karten:t.karten.sort((a,b)=>String(a.ts).localeCompare(String(b.ts))),
+      ohneKarte:t.ohneKarte.sort((a,b)=>String(a.ts).localeCompare(String(b.ts))) };
   });
 }
 /* ══ §3 (v2.9.0) · DIE PUNKTEKURVE „Punkte nach Dauer" ═════════════════
@@ -9621,7 +9656,7 @@ function syncExport(typ){
     // §7 (v2.6.0): die rueckwirkend als Urlaub markierten Tage — bis zum
     // naechsten bestaetigten Sync, damit der Chat sie in Airtable kennzeichnet
     urlaubNachgetragen: (Array.isArray(S.meta.urlaubNachgetragen) ? S.meta.urlaubNachgetragen.slice() : []),
-    // §2 (v2.9.1): Rueckblick seit v2.8.0 — gebucht und davon Prognose, je Tag
+    // §2 (v2.9.1/v2.9.2): Rueckblick seit v2.0 (21.09.) — gebucht und davon Prognose, je Tag
     // und Karte; bis nach einem Korrektur-Paket ein Sync bestaetigt ist
     rueckblickPrognose: (S.meta.rueckblick291Fertig ? undefined : (function(){ try{ return rueckblickPrognose(); }catch(e){ return []; } })()),
     // §4 (v2.9.1): Tagesbilanz gegen die Summe des Stunden-Logs (ohne laufende Uhr)
