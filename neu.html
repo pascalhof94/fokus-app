@@ -19,7 +19,7 @@
    ══════════════════════════════════════════════════════════════════════ */
 :root{
   --bg:#0d1420; --card:#141e2e; --card2:#182438; --line:#243349;
-  --ok:#3ecf8e; --warn:#f2b84b; --bad:#f66d6d;
+  --ok:#3ecf8e; --warn:#f2b84b; --bad:#f66d6d; --orange:#FF9F0A;   /* §0.1 (v3.3.0): ORANGE — es gab keine Orange-Variable */
   --blue:#4f8ef7; --purple:#b98af7; --pink:#f78ad0; --cyan:#6dd3e0;
   --txt:#e8eef7; --mut:#8fa1b8; --mut2:#5d6d88;
   /* v2.1.2: Die v2.x-Styles benutzen --li/--bg2/--fg/--gut/--ac, die nie
@@ -88,7 +88,13 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #statusbar .sb-bar .ist.dfm{left:0;background:linear-gradient(90deg,#93c5fd,#3b82f6)}                     /* §5 (v2.8.0): DFM blau */
 #statusbar .sb-bar .ist.privat{background:linear-gradient(90deg,#d8b4fe,#a855f7)}                     /* §5 (v2.8.0): Privat lila (vorher gelb) */
 #statusbar .sb-bar .soll{position:absolute;top:0;bottom:0;background:rgba(246,109,109,.55)}
-#statusbar .sb-bar .sollmark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--bad)}
+#statusbar .sb-bar .sollmark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--bad);z-index:3}
+#statusbar .sb-bar .ueber{position:absolute;top:0;bottom:0;right:0;width:0;background:#FF2D95;z-index:2}   /* §1.4 (v3.3.0): UEBER */
+#statusbar .sb-kleiste{display:block;height:6px;border-radius:3px;background:#1a1c20;margin:2px 3px 1px;overflow:hidden}   /* §1.2 (v3.3.0) */
+#statusbar .sb-kleiste i{display:block;height:100%;width:0}
+.ts-skala{display:block;position:relative;height:5px;border-radius:3px;background:#1a1c20;margin:4px 3px 1px}   /* §1.1 (v3.3.0) */
+.ts-skala .ts-bar{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.ts-skala .ts-p{position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%}
 #statusbar .sb-bar .mark{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--blue);opacity:.8}
 #statusbar .sbph{flex:none;font-size:9.5px;color:var(--mut2);white-space:nowrap}
 #statusbar .sbph b{margin-left:2px;font-weight:800}
@@ -927,6 +933,30 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .an-svg{width:100%;height:auto;display:block;margin-top:4px;overflow:visible}
 .an-leer{color:var(--mut);font-size:12.5px;text-align:center;padding:16px;border:1px dashed var(--line);border-radius:10px;background:var(--card2)}
 .an-legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:10px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:8px}
+/* §2–§3 (v3.3.0): quadratische Kacheln, Ring, Mini-Leisten */
+.fbk.dia-quad{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;text-align:center}
+.dia-quad .fbk-h{align-self:stretch;text-align:left}
+.dia-ring{position:relative;width:74%;aspect-ratio:1/1;flex:none}
+.dia-ring .dia-ringsvg{position:absolute;inset:0;width:100%;height:100%}
+.dia-ringbild{position:absolute;left:18%;top:12%;width:64%;height:76%;object-fit:contain}
+.dia-ring .dia-mitte{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.dia-name{font-size:10px;color:var(--mut)}
+.dia-gross{flex:1;display:flex;align-items:center;justify-content:center}
+.dia-gross b{font-size:30px !important}
+.dia-schub b{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.dia-schub span{font-size:10px;color:var(--mut);margin-left:6px}
+.dia-mini{display:block;position:relative;height:10px;border-radius:5px;background:rgba(154,156,162,.2);overflow:hidden;margin-top:6px}
+.dia-mini i{position:absolute;top:0;bottom:0;left:0}
+.dia-zeile{font-size:10px;color:var(--mut);margin-top:6px}
+.dia-ofreihe{display:flex;flex-wrap:wrap;gap:8px}
+.dia-of{display:flex;flex-direction:column;align-items:center;gap:2px}
+.dia-of img{width:48px;height:48px;object-fit:contain;border-radius:8px;background:#000}
+.dia-of small{font-size:10px;color:var(--mut)}
+.dia-kulisse{width:100%;height:92px;border-radius:10px;background-size:cover;background-position:center}
+.dia-leiste{display:block;height:6px;border-radius:3px;background:#1a1c20;overflow:hidden;margin-top:8px}
+.dia-leiste i{display:block;height:100%}
+.dia-lr{display:flex;justify-content:space-between;font-size:10px;color:var(--mut);margin-top:3px}
+.an-legend.dia-legende i.gestr{background:none;border-top:1.5px dashed;height:0;width:12px;border-radius:0}
 .an-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:middle}
 /* F3.1 (v1.3.3): Heatmap mit Mo–So-Zeilenbeschriftung; Zellen und Labels teilen
    dieselbe 13px-Rasterhöhe, damit jeder Punkt exakt auf seiner Tageszeile sitzt. */
@@ -1655,7 +1685,7 @@ body{background:var(--bg)}
 <div id="statusbar" hidden>
   <div class="sb-r1">
     <span class="sbph d">DFM<b id="sPhDfm">0</b></span>
-    <div class="sb-bar"><span class="ist dfm" id="sBarIstD"></span><span class="ist privat" id="sBarIstP"></span><span class="soll" id="sBarSoll"></span><span class="sollmark" id="sBarSollMark"></span><span id="sBarMarks"></span></div>
+    <div class="sb-bar"><span class="ist dfm" id="sBarIstD"></span><span class="ist privat" id="sBarIstP"></span><span class="ueber" id="sBarUeber"></span><span class="soll" id="sBarSoll"></span><span class="sollmark" id="sBarSollMark"></span><span id="sBarMarks"></span></div>
     <span class="sbph p">Pv<b id="sPhPrv">0</b></span>
     <span class="sbph s">Soll<b id="sPhSoll">0</b></span>
   </div>
@@ -1664,7 +1694,7 @@ body{background:var(--bg)}
   <div class="sb-r2">
     <div class="sb-cell" id="sZAkku"><span class="k">Akku</span><b class="w">–%</b><span class="z">–</span></div>
     <div class="sb-cell" id="sZTempo"><span class="k">Tempo</span><b class="w">–</b><span class="z">P/Std</span></div>
-    <div class="sb-cell" id="sZKonto"><span class="k">Konto</span><b class="w">0</b><span class="z">–</span></div>
+    <div class="sb-cell" id="sZKonto"><span class="k">Konto</span><b class="w">0</b><span class="sb-kleiste" id="sKontoLeiste" aria-hidden="true"><i></i></span><span class="z">–</span></div>
     <div class="sb-cell" id="sZMatrix" aria-label="Matrix-Verlauf heute — zur Matrix-Spur"><span class="k">Matrix</span><span class="sb-mv" id="sMv"></span></div>
   </div>
 </div>
@@ -1783,11 +1813,11 @@ body{background:var(--bg)}
    sie — ueber die beiden Alias-Namen, die der Code seit v1.x benutzt.
    Der DATENVERTRAG ist etwas anderes: die aelteste Paket-Version, die der
    Import annimmt (Gate) — er bleibt 2.0, additiv erweitert. */
-const APP_VERSION = '3.2.0';
+const APP_VERSION = '3.3.0';
 const VERSION = APP_VERSION;                  // Alias: appVersion im Export
 const UI_VERSION = 'v'+APP_VERSION;           // Alias: Anzeige
 const DATENVERTRAG = '2.0.0';                 // Import-Gate: Pakete ab dieser appVersion
-const APP_BUILD = '2026-09-28-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-09-28-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 try{ document.title='Fokus '+UI_VERSION; }catch(e){}
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
@@ -5100,6 +5130,185 @@ function ampelBalken(stufe){ const a=AMPEL_FARBE[stufe]||AMPEL_FARBE.grau; retur
    (Normaltag, Plan, Ziel, Schnitt) — und dann gestrichelt. */
 const DOM_FARBE={ dfm:['#93c5fd','#3b82f6'], privat:['#d8b4fe','#a855f7'] };
 const SPIEL_FARBE={ muenzen:['#fde68a','#f2b84b'], rang:['#e9d5ff','#b98af7'], kulisse:['#a5f3fc','#22d3ee'] };
+/* ══ §0 (v3.3.0) · GEMEINSAME BAUSTEINE DER DIAGRAMME ══════════════════
+   Farben NUR aus dieser Tabelle (Werte = die vorhandenen Variablen, als Hex,
+   damit SVG und die Ampel-Mischung sie lesen koennen):
+     GRUEN --ok · GELB --warn · ORANGE --orange (neu, #FF9F0A) · ROT --bad
+     (die rote Soll-Linie) · BLAU/LILA = DOM_FARBE (der DFM-/Privat-Balken) ·
+     GRAU --mut (Nebentext) · UEBER #FF2D95 (in der App bisher unbenutzt) */
+const DIA_FARBE={ gruen:'#3ecf8e', gelb:'#f2b84b', orange:'#FF9F0A', rot:'#f66d6d',
+                  blau:DOM_FARBE.dfm[1], lila:DOM_FARBE.privat[1], grau:'#9a9ca2', ueber:'#FF2D95' };
+function diaMisch(a, b, t){
+  const h=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)), p=h(a), q=h(b), tt=Math.max(0,Math.min(1,t));
+  return '#'+p.map((v,i)=>Math.round(v+(q[i]-v)*tt).toString(16).padStart(2,'0')).join('');
+}
+/* §0.3: ampel(ist, soll) — r ≥ 1 GRUEN · 0,90 GELB · ≤ 0,75 ORANGE, dazwischen linear (RGB) */
+function diaAmpel(ist, soll){
+  const F=DIA_FARBE;
+  if(!(num(soll)>0)) return F.gruen;
+  const r=num(ist)/num(soll);
+  if(r>=1) return F.gruen;
+  if(r<=0.75) return F.orange;
+  if(r>=0.9) return diaMisch(F.gelb, F.gruen, (r-0.9)/0.1);
+  return diaMisch(F.orange, F.gelb, (r-0.75)/0.15);
+}
+/* §0.2: Ende des letzten Blocks im Tagesrahmen (Stunden ab Mitternacht des App-Tags), sonst 23:00 */
+function diaTagesEndeMs(){
+  const d=heuteApp(), r=tagesRahmen(d), mitternacht=new Date(d+'T00:00:00').getTime();
+  const h=(r && r.length) ? Math.max.apply(null, r.map(x=>num(x.bis))) : 23;
+  return mitternacht+h*3600000;
+}
+/* der bereits angezeigte P/h-Wert einer Karte (Fokusansicht, erste Kennzahl) */
+function tempoKarteVon(k){ return k ? rate(k)*(S.settings.zeitGewicht!=null?S.settings.zeitGewicht:1) : null; }
+/* §0.2: alle Groessen „heute" — eine Stelle fuer alle Kacheln */
+function diaGroessen(){
+  const jetzt=Date.now();
+  const zielDfm=Math.max(0, zielTag('dfm')), zielPrivat=Math.max(0, zielTag('privat')), zielHeute=Math.max(1, zielDfm+zielPrivat);
+  const dfm=Math.max(0, belIstDfm()), privat=Math.max(0, tagesPunkteDomain('privat'));   // wie die Statusleiste heute
+  const punkteHeute=dfm+privat;
+  const startMs=(S.tag && S.tag.startTs) ? Date.parse(S.tag.startTs) : jetzt;
+  const tagesEndeMs=diaTagesEndeMs();
+  const stundenBisher=Math.max(0.25, (jetzt-startMs)/3600000), stundenRest=Math.max(0.25, (tagesEndeMs-jetzt)/3600000);
+  const tempoSchnitt=punkteHeute/stundenBisher, tempoZiel=Math.max(0, zielHeute-punkteHeute)/stundenRest;
+  const lk=(S.fokus && S.fokus.laeuft && S.fokus.karteId) ? S.karten.find(x=>x.id===S.fokus.karteId) : null;
+  return { zielDfm, zielPrivat, zielHeute, dfm, privat, punkteHeute, startMs, tagesEndeMs, stundenBisher, stundenRest,
+    tempoSchnitt, tempoZiel, tempoKarte:lk ? tempoKarteVon(lk) : null, karteLaeuft:lk ? lk.id : null,
+    prognoseHeute:punkteHeute+tempoSchnitt*stundenRest, sollBisJetzt:zielHeute*stundenBisher/(stundenBisher+stundenRest) };
+}
+/* §1.1: die Tempo-Skala der Statusleiste — Balken 0 … tempoSchnitt (Ampel), drei Punkte */
+function tempoSkalaHtml(g){
+  const vals=[g.tempoZiel, g.tempoSchnitt].concat(g.tempoKarte!=null ? [g.tempoKarte] : []);
+  const max=Math.max(1e-9, 1.2*Math.max.apply(null, vals));
+  const pos=v=>Math.max(0, Math.min(100, num(v)/max*100)).toFixed(1)+'%';
+  return '<span class="ts-skala" aria-hidden="true"><i class="ts-bar" style="width:'+pos(g.tempoSchnitt)+';background:'+diaAmpel(g.tempoSchnitt, g.tempoZiel)+'"></i>'+
+    '<b class="ts-p" style="left:'+pos(g.tempoZiel)+';background:'+DIA_FARBE.rot+'"></b>'+
+    '<b class="ts-p" style="left:'+pos(g.tempoSchnitt)+';background:'+DIA_FARBE.gelb+'"></b>'+
+    (g.tempoKarte!=null ? '<b class="ts-p" style="left:'+pos(g.tempoKarte)+';background:'+DIA_FARBE.gruen+'"></b>' : '')+'</span>';
+}
+/* §2.4/§3.1: Ring (6 px, Start oben, im Uhrzeigersinn) — gefuellt in der Farbe, Rest GRAU 30 % */
+function diaRingSvg(frac, farbe){
+  const S0=100, sw=6, r=(S0-sw)/2, c=S0/2, u=2*Math.PI*r, f=Math.max(0, Math.min(1, num(frac)));
+  return '<svg class="dia-ringsvg" viewBox="0 0 '+S0+' '+S0+'" aria-hidden="true">'+
+    '<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="none" stroke="'+DIA_FARBE.grau+'" stroke-opacity=".3" stroke-width="'+sw+'"/>'+
+    (f>0 ? '<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="none" stroke="'+farbe+'" stroke-width="'+sw+'" stroke-dasharray="'+(f*u).toFixed(2)+' '+u.toFixed(2)+'" transform="rotate(-90 '+c+' '+c+')"/>' : '')+
+    '</svg>';
+}
+/* Fortschritt zum naechsten Outfit — dieselbe Groesse wie bisher (Outfit-Kachel) */
+function outfitFortschritt(){
+  const of=outfitHeute(), naechste=Math.min(20, of+1);
+  const fehlt=of>=20 ? 0 : outfitFehltBis(naechste);
+  const spanne=Math.max(1, (fbOutfitSchwelleF(naechste)-fbOutfitSchwelleF(of))*outfitZielHeute()/streakFaktor());
+  return { of, naechste, frac: of>=20 ? 1 : Math.max(0, Math.min(1, 1-fehlt/spanne)) };
+}
+/* §2.4/§3.1: EINE Outfit-Kachel fuer Fokus und Belohnung */
+function outfitKachelHtml(){
+  const o=outfitFortschritt();
+  return '<div class="fbk dia-quad"><div class="dia-ring">'+diaRingSvg(o.frac, DIA_FARBE.gruen)+
+    '<img class="dia-ringbild" src="'+AVATAR_BILDER[o.of-1]+'" alt="" loading="lazy" decoding="async" onerror="this.style.display=\'none\'"></div>'+
+    '<span class="dia-name">'+(o.of<20 ? 'Outfit '+o.naechste : '')+'</span></div>';
+}
+/* §2.5: Faktor — der grosse Wert (einen stundenweisen Faktor gibt es im Code nicht) */
+function faktorKachelHtml(stil){
+  const F=outfitF();
+  return '<div class="fbk dia-quad amp"'+(stil?' style="'+stil+'"':'')+'><div class="fbk-h">Faktor F</div>'+
+    '<div class="fbk-w dia-gross"><b>'+(F!=null ? F.toFixed(2).replace('.',',') : '—')+'</b></div></div>';
+}
+/* §3.2: Muenzen heute mit Prognose */
+function muenzenKachelHtml(){
+  const g=diaGroessen(), m=Math.max(0, spielLiveZufluss()), ziel=Math.max(1, zielUndIstHeute().ziel*streakFaktor());
+  const prog=m+(m/g.stundenBisher)*g.stundenRest;
+  return '<div class="fbk dia-quad"><div class="fbk-h">Münzen heute</div><div class="dia-ring">'+diaRingSvg(m/ziel, diaAmpel(prog, ziel))+
+    '<b class="dia-mitte">'+Math.round(m)+'</b></div>'+
+    '<span class="dia-name">'+(prog>=ziel ? 'Ziel ✓' : 'fehlen '+fmtP(Math.round(ziel-prog)))+'</span></div>';
+}
+/* §3.3: Rang — Leistungsrate je aktivem Tag (die Tage, auf denen der Rang heute beruht) */
+function rangDiagrammHtml(rm){
+  rm=rm||rangMass();
+  const rang=rm.rang!=null ? rm.rang : 1;
+  const ab=leistungsSchwelle(rang), auf=leistungsSchwelle(rang+1), sp=Math.max(1e-9, auf-ab);
+  const lo=ab-0.2*sp, hi=auf+0.2*sp;
+  const heute=belFensterDatum(jetztIso());
+  const tage=(rm.tage||[]).filter(x=>x && x.r && x.r.rate!=null).slice().sort((a,b)=>a.datum<b.datum?-1:1).slice(-14);
+  const W=320, H=120, pL=8, pR=46, pT=10, pB=12, n=tage.length;
+  const X=i=>pL+(n>1 ? i/(n-1) : 0.5)*(W-pL-pR), Y=v=>pT+(1-(Math.max(lo, Math.min(hi, v))-lo)/(hi-lo))*(H-pT-pB);
+  let g='';
+  [[ab,'Abstieg',DIA_FARBE.orange],[auf,'Aufstieg',DIA_FARBE.gruen]].forEach(([v,lab,f])=>{ const y=Y(v).toFixed(1);
+    g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+f+'" stroke-width="1.5" stroke-dasharray="4 4"/>'+
+       '<text x="'+(W-2)+'" y="'+(Y(v)+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="'+f+'">'+lab+'</text>'; });
+  if(n>1) g+='<path d="'+glattPfad(tage.map((t,i)=>({x:X(i), y:Y(t.r.rate)})))+'" fill="none" stroke="'+DIA_FARBE.grau+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  tage.forEach((t,i)=>{ const hh=t.datum===heute;
+    g+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(t.r.rate).toFixed(1)+'" r="'+(hh?4:2.5)+'" fill="'+DIA_FARBE.grau+'"/>';
+    if(hh) g+='<text x="'+X(i).toFixed(1)+'" y="'+(Y(t.r.rate)-7).toFixed(1)+'" text-anchor="middle" font-size="9" fill="'+DIA_FARBE.grau+'">'+Math.round(t.r.rate)+'</text>'; });
+  return '<svg class="an-svg dia-rang" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+g+'</svg>';
+}
+/* §3.4: wann der naechste Artikel bezahlbar ist */
+function shopAnkunftText(nk){
+  const k=konto(); if(k>=nk.preis) return 'jetzt';
+  const g=diaGroessen(), m=Math.max(0, spielLiveZufluss()), proStd=m/g.stundenBisher, fehlt=nk.preis-k;
+  if(proStd>0){ const t=Date.now()+fehlt/proStd*3600000;
+    if(t<=g.tagesEndeMs){ const d=new Date(t); return 'ca. '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); } }
+  return 'nicht mehr heute · fehlen '+fmtP(Math.round(fehlt));
+}
+/* §3.5: alle bisher erreichten Outfits — je Tag sein Outfit (Tagespunkte gegen das Tagesziel, dieselbe
+   Treppe wie der Bestwert), heute das laufende; darunter, wie oft */
+function outfitSammlungHtml(){
+  const heute=heuteApp(), zaehl={};
+  (S.historie||[]).filter(h=>!h.luecke && h.datum && h.datum!==heute).map(h=>h.datum)
+    .filter((v,i,a)=>a.indexOf(v)===i).forEach(d=>{ const sn=tagSnapshot(d); if(!sn) return;
+      const o=outfitVon(Math.max(0, num(sn.punkteBilanz))/Math.max(1, zielTagGesamt(d))); zaehl[o]=(zaehl[o]||0)+1; });
+  const oh=outfitHeute(); zaehl[oh]=(zaehl[oh]||0)+1;
+  return '<div class="dia-ofreihe">'+Object.keys(zaehl).map(Number).sort((a,b)=>a-b).map(o=>
+    '<span class="dia-of"><img src="'+AVATAR_BILDER[o-1]+'" width="48" height="48" alt="" loading="lazy" decoding="async"><small>'+zaehl[o]+'×</small></span>').join('')+'</div>';
+}
+/* §3.6: Kulisse — Bild der aktuellen, Leiste zur naechsten */
+function kulisseKachelHtml(){
+  const ausg=ausgabenAnzeige(), st=bgStufeAus(ausg), lo=st>1||ausg>=bgSchwelle(1) ? bgSchwelle(st) : 0, hi=st<10 ? bgSchwelle(st+1) : Math.max(ausg,1);
+  const f=st<10 ? Math.max(0, Math.min(1, (ausg-lo)/Math.max(1, hi-lo))) : 1;
+  return '<div class="fbk voll"><div class="fbk-h">Kulisse</div>'+
+    '<div class="dia-kulisse" style="background-image:url(\''+bgFuerAusgaben()+'\')" aria-hidden="true"></div>'+
+    '<span class="dia-leiste"><i style="width:'+(f*100).toFixed(1)+'%;background:'+DIA_FARBE.gelb+'"></i></span>'+
+    '<div class="dia-lr"><span>Kulisse '+st+'</span><span>'+(st<10 ? 'Kulisse '+(st+1) : '')+'</span></div></div>';
+}
+/* §2.6: „Heute gegen typische Tage" — kumulierte Punkte ueber die Uhrzeit, sieben Linien.
+   Durchschnitt = je Uhrzeit der Mittelwert der kumulierten Tageskurven (Urlaubstage zaehlen nicht). */
+let _typMemo=null, _typMemoKey='';
+function heuteGegenTypischHtml(){
+  const iv=S.intraday||[], heute=belFensterDatum(jetztIso());
+  const fn=belTagFenster(heute), von=fn.von, jetztX=belX(jetztIso()), bis=Math.max(fn.bis, jetztX);
+  const schritt=0.25, xs=[]; for(let x=von; x<=bis+1e-9; x+=schritt) xs.push(x);
+  const key=iv.length+'|'+(iv.length?iv[iv.length-1].ts:'')+'|'+Math.floor(Date.now()/60000)+'|'+von+'|'+bis;
+  if(!(_typMemo && _typMemoKey===key)){
+    const tage={}; intradayStatistik().forEach(e=>{ if(e && e.ts && num(e.punkte)!==0) tage[belFensterDatum(e.ts)]=true; });
+    const alle=Object.keys(tage).filter(d=>d<heute && !tagIstUrlaub(d)).sort(), g14=alle.filter(d=>d>=anVorTage(heute,14));
+    const mittel=(liste, dom)=>{ if(!liste.length) return null; const acc=xs.map(()=>0);
+      liste.forEach(d=>{ const k=belTagKurve(d, dom, von); xs.forEach((x,i)=>{ acc[i]+=belKurveWert(k, x); }); });
+      return acc.map(v=>v/liste.length); };
+    _typMemo={ alle:mittel(alle,'alle'), g14:mittel(g14,'alle'), dfm14:mittel(g14,'dfm'), prv14:mittel(g14,'privat') };
+    _typMemoKey=key;
+  }
+  const heuteReihe=dom=>{ const k=belTagKurve(heute, dom, von); return xs.map(x=>x<=jetztX+1e-9 ? belKurveWert(k, x) : null); };
+  const F=DIA_FARBE;
+  const L=[ {vals:heuteReihe('alle'), color:F.gruen, lab:'Heute'},
+            {vals:_typMemo.alle, color:F.grau, dash:true, lab:'Ø alle Tage'},
+            {vals:_typMemo.g14, color:F.gelb, dash:true, lab:'Ø 14 Tage'},
+            {vals:heuteReihe('dfm'), color:F.blau, lab:'DFM heute'},
+            {vals:_typMemo.dfm14, color:F.blau, dash:true, lab:'DFM Ø 14 Tage'},
+            {vals:heuteReihe('privat'), color:F.lila, lab:'Privat heute'},
+            {vals:_typMemo.prv14, color:F.lila, dash:true, lab:'Privat Ø 14 Tage'} ];
+  const W=320, H=142, pL=26, pR=10, pT=10, pB=20;
+  let yMax=1; L.forEach(l=>(l.vals||[]).forEach(v=>{ if(v!=null && v>yMax) yMax=v; })); yMax*=1.1;
+  const X=x=>pL+(x-von)/Math.max(1e-9, bis-von)*(W-pL-pR), Y=v=>pT+(1-v/yMax)*(H-pT-pB);
+  let g='';
+  for(let hh=Math.ceil(von/3)*3; hh<=bis; hh+=3){ const x=X(hh).toFixed(1);
+    g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--line)" stroke-width="0.5" opacity=".5"/>'+
+       '<text x="'+x+'" y="'+(H-6)+'" text-anchor="middle" font-size="8" fill="var(--mut2)">'+(hh%24)+'</text>'; }
+  g+='<text x="'+(pL-3)+'" y="'+(Y(yMax)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anFmt(yMax)+'</text>';
+  L.forEach(l=>{ if(!l.vals) return; const pts=[]; l.vals.forEach((v,i)=>{ if(v!=null) pts.push({x:X(xs[i]), y:Y(v)}); });
+    if(pts.length<2) return;
+    g+='<path d="'+pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' ')+'" fill="none" stroke="'+l.color+'" stroke-width="'+(l.dash?1.5:2)+'"'+(l.dash?' stroke-dasharray="4 4"':'')+' stroke-linejoin="round" stroke-linecap="round"/>'; });
+  return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+g+'</svg>'+
+    '<div class="an-legend dia-legende">'+L.map(l=>'<span><i class="'+(l.dash?'gestr':'')+'" style="'+(l.dash?'border-color:':'background:')+l.color+'"></i>'+l.lab+'</span>').join('')+'</div>';
+}
 /* weicher Verlauf unter einer Kurve (Pixelpunkte, x aufsteigend) */
 function flaecheSvg(pts, yBasis, farbe){
   const q=(pts||[]).filter(p=>p && Number.isFinite(p.x) && Number.isFinite(p.y));
@@ -5377,19 +5586,14 @@ function fbWasDieseKarte(k){
   const bb=num(k.bewegungsBonus), bbMax=Math.max(1, num(S.settings&&S.settings.bewegungsBonus,500));
   // v2.4.1: Matrixfeld = Grundfarbe · Domaene = Hintergrund · Faelligkeit = Kraft
   let h='<div class="fb"><div class="fb-h">Was diese Karte einbringt</div><div class="fb-kacheln '+karteVisKlasse(k)+'" style="'+karteVisStil(k)+'">';
-  h+='<div class="fbk voll"><div class="fbk-h">Punkte dieser Karte · Ist gegen Prognose</div>'+
-     '<div class="fbk-zz">'+fbWert(fmtP(jetzt), 'Stand jetzt · '+Math.round(istMin)+'′ Ist', jetzt>p?'gut':'')+
-     fbWert(fmtP(p), 'Prognose · ≈ '+fmtP(muenzen)+' Münzen', 'rechts')+'</div>'+
-     '<div aria-hidden="true">'+fbBalken(jetzt/skala, p/skala, 'Prognose', jetzt>p)+'</div>'+
-     '<div class="fb-rechnung">'+(hatFestMin(k)?('<b>feste Bewertung: '+num(k.festMin)+' Min</b>'):(num(k.sollMin)+'′ Soll'))+' × '+fmtP(basisRate(k))+' P/Std × '+
-     String(matrixFaktor(k)).replace('.',',')+' ('+matrixIcon(mf)+' '+esc(matrixName(mf))+')'+
-     (k.domain==='dfm'?(' × '+(Math.round(geldFaktor(k)*100)/100).toString().replace('.',',')+' Geld'):'')+
-     (bonus?(' + '+fmtP(bonus)+' Abhakbonus'):'')+
-     (hatFestMin(k)?' — die Punkte bleiben so, egal wie lange die Uhr läuft; die Zeit wird trotzdem gebucht.</div></div>'
-       :' — gebucht wird nach <b>Ist</b>, der Endwert weicht von der Prognose ab.</div></div>');
-  // §2 (v2.9.0): bei Pflicht ersetzt der Wert die Rechnung — die Zeile sagt das
-  if(istPflicht(k)){ const w=pflichtWerte(k);
-    h=h.replace(/<div class="fb-rechnung">[\s\S]*?<\/div><\/div>$/, '<div class="fb-rechnung"><b>Pflicht:</b> '+fmtP(w.wert)+' P bis '+w.deckel+'′, danach −'+w.abzug+' je angefangene 10′, mindestens '+fmtP(w.min)+' P · heute '+fmtP(pflichtHeuteP(k))+' P gebucht · Matrixfeld '+matrixIcon(mf)+' '+esc(matrixName(mf))+' zählt weiter in der Matrix.</div></div>'); }
+  // §2.2 (v3.3.0): die Kachel „Punkte dieser Karte" wird „Tagesprognose" — sonst nichts darin
+  { const g=diaGroessen(), prog=Math.round(g.prognoseHeute/10)*10;
+    const lauf=!!(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id);
+    const anteil=(lauf && g.punkteHeute>0) ? Math.round(kartePunkteHeute(k)/g.punkteHeute*100) : 0;
+    h+='<div class="fbk voll"><div class="fbk-h">Tagesprognose</div>'+
+       '<div class="fbk-w"><b style="color:'+diaAmpel(g.prognoseHeute, g.zielHeute)+'">'+fmtP(prog)+'</b>'+
+       '<span>'+(g.prognoseHeute>=g.zielHeute ? 'Ziel ✓' : 'fehlen '+fmtP(Math.round(g.zielHeute-g.prognoseHeute)))+'</span>'+
+       '<span>Diese Karte: '+anteil+' %</span></div></div>'; }
   h+=fbKachel('Anteil am Tagessoll', fbRing(anteil, null, {mittel:true, mitte:Math.round(anteil*100)+'%'}),
      fbWert(fmtP(p), 'Prognose von '+fmtP(zielH)), {voll:!bb});
   if(bb) h+=fbKachel('Bewegungsbonus heute', '<div style="width:100%">'+fbBalken(bb/bbMax, null, null, true, AMPEL_FARBE.gruen.slice().reverse())+'</div>',
@@ -5498,13 +5702,13 @@ function fbWasIchBewege(k){
         : 'Noch keine Position heute — sie wird abgefragt, sobald du diese Karte verlässt. Unbekannt: <b>'+Math.round(gm.zeit.unbekannt)+' Min</b>.')+
      '</div></div>';
   if(p){
-    const zielX=MATRIX_META[mf].x;
-    const erwartet=bewegungsBonusBerechnen(p, {x:Math.max(p.x, Math.min(1, p.x+(zielX>0?0.5:-0.3)))});
-    const bbMax=Math.max(1, num(S.settings&&S.settings.bewegungsBonus,500));
-    h+=fbKachel('Diese Karte schiebt', fbSchubAchse(p.x, zielX>0),
-       fbWert(zielX>0?'→':'←', zielX>0?'nach rechts':'nach links', zielX>0?'gut':''));
-    h+=fbKachel('Bonus möglich', '<div style="width:100%">'+fbBalken(zielX>0?erwartet/bbMax:0, null, null, true, AMPEL_FARBE.gruen.slice().reverse())+'</div>',
-       fbWert(zielX>0?('bis '+fmtP(erwartet)):'0', 'von '+fmtP(bbMax)+' P'), {breit:true});
+    // §2.7 (v3.3.0): „Bonus möglich" entfaellt; die Kachel zeigt den Anteil dieser Karte am heutigen Tag
+    const g=diaGroessen(), X=kartePunkteHeute(k), rest=Math.max(0, g.punkteHeute-X);
+    const pz=v=>Math.max(0, Math.min(100, num(v)/g.zielHeute*100));
+    h+='<div class="fbk"><div class="fbk-h">Diese Karte schiebt</div>'+
+       '<div class="dia-schub"><b>'+(X>=0?'+':'−')+fmtP(Math.abs(X))+'</b><span>= '+Math.round(X/g.zielHeute*100)+' % vom Tagesziel</span></div>'+
+       '<span class="dia-mini" aria-hidden="true"><i style="width:'+pz(rest).toFixed(1)+'%;background:'+DIA_FARBE.grau+';opacity:.6"></i>'+
+       '<i style="left:'+pz(rest).toFixed(1)+'%;width:'+Math.min(pz(Math.max(0,X)), 100-pz(rest)).toFixed(1)+'%;background:'+(k.domain==='dfm'?DIA_FARBE.blau:DIA_FARBE.lila)+'"></i></span></div>';
   }
   return h+'</div></div>';
 }
@@ -5524,7 +5728,7 @@ function fbWoIchStehe(){
   { const pct=ges.ist/Math.max(1,ges.ziel), nz=normalZurUhrzeit('alle');
     h+='<div class="fbk voll fbk-held amp" style="'+ampelStil(ampelStufe(nz.r))+'"><div class="fbk-r">'+
        '<div class="fbk-g" aria-hidden="true">'+fbRing(pct, null, {gross:true, mitte:Math.round(pct*100)+'%', unter:'Tagesziel'})+'</div>'+
-       grossZahl(fmtP(ges.ist), 'von '+fmtP(ges.ziel)+(ges.we?' · Sa+So':'')+(nz.norm!=null?'<br>Schnitt jetzt '+fmtP(nz.norm):''), nz.r, 'gegen deinen Schnitt zur selben Uhrzeit')+
+       grossZahl('<span style="color:'+(function(){ const g=diaGroessen(); return diaAmpel(g.punkteHeute, g.sollBisJetzt); })()+'">'+fmtP(ges.ist)+'</span>', 'von '+fmtP(ges.ziel)+(ges.we?' · Sa+So':'')+(nz.norm!=null?'<br>Schnitt jetzt '+fmtP(nz.norm):''), nz.r, 'gegen deinen Schnitt zur selben Uhrzeit')+   // §2.3 (v3.3.0): Farbe des Hauptwerts
        '</div></div>'; }
   [['dfm','DFM','var(--blue)'],['privat','Privat','var(--warn)']].forEach(([d,lbl])=>{
     const zi=zielUndIstHeute(d);
@@ -5538,11 +5742,9 @@ function fbWoIchStehe(){
   // §1.2 (v2.5.0): Outfit und Faktor F zeigen Pascal gegen normal → Ampelfarbe
   // (dieselbe Abweichung wie der Tagesziel-Ring: heute gegen deinen Schnitt zur selben Uhrzeit).
   const ampTag=ampelStil(ampelStufe(normalZurUhrzeit('alle').r));
-  h+=fbKachel('Outfit', fbRing(ofFrac, null),   // Ampel ueber die Kachel (v2.5 §1.2)
-     fbWert(of!=null?String(of):'—', (of||1)>=20?'höchste Stufe':(fehlt>0?('noch '+fmtP(fehlt)+' P bis '+naechste):('Stufe '+naechste+' erreicht'))),
-     {klasse:'amp', stil:ampTag});
-  h+=fbKachel('Faktor F', '<div style="width:100%">'+fbBalken(num(F)/Fs, 1/Fs, '1,0', num(F)>=1)+'</div>',
-     fbWert(F!=null?F.toFixed(2).replace('.',','):'—', '1,0 = Ziel'), {breit:true, klasse:'amp', stil:ampTag});
+  // §2.4/§2.5 (v3.3.0): zwei quadratische Kacheln — Outfit mit Ring, daneben Faktor (dieselben Funktionen wie im Shop)
+  h+=outfitKachelHtml();
+  h+=faktorKachelHtml(ampTag);
   /* §1.1 (v2.5.0) · DIE ORIGINALE ZURUECK. v2.3/v2.4 hatten hier neu gebaut
      (Tagesverlauf aus der Statistik, Belastung ueber die Matrix). Jetzt stehen
      die Module der Detailanalyse da — Logik, Kennzahlen und Aufbau wie dort,
@@ -5550,9 +5752,10 @@ function fbWoIchStehe(){
        Tagesverlauf (Statistik)   → „Heute gegen typische Tage" =
                                     Aktivitaetsfenster aus „Verhalten"
        Belastung (Matrix, v2.4)   → Belastungssteuerung (ACWR) */
+  // §2.6 (v3.3.0): kumulierte Punkte ueber die Uhrzeit, sieben Linien (dieselbe Funktion wie in der Statistik)
   let fenster='';
-  try{ fenster=anAktivitaetsfenster(S.ui.analyseDomain||'alle'); }catch(e){ fenster=''; }
-  if(fenster) h+='<div class="fbk voll fb-modul"><div class="fbk-h">Heute gegen typische Tage · Punkte je Stunde</div>'+fenster+'</div>';
+  try{ fenster=heuteGegenTypischHtml(); }catch(e){ fenster=''; }
+  if(fenster) h+='<div class="fbk voll fb-modul"><div class="fbk-h">Heute gegen typische Tage</div>'+fenster+'</div>';
   let acwr='';
   try{ acwr=anModACWR(analyseFenster(), S.ui.analyseDomain||'alle'); }catch(e){ acwr=''; }
   if(acwr) h+='<div class="fbk voll fb-modul"><div class="fbk-h">Belastungssteuerung</div>'+acwr+'</div>';
@@ -5916,7 +6119,8 @@ function fokusKpis(k){
   const restMin=Math.max(0,geplant-min);
   const subs=untermenge(k.id), fertig=subs.filter(u=>u.done).length;
   const kp=(cls,h,l,s)=>'<div class="tkpi'+(cls?' '+cls:'')+'"><div class="tkpi-h">'+h+'</div><div class="tkpi-l">'+l+'</div><div class="tkpi-s">'+s+'</div></div>';
-  box.innerHTML = kp(f1, fmtP(r), 'P/Std ⌀', 'Ziel '+fmtP(ziel))
+  // §2.1 (v3.3.0): Schriftfarbe = ampel(tempoKarte, tempoZiel)
+  box.innerHTML = kp(f1, '<span style="color:'+diaAmpel(r, diaGroessen().tempoZiel)+'">'+fmtP(r)+'</span>', 'P/Std ⌀', 'Ziel '+fmtP(ziel))
     + kp('', fmtP(earnedP), 'Punkte', proz+'% v. '+fmtP(planP))
     + kp('', tZeitKurz(min), 'bearbeitet', geplant>0?'Rest '+tZeitKurz(restMin):'Stoppuhr')
     + kp('', fertig+'/'+subs.length, 'Unteraufg.', (subs.length-fertig)+' offen');
@@ -6640,25 +6844,19 @@ function renderStatusbar(){
   // belZielGesamt/belIstDfm rechnen Sa/So kombiniert gg. 3000 DFM). Ist zweifarbig
   // gestapelt (DFM blau · Privat gelb). Soll-Layer = reines 8:30–22:00-Uhrfenster
   // (sbFensterAnteil) — Buchungen außerhalb zählen unverändert voll in Ist/Statistik.
-  const zielGes=Math.max(1, belZielGesamt());
-  const pDfm=Math.max(0, belIstDfm()), pPriv=Math.max(0, tagesPunkteDomain('privat'));
-  let pctD=pDfm/zielGes*100, pctP=pPriv/zielGes*100;
-  if(pctD+pctP>100){ const sc=100/(pctD+pctP); pctD*=sc; pctP*=sc; }   // Balken bleibt bei Überschuss voll, Anteil bleibt gewahrt
-  el('sBarIstD').style.width=pctD.toFixed(1)+'%';
-  el('sBarIstP').style.left=pctD.toFixed(1)+'%'; el('sBarIstP').style.width=pctP.toFixed(1)+'%';
-  // §2 (v1.12.0): Soll-Layer folgt der Treppe (sollStandGesamt/Ziel); am
-  // Wochenende gibt es kein Fenster und keine Soll-Markierung.
+  // §1.4 (v3.3.0): Gesamtbreite = zielHeute. DFM fuellt von links, Privat von rechts; die rote
+  // Linie trennt die beiden Ziele und wandert um einen Ueberschuss; ueber dem Tagesziel liegt UEBER
+  // von rechts deckend darueber. (Die rote Rueckstands-Flaeche von bisher entfaellt.)
+  const g=diaGroessen();
   const istWe=istWochenendTag(heuteApp());
-  const istTotalPct=pctD+pctP, sollPct=Math.min(100, sollStandGesamt()/zielGes*100);
-  const sollEl=el('sBarSoll'), sollMk=el('sBarSollMark');
-  if(urlaubHeute() || istWe){ sollEl.style.width='0%'; sollMk.style.display='none'; }
-  else if(istTotalPct>=sollPct){   // Vorsprung: nur schmaler Marker innerhalb der Ist-Füllung
-    sollEl.style.width='0%';
-    sollMk.style.left=sollPct.toFixed(1)+'%'; sollMk.style.display='block';
-  } else {                    // Rückstand: rote Fläche vom Ist-Ende bis zur Soll-Position
-    sollEl.style.left=istTotalPct.toFixed(1)+'%'; sollEl.style.width=(sollPct-istTotalPct).toFixed(1)+'%';
-    sollMk.style.display='none';
-  }
+  const zielGes=g.zielHeute, pDfm=g.dfm, pPriv=g.privat;
+  const pctZ=v=>Math.max(0, Math.min(100, num(v)/zielGes*100)).toFixed(1)+'%';
+  el('sBarIstD').style.width=pctZ(pDfm);
+  { const bp=el('sBarIstP'); bp.style.left='auto'; bp.style.right='0'; bp.style.width=pctZ(pPriv); }
+  el('sBarSoll').style.width='0%';
+  { const x=Math.max(0, Math.min(zielGes, g.zielDfm+Math.max(0, pDfm-g.zielDfm)-Math.max(0, pPriv-g.zielPrivat)));
+    const mk=el('sBarSollMark'); mk.style.left=pctZ(x); mk.style.display='block'; }
+  el('sBarUeber').style.width=pctZ(Math.max(0, pDfm+pPriv-zielGes));
   // §6.2 (v1.9.0): vier Meilensteine im Tagesbalken (¼ · ½ · ¾ · Ziel)
   let marks='<span class="qmark" style="left:25%"></span><span class="qmark" style="left:50%"></span><span class="qmark" style="left:75%"></span>';
   if(S.belohnung){
@@ -6691,16 +6889,20 @@ function renderStatusbar(){
   else {
     const lk=(S.fokus && S.fokus.laeuft && S.fokus.karteId) ? S.karten.find(x=>x.id===S.fokus.karteId) : null;
     const tw=tempoWerte(lk||null);
+    // §1.1 (v3.3.0): Werte nach §0 (tempoSchnitt, tempoZiel), darunter die Skala mit drei Punkten
     zelle('sZTempo',
-      fmtP(tw.ich)+(tw.ziel!=null?' <small>'+(tw.ziel<=0?'✓':'→'+fmtP(tw.ziel))+'</small>':''),
-      tempoLeisteHtml(tw, {klein:true}),
+      fmtP(g.tempoSchnitt)+' <small>'+(g.tempoZiel<=0?'✓':'→'+fmtP(g.tempoZiel))+'</small>',
+      tempoSkalaHtml(g),
       (AMPEL_FARBE[tw.stufe]||AMPEL_FARBE.grau)[0]);
   }
   // Zelle 3: Konto + Abstand zur nächsten Kulisse (gekürzt: nur die Zahl)
   const bgSt=bgStufeAus(ausgabenAnzeige());
   zelle('sZKonto', fmtKurzP(k), bgSt<10 ? ('Kulisse '+Math.max(0,Math.round(bgSchwelle(bgSt+1)-ausgabenAnzeige()))+'') : 'Reise voll');
-  // Zelle 4 (§3.1 v2.6.0): Matrix-Verlauf — nur die Linie
-  if(el('sMv')) el('sMv').innerHTML=matrixVerlaufSvg(matrixSpur(), {klein:true});
+  // §1.2 (v3.3.0): Leiste unter dem Kontowert — Konto ÷ Preis des naechsten Shop-Artikels, GELB
+  { const kl=el('sKontoLeiste'), nk=(S.belohnung && S.belohnung.stufen) ? belNaechsterKauf() : null;
+    if(kl && kl.firstChild){ kl.firstChild.style.width=((nk && nk.preis>0) ? Math.max(0, Math.min(1, k/nk.preis))*100 : 0).toFixed(1)+'%'; kl.firstChild.style.background=DIA_FARBE.gelb; } }
+  // Zelle 4 (§3.1 v2.6.0): Matrix-Verlauf — nur die Linie · §1.3 (v3.3.0): nur die letzten 5 Stunden
+  if(el('sMv')) el('sMv').innerHTML=matrixVerlaufSvg(matrixSpur().filter(p=>p && p.ts && Date.parse(p.ts)>=Date.now()-5*3600000), {klein:true});
   momentRangCheck();   // §6 (1.9.0): Rang/Stern/Meilenstein/Joker zentral erkennen
   }catch(e){ /* Statusleiste bleibt sichtbar, auch wenn ein Wert scheitert */ }
   layoutTopbar();
@@ -14013,38 +14215,27 @@ function belHeuteNoch(){
      '<div class="fbk-g breit" aria-hidden="true">'+fbBalken(zi.ist/skala, zi.ziel/skala, 'Ziel '+fmtKurzP(zi.ziel), zi.ist>=zi.ziel,
         (function(){ try{ return AMPEL_FARBE[ampelStufe(normalZurUhrzeit('alle').r)].slice().reverse(); }catch(e){ return null; } })())+'</div>'+   // §5 (v2.8.0): du gegen normal → Ampel
      fbWert(fehltZiel>0?('noch '+fmtKurzP(fehltZiel)):'erreicht', fmtKurzP(zi.ist)+' von '+fmtKurzP(zi.ziel), 'rechts'+(fehltZiel>0?'':' gut'))+'</div></div>';
-  h+=fbKachel('Nächstes Outfit', fbRing(ofFrac, SPIEL_FARBE.rang),
-     fbWert(of>=20?'20':('noch '+fmtKurzP(fehltOf)), of>=20?'höchste Stufe':('bis Outfit '+naechste)));
+  h+=outfitKachelHtml();   // §3.1 (v3.3.0): dieselbe Kachel wie in der Fokusansicht
   // Münzen, die heute noch hereinkommen (bis zum Tagesziel, 1:1 aus Punkten)
   const heuteMgl=Math.round(fehltZiel*streakFaktor()), k=konto(), nk=belNaechsterKauf();
-  if(nk){
-    const sk=Math.max(nk.preis, k+heuteMgl)*1.05;
-    h+=fbKachel('Münzen heute noch', '<div style="width:100%">'+belDoppelBalken(k/sk, (k+heuteMgl)/sk, nk.preis/sk, 'Kauf')+'</div>',
-       fbWert('+'+fmtKurzP(heuteMgl).replace(/ P$/,''), 'bis Tagesziel'), {breit:true});
-  } else {
-    h+=fbKachel('Münzen heute noch', fbRing(zi.ist/Math.max(1,zi.ziel), SPIEL_FARBE.muenzen),
-       fbWert('+'+fmtKurzP(heuteMgl).replace(/ P$/,''), 'bis Tagesziel'));
-  }
+  h+=muenzenKachelHtml();   // §3.2 (v3.3.0): quadratisch, mit Prognose
   // Rang: Abstand nach oben UND nach unten — der Rang fällt auch.
   if(rm.rang==null){
-    h+=fbKachel('Rang', '<div style="width:100%">'+fbBalken(rm.n/3, null, null, false, SPIEL_FARBE.rang)+'</div>',
-       fbWert(rm.n+'/3', 'Messtage bis zum Rang'), {voll:true, breit:true});
+    h+='<div class="fbk voll"><div class="fbk-h">Rang</div>'+rangDiagrammHtml(rm)+'</div>';   // §3.3 (v3.3.0): ohne Rang die Schwellen von R1
   } else {
     const basis=rm.rang>1 ? leistungsSchwelle(rm.rang) : 0;
     const oben=rm.rang<RANG_MAX ? leistungsSchwelle(rm.rang+1) : Math.max(rm.median, basis)*1.1;
     const frac=(rm.median-basis)/Math.max(1, oben-basis);
     const puffer=rm.median-basis;
-    h+='<div class="fbk voll"><div class="fbk-h">Rang R'+rm.rang+' · „'+esc(rangName(rm.rang))+'"</div>'+
-       '<div class="fbk-zz">'+fbWert(rm.rang>1?('↓ '+Math.round(puffer)):'—', rm.rang>1?('P/Std Puffer bis R'+(rm.rang-1)):'Boden der Leiter')+
-       fbWert(rm.rang<RANG_MAX?('↑ '+Math.round(rm.rest)):'Top', rm.rang<RANG_MAX?('P/Std bis R'+(rm.rang+1)):'höchster Rang', 'rechts')+'</div>'+
-       '<div aria-hidden="true" class="bw-rangbar"><span>R'+rm.rang+'</span>'+fbBalken(frac, null, null, false, SPIEL_FARBE.rang)+'<span>'+(rm.rang<RANG_MAX?'R'+(rm.rang+1):'')+'</span></div>'+
-       '<div class="fb-rechnung">Median '+Math.round(rm.median)+' P/Std über '+rm.n+' aktive Tage.</div></div>';
+    // §3.3 (v3.3.0): Verlaufsdiagramm der Leistungsrate (14 Tage) mit Abstieg und Aufstieg
+    h+='<div class="fbk voll"><div class="fbk-h">Rang R'+rm.rang+' · „'+esc(rangName(rm.rang))+'"</div>'+rangDiagrammHtml(rm)+'</div>';
   }
   if(nk){
     const kat=BELOHNUNG[nk.kat], kann=k>=nk.preis;
     h+='<div class="fbk voll"><div class="fbk-h">Als Nächstes im Shop</div><div class="fbk-r">'+
        '<div class="fbk-g" aria-hidden="true">'+fbRing(k/nk.preis, kann?AMPEL_FARBE.gruen.slice().reverse():SPIEL_FARBE.muenzen)+'</div>'+
-       fbWert(kann?'jetzt':('noch '+Math.round(nk.preis-k)), kat.icon+' '+esc(kat.name)+' · Stufe '+nk.stufe+' · '+Math.round(nk.preis)+' 🪙')+'</div></div>';
+       fbWert(kann?'jetzt':('noch '+Math.round(nk.preis-k)), kat.icon+' '+esc(kat.name)+' · Stufe '+nk.stufe+' · '+Math.round(nk.preis)+' 🪙')+'</div>'+
+       '<div class="dia-zeile">'+esc(shopAnkunftText(nk))+'</div></div>';   // §3.4 (v3.3.0): Ankunftszeit
   }
   return h+'</div></div>';
 }
@@ -14055,8 +14246,7 @@ function belErklommen(){
   const rw=vd.wochen.map(x=>x.rang), hat=rw.filter(v=>v!=null).length;
   h+=fbKachel('Rang über 8 Wochen', hat>=1 ? belKurve(rw, 1, Math.max(4, Math.max.apply(null, rw.filter(v=>v!=null))+1), SPIEL_FARBE.rang[1]) : belKurve([0,0],0,1,'#6b6e74'),
      fbWert(rm.rang!=null?('R'+rm.rang):'—', rm.best?('Bestwert R'+rm.best):'sammelt noch'), {voll:true, breit:true});
-  h+=fbKachel('Outfit · heute und Bestwert', '<div style="width:100%">'+fbBalken(of/20, vd.outfitBest/20, 'Best', of>=vd.outfitBest, SPIEL_FARBE.rang)+'</div>',
-     fbWert(String(of), 'Bestwert '+vd.outfitBest+' / 20'), {voll:true, breit:true});
+  h+='<div class="fbk voll"><div class="fbk-h">Outfit-Sammlung</div>'+outfitSammlungHtml()+'</div>';   // §3.5 (v3.3.0)
   // Shop-Stand je Kategorie
   let rows='';
   KAT_KEYS.forEach(kk=>{
@@ -14071,9 +14261,7 @@ function belErklommen(){
   const ausg=ausgabenAnzeige(), k=konto(), ges=Math.max(1, k+ausg);
   h+=fbKachel('Konto', '<div style="width:100%">'+belDoppelBalken(k/ges, 1, null, null)+'</div>',
      fbWert(fmtKurzP(k).replace(/ P$/,''), Math.round(ausg)+' 🪙 ausgegeben'), {breit:true});
-  const st=bgStufeAus(ausg), lo=st>1||ausg>=bgSchwelle(1) ? bgSchwelle(st) : 0, hi=st<10 ? bgSchwelle(st+1) : Math.max(ausg,1);
-  h+=fbKachel('Kulisse', '<div style="width:100%">'+fbBalken(st<10?(ausg-lo)/Math.max(1,hi-lo):1, null, null, st>=10, SPIEL_FARBE.kulisse)+'</div>',
-     fbWert(st+'/10', st<10?('noch '+Math.round(hi-ausg)+' 🪙 ausgeben'):'letzte Kulisse'), {voll:true, breit:true});
+  h+=kulisseKachelHtml();   // §3.6 (v3.3.0)
   return h+'</div></div>';
 }
 /* 3a · Outfit — alle 20 Stufen. Erreichte (bis zum Bestwert) zeigen ihr
@@ -17070,7 +17258,7 @@ function anAktivitaetsfenster(dom){
   return chart;
 }
 function anModVerhalten(F,dom){
-  const chart=anAktivitaetsfenster(dom);
+  const chart=heuteGegenTypischHtml();   // §4 (v3.3.0): dieselbe Render-Funktion wie die Fokusansicht
   // ── Kennzahlen als kompakte Zeile darunter ──
   const schub=anSum(F.cur.map(e=>e.schub)), erl=anSum(F.cur.map(e=>e.erledigt));
   const schiebeQuote=(schub+erl)>0?Math.round(schub/(schub+erl)*100):null;

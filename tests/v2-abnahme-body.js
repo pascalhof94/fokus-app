@@ -396,12 +396,12 @@ ok('19 Drei Belohnungsbloecke, jeder mit eigener Ueberschrift', (function(){
      return a.indexOf('Was diese Karte einbringt')>=0 &&
             b.indexOf('Wo ich heute stehe')>=0 &&
             c.indexOf('Was ich gerade bewege')>=0; })());
-ok('19 Block 1 nennt Prognose, Stand jetzt und den Anteil am Tagessoll', (function(){
+// v3.3.0 §2.2: die Kachel „Punkte dieser Karte" ist jetzt „Tagesprognose" — Prognose des Tages, Ziel ✓/fehlen, Anteil dieser Karte, sonst nichts
+ok('19 Block 1 nennt Tagesprognose, Ziel ✓/fehlen, Anteil dieser Karte und den Anteil am Tagessoll', (function(){
      var a=fbWasDieseKarte(S.karten[0]);
-     return a.indexOf('Prognose')>=0 && a.indexOf('Stand jetzt')>=0 &&
-            a.indexOf('Münzen')>=0 && a.indexOf('Tagessoll')>=0; })());
-ok('N1 Block 1 macht kenntlich, dass der Endwert abweichen kann',
-   fbWasDieseKarte(S.karten[0]).indexOf('weicht von der Prognose ab')>=0);
+     return a.indexOf('Tagesprognose')>=0 && /Ziel ✓|fehlen /.test(a) && a.indexOf('Diese Karte: ')>=0 && a.indexOf('Tagessoll')>=0; })());
+ok('N1 (v3.3 §2.2) die Kachel „Tagesprognose" trägt nichts außer Wert und zwei Zeilen',
+   (function(){ var a=fbWasDieseKarte(S.karten[0]), t=a.split('Tagesprognose</div>')[1].split('</div></div>')[0]; return t.indexOf('fb-rechnung')<0 && t.indexOf('<svg')<0; })());
 ok('N1 Auch das Karten-Detail sagt es', (function(){
      entwurf=S.karten[0]; entwurfSubs=[]; entwurfNeu=false;
      var h=''; try{ renderDetail(); h=el('sheetBody').innerHTML; }catch(e){ return false; }
@@ -556,8 +556,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.2.0 · Build gesetzt', VERSION==='3.2.0' && UI_VERSION==='v3.2.0' &&
-   APP_BUILD==='2026-09-28-1');
+ok('31 APP_VERSION 3.3.0 · Build gesetzt', VERSION==='3.3.0' && UI_VERSION==='v3.3.0' &&
+   APP_BUILD==='2026-09-28-2');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -898,7 +898,7 @@ var kk=S.karten[0];
 var b1=fbWasDieseKarte(kk), b2=fbWoIchStehe(), b3=fbWasIchBewege(kk);
 function kacheln(h){ return (h.match(/class="fbk[ "]/g)||[]).length; }
 function grafiken(h){ return (h.match(/<svg|class="fbk-bar/g)||[]).length; }
-ok('§2 Block 1: je Kachel eine Grafik ('+kacheln(b1)+' Kacheln)', kacheln(b1)>=2 && grafiken(b1)>=kacheln(b1));
+ok('§2 Block 1: je Kachel eine Grafik — außer „Tagesprognose" (v3.3 §2.2: nur Zahl und zwei Zeilen) ('+kacheln(b1)+' Kacheln)', kacheln(b1)>=2 && grafiken(b1)>=kacheln(b1)-1);
 ok('§2/v2.3 §9 Block 2: DFM, Privat, Outfit, Faktor F (+Kurve) als Kacheln mit Grafik',
    // (am Wochenende heissen die Kacheln „DFM · Wochenende (Sa+So)" — der Test ist wochentagsfest)
    kacheln(b2)>=4 && grafiken(b2)>=4 && /fbk-h">DFM( · Wochenende \(Sa\+So\))?</.test(b2) && /fbk-h">Privat( · Wochenende \(Sa\+So\))?</.test(b2));
@@ -906,8 +906,9 @@ ok('§2 Block 2: kein doppeltes „P P" mehr', b2.indexOf('P P')<0);
 ok('§2 Block 3 ohne Position: Matrix statt nackter Text', b3.indexOf('<svg')>=0);
 S.tag.matrixSpur=[{x:-0.6,y:0.4},{x:0.2,y:-0.2}];
 b3=fbWasIchBewege(kk);
-ok('v2.3 §8 Block 3 mit Position: grosse Matrix mit Tageslinie + zwei Kacheln',
-   kacheln(b3)===3 && b3.indexOf('fb-mx')>=0 && b3.indexOf('unbekannt')>=0);
+// v3.3.0 §2.7: „Bonus möglich" entfällt — es bleibt „Diese Karte schiebt"
+ok('v2.3 §8 Block 3 mit Position: grosse Matrix mit Tageslinie + „Diese Karte schiebt" (v3.3: ohne „Bonus möglich")',
+   kacheln(b3)===2 && b3.indexOf('fb-mx')>=0 && b3.indexOf('unbekannt')>=0 && b3.indexOf('Bonus möglich')<0);
 ok('§2 Grafiken fangen keine Klicks (pointer-events:none im CSS)',
    /\.fbk-g svg\{[^}]*pointer-events:none/.test(src) && /\.fbk-bar\{[^}]*pointer-events:none/.test(src));
 ok('§2 Farb-Aliase definiert (--li/--bg2/--fg/--gut/--ac)', /--li:var\(--line\); --bg2:var\(--card\); --fg:var\(--txt\); --gut:var\(--ok\); --ac:var\(--blue\)/.test(src));
@@ -971,7 +972,7 @@ renderBelohnung();
 var bh=el('belohnungBody').innerHTML;
 ok('§4 drei Bereiche', bh.indexOf('Was heute noch geht')>=0 && bh.indexOf('Was ich schon erklommen habe')>=0 && bh.indexOf('Outfit und Shop')>=0);
 var kach=bh.split(/<div class="fbk( voll)?"/).filter(function(x,i){ return i>0 && x!==undefined && x!==' voll'; });
-var ohneGrafik=kach.filter(function(k){ return !/<svg|fbk-bar|bw-of/.test(k); });
+var ohneGrafik=kach.filter(function(k){ return !/<svg|fbk-bar|bw-of|dia-of|dia-kulisse/.test(k); });   // v3.3.0 §3.5/§3.6: Outfit-Sammlung und Kulisse zeigen Bilder
 ok('§4 jede Kachel hat eine Grafik ('+kach.length+' Kacheln, ohne: '+ohneGrafik.length+')', kach.length>=9 && ohneGrafik.length===0);
 ok('§4 Outfit-Leiste zeigt alle 20 Stufen', (bh.match(/class="bw-ofz /g)||[]).length===20);
 ok('§4 Outfit: heute + nächste markiert, spätere als Silhouette', /bw-ofz heute/.test(bh) && /bw-ofz naechste/.test(bh) && /bw-ofz spaeter/.test(bh));
@@ -1154,8 +1155,9 @@ ok('§9 die Ziele sind die Domänen-Ziele',
    Detailanalyse ersetzt — „Heute gegen typische Tage" = Aktivitaetsfenster aus „Verhalten". */
 ok('§10→v2.5 §1.1 „Heute gegen typische Tage" (Aktivitätsfenster) statt Tagesverlauf-Neubau',
    b9.indexOf('Heute gegen typische Tage')>=0 && b9.indexOf('fb-kurve')<0);
-ok('§10→v2.5 §1.1 identisch zur Detailanalyse (anAktivitaetsfenster ist der Kopf von „Verhalten")',
-   b9.indexOf(anAktivitaetsfenster(S.ui.analyseDomain||'alle'))>=0 && /function anModVerhalten\(F,dom\)\{\s*const chart=anAktivitaetsfenster\(dom\)/.test(src));
+// v3.3.0 §2.6/§4: Fokus und Statistik zeigen DASSELBE Diagramm — jetzt heuteGegenTypischHtml (kumulierte Punkte, sieben Linien)
+ok('§10→v2.5 §1.1 identisch zur Detailanalyse (v3.3: heuteGegenTypischHtml ist der Kopf von „Verhalten")',
+   b9.indexOf(heuteGegenTypischHtml())>=0 && /function anModVerhalten\(F,dom\)\{\s*const chart=heuteGegenTypischHtml\(\)/.test(src));
 
 kopf('v2.4.0 §1 · Drei Tabs, Import oben, Ampel');
 ok('§1.1 drei Tabs: Suche · Statistik · Einstellungen',
@@ -1337,8 +1339,8 @@ frisch();
 S.karten=[ neueKarte({id:'f1', domain:'dfm', titel:'Fokus-Karte', matrixFeld:'ziel', sollMin:30, faelligkeit:H()}) ];
 var fb5=fbWoIchStehe();
 ok('§1.1 Belastungssteuerung (Original) in der Fokusansicht', fb5.indexOf('Belastungssteuerung')>=0 && fb5.indexOf(anModACWR(analyseFenster(),'alle'))>=0);
-ok('§1.1 „Heute gegen typische Tage" = Aktivitätsfenster aus „Verhalten"', fb5.indexOf('Heute gegen typische Tage')>=0 &&
-   anModVerhalten(analyseFenster(),'alle').indexOf(anAktivitaetsfenster('alle'))>=0);
+ok('§1.1 „Heute gegen typische Tage" = dasselbe Diagramm wie „Verhalten" (v3.3: heuteGegenTypischHtml)', fb5.indexOf('Heute gegen typische Tage')>=0 &&
+   anModVerhalten(analyseFenster(),'alle').indexOf(heuteGegenTypischHtml())>=0 && fb5.indexOf(heuteGegenTypischHtml())>=0);
 ok('§1.1 die Neubauten sind weg (Tagesverlauf-Kachel, Matrix-Belastung)', fb5.indexOf('Tagesverlauf · Soll')<0 && fb5.indexOf('Sportformel')<0);
 ok('§1.2 Outfit und Faktor F tragen die Ampelfarbe', (fb5.match(/class="fbk amp" style="--af:/g)||[]).length>=2 ||
    (fb5.match(/fbk[^"]* amp" style="--af:/g)||[]).length>=2);
@@ -2012,7 +2014,8 @@ ok('§5 Statusleiste: Privat lila statt gelb', /\.ist\.privat\{background:linear
 ok('§5 Linien tragen Farbe + Verlauf darunter (anSvgLine flaeche, leuchtende Punkte)', /s\.flaeche\) fl\+=flaecheSvg/.test(src) && /leuchten\(df,3\)/.test(src));
 ok('§5 Akku als eigener Verlauf rot → gelb → grün', /akkuVerlaufDef\(aid, Y\(0\), Y\(100\)\)/.test(src));
 ok('§5 Matrix-Verlauf: Linie in der Richtungsfarbe statt weiß', /stroke="url\(#'\+rid\+'\)"/.test(src));
-ok('§5 Belohnung: Balken/Ringe farbig (Münzen gold, Rang lila, Kulisse cyan)', /fbBalken\(frac, null, null, false, SPIEL_FARBE\.rang\)/.test(src) && /SPIEL_FARBE\.kulisse\)/.test(src));
+// v3.3.0 §0.1: Rang und Kulisse zeichnen nur noch mit den Farben der Tabelle (Abstieg ORANGE, Aufstieg GRUEN, Kulisse GELB)
+ok('§5→v3.3 Belohnung: Rang-Verlauf und Kulisse in den Tabellenfarben', /\[ab,'Abstieg',DIA_FARBE\.orange\],\[auf,'Aufstieg',DIA_FARBE\.gruen\]/.test(src) && /background:'\+DIA_FARBE\.gelb\+'"><\/i><\/span>'\+\s*'<div class="dia-lr">/.test(src));
 
 /* ══ v2.8.1 · Hotfix: Wiederholungen und Zuruecksetzen per Paket ══ */
 kopf('v2.8.1 §1 · Karte erneut anlegen');

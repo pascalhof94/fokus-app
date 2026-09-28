@@ -1720,10 +1720,12 @@ function bestandSchreiben(){
             pruef(c.getBoundingClientRect().height>=44, 'v2.6 §1: '+c.id+' niedriger als 44 px');
             var w=c.querySelector('.w'); if(w) pruef(w.scrollWidth<=w.clientWidth+1, 'v2.6 §1: '+c.id+' Wert abgeschnitten ('+w.textContent+')');
             trifft(c, c.id); });
-          var tzb=d.querySelector('#sZTempo .tl.klein');
-          finding('echt · v2.6 §2.2 Tempo-Zelle: „'+d.querySelector('#sZTempo .w').textContent+'" · Marken '+
-                  (tzb?tzb.querySelectorAll('.tl-punkt,.tl-ziel,.tl-k').length:0)+' (Ich · Ziel · laufende Karte)');
-          pruef(!!tzb && tzb.querySelectorAll('.tl-k').length>=1, 'v2.6 §2.2: laufende Karte fehlt in der Tempo-Zelle');
+          // v3.3.0 §1.1: die Tempo-Zelle ist eine Skala mit drei Punkten — ROT Ziel · GELB Schnitt · GRUEN laufende Karte
+          var tzb=d.querySelector('#sZTempo .ts-skala');
+          var tps=tzb ? [].slice.call(tzb.querySelectorAll('.ts-p')) : [];
+          finding('echt · v3.3 §1.1 Tempo-Zelle: „'+d.querySelector('#sZTempo .w').textContent+'" · Punkte '+tps.length+' ('+tps.map(function(p){ return fw.getComputedStyle(p).backgroundColor; }).join(' · ')+') · Punkt '+
+                  (tps[0]?Math.round(tps[0].getBoundingClientRect().width):0)+' px · Balken '+(tzb&&tzb.querySelector('.ts-bar')?Math.round(tzb.querySelector('.ts-bar').getBoundingClientRect().width):0)+' px');
+          pruef(!!tzb && tps.length===3 && Math.round(tps[0].getBoundingClientRect().width)===10, 'v3.3 §1.1: laufende Karte (GRUEN) fehlt in der Tempo-Skala oder Punkte nicht 10 px');
           var mvp=d.querySelector('#sMv svg path');
           pruef(!!mvp, 'v2.6 §3.1: Matrix-Verlauf in der Leiste fehlt');
           /* Tipp auf die Matrix-Zelle → Matrix-Spur */
