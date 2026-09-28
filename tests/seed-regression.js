@@ -49,11 +49,38 @@ var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnte
   // v3.0.0 §12: Bausteine des Routinen-Systems im Import
   'v3FelderUebernehmen','leer','wtNorm','eingabeVon',
   // v3.1.0 §4: Karten-Korrektur und Feldmeldung im Import
-  'kartenKorrektur','felderMelden','kartenFelderBekannt','kurz','syncTuerVorschau','bereichVorschau','schemaPruefen','schemaWert','pfadLesen','pfadSchreiben','einstStandard'];
-var _kartenFelder=null, UNTER_FELDER_BEKANNT=new Set(['id','parentId','titel','sollMin','done','bonusPunkte','airtableId','staffel','staffelDanach','tagesziel','tageslimit','entfernt','entferntTs','tickLog','tickProtokoll','punkteHeute','ziel','ticksHeute']);   // v3.1.0: gespiegelt
+  'kartenKorrektur','felderMelden','kartenFelderBekannt','kurz','syncTuerVorschau','bereichVorschau','schemaPruefen','schemaWert','pfadLesen','pfadSchreiben','einstStandard',
+  // v3.2.0: Ticker (Zaehler-Zeile als Datensatz) und EIN Status fuer alle Ansichten
+  'tickerAlleSicherstellen','tickerSicherstellen','tickerVon','brauchtTicker','istTicker','tickQuelle','istAufgabeKarte'];
+var _kartenFelder=null, UNTER_FELDER_BEKANNT=new Set(['id','parentId','titel','sollMin','done','bonusPunkte','airtableId','staffel','staffelDanach','tagesziel','tageslimit','entfernt','entferntTs','tickLog','tickProtokoll','punkteHeute','ziel','ticksHeute','typ','naechsterWert']);   // v3.1.0/v3.2.0: gespiegelt
 var WT_KURZ={ mo:1, di:2, mi:3, do:4, fr:5, sa:6, so:7 };   // v3.0.0: Konstante gespiegelt (nicht extrahierbar)
 var DATENVERTRAG='2.0.0';   // v3.0.1: Import-Gate-Konstante gespiegelt (nicht extrahierbar)
 eval(NAMES.map(extract).join('\n'));
+
+/* v3.2.0 §4: eine unbekannte Karte wird nur mit titel, domain und matrixFeld angelegt (sonst
+   abgewiesen, nie eine Huelle). Die Pakete dieser Suite stammen aus der Zeit davor und tragen
+   domain/matrixFeld nicht immer — der Shim ergaenzt sie NUR fuer unbekannte Karten MIT Titel,
+   nach der Altregel (domain fehlt = dfm, matrixFeld fehlt = ziel). Die Regel selbst prueft die
+   v3.2-Suite; wo ein Test die Altregel selbst prueft, ruft er syncImportOhneShim. */
+var syncImportOhneShim=syncImport;
+syncImport=function(text, opt){
+  try{ var p=JSON.parse(text), aend=false;
+    if(p && !Array.isArray(p) && Array.isArray(p.karten) && !p.wiederherstellung){
+      var abl={}; try{ abl=vomGeraetAblage()||{}; }catch(e){}
+      p.karten.forEach(function(c){
+        if(!c || c.vomGeraet===true || c.titel==null || String(c.titel).trim()==='') return;
+        var bek=S.karten.some(function(k){ return (c.id!=null && (k.id===c.id || k.airtableId===c.id)) || (c.airtableId!=null && k.airtableId===c.airtableId); })
+          || (c.id!=null && abl[c.id]) || Object.keys(abl).some(function(x){ return abl[x] && abl[x].karte && c.airtableId!=null && abl[x].karte.airtableId===c.airtableId; });
+        if(bek) return;
+        if(c.domain!=='dfm' && c.domain!=='privat'){ c.domain='dfm'; aend=true; }
+        if(c.matrixFeld==null || c.matrixFeld===''){ c.matrixFeld='ziel'; aend=true; }
+      });
+      if(aend) text=JSON.stringify(p);
+    }
+  }catch(e){}
+  return syncImportOhneShim(text, opt);
+};
+
 
 var fails=0; function ok(n,c){ print((c?'OK   ':'FAIL ')+n); if(!c) fails++; }
 function imp(p){ return syncImport(JSON.stringify(p)); }
@@ -67,7 +94,11 @@ var r1=imp({ appVersion:'2.0.0', karten:[
   { id:'n-cnt', domain:'privat', titel:'Negativ-Counter', tickKurve:[-15,-20] }
 ]});
 var dfm=S.karten[0], prv=S.karten[1], cnt=S.karten[2];
-ok('Neuanlage ohne domain → dfm', dfm.domain==='dfm');
+ok('Neuanlage ohne domain → dfm (Altregel, über den Shim der Suite)', dfm.domain==='dfm');
+/* v3.2.0 §4: ohne Shim wird eine unbekannte Karte ohne domain bzw. matrixFeld abgewiesen, ohne titel erst recht */
+var r4=syncImportOhneShim(JSON.stringify({appVersion:'3.2.0', karten:[{ id:'n-ohne', titel:'Ohne Domäne', matrixFeld:'ziel' }, { id:'recOhneTitel0001', block:'morgen' }]}));
+ok('v3.2 §4: unbekannte Karte ohne domain → abgewiesen mit Grund', !S.karten.some(function(k){ return k.id==='n-ohne'; }) && r4.uebersprungen.some(function(u){ return /Pflichtfeld fehlt: domain/.test(u.grund); }));
+ok('v3.2 §4: unbekannte Karte ohne Titel → keine Hülle', !S.karten.some(function(k){ return k.id==='recOhneTitel0001'; }) && r4.uebersprungen.some(function(u){ return /unbekannte Karte ohne Titel \(id recOhneTitel0001\)/.test(u.grund); }));
 ok('Neuanlage domain privat → privat', prv.domain==='privat');
 ok('Ergebnis zählt je Domäne (1 dfm / 2 privat)', r1.neuDfm===1 && r1.neuPrivat===2);
 /* 2) §2.2: Bausteine kommen an — Routine, Abschnitte, negativer Bonus, Overrides. */

@@ -1510,6 +1510,20 @@ body{background:var(--bg)}
 .al-knopf:active{transform:scale(.94)}
 .al-knopf.al-play{color:var(--fc,#f2f2f3);border-color:color-mix(in srgb,var(--fc,#8e9197) 55%,transparent)}
 .al-knopf.al-tick{font-size:13px}
+/* §1.2 (v3.2.0): Zaehler-Zeile */
+.zz{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 2px;font-size:13px;min-height:44px}
+.zz .zz-n{font-weight:700;font-variant-numeric:tabular-nums}
+.zz .zz-w{color:var(--mut2);font-size:12px;font-variant-numeric:tabular-nums}
+.zz .zz-t{flex:1 1 90px;min-width:0;overflow-wrap:anywhere}
+.zz .zz-ok{color:var(--ok);font-weight:600;font-size:12px}
+.zz.fertig .zz-n{text-decoration:line-through;opacity:.55}
+.zz.zz-sub{padding-left:12px;border-left:2px solid var(--line);margin-left:6px}
+.zz .al-knopf.aus{opacity:.35}
+.krow .zz{padding:0 12px}
+.btn.gesperrt{opacity:.45}
+.abv3-uhr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 8px;font-size:13px}
+.abv3-wahl{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.abv3-wahl .chip{min-height:44px}
 .al-knopf.al-ok{border-color:transparent;background:none;color:var(--ok);cursor:default}
 .al{margin-top:14px}
 .al .zs-spalte{gap:3px}
@@ -1769,11 +1783,11 @@ body{background:var(--bg)}
    sie — ueber die beiden Alias-Namen, die der Code seit v1.x benutzt.
    Der DATENVERTRAG ist etwas anderes: die aelteste Paket-Version, die der
    Import annimmt (Gate) — er bleibt 2.0, additiv erweitert. */
-const APP_VERSION = '3.1.0';
+const APP_VERSION = '3.2.0';
 const VERSION = APP_VERSION;                  // Alias: appVersion im Export
 const UI_VERSION = 'v'+APP_VERSION;           // Alias: Anzeige
 const DATENVERTRAG = '2.0.0';                 // Import-Gate: Pakete ab dieser appVersion
-const APP_BUILD = '2026-09-27-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-09-28-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 try{ document.title='Fokus '+UI_VERSION; }catch(e){}
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
@@ -1908,12 +1922,28 @@ function logIntraday(k, o){
   // §3 (v2.7.0): jede Sitzung bekommt eine id — der Chat kann sie korrigieren
   if(e.typ==='timer'||e.typ==='autopause'||e.typ==='nachtrag') e.id='s-'+uuid();
   if(o.ziel) e.ziel=String(o.ziel);   // §3.2 (v1.13.0): Schub-Ziel → „rein" am Zieltag
+  if(num(o.tickMin)>0) e.tickMin=Math.round(num(o.tickMin)*10)/10;   // §1.1 (v3.2.0): Belegzeit eines Ticks ohne Uhr (keine Ist-Minuten)
+  // §2.2/§5 (v3.2.0): woher die Buchung kommt — uhr · tick · abhaken · tagesabschluss · schlafen · korrektur
+  e.quelle = o.quelle || (abschlussBuchungAktiv() && e.typ!=='schlaf' ? 'tagesabschluss' : logQuelleVonTyp(e.typ));
+  if(S.tag && S.tag.endeTs && !S.tag.geschlossenTs && !_abschlussBuchung) e.nachAbschluss=true;   // §2.4 (v3.2.0): Nachtrag
   S.intraday.push(e);
   if(S.intraday.length>20000) S.intraday=S.intraday.slice(-20000);   // Sicherungskappe
   DB.set('intraday', S.intraday);
   return e;
 }
 function num(x, def){ const n=Number(x); return Number.isFinite(n)?n:(def===undefined?0:def); }
+/* §5 (v3.2.0): Quelle eines Log-Eintrags aus seinem Typ (aeltere Eintraege tragen keine) */
+function logQuelleVonTyp(typ){
+  if(typ==='timer' || typ==='autopause') return 'uhr';
+  if(typ==='tick' || typ==='startbonus' || typ==='pflicht' || typ==='unterzaehler') return 'tick';
+  if(typ==='abhaken' || typ==='wiederoffen' || typ==='unteraufgabe') return 'abhaken';
+  if(typ==='schlaf') return 'schlafen';
+  return 'korrektur';
+}
+function logQuelle(e){ return (e && e.quelle) || logQuelleVonTyp(e && e.typ); }
+/* Waehrend der Tagesabschluss offen ist (auch im Abhak-Dialog aus Schritt 3 und beim Schliessen) */
+let _abschlussBuchung=false;
+function abschlussBuchungAktiv(){ return _abschlussBuchung || (typeof abv3!=='undefined' && !!abv3 && !!(abv3.aktiv || abv3.zurueck)); }
 function fmtDatum(iso){
   if(!iso) return '';
   const h=heuteApp();
@@ -3185,7 +3215,7 @@ function ladeAlles(){
              if(S.tag.streak==null) S.tag.streak=0; if(S.tag.erledigtHeute==null) S.tag.erledigtHeute=0; }
   if(S.fokus && S.fokus.sessionSek==null) S.fokus.sessionSek=0;
   // A3: Unteraufgaben ohne gesetzten Bonus (0/unset) → 100 (explizite Werte bleiben)
-  S.unteraufgaben.forEach(u=>{ if(u.bonusPunkte==null || u.bonusPunkte===0) u.bonusPunkte=100; });
+  S.unteraufgaben.forEach(u=>{ if(u.typ!=='ticker' && (u.bonusPunkte==null || u.bonusPunkte===0)) u.bonusPunkte=100; });   // §1.2 (v3.2.0): der Ticker traegt keinen Bonus
   // U2: Warteschlange → Schnellauswahl (nur wenn der alte System-Stapel noch
   // unverändert ist; eigene Umbenennungen/Filter des Nutzers bleiben unberührt).
   const wq=S.stapel.find(s=>s.id==='sys-warteschlange');
@@ -3196,8 +3226,10 @@ function ladeAlles(){
     if(S.ui.aktivStapel==='sys-warteschlange') S.ui.aktivStapel='sys-schnellauswahl';
     saveStapel(); saveUi();
   }
+  // §1.2 (v3.2.0): jede Staffel-/Pflicht-Karte bekommt ihren Ticker, die Ticks wandern von der Karte hinein
+  if(tickerAlleSicherstellen()){ DB.set('unteraufgaben', S.unteraufgaben); DB.set('karten', S.karten); }
 }
-const saveKarten  = ()=>{ rangInvalidieren(); return DB.set('karten', S.karten); };
+const saveKarten  = ()=>{ rangInvalidieren(); if(Array.isArray(S.unteraufgaben)) DB.set('unteraufgaben', S.unteraufgaben); return DB.set('karten', S.karten); };   // §1.2 (v3.2.0): die Ticks einer Karte liegen in ihrem Ticker
 const saveStapel  = ()=>DB.set('stapel', S.stapel);
 const saveOrdner  = ()=>DB.set('ordner', S.ordner);
 const saveGruppen = ()=>DB.set('gruppen', S.gruppen);
@@ -3465,7 +3497,15 @@ function pausenStrafeLive(k){
    Antippen holte der Abgleich sie als „Ausgleich" ins Log (Vitamine 143 statt
    15), beim Abschliessen kamen sie obendrauf (Duschen 203 + 40 = 243). Bei
    Aufgaben bleibt der Override der Endwert der Karte. */
-function istRoutineOderCounter(k){ return !!(k && (k.rhythmus || k.ticksAktiv || istV3(k))); }
+/* §1.3 (v3.2.0): EINE Unterscheidung fuer alle Ansichten — Aufgabe oder
+   Routine/Counter. Aufgabe = kein Rhythmus, keine Ticks, keine Rolle, nicht
+   immer sichtbar, nicht im Modus staffel/pflicht (Modus zeit OHNE Rhythmus
+   ist eine Aufgabe). Befund 27.09.: „private aufgabe" (Modus zeit) galt als
+   Routine — ✓ war ein Tick, die Karte blieb offen, der zweite ✓ buchte den
+   Abhakbonus ein zweites Mal. Nur Aufgaben haben ✓; Routinen und Counter
+   haben ▶ und +1. */
+function istAufgabeKarte(k){ return !!k && !k.rhythmus && !k.ticksAktiv && !k.rolle && !k.immerSichtbar && k.modus!=='staffel' && k.modus!=='pflicht'; }
+function istRoutineOderCounter(k){ return !!k && !istAufgabeKarte(k); }
 function overrideGilt(k){
   if(!k || k.punkteOverride==null) return false;
   if(!istRoutineOderCounter(k)) return true;
@@ -3558,26 +3598,28 @@ function hatZeitmessung(k){ return true; }
 function fokusKarte(){ return S.fokus ? S.karten.find(k=>k.id===S.fokus.karteId) : null; }
 /* Laufende Sekunden der aktuellen (nicht eingebuchten) Session. */
 function laufendeSek(){ return (S.fokus && S.fokus.laeuft) ? (Date.now()-S.fokus.startMs)/1000 : 0; }
-function fokusZeitEinbuchen(){
+function fokusZeitEinbuchen(bisMs){
   if(!S.fokus || !S.fokus.laeuft) return;
   const k=fokusKarte();
-  const sek=(Date.now()-S.fokus.startMs)/1000;
+  const ende=(bisMs && bisMs<Date.now()) ? Math.max(num(S.fokus.startMs), bisMs) : Date.now();   // §1.3 (v3.2.0): Auto-Stopp bucht genau bis zu seinem Zeitpunkt
+  const sek=(ende-S.fokus.startMs)/1000;
   let _sitzung=null;
-  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); _sitzung=logIntraday(k,{minuten:sek/60,typ:'timer'}); durchgangPause(k, sek); }   // v1.1: Akku-Drift; A7 berührt; B0 Log; §1 (v2.8.2) Durchgang pausiert
+  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); _sitzung=logIntraday(k,{minuten:sek/60,typ:'timer'}); if(ende<Date.now()) _sitzung.ts=new Date(ende).toISOString(); durchgangPause(k, sek); }   // v1.1: Akku-Drift; A7 berührt; B0 Log; §1 (v2.8.2) Durchgang pausiert
   // §5 (v1.6.1) / §1 (v1.7.1): Beim Pausieren wird die bis dahin live angezeigte
   // Dauerlauf-Strafe festgeschrieben — DIESELBE Formel wie pausenStrafeLive,
   // dadurch springt der Wert beim Pausieren nicht. Reset des Zählers folgt
   // direkt darunter (startMs=0); jede Pause startet die 120 Minuten neu.
   if(k) k.strafPunkte=num(k.strafPunkte)+pausenStrafe(k, sek/60);
   S.fokus.sessionSek=num(S.fokus.sessionSek)+sek;               // v1.1: Session-Summe (v0.38-Port)
-  S.fokus.laeuft=false; S.fokus.startMs=0;
+  S.fokus.laeuft=false; S.fokus.startMs=0; S.fokus.autoStopMs=null;
   // §4 (v2.9.1): die Sitzung traegt die Punkte, die sie der Tagesbilanz bringt
   // (vorher stand sie mit 0 im Log, die Zeitpunkte erschienen erst beim Abhaken)
   if(k && _sitzung) buchungAbgleich(k, _sitzung);
   akkuSampleSchreiben();                                        // v1.1: Energie-Stichprobe
   saveKarten(); saveFokus(); saveTag();
 }
-function fokusStarten(kid, quelle){
+function fokusStarten(kid, quelle, opt){
+  opt=opt||{};
   const zk=S.karten.find(x=>x.id===kid);
   // §5–§7 (v3.0.0): Aufstehen, Tagesabschluss und Schlafen haben eigene Wege
   if(zk && zk.rolle==='schlafen'){ schlafUmschalten(); return; }
@@ -3591,6 +3633,8 @@ function fokusStarten(kid, quelle){
   // (ersetzt das UP6b-„in-place wieder öffnen"). Ein Codepfad über karteNeuStarten.
   // §1.3 (v3.1.0): eine erledigte Routine/ein Counter wird nicht als neue Karte geoeffnet (das waren Dubletten)
   if(zk && zk.status==='erledigt' && istRoutineOderCounter(zk)){ toast('„'+String(zk.titel||'').slice(0,24)+'" ist für heute erledigt'); return; }
+  // §2.4 (v3.2.0): nach dem Tagesabschluss laufen nur noch Uhren von Routinen und Countern (bis „Schlafen")
+  if(zk && S.tag && !tagOffen() && !routineBuchbar(zk)){ toast(nachAbschluss() ? 'Der Tag ist abgeschlossen — Aufgaben ab morgen' : 'Der Tag ist geschlossen — morgen geht es mit „Aufstehen" weiter'); return; }
   if(zk && zk.status==='erledigt'){ karteNeuStarten(kid, {starten:true}); return; }
   // §3 (v2.1.1): WECHSEL zaehlt fuer die alte Karte wie Pausieren — Uhr
   // stoppt, Zeit wird gebucht, KEIN Dialog. (Aendert v2.0.1 §2.) Der
@@ -3611,10 +3655,17 @@ function fokusStarten(kid, quelle){
   // nicht beim Verlassen; sonst misst der Bonus die falsche Strecke.
   if(zk && tagOffen()){ const p0=matrixPos(); zk.posVorher=p0?{x:p0.x,y:p0.y}:null; }
   // §1 (v2.8.2): Abhak-Karte → Bonus beim Start (bzw. +1), je Durchgang einmal
-  if(zk && !warSchonLauf){ const dg=durchgangStart(zk);
+  S.fokus.autoStopMs=null;
+  if(zk && !warSchonLauf){ _startTick=true; let dg=null; try{ dg=opt.ohneDurchgang ? null : durchgangStart(zk); } finally{ _startTick=false; }
     if(dg) saveKarten();   // Bonus/Durchgang sofort sichern (sonst waere er nach einem Neuladen weg)
     if(dg && dg.neu) toast(dg.v3 ? ((dg.v3.punkte>=0?'+':'')+fmtP(dg.v3.punkte)+' P · Tick '+dg.v3.nr+' · „'+String(zk.titel||'').slice(0,24)+'" läuft') : dg.pflicht!=null ? ('Pflicht +'+fmtP(dg.pflicht)+' P · „'+String(zk.titel||'').slice(0,24)+'" läuft')
-      : (dg.tick ? ('+1 · „'+String(zk.titel||'').slice(0,24)+'"') : ('+'+fmtP(dg.bonus)+' P Abhakbonus · „'+String(zk.titel||'').slice(0,24)+'" läuft'))); }
+      : (dg.tick ? ('+1 · „'+String(zk.titel||'').slice(0,24)+'"') : ('+'+fmtP(dg.bonus)+' P Abhakbonus · „'+String(zk.titel||'').slice(0,24)+'" läuft')));
+    // §1.3 (v3.2.0, Befund Elvanse 28.09.: lief 55 Min weiter): Staffel mit Tageslimit und kurzer Tick-Zeit —
+    // der Tick ist gebucht, die Uhr stoppt nach tickMinuten von selbst; lange gedrueckt laeuft sie bewusst weiter
+    if(zk.modus==='staffel' && !leer(zk.tageslimit) && tickMinutenVon(zk)<=5){
+      if(opt.dauer || uhrDauerGewuenscht(kid)) toast('⏱ Uhr läuft — „'+String(zk.titel||'').slice(0,24)+'" (lange gedrückt: läuft weiter)');
+      else S.fokus.autoStopMs=S.fokus.startMs+tickMinutenVon(zk)*60000;
+    } }
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
   fokusNavReset();           // U2: aktive Auswahl beendet die Swipe-Navigation
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
@@ -3650,6 +3701,23 @@ function fokusKarteNachOben(kid){
   let n=1; ks.forEach(k=>{ k.sortIndex=Object.assign({}, k.sortIndex); k.sortIndex[st.id]=(k.id===kid?0:n++); });
   saveKarten(); saveStapel();
 }
+/* §1.3 (v3.2.0): Auto-Stopp der Uhr (Staffel mit Tageslimit, tickMinuten ≤ 5) — auch nach einem Neuladen */
+function uhrAutoStopPruefen(){
+  const f=S.fokus; if(!(f && f.laeuft && f.autoStopMs) || Date.now()<f.autoStopMs) return false;
+  const k=fokusKarte(), bis=f.autoStopMs; f.autoStopMs=null;
+  fokusZeitEinbuchen(bis);
+  toast('⏱ „'+String((k&&k.titel)||'').slice(0,24)+'" — Uhr nach '+fmtP(tickMinutenVon(k))+' Min gestoppt');
+  return true;
+}
+/* Langer Druck auf ▶ = die Uhr laeuft bewusst weiter (kein Auto-Stopp) */
+let _uhrDauer=null;
+function uhrDauerGewuenscht(kid){ const d=_uhrDauer; _uhrDauer=null; return !!(d && d.kid===kid && Date.now()-d.ts<3000); }
+try{ (function(){ let tm=null;
+  document.addEventListener('pointerdown', e=>{ const b=e.target && e.target.closest && e.target.closest('[data-alplay],[data-zsplay],[data-fktoggle],[data-fokusstart],[data-abv3play],[data-abv3zu]'); if(!b) return;
+    const kid=b.dataset.alplay||b.dataset.zsplay||b.dataset.fktoggle||b.dataset.fokusstart||b.dataset.abv3play||(b.dataset.abv3zu?'abv3zu':'');   // §2.3: langer Druck auf „Schließen" überspringt den Export
+    clearTimeout(tm); tm=setTimeout(()=>{ _uhrDauer={kid, ts:Date.now()}; try{ haptik(25); }catch(x){} }, 550); }, true);
+  ['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev, ()=>clearTimeout(tm), true));
+})(); }catch(e){}
 function fokusToggle(){
   if(!S.fokus){ return; }
   const fk=fokusKarte();
@@ -4652,9 +4720,8 @@ function kartenreiheHtml(k, stapelId, opt){
   const sortCtrl = '';
   // §4 (v1.9.1): Ticks sind eine Ebene OBENDRAUF, kein Ersatz — eine getickte
   // Karte kann auch fertig sein. Bei ticksAktiv stehen ＋ und ✓ nebeneinander.
-  const rechts = (istTickKarte(k)
-    ? '<button class="kcheck ktick" data-tickplus="'+k.id+'" aria-label="Tick +">＋</button>' : '')
-    + '<div class="kcheck" data-check="'+k.id+'"><div class="box">✓</div></div>';
+  // §1.3 (v3.2.0): ✓ nur auf Aufgaben — Routinen und Counter tragen +1 in ihrer Zaehler-Zeile
+  const rechts = istAufgabeKarte(k) ? '<div class="kcheck" data-check="'+k.id+'"><div class="box">✓</div></div>' : '';
   // §2 (v1.8.0): Schieben + Archivieren neu in der Karte
   const schiebBtn = k.status==='offen'
     ? '<button class="kstart kschieb" data-schieb="'+k.id+'" aria-label="Schieben">⏭</button>' : '';
@@ -4690,13 +4757,13 @@ function kartenreiheHtml(k, stapelId, opt){
       '<div class="kmain" data-detail="'+k.id+'">'+
         '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
         '<div class="kmeta">'+meta.join('')+'</div>'+
-      '</div></div>';
+      '</div>'+zaehlerZeileHtml(k)+'</div>';   // §1.2 (v3.2.0)
   }
   return '<div class="krow '+(k.status==='erledigt'?'erledigt ':'')+(gedimmt?'eingefroren ':'')+(istRout?'routinezeile ':'')+'" data-kid="'+k.id+'" style="border-color:'+karteFarbe(k)+'">'+
     '<div class="kmain" data-detail="'+k.id+'">'+
       '<div class="ktitle">'+esc(k.titel||'(ohne Titel)')+'</div>'+
       '<div class="kmeta">'+meta.join('')+'</div>'+
-    '</div>'+
+    '</div>'+zaehlerZeileHtml(k)+   // §1.2 (v3.2.0)
     '<div class="ktools">'+
       '<div class="trow tprim">'+startBtn+schiebBtn+rechts+'</div>'+
       '<div class="trow tsek">'+sortCtrl+ketteBtn+freezeBtn+archivBtn+'</div>'+   // §1 (v1.12.0): Pin/Schnellauswahl entfallen
@@ -4934,7 +5001,7 @@ function renderFokus(){
   // Nie automatisch neu erstellt, nie automatisch wieder geöffnet.
   const aufgabeErledigt='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'">'+
     '<div class="tsub">✓ erledigt'+(k.tagId?' am '+esc(String(k.tagId).slice(0,10)):'')+
-    ' · ⏱ <b>'+tZeitKurz(istSekLive(k)/60)+'</b> · <b>'+fmtP(kartePunkte(k))+' P</b> gebucht</div></div>'+
+    ' · ⏱ <b>'+tZeitKurz(istSekLive(k)/60)+'</b> · <b>'+fmtP(kartePunkte(k))+' P</b> gebucht</div></div>'+zaehlerZeileHtml(k)+   // §1.2 (v3.2.0)
     '<div class="tzeile2">'+
     '<button class="tedit" style="width:auto;padding:0 14px;border-radius:22px" data-detail="'+k.id+'">✎ Punkte anpassen</button>'+
     '<span class="tgrp r"><button class="tedit" style="width:auto;padding:0 14px;border-radius:22px" data-wiederholen="'+k.id+'">↻ Wiederholen</button></span>'+
@@ -4943,16 +5010,15 @@ function renderFokus(){
   // (gleiche data-Attribute und Handler, reine Umplatzierung).
   const aufgabe='<div class="taufgabe"><div class="tmain" data-detail="'+k.id+'">'+
     '<div class="tsub">'+(k.domain==='dfm'?'DFM':'Privat')+' · '+matrixIcon(matrixFeldVon(k))+' '+esc(matrixName(matrixFeldVon(k)))+
-    ' · <span id="tGesamtP">'+fmtP(kartePunkteGeplant(k))+'</span> P gesamt</div></div>'+
+    ' · <span id="tGesamtP">'+fmtP(kartePunkteGeplant(k))+'</span> P gesamt</div></div>'+zaehlerZeileHtml(k)+   // §1.2 (v3.2.0)
     '<div class="tzeile2">'+
     '<button class="tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause">'+(laeuft?'⏸':'▶')+'</button>'+
     '<span class="tgrp">'+
     '<button class="tedit" data-detail="'+k.id+'" aria-label="Bearbeiten">✎</button>'+
     '<button class="tedit" data-fkschieben="'+k.id+'" aria-label="Schieben">⏭</button>'+
     '</span><span class="tgrp r">'+
-    (istTickKarte(k)
-      ? '<button class="tcheck ttick" data-tickplus="'+k.id+'" aria-label="Tick +">＋</button>' : '')+
-    '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button>'+   // §4 (1.9.1): ＋ UND ✓
+    // §1.3 (v3.2.0): ✓ nur auf Aufgaben — Routinen und Counter tragen +1 in ihrer Zaehler-Zeile
+    (istAufgabeKarte(k) ? '<button class="tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button>' : '')+
     '</span></div></div>';
   // U2 (v1.4.0): Swipe-Zeitleiste — links = nächste Stapel-Karte, rechts = heutiger
   // Bearbeitungsverlauf rückwärts. Die Mitte zeigt, wo man gerade steht.
@@ -5517,7 +5583,7 @@ function fbWoIchStehe(){
    Schlafen zuletzt. Nach dem Tagesabschluss ist alles grau ausser Schlafen
    (und Aufstehen fuer den naechsten Morgen). Der Tipp auf den Titel oeffnet
    die Karte — nie ein Haken (Karten-Kontrakt). */
-function istLeistenKarte(k){ return !!(k && (k.rhythmus || k.ticksAktiv || istV3(k))); }
+function istLeistenKarte(k){ return istRoutineOderCounter(k); }   // §1.3 (v3.2.0): Aufgaben (auch im Modus zeit) stehen nicht in der Leiste
 function abhakLeisteKarten(){
   const heute=heuteApp(), tid=aktuelleTagId(), bl=tagesBloecke()||[], ids=tagesKette();
   const bIdx={}; bl.slice().sort((a,b)=>a.von-b.von || a.tiefe-b.tiefe).forEach((b,i)=>bIdx[b.id]=i);
@@ -5525,19 +5591,20 @@ function abhakLeisteKarten(){
   const altSichtbar=k=>k.rhythmus ? ((k.status==='offen' && routineFaellig(k, heute)) || routErledigtHeute(k))
                                   : ((k.status==='offen' && (!k.faelligkeit || k.faelligkeit<=heute)) || (k.status==='erledigt' && k.tagId===tid));
   const ks=S.karten.filter(k=>k.status!=='archiviert' && !k.freeze && istLeistenKarte(k) && (istV3(k) ? routineHeuteSichtbar(k) : altSichtbar(k)));
-  const fertig=k=>k.status==='erledigt' || (k.rhythmus && kartenArt(k)!=='Counter' && routErledigtHeute(k) && k.status!=='offen');
+  const fertig=k=>kartenStatusHeute(k)==='erledigt';   // §1.4 (v3.2.0)
   const rang=k=>k.rolle==='aufstehen' ? 0 : (k.rolle==='tagesabschluss' ? 2 : (k.rolle==='schlafen' ? 3 : 1));
   const schluessel=k=>{ const b=karteBlockId(k, bl); return [rang(k), b!=null?bIdx[b]:9999, fertig(k)?1:0, kIdx[k.id]!=null?kIdx[k.id]:9999]; };
   return ks.map(k=>({k, s:schluessel(k)})).sort((a,b)=>a.s[0]-b.s[0] || a.s[1]-b.s[1] || a.s[2]-b.s[2] || a.s[3]-b.s[3] || String(a.k.titel||'').localeCompare(String(b.k.titel||''))).map(x=>x.k);
 }
 function leisteAktiv(k){
   if(tagOffen()) return true;
+  if(routineBuchbar(k)) return true;   // §2.4 (v3.2.0): nach dem Abschluss bis „Schlafen"
   return !!(k && (k.rolle==='schlafen' || k.rolle==='aufstehen'));   // nach dem Abschluss: nur Schlafen (und Aufstehen fuer morgen)
 }
 function hMin(min){ min=Math.max(0, Math.round(num(min))); return Math.floor(min/60)+':'+String(min%60).padStart(2,'0'); }
 function leistenZeileHtml(k){
   const v3=istV3(k), counter=kartenArt(k)==='Counter', aus=!leisteAktiv(k);
-  const fertig=k.status==='erledigt';   // §1.2 (v3.1.0): fertig heisst abgeschlossen (Tageslimit) — ein Tick allein schliesst nicht
+  const stH=kartenStatusHeute(k), fertig=stH==='erledigt';   // §1.4 (v3.2.0): EIN Status fuer alle Ansichten
   const offen=!!(S.ui.alOffen && S.ui.alOffen[k.id]);
   let laeuft=!!(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id), zahl, voll=false, subs=[];
   if(k.rolle==='schlafen'){
@@ -5547,14 +5614,15 @@ function leistenZeileHtml(k){
   } else {
     subs=v3 ? unterZaehler(k) : [];
     zahl=v3 ? zielText(k) : ((counter || tickAnzahlHeute(k)>0) ? num(k.ticksHeute)+'×' : (fertig ? '1×' : '0×'));
-    voll=v3 && (!leer(k.tagesziel) || !leer(k.tageslimit) || !leer(k.zeitziel)) && zielErreicht(k);   // gruen nur, wenn es ein Ziel gibt
+    voll=stH!=='offen' && (hatTagesZiel(k) || !leer(k.tageslimit));   // gruen nur, wenn es ein Ziel gibt
     if(subs.length) zahl+=' '+(offen?'▴':'▾');
   }
   const pk=kartePunkteHeute(k);
   let h='<div class="zs-k al-z '+karteVisKlasse(k)+(fertig?' fertig':'')+(aus?' aus':'')+'" style="'+karteVisStil(k)+'" data-alkarte="'+k.id+'" data-kid="'+k.id+'">'+
      '<button class="al-knopf al-play" data-alplay="'+k.id+'" aria-label="'+(laeuft?'Pause':'Start')+'">'+(laeuft?'⏸':'▶')+'</button>'+
      '<span class="t">'+esc(String(k.titel||'?'))+'<span class="al-p">'+(pk>=0?'':'−')+fmtP(Math.abs(pk))+' P'+(v3 && num(k.streak)>0 ? ' · Serie '+num(k.streak) : '')+
-       (v3 && k.serienfaktor && num(k.serienFaktor,1)>1 ? ' · ×'+String(num(k.serienFaktor,1)).replace('.',',') : '')+'</span></span>'+
+       (v3 && k.serienfaktor && num(k.serienFaktor,1)>1 ? ' · ×'+String(num(k.serienFaktor,1)).replace('.',',') : '')+
+       (k.rolle || fertig ? '' : ' · '+esc(wertText(naechsterTickWert(k))))+'</span></span>'+   // §1.2 (v3.2.0): Wert des naechsten Ticks
      (fertig ? '<span class="al-knopf al-ok" aria-label="erledigt">✓</span>'
              : '<button class="al-knopf al-tick" data-alcheck="'+k.id+'" aria-label="Tick +1">+1</button>')+
      '<button class="al-knopf al-zahl'+(voll?' voll':'')+'" data-alzahl="'+k.id+'" aria-label="Zähler — heute">'+esc(zahl)+'</button></div>';
@@ -5565,8 +5633,8 @@ function leistenZeileHtml(k){
   if(offen) subs.forEach(u=>{
     const fu=limitErreicht(u), vu=zielErreicht(u);
     h+='<div class="zs-k al-z al-sub'+(fu?' fertig':'')+(aus?' aus':'')+'" data-alkarte="'+k.id+'">'+
-       '<span class="al-knopf al-leer" aria-hidden="true"></span>'+
-       '<span class="t">'+esc(String(u.titel||'?'))+'<span class="al-p">'+fmtP(staffelPunkteHeute(u))+' P</span></span>'+
+       '<button class="al-knopf al-play" data-zzsubplay="'+u.id+'" aria-label="Start und Tick">▶</button>'+   // §1.1 (v3.2.0): ▶ am Unter-Zaehler
+       '<span class="t">'+esc(String(u.titel||'?'))+'<span class="al-p">'+fmtP(staffelPunkteHeute(u))+' P'+(fu?'':' · '+esc(wertText(staffelWert(u, tickAnzahlHeute(u)+1))))+'</span></span>'+
        (fu ? '<span class="al-knopf al-ok" aria-label="erledigt">✓</span>' : '<button class="al-knopf al-tick" data-alsub="'+u.id+'" aria-label="Tick +1">+1</button>')+
        '<span class="al-knopf al-zahl'+(vu&&!leer(u.tagesziel)?' voll':'')+'">'+esc(zielText(u))+'</span></div>';
   });
@@ -5615,7 +5683,7 @@ function leisteTicken(kid){
   if(k.rolle==='aufstehen'){ oeffneAufstehen(); return; }
   if(k.rolle==='tagesabschluss'){ oeffneAbschlussV3(1); return; }
   if(k.rolle==='schlafen'){ schlafUmschalten(); return; }
-  if(!tagOffen()){ toast('Der Tag ist abgeschlossen — morgen geht es mit „Aufstehen" weiter'); return; }
+  if(!routineBuchbar(k)){ toast(nachAbschluss() ? 'Der Tag ist abgeschlossen — Aufgaben ab morgen' : 'Der Tag ist geschlossen — morgen geht es mit „Aufstehen" weiter'); return; }   // §2.4 (v3.2.0)
   if(istV3(k)){
     if(eingabeVon(k)){ oeffneTickEingabe(k.id); return; }
     const t=routineTick(k); saveKarten(); saveTag(); renderAlles();
@@ -5632,16 +5700,22 @@ function leistePlay(kid){
   if(k.rolle==='schlafen'){ schlafUmschalten(); return; }
   if(k.rolle==='aufstehen'){ oeffneAufstehen(); return; }
   if(k.rolle==='tagesabschluss'){ oeffneAbschlussV3(1); return; }
-  if(!tagOffen()){ toast('Der Tag ist abgeschlossen — morgen geht es mit „Aufstehen" weiter'); return; }
   if(S.fokus && S.fokus.laeuft && S.fokus.karteId===kid){ fokusZeitEinbuchen(); renderAlles(); return; }   // laeuft schon → Pause (ein Toggle)
+  if(!routineBuchbar(k)){ toast('Der Tag ist geschlossen — morgen geht es mit „Aufstehen" weiter'); return; }   // §2.4 (v3.2.0)
   fokusStarten(kid); S.ui.fokusOffen=true; S.ui.fokusZeigt=null; saveUi(); renderAlles();
 }
 function schlafUmschalten(){
   if(schlafLaeuft()){
     const n=schlafStoppen();
-    toast(n ? ('Aufgewacht · '+hMin(n.dauerMin)+' Std · '+n.punkte+' P'+(n.gebucht?'':' (zählen zum neuen Tag)')) : 'Schlafen gestoppt');
+    toast(!n ? 'Schlafen gestoppt'
+      : n.verworfen ? (n.fehltipp ? 'Fehltipp verworfen — kein Schlaf, keine Buchung, keine Schlafschuld' : 'Zu kurz für eine Nacht (unter 60 Min) — verworfen')
+      : ('Aufgewacht · '+hMin(n.dauerMin)+' Std · '+n.punkte+' P'+(n.gebucht?'':' (zählen zum neuen Tag)')));
   } else {
-    schlafStarten(); toast('🌙 Gute Nacht — Schlafen läuft');
+    // §2.4 (v3.2.0): „Schlafen" schliesst den Tag endgueltig — was seit dem Abschluss kam, geht als Nachtrag-Export raus
+    const n=nachAbschluss() ? tagEndgueltigSchliessen() : null;
+    schlafStarten(); const z=schlafZustand(); if(z.laeuft) z.laeuft.schlossTag=!!n;
+    toast('🌙 Gute Nacht — Schlafen läuft');
+    if(n && n.anzahl){ saveKarten(); saveMeta(); renderAlles(); oeffneNachtragExport(n); return; }
   }
   saveKarten(); saveMeta(); renderAlles();
 }
@@ -5683,7 +5757,7 @@ function zeitstrahlHtml(){
     h+='<div class="zs-hint">Kein Tagesrahmen gesetzt — der Strahl zeigt die Kette in ihrer Reihenfolge.</div>';
     h+='<div class="zs-spalte">';
     ks.forEach((k,i)=>{
-      const fertig=k.status==='erledigt';
+      const fertig=kartenStatusHeute(k)==='erledigt';   // §1.4 (v3.2.0)
       h+='<div class="zs-k '+karteVisKlasse(k)+(fertig?' fertig':'')+'" style="'+karteVisStil(k)+'" data-zskarte="'+k.id+'">'+
          '<span class="n">'+(i+1)+'</span><span class="t">'+esc(String(k.titel||'?').slice(0,34))+'</span>'+
          mb(k)+'<span class="m">'+num(k.sollMin)+'′</span>'+zsPlay(k)+'</div>';
@@ -5706,7 +5780,7 @@ function zeitstrahlHtml(){
     const hoehe=Math.max(34, (r.bis-r.von)/spanne*280);
     const LBL={dfm:'DFM', privat:'Privat', pause:'Pause', schlaf:'Schlaf'};
     const drin=proSeg[i]||[];
-    const fertig=drin.filter(k=>k.status==='erledigt').length;
+    const fertig=drin.filter(k=>kartenStatusHeute(k)==='erledigt').length;
     const pct=drin.length?Math.round(fertig/drin.length*100):0;
     h+='<div class="zs-seg t-'+esc(r.typ)+'" style="min-height:'+Math.round(hoehe)+'px">'+
        '<span class="zs-uhr">'+belUhr(r.von)+'</span>'+
@@ -5714,7 +5788,7 @@ function zeitstrahlHtml(){
        '<div class="zs-inner"><div class="zs-typ">'+esc(LBL[r.typ]||r.typ)+
        (drin.length?(' · '+fertig+'/'+drin.length):'')+'</div>';
     drin.slice(0,6).forEach(k=>{
-      h+='<div class="zs-k '+karteVisKlasse(k)+(k.status==='erledigt'?' fertig':'')+'" style="'+karteVisStil(k)+'" data-zskarte="'+k.id+'">'+
+      h+='<div class="zs-k '+karteVisKlasse(k)+(kartenStatusHeute(k)==='erledigt'?' fertig':'')+'" style="'+karteVisStil(k)+'" data-zskarte="'+k.id+'">'+
          '<span class="t">'+esc(String(k.titel||'?').slice(0,30))+'</span>'+
          mb(k)+'<span class="m">'+num(k.sollMin)+'′</span>'+zsPlay(k)+'</div>';
     });
@@ -5865,7 +5939,7 @@ function fokusPlanbar(k){
 /* Unteraufgaben-Block unter dem Tacho (v0.38-Look): Häkchen · Titel · Minuten
    (editierbar, leer = Auto) · Punkte-Anteil (cyan, aus der Zeit) · Löschen. */
 function fokusSubsHtml(k){
-  const subs=untermenge(k.id);
+  const subs=untermenge(k.id).filter(u=>!istUnterZaehler(u));   // §1.2 (v3.2.0): Unter-Zaehler stehen in der Zaehler-Zeile, nicht als Haken-Unteraufgabe
   const zu=!!S.ui.fokusSubsZu, fertig=subs.filter(u=>u.done).length;
   const rows=subs.map(u=>'<div class="uareihe'+(u.done?' fertig':'')+'" data-uaid="'+u.id+'">'+
     '<button class="uacheck" data-uatoggle="'+u.id+'"><span class="box">'+(u.done?'✓':'')+'</span></button>'+
@@ -6647,6 +6721,13 @@ function layoutTopbar(){
 /* Tag-Bezug (§3.7): aktuelle Tag-ID + „Tag offen?". */
 function aktuelleTagId(){ return S.tag ? S.tag.tagId : heuteApp(); }
 function tagOffen(){ return !!(S.tag && !S.tag.endeTs); }
+/* ══ §2.4 (v3.2.0) · NACH DEM TAGESABSCHLUSS BIS „SCHLAFEN" ═══════════
+   Der Abschluss setzt endeTs (Bilanz, Konto, Wertung) — gesperrt ist danach
+   nichts: Routinen und Counter bleiben tickbar, ihre Uhren startbar, gebucht
+   wird auf denselben Tag. „Schlafen" schliesst ihn endgueltig (geschlossenTs)
+   und zieht die Bilanz nach (Nachtrag). */
+function nachAbschluss(){ return !!(S.tag && S.tag.endeTs && !S.tag.geschlossenTs); }
+function tagBuchbar(){ return tagOffen() || nachAbschluss(); }
 /* Heute erreichte Punkte (live, inkl. laufendem Timer) minus Schiebe-Abzüge. */
 /* A1: heutige Punkte EINER Domäne (erledigt heute + laufender Fokus dieser
    Domäne + Schiebe-Strafen dieser Domäne als negative Log-Einträge, A4). */
@@ -6914,9 +6995,10 @@ function profilGemessen(typ){
   const we=(typ==='wochenende');
   const tage=aktiveRateTage(60).filter(d=>istWochenendTag(d)===we).slice(0,28);
   const b=new Array(24).fill(0); let ges=0;
+  const iv=intradayStatistik();   // §2.2 (v3.2.0)
   tage.forEach(d=>{
     const start=tagesStartStunde(d);
-    (S.intraday||[]).forEach(e=>{
+    iv.forEach(e=>{
       if(!e.ts || belFensterDatum(e.ts)!==d) return;
       const pe=Math.max(0,num(e.punkte)); if(pe<=0) return;
       let rel=belX(e.ts)-start; if(rel<0) rel=0; if(rel>23) rel=23;
@@ -7250,6 +7332,7 @@ function energieBatterie(){
   return { akku, gruen, gelb, dunkel };
 }
 function renderAlles(){
+  try{ uhrAutoStopPruefen(); }catch(e){}   // §1.3 (v3.2.0): ein faelliger Auto-Stopp (auch nach dem Neuladen)
   try{ tagesAbgleich(); }catch(e){}   // §4 (v2.9.1): Stunden-Log = Tagesbilanz
   _phCache=null;   // §5 (1.8.0): P/h-Schnitte je Render frisch
   rangCacheBauen();
@@ -7325,6 +7408,7 @@ function starteTicker(){
   if(tickerId) return;
   tickerId=setInterval(()=>{
     if(!(S.fokus && S.fokus.laeuft)){ clearInterval(tickerId); tickerId=null; return; }
+    if(uhrAutoStopPruefen()){ renderAlles(); clearInterval(tickerId); tickerId=null; return; }   // §1.3 (v3.2.0)
     if(S.tag){ S.tag.letzteAktivitaetTs=jetztIso(); }   // Aktivitäts-Stempel (Kanten §6)
     if(_sekTakt%10===0) autoPausePruefen();             // §4: alle 10 s reicht völlig
     if(!(S.fokus && S.fokus.laeuft)){ clearInterval(tickerId); tickerId=null; return; }   // Auto-Pause hat gestoppt
@@ -7372,6 +7456,7 @@ function tagStarten(akkuProzent, datumTest){
   // §3.2 (v1.10.0): KEIN Auto-Abschluss mehr — der Tag endet, wenn Pascal ihn
   // beendet. Ein offener (auch gestriger) Tag blockiert den Neustart sichtbar.
   if(tagOffen()){ toast('Der offene Tag ('+esc(S.tag.tagId)+') muss zuerst abgeschlossen werden'); oeffneTagAbschluss(); return; }
+  if(nachAbschluss()) tagEndgueltigSchliessen();   // §2.4 (v3.2.0): der Vortag wird endgueltig geschlossen (Nachtrag), bevor ein neuer beginnt
   const datum=datumTest||heuteIso();   // datumTest: nur fuer Tests (Tage nacheinander durchspielen)
   S.tag = neuerTag(datum, naechsterLaufindex(datum));
   S.tag.akku = (akkuProzent==null?null:Math.round(akkuProzent));
@@ -7424,18 +7509,25 @@ function oeffneAufstehen(){
   let info;
   if(z.laeuft) info='Schlafen läuft seit '+belUhr(kalStunde(z.laeuft.startTs))+' ('+hMin((Date.now()-Date.parse(z.laeuft.startTs))/60000)+' Std) — es stoppt mit dem Aufstehen.';
   else if(z.letzte && !z.letzte.gebucht) info='Letzte Nacht: '+hMin(z.letzte.dauerMin)+' Std · '+z.letzte.punkte+' P.';
-  else info='„Schlafen" lief heute Nacht nicht — keine Schlaf-Prognose.';
+  else info='„Schlafen" lief heute Nacht nicht — wann bist du eingeschlafen?';
+  // §3 (v3.2.0): lief keine Schlafen-Uhr, fragt die App einmal nach der Einschlafzeit (Vorgabe: Ende des Vortags)
+  const frageSchlaf=!z.laeuft && !(z.letzte && !z.letzte.gebucht);
+  const vEnde=S.tag ? (S.tag.geschlossenTs || S.tag.endeTs) : null;
+  aufstehenTmp.frageSchlaf=frageSchlaf;
   const h='<p class="d">Guten Morgen. <b>Wie voll fühlt sich der Akku an?</b></p>'+
     '<div class="hint" style="margin-bottom:8px">'+esc(info)+(prog!=null?' Die Schlaf-Prognose sagt <b>'+prog+' %</b>.':'')+'</div>'+
     '<div class="field akkubox"><label>Akku <b id="aufAkkuV">'+Math.round(v)+' %</b></label>'+
-    '<input type="range" min="0" max="100" step="5" id="aufAkku" value="'+Math.round(v)+'"></div>';
+    '<input type="range" min="0" max="100" step="5" id="aufAkku" value="'+Math.round(v)+'"></div>'+
+    (frageSchlaf ? '<div class="field"><label>Wann eingeschlafen?</label><input type="time" id="aufEinschlaf" value="'+esc(vEnde ? belUhr(kalStunde(vEnde)) : '23:00')+'" style="min-height:44px">'+
+      '<div class="hint">Die Nacht wird von dieser Zeit bis jetzt gebucht (Punkte, Schlafschuld). Leer lassen = keine Nacht.</div></div>' : '');
   openSheet('☀️ Aufstehen und in den Tag starten', h, '<button class="btn ghost sm" data-close="1">Abbrechen</button><button class="btn prim" data-aufgo="1">Aufstehen</button>');
   const r=el('aufAkku'); if(r) r.addEventListener('input',()=>{ aufstehenTmp.akku=num(r.value); const vv=el('aufAkkuV'); if(vv) vv.textContent=Math.round(num(r.value))+' %'; });
 }
 function aufstehenBestaetigenUI(){
   const a=aufstehenTmp ? aufstehenTmp.akku : null, prog=aufstehenTmp ? aufstehenTmp.prog : null;
+  const ein=(aufstehenTmp && aufstehenTmp.frageSchlaf && el('aufEinschlaf')) ? String(el('aufEinschlaf').value||'').trim() : '';
   aufstehenTmp=null; closeSheet();
-  const m=aufstehenBestaetigen(a);
+  const m=aufstehenBestaetigen(a, { einschlafUm:ein||null });
   renderAlles();
   if(m) toast('☀️ Tag gestartet · Akku '+Math.round(num(a))+' %'+(prog!=null?' · Prognose '+prog+' %':'')+(m.schlafPunkte!=null?' · Schlaf '+m.schlafPunkte+' P':''));
 }
@@ -7447,25 +7539,47 @@ function aufstehenBestaetigenUI(){
 let abv3={ schritt:1, aktiv:false, zurueck:false, schieben:null };
 function oeffneAbschlussV3(schritt){
   if(!tagOffen()){ toast(S.tag && S.tag.endeTs ? 'Der Tag ist schon abgeschlossen' : 'Kein offener Tag'); return; }
-  abschlussV3Stand();
+  const a0=abschlussV3Stand();
+  if(!a0.beginnTs){ a0.beginnTs=jetztIso(); saveTag(); }   // §2.2 (v3.2.0): bis hierher reichen die „aktiven Stunden"
   if(schritt) abv3.schritt=schritt;
   abv3.zurueck=false;
   renderAbschlussV3();
 }
+/* §2.1 (v3.2.0): beim Uebergang zu Schritt 3 (und mit „Messung übernehmen") stoppt eine laufende Uhr — Ist-Zeit bis jetzt */
+function abschlussMessungUebernehmen(){
+  const a=abschlussV3Stand();
+  let gestoppt=null;
+  if(S.fokus && S.fokus.laeuft){ const k=fokusKarte(); fokusZeitEinbuchen(); gestoppt=k ? (k.titel||'') : ''; }
+  if(!a.messungTs) a.messungTs=jetztIso();
+  saveKarten(); saveTag(); saveFokus();
+  if(gestoppt!=null) toast('⏱ Uhr gestoppt: „'+String(gestoppt).slice(0,24)+'" — Ist-Zeit bis jetzt gebucht');
+  return gestoppt;
+}
+function abschlussExportOk(){ const a=S.tag && S.tag.abschluss; return !!(a && a.exportTs); }
 function abv3ZeileRoutine(k, probe){
   const v3=istV3(k), w=(probe||[]).find(x=>x.id===k.id)||{}, e=S.tag.abschlussEntscheid[k.id]||null;
   const erf=v3 ? zielErreicht(k) : routErledigtHeute(k);
-  const zahl=v3 ? zielText(k) : (kartenArt(k)==='Counter' ? num(k.ticksHeute)+'×' : (erf?'1×':'0×'));
   const abzugWert=v3 ? Math.abs(num(k.abzugOhneStreak||k.abzugJeTagUeberfaellig||S.settings.abschlussAbzugStandard||0)) : 0;   // §2 (v3.1.0): Standard-Abzug
-  let h='<div class="abv3-z"><span class="t">'+esc(k.titel||'?')+'<small>'+esc(zahl)+' · '+fmtP(kartePunkteHeute(k))+' P · Serie '+num(k.streak)+
-    (erf && (!v3 || !leer(k.tagesziel) || !leer(k.tageslimit) || !leer(k.zeitziel)) ? ' · <span style="color:var(--ok)">Ziel erreicht</span>':'')+
+  const laeuft=!!(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id);
+  // §2.1 (v3.2.0): je Karte die Zaehler-Zeile (+1 / −1 nachtragen und korrigieren) und ▶/⏸ fuer ihre Uhr
+  let h='<div class="abv3-z"><span class="t">'+esc(k.titel||'?')+'<small>'+fmtP(kartePunkteHeute(k))+' P · Serie '+num(k.streak)+
     (!erf && e==null && w.abzug ? ' · <span style="color:var(--bad)">sonst −'+w.abzug+' P</span>' : '')+
-    (!erf && e==null && w.gerissen ? ' · Serie reißt' : '')+'</small></span>';
+    (!erf && e==null && w.gerissen ? ' · Serie reißt' : '')+'</small></span>'+
+    '<button class="al-knopf al-play" data-abv3play="'+k.id+'" aria-label="'+(laeuft?'Pause':'Start')+'">'+(laeuft?'⏸':'▶')+'</button></div>'+
+    zaehlerZeileHtml(k, {minus:true, ort:'abschluss'});
+  h+='<div class="abv3-wahl">';
   if(!erf && (v3 || (k.rhythmus && routineFaellig(k, S.tag.datum)))){
     h+='<button class="chip'+(e==='ueberspringen'?' on':'')+'" data-abv3wahl="'+k.id+'" data-v="ueberspringen">überspringen</button>';
     if(abzugWert) h+='<button class="chip'+(e==='abzug'?' on':'')+'" data-abv3wahl="'+k.id+'" data-v="abzug">mit Abzug −'+abzugWert+'</button>';
   }
   return h+'</div>';
+}
+/* §2.1 (v3.2.0): die laufende Uhr steht oben in Schritt 2 */
+function abv3UhrHtml(){
+  const lk=(S.fokus && S.fokus.laeuft) ? fokusKarte() : null;
+  return lk ? '<div class="abv3-uhr">⏱ Uhr läuft: <b>'+esc(lk.titel||'?')+'</b> · '+mmss(laufendeSek())+
+      ' <button class="btn sm" style="min-height:44px" data-abv3play="'+lk.id+'">⏸ stoppen</button></div>'
+    : '<div class="hint">Keine Uhr läuft.</div>';
 }
 function renderAbschlussV3(){
   const a=abschlussV3Stand(), st=abv3.schritt, r=a.reflexion||{};
@@ -7482,7 +7596,7 @@ function renderAbschlussV3(){
         '⏰ Aufstehen um '+esc(p.aufstehenUm)+' → Akku <b>'+p.akkuBeiAufstehen+' %</b>'+(p.schuldStd>0?'<br><span class="hint">Schlafschuld '+String(p.schuldStd).replace('.',',')+' Std</span>':'')+'</div>';
   } else if(st===2){
     const ks=abschlussV3Routinen(), probe=routinenAuswerten(S.tag.datum, S.tag.abschlussEntscheid||{}, true);
-    h+='<div class="hint">Je Karte Anzahl, Punkte und Serie. Ist ein Ziel offen, lässt sich die Karte überspringen — ohne Abzug oder mit ihrem eingestellten Abzug. Ohne Wahl gelten die Regeln der Karte.</div>';
+    h+=abv3UhrHtml()+'<div class="hint">Je Karte der Zähler: Ticks nachtragen (+1) oder korrigieren (−1), Uhren stoppen. Ist ein Ziel offen, lässt sich die Karte überspringen — ohne Abzug oder mit ihrem eingestellten Abzug. Ohne Wahl gelten die Regeln der Karte. „Messung übernehmen" stoppt eine laufende Uhr.</div>';
     h+=ks.length ? ks.map(k=>abv3ZeileRoutine(k, probe)).join('') : '<div class="leer">Heute keine Routinen oder Counter.</div>';
     probe.filter(x=>x.gruppe).forEach(g=>{ h+='<div class="abv3-z"><span class="t">Gruppe „'+esc(g.gruppe)+'"<small>'+esc(g.karten.join(' oder '))+' · '+(g.erfuellt?'erfüllt':'offen')+' · Serie '+g.streak+'</small></span></div>'; });
   } else if(st===3){
@@ -7508,11 +7622,14 @@ function renderAbschlussV3(){
     h+='<p class="d">Der Tagesabschluss als Datei: erste Zeile Datum und Uhrzeit, darunter die Zusammenfassung, am Ende der vollständige Export als JSON-Block. Claude bucht daraus.</p>'+
       '<textarea id="abv3Md" readonly style="min-height:200px;font-family:ui-monospace,monospace;font-size:11px;width:100%">'+esc(md)+'</textarea>'+
       '<div class="btnrow"><button class="btn" style="min-height:44px" data-abv3dl="1">⬇︎ Herunterladen</button><button class="btn" style="min-height:44px" data-abv3copy="1">📋 Text kopieren</button></div>'+
-      '<div class="hint">„Schließen" schließt den Tag ab. Danach ist alles grau außer „Schlafen".</div>';
+      '<div class="hint">'+(abschlussExportOk() ? '„Schließen" schließt den Tag ab.' : '„Schließen" wird aktiv, sobald der Export kopiert oder heruntergeladen ist — lange drücken überspringt ihn bewusst.')+
+        ' Routinen und Counter bleiben danach bis „Schlafen" buchbar.</div>';
   }
+  // §2.3 (v3.2.0, Befund 27.09.: kein Export-Dialog): „Schließen" gibt es nur in Schritt 4, aktiv erst nach Kopieren/Download
   const foot=(st>1?'<button class="btn ghost sm" data-abv3schritt="'+(st-1)+'">← Zurück</button>':'')+
-    (st<4?'<button class="btn sm" data-abv3schritt="'+(st+1)+'">Weiter →</button>':'')+
-    '<button class="btn prim" data-abv3zu="1">✓ Schließen</button>';
+    (st===2 ? '<button class="btn sm" data-abv3messung="1">Messung übernehmen →</button>'
+      : (st<4 ? '<button class="btn sm" data-abv3schritt="'+(st+1)+'">Weiter →</button>'
+        : '<button class="btn prim'+(abschlussExportOk()?'':' gesperrt')+'" data-abv3zu="1" aria-disabled="'+(!abschlussExportOk())+'">✓ Schließen</button>'));
   openSheet('🌙 Tagesabschluss', h, foot);
   abv3.aktiv=true;
 }
@@ -7563,6 +7680,7 @@ function abschlussV3Download(){
     const a=document.createElement('a'); a.href='data:text/markdown;charset=utf-8,'+encodeURIComponent(md); a.download=name; document.body.appendChild(a); a.click(); a.remove();
   }
   if(S.tag){ abschlussV3Stand().exportTs=jetztIso(); saveTag(); }
+  if(abv3.aktiv) renderAbschlussV3();   // §2.3 (v3.2.0): „Schließen" wird aktiv
   return name;
 }
 function abschlussV3Kopieren(){
@@ -7572,6 +7690,7 @@ function abschlussV3Kopieren(){
   try{ if(navigator.clipboard) navigator.clipboard.writeText(txt).catch(()=>{}); okc=true; }catch(e){}
   if(S.tag){ abschlussV3Stand().exportTs=jetztIso(); saveTag(); }
   toast(okc?'📋 Kopiert':'Markiert — ⌘C');
+  if(abv3.aktiv){ const sb=el('sheetBody'), y=sb?sb.scrollTop:0; renderAbschlussV3(); const sb2=el('sheetBody'); if(sb2) sb2.scrollTop=y; }   // §2.3 (v3.2.0)
   return okc;
 }
 function abschlussV3SchliessenUI(){
@@ -7582,7 +7701,7 @@ function abschlussV3SchliessenUI(){
     const sk=schlafKarte();
     if(sk){ S.ui.fokusZeigt=sk.id; S.ui.fokusOffen=true; saveUi(); }
     renderAlles(); nachOben();
-    toast('🌙 Tag abgeschlossen · '+fmtP(num(S.tag.punkteBilanz))+' P — gute Nacht');
+    toast('🌙 Tag abgeschlossen · '+fmtP(num(S.tag.punkteBilanz))+' P — Routinen und Counter bis „Schlafen" buchbar');
   } else renderAlles();
 }
 /* ══ §9 (v3.0.0) · JEDE ANSICHT BEGINNT OBEN ════════════════════════════
@@ -8006,7 +8125,7 @@ function backupDownload(paket, name){
    Invariante §3.2: Σ Unteraufgaben-sollMin = Parent-sollMin.
    ══════════════════════════════════════════════════════════════════════ */
 S.unteraufgaben = [];  // wird in ladeAlles gefüllt
-function untermenge(parentId){ return S.unteraufgaben.filter(u=>u.parentId===parentId); }
+function untermenge(parentId){ return S.unteraufgaben.filter(u=>u.parentId===parentId && u.typ!=='ticker'); }   // §1.2 (v3.2.0): der Ticker ist die Zaehler-Zeile, keine Unteraufgabe der Liste
 
 /* ══════════════════════════════════════════════════════════════════════
    11 · Sheet-Infrastruktur (Detail D3 / Stapel-Editor D4)
@@ -8415,7 +8534,7 @@ function detailSpeichern(){
     saveMeta(); ketteHistLog();
   }
   // Unteraufgaben ersetzen
-  S.unteraufgaben = S.unteraufgaben.filter(u=>u.parentId!==entwurf.id).concat(
+  S.unteraufgaben = S.unteraufgaben.filter(u=>u.parentId!==entwurf.id || istTicker(u)).concat(   // §1.2 (v3.2.0): der Ticker bleibt
     entwurfSubs.map(u=>Object.assign(neueUnteraufgabe(entwurf.id), u, {parentId:entwurf.id}))
   );
   // Erledigt/archiviert + war im Fokus → Fokus beenden.
@@ -8762,7 +8881,8 @@ function karteAbhakenAuto(kid, fromDetail){
   if(!k) return;
   // §4 (v1.9.1): ✓ heißt Abschließen — auch bei Tick-Karten (＋ tickt separat).
   // §3.1 (v3.0.0): im Routinen-System ist der Haken ein Tick (+1) — kein Abhak-Dialog, kein fester Punktwert
-  if(k.status==='offen' && istV3(k) && !fromDetail){ leisteTicken(k.id); return; }
+  // §1.3 (v3.2.0): ✓ gibt es nur auf Aufgaben — bei Routinen und Countern ist jeder Weg dorthin ein +1 (Tick)
+  if(istRoutineOderCounter(k)){ if(k.status==='offen') leisteTicken(k.id); else toast('„'+String(k.titel||'').slice(0,24)+'" ist für heute erledigt'); return; }
   if(k.status==='offen'){ abhakDialog(k.id, fromDetail); return; }
   // §8 (v1.12.0): ✓ auf einer ERLEDIGTEN Karte öffnet den Wiederholen-Dialog —
   // überall identisch (Verlauf, Suche, Erledigt-Stapel). Das entschärft auch
@@ -8947,7 +9067,7 @@ function istAbhakKarte(k){
 function startBonusHeute(k){ return (k && k.startBonus && k.startBonus.tag===aktuelleTagId()) ? num(k.startBonus.punkte) : 0; }
 function durchgangAktiv(k){ return !!(k && k.durchgang && k.durchgang.tag===aktuelleTagId()); }
 function durchgangStart(k){
-  if(!k || k.status!=='offen' || !(istAbhakKarte(k) || istPflicht(k) || istV3(k))) return null;   // §2 (v2.9.0): jede Pflicht-Karte · §3.1 (v3.0.0): jede Routine
+  if(!k || k.status!=='offen' || !(istAbhakKarte(k) || istPflicht(k) || (istV3(k) && !istAufgabeKarte(k)))) return null;   // §1.3 (v3.2.0): eine Aufgabe im Modus zeit bekommt den Bonus einmal beim ✓, nicht beim Start   // §2 (v2.9.0): jede Pflicht-Karte · §3.1 (v3.0.0): jede Routine
   const tid=aktuelleTagId(), jetzt=Date.now(), fenster=num(S.settings.durchgangPauseMin,5)*60000;
   const d=durchgangAktiv(k) ? k.durchgang : null;
   if(d && d.pauseTs && jetzt-Date.parse(d.pauseTs)<fenster){ d.pauseTs=null; return {neu:false}; }   // derselbe Durchgang
@@ -9062,11 +9182,157 @@ function staffelWert(x, nr){
   return a.length ? num(a[a.length-1]) : 0;          // ohne „danach" gilt der letzte Wert weiter
 }
 function tickMinutenVon(x){ return (x && !leer(x.tickMinuten)) ? Math.max(0, num(x.tickMinuten)) : num(S.settings.tickMinutenStandard, 5); }
-function ticksHeuteV3(x){ const t=x && x.tickLog; return (t && t.tag===aktuelleTagId() && Array.isArray(t.ticks)) ? t.ticks : []; }
+/* ══ §1.2 (v3.2.0) · DER TICKER — die Zaehler-Zeile als eigener Datensatz ══
+   (Entscheidung Pascal: echter Datensatz.) Jede Karte im Modus staffel oder
+   pflicht traegt eine Unteraufgabe {typ:"ticker"} ohne eigenen Titel; die
+   Ticks des Tages (tickLog) liegen dort statt an der Karte. untermenge()
+   laesst sie aus — Unteraufgaben-Listen, Boni und Folgeaufgaben sehen sie
+   nicht; gezeigt wird sie ueberall als Zaehler-Zeile (zaehlerZeileHtml). */
+function istTicker(u){ return !!(u && u.typ==='ticker'); }
+function brauchtTicker(k){ return !!(k && k.parentId===undefined && (k.modus==='staffel' || k.modus==='pflicht') && k.status!=='archiviert'); }
+function tickerVon(k){ if(!k || !Array.isArray(S.unteraufgaben)) return null; for(const u of S.unteraufgaben){ if(u.parentId===k.id && u.typ==='ticker') return u; } return null; }
+function tickerSicherstellen(k){
+  if(!k || k.parentId!==undefined) return null;
+  let t=tickerVon(k);
+  if(!t && !brauchtTicker(k)) return null;
+  if(!t){ t={ id:'tk-'+k.id, parentId:k.id, typ:'ticker', titel:'', sollMin:0, done:false, bonusPunkte:0, tickLog:null };
+    if(!Array.isArray(S.unteraufgaben)) S.unteraufgaben=[]; S.unteraufgaben.push(t); }
+  // Ticks, die noch an der Karte liegen (Bestand bis v3.1, alte Sicherung), wandern in den Ticker
+  if(k.tickLog && Array.isArray(k.tickLog.ticks)){
+    const a=t.tickLog;
+    if(!a || !Array.isArray(a.ticks) || String(k.tickLog.tag||'')>String(a.tag||'') || (k.tickLog.tag===a.tag && k.tickLog.ticks.length>=a.ticks.length)) t.tickLog=k.tickLog;
+  }
+  if(k.tickLog!==null) k.tickLog=null;
+  return t;
+}
+function tickerAlleSicherstellen(){ let n=0; (S.karten||[]).forEach(k=>{ const vor=JSON.stringify(k.tickLog||null)+!!tickerVon(k); tickerSicherstellen(k); if(vor!==JSON.stringify(k.tickLog||null)+!!tickerVon(k)) n++; }); return n; }
+/* Wo die Ticks liegen: bei einer Karte im Ticker (falls vorhanden), sonst am Objekt selbst (Unter-Zaehler, Karten ohne modus) */
+function tickQuelle(x, anlegen){
+  if(x && x.parentId===undefined && Array.isArray(S.unteraufgaben)){ const t=tickerVon(x) || (anlegen && brauchtTicker(x) ? tickerSicherstellen(x) : null); if(t) return t; }
+  return x;
+}
+function ticksHeuteV3(x){ const q=tickQuelle(x), t=q && q.tickLog; return (t && t.tag===aktuelleTagId() && Array.isArray(t.ticks)) ? t.ticks : []; }
+/* §1.1 (v3.2.0): Belegzeit der Ticks ohne Uhr — getrennt von der gemessenen Ist-Zeit */
+function tickMinHeute(k){ return Math.round(ticksHeuteV3(k).reduce((a,t)=>a+(t.uhr?0:num(t.min)),0)*10)/10; }
 function tickAnzahlHeute(x){ return ticksHeuteV3(x).length; }
-function tickLogHeute(x){ const tid=aktuelleTagId(); if(!x.tickLog || x.tickLog.tag!==tid || !Array.isArray(x.tickLog.ticks)) x.tickLog={ tag:tid, ticks:[] }; return x.tickLog.ticks; }
+function tickLogHeute(x){ const q=tickQuelle(x, true), tid=aktuelleTagId(); if(!q.tickLog || q.tickLog.tag!==tid || !Array.isArray(q.tickLog.ticks)) q.tickLog={ tag:tid, ticks:[] }; return q.tickLog.ticks; }
 function staffelPunkteHeute(x){ return ticksHeuteV3(x).reduce((a,t)=>a+num(t.punkte),0); }
 function limitErreicht(x){ return !!(x && !leer(x.tageslimit) && num(x.tageslimit)>0 && tickAnzahlHeute(x)>=num(x.tageslimit)); }
+/* ══ §1.4 (v3.2.0) · EIN STATUS FUER ALLE ANSICHTEN ══════════════════
+   erledigt · zielErreicht · offen — je Karte EINMAL berechnet; Leiste,
+   Suche, Kalender, Zeitstrahl, Fokus, Detail und Tagesabschluss lesen nur
+   ihn (§1.3): Aufgabe erledigt = abgehakt · Routine/Counter erledigt =
+   Tageslimit erreicht · Ziel erreicht = Tagesziel bzw. Zeitziel erreicht,
+   bleibt tickbar und startbar · sonst offen — ein Counter ohne Limit und
+   ohne Ziel wird am Tag nie gestrichen. */
+function hatTagesZiel(k){ return !!k && ((!leer(k.tagesziel) && num(k.tagesziel)>0) || zeitzielVon(k)>0); }
+function kartenStatusHeute(k){
+  if(!k) return 'offen';
+  if(istAufgabeKarte(k)) return k.status==='erledigt' ? 'erledigt' : 'offen';
+  if(k.status==='erledigt' && (!k.tagId || k.tagId===aktuelleTagId())) return 'erledigt';
+  if(limitErreicht(k) || (!istV3(k) && !leer(k.tageslimit) && num(k.tageslimit)>0 && num(k.ticksHeute)>=num(k.tageslimit))) return 'erledigt';
+  if(hatTagesZiel(k) && zielErreicht(k)) return 'zielErreicht';
+  return 'offen';
+}
+/* Wert des naechsten Ticks (Zaehler-Zeile, §1.2) — null, wenn das Tageslimit erreicht ist */
+function naechsterTickWert(k){
+  if(!k || kartenStatusHeute(k)==='erledigt') return null;
+  const m=modusVon(k);
+  if(k.modus==='staffel') return logRund(staffelWert(k, tickAnzahlHeute(k)+1)*(k.serienfaktor ? (num(k.serienFaktor,1)||1) : 1));
+  if(m==='pflicht') return pflichtWerte(k).wert;
+  if(!istV3(k) && istTickKarte(k)) return tickWertEff(k);
+  return abhakbonusDefault(k);
+}
+/* ══ §1.2 (v3.2.0) · DIE ZAEHLER-ZEILE — in jeder Ansicht dieselbe ══════
+   „+1 · n/Ziel · Wert des naechsten Ticks" unter dem Titel jeder Routine und
+   jedes Counters (Fokus, Leiste, Suche, Kalender→Fokus, Tagesabschluss).
+   Unter-Zaehler stehen darunter, gleich aufgebaut, mit ▶ (startet die Uhr
+   ihrer Karte und bucht einen Tick des Unter-Zaehlers — Entscheidung Pascal).
+   Aufgaben haben keine Zaehler-Zeile, sondern ✓. */
+function zaehlerAnzahl(k){ return Math.max(tickAnzahlHeute(k), istV3(k) ? 0 : num(k.ticksHeute)); }
+function zaehlerText(k){
+  if(istV3(k)) return zielText(k);
+  const n=zaehlerAnzahl(k);
+  if(!leer(k.tagesziel) && num(k.tagesziel)>0) return n+'/'+num(k.tagesziel);
+  if(!leer(k.tageslimit) && num(k.tageslimit)>0) return n+'/'+num(k.tageslimit);
+  return n+'×';
+}
+function wertText(w){ return w==null ? 'Tageslimit erreicht' : 'nächster '+(w>=0?'+':'−')+fmtP(Math.abs(w))+' P'; }
+function zaehlerZeileHtml(k, opt){
+  opt=opt||{};
+  if(!istRoutineOderCounter(k)) return '';
+  const st=kartenStatusHeute(k), aus=!routineBuchbar(k), ort=opt.ort?' data-ort="'+opt.ort+'"':'';
+  let h='<div class="zz'+(st==='erledigt'?' fertig':'')+(st==='zielErreicht'?' ziel':'')+'" data-zzkarte="'+k.id+'">'+
+    (st==='erledigt' && !opt.minus ? '<span class="al-knopf al-ok zz-knopf" aria-label="erledigt">✓</span>'
+      : '<button class="al-knopf al-tick zz-knopf'+(aus?' aus':'')+'" data-zzplus="'+k.id+'"'+ort+' aria-label="Tick +1">+1</button>')+
+    (opt.minus ? '<button class="al-knopf al-tick zz-knopf" data-zzminus="'+k.id+'" aria-label="Tick −1"'+(zaehlerAnzahl(k)>0?'':' disabled')+'>−1</button>' : '')+
+    '<span class="zz-n">'+esc(zaehlerText(k))+(st==='zielErreicht'?' <span class="zz-ok">Ziel erreicht</span>':'')+'</span>'+
+    '<span class="zz-w">'+esc(wertText(naechsterTickWert(k)))+'</span></div>';
+  unterZaehler(k).forEach(u=>{
+    const fu=limitErreicht(u), n=tickAnzahlHeute(u);
+    h+='<div class="zz zz-sub'+(fu?' fertig':'')+'" data-zzkarte="'+k.id+'">'+
+      '<button class="al-knopf al-play zz-knopf'+(aus?' aus':'')+'" data-zzsubplay="'+u.id+'"'+ort+' aria-label="Start und Tick">▶</button>'+
+      '<span class="zz-t">'+esc(String(u.titel||'?'))+'</span>'+
+      (fu ? '<span class="al-knopf al-ok zz-knopf" aria-label="erledigt">✓</span>' : '<button class="al-knopf al-tick zz-knopf'+(aus?' aus':'')+'" data-zzsub="'+u.id+'"'+ort+' aria-label="Tick +1">+1</button>')+
+      '<span class="zz-n">'+esc(zielText(u))+'</span>'+
+      '<span class="zz-w">'+esc(wertText(fu ? null : staffelWert(u, n+1)))+'</span></div>';
+  });
+  return h;
+}
+/* §2.4 (v3.2.0): Routinen und Counter bleiben nach dem Tagesabschluss buchbar — bis „Schlafen" */
+function routineBuchbar(k){ return tagOffen() || !!(nachAbschluss() && istRoutineOderCounter(k) && k.rolle!=='tagesabschluss'); }
+/* §2.1 (v3.2.0): −1 — den letzten Tick des Tages zuruecknehmen (Korrektur, v. a. im Tagesabschluss) */
+function tickZuruecknehmen(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k || !routineBuchbar(k)) return false;
+  const tid=aktuelleTagId(), ts=ticksHeuteV3(k);
+  let ok=false;
+  if(ts.length){
+    const t=ts.pop(); ok=true;
+    if(modusVon(k)==='pflicht' && k.pflichtHeute && k.pflichtHeute.tag===tid){ pflichtBuchen(k, -pflichtWerte(k).wert); k.pflichtHeute.n=Math.max(0, num(k.pflichtHeute.n)-1); }
+    else if(!istV3(k) && k.startBonus && k.startBonus.tag===tid && num(t.basis)){ k.startBonus.punkte=num(k.startBonus.punkte)-num(t.basis); k.startBonus.n=Math.max(0, num(k.startBonus.n)-1); }
+    k.ticksHeute=Math.max(0, num(k.ticksHeute)-1);
+  } else if(!istV3(k) && num(k.ticksHeute)>0) ok=karteTickMinus(k);
+  if(!ok) return false;
+  if(k.status==='erledigt' && kartenStatusHeute(Object.assign({}, k, {status:'offen'}))!=='erledigt') karteAbhaken(k.id, true);   // Limit wieder offen → Karte offen
+  { const e=logIntraday(k,{punkte:0, typ:'tick'}); buchungAbgleich(k, e); }
+  beruehre(k);
+  return true;
+}
+/* ▶ am Unter-Zaehler: die Uhr SEINER Karte laeuft (ohne eigenen Karten-Tick), der Unter-Zaehler bekommt den Tick */
+function unterZaehlerStarten(uid){
+  const u=(S.unteraufgaben||[]).find(x=>x.id===uid); if(!u) return null;
+  const k=S.karten.find(x=>x.id===u.parentId); if(!k) return null;
+  if(!routineBuchbar(k)){ toast('Der Tag ist geschlossen — morgen geht es mit „Aufstehen" weiter'); return null; }
+  if(!(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id) && k.status==='offen') fokusStarten(k.id, undefined, {ohneDurchgang:true});
+  const t=unterTick(uid); saveKarten(); saveTag();
+  if(t) toast((t.punkte>=0?'+':'−')+fmtP(Math.abs(t.punkte))+' P · „'+String(u.titel||'').slice(0,24)+'" · Uhr läuft');
+  return t;
+}
+function unterTickUI(uid){
+  const u=(S.unteraufgaben||[]).find(x=>x.id===uid), k=u && S.karten.find(x=>x.id===u.parentId);
+  if(!k || !routineBuchbar(k)){ toast('Der Tag ist geschlossen'); return null; }
+  const t=unterTick(uid); saveKarten(); saveTag();
+  if(t) toast((t.punkte>=0?'+':'−')+fmtP(Math.abs(t.punkte))+' P');
+  return t;
+}
+/* Die Knoepfe der Zaehler-Zeile — ein Weg fuer Fokus, Suche, Leiste und Tagesabschluss */
+function zaehlerKlick(t){
+  const imAbschluss=x=>x && x.dataset && x.dataset.ort==='abschluss';
+  const neu=(x)=>{ if(imAbschluss(x) && typeof abv3!=='undefined' && abv3.aktiv) renderAbschlussV3(); else renderAlles(); };
+  const zp=t.closest('[data-zzplus]'); if(zp){ haptik(10);
+    if(imAbschluss(zp)){ abschlussTicken(zp.dataset.zzplus); neu(zp); } else leisteTicken(zp.dataset.zzplus); return true; }
+  const zm=t.closest('[data-zzminus]'); if(zm){ haptik(10); if(tickZuruecknehmen(zm.dataset.zzminus)){ saveKarten(); saveTag(); toast('−1 · zurückgenommen'); } neu(zm); return true; }
+  const zs=t.closest('[data-zzsub]'); if(zs){ haptik(10); unterTickUI(zs.dataset.zzsub); neu(zs); return true; }
+  const zsp=t.closest('[data-zzsubplay]'); if(zsp){ haptik(10); unterZaehlerStarten(zsp.dataset.zzsubplay); neu(zsp); return true; }
+  return false;
+}
+/* +1 im Tagesabschluss: ohne Eingabe-Dialog (der Abschluss bleibt offen), Rollen-Karten nicht */
+function abschlussTicken(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k || istSonderRolle(k) || !routineBuchbar(k)) return null;
+  const t=istV3(k) ? routineTick(k) : altTick(k);
+  saveKarten(); saveTag();
+  return t;
+}
 /* §3.2 · Unter-Zaehler: eine Unteraufgabe mit Staffel, Tagesziel oder Tageslimit */
 function istUnterZaehler(u){ return !!(u && ((Array.isArray(u.staffel) && u.staffel.length) || !leer(u.tagesziel) || !leer(u.tageslimit))); }
 function unterZaehler(k){ return (k && Array.isArray(S.unteraufgaben)) ? untermenge(k.id).filter(istUnterZaehler) : []; }
@@ -9154,17 +9420,22 @@ function routineTick(k, opt){
   k.ticksHeute=nr;
   if(m==='pflicht') pflichtDurchgangNeu(k, !!opt.uhr);   // Ertrag ueber das Pflicht-Ledger (v2.9); t.punkte ist nur Protokoll
   else if(opt.uhr) k.durchgang={ tag:aktuelleTagId(), startTs:jetztIso(), pauseTs:null };
-  if(min>0){ k.istSek=num(k.istSek)+min*60; akkuBuchen(k, min); }
+  // §1.1 (v3.2.0): ein Tick ohne Uhr zaehlt tickMinuten als BELEGZEIT des Ticks (t.min, Export tickMin),
+  // nicht als Ist-Zeit — keine Karte bucht Zeit, die nicht gemessen wurde. Der Akku folgt der Belegzeit.
+  if(min>0) akkuBuchen(k, min);
   if(k.rhythmus) routineErledigtBuchen(k);
   if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
   beruehre(k);
-  { const e=logIntraday(k,{punkte:0, minuten:min, typ:'tick'}); const d=buchungAbgleich(k, e); try{ momentBuchung(d); }catch(x){} }
+  { const e=logIntraday(k,{punkte:0, minuten:0, tickMin:min, typ:'tick'}); const d=buchungAbgleich(k, e); try{ momentBuchung(d); }catch(x){} }
   if(limitErreicht(k) && k.status==='offen') routineErledigen(k);
   return t;
 }
 /* Tageslimit erreicht → fuer heute erledigt (grau ans Ende ihres Blocks) */
+/* §1.1 (v3.2.0): der Tick beim ▶ schliesst die Karte (Tageslimit), die Uhr misst trotzdem weiter
+   (Befund: Rasieren/Elvanse — vorher stoppte die Uhr in derselben Sekunde, in der sie startete) */
+let _startTick=false;
 function routineErledigen(k){
-  if(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id) fokusZeitEinbuchen();
+  if(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id && !_startTick) fokusZeitEinbuchen();
   karteAbhaken(k.id, true);
   folgekarteAnlegen(k);
 }
@@ -9337,9 +9608,20 @@ function schlafStarten(){
   saveMeta();
   return z.laeuft;
 }
+/* §3 (v3.2.0, Befund 28.09.: morgens angetippt, 2 Sekunden spaeter beendet → 0 Min, 0 P, Schlafschuld 7 → 14):
+   Start und Ende innerhalb von 10 Min = Fehltipp; eine Nacht braucht mindestens 60 Min. Darunter: kein
+   Schlaf, keine Buchung, keine Schuld — und hatte der Start den Tag geschlossen, ist er wieder offen. */
+const SCHLAF_FEHLTIPP_MIN=10, SCHLAF_NACHT_MIN=60;
 function schlafStoppen(){
   const z=schlafZustand(); if(!z.laeuft) return null;
   const k=schlafKarte(), ende=jetztIso(), std=Math.max(0, (Date.parse(ende)-Date.parse(z.laeuft.startTs))/3600000);
+  if(std*60<SCHLAF_NACHT_MIN){
+    const f={ startTs:z.laeuft.startTs, endeTs:ende, dauerMin:Math.round(std*600)/10, punkte:0, fehltipp:std*60<SCHLAF_FEHLTIPP_MIN, zuKurz:std*60>=SCHLAF_FEHLTIPP_MIN, verworfen:true };
+    if(z.laeuft.schlossTag && S.tag && S.tag.geschlossenTs){ S.tag.geschlossenTs=null; saveTag(); }
+    z.laeuft=null; z.letzterVersuch=f; saveMeta();
+    return f;
+  }
+  z.letzterVersuch=null;
   const schuldVor=num(z.schuldStd), bedarf=num(S.settings.schlafBedarfStd,7);
   z.schuldStd=Math.round(Math.max(0, Math.min(num(S.settings.schlafSchuldMaxStd,30), schuldVor+bedarf-std))*100)/100;
   const abend=z.laeuft.abendAkku;
@@ -9354,6 +9636,28 @@ function schlafStoppen(){
   return z.letzte;
 }
 /* Die letzte Nacht in den NEUEN Tag buchen — nur in einen Tag, der nach dem Einschlafen begann */
+/* §3 (v3.2.0): eine Nacht aus Zeiten buchen — Korrektur-Paket (Sitzung auf „Schlafen") oder „Wann eingeschlafen?"
+   beim Aufstehen. Dieselbe Nacht (ueberlappend oder Ende hoechstens 3 Std. entfernt) ersetzt die letzte und
+   rechnet deren Schuld neu; beim Aufstehen ist es immer eine neue Nacht (opt.neu). */
+function schlafNachtSetzen(vMs, bMs, punkte, grund, opt){
+  const z=schlafZustand(), l=z.letzte, std=Math.max(0,(bMs-vMs)/3600000), bedarf=num(S.settings.schlafBedarfStd,7);
+  const gleiche=!!(!(opt && opt.neu) && l && l.endeTs && l.startTs &&
+    ((vMs<Date.parse(l.endeTs) && bMs>Date.parse(l.startTs)) || Math.abs(Date.parse(l.endeTs)-bMs)<3*3600000));
+  const neuer=!l || !l.endeTs || gleiche || bMs>Date.parse(l.endeTs);
+  const schuldVor=gleiche ? num(l.schuldVorStd) : num(z.schuldStd);
+  const schuldNach=Math.round(Math.max(0, Math.min(num(S.settings.schlafSchuldMaxStd,30), schuldVor+bedarf-std))*100)/100;
+  const abend=gleiche ? l.abendAkku : (z.abendAkku!=null ? z.abendAkku : null);
+  const n={ startTs:new Date(vMs).toISOString(), endeTs:new Date(bMs).toISOString(), dauerMin:Math.round(std*60),
+    punkte:(punkte!=null && punkte!=='') ? num(punkte) : schlafPunkte(std), schuldVorStd:Math.round(schuldVor*100)/100, schuldNachStd:schuldNach,
+    abendAkku:abend, akkuPrognose:(abend==null ? null : Math.round(schlafAkkuNach(abend, schuldVor, std))),
+    nachtnotiz:gleiche ? (l.nachtnotiz||'') : '', gebucht:gleiche ? !!l.gebucht : false, tagId:gleiche ? (l.tagId||null) : null,
+    korrektur:!!grund, grund:grund||'' };
+  const punkteAlt=gleiche ? num(l.punkte) : null;
+  if(neuer){ z.letzte=n; z.schuldStd=schuldNach; }
+  z.letzterVersuch=null;
+  saveMeta();
+  return { nacht:n, ersetzt:gleiche, punkteAlt, neuer, schuldVor:Math.round(schuldVor*100)/100, schuldNach };
+}
 function schlafPunkteBuchen(){
   const z=schlafZustand(), n=z.letzte;
   if(!n || n.gebucht || !tagOffen() || !(S.tag.startTs && String(S.tag.startTs)>=String(n.startTs))) return 0;
@@ -9388,9 +9692,23 @@ function aufstehenPrognose(){
   if(z.letzte && !z.letzte.gebucht && z.letzte.akkuPrognose!=null) return z.letzte.akkuPrognose;
   return null;
 }
-function aufstehenBestaetigen(akkuGefuehl){
+/* „HH:MM" als Zeitpunkt VOR jetzt (spaeter als jetzt → gestern) */
+function uhrzeitVorJetzt(hhmm){
+  const t=String(hhmm||'').split(':'); if(t.length<2) return NaN;
+  const d=new Date(); d.setHours(num(t[0]), num(t[1]), 0, 0);
+  if(d.getTime()>Date.now()) d.setDate(d.getDate()-1);
+  return d.getTime();
+}
+function aufstehenBestaetigen(akkuGefuehl, opt){
+  opt=opt||{};
   const prog=aufstehenPrognose();
+  if(nachAbschluss()) tagEndgueltigSchliessen();   // §2.4 (v3.2.0): ohne „Schlafen" schliesst das Aufstehen den Vortag
   if(schlafLaeuft()) schlafStoppen();
+  // §3 (v3.2.0): „Schlafen" lief nicht → die Nacht aus der angegebenen Einschlafzeit
+  else if(opt.einschlafUm && !(schlafZustand().letzte && !schlafZustand().letzte.gebucht)){
+    const v=uhrzeitVorJetzt(opt.einschlafUm);
+    if(Number.isFinite(v) && (Date.now()-v)/60000>=SCHLAF_NACHT_MIN) schlafNachtSetzen(v, Date.now(), null, '', {neu:true});
+  }
   if(!tagOffen()) tagStarten(akkuGefuehl==null ? prog : akkuGefuehl);
   else if(akkuGefuehl!=null) S.tag.akku=Math.round(num(akkuGefuehl));
   if(!tagOffen()) return null;
@@ -9413,7 +9731,7 @@ function abschlussV3Stand(){
 /* Offene Aufgaben des Tages (Schritt 3): Deadline heute oder frueher, offen, keine Routine */
 function abschlussV3Aufgaben(){
   const h=heuteApp();
-  return S.karten.filter(k=>k.status==='offen' && !k.freeze && !k.rhythmus && !istV3(k) && !k.ticksAktiv && k.faelligkeit && k.faelligkeit<=h);
+  return S.karten.filter(k=>k.status==='offen' && !k.freeze && istAufgabeKarte(k) && k.faelligkeit && k.faelligkeit<=h);   // §1.3 (v3.2.0): auch Aufgaben im Modus zeit
 }
 /* Routinen und Counter des Tages (Schritt 2) */
 function abschlussV3Routinen(){
@@ -9448,6 +9766,10 @@ function tagesabschlussExport(){
   const a=S.tag.abschluss||null;
   const wertung=S.tag.routinenAuswertung || (tagOffen() ? routinenAuswerten(S.tag.datum, S.tag.abschlussEntscheid||{}, true) : null);
   return { datum:S.tag.datum, tagId:S.tag.tagId, abgeschlossen:!!S.tag.endeTs,
+    // §2/§5 (v3.2.0): Beginn, Messung, Export, endgueltig geschlossen — und was nach dem Abschluss noch kam
+    beginnTs:a ? (a.beginnTs||null) : null, messungTs:a ? (a.messungTs||null) : null, exportTs:a ? (a.exportTs||null) : null,
+    geschlossenTs:S.tag.geschlossenTs||null,
+    nachtrag:S.tag.nachtrag || (nachAbschluss() ? nachtragStand() : null),
     reflexion:a ? a.reflexion : null,
     schlafPrognose:(a && a.schlafPrognose) ? a.schlafPrognose : (tagOffen() ? schlafPrognose(a && a.reflexion && a.reflexion.akku!=null ? a.reflexion.akku : akkuLive()) : null),
     uebersprungen:a ? (a.uebersprungen||[]) : [], geschoben:a ? (a.geschoben||[]) : [],
@@ -9473,6 +9795,93 @@ function abschlussMarkdown(){
   zeilen.push('', '## Export', '', '```json', JSON.stringify(ex, null, 2), '```', '');
   return zeilen.join('\n');
 }
+/* ══ §2.4 (v3.2.0) · NACHTRAG UND ENDGUELTIGER SCHLUSS ════════════════
+   Was nach dem Abschluss noch gebucht wurde (Wecker pruefen, Wasser fuer die
+   Nacht …), gehoert zum selben Tag. „Schlafen" (sonst „Aufstehen") schliesst
+   ihn endgueltig: die Bilanz wird nachgezogen (Historie, Wohlstand, Muenzen),
+   eine Routine, die ihr Ziel erst danach erreicht hat, zaehlt fuer ihre Serie
+   (ein Abschluss-Abzug faellt weg), und ein Nachtrag-Export zeigt, was kam. */
+function nachtragEintraege(){
+  if(!S.tag || !S.tag.endeTs) return [];
+  // markiert beim Buchen (nachAbschluss) — ein Zeitvergleich mit endeTs traegt nicht (gleiche Millisekunde, Uhr-Sprung)
+  return (S.intraday||[]).filter(e=>e && e.nachAbschluss && logGehoertZuTag(e) && logQuelle(e)!=='schlafen' && logQuelle(e)!=='tagesabschluss');
+}
+function nachtragStand(){
+  const es=nachtragEintraege(), byId={}; S.karten.forEach(k=>byId[k.id]=k);
+  return { seit:S.tag ? S.tag.endeTs : null, anzahl:es.length,
+    punkte:logRund(es.reduce((a,e)=>a+num(e.punkte),0)),
+    ticks:es.filter(e=>e.typ==='tick' || e.typ==='unterzaehler').length,
+    minuten:Math.round(es.reduce((a,e)=>a+num(e.minuten),0)*10)/10,
+    eintraege:es.map(e=>({ ts:e.ts, kartenId:e.kartenId||null, titel:(byId[e.kartenId]||{}).titel||'', typ:e.typ, quelle:logQuelle(e),
+      punkte:logRund(e.punkte), minuten:num(e.minuten), tickMin:num(e.tickMin) })) };
+}
+function nachtragSerienPruefen(){
+  const w=S.tag && S.tag.routinenAuswertung; if(!Array.isArray(w)) return 0;
+  let n=0;
+  w.forEach(x=>{
+    if(!x || !x.id || x.erfuellt) return;
+    const k=S.karten.find(y=>y.id===x.id); if(!k || !zielErreicht(k)) return;
+    k.streak=num(x.streakVorher)+1; k.letzteErfuellung=S.tag.datum;
+    if(num(x.abzug)){ const ab=Math.abs(num(x.abzug));
+      (S.tag.log=S.tag.log||[]).push({ itemId:k.id, titel:k.titel||'', domain:k.domain, art:'abzug', punkte:ab, ts:jetztIso(), grund:'Ziel nach dem Abschluss erreicht — Abzug zurückgenommen' });
+      logIntraday(k,{punkte:ab, typ:'abzug', quelle:'korrektur'}); }
+    x.erfuellt=true; x.streak=k.streak; x.gerissen=false; x.abzug=0; x.nachAbschluss=true; n++;
+  });
+  return n;
+}
+function tagEndgueltigSchliessen(){
+  if(!nachAbschluss()) return null;
+  if(S.fokus && S.fokus.laeuft) fokusZeitEinbuchen();
+  nachtragSerienPruefen();
+  try{ tagesAbgleich(); }catch(e){}
+  const n=nachtragStand();
+  const alt=num(S.tag.punkteBilanz), neu=Math.round(tagesPunkteLive()), d=neu-alt;
+  if(d){
+    S.tag.punkteBilanz=neu; S.meta.wohlstand=num(S.meta.wohlstand)+d;
+    const f=num(S.tag.spielFaktor,1)||1, dz=Math.round(Math.max(0,neu)*f)-Math.round(Math.max(0,alt)*f);
+    S.meta.muenzenGesamt=Math.max(0, num(S.meta.muenzenGesamt)+dz); S.meta.rangPunkte=Math.max(0, num(S.meta.rangPunkte)+dz);
+    S.tag.spielZufluss=num(S.tag.spielZufluss)+dz;
+  }
+  n.bilanzVorher=alt; n.bilanzNachher=neu;
+  S.tag.nachtrag=n; S.tag.geschlossenTs=jetztIso();
+  const h=(S.historie||[]).find(x=>x.tagId===S.tag.tagId);
+  if(h){ h.punkteBilanz=S.tag.punkteBilanz; h.spielZufluss=num(S.tag.spielZufluss); h.log=(S.tag.log||[]).slice();
+    h.nachtrag=n; h.geschlossenTs=S.tag.geschlossenTs; h.routinenAuswertung=S.tag.routinenAuswertung||h.routinenAuswertung; }
+  if(n.anzahl){ if(!Array.isArray(S.meta.nachtraegeOffen)) S.meta.nachtraegeOffen=[];
+    S.meta.nachtraegeOffen=S.meta.nachtraegeOffen.filter(x=>x.tagId!==S.tag.tagId).concat([Object.assign({ tagId:S.tag.tagId, datum:S.tag.datum }, n)]); }
+  saveTag(); saveHistorie(); saveMeta(); saveKarten();
+  return n;
+}
+function nachtragMarkdown(n){
+  const jetzt=new Date(), p2=x=>String(x).padStart(2,'0');
+  const kopf=jetzt.getFullYear()+'-'+p2(jetzt.getMonth()+1)+'-'+p2(jetzt.getDate())+' '+p2(jetzt.getHours())+':'+p2(jetzt.getMinutes());
+  const z=[kopf, '', '# Nachtrag zum Tagesabschluss '+(S.tag?S.tag.datum:''), '',
+    '- Seit dem Tagesabschluss ('+(n.seit?belUhr(kalStunde(n.seit)):'–')+'): '+n.anzahl+' Buchungen · '+(n.punkte>=0?'+':'−')+fmtP(Math.abs(n.punkte))+' P · Bilanz '+fmtP(n.bilanzVorher)+' → '+fmtP(n.bilanzNachher)];
+  n.eintraege.forEach(e=>z.push('- '+belUhr(kalStunde(e.ts))+' '+(e.titel||e.typ)+' · '+e.quelle+' · '+(e.punkte>=0?'+':'−')+fmtP(Math.abs(e.punkte))+' P'+(e.minuten?' · '+e.minuten+' Min':'')));
+  z.push('', '## Export (Delta)', '', '```json', JSON.stringify(syncExport('delta'), null, 2), '```', '');
+  return z.join('\n');
+}
+let _nachtragMd='';
+function oeffneNachtragExport(n){
+  _nachtragMd=nachtragMarkdown(n);
+  openSheet('🌙 Nachtrag zum Abschluss',
+    '<p class="d">Seit dem Tagesabschluss: <b>'+n.anzahl+'</b> Buchungen · <b>'+(n.punkte>=0?'+':'−')+fmtP(Math.abs(n.punkte))+' P</b>. Der Tag ist jetzt zu — der Nachtrag geht als Delta an Claude.</p>'+
+    '<textarea id="ntMd" readonly style="min-height:180px;font-family:ui-monospace,monospace;font-size:11px;width:100%">'+esc(_nachtragMd)+'</textarea>'+
+    '<div class="btnrow"><button class="btn" style="min-height:44px" data-ntdl="1">⬇︎ Herunterladen</button><button class="btn" style="min-height:44px" data-ntcopy="1">📋 Kopieren</button></div>',
+    '<button class="btn prim" data-close="1">Schließen</button>');
+}
+function mdHerunterladen(md, name){
+  try{ const blob=new Blob([md], {type:'text/markdown;charset=utf-8'}), url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 4000); }
+  catch(e){ const a=document.createElement('a'); a.href='data:text/markdown;charset=utf-8,'+encodeURIComponent(md); a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
+  return name;
+}
+function nachtragDownload(){ const d=new Date(), p2=x=>String(x).padStart(2,'0');
+  const nm=mdHerunterladen(_nachtragMd, String(d.getFullYear()).slice(2)+p2(d.getMonth()+1)+p2(d.getDate())+'_Nachtrag.md'); toast('⬇︎ '+nm); return nm; }
+function nachtragKopieren(){ const ta=el('ntMd'); let okc=false;
+  if(ta){ try{ ta.select(); okc=document.execCommand('copy'); }catch(e){} }
+  try{ if(navigator.clipboard) navigator.clipboard.writeText(_nachtragMd).catch(()=>{}); okc=true; }catch(e){}
+  toast(okc?'📋 Kopiert':'Markiert — ⌘C'); return okc; }
 /* Schliessen der Ansicht = Tagesabschluss erledigt: Wert der Karte buchen,
    Tag abschliessen (Bilanz, Konto), Abendakku fuer die Schlaf-Prognose merken. */
 function abschlussV3Schliessen(){
@@ -9481,8 +9890,13 @@ function abschlussV3Schliessen(){
   if(a.reflexion && a.reflexion.akku!=null) S.tag.akku=Math.round(num(a.reflexion.akku));
   a.schlafPrognose=schlafPrognose(a.reflexion && a.reflexion.akku!=null ? a.reflexion.akku : akkuLive());
   const k=tagesabschlussKarte();
-  if(k && k.status==='offen' && tickAnzahlHeute(k)===0) routineTick(k,{still:true});
-  tagAbschlussFinalisieren();
+  _abschlussBuchung=true;   // §2.2 (v3.2.0): alles, was jetzt gebucht wird, ist quelle „tagesabschluss"
+  try{
+    if(S.fokus && S.fokus.laeuft) abschlussMessungUebernehmen();
+    if(!a.messungTs) a.messungTs=jetztIso();
+    if(k && k.status==='offen' && tickAnzahlHeute(k)===0) routineTick(k,{still:true});
+    tagAbschlussFinalisieren();
+  } finally{ _abschlussBuchung=false; }
   const z=schlafZustand(); z.abendAkku=(a.reflexion && a.reflexion.akku!=null) ? Math.round(num(a.reflexion.akku)) : (S.tag.akku!=null ? Math.round(num(S.tag.akku)) : null);
   saveMeta(); saveTag(); saveKarten();
   return true;
@@ -9547,12 +9961,12 @@ function kartenFelderBekannt(){
   _kartenFelder=new Set(Object.keys(neueKarte({})).concat([
     'unteraufgaben','korrektur','grund','vomGeraet','geldScore','kommentarFuerClaude','sitzungen','kettenPosition',
     // was der Export nur zum Lesen beilegt (ein zurueckgeschickter Export ist kein Fehler)
-    'istMin','punkteIst','punktePrognose','tickProtokoll','punkteUnterZaehler','ziel','zielErreicht','overrideTag',
+    'istMin','punkteIst','punktePrognose','tickProtokoll','punkteUnterZaehler','ziel','zielErreicht','overrideTag','istMinHeute','tickMin','statusHeute',
     'serienFaktor','streak','letzteErfuellung','ticksHeute','zeitmessung','schiebeZaehler','wiederOffenTag','flowBaseline','flowDoneBaseline','ungeplant','posVorher']));
   return _kartenFelder;
 }
 const UNTER_FELDER_BEKANNT=new Set(['id','parentId','titel','sollMin','done','bonusPunkte','airtableId','staffel','staffelDanach','tagesziel','tageslimit',
-  'entfernt','entferntTs','tickLog','tickProtokoll','punkteHeute','ziel','ticksHeute']);
+  'entfernt','entferntTs','tickLog','tickProtokoll','punkteHeute','ziel','ticksHeute','typ','naechsterWert']);
 function felderMelden(was, inc, bekannt, uebersprungen){
   Object.keys(inc||{}).forEach(f=>{ if(!bekannt.has(f)) uebersprungen.push({was:was+' · '+f, grund:'unbekanntes Feld — ignoriert'}); });
 }
@@ -9582,7 +9996,10 @@ function logGehoertZuTag(e, tag){
   if(e.tagId) return e.tagId===tag.tagId;
   if(e.datum) return e.datum===tag.datum;
   const t=String(e.ts||'');
-  return !!(tag.startTs && t>=String(tag.startTs) && (!tag.endeTs || t<=String(tag.endeTs)));
+  // §2.4 (v3.2.0): der laufende Tag reicht nach dem Abschluss bis „Schlafen" (geschlossenTs) — sonst fielen
+  // aeltere Eintraege ohne tagId nach dem Abschluss aus dem Tag, und der Abgleich buchte sie als Nachtrag
+  const ende=tag.geschlossenTs || ((tag===S.tag) ? null : tag.endeTs);
+  return !!(tag.startTs && t>=String(tag.startTs) && (!ende || t<=String(ende)));
 }
 /* Was eine Karte heute zur Bilanz beitraegt — inkl. ihrer Korrektur-Zeilen
    im Tages-Log (Karte an einem anderen Tag erledigt, §3 v2.7.0). */
@@ -9599,7 +10016,7 @@ function kartenLogHeute(kid){
 /* Differenz zwischen Beitrag und Log buchen — in den uebergebenen Eintrag
    (die Sitzung, der Haken) oder als eigene Zeile vom Typ `ziel`. */
 function buchungAbgleich(k, ziel){
-  if(!k || !tagOffen()) return 0;
+  if(!k || !tagBuchbar()) return 0;   // §2.4 (v3.2.0): auch nach dem Abschluss bis „Schlafen"
   const d=logRund(kartenBeitragHeute(k)-kartenLogHeute(k.id));
   if(Math.abs(d)<LOG_EPS) return 0;
   if(ziel && typeof ziel==='object'){ ziel.punkte=logRund(num(ziel.punkte)+d); DB.set('intraday', S.intraday); }
@@ -9609,7 +10026,7 @@ function buchungAbgleich(k, ziel){
 /* Alle Karten des Tages in EINEM Durchlauf abgleichen (renderAlles,
    Tagesabschluss, Export). */
 function tagesAbgleich(){
-  if(!tagOffen()) return 0;
+  if(!tagBuchbar()) return 0;   // §2.4 (v3.2.0)
   const sum={};
   (S.intraday||[]).forEach(e=>{ if(e.kartenId && e.typ!=='schub' && logGehoertZuTag(e)) sum[e.kartenId]=(sum[e.kartenId]||0)+num(e.punkte); });
   let n=0;
@@ -9629,7 +10046,7 @@ function logSummeTag(tag){
    (so faellt er in dessen Stunden-Fenster und nicht in das von heute). */
 function logEintragFuerTag(h, datum, o){
   const ende=(h && h.endeTs) ? h.endeTs : new Date(datum+'T23:59:00').toISOString();
-  const e=Object.assign({ ts:ende, kartenId:null, domaene:null, punkte:0, minuten:0, typ:'korrektur-tag', datum }, o||{});
+  const e=Object.assign({ ts:ende, kartenId:null, domaene:null, punkte:0, minuten:0, typ:'korrektur-tag', datum, quelle:'korrektur' }, o||{});
   e.punkte=logRund(e.punkte);
   if(h && h.tagId) e.tagId=h.tagId;
   (S.intraday=S.intraday||[]).push(e);
@@ -10577,9 +10994,40 @@ function korrekturAnwenden(kx, abgewiesen){
     wirkung(k, dP, min, id);
     return {min, dP};
   };
+  // §3 (v3.2.0): eine Sitzung auf „Schlafen" ist eine NACHT — sie ersetzt dieselbe Nacht und rechnet die Schlafschuld neu
+  const nachtKorrektur=(sz, was)=>{
+    const v=korrZeit(sz.von, datum), b=korrZeit(sz.bis, datum);
+    if(!Number.isFinite(v) || !Number.isFinite(b)){ abgewiesen.push({was, grund:'von/bis nicht lesbar'}); return; }
+    if(!(b>v)){ abgewiesen.push({was, grund:'bis liegt vor von'}); return; }
+    if((b-v)/60000<SCHLAF_NACHT_MIN){ abgewiesen.push({was, grund:'kürzer als 60 Minuten — keine Nacht'}); return; }
+    const z0=schlafZustand().letzte;
+    if(z0 && Math.abs(Date.parse(z0.startTs)-v)<60000 && Math.abs(Date.parse(z0.endeTs)-b)<60000 && (sz.punkte==null || num(sz.punkte)===num(z0.punkte))) return;   // schon so
+    const r=schlafNachtSetzen(v, b, sz.punkte, String(kx.grund||'Korrektur'));
+    const n=r.nacht, sk=schlafKarte();
+    let dP=0;
+    if(r.ersetzt && n.gebucht) dP=num(n.punkte)-num(r.punkteAlt);
+    if(dP && sk){
+      if(S.tag && n.tagId===S.tag.tagId && tagBuchbar()){
+        const tk=ticksHeuteV3(sk).find(t=>t.schlafMin!=null);
+        if(tk){ tk.basis=n.punkte; tk.punkte=n.punkte; tk.schlafMin=n.dauerMin; }
+        else { tickLogHeute(sk).push({ ts:jetztIso(), nr:tickAnzahlHeute(sk)+1, basis:n.punkte, faktor:1, punkte:n.punkte, min:0, uhr:true, schlafMin:n.dauerMin, korrektur:true }); sk.ticksHeute=tickAnzahlHeute(sk); }
+        if(S.tag.morgen) Object.assign(S.tag.morgen, { schlafMin:n.dauerMin, schlafPunkte:n.punkte, schlafVon:n.startTs, schlafBis:n.endeTs, schlafschuldStd:n.schuldNachStd });
+        const e=logIntraday(sk,{punkte:0, typ:'korrektur', quelle:'korrektur'}); buchungAbgleich(sk, e);
+      } else {
+        const h=(S.historie||[]).find(x=>x.tagId===n.tagId);
+        if(h){ const bil0=num(h.punkteBilanz); h.punkteBilanz=Math.round((bil0+dP)*10)/10;
+          (h.log=h.log||[]).push({ itemId:sk.id, titel:'Nacht korrigiert', domain:sk.domain, art:'korrektur', punkte:dP, ts:jetztIso() });
+          logEintragFuerTag(h, h.datum, { kartenId:sk.id, domaene:sk.domain, punkte:dP, grund:String(kx.grund||''), quelle:'korrektur' });
+          kontoNachziehen(h, bil0, dP); }
+      }
+    } else if(!r.ersetzt && !n.gebucht) schlafPunkteBuchen();   // eine neue Nacht zaehlt zum Tag, der nach ihr begann
+    zeilen.push('Nacht '+belUhr(kalStunde(n.startTs))+'–'+belUhr(kalStunde(n.endeTs))+' · '+hMin(n.dauerMin)+' Std · '+fmtP(n.punkte)+' P'+(dP?' ('+(dP>=0?'+':'−')+fmtP(Math.abs(dP))+')':'')+
+      ' · Schlafschuld '+fbZahl(r.schuldVor,1)+' → '+fbZahl(r.schuldNach,1)+' Std'+(r.neuer?'':' (ältere Nacht — Schuld unverändert)'));
+  };
   // ── Sitzungen ──
   (Array.isArray(kx.sitzungen)?kx.sitzungen:[]).forEach((sz,i)=>{
     sz=sz||{}; const was=nm('Sitzung '+(i+1)+(sz.id?' ('+sz.id+')':''));
+    { const ks=korrKarte(sz.karteId!=null && sz.karteId!=='' ? sz.karteId : sz.kartenId); if(ks && ks.rolle==='schlafen'){ nachtKorrektur(sz, was); return; } }
     const akt=String(sz.aktion||'');
     if(['hinzu','aendern','entfernen'].indexOf(akt)<0){ abgewiesen.push({was, grund:'aktion muss hinzu|aendern|entfernen sein'}); return; }
     const k=korrKarte(sz.karteId);
@@ -10610,6 +11058,11 @@ function korrekturAnwenden(kx, abgewiesen){
     const r=sitzungHinzu(k, v, b, id);
     zeilen.push('Sitzung hinzu: „'+String(k.titel||'').slice(0,30)+'" '+belUhr(kalStunde(new Date(v).toISOString()))+'–'+belUhr(kalStunde(new Date(b).toISOString()))+' · '+Math.round(r.min)+' Min · +'+fmtP(r.dP)+' P');
   });
+  // ── §3 (v3.2.0): Schlafschuld direkt setzen (mit grund) ──
+  if(kx.schlaf && typeof kx.schlaf==='object' && kx.schlaf.schuldStd!==undefined && kx.schlaf.schuldStd!==null && kx.schlaf.schuldStd!==''){
+    const z=schlafZustand(), vor=num(z.schuldStd), nach=Math.round(Math.max(0, Math.min(num(S.settings.schlafSchuldMaxStd,30), num(kx.schlaf.schuldStd)))*100)/100;
+    if(Math.abs(vor-nach)>=0.005){ z.schuldStd=nach; if(z.letzte) z.letzte.schuldNachStd=nach; saveMeta(); zeilen.push('Schlafschuld '+fbZahl(vor,1)+' → '+fbZahl(nach,1)+' Std'); }
+  }
   // ── Positionen ──
   const spurZiel=()=> heute ? matrixSpur() : tagSn().matrixSpur;
   const findePos=(p, spur)=>{
@@ -10767,6 +11220,10 @@ function kartenAbbildVoll(k, kette){
   //    DRIN, auch wenn sie bei privaten Karten null ist — „kein Whitelisting"
   //    heisst auch: kein stilles Weglassen.
   o.istMin=Math.round(num(k.istSek)/60);
+  // §5 (v3.2.0): gemessene Ist-Minuten und Tick-Minuten (Belegzeit ohne Uhr) getrennt; der Status des Tages aus EINER Quelle (§1.4)
+  o.istMinHeute=Math.round(heuteInvestiertMin(k)*10)/10;
+  o.tickMin=tickMinHeute(k);
+  o.statusHeute=kartenStatusHeute(k);
   o.punkteIst=Math.round(kartePunkte(k));
   o.matrixFeld=matrixFeldVon(k);          // §1: normalisiert, nie geraten
   o.punktePrognose=Math.round(kartePunktePrognose(k));   // Nachtrag §1: Soll-Wert
@@ -10781,8 +11238,9 @@ function kartenAbbildVoll(k, kette){
   o.block=karteBlockId(k);
   o.festMin=(k.festMin!=null && num(k.festMin)>0) ? num(k.festMin) : null;
   // §12 (v3.0.0): Unter-Zaehler mit ihren Ticks des Tages (Zeitstempel) und Punkten
-  o.unteraufgaben=untermenge(k.id).map(u=>{ const c=Object.assign({}, u);
-    if(istUnterZaehler(u)){ c.tickProtokoll=ticksHeuteV3(u).slice(); c.punkteHeute=logRund(staffelPunkteHeute(u)); c.ziel=zielText(u); }
+  o.unteraufgaben=untermenge(k.id).concat(tickerVon(k) ? [tickerVon(k)] : []).map(u=>{ const c=Object.assign({}, u);
+    if(istTicker(u)){ c.tickProtokoll=ticksHeuteV3(k).slice(); c.ziel=zielText(k); c.naechsterWert=naechsterTickWert(k); }   // §1.2 (v3.2.0)
+    else if(istUnterZaehler(u)){ c.tickProtokoll=ticksHeuteV3(u).slice(); c.punkteHeute=logRund(staffelPunkteHeute(u)); c.ziel=zielText(u); }
     return c; });
   if(istV3(k)){ o.tickProtokoll=ticksHeuteV3(k).slice(); o.punkteUnterZaehler=logRund(unterZaehlerPunkte(k));
     o.ziel=zielText(k); o.zielErreicht=zielErreicht(k); o.serienFaktor=k.serienfaktor ? num(k.serienFaktor,1) : null; }
@@ -10911,7 +11369,18 @@ function syncExport(typ){
     // §12 (v3.0.0): Tagesabschluss (Reflexion, Schlaf-Prognose, Wertung, Uebersprungenes, Geschobenes),
     // Morgen (Aufstehzeit, Akku Prognose/Gefuehl, Schlaf) und die Serien der Pflicht-Gruppen
     tagesabschluss: (function(){ try{ return tagesabschlussExport(); }catch(e){ return null; } })(),
-    schlaf: (function(){ const z=schlafZustand(); return { schuldStd:num(z.schuldStd), laeuftSeit:z.laeuft?z.laeuft.startTs:null, letzteNacht:z.letzte||null }; })(),
+    // §3/§5 (v3.2.0): letzteNacht traegt fehltipp — war der letzte Versuch ein Fehltipp (oder zu kurz), steht er hier; die letzte echte Nacht daneben
+    schlaf: (function(){ const z=schlafZustand(), v=z.letzterVersuch, l=z.letzte;
+      const neuer=v && (!l || String(v.endeTs)>String(l.endeTs));
+      return { schuldStd:num(z.schuldStd), laeuftSeit:z.laeuft?z.laeuft.startTs:null,
+        letzteNacht: neuer ? Object.assign({}, v) : (l ? Object.assign({}, l, {fehltipp:false}) : null),
+        letzteGueltigeNacht: l||null }; })(),
+    // §2.4 (v3.2.0): Nachtraege nach dem Abschluss, bis zum naechsten bestaetigten Sync
+    nachtraege: (Array.isArray(S.meta.nachtraegeOffen) ? S.meta.nachtraegeOffen.slice() : []),
+    // §5 (v3.2.0): das Stunden-Log des Tages mit Quelle je Eintrag (uhr · tick · abhaken · tagesabschluss · schlafen · korrektur)
+    stundenLogHeute: (function(){ if(!S.tag) return [];
+      return (S.intraday||[]).filter(e=>logGehoertZuTag(e)).map(e=>({ ts:e.ts, kartenId:e.kartenId||null, typ:e.typ, quelle:logQuelle(e),
+        punkte:logRund(e.punkte), minuten:num(e.minuten), tickMin:num(e.tickMin) })); })(),
     gruppenPflicht: (S.meta.gruppenPflicht && typeof S.meta.gruppenPflicht==='object') ? JSON.parse(JSON.stringify(S.meta.gruppenPflicht)) : {},
     // §2 (v2.9.1/v2.9.2): Rueckblick seit v2.0 (21.09.) — gebucht und davon Prognose, je Tag
     // und Karte; bis nach einem Korrektur-Paket ein Sync bestaetigt ist
@@ -10996,6 +11465,7 @@ function syncBestaetigen(){
   S.meta.entfernteUnteraufgaben=[];   // §6 (v2.5.0): gemeldet und bestaetigt — die Liste ist erledigt
   S.meta.urlaubNachgetragen=[];       // §7 (v2.6.0): dito — die nachgetragenen Urlaubstage sind angekommen
   S.meta.vomGeraetGenommen=[];        // §4 (v2.8.0): dito — der Chat weiss, was nicht mehr auf dem Geraet liegt
+  S.meta.nachtraegeOffen=[];          // §2.4 (v3.2.0): dito — die Nachtraege nach dem Abschluss sind angekommen
   if(S.meta.rueckblick291Korrigiert) S.meta.rueckblick291Fertig=true;   // §2 (v2.9.1): korrigiert und bestaetigt
   // §4 (v2.9.0): entschiedene Pflicht-Vorschlaege sind gemeldet — sie fallen weg (offene bleiben)
   S.karten.forEach(k=>{ if(k.pflichtVorschlag && k.pflichtVorschlag.status!=='offen') k.pflichtVorschlag=null; });
@@ -11058,7 +11528,8 @@ function syncImport(text, opt){
   // Richtung. Jetzt umgekehrt: ALLES aus dem Paket wird zurückgespielt,
   // ausser den abgeleiteten Grössen, die der Export nur zum Lesen beilegt.
   const RESTORE_ABGELEITET = ['istMin','punkteIst','punktePrognose','unteraufgaben',
-    'sitzungen','kette','kettenPosition','tagesabschnittEffektiv'];
+    'sitzungen','kette','kettenPosition','tagesabschnittEffektiv',
+    'istMinHeute','tickMin','statusHeute'];   // §5 (v3.2.0): nur zum Lesen
   let neu=0, neuDfm=0, neuPrivat=0, upd=0, arch=0, vomGeraetGenommen=0, vomGeraetNichtDa=0, vomGeraetZurueck=0, subsEntfernt=0;
   const neuAngelegt=[];   // FIX1: Neuanlagen dieses Laufs — ggf. als Bestandsübernahme markieren
   const uebersprungen=[]; // §2.4 (v1.7.1): alles, was nicht ankam — MIT Grund
@@ -11083,6 +11554,15 @@ function syncImport(text, opt){
     // airtableId" — der Zweitanker darf nie fehlen (sonst reißt der Match,
     // sobald die Karte umbenannt oder dupliziert wird).
     const recId=/^rec[A-Za-z0-9]{14}$/.test(String(inc.id||'')) ? String(inc.id) : null;
+    // §4 (v3.2.0, Befund 28.09.: neun Karten „(ohne Titel)" mit Ziel-Bonus 150 aus {id, block}): eine
+    // UNBEKANNTE Karte wird nur mit titel, domain und matrixFeld angelegt — sonst abgewiesen, nie eine Huelle
+    if(!lok){
+      const idTxt=String(inc.id||inc.airtableId||'?');
+      const fehlt=['titel','domain','matrixFeld'].filter(f=>inc[f]==null || String(inc[f]).trim()==='');
+      if(fehlt.indexOf('titel')>=0){ uebersprungen.push({was:'Karte '+idTxt, grund:'übersprungen: unbekannte Karte ohne Titel (id '+idTxt+')'}); return; }
+      if(fehlt.length){ uebersprungen.push({was:'Karte „'+String(inc.titel).slice(0,30)+'" ('+idTxt+')', grund:'unbekannte Karte — Pflichtfeld fehlt: '+fehlt.join(', ')}); return; }
+      if(inc.domain!=='dfm' && inc.domain!=='privat'){ uebersprungen.push({was:'Karte „'+String(inc.titel).slice(0,30)+'" ('+idTxt+')', grund:'unbekannte Karte — domain muss dfm oder privat sein'}); return; }
+    }
     if(!lok){
       // §2.1 (v1.7.1): domain wirkt NUR bei Neuanlage — 'privat' legt eine
       // private Karte an, alles andere (auch fehlend) bleibt beim bisherigen dfm.
@@ -11197,6 +11677,8 @@ function syncImport(text, opt){
         if(iu && iu.entfernt===true && iu.id){ const vor=S.unteraufgaben.length; S.unteraufgaben=S.unteraufgaben.filter(u=>!(u.parentId===lok.id && u.id===iu.id));
           if(S.unteraufgaben.length<vor) subsEntfernt++; return; }
         if(iu && (iu.entfernt || (iu.id && wegIds.has(iu.id)))) return;   // entfernt ist entfernt, bis der Sync es bestaetigt
+        // §1.2 (v3.2.0): der Ticker ist die Zaehler-Zeile der Karte — seine Ticks sind Messung (App-Hoheit, per korrektur an der Karte)
+        if(iu && iu.typ==='ticker'){ if(!restore) tickerSicherstellen(lok); return; }
         let lu = S.unteraufgaben.find(u=>u.parentId===lok.id && u.id===iu.id);
         if(!lu){ lu=neueUnteraufgabe(lok.id, { id: iu.id||uuid() }); S.unteraufgaben.push(lu); }
         if(iu.titel!=null) lu.titel=iu.titel;        // Definition beidseitig
@@ -11297,7 +11779,7 @@ function syncImport(text, opt){
         });
       });
       // §3 (v2.7.0): die neue Form — tag · sitzungen · positionen, mit Grund
-      const neueForm = kx.tag!==undefined || kx.sitzungen!==undefined || kx.positionen!==undefined;
+      const neueForm = kx.tag!==undefined || kx.sitzungen!==undefined || kx.positionen!==undefined || kx.schlaf!==undefined;   // §3 (v3.2.0): + schlaf
       if(neueForm){
         if(!kx.grund || !String(kx.grund).trim()) uebersprungen.push({was:'Korrektur '+kx.datum, grund:'grund fehlt (Pflicht)'});
         else if(kx.datum>heuteApp()) uebersprungen.push({was:'Korrektur '+kx.datum, grund:'Datum liegt in der Zukunft'});
@@ -11386,6 +11868,7 @@ function syncImport(text, opt){
     DB.set('intraday', S.intraday);
     rangInvalidieren(); baueSuchIndex();
   }
+  tickerAlleSicherstellen();   // §1.2 (v3.2.0): neue Staffel-/Pflicht-Karten bekommen ihren Ticker
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   // §5 (v2.1.1): DIE Ursache von „der Freitext findet nur lila Karten".
   // baueSuchIndex() lief nur im Wiederherstellungs-Zweig. Die v2.0-Leerung
@@ -13107,10 +13590,33 @@ function belFensterDatum(ts){ const d=new Date(ts); if(d.getHours()<5) d.setDate
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function belWochentag(datum){ return new Date(datum+'T12:00:00').getDay(); }
 function belUhr(x){ x=((x%24)+24)%24; const h=Math.floor(x), m=Math.round((x-h)*60); return String(h).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+/* ══ §2.2 (v3.2.0) · ABSCHLUSS-BUCHUNGEN UEBER DEN TAG VERTEILT ═══════
+   Was im Tagesabschluss gebucht wird (quelle „tagesabschluss": nachgetragene
+   Ticks, gestoppte Uhr, Abzuege, abgehakte Aufgaben), steht im Log mit dem
+   ECHTEN Zeitstempel. Fuer Tageskurve und Stunden-Statistik werden seine
+   Punkte — nur in der Darstellung — gleichmaessig auf die aktiven Stunden des
+   Tages verteilt (Tagesstart bis Beginn des Abschlusses): kein Sprung vor dem
+   Schlafengehen. Minuten bleiben an ihrer echten Zeit, die Bilanz bleibt die Summe. */
+function intradayStatistik(){
+  const iv=S.intraday||[];
+  if(!iv.some(e=>e && e.quelle==='tagesabschluss' && num(e.punkte))) return iv;
+  const tage={}; (S.historie||[]).forEach(h=>{ if(h && h.tagId) tage[h.tagId]=h; }); if(S.tag && S.tag.tagId) tage[S.tag.tagId]=S.tag;
+  const out=[];
+  iv.forEach(e=>{
+    if(!e || e.quelle!=='tagesabschluss' || !num(e.punkte)){ out.push(e); return; }
+    const t=tage[e.tagId], von=(t && t.startTs) ? Date.parse(t.startTs) : NaN;
+    const bis=(t && t.abschluss && t.abschluss.beginnTs) ? Date.parse(t.abschluss.beginnTs) : Date.parse(e.ts);
+    if(!(bis>von)){ out.push(e); return; }
+    const n=Math.max(1, Math.ceil((bis-von-60000)/3600000)), schritt=(bis-von)/n;   // je angefangene aktive Stunde ein Teil
+    if(num(e.minuten)) out.push(Object.assign({}, e, {punkte:0}));
+    for(let i=0;i<n;i++) out.push(Object.assign({}, e, { ts:new Date(von+schritt*(i+0.5)).toISOString(), punkte:num(e.punkte)/n, minuten:0, verteilt:true }));
+  });
+  return out;
+}
 /* Kumulative Punkte-Kurve eines 5→5-Fensters aus dem Intraday-Log. */
 function belTagKurve(fensterDatum, dom, startX){
   // §3 (v2.9.1): Abzuege und Korrekturen zaehlen mit — die Kurve endet beim Tagesstand
-  const ent=(S.intraday||[]).filter(e=>e.ts && num(e.punkte)!==0 && (dom==='alle'||e.domaene===dom) && belFensterDatum(e.ts)===fensterDatum)
+  const ent=intradayStatistik().filter(e=>e.ts && num(e.punkte)!==0 && (dom==='alle'||e.domaene===dom) && belFensterDatum(e.ts)===fensterDatum)   // §2.2 (v3.2.0)
     .slice().sort((a,b)=> a.ts<b.ts?-1:1);
   let c=0; const pts=[{x:(startX==null?5:startX), p:0}];   // U1: Kurvenstart = Fensterstart
   ent.forEach(e=>{ c+=num(e.punkte); pts.push({x:belX(e.ts), p:c}); });
@@ -13688,6 +14194,7 @@ function suSicht(){ const v=S.ui.suSicht; return SU_SICHTEN.some(x=>x[0]===v)?v:
 function erledigteZeigen(){ return !!(S.ui && S.ui.suSicht==='erledigte'); }   // §8 (v3.0.0): Erledigtes hat seine eigene Sortierung
 function istHeuteErledigt(k){
   if(!k) return false;
+  return kartenStatusHeute(k)==='erledigt';   // §1.4 (v3.2.0): EINE Quelle — ein getickter Counter ist nie gestrichen (Befund r-klein-priv)
   if(k.status==='erledigt') return true;
   /* §4 (v2.4.0) · BEFUND: Ein Counter verschwand nach dem ersten „+".
      routErledigtHeute() zaehlt eine Tick-Karte schon ab einem Tick als
@@ -13740,7 +14247,7 @@ function suRhythmusOk(k){
 /* §3 (v2.3.0): nicht eingeplant = offene AUFGABE ohne Datum oder mit Datum in
    der Zukunft. Ueberfaellige (Datum < heute) sind ausdruecklich NICHT gemeint. */
 function istUngeplantOffen(k){
-  if(!k || k.status!=='offen' || k.rhythmus) return false;
+  if(!k || k.status!=='offen' || !istAufgabeKarte(k)) return false;   // §1.3 (v3.2.0): Counter sind nie „ungeplant"
   return !k.faelligkeit || k.faelligkeit>heuteApp();
 }
 /* DIE Filterstelle. Jede Sicht und der Freitext gehen hier durch.
@@ -13920,7 +14427,7 @@ function kalenderBloecke(ks){
     kartenSitzungenHeute(k.id).forEach(sz=>{
       const von=kalStunde(sz.von), bis=sz.laufend ? jetzt : kalStunde(sz.bis);
       if(!(bis>von)) return;
-      bl.push({ kid:k.id, k, von, bis, art: sz.laufend ? 'laeuft' : (k.status==='erledigt'?'erledigt':'bearbeitet') });
+      bl.push({ kid:k.id, k, von, bis, art: sz.laufend ? 'laeuft' : (kartenStatusHeute(k)==='erledigt'?'erledigt':'bearbeitet') });   // §1.4 (v3.2.0)
     });
   });
   // 2 · Termine an ihrer Uhrzeit
@@ -14844,6 +15351,7 @@ el('fokusView').addEventListener('click', e=>{
   const ns=t.closest('[data-navsort]'); if(ns){ S.ui.navSort=ns.dataset.navsort; saveUi(); renderFokus(); return; }
   // (data-kette läuft über karteRowClick weiter unten — ein Codepfad für beide Views)
   const aqf=t.closest('[data-akkuquick]'); if(aqf){ oeffneAkkuQuick(); return; }   // §6.1 (v1.13.0)
+  if(zaehlerKlick(t)) return;   // §1.2 (v3.2.0): Zaehler-Zeile
   const tg=t.closest('[data-fktoggle]'); if(tg){ const kid=tg.dataset.fktoggle;
     if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid); return; }
   const ck=t.closest('[data-fkcheck]'); if(ck){ karteAbhakenAuto(ck.dataset.fkcheck, false); return; }
@@ -14860,10 +15368,7 @@ el('fokusView').addEventListener('click', e=>{
   // §1 (v2.8.0): Abhak-Leiste und Play im Tagesablauf — vor dem Oeffnen der Zeile
   // §4 (v3.0.0): drei Felder je Zeile — +1 · ▶/⏸ · Zaehler (klappt Unter-Zaehler bzw. Nachtnotiz auf)
   const alc=t.closest('[data-alcheck]'); if(alc){ haptik(10); leisteTicken(alc.dataset.alcheck); return; }
-  const als=t.closest('[data-alsub]'); if(als){ haptik(10);
-    if(!tagOffen()){ toast('Der Tag ist abgeschlossen'); return; }
-    const u=unterTick(als.dataset.alsub); saveKarten(); saveTag(); renderAlles();
-    if(u) toast((u.punkte>=0?'+':'−')+fmtP(Math.abs(u.punkte))+' P'); return; }
+  const als=t.closest('[data-alsub]'); if(als){ haptik(10); unterTickUI(als.dataset.alsub); renderAlles(); return; }   // §2.4 (v3.2.0): bis „Schlafen"
   const alz=t.closest('[data-alzahl]'); if(alz){ haptik(6); S.ui.alOffen=S.ui.alOffen||{}; const id=alz.dataset.alzahl;
     S.ui.alOffen[id]=!S.ui.alOffen[id]; saveUi(); renderFokus(); return; }
   if(t.closest('[data-nachtnotiz]')) return;
@@ -15001,6 +15506,7 @@ document.addEventListener('input', e=>{
 /* Gemeinsame Klick-Aktionen einer Karten-Zeile (kartenreiheHtml) — genutzt vom
    Stapel-Tab UND von der Fokus-Liste (U1: eine Implementierung, nicht zwei). */
 function karteRowClick(t, e){
+  if(zaehlerKlick(t)){ if(e) e.stopPropagation(); return true; }   // §1.2 (v3.2.0): Zaehler-Zeile
   const scd=t.closest('[data-stapeldom]'); if(scd){ if(e) e.stopPropagation(); (S.ui.stapelDomain=S.ui.stapelDomain||{})[scd.dataset.stapelid]=scd.dataset.stapeldom; saveUi(); renderAlles(); return true; }   // A5 Domänenfilter je Stapel
   // U3 (v1.4.0): Status-Filter + Sortierrichtung für JEDEN Stapel (je Stapel persistent)
   const sts=t.closest('[data-stapelstatus]'); if(sts){ if(e) e.stopPropagation();
@@ -15064,8 +15570,20 @@ el('sheet').addEventListener('click', e=>{
   const tie=t.closest('[data-tickeingabe]'); if(tie){ const k=S.karten.find(x=>x.id===tie.dataset.tickeingabe); const v=el('tickEingabe') ? el('tickEingabe').value.trim() : '';
     closeSheet(); if(k){ const tk=routineTick(k,{eingabe:v}); saveKarten(); saveTag(); renderAlles();
       if(tk) toast('+'+fmtP(tk.punkte)+' P · '+esc(v)+' '+esc((eingabeVon(k)||{}).einheit||'')); } return; }
-  const a3s=t.closest('[data-abv3schritt]'); if(a3s){ abv3.schritt=num(a3s.dataset.abv3schritt,1); abv3.schieben=null; renderAbschlussV3(); return; }
-  if(t.closest('[data-abv3zu]')){ abschlussV3SchliessenUI(); return; }
+  if(abv3.aktiv && zaehlerKlick(t)) return;   // §2.1 (v3.2.0): Zaehler-Zeile in Schritt 2
+  const a3p=t.closest('[data-abv3play]'); if(a3p){ haptik(10); const kid=a3p.dataset.abv3play;
+    if(S.fokus && S.fokus.laeuft && S.fokus.karteId===kid) fokusZeitEinbuchen(); else fokusStarten(kid);
+    saveKarten(); saveTag(); renderAbschlussV3(); return; }
+  if(t.closest('[data-abv3messung]')){ abschlussMessungUebernehmen(); abv3.schritt=3; abv3.schieben=null; renderAbschlussV3(); return; }
+  const a3s=t.closest('[data-abv3schritt]'); if(a3s){ const ns=num(a3s.dataset.abv3schritt,1);
+    if(ns>=3 && abv3.schritt<3) abschlussMessungUebernehmen();   // §2.1 (v3.2.0): Uebergang zu Schritt 3 stoppt die Uhr
+    abv3.schritt=ns; abv3.schieben=null; renderAbschlussV3(); return; }
+  if(t.closest('[data-abv3zu]')){
+    // §2.3 (v3.2.0): erst Kopieren/Download — ein langer Druck ueberspringt bewusst
+    if(!abschlussExportOk() && !uhrDauerGewuenscht('abv3zu')){ toast('Erst den Export kopieren oder herunterladen — lange drücken überspringt'); haptik(20); return; }
+    abschlussV3SchliessenUI(); return; }
+  if(t.closest('[data-ntdl]')){ nachtragDownload(); return; }
+  if(t.closest('[data-ntcopy]')){ nachtragKopieren(); return; }
   const a3w=t.closest('[data-abv3wahl]'); if(a3w){ abschlussV3Entscheiden(a3w.dataset.abv3wahl, a3w.dataset.v); renderAbschlussV3(); haptik(8); return; }
   const a3h=t.closest('[data-abv3haken]'); if(a3h){ abv3.aktiv=false; abv3.zurueck=true; abhakDialog(a3h.dataset.abv3haken, false); return; }
   const a3sc=t.closest('[data-abv3schieb]'); if(a3sc){ const id=a3sc.dataset.abv3schieb;
@@ -15930,7 +16448,7 @@ el('neuFab').addEventListener('click', ()=>oeffneDetail(null));
    noch die Schnellknoepfe waren an karteRowClick angeschlossen.
    Reihenfolge ist Absicht: erst die Bedienelemente (§2 — jedes loest NUR
    seine Aktion aus), dann der Koerper (§1 — ansehen, nicht starten). */
-const SU_BEDIENELEMENT = 'button,[data-check],[data-tickplus],[data-fokusstart],[data-schieb],'+
+const SU_BEDIENELEMENT = 'button,[data-check],[data-tickplus],[data-fokusstart],[data-schieb],[data-zzplus],[data-zzsub],[data-zzsubplay],[data-zzminus],'+
   '[data-kette],[data-freeze],[data-archiv],[data-pqstart],[data-pqtick],[data-pqcheck],input,select,textarea,a';
 el('suBody').addEventListener('click', e=>{
   const t=e.target;
@@ -16515,7 +17033,7 @@ function anAktivitaetsfenster(dom){
   // ── Aktivitätsfenster (Kopf des Moduls): Punkte je Stunde, 3 Kurven ──
   // §2 (v1.7.0): Kartenart-Filter auch hier — Buchungen über die Karte auflösen.
   const kById={}; S.karten.forEach(k=>kById[k.id]=k);
-  const ent=(S.intraday||[]).filter(x=>x.ts && num(x.punkte)>0 && (dom==='alle'||x.domaene===dom)
+  const ent=intradayStatistik().filter(x=>x.ts && num(x.punkte)>0 && (dom==='alle'||x.domaene===dom)   // §2.2 (v3.2.0)
     && (analyseArt()==='alle' || (kById[x.kartenId] && anArtOk(kById[x.kartenId]))));
   let chart;
   if(ent.length<8){

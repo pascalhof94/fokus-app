@@ -21,13 +21,14 @@ arten.forEach(function(a){
   ok('▶ vorhanden: '+a[0], html.indexOf('data-fokusstart')>=0);
 });
 
-/* §6-Test 2: bei ticksAktiv sind ＋ UND ✓ da; ohne ticksAktiv nur ✓ */
+/* §6-Test 2 — v3.2.0 §1.3: ✓ gibt es NUR auf Aufgaben; ein Counter traegt +1 in seiner
+   Zaehler-Zeile (data-zzplus) und KEIN ✓ mehr (vorher: ＋ und ✓ nebeneinander) */
 var htmlTick=kartenreiheHtml(S.karten[3], 'x');
-ok('ticksAktiv: data-tickplus vorhanden', htmlTick.indexOf('data-tickplus')>=0);
-ok('ticksAktiv: data-check vorhanden',    htmlTick.indexOf('data-check')>=0);
+ok('ticksAktiv: +1 der Zaehler-Zeile vorhanden (data-zzplus)', htmlTick.indexOf('data-zzplus')>=0);
+ok('ticksAktiv: kein ✓ (data-check) mehr — v3.2 §1.3', htmlTick.indexOf('data-check')<0);
 var htmlNorm=kartenreiheHtml(S.karten[0], 'x');
-ok('ohne Ticks: kein data-tickplus', htmlNorm.indexOf('data-tickplus')<0);
-ok('ohne Ticks: data-check vorhanden', htmlNorm.indexOf('data-check')>=0);
+ok('Aufgabe: keine Zaehler-Zeile', htmlNorm.indexOf('data-zzplus')<0);
+ok('Aufgabe: data-check vorhanden', htmlNorm.indexOf('data-check')>=0);
 
 /* §4 (v2.0.0): zeitmessung ist ENTFALLEN — jede Karte darf die Uhr tragen.
    Der alte Vertrag ("Routine ohne Zeitmessung startet ohne Uhr") gilt nicht

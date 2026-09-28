@@ -1,3 +1,26 @@
+/* v3.2.0 §4: eine unbekannte Karte wird nur mit titel, domain und matrixFeld angelegt (sonst
+   abgewiesen, nie eine Huelle). Die Pakete dieser Suite stammen aus der Zeit davor und tragen
+   domain/matrixFeld nicht immer — der Shim ergaenzt sie NUR fuer unbekannte Karten MIT Titel,
+   nach der Altregel (domain fehlt = dfm, matrixFeld fehlt = ziel). Die Regel selbst prueft die
+   v3.2-Suite; wo ein Test die Altregel selbst prueft, ruft er syncImportOhneShim. */
+var syncImportOhneShim=syncImport;
+syncImport=function(text, opt){
+  try{ var p=JSON.parse(text), aend=false;
+    if(p && !Array.isArray(p) && Array.isArray(p.karten) && !p.wiederherstellung){
+      var abl={}; try{ abl=vomGeraetAblage()||{}; }catch(e){}
+      p.karten.forEach(function(c){
+        if(!c || c.vomGeraet===true || c.titel==null || String(c.titel).trim()==='') return;
+        var bek=S.karten.some(function(k){ return (c.id!=null && (k.id===c.id || k.airtableId===c.id)) || (c.airtableId!=null && k.airtableId===c.airtableId); })
+          || (c.id!=null && abl[c.id]) || Object.keys(abl).some(function(x){ return abl[x] && abl[x].karte && c.airtableId!=null && abl[x].karte.airtableId===c.airtableId; });
+        if(bek) return;
+        if(c.domain!=='dfm' && c.domain!=='privat'){ c.domain='dfm'; aend=true; }
+        if(c.matrixFeld==null || c.matrixFeld===''){ c.matrixFeld='ziel'; aend=true; }
+      });
+      if(aend) text=JSON.stringify(p);
+    }
+  }catch(e){}
+  return syncImportOhneShim(text, opt);
+};
 /* Abnahme v2.0.0 — die 31 Punkte des Auftrags, in seiner Reihenfolge.
    Punkte, die nur im Browser pruefbar sind (Layout, Wischen, Screenshots),
    sind ausdruecklich als HARNESS markiert und hier nicht doppelt geprueft. */
@@ -533,8 +556,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.1.0 · Build gesetzt', VERSION==='3.1.0' && UI_VERSION==='v3.1.0' &&
-   APP_BUILD==='2026-09-27-5');
+ok('31 APP_VERSION 3.2.0 · Build gesetzt', VERSION==='3.2.0' && UI_VERSION==='v3.2.0' &&
+   APP_BUILD==='2026-09-28-1');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -2419,6 +2442,7 @@ S.intraday=[
   {ts:'2026-09-21T10:00:00.600Z', kartenId:'weg1', domaene:'dfm', punkte:640, minuten:0, typ:'abhaken'},
   {ts:'2026-09-23T11:00:00.600Z', kartenId:'kr3', domaene:'privat', punkte:0, minuten:0, typ:'wiederoffen'},
   {ts:'2026-09-26T08:00:00.600Z', kartenId:'kr3', domaene:'privat', punkte:482, minuten:0, typ:'abhaken'} ];
+S.tag=neuerTag('2026-09-27',1);   // v3.2.0: der laufende Tag ausdruecklich — der Test hing am Kalenderdatum (lief nur am 27.09. gruen)
 var rb2=syncExport('delta').rueckblickPrognose;
 function rTag(d){ return rb2.filter(function(t){ return t.datum===d; })[0]; }
 print('   Tage: '+rb2.map(function(t){ return t.datum.slice(8)+'.'+t.datum.slice(5,7)+' '+t.rekonstruierbar; }).join(' · '));

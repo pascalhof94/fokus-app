@@ -1,3 +1,26 @@
+/* v3.2.0 §4: eine unbekannte Karte wird nur mit titel, domain und matrixFeld angelegt (sonst
+   abgewiesen, nie eine Huelle). Die Pakete dieser Suite stammen aus der Zeit davor und tragen
+   domain/matrixFeld nicht immer — der Shim ergaenzt sie NUR fuer unbekannte Karten MIT Titel,
+   nach der Altregel (domain fehlt = dfm, matrixFeld fehlt = ziel). Die Regel selbst prueft die
+   v3.2-Suite; wo ein Test die Altregel selbst prueft, ruft er syncImportOhneShim. */
+var syncImportOhneShim=syncImport;
+syncImport=function(text, opt){
+  try{ var p=JSON.parse(text), aend=false;
+    if(p && !Array.isArray(p) && Array.isArray(p.karten) && !p.wiederherstellung){
+      var abl={}; try{ abl=vomGeraetAblage()||{}; }catch(e){}
+      p.karten.forEach(function(c){
+        if(!c || c.vomGeraet===true || c.titel==null || String(c.titel).trim()==='') return;
+        var bek=S.karten.some(function(k){ return (c.id!=null && (k.id===c.id || k.airtableId===c.id)) || (c.airtableId!=null && k.airtableId===c.airtableId); })
+          || (c.id!=null && abl[c.id]) || Object.keys(abl).some(function(x){ return abl[x] && abl[x].karte && c.airtableId!=null && abl[x].karte.airtableId===c.airtableId; });
+        if(bek) return;
+        if(c.domain!=='dfm' && c.domain!=='privat'){ c.domain='dfm'; aend=true; }
+        if(c.matrixFeld==null || c.matrixFeld===''){ c.matrixFeld='ziel'; aend=true; }
+      });
+      if(aend) text=JSON.stringify(p);
+    }
+  }catch(e){}
+  return syncImportOhneShim(text, opt);
+};
 /* Abnahme v3.0.0 „Routinen-System" — die zwoelf Punkte des Auftrags.
    Punkte, die nur im Browser pruefbar sind (Layout, Tippflaechen, Klicks per
    elementFromPoint), prueft der UI-Harness (tests/ui). */
@@ -34,9 +57,10 @@ var tk=tick('kaffee',4);
 print('   Kaffee 4 Ticks: '+JSON.stringify(punkte(tk))+' → '+kartePunkteHeute(kid('kaffee')));
 ok('1 Kaffee: 50, 50, 0, −50 (Tag 50)', JSON.stringify(punkte(tk))==='[50,50,0,-50]' && kartePunkteHeute(kid('kaffee'))===50);
 var te=tick('essen',4);
-print('   Essen 4 Ticks: '+JSON.stringify(punkte(te))+' · Zeit '+Math.round(heuteInvestiertMin(kid('essen')))+' Min · Ziel '+zielText(kid('essen')));
-ok('1 Essen: 3 Ticks à 100 erfüllen das Ziel, der 4. bringt weiter 100; jeder Tick zählt 30 Min', JSON.stringify(punkte(te))==='[100,100,100,100]' &&
-   Math.round(heuteInvestiertMin(kid('essen')))===120 && zielErreicht(kid('essen')) && zielText(kid('essen'))==='4/3');
+print('   Essen 4 Ticks: '+JSON.stringify(punkte(te))+' · Ist '+Math.round(heuteInvestiertMin(kid('essen')))+' Min · Tick-Belegzeit '+tickMinHeute(kid('essen'))+' Min · Ziel '+zielText(kid('essen')));
+// v3.2.0 §1.1: die 30 Min je Tick sind BELEGZEIT (tickMin), keine gemessene Ist-Zeit mehr
+ok('1 Essen: 3 Ticks à 100 erfüllen das Ziel, der 4. bringt weiter 100; jeder Tick belegt 30 Min (tickMin, keine Ist-Zeit)', JSON.stringify(punkte(te))==='[100,100,100,100]' &&
+   Math.round(heuteInvestiertMin(kid('essen')))===0 && tickMinHeute(kid('essen'))===120 && zielErreicht(kid('essen')) && zielText(kid('essen'))==='4/3');
 var tg=tick('gesicht',4);
 ok('1 Gesicht waschen: 50, 100, 100, 50', JSON.stringify(punkte(tg))==='[50,100,100,50]');
 var tz=tick('zaehne',3);
@@ -260,7 +284,9 @@ ok('7 Schritt 1 Reflexion: Akku, drei optionale Fragen, Schlaf-Prognose', /data-
 abschlussV3Stand().reflexion={ akku:35, wort:'zäh', energieGegeben:'Spaziergang', energieGekostet:'Mails' };
 abv3.schritt=2; renderAbschlussV3();
 var s2h=el('sheetBody').innerHTML;
-ok('7 Schritt 2: je Karte Anzahl, Punkte, Serie; offene Ziele mit „überspringen" und „mit Abzug −100"', /Essen<small>2\/3 · 200 P · Serie 0/.test(s2h) &&
+// v3.2.0 §2.1: die Anzahl steht in der Zaehler-Zeile (+1/−1 zum Nachtragen und Korrigieren), dazu ▶/⏸ je Karte
+ok('7 Schritt 2: je Karte Zähler (2/3, +1/−1, ▶), Punkte, Serie; offene Ziele mit „überspringen" und „mit Abzug −100"', /Essen<small>200 P · Serie 0/.test(s2h) &&
+   /data-zzplus="essen" data-ort="abschluss"/.test(s2h) && /data-zzminus="essen"/.test(s2h) && /data-abv3play="essen"/.test(s2h) && /<span class="zz-n">2\/3<\/span>/.test(s2h) &&
    /data-abv3wahl="essen" data-v="ueberspringen"/.test(s2h) && /data-abv3wahl="essen" data-v="abzug">mit Abzug −100/.test(s2h) && s2h.indexOf('data-abv3wahl="katzen"')<0 && /sonst −100 P/.test(s2h));
 abschlussV3Entscheiden('essen','ueberspringen');
 abv3.schritt=3; renderAbschlussV3();
@@ -285,7 +311,9 @@ var wEss=S.historie[S.historie.length-1].routinenAuswertung.filter(function(x){ 
 ok('7 Schließen = Tag abgeschlossen; „Tagesabschluss" hat seine 50 gebucht; übersprungenes Essen ohne Abzug', !tagOffen() && !!S.tag.endeTs && S.historie.length===1 &&
    kartePunkteHeute(kid('ab'))===50 && wEss.abzug===0 && wEss.entscheidung==='ueberspringen');
 lh=abhakLeisteHtml();
-ok('7 danach ist alles grau außer „Schlafen"', /class="zs-k al-z[^"]* aus"[^>]*data-alkarte="essen"/.test(lh) && !/class="zs-k al-z[^"]* aus"[^>]*data-alkarte="schlaf"/.test(lh) && /Tag abgeschlossen/.test(lh));
+// v3.2.0 §2.4: nach dem Abschluss bleiben Routinen und Counter bis „Schlafen" buchbar — grau ist nur der Tagesabschluss selbst
+ok('7 danach: Routinen bleiben aktiv bis „Schlafen", der Tagesabschluss ist grau', !/class="zs-k al-z[^"]* aus"[^>]*data-alkarte="essen"/.test(lh) && /class="zs-k al-z[^"]* aus"[^>]*data-alkarte="ab"/.test(lh) &&
+   !/class="zs-k al-z[^"]* aus"[^>]*data-alkarte="schlaf"/.test(lh) && /Tag abgeschlossen/.test(lh));
 ok('7 die Fokusansicht zeigt danach „Schlafen"', S.ui.fokusZeigt==='schlaf' && S.ui.fokusOffen===true);
 ok('7 der Abendakku (35 %) steht für die Schlaf-Prognose bereit', schlafZustand().abendAkku===35);
 
@@ -314,7 +342,7 @@ ok('9 jede Ansicht beginnt oben: setTab, Sortierung, Filter, Fokus und Sheet ruf
 
 /* ══ 12 · Version ═════════════════════════════════════════════════════ */
 kopf('12 · Version');
-ok('12 APP_VERSION 3.1.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.1.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'x', titel:'x'}]})).fehler);
+ok('12 APP_VERSION 3.2.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.2.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'x', titel:'x'}]})).fehler);
 
 kopf('Nachtrag v3.0.1 · eine Versionskonstante');
 frisch(); S.tag=neuerTag(MO,1);
@@ -350,7 +378,7 @@ S.tag=neuerTag(GE,1); S.tag.startTs=GE+'T05:00:00.000Z';
 var alteWerte={duschen:203, rasieren:140, haare:39, fruehstueck:113, vitamine:143, essenM:95, kaffee:82, toilette:135};
 S.karten.forEach(function(k){ k.punkteOverride=alteWerte[k.id]; k.status=(k.id==='fruehstueck'||k.id==='vitamine')?'offen':'erledigt'; k.tagId=(k.status==='erledigt')?S.tag.tagId:null;
   k.zuletztRoutine=GE; k.abschluesse=[{ts:GE+'T08:00:00.000Z', tagId:S.tag.tagId, punkteIstVorher:alteWerte[k.id], istMinVorher:0, bonusPunkte:15, echt:true}]; });
-S.tag.endeTs=GE+'T22:00:00.000Z';
+S.tag.endeTs=GE+'T22:00:00.000Z'; S.tag.geschlossenTs=S.tag.endeTs;   // v3.2.0 §2.4: der Vortag ist endgueltig zu (sonst schliesst ihn der Tagesstart erst, mit Abgleich)
 tagStarten(70, MO);
 ok('1.1 der Tagesstart setzt JEDE Routine zurück — auch die heute nicht fälligen (Duschen, Rasieren alle 2 Tage)', S.karten.every(function(k){ return k.status==='offen' && k.punkteOverride===null; }) && !routineFaellig(kid('duschen'), MO));
 /* ein Alt-Override, der trotzdem an einer offenen Karte haengt, zaehlt nicht mehr */
