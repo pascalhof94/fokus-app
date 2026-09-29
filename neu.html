@@ -1815,11 +1815,11 @@ body{background:var(--bg)}
    sie — ueber die beiden Alias-Namen, die der Code seit v1.x benutzt.
    Der DATENVERTRAG ist etwas anderes: die aelteste Paket-Version, die der
    Import annimmt (Gate) — er bleibt 2.0, additiv erweitert. */
-const APP_VERSION = '3.4.0';
+const APP_VERSION = '3.4.1';
 const VERSION = APP_VERSION;                  // Alias: appVersion im Export
 const UI_VERSION = 'v'+APP_VERSION;           // Alias: Anzeige
 const DATENVERTRAG = '2.0.0';                 // Import-Gate: Pakete ab dieser appVersion
-const APP_BUILD = '2026-09-29-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-09-29-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 try{ document.title='Fokus '+UI_VERSION; }catch(e){}
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
@@ -7905,16 +7905,29 @@ function tuerEditorAendern(elx){
   if(nn){ toast(b+'.'+n+' geändert'); renderStatusbar(); }
 }
 function reflexionsFrage(i){ const f=S.settings.reflexionsFragen; const std=DEFAULT_SETTINGS.reflexionsFragen; return (Array.isArray(f) && f[i]) ? String(f[i]) : std[i]; }
-function abschlussV3Download(){
-  const md=abschlussMarkdown(), d=new Date(), p2=x=>String(x).padStart(2,'0');
-  const name=String(d.getFullYear()).slice(2)+p2(d.getMonth()+1)+p2(d.getDate())+'_Tagesabschluss.md';
+/* v3.4.1 §A: EINE Dateiausgabe fuer Tagesabschluss und Sync-Ansicht — synchron im Klick-Handler aufrufen
+   (iOS verlangt die direkte Nutzeraktion): Teilen-Blatt, wenn das Geraet Dateien teilen kann, sonst Download. */
+function exportAlsDatei(inhalt, name, mime){
   try{
-    const blob=new Blob([md], {type:'text/markdown;charset=utf-8'}), url=URL.createObjectURL(blob);
+    const f=new File([inhalt], name, {type:mime});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[f]})){
+      navigator.share({files:[f]}).catch(()=>{});   // Abbrechen: keine Meldung, kein Zustand
+      return name;
+    }
+  }catch(e){}
+  try{
+    const blob=new Blob([inhalt], {type:mime+';charset=utf-8'}), url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 4000);
   }catch(e){
-    const a=document.createElement('a'); a.href='data:text/markdown;charset=utf-8,'+encodeURIComponent(md); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    const a=document.createElement('a'); a.href='data:'+mime+';charset=utf-8,'+encodeURIComponent(inhalt); a.download=name; document.body.appendChild(a); a.click(); a.remove();
   }
+  return name;
+}
+function abschlussV3Download(){
+  const md=abschlussMarkdown(), d=new Date(), p2=x=>String(x).padStart(2,'0');
+  const name=String(d.getFullYear()).slice(2)+p2(d.getMonth()+1)+p2(d.getDate())+'_Tagesabschluss.md';
+  exportAlsDatei(md, name, 'text/markdown');
   if(S.tag){ abschlussV3Stand().exportTs=jetztIso(); saveTag(); }
   if(abv3.aktiv) renderAbschlussV3();   // §2.3 (v3.2.0): „Schließen" wird aktiv
   return name;
@@ -10176,7 +10189,7 @@ function v3FelderUebernehmen(z, inc, unter){
     serienfaktor:bool, immerSichtbar:bool, vorlaufTage:zahl, gruppePflicht:text,
     folgekarte:v=>(v && typeof v==='object') ? JSON.parse(JSON.stringify(v)) : null,
     akkuLadung:zahl, eingabe:v=>leer(v) ? null : eingabeVon({eingabe:v}),
-    rolle:v=>(v==='aufstehen'||v==='tagesabschluss'||v==='schlafen'||v==='erholung') ? v : null };
+    rolle:v=>(v==='aufstehen'||v==='tagesabschluss'||v==='schlafen'||v==='erholung'||v==='tagebuch') ? v : null };
   Object.keys(F).forEach(f=>{ if(inc[f]!==undefined) z[f]=F[f](inc[f]); });
 }
 /* ══ §4 (v3.1.0) · KARTENDETAILS VOLLSTAENDIG ══════════════════════════
@@ -15144,7 +15157,10 @@ function tagebuchSpeichern(){
   if(matrixSpur().length>400) S.tag.matrixSpur=matrixSpur().slice(-400);
   saveTag();
   matrixTmp=null;
-  closeSheet(); renderAlles();
+  closeSheet();
+  // v3.4.1 §B: der Tagebuch-Eintrag tickt die Karte mit rolle „tagebuch" — derselbe Weg wie ihr „+1" (fehlt sie: nichts)
+  const tbk=S.karten.find(k=>k.rolle==='tagebuch' && k.status!=='archiviert');
+  if(tbk) leisteTicken(tbk.id); else renderAlles();
   toast('📓 Tagebuch-Eintrag gespeichert'); haptik(12);
 }
 /* Tipp in eine Matrix-Grafik → Tagebuch an genau dieser Stelle. Die Grafik
@@ -15942,9 +15958,10 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-synccopy]')){ const ta=el('syncEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){} if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
   // Merge 21.09.: der v1.13.5-Umschalter (data-syncvoll) ist durch den
   // v2.0-Umschalter (data-syncmode, oben) ersetzt. Der Download folgt ihm.
-  if(t.closest('[data-syncdownload]')){
-    backupDownload(syncExport(syncVoll?'voll':'delta'),
-      (syncVoll?'fokus-vollexport-':'fokus-delta-')+aktuelleTagId()+'.json'); return; }
+  if(t.closest('[data-syncdownload]')){   // v3.4.1 §A: dieselbe Dateiausgabe wie der Tagesabschluss (Teilen-Blatt bzw. Download)
+    const d=new Date(), p2=x=>String(x).padStart(2,'0');
+    const name=String(d.getFullYear()).slice(2)+p2(d.getMonth()+1)+p2(d.getDate())+'_'+p2(d.getHours())+p2(d.getMinutes())+'_fokus_'+(syncVoll?'voll':'delta')+'.json';
+    exportAlsDatei(JSON.stringify(syncExport(syncVoll?'voll':'delta'), null, 2), name, 'application/json'); return; }
   // §8.4: Kopieren/Download des Tagesabschluss-Pakets
   if(t.closest('[data-tagcopy]')){ const ta=el('tagEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){}
     if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
