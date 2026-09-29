@@ -315,6 +315,11 @@ function bestandSchreiben(){
       var p=d.querySelector('#fokusView [data-alplay="v3-schlaf"]'); if(p) p.click();
       fw.oeffneAufstehen();
       var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; } },
+    /* ══ v3.4 · Screenshot: „Schlafen" läuft nach dem Abschluss — ⏸ in der Fokusansicht, Zeile hervorgehoben ══ */
+    echtSchlaf34:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.oeffneAbschlussV3(4); fw.abschlussV3SchliessenUI();
+      var p=d.querySelector('#fokusView [data-fktoggle="v3-schlaf"]'); if(p) p.click();
+      var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(110%)'; }
+      var lay=d.getElementById('fokusLayer'); if(lay) lay.scrollTop=0; },
     echtSuche30:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.fokusAnsichtSchliessen(); fw.setTab('suche');
       var a=d.querySelector('[data-suart="routinen"]'); if(a) a.click();
       var n=d.querySelector('[data-susicht="neueste"]'); if(n) n.click(); },
@@ -2190,6 +2195,10 @@ function bestandSchreiben(){
             'v3.2 §2.4: „Schlafen" zeigt keinen Nachtrag-Export oder schließt den Tag nicht');
           tippe(q('#sheetBody [data-ntcopy]'),'„Kopieren" (Nachtrag)');
           tippe(q('#sheetFoot [data-close]'),'„Schließen" (Nachtrag)');
+          /* v3.4.0 §2 (Befund 28./29.09.): die Fokusansicht zeigte bei laufender Schlaf-Uhr ▶ — der zweite Tipp stoppte sie als Fehltipp */
+          var fks=q('#fokusView [data-fktoggle="v3-schlaf"]'), zsl=q('#fokusView .al-z[data-alkarte="v3-schlaf"]');
+          finding('echt · v3.4 §2 nach dem Nachtrag-Export: Fokus-Knopf „Schlafen" zeigt „'+(fks?fks.textContent:'—')+'" · Leiste hervorgehoben '+!!(zsl && zsl.className.indexOf('hervor')>=0));
+          pruef(fks && fks.textContent==='⏸' && zsl && zsl.className.indexOf('hervor')>=0, 'v3.4 §2: die Fokusansicht zeigt die laufende Schlaf-Uhr nicht als ⏸ / „Schlafen" nicht hervorgehoben');
           tippe(q('#fokusView [data-alcheck="v3-auf"]'),'+1 „Aufstehen"'); sheetRuhe();
           var aufR=q('#sheetBody #aufAkku');
           finding('echt · v3.0 §5 Aufstehen: Frage '+(aufR?'„Wie voll fühlt sich der Akku an?" vorbelegt '+aufR.value+' %':'fehlt')+' · Priorisierung '+(q('#sheetBody [data-tsprio]')?'DA':'keine'));

@@ -556,8 +556,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.3.0 · Build gesetzt', VERSION==='3.3.0' && UI_VERSION==='v3.3.0' &&
-   APP_BUILD==='2026-09-28-2');
+ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.4.0' && UI_VERSION==='v3.4.0' &&
+   APP_BUILD==='2026-09-29-1');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -1892,7 +1892,8 @@ var vorP=kartePunkte(kid('rZ'));
 leisteAbhaken('rZ');
 ok('§1.2 Häkchen ohne Buchungsdialog: erledigt, gebucht = Wert + Abhakbonus ('+kid('rZ').punkteOverride+' P)', kid('rZ').status==='erledigt' && abhakTmp===null && kid('rZ').punkteOverride===Math.round(vorP)+25);
 al=abhakLeisteKarten().map(function(k){ return k.id; });
-ok('§1.2 erledigte Routine rutscht ausgegraut ans Ende ihres Blocks (v3.0 §4) ('+al.join(',')+')', al.join(',')==='rW,rX,rZ,rM,rO,cL,rT' && /al-z[^"]* fertig/.test(abhakLeisteHtml()));
+// v3.4.0 §1.4: sie rutscht weiter ans Ende ihres Blocks (✓), ist aber nicht mehr grau — ihre Uhr kann bis „Schlafen" laufen
+ok('§1.2 erledigte Routine rutscht ans Ende ihres Blocks (v3.0 §4), mit ✓, nicht grau (v3.4 §1.4) ('+al.join(',')+')', al.join(',')==='rW,rX,rZ,rM,rO,cL,rT' && !/al-z[^"]* fertig/.test(abhakLeisteHtml()) && /data-alkarte="rZ"[^>]*>(?:(?!data-alkarte=)[\s\S])*al-ok/.test(abhakLeisteHtml()));
 karteTick('cL');
 al=abhakLeisteKarten().map(function(k){ return k.id; });
 ok('§1.2 Counter bleibt an seinem Platz und zeigt den Zählstand im Zähler-Feld', al.indexOf('cL')===5 && /data-alzahl="cL"[^>]*>1×</.test(abhakLeisteHtml()));

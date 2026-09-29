@@ -93,19 +93,22 @@ closeSheet(); abv3.aktiv=false;
 kopf('Testfall 2 · Rasieren: 1 Tick → erledigt überall');
 var ra=kid('rasieren');
 fokusStarten('rasieren');
-print('   nach ▶: Ticks '+tickAnzahlHeute(ra)+' · Status '+ra.status+' · Uhr läuft '+!!(S.fokus && S.fokus.laeuft)+' · Auto-Stopp nach '+Math.round((S.fokus.autoStopMs-S.fokus.startMs)/1000)+' s');
-S.fokus.startMs=Date.now()-70000; S.fokus.autoStopMs=S.fokus.startMs+60000; uhrAutoStopPruefen();
+print('   nach ▶: Ticks '+tickAnzahlHeute(ra)+' · Status '+ra.status+' · Uhr läuft '+!!(S.fokus && S.fokus.laeuft));
+// v3.4.0 §1.2: kein Auto-Stopp mehr — die Uhr laeuft, bis pausiert wird (hier nach 70 s)
+S.fokus.startMs=Date.now()-70000; fokusZeitEinbuchen();
 var lh2=abhakLeisteHtml(), sr2=kartenreiheHtml(ra,'x'), kal2=kalenderBloecke([ra]).filter(function(b){ return b.kid==='rasieren'; });
-print('   Leiste fertig: '+/data-alkarte="rasieren"/.test(lh2)+' · Suche erledigt: '+/class="krow erledigt/.test(sr2)+' · Kalender: '+kal2.map(function(b){ return b.art; }).join(','));
-ok('2 ein Tick → erledigt: Leiste (grau), Suche (gestrichen), Kalender (Block „erledigt"), Status', kartenStatusHeute(ra)==='erledigt' &&
-   /class="zs-k al-z[^"]* fertig[^"]*"[^>]*data-alkarte="rasieren"/.test(lh2) && /class="krow erledigt/.test(sr2) && kal2.length===1 && kal2[0].art==='erledigt' && istHeuteErledigt(ra));
-ok('2 die Uhr hat nach 1 Minute von selbst gestoppt (60 s Ist-Zeit)', !S.fokus.laeuft && Math.round(num(ra.istSek))===60);
+print('   Leiste ✓: '+/data-alkarte="rasieren"[\s\S]*?al-ok/.test(lh2)+' · Suche erledigt: '+istHeuteErledigt(ra)+' · Kalender: '+kal2.map(function(b){ return b.art; }).join(','));
+// v3.4.0 §1.4: erledigt bleibt der Status in jeder Ansicht (✓), aber nicht grau/gestrichen, solange die Uhr laufen kann
+ok('2 ein Tick → erledigt: Leiste (✓, nicht grau), Suche (erledigt, nicht gestrichen), Kalender (Block „erledigt"), Status', kartenStatusHeute(ra)==='erledigt' &&
+   /data-alkarte="rasieren"[\s\S]*?class="al-knopf al-ok"/.test(lh2) && !/class="zs-k al-z[^"]* fertig[^"]*"[^>]*data-alkarte="rasieren"/.test(lh2) && !/class="krow erledigt/.test(sr2) && kal2.length===1 && kal2[0].art==='erledigt' && istHeuteErledigt(ra));
+ok('2 die Uhr lief bis zur Pause weiter (70 s Ist-Zeit, v3.4.0 §1.2)', !S.fokus.laeuft && Math.round(num(ra.istSek))===70);
 /* §1.4: dieselbe Antwort in jeder Ansicht — fuer den ganzen Katalog */
 var lh4=abhakLeisteHtml(), wid=0;
 S.karten.forEach(function(k){
   if(!istLeistenKarte(k) || lh4.indexOf('data-alkarte="'+k.id+'"')<0) return;
   var leisteFertig=new RegExp('class="zs-k al-z[^"]* fertig[^"]*"[^>]*data-alkarte="'+k.id+'"').test(lh4), such=istHeuteErledigt(k), st=kartenStatusHeute(k)==='erledigt';
-  if(leisteFertig!==st || such!==st){ wid++; print('   WIDERSPRUCH '+k.id+' Leiste '+leisteFertig+' Suche '+such+' Status '+st); }
+  // v3.4.0 §1.4: grau nur, wenn die Uhr nicht mehr laufen kann
+  if(leisteFertig!==karteGrau(k) || such!==st){ wid++; print('   WIDERSPRUCH '+k.id+' Leiste '+leisteFertig+' Suche '+such+' Status '+st); }
 });
 ok('§1.4 kartenStatusHeute ist die eine Quelle: Leiste und Suche widersprechen sich bei keiner Karte', wid===0);
 
@@ -135,20 +138,14 @@ ok('4 ✓ → Unteraufgabe → Wiederöffnen → ✓: Bonus in Summe 1× (Wieder
 ok('4 Tagesbilanz = Summe des Logs', bilanzGleichLog());
 
 /* ══ Testfall 5 · Elvanse ═══════════════════════════════════════════ */
-kopf('Testfall 5 · Elvanse ▶: Tick sofort, Uhr stoppt nach 1 Minute');
+// v3.4.0 §1.2: Auto-Stopp und langer Druck sind entfallen — die Uhr laeuft, bis Pascal pausiert
+kopf('Testfall 5 · Elvanse ▶: Tick sofort, Uhr läuft bis zur Pause (v3.4.0)');
 var el5=kid('elvanse');
 fokusStarten('elvanse');
-var stopIn=Math.round((S.fokus.autoStopMs-S.fokus.startMs)/1000);
-ok('5 ▶ bucht den Tick sofort (Tageslimit 1 → erledigt), die Uhr läuft mit Auto-Stopp nach 60 s', tickAnzahlHeute(el5)===1 && kartenStatusHeute(el5)==='erledigt' && S.fokus.laeuft && stopIn===60);
-S.fokus.startMs=Date.now()-55*60000; S.fokus.autoStopMs=S.fokus.startMs+60000;   // Befund: 55 Min spaeter
-uhrAutoStopPruefen();
-ok('5 auch 55 Min später: gebucht wird genau 1 Minute Ist-Zeit', !S.fokus.laeuft && Math.round(num(el5.istSek))===60);
-// langer Druck: bewusst weiterlaufen lassen
-frisch(); katalog(); tagStarten(70, MO);
-_uhrDauer={ kid:'elvanse', ts:Date.now() };
-fokusStarten('elvanse');
-ok('5 langer Druck auf ▶: die Uhr läuft bewusst weiter (kein Auto-Stopp)', S.fokus.laeuft && !S.fokus.autoStopMs && tickAnzahlHeute(kid('elvanse'))===1);
-fokusZeitEinbuchen();
+ok('5 ▶ bucht den Tick sofort (Tageslimit 1 → erledigt), die Uhr läuft ohne Auto-Stopp', tickAnzahlHeute(el5)===1 && kartenStatusHeute(el5)==='erledigt' && S.fokus.laeuft && !S.fokus.autoStopMs);
+S.fokus.startMs=Date.now()-55*60000; renderAlles();   // Befund-Lage von damals: 55 Min spaeter
+ok('5 55 Min später läuft sie noch; Pause bucht 55 Min Ist-Zeit', S.fokus.laeuft && (fokusZeitEinbuchen(), Math.round(num(el5.istSek)/60))===55);
+frisch(); katalog(); tagStarten(70, MO);   // wie bisher: frischer Tag fuer die folgenden Faelle
 
 /* ══ §1.3 · ✓ nur auf Aufgaben, Zaehler-Zeile in jeder Ansicht ════════ */
 kopf('§1.3 · ✓ nur auf Aufgaben · Zähler-Zeile überall');
@@ -279,7 +276,7 @@ ok('§5 ein zurückgeschickter Delta-Export meldet keine unbekannten Felder', rt
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION aktuell (3.3.0), alle Anzeigen aus APP_VERSION, Build 2026-09-28-2', APP_VERSION==='3.3.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && APP_BUILD==='2026-09-28-2' && DATENVERTRAG==='2.0.0');
+ok('APP_VERSION aktuell (3.4.0), alle Anzeigen aus APP_VERSION, Build 2026-09-29-1', APP_VERSION==='3.4.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && APP_BUILD==='2026-09-29-1' && DATENVERTRAG==='2.0.0');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

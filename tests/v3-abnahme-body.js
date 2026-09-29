@@ -224,7 +224,8 @@ S.ui.alOffen={zaehne:true}; lh=abhakLeisteHtml();
 ok('5 der Zähler klappt die Unter-Zähler auf — eingerückt, eigener +1', /al-sub[\s\S]*Zahnseide[\s\S]*data-alsub="zahnseide"/.test(lh));
 routineTick(kid('zaehne')); routineTick(kid('zaehne'));
 lk=abhakLeisteKarten().map(function(k){ return k.id; });
-ok('5 erledigt (Tageslimit) → grau ans Ende seines Blocks', /al-z[^"]* fertig[^"]*" [^>]*data-alkarte="zaehne"/.test(abhakLeisteHtml()) && lk.indexOf('zaehne')>lk.indexOf('mails'));
+// v3.4.0 §1.4: erledigt → ✓ und ans Ende des Blocks, aber nicht grau, solange die Uhr laufen kann
+ok('5 erledigt (Tageslimit) → ✓ ans Ende seines Blocks, nicht grau (v3.4 §1.4)', !/al-z[^"]* fertig[^"]*" [^>]*data-alkarte="zaehne"/.test(abhakLeisteHtml()) && /data-alkarte="zaehne"[^>]*>(?:(?!data-alkarte=)[\s\S])*al-ok/.test(abhakLeisteHtml()) && lk.indexOf('zaehne')>lk.indexOf('mails'));
 ok('5 Zähler zeigt „2/2" bei Tageslimit, Tagesziel „n/Ziel"', zielText(kid('zaehne'))==='2/2');
 
 /* ══ 6 · Tagesstart ═══════════════════════════════════════════════════ */
@@ -342,7 +343,7 @@ ok('9 jede Ansicht beginnt oben: setTab, Sortierung, Filter, Fokus und Sheet ruf
 
 /* ══ 12 · Version ═════════════════════════════════════════════════════ */
 kopf('12 · Version');
-ok('12 APP_VERSION 3.3.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.3.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'x', titel:'x'}]})).fehler);
+ok('12 APP_VERSION 3.4.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.4.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'x', titel:'x'}]})).fehler);
 
 kopf('Nachtrag v3.0.1 · eine Versionskonstante');
 frisch(); S.tag=neuerTag(MO,1);

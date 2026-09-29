@@ -17,6 +17,8 @@ var SITZUNG_TYPEN=['timer','autopause','nachtrag','korrektur'];
 var NAMES = ['num',
   // v3.1.0 §1.1: ein Override gilt bei Routinen/Countern nur an seinem Tag
   'overrideGilt','istRoutineOderCounter','tickAnzahlHeute',
+  // v3.4.0 §1.3: Messzeit nach dem Tageslimit (zaehlt als Ist-Zeit, bringt keine Zeitpunkte)
+  'nurZeitSek',
   // v3.2.0: Ticker und Aufgabe/Routine-Unterscheidung
   'tickQuelle','tickerVon','tickerSicherstellen','brauchtTicker','istAufgabeKarte',
   // v3.0.0 §1–§3: Routinen-System (Modus, Staffel, Unter-Zaehler, privates Tagesziel)
