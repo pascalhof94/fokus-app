@@ -1830,11 +1830,11 @@ body{background:var(--bg)}
    sie — ueber die beiden Alias-Namen, die der Code seit v1.x benutzt.
    Der DATENVERTRAG ist etwas anderes: die aelteste Paket-Version, die der
    Import annimmt (Gate) — er bleibt 2.0, additiv erweitert. */
-const APP_VERSION = '3.4.3';
+const APP_VERSION = '3.4.4';
 const VERSION = APP_VERSION;                  // Alias: appVersion im Export
 const UI_VERSION = 'v'+APP_VERSION;           // Alias: Anzeige
 const DATENVERTRAG = '2.0.0';                 // Import-Gate: Pakete ab dieser appVersion
-const APP_BUILD = '2026-09-29-4';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-09-29-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 try{ document.title='Fokus '+UI_VERSION; }catch(e){}
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
@@ -5325,10 +5325,13 @@ function heuteWochentagsKurven(){
   gleiche.forEach(d=>{ const k=belTagKurve(d, 'alle', null); if(k.length>1){ lo=Math.min(lo, k[1].x); hi=Math.max(hi, k[k.length-1].x); } });
   const von=Math.floor(lo), bis=Math.max(von+3, Math.ceil(hi));
   const xs=[]; for(let x=von; x<=bis+1e-9; x+=0.25) xs.push(x);
+  // v3.4.4: Tempo statt kumuliert — Punkte der gleitenden Stunde (t − 60 Min, t] aus derselben Tageskurve
+  // (intradayStatistik: Abschluss-Punkte ueber die aktiven Stunden verteilt, v3.2)
+  const tempo=(k, x)=>belKurveWert(k, x)-belKurveWert(k, x-1);
   const mittel=(liste, dom)=>{ if(!liste.length) return null; const acc=xs.map(()=>0);
-    liste.forEach(d=>{ const k=belTagKurve(d, dom, von); xs.forEach((x,i)=>{ acc[i]+=belKurveWert(k, x); }); });
+    liste.forEach(d=>{ const k=belTagKurve(d, dom, von); xs.forEach((x,i)=>{ acc[i]+=tempo(k, x); }); });
     return acc.map(v=>v/liste.length); };
-  const heuteReihe=dom=>{ const k=belTagKurve(heute, dom, von); return xs.map(x=>x<=jetztX+1e-9 ? belKurveWert(k, x) : null); };
+  const heuteReihe=dom=>{ const k=belTagKurve(heute, dom, von); return xs.map(x=>x<=jetztX+1e-9 ? tempo(k, x) : null); };
   _typMemo={ wt, von, bis, xs, jetztX, dfm:heuteReihe('dfm'), prv:heuteReihe('privat'),
     dfmAlle:mittel(gleiche,'dfm'), prvAlle:mittel(gleiche,'privat'), dfm2:mittel(letzte2,'dfm'), prv2:mittel(letzte2,'privat') };
   _typMemoKey=key;
@@ -5348,7 +5351,7 @@ function heuteGegenTypischHtml(){
   let txt=''; for(let hh=Math.ceil(T.von); hh<=T.bis; hh++) txt+='<span class="dia-tt-h" style="left:'+P(hh)+'">'+String(hh%24).padStart(2,'0')+':00</span>';
   const jetztWert=a=>{ if(!a) return null; let v=null; T.xs.forEach((x,i)=>{ if(x<=T.jetztX+1e-9 && a[i]!=null) v=a[i]; }); return v; };
   const zeile=(lab,f)=>{ const x=jetztWert(R[f].heute), y=jetztWert(R[f].zwei);
-    return '<div style="color:'+DIA_LINIE[f].heute.c+'">'+lab+' '+fmtP(Math.round(x||0))+' · Ø '+(y==null?'–':fmtP(Math.round(y)))+'</div>'; };
+    return '<div style="color:'+DIA_LINIE[f].heute.c+'">'+lab+' '+fmtP(Math.round(x||0))+' · Ø '+(y==null?'–':fmtP(Math.round(y)))+' P/h</div>'; };
   setTimeout(heuteTypischScrollen, 0);
   return '<div class="dia-tt"><div class="dia-tt-y"></div>'+
     '<div class="dia-tt-box">'+zeile('DFM','dfm')+zeile('Pv','privat')+zeile('Ges','alle')+'</div>'+
@@ -5366,7 +5369,7 @@ function heuteTypischZeichnen(sc){
   let mn=Infinity, mx=-Infinity;
   D.L.forEach(l=>l.vals.forEach((v,i)=>{ const x=T.xs[i]; if(v!=null && x>=x0-1e-9 && x<=x1+1e-9){ if(v<mn) mn=v; if(v>mx) mx=v; } }));
   if(!Number.isFinite(mn)){ mn=0; mx=100; }
-  let lo=Math.floor(mn*0.9/100)*100, hi=Math.ceil(mx*1.1/100)*100; if(hi<=lo) hi=lo+100;
+  let lo=Math.min(0, mn), hi=Math.ceil(mx*1.1/50)*50; if(hi<=lo) hi=lo+50;   // v3.4.4: Tempo — unten min(0, kleinster Wert), oben × 1,1 auf 50
   const X=x=>(x-T.von)/span*W, Y=v=>pT+(1-(v-lo)/(hi-lo))*(H-pT-pB);
   let g='';
   for(let i=0;i<4;i++){ const y=Y(lo+(hi-lo)*i/3).toFixed(1); g+='<line x1="0" y1="'+y+'" x2="'+W+'" y2="'+y+'" stroke="var(--line)" stroke-width="1" opacity=".35" vector-effect="non-scaling-stroke"/>'; }
@@ -5379,7 +5382,7 @@ function heuteTypischZeichnen(sc){
   g+='<line x1="'+jx+'" y1="'+pT+'" x2="'+jx+'" y2="'+(H-pB)+'" stroke="'+DIA_JETZT+'" stroke-width="1" vector-effect="non-scaling-stroke"/>';
   svg.innerHTML=g;
   const ya=sc.parentNode && sc.parentNode.querySelector('.dia-tt-y');
-  if(ya) ya.innerHTML=[0,1,2,3].map(i=>{ const v=lo+(hi-lo)*i/3; return '<span style="top:'+(Y(v)-6).toFixed(0)+'px">'+anFmt(v)+'</span>'; }).join('');
+  if(ya) ya.innerHTML=[0,1,2,3].map(i=>{ const v=lo+(hi-lo)*i/3; return '<span style="top:'+(Y(v)-6).toFixed(0)+'px">'+anFmt(v)+(i===3?' P/h':'')+'</span>'; }).join('');
 }
 /* „jetzt" 1 Std vom linken Rand — ausser Pascal hat eben selbst gewischt (dann bleibt seine Stelle) */
 function heuteTypischScrollen(){
@@ -5840,7 +5843,7 @@ function fbWoIchStehe(){
   // §2.6 (v3.3.0): kumulierte Punkte ueber die Uhrzeit, sieben Linien (dieselbe Funktion wie in der Statistik)
   let fenster='';
   try{ fenster=heuteGegenTypischHtml(); }catch(e){ fenster=''; }
-  if(fenster) h+='<div class="fbk voll fb-modul"><div class="fbk-h">Heute gegen typische Tage</div>'+fenster+'</div>';
+  if(fenster) h+='<div class="fbk voll fb-modul"><div class="fbk-h">Heute gegen typische Tage</div><div class="dia-zeile">Tempo: Punkte je Stunde (gleitend) — heute gegen den gleichen Wochentag</div>'+fenster+'</div>';
   // v3.4.3 §4: darunter der Tagesverlauf — dieselbe Funktion wie in der Statistik
   let tverl='';
   try{ tverl=belTagesDiagramm(); }catch(e){ tverl=''; }
@@ -17421,7 +17424,7 @@ function anModVerhalten(F,dom){
     anKpi(ueberQ==null?'—':ueberQ+'%','Überfällig jetzt')+
     anKpi(anFmtUhr(stH),'Ø Start')+
     anKpi(anFmtUhr(enH),'Ø Ende')+'</div>';
-  return anModul('🧭','Verhalten','Kumulierte Punkte heute gegen den gleichen Wochentag — DFM und Privat',chart+kpiRow);
+  return anModul('🧭','Verhalten','Tempo: Punkte je Stunde (gleitend) — heute gegen den gleichen Wochentag',chart+kpiRow);
 }
 
 /* ── View / Filter / Wiring ────────────────────────────────────────── */
