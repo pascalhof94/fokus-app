@@ -968,8 +968,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .dia-tt-flaeche{position:relative;height:150px}
 .dia-tt-flaeche svg{position:absolute;inset:0;width:100%;height:150px;display:block;overflow:visible}
 .dia-tt-h{position:absolute;top:134px;transform:translateX(-50%);font-size:8px;color:var(--mut2);white-space:nowrap}
-.dia-tt-box{position:absolute;left:32px;top:2px;z-index:2;pointer-events:none;background:rgba(11,11,12,.72);border-radius:6px;padding:3px 6px;
-  font-size:10px;line-height:1.35;font-weight:600;font-variant-numeric:tabular-nums}   /* v3.4.3 §2: Werte oben links im Fenster */
+.dia-tt-punkt{position:absolute;width:7px;height:7px;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}   /* v3.4.5 §2: Live-Ende */
+.dia-tt-zahl{font-variant-numeric:tabular-nums}
 .an-legend.dia-legende3{display:block}
 .an-legend.dia-legende3>div{margin:2px 0}
 .an-legend.dia-legende3 span{white-space:nowrap}
@@ -1830,11 +1830,11 @@ body{background:var(--bg)}
    sie — ueber die beiden Alias-Namen, die der Code seit v1.x benutzt.
    Der DATENVERTRAG ist etwas anderes: die aelteste Paket-Version, die der
    Import annimmt (Gate) — er bleibt 2.0, additiv erweitert. */
-const APP_VERSION = '3.4.4';
+const APP_VERSION = '3.4.5';
 const VERSION = APP_VERSION;                  // Alias: appVersion im Export
 const UI_VERSION = 'v'+APP_VERSION;           // Alias: Anzeige
 const DATENVERTRAG = '2.0.0';                 // Import-Gate: Pakete ab dieser appVersion
-const APP_BUILD = '2026-09-29-5';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-09-29-6';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 try{ document.title='Fokus '+UI_VERSION; }catch(e){}
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
@@ -5345,21 +5345,23 @@ function heuteGegenTypischHtml(){
   const sum=(a,b)=>(a&&b) ? a.map((v,i)=>(v==null||b[i]==null) ? null : v+b[i]) : null;
   const R={ dfm:{heute:T.dfm, alle:T.dfmAlle, zwei:T.dfm2}, privat:{heute:T.prv, alle:T.prvAlle, zwei:T.prv2},
             alle:{heute:sum(T.dfm,T.prv), alle:sum(T.dfmAlle,T.prvAlle), zwei:sum(T.dfm2,T.prv2)} };
-  const L=[]; ['zwei','alle','heute'].forEach(typ=>['dfm','privat','alle'].forEach(f=>{ if(R[f][typ]) L.push({vals:R[f][typ], st:DIA_LINIE[f][typ]}); }));   // Heute-Linien obenauf
+  const L=[]; ['zwei','alle','heute'].forEach(typ=>['dfm','privat','alle'].forEach(f=>{ if(R[f][typ]) L.push({vals:R[f][typ], st:DIA_LINIE[f][typ], heute:typ==='heute'}); }));   // Heute-Linien obenauf
   _ttDaten={ T, L };
   const span=Math.max(1e-9, T.bis-T.von), stunden=T.bis-T.von, P=x=>((x-T.von)/span*100).toFixed(3)+'%';
   let txt=''; for(let hh=Math.ceil(T.von); hh<=T.bis; hh++) txt+='<span class="dia-tt-h" style="left:'+P(hh)+'">'+String(hh%24).padStart(2,'0')+':00</span>';
+  // v3.4.5 §3: die Werte zur Uhrzeit „jetzt" stehen in der Legende (die Werte-Box im Diagramm entfaellt)
   const jetztWert=a=>{ if(!a) return null; let v=null; T.xs.forEach((x,i)=>{ if(x<=T.jetztX+1e-9 && a[i]!=null) v=a[i]; }); return v; };
-  const zeile=(lab,f)=>{ const x=jetztWert(R[f].heute), y=jetztWert(R[f].zwei);
-    return '<div style="color:'+DIA_LINIE[f].heute.c+'">'+lab+' '+fmtP(Math.round(x||0))+' · Ø '+(y==null?'–':fmtP(Math.round(y)))+' P/h</div>'; };
+  const wtK=['So','Mo','Di','Mi','Do','Fr','Sa'][T.wt];
+  const wert=(a, st, fett)=>{ const v=jetztWert(a); return ' <span class="dia-tt-zahl" style="color:'+st.c+(fett?';font-weight:700':'')+'">'+(v==null?'–':fmtP(Math.round(v)))+'</span>'; };
   setTimeout(heuteTypischScrollen, 0);
   return '<div class="dia-tt"><div class="dia-tt-y"></div>'+
-    '<div class="dia-tt-box">'+zeile('DFM','dfm')+zeile('Pv','privat')+zeile('Ges','alle')+'</div>'+
     '<div class="dia-tt-scroll" data-jetzt="'+((T.jetztX-1-T.von)/span).toFixed(4)+'" onscroll="heuteTypischGescrollt(this)">'+
       '<div class="dia-tt-flaeche" style="width:calc(100% * '+stunden+' / 4)">'+
         '<svg viewBox="0 0 1000 150" preserveAspectRatio="none" aria-hidden="true"></svg>'+txt+'</div></div></div>'+
-    '<div class="an-legend dia-legende dia-legende3">'+[['DFM','dfm'],['Privat','privat'],['Gesamt','alle']].map(([lab,f])=>
-      '<div><b>'+lab+':</b> <span>'+diaLegendeMuster(DIA_LINIE[f].heute)+'heute</span> · <span>'+diaLegendeMuster(DIA_LINIE[f].alle)+'Ø alle '+wtP+'</span> · <span>'+diaLegendeMuster(DIA_LINIE[f].zwei)+'Ø letzte 2 '+wtP+'</span></div>').join('')+'</div>';
+    '<div class="an-legend dia-legende dia-legende3">'+[['DFM','dfm'],['Privat','privat'],['Gesamt','alle']].map(([lab,f])=>{ const Lf=DIA_LINIE[f];
+      return '<div><b>'+lab+':</b> <span>'+diaLegendeMuster(Lf.heute)+'heute'+wert(R[f].heute, Lf.heute, true)+'</span> '+
+        '<span>· '+diaLegendeMuster(Lf.alle)+'Ø alle '+wtK+wert(R[f].alle, Lf.alle)+'</span> '+
+        '<span>· '+diaLegendeMuster(Lf.zwei)+'Ø letzte 2 '+wtK+wert(R[f].zwei, Lf.zwei)+' P/h</span></div>'; }).join('')+'</div>';
 }
 /* Zeichnet ein Diagramm fuer seinen sichtbaren Ausschnitt: y von (min × 0,9) bis (max × 1,1), auf 100 gerundet */
 function heuteTypischZeichnen(sc){
@@ -5375,12 +5377,16 @@ function heuteTypischZeichnen(sc){
   for(let i=0;i<4;i++){ const y=Y(lo+(hi-lo)*i/3).toFixed(1); g+='<line x1="0" y1="'+y+'" x2="'+W+'" y2="'+y+'" stroke="var(--line)" stroke-width="1" opacity=".35" vector-effect="non-scaling-stroke"/>'; }
   for(let hh=Math.ceil(T.von); hh<=T.bis; hh++){ const x=X(hh).toFixed(1);
     g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--line)" stroke-width="1" opacity=".5" vector-effect="non-scaling-stroke"/>'; }
-  D.L.forEach(l=>{ const pts=[]; l.vals.forEach((v,i)=>{ if(v!=null) pts.push(X(T.xs[i]).toFixed(1)+' '+Y(Math.max(lo,Math.min(hi,v))).toFixed(1)); });
+  // v3.4.5 §1/§2: monotone kubische Kurven (glattPfad, Fritsch-Carlson), Heute-Linien mit Punkt am Jetzt
+  let punkte='';
+  D.L.forEach(l=>{ const pts=[]; l.vals.forEach((v,i)=>{ if(v!=null) pts.push({x:X(T.xs[i]), y:Y(Math.max(lo,Math.min(hi,v))), v}); });
     if(pts.length<2) return; const st=l.st;
-    g+='<path d="M'+pts.join(' L')+'" fill="none" stroke="'+st.c+'" stroke-opacity="'+st.o+'" stroke-width="'+st.w+'"'+(st.dash?' stroke-dasharray="'+st.dash+'"':'')+' stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'; });
+    g+='<path d="'+glattPfad(pts)+'" fill="none" stroke="'+st.c+'" stroke-opacity="'+st.o+'" stroke-width="'+st.w+'"'+(st.dash?' stroke-dasharray="'+st.dash+'"':'')+' stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+    if(l.heute){ const e=pts[pts.length-1]; punkte+='<i class="dia-tt-punkt" style="left:'+(e.x/W*100).toFixed(3)+'%;top:'+e.y.toFixed(1)+'px;background:'+st.c+'"></i>'; } });
   const jx=X(T.jetztX).toFixed(1);
   g+='<line x1="'+jx+'" y1="'+pT+'" x2="'+jx+'" y2="'+(H-pB)+'" stroke="'+DIA_JETZT+'" stroke-width="1" vector-effect="non-scaling-stroke"/>';
   svg.innerHTML=g;
+  fl.querySelectorAll('.dia-tt-punkt').forEach(x=>x.remove()); fl.insertAdjacentHTML('beforeend', punkte);
   const ya=sc.parentNode && sc.parentNode.querySelector('.dia-tt-y');
   if(ya) ya.innerHTML=[0,1,2,3].map(i=>{ const v=lo+(hi-lo)*i/3; return '<span style="top:'+(Y(v)-6).toFixed(0)+'px">'+anFmt(v)+(i===3?' P/h':'')+'</span>'; }).join('');
 }
