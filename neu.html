@@ -970,6 +970,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .dia-tt-h{position:absolute;top:134px;transform:translateX(-50%);font-size:8px;color:var(--mut2);white-space:nowrap}
 .dia-tt-punkt{position:absolute;width:7px;height:7px;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}   /* v3.4.5 §2: Live-Ende */
 .dia-tt-zahl{font-variant-numeric:tabular-nums}
+/* v3.4.6 §C: Rang — Stand-Balken zwischen den Raengen */
+.rang-stand{margin-top:18px}
+.rang-stand-bahn{position:relative;height:8px;border-radius:4px}
+.rang-stand-bahn i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.rang-stand-bahn b{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;transform:translate(-50%,-50%)}
+.rang-stand-med{position:absolute;bottom:11px;transform:translateX(-50%);font-size:9px;color:var(--mut2);white-space:nowrap}
+.rang-prog{margin-top:4px;font-size:11px;color:var(--mut)}
 .an-legend.dia-legende3{display:block}
 .an-legend.dia-legende3>div{margin:2px 0}
 .an-legend.dia-legende3 span{white-space:nowrap}
@@ -1830,11 +1837,11 @@ body{background:var(--bg)}
    sie — ueber die beiden Alias-Namen, die der Code seit v1.x benutzt.
    Der DATENVERTRAG ist etwas anderes: die aelteste Paket-Version, die der
    Import annimmt (Gate) — er bleibt 2.0, additiv erweitert. */
-const APP_VERSION = '3.4.5';
+const APP_VERSION = '3.4.6';
 const VERSION = APP_VERSION;                  // Alias: appVersion im Export
 const UI_VERSION = 'v'+APP_VERSION;           // Alias: Anzeige
 const DATENVERTRAG = '2.0.0';                 // Import-Gate: Pakete ab dieser appVersion
-const APP_BUILD = '2026-09-29-6';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-09-30-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 try{ document.title='Fokus '+UI_VERSION; }catch(e){}
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
@@ -3653,7 +3660,7 @@ function fokusZeitEinbuchen(bisMs){
   let _sitzung=null;
   // §1.3/§1.5 (v3.4.0): eine reine Messung (Tageslimit erreicht) zaehlt als Ist-Zeit — ohne Punkte, ohne Pflicht-Abzug
   if(k && nurZeit && S.tag){ if(!S.tag.nurZeitSek || typeof S.tag.nurZeitSek!=='object') S.tag.nurZeitSek={}; S.tag.nurZeitSek[k.id]=num(S.tag.nurZeitSek[k.id])+sek; }
-  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); _sitzung=logIntraday(k,{minuten:sek/60,typ:'timer'}); if(ende<Date.now()) _sitzung.ts=new Date(ende).toISOString(); if(!nurZeit) durchgangPause(k, sek); }   // v1.1: Akku-Drift; A7 berührt; B0 Log; §1 (v2.8.2) Durchgang pausiert
+  if(k){ k.istSek=num(k.istSek)+sek; akkuBuchen(k, sek/60); beruehre(k); _sitzung=logIntraday(k,{minuten:sek/60,typ:'timer'}); if(nurZeit) _sitzung.nurZeit=true; if(ende<Date.now()) _sitzung.ts=new Date(ende).toISOString(); if(!nurZeit) durchgangPause(k, sek); }   // v1.1: Akku-Drift; A7 berührt; B0 Log; §1 (v2.8.2) Durchgang pausiert
   // §5 (v1.6.1) / §1 (v1.7.1): Beim Pausieren wird die bis dahin live angezeigte
   // Dauerlauf-Strafe festgeschrieben — DIESELBE Formel wie pausenStrafeLive,
   // dadurch springt der Wert beim Pausieren nicht. Reset des Zählers folgt
@@ -5261,25 +5268,70 @@ function muenzenKachelHtml(){
     '<b class="dia-mitte">'+Math.round(m)+'</b></div>'+
     '<span class="dia-name">'+(prog>=ziel ? 'Ziel ✓' : 'fehlen '+fmtP(Math.round(ziel-prog)))+'</span></div>';
 }
-/* §3.3: Rang — Leistungsrate je aktivem Tag (die Tage, auf denen der Rang heute beruht) */
+/* §3.3: Rang — Leistungsrate je aktivem Tag (die Tage, auf denen der Rang heute beruht)
+   v3.4.6: echte Werte (keine Kappung), Schwellen mit Zahl, Stand-Balken und Prognose bis zum naechsten Rang */
+function rangPrognose(rm){
+  const rang=rm.rang, med=rm.median;
+  if(rang==null || med==null || rang>=RANG_MAX) return null;
+  const ziel=leistungsSchwelle(rang+1);
+  const chrono=(rm.tage||[]).filter(x=>x && x.r && x.r.rate!=null).slice().sort((a,b)=>a.datum<b.datum?-1:1).map(x=>x.r.rate);
+  const letzte7=chrono.slice(-7); if(letzte7.length<3) return null;
+  const avg=letzte7.reduce((a,b)=>a+b,0)/letzte7.length;
+  if(med>=ziel) return { ziel, avg, N:0, mediane:[] };
+  // Tag fuer Tag: Ø-Leistung hinten anhaengen, aeltesten raus (Fenster wie rangMass: hoechstens 14 Tage)
+  const fenster=chrono.slice(-14), mediane=[]; let N=null;
+  for(let i=1;i<=30;i++){ fenster.push(avg); if(fenster.length>14) fenster.shift();
+    const m=medianVon(fenster); mediane.push(m); if(m>=ziel){ N=i; break; } }
+  return { ziel, avg, N, mediane };
+}
 function rangDiagrammHtml(rm){
   rm=rm||rangMass();
-  const rang=rm.rang!=null ? rm.rang : 1;
-  const ab=leistungsSchwelle(rang), auf=leistungsSchwelle(rang+1), sp=Math.max(1e-9, auf-ab);
-  const lo=ab-0.2*sp, hi=auf+0.2*sp;
+  const rang=rm.rang!=null ? rm.rang : 1, max=rang>=RANG_MAX;
+  const ab=leistungsSchwelle(rang), auf=max ? null : leistungsSchwelle(rang+1), sp=Math.max(1e-9, (auf!=null?auf:ab*1.1)-ab);
   const heute=belFensterDatum(jetztIso());
   const tage=(rm.tage||[]).filter(x=>x && x.r && x.r.rate!=null).slice().sort((a,b)=>a.datum<b.datum?-1:1).slice(-14);
-  const W=320, H=120, pL=8, pR=46, pT=10, pB=12, n=tage.length;
-  const X=i=>pL+(n>1 ? i/(n-1) : 0.5)*(W-pL-pR), Y=v=>pT+(1-(Math.max(lo, Math.min(hi, v))-lo)/(hi-lo))*(H-pT-pB);
+  const pr=rangPrognose(rm);
+  // Prognose-Schritte rechts von heute: bis N (hoechstens 14), nicht erreichbar → 7
+  const schritte=!pr||pr.N===0 ? 0 : pr.N==null ? 7 : Math.min(14, pr.N);
+  const progMed=pr ? pr.mediane.slice(0, schritte) : [];
+  const werte=tage.map(t=>t.r.rate);
+  const lo=Math.floor(Math.min(ab-0.2*sp, werte.length?Math.min.apply(null,werte)*0.9:Infinity)/50)*50;
+  const hi=Math.ceil(Math.max((auf!=null?auf:ab)+0.2*sp, werte.length?Math.max.apply(null,werte)*1.1:-Infinity, progMed.length?Math.max.apply(null,progMed):-Infinity)/50)*50;
+  const W=320, H=130, pL=28, pR=70, pT=12, pB=10, n=tage.length, slots=Math.max(1, n-1+schritte);
+  const X=i=>pL+(n+schritte>1 ? i/slots : 0.5)*(W-pL-pR), Y=v=>pT+(1-(v-lo)/Math.max(1e-9, hi-lo))*(H-pT-pB);
   let g='';
-  [[ab,'Abstieg',DIA_FARBE.orange],[auf,'Aufstieg',DIA_FARBE.gruen]].forEach(([v,lab,f])=>{ const y=Y(v).toFixed(1);
+  [lo,(lo+hi)/2,hi].forEach(v=>{ g+='<text x="'+(pL-4)+'" y="'+(Y(v)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+DIA_FARBE.grau+'">'+Math.round(v)+'</text>'; });
+  [[ab,'Abstieg',DIA_FARBE.orange],[auf,'Aufstieg',DIA_FARBE.gruen]].forEach(([v,lab,f])=>{ if(v==null) return; const y=Y(v).toFixed(1);
     g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+f+'" stroke-width="1.5" stroke-dasharray="4 4"/>'+
-       '<text x="'+(W-2)+'" y="'+(Y(v)+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="'+f+'">'+lab+'</text>'; });
+       '<text x="'+(W-2)+'" y="'+(Y(v)+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="'+f+'">'+lab+' '+Math.round(v)+'</text>'; });
   if(n>1) g+='<path d="'+glattPfad(tage.map((t,i)=>({x:X(i), y:Y(t.r.rate)})))+'" fill="none" stroke="'+DIA_FARBE.grau+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
   tage.forEach((t,i)=>{ const hh=t.datum===heute;
     g+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(t.r.rate).toFixed(1)+'" r="'+(hh?4:2.5)+'" fill="'+DIA_FARBE.grau+'"/>';
     if(hh) g+='<text x="'+X(i).toFixed(1)+'" y="'+(Y(t.r.rate)-7).toFixed(1)+'" text-anchor="middle" font-size="9" fill="'+DIA_FARBE.grau+'">'+Math.round(t.r.rate)+'</text>'; });
-  return '<svg class="an-svg dia-rang" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+g+'</svg>';
+  // §D.4: Median-Prognose — gelb gestrichelt ab dem heutigen Median
+  if(pr && n){ const x0=X(n-1), pts=[{x:x0, y:Y(rm.median)}].concat(progMed.map((m,i)=>({x:X(n+i), y:Y(m)})));
+    if(pts.length>1) g+='<path d="'+glattPfad(pts)+'" fill="none" stroke="'+DIA_FARBE.gelb+'" stroke-width="1.5" stroke-dasharray="6 4" stroke-linejoin="round" stroke-linecap="round"/>';
+    g+='<circle cx="'+x0.toFixed(1)+'" cy="'+Y(rm.median).toFixed(1)+'" r="2.5" fill="'+DIA_FARBE.gelb+'"/>';
+    if(pr.N!=null && pts.length>1){ const e=pts[pts.length-1];
+      g+='<circle cx="'+e.x.toFixed(1)+'" cy="'+e.y.toFixed(1)+'" r="3" fill="'+DIA_FARBE.gelb+'"/>'+
+         '<text x="'+(e.x+5).toFixed(1)+'" y="'+(e.y+3).toFixed(1)+'" font-size="9" fill="'+DIA_FARBE.gelb+'">R'+(rang+1)+' in '+pr.N+' T.</text>'; } }
+  let h='<svg class="an-svg dia-rang" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+g+'</svg>';
+  // §C: Stand-Balken zwischen den Raengen
+  if(rm.rang!=null && rm.median!=null){
+    const f=max ? 1 : Math.max(0, Math.min(1, num(rm.anteil)));
+    h+='<div class="rang-stand"><div class="rang-stand-bahn" style="background:'+DIA_FARBE.grau+'40">'+
+        '<i style="width:'+(f*100).toFixed(1)+'%;background:'+DIA_FARBE.gelb+'"></i>'+
+        '<b style="left:'+(f*100).toFixed(1)+'%;background:'+DIA_FARBE.gelb+'"></b>'+
+        '<span class="rang-stand-med" style="left:'+(f*100).toFixed(1)+'%">Median '+Math.round(rm.median)+'</span></div>'+
+      '<div class="dia-lr"><span>R'+rang+' · '+Math.round(rang>1?ab:0)+'</span><span>'+(max ? 'Höchster Rang' : 'R'+(rang+1)+' · '+Math.round(auf))+'</span></div>';
+    // §D.3: Prognose-Zeile
+    if(pr){ const avg=Math.round(pr.avg);
+      h+='<div class="rang-prog">'+(pr.N===0 ? 'Aufstieg steht an'
+        : pr.N!=null ? 'Nächster Rang R'+(rang+1)+' in '+pr.N+' '+(pr.N===1?'Tag':'Tagen')+' · bei Ø 7 Tage '+avg+' P/h'
+        : 'Bei Ø 7 Tage '+avg+' P/h nicht erreichbar — nötig sind mehr als '+Math.round(pr.ziel)+' P/h an mehr Tagen')+'</div>'; }
+    h+='</div>';
+  }
+  return h;
 }
 /* §3.4: wann der naechste Artikel bezahlbar ist */
 function shopAnkunftText(nk){
@@ -11735,7 +11787,7 @@ function syncExport(typ){
     // §5 (v3.2.0): das Stunden-Log des Tages mit Quelle je Eintrag (uhr · tick · abhaken · tagesabschluss · schlafen · korrektur)
     stundenLogHeute: (function(){ if(!S.tag) return [];
       return (S.intraday||[]).filter(e=>logGehoertZuTag(e)).map(e=>({ ts:e.ts, kartenId:e.kartenId||null, typ:e.typ, quelle:logQuelle(e),
-        punkte:logRund(e.punkte), minuten:num(e.minuten), tickMin:num(e.tickMin) })); })(),
+        punkte:logRund(e.punkte), minuten:num(e.minuten), tickMin:num(e.tickMin), nurZeit:e.nurZeit?true:undefined })); })(),   // v3.4.6: Messzeit ohne Punkte
     gruppenPflicht: (S.meta.gruppenPflicht && typeof S.meta.gruppenPflicht==='object') ? JSON.parse(JSON.stringify(S.meta.gruppenPflicht)) : {},
     // §2 (v2.9.1/v2.9.2): Rueckblick seit v2.0 (21.09.) — gebucht und davon Prognose, je Tag
     // und Karte; bis nach einem Korrektur-Paket ein Sync bestaetigt ist
@@ -13155,10 +13207,17 @@ function bgFuerAusgaben(){ return 'img/bg'+String(bgStufeAus(ausgabenAnzeige()))
    ebenso künftige Nachbuchungen und Tick-Punkte zeitloser Karten. Abzüge
    (typ schub) zählen nicht in die Leistungs-Rate. */
 function tagesRateDetail(fensterDatum, dom){
-  const alle=(S.intraday||[]).filter(e=>e.ts && belFensterDatum(e.ts)===fensterDatum
+  // §A (v3.4.6): reine Messzeit nach dem Tageslimit (nurZeit) zaehlt weder zu Minuten noch zu Punkten
+  const alle=(S.intraday||[]).filter(e=>e.ts && !e.nurZeit && belFensterDatum(e.ts)===fensterDatum
     && (!dom || dom==='alle' || e.domaene===dom));
-  const zeitKarten={}; let min=0;
-  alle.forEach(e=>{ if(num(e.minuten)>=1){ min+=num(e.minuten); if(e.kartenId) zeitKarten[e.kartenId]=1; } });
+  const zeitKarten={}, kartenMin={}; let min=0;
+  alle.forEach(e=>{ if(num(e.minuten)>=1){ min+=num(e.minuten); if(e.kartenId){ zeitKarten[e.kartenId]=1; kartenMin[e.kartenId]=num(kartenMin[e.kartenId])+num(e.minuten); } } });
+  // heute rueckwirkend: Messzeit aus S.tag.nurZeitSek, soweit die Eintraege noch kein Merkmal tragen
+  if(tagOffen() && S.tag.datum===fensterDatum && S.tag.nurZeitSek && typeof S.tag.nurZeitSek==='object'){
+    const markiert={}; (S.intraday||[]).forEach(e=>{ if(e.nurZeit && e.kartenId && e.ts && belFensterDatum(e.ts)===fensterDatum) markiert[e.kartenId]=num(markiert[e.kartenId])+num(e.minuten); });
+    Object.keys(kartenMin).forEach(id=>{ const ab=Math.min(kartenMin[id], Math.max(0, num(S.tag.nurZeitSek[id])/60-num(markiert[id])));
+      if(ab>0){ min-=ab; kartenMin[id]-=ab; if(kartenMin[id]<=0) delete zeitKarten[id]; } });
+  }
   let p=0, ohneZeitN=0, ohneZeitP=0;
   alle.forEach(e=>{ const pe=num(e.punkte); if(pe<=0) return;
     if(num(e.minuten)>=1 || (e.kartenId && zeitKarten[e.kartenId])) p+=pe;
