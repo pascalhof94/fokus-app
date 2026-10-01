@@ -1941,7 +1941,8 @@ main{padding-left:8px;padding-right:8px}                       /* §1.3: Seitenr
 #statusbar .konto .kf small{color:#9a9ca2;font-weight:600}
 #statusbar .punkte{justify-content:space-between;padding:1px 0;width:auto;height:auto;min-width:0;min-height:0;align-items:stretch;border:0;background:none;text-align:left;font:inherit;color:inherit}
 #statusbar .punkte .sl-kurve{display:block;height:38px}
-#statusbar .punkte svg{display:block;width:100%;height:38px}
+#statusbar .punkte .sl-kurve svg{display:block;width:100%;height:38px}
+#statusbar .tempo svg{flex:none;width:13px;height:13px}
 #statusbar .punkte .reihe{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
 #statusbar .tempo{font-size:13px;font-weight:750;white-space:nowrap;display:inline-flex;align-items:center;gap:2px}
 #statusbar .tempo small{font-size:9.5px;color:#9a9ca2;font-weight:600;margin-left:2px}
@@ -1965,7 +1966,7 @@ main{padding-left:8px;padding-right:8px}                       /* §1.3: Seitenr
 @keyframes fkEinR{from{transform:translateX(46px);opacity:.25}to{transform:none;opacity:1}}
 @keyframes fkEinL{from{transform:translateX(-46px);opacity:.25}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion: reduce){ #fokusAktiv.von-rechts,#fokusAktiv.von-links{animation:none} }
-#fokusAktiv .ktitel{font-size:18px;font-weight:700;line-height:1.25;letter-spacing:-.2px;margin:6px 0 0;overflow-wrap:break-word}
+#fokusAktiv .ktitel{font-size:18px;font-weight:700;line-height:1.25;letter-spacing:-.2px;margin:0;min-height:44px;display:flex;align-items:flex-end;overflow-wrap:break-word}
 #fokusAktiv .kmeta{font-size:12px;color:#9a9ca2;margin:3px 0 10px}
 #fokusAktiv .kmeta b{font-weight:650}
 .kreihe{display:grid;grid-template-columns:50% 1fr;gap:10px;align-items:center}
@@ -2098,6 +2099,8 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .seg i{flex:1;height:10px;border-radius:3px;background:#262a32}
 .legende i.rund{width:10px;height:10px;border-radius:50%}
 .rd-svg{aspect-ratio:1/1}
+.an-bars.breit .an-bar .nm{width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an-bars.breit .an-bar .vv{width:40px}
 .stm .card[data-dialive="tv"]{background:none;border:0;border-radius:0;padding:0;margin:10px 0 0;box-shadow:none}
 .stm .card[data-dialive="tv"] h3{font-size:12px;color:#9a9ca2;font-weight:600;margin:0 0 6px}
 .kulbar{position:relative;border-radius:12px;overflow:hidden;height:120px;background-color:#1a1d22;background-size:cover;background-position:center}
@@ -2294,11 +2297,11 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
    sie — ueber die beiden Alias-Namen, die der Code seit v1.x benutzt.
    Der DATENVERTRAG ist etwas anderes: die aelteste Paket-Version, die der
    Import annimmt (Gate) — er bleibt 2.0, additiv erweitert. */
-const APP_VERSION = '3.5.0';
+const APP_VERSION = '3.5.1';
 const VERSION = APP_VERSION;                  // Alias: appVersion im Export
 const UI_VERSION = 'v'+APP_VERSION;           // Alias: Anzeige
 const DATENVERTRAG = '2.1.0';                 // Import-Gate: Pakete ab dieser appVersion (§9 v3.5.0: Datenvertrag 2.1)
-const APP_BUILD = '2026-10-01-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-10-01-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 try{ document.title='Fokus '+UI_VERSION; }catch(e){}
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
@@ -6953,6 +6956,7 @@ function fokusTacho(k){
     zeitArc.setAttribute('stroke-dashoffset','0');
     zeitArc.setAttribute('stroke-dasharray',(Math.min(1,pct)*RING_C).toFixed(1)+' '+RING_C);
     rotArc.setAttribute('stroke-dasharray',(ueber*RING_C).toFixed(1)+' '+RING_C);
+    rotArc.setAttribute('opacity', ueber>0 ? '1' : '0');   // runde Linienenden zeichnen auch bei Laenge 0 einen Punkt
     rest.textContent = restSek>=0 ? uhrKurz(restSek) : '+'+uhrKurz(-restSek);
     rest.className='w trest'+(restSek<0?' rot':'');
     sub.textContent = (restSek>=0 ? 'noch offen von ' : 'über Soll von ')+Math.round(geplant)+' Min';
@@ -6961,7 +6965,7 @@ function fokusTacho(k){
     const frac=(sek%60)/60;
     zeitArc.setAttribute('stroke-dasharray','52 '+RING_C);
     zeitArc.setAttribute('stroke-dashoffset',(-frac*RING_C).toFixed(1));
-    rotArc.setAttribute('stroke-dasharray','0 '+RING_C);
+    rotArc.setAttribute('stroke-dasharray','0 '+RING_C); rotArc.setAttribute('opacity','0');
     rest.textContent=uhrKurz(sek); rest.className='w trest';
     sub.textContent='Stoppuhr · ohne Soll-Zeit';
     setzeKopf(dot, halo, frac, '#3ecf8e');
@@ -6973,6 +6977,7 @@ function fokusTacho(k){
   if(subs.length){ const fz=subs.reduce((a,u,i)=>a+(u.done?zeiten[i]:0),0);
     progFrac = summe>0 ? fz/summe : subs.filter(u=>u.done).length/subs.length; }
   progArc.setAttribute('stroke-dasharray',(Math.min(1,progFrac)*RING_CP).toFixed(1)+' '+RING_CP);
+  progArc.setAttribute('opacity', progFrac>0 ? '1' : '0');
   let ticks='';
   if(subs.length>1 && summe>0){ let cum=0; subs.slice(0,-1).forEach((u,i)=>{ cum+=zeiten[i]; const w=cum/summe*2*Math.PI-Math.PI/2;
     ticks+='<line x1="'+(66+52.5*Math.cos(w)).toFixed(1)+'" y1="'+(66+52.5*Math.sin(w)).toFixed(1)+'" x2="'+(66+63.5*Math.cos(w)).toFixed(1)+'" y2="'+(66+63.5*Math.sin(w)).toFixed(1)+'" stroke="'+FARBE.KARTE+'" stroke-width="2.5"/>'; }); }
@@ -17164,7 +17169,7 @@ function stmSpielShop(F,dom){
       h+='<div class="stm-dh">Münzen heute</div><div class="fbk-bar mitmarke"><i style="width:'+pz(m).toFixed(1)+'%;background:'+verlauf(FARBE.GOLD)+'"></i><i style="left:'+pz(m).toFixed(1)+'%;width:'+Math.max(0,pz(prog)-pz(m)).toFixed(1)+'%;background:'+FARBE.GOLD+';opacity:.3"></i><u style="left:100%"></u></div><div class="dt-s" style="color:'+FARBE.GOLD+'">'+Math.round(m)+' 🪙 · Prognose '+Math.round(prog)+' · Ziel '+Math.round(ziel)+'</div>'; }catch(e){}
     try{ h+='<div class="stm-dh">Kulisse</div>'+kulisseKachelHtml(); }catch(e){}
     try{ h+='<div class="stm-dh">Outfit-Sammlung · erstes oben</div>'+outfitSammlungHtml(); }catch(e){}
-    try{ h+='<div class="stm-dh">Shop-Stand je Kategorie</div><div class="an-bars">'+KAT_KEYS.map(kk=>{ const n=Math.max(0, num(S.belohnung.stufen[kk])), max=BELOHNUNG[kk].stufen.length;
+    try{ h+='<div class="stm-dh">Shop-Stand je Kategorie</div><div class="an-bars breit">'+KAT_KEYS.map(kk=>{ const n=Math.max(0, num(S.belohnung.stufen[kk])), max=BELOHNUNG[kk].stufen.length;
       return '<div class="an-bar"><span class="nm">'+BELOHNUNG[kk].icon+' '+esc(BELOHNUNG[kk].name)+'</span><span class="track"><i style="width:'+(n/max*100).toFixed(0)+'%;background:'+verlauf(FARBE.GOLD)+'"></i></span><span class="vv">'+n+'/'+max+'</span></div>'; }).join('')+'</div>'; }catch(e){}
     return h; });
 }
@@ -17249,8 +17254,9 @@ function meilensteinHtml(){
     else if(m.art==='outfit') gsvg+='<circle cx="'+x.toFixed(1)+'" cy="'+yA+'" r="6" fill="none" stroke="'+FARBE.GRUEN+'" stroke-width="2.5"/>';
     else if(m.art==='rang') gsvg+='<rect x="'+(x-6).toFixed(1)+'" y="'+(yA-6)+'" width="12" height="12" fill="none" stroke="'+FARBE.WEISS+'" stroke-width="1.5" stroke-dasharray="3 2"/>';
     else gsvg+='<circle cx="'+x.toFixed(1)+'" cy="'+yA+'" r="6" fill="'+FARBE.GOLD+'" fill-opacity=".5"/>';
-    gsvg+='<text x="'+x.toFixed(1)+'" y="'+(oben?yT:yT+6)+'" text-anchor="middle" font-size="10" fill="'+FARBE.WEISS+'">'+esc(m.titel)+'</text>'+
-      '<text x="'+x.toFixed(1)+'" y="'+(oben?yS:yS+6)+'" text-anchor="middle" font-size="9" fill="'+FARBE.GRAU+'">'+esc(m.sub)+'</text>'+
+    const anker=x>W-64 ? 'end' : (x<64 ? 'start' : 'middle'), tx=(anker==='end' ? Math.min(W-2, x+8) : anker==='start' ? Math.max(2, x-8) : x).toFixed(1);   // v3.5.1: am Rand nach innen
+    gsvg+='<text x="'+tx+'" y="'+(oben?yT:yT+6)+'" text-anchor="'+anker+'" font-size="10" fill="'+FARBE.WEISS+'">'+esc(m.titel)+'</text>'+
+      '<text x="'+tx+'" y="'+(oben?yS:yS+6)+'" text-anchor="'+anker+'" font-size="9" fill="'+FARBE.GRAU+'">'+esc(m.sub)+'</text>'+
       (m.t>0 ? '<text x="'+x.toFixed(1)+'" y="'+(yA+16)+'" text-anchor="middle" font-size="9" fill="'+FARBE.GRAU+'">+'+m.t+' T</text>' : (m.t===0 ? '<text x="'+x.toFixed(1)+'" y="'+(yA+16)+'" text-anchor="middle" font-size="9" fill="'+FARBE.GRAU+'">heute</text>' : '')); });
   return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+gsvg+'</svg>';
 }

@@ -126,22 +126,22 @@ var plan=[ // Tag 0 = Mo 28.09.
   {d:5, t:['bad','runde']},               // Sa: WhatsApp frei, Bad geputzt
   {d:6, t:['whatsapp','runde']},          // So
   {d:7, t:[]} ];
-var verlauf={};
+var serieVerlauf={};
 plan.forEach(function(p){
   tagAm(tagNach(MO,p.d));
-  p.t.forEach(function(id){ var t=routineTick(kid(id)); if(id==='runde') (verlauf.runde=verlauf.runde||[]).push(t?t.faktor:null); });
+  p.t.forEach(function(id){ var t=routineTick(kid(id)); if(id==='runde') (serieVerlauf.runde=serieVerlauf.runde||[]).push(t?t.faktor:null); });
   tagEnde();
-  ['duschen','whatsapp'].forEach(function(id){ (verlauf[id]=verlauf[id]||[]).push(kid(id).streak); });
-  (verlauf.gruppe=verlauf.gruppe||[]).push(S.meta.gruppenPflicht.Bad.streak);
+  ['duschen','whatsapp'].forEach(function(id){ (serieVerlauf[id]=serieVerlauf[id]||[]).push(kid(id).streak); });
+  (serieVerlauf.gruppe=serieVerlauf.gruppe||[]).push(S.meta.gruppenPflicht.Bad.streak);
 });
-print('   Serie Duschen (alle 2 Tage):   '+verlauf.duschen.join(' · '));
-print('   Serie Haare ODER Duschen:      '+verlauf.gruppe.join(' · '));
-print('   Serie WhatsApp (ohne Samstag): '+verlauf.whatsapp.join(' · '));
-print('   Serienfaktor Katzenklo:        '+verlauf.runde.join(' · '));
-ok('3 Duschen alle 2 Tage: Mo ✓, Di frei (Serie hält), Mi ✓, Do frei, Fr ohne → gerissen', verlauf.duschen.slice(0,5).join(',')==='1,1,2,2,0');
-ok('3 Haare ODER Duschen: Mo Duschen, Di Haare, Mi Duschen → Gruppe 3; Do ohne beides → gerissen', verlauf.gruppe.slice(0,4).join(',')==='1,2,3,0');
-ok('3 WhatsApp ohne Samstag: Sa neutral, So weiter (6), Mo ohne → gerissen', verlauf.whatsapp.join(',')==='1,2,3,4,5,5,6,0');
-ok('3 Serienfaktor Katzenklo (alle 2 Tage, täglich erledigt): 1,0 → +0,2 je Tag bis 2,0', verlauf.runde.join(',')==='1,1.2,1.4,1.6,1.8,2,2');
+print('   Serie Duschen (alle 2 Tage):   '+serieVerlauf.duschen.join(' · '));
+print('   Serie Haare ODER Duschen:      '+serieVerlauf.gruppe.join(' · '));
+print('   Serie WhatsApp (ohne Samstag): '+serieVerlauf.whatsapp.join(' · '));
+print('   Serienfaktor Katzenklo:        '+serieVerlauf.runde.join(' · '));
+ok('3 Duschen alle 2 Tage: Mo ✓, Di frei (Serie hält), Mi ✓, Do frei, Fr ohne → gerissen', serieVerlauf.duschen.slice(0,5).join(',')==='1,1,2,2,0');
+ok('3 Haare ODER Duschen: Mo Duschen, Di Haare, Mi Duschen → Gruppe 3; Do ohne beides → gerissen', serieVerlauf.gruppe.slice(0,4).join(',')==='1,2,3,0');
+ok('3 WhatsApp ohne Samstag: Sa neutral, So weiter (6), Mo ohne → gerissen', serieVerlauf.whatsapp.join(',')==='1,2,3,4,5,5,6,0');
+ok('3 Serienfaktor Katzenklo (alle 2 Tage, täglich erledigt): 1,0 → +0,2 je Tag bis 2,0', serieVerlauf.runde.join(',')==='1,1.2,1.4,1.6,1.8,2,2');
 tagAm(tagNach(MO,11)); var tR=routineTick(kid('runde'));
 print('   Katzenklo nach 4 Tagen Pause: Faktor '+tR.faktor+' · '+tR.punkte+' P');
 ok('3 Rückfall: mehr ausgelassen als der Rhythmus erlaubt → ×1,0', tR.faktor===1 && tR.punkte===100);
@@ -343,7 +343,7 @@ ok('9 jede Ansicht beginnt oben: setTab, Sortierung, Filter, Fokus und Sheet ruf
 
 /* ══ 12 · Version ═════════════════════════════════════════════════════ */
 kopf('12 · Version');
-ok('12 APP_VERSION 3.4.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.5.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'x', titel:'x'}]})).fehler);
+ok('12 APP_VERSION 3.4.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.5.1' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'x', titel:'x'}]})).fehler);
 
 kopf('Nachtrag v3.0.1 · eine Versionskonstante');
 frisch(); S.tag=neuerTag(MO,1);

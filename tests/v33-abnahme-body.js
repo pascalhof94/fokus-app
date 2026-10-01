@@ -35,7 +35,7 @@ print('   Ziele: DFM '+zielTag('dfm')+' · Privat '+zielTag('privat')+' · zielH
   ok('1'+f[4]+' Linie bei '+f[2]+'/8.500, UEBER '+f[3]+'/8.500', WE || (linie===soll && ue===ueSoll && stil('sBarIstP').right==='0' && stil('sBarIstP').left==='auto' &&
      pz(stil('sBarIstD').width)===Math.round(Math.min(f[0],8500)/8500*1000)/10 && pz(stil('sBarIstP').width)===Math.round(Math.min(f[1],8500)/8500*1000)/10));
 });
-ok('1 die rote Rückstands-Fläche entfällt (Linie statt Fläche)', stil('sBarSoll').width==='0%' && stil('sBarSollMark').display==='block');
+ok('1 die rote Rückstands-Fläche entfällt (Linie statt Fläche; v3.5.1 §2: Soll als gepunktete Marke + Pille)', !/id="sBarSoll"/.test(src) && stil('sBarSollMark').display==='block' && /id="sPhSoll"/.test(src));
 
 /* ══ 2 · Tempo-Ampel ═════════════════════════════════════════════════ */
 kopf('2 · Tempo (§1.1, §0.3)');
@@ -65,8 +65,8 @@ ok('3 Schnitt 167 P/h, Prognose ≈ 2.500, „fehlen 6.000", Farbe ORANGE', Math
 kopf('4 · Matrix (§1.3)');
 frisch(); tagMit(12, 3); punkte(0, 0);
 S.tag.matrixSpur=[{ts:new Date(Date.now()-6*3600000).toISOString(), x:-0.5, y:0.2},{ts:new Date(Date.now()-4*3600000).toISOString(), x:0.3, y:0.1},{ts:new Date(Date.now()-600000).toISOString(), x:0.6, y:-0.1}];
-var gesehen=null, mvOrig=matrixVerlaufSvg; matrixVerlaufSvg=function(sp, opt){ if(opt && opt.klein) gesehen=sp; return mvOrig(sp, opt); };
-renderStatusbar(); matrixVerlaufSvg=mvOrig;
+var gesehen=null, mvOrig=matrixMiniSvg; matrixMiniSvg=function(sp){ gesehen=sp; return mvOrig(sp); };   // v3.5.1 §2: die Statusleiste zeichnet ueber matrixMiniSvg
+renderStatusbar(); matrixMiniSvg=mvOrig;
 ok('4 die Statusleiste zeichnet keine Position, die älter als 5 Stunden ist (2 von 3)', gesehen && gesehen.length===2 && gesehen.every(function(p){ return Date.parse(p.ts)>=Date.now()-5*3600000; }));
 
 /* ══ 5 · Rang mit einem Tag Historie ═════════════════════════════════ */
@@ -100,18 +100,18 @@ ok('7 je Kachel genau eine Render-Funktion (Quelltext)', ['outfitKachelHtml','fa
 kopf('Je Kachel');
 frisch(); tagMit(6, 9); punkte(1000, 500); S.belohnung=null; belohnungInit();
 S.meta.muenzenGesamt=500; S.meta.ausgegebenGesamt=0;
-el('sKontoLeiste').firstChild=dummyEl();   // der DOM-Stub hat keine Kinder
 renderStatusbar();
-var nk=belNaechsterKauf(), kl=el('sKontoLeiste').firstChild.style;
-print('   Konto '+Math.round(konto())+' · nächster Artikel '+(nk?Math.round(nk.preis):'—')+' · Leiste '+kl.width);
-ok('1.2 (v3.5.0 §3.1) Konto-Zelle: Wert GOLD, keine Leiste mehr', /zelle\('sZKonto', fmtKurzP\(k\), '', FARBE\.GOLD\)/.test(src) && !/id="sKontoLeiste"/.test(src));
+var nk=belNaechsterKauf();
+print('   Konto '+Math.round(konto())+' · nächster Artikel '+(nk?Math.round(nk.preis):'—')+' · Zelle '+el('sKW').textContent+' / '+el('sKM').textContent+' / '+el('sKF').textContent);
+ok('1.2 (v3.5.1 §2) Konto-Zelle: drei Zahlen — Wohlstand, Münzen (GOLD), volle Töpfe/5 — keine Leiste', String(el('sKM').textContent)===fmtP(Math.round(konto())) && /^\d$/.test(String(el('sKF').textContent)) &&
+   /id="sKW"/.test(src) && /#statusbar \.konto \.km\{color:#d4af37\}/.test(src) && !/id="sKontoLeiste"/.test(src));
 var ok4=outfitKachelHtml();
 ok('2.4 Outfit: quadratisch, Ring 6 px (GRUEN, Rest GRAU 30 %), Bild in der Mitte, darunter nur der nächste Name', /dia-quad/.test(ok4) && /stroke-width="6"/.test(ok4) &&
    ok4.indexOf('stroke="'+DIA_FARBE.grau+'" stroke-opacity=".3"')>=0 && /<img class="dia-ringbild"/.test(ok4) && /class="dia-name">Outfit \d+</.test(ok4) && ok4.indexOf('fbk-h')<0);
 ok('2.5 Faktor: quadratisch neben dem Outfit, der große Wert', /dia-quad amp/.test(fok) && fok.indexOf(outfitKachelHtml()+faktorKachelHtml(ampelStil(ampelStufe(normalZurUhrzeit('alle').r))))>=0);
 var tg=heuteGegenTypischHtml();
-ok('2.6 (v3.5.0 §4.1.4) Legende „Plan gestrichelt · Ist gefüllt · heute · gestern · Ø Wd" mit drei Werten zu jetzt', tg.indexOf('Plan gestrichelt')>=0 && tg.indexOf('Ist gefüllt')>=0 &&
-   tg.indexOf('gestern')>=0 && (tg.match(/dia-tt-zahl/g)||[]).length===3);
+ok('2.6 (v3.5.1 §3 Nr. 6) „Tempo und Blöcke": Legende Ist · Plan · DFM · Privat, wischbar mit festem y-Rand, Hinweis Tagesstart/Tagesende', />Ist<\/span>/.test(tg) && />Plan<\/span>/.test(tg) && />DFM<\/span>/.test(tg) && />Privat<\/span>/.test(tg) &&
+   /class="dia-tv-y"/.test(tg) && /class="dia-tv-scroll"/.test(tg) && tg.indexOf('◂ Tagesstart')>=0 && tg.indexOf('bis Tagesende ▸')>=0 && tg.indexOf('gestern')<0);
 S.karten=[neueKarte({id:'k7', domain:'privat', titel:'Karte', matrixFeld:'werkzeug', sollMin:30})];
 S.tag.matrixSpur=[{ts:jetztIso(), x:0.2, y:0.1}];
 var fb7=fbWasIchBewege(S.karten[0]);
@@ -123,12 +123,13 @@ ok('3.4 „Als Nächstes im Shop" mit Ankunftszeit', !nk || /dia-zeile">(ca\. \d
 var sam=outfitSammlungHtml();
 ok('3.5 Outfit-Sammlung: 48×48-Bilder mit „N×"', /width="48" height="48"/.test(sam) && /<small>\d+×<\/small>/.test(sam));
 var ku=kulisseKachelHtml();
-ok('3.6 (v3.5.0 §6.6) Kulisse: Kopf KULISSE n/10, Prozent, Balken im Verlauf zweier Farben, Felder-Text', /KULISSE \d+\/10/.test(ku) && /linear-gradient\(90deg,#[0-9a-f]{6},#[0-9a-f]{6}\)/i.test(ku) && /Feldern/.test(ku));
+ok('3.6 (v3.5.1 §4 Nr. 9/§5 Nr. 3) Kulisse: farbige Fassung als Hintergrund, Schleier, „n % ausgemalt", Balken im GOLD-Verlauf', /class="kulbar" style="background-image:url\(img\/kulissen\/bg\d\d_farbig\.jpg\)"/.test(ku) && /class="schleier"/.test(ku) &&
+   /<b>Kulisse \d+<\/b>/.test(ku) && /\d+ % ausgemalt/.test(ku) && /linear-gradient\(90deg,#f3dc8a,#d4af37\)/i.test(ku));
 ok('0.1 UEBER #FF2D95 war vorher nirgends benutzt', (src.match(/#FF2D95/gi)||[]).length>=1 && DIA_FARBE.ueber==='#FF2D95');
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION aktuell (3.4.0), Build 2026-10-01-1', APP_VERSION==='3.5.0' && UI_VERSION==='v3.5.0' && APP_BUILD==='2026-10-01-1');
+ok('APP_VERSION aktuell (3.4.0), Build 2026-10-01-2', APP_VERSION==='3.5.1' && UI_VERSION==='v3.5.1' && APP_BUILD==='2026-10-01-2');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

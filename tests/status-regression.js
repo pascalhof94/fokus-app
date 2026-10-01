@@ -36,7 +36,7 @@ var NAMES = ['num',
   // §2 (v1.13.0): Standardwerte
   'standardWert','tickWertEff','abhakbonusFeldDefault','abhakbonusDefault',
   // §3.1/§3.2 (v1.13.0): Vier-Kategorien-Quote + Rein/Raus-Zählwerk
-  'routinenQuoteHeute','routineFaellig','routErledigtHeute','anFlowReihe','reinRausTag',
+  'routinenQuoteHeute','routineFaellig','routErledigtHeute','anFlowReihe','schubZaehlt','reinRausTag',
   // Zahlenbeleg 22: Mess-Ebene rechnet roh
   'belFensterDatum','tagesRateDetail','tagesRate','aktiveRateTage','tagIstUrlaub','medianVon','oePStd7',
   'leistungsSchwelle','leistungsRangVon','rangMass',
@@ -251,13 +251,21 @@ S.karten=[
 ];
 S.intraday=[
   { ts:HEUTE2+'T11:00:00', kartenId:'f3', domaene:'dfm', punkte:500, minuten:0, typ:'abhaken' },
-  { ts:GESTERN+'T18:00:00', kartenId:'f4', domaene:'dfm', punkte:0, minuten:0, typ:'schub', ziel:HEUTE2 },
+  { ts:GESTERN+'T18:00:00', kartenId:'f4', domaene:'dfm', punkte:-20, minuten:0, typ:'schub', ziel:HEUTE2 },   // v3.5.1: Schiebung MIT Abzug
   { ts:HEUTE2+'T12:00:00', kartenId:'f5', domaene:'dfm', punkte:0, minuten:0, typ:'wiederoffen' }
 ];
 var fl=anFlowReihe('alle'), rrH=reinRausTag(fl, HEUTE2), rrG=reinRausTag(fl, GESTERN);
 ok('§3.2 BELEG rein=4 heute (neu + Folge + Schub-Ankunft + wiedereröffnet)', rrH.rein===4);
 ok('§3.2 BELEG raus=1 heute (Vorgängerin abgehakt)', rrH.raus===1);
 ok('§3.2 BELEG geschoben zählt am AUSGANGSTAG (gestern=1, heute=0), kein Abgang', rrG.geschoben===1 && rrH.geschoben===0 && rrG.raus===0);
+// v3.5.1 §6 (a): Schieben OHNE Abzug setzt nur das Datum — es erhöht „geschoben" nicht und zählt nicht als „rein" am Zieltag;
+// eine offene Karte beim Tagesabschluss (quelle tagesabschluss) zählt auch ohne Abzug
+S.intraday.push({ ts:HEUTE2+'T13:00:00', kartenId:'f4', domaene:'dfm', punkte:0, minuten:0, typ:'schub', ziel:GESTERN });
+var fl351=anFlowReihe('alle'), a351=reinRausTag(fl351, HEUTE2), g351=reinRausTag(fl351, GESTERN);
+ok('v3.5.1 (a) Schieben ohne Abzug erhöht geschoben nicht (heute bleibt 0) und zählt nicht als rein am Zieltag', a351.geschoben===0 && g351.rein===rrG.rein && schubZaehlt(S.intraday[S.intraday.length-1])===false);
+S.intraday.push({ ts:HEUTE2+'T23:00:00', kartenId:'f4', domaene:'dfm', punkte:0, minuten:0, typ:'schub', ziel:GESTERN, quelle:'tagesabschluss' });
+ok('v3.5.1 (a) offene Karte beim Tagesabschluss zählt als geschoben (auch ohne Abzug)', reinRausTag(anFlowReihe('alle'), HEUTE2).geschoben===1);
+S.intraday.splice(S.intraday.length-2, 2);
 
 // ══ 10) §4.3 (v1.13.0) ZAHLENBELEG 22: Faktor 2 — Mess-Ebene bleibt roh ══
 S.tag={ tagId:HEUTE+'-1', datum:heuteIso(), startTs:heuteIso()+'T09:00:00', endeTs:null, akku:75, istMinutenStart:{}, abzuegeBilanz:0, log:[] };

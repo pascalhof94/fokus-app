@@ -556,8 +556,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.5.0' && UI_VERSION==='v3.5.0' &&
-   APP_BUILD==='2026-10-01-1');
+ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.5.1' && UI_VERSION==='v3.5.1' &&
+   APP_BUILD==='2026-10-01-2');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -971,13 +971,15 @@ S.meta.muenzenGesamt=100000; S.meta.ausgegebenGesamt=0;
 renderBelohnung();
 var bh=el('belohnungBody').innerHTML;
 ok('§4 (v3.5.0 §6.6) Bereiche: Was heute noch geht · Shop · Was ich schon erklommen habe', bh.indexOf('Was heute noch geht')>=0 && bh.indexOf('Was ich schon erklommen habe')>=0 && bh.indexOf('>Shop<')>=0);
-var kach=bh.split(/<div class="fbk( voll)?"/).filter(function(x,i){ return i>0 && x!==undefined && x!==' voll'; });
-var ohneGrafik=kach.filter(function(k){ return !/<svg|fbk-bar|bw-of|dia-of|dia-kulisse|dt-w|dia-leiste/.test(k); });   // v3.5.0 §6.6: KPI-Kacheln tragen den grossen Wert
-ok('§4 jede Kachel hat eine Grafik ('+kach.length+' Kacheln, ohne: '+ohneGrafik.length+')', kach.length>=9 && ohneGrafik.length===0);
+var kach=bh.split(/<div class="kch( flach)?"/).filter(function(x,i){ return i>0 && x!==undefined && x!==' flach'; });   // v3.5.1 §5: Kacheln .kch
+var ohneGrafik=kach.filter(function(k){ return !/<svg|class="w|lbar/.test(k); });   // KPI-Kacheln tragen den grossen Wert oder die Mini-Toepfe
+ok('§4 (v3.5.1 §5) jede Kachel trägt Wert oder Grafik ('+kach.length+' Kacheln, ohne: '+ohneGrafik.length+')', kach.length>=8 && ohneGrafik.length===0);
 ok('§4 (v3.5.0 §6.6) Szene mit Avatar und Album-Knopf statt Outfit-Leiste', /mal-av/.test(bh) && /data-album="1"/.test(bh));
-ok('§4 (v3.5.0 §6.6) Malmodus-Knopf und KPI-Kacheln (Töpfe, nächster Kauf)', /data-malmodus="1"/.test(bh) && bh.indexOf('Töpfe')>=0 && bh.indexOf('nächster Kauf')>=0);
-ok('§4 Shop: sechs Kategorien', (bh.match(/class="bw-kat"/g)||[]).length===6);
-ok('§4 (v3.5.0 §6.6) Rang + Bestwert in „Was ich schon erklommen habe"', bh.indexOf('Rang · Bestwert')>=0);
+ok('§4 (v3.5.1 §5 Nr. 1) Malmodus-Knopf, Topf-Kachel mit fünf Mini-Töpfen und weißem Text, Kachel „Nächster Kauf"', /data-malmodus="1"/.test(bh) && bh.indexOf('Farbtöpfe')>=0 && bh.indexOf('Nächster Kauf')>=0 &&
+   (function(){ var mt=(bh.match(/<div class="mini-toepfe">([\s\S]*?)<\/div>/)||[])[1]||''; return (mt.match(/<svg/g)||[]).length>=5; })() && /class="mt-text">\d voll · \d füllt · \d leer/.test(bh));
+ok('§4 Shop: sechs Kategorien (v3.5.1 §5 Nr. 2: Objektbild 40 %, Stufenpunkte 1–12)', (bh.match(/class="bw-kat objkat"/g)||[]).length===6 && (bh.match(/class="objbild/g)||[]).length===6 &&
+   (function(){ var st=(bh.match(/<div class="stufen"[^>]*>([\s\S]*?)<\/div>/)||[])[1]||''; return (st.match(/<i /g)||[]).length===12; })());
+ok('§4 (v3.5.1 §5 Nr. 4) „Was ich schon erklommen habe": Rang + Bestwert, Segmentleisten je Kennzahl', bh.indexOf('· Bestwert ')>=0 && (bh.match(/class="seg dicht"/g)||[]).length===3 && /class="seg6"/.test(bh));
 ok('§4 Shop-Reset NICHT auf der Seite', bh.indexOf('data-shopreset')<0);
 var kontoVor=konto(), stufeVor=num(S.belohnung.stufen.soziales);
 ok('§4 Kaufen-Knopf auf der Seite', bh.indexOf('data-kauf="soziales"')>=0);
@@ -1311,7 +1313,10 @@ ok('§6 drei Einstiege: Statistik-Matrix, Fokus-Matrix, Knopf in der Matrix-Sich
 renderStatistik();
 var sb=el('statistikBody').innerHTML;
 ok('§7 (v3.5.0 §5.1) Statistik beginnt mit Gruppe 1 · Heute: Der Tag vor Matrix heute', sb.indexOf('1 · Heute')>=0 && sb.indexOf('data-stmodul="tag"')<sb.indexOf('data-stmodul="matrixHeute"'));
-ok('§7 Tagebuch-Punkte unterscheidbar (Raute, Matrix heute)', (matrixHeuteHtml().svg.match(/Z" fill="none" stroke="#fff"/g)||[]).length>=1);
+ok('§7 (v3.5.1 §3 Nr. 7) Matrix heute quadratisch, Zeit je Feld in den Ecken, Leiste mit Legende in fester Reihenfolge', (function(){ var mh=matrixHeuteHtml();
+  return /viewBox="0 0 300 300"/.test(mh.svg) && ['Ablenkung','Werkzeug','Zustand','Ziel'].every(function(t){ return mh.svg.indexOf('>'+t+'</text>')>=0; }) &&
+    /class="verteil mx-leiste"/.test(mh.leiste) && mh.leiste.indexOf('Ablenkung')<mh.leiste.indexOf('Zustand') && mh.leiste.indexOf('Zustand')<mh.leiste.indexOf('unbekannt') &&
+    mh.leiste.indexOf('unbekannt')<mh.leiste.indexOf('Werkzeug') && mh.leiste.indexOf('Werkzeug')<mh.leiste.indexOf('Ziel '); })());
 var fb2=fbWoIchStehe();
 ok('§8→v2.5 §1.1 Fokusansicht zeigt die Belastungssteuerung (Original anModACWR), nicht mehr die Matrix-Belastung',
    fb2.indexOf(anModACWR(analyseFenster(), S.ui.analyseDomain||'alle'))>=0 && fb2.indexOf('über die Matrix, nicht über eine Sportformel')<0);
@@ -1423,6 +1428,13 @@ function progTest(akkuHeute, mitAkku){
   S.tag.startTs=new Date(Date.now()-6*3600000).toISOString(); S.tag.akku=akkuHeute;
   return prognoseHeute();
 }
+// v3.5.1 §6: der Zahlenbeleg rechnet mit „jetzt − 120 Min" und „jetzt + 20 Min" am selben Kalendertag — zwischen 23:40 und 05:00
+// brach er deshalb an der Tagesgrenze (auch am unveraenderten 3.5.0-Stand). Fuer diesen Block steht die Uhr fest auf 14:00.
+var _RD351=Date, _fix351=(function(){ var d=new _RD351(); d.setHours(14,0,0,0); return d.getTime(); })();
+function FD351(){ var a=Array.prototype.slice.call(arguments); if(!(this instanceof FD351)) return new _RD351(_fix351).toString();
+  if(!a.length) return new _RD351(_fix351); return new (Function.prototype.bind.apply(_RD351,[null].concat(a)))(); }
+FD351.now=function(){ return _fix351; }; FD351.parse=_RD351.parse; FD351.UTC=_RD351.UTC; FD351.prototype=_RD351.prototype;
+Date=FD351;
 var pA=progTest(50,true);
 ok('§3.3 k = 50 % ÷ 50 % = 1 → Prognose '+Math.round(pA.prognose)+' = 500 + 2000 × 1', Math.round(pA.rest)===2000 && Math.abs(pA.k-1)<1e-9 && Math.round(pA.prognose)===2500);
 var pV=progTest(100,true);
@@ -1434,6 +1446,7 @@ ok('§3.3 ohne typischen Akku: k = 1, und die Kachel sagt es', pO.k===1 && pO.kG
 S.karten=[]; var kz=anModKonsistenz(analyseFenster(),'alle');
 ok('§3.3 heutiger Wochentag in drei Schichten (geschafft · Prognose · Ziel)', /an-bar heute amp/.test(kz) && kz.indexOf('class="prog"')>=0 &&
    kz.indexOf('class="ist"')>=0 && /<u style="left:/.test(kz) && kz.indexOf('Prognose')>=0);
+Date=_RD351; _ampelMemo=null;   // die Uhr laeuft wieder
 /* §3.4 nur DFM, DFM-Routinen zählen mit */
 frisch();
 S.karten=[ neueKarte({id:'dA', domain:'dfm', titel:'DFM neu', faelligkeit:H(), erstelltTs:jetztIso()}),
@@ -1479,11 +1492,11 @@ kopf('v2.5.0 · Nebenbefund: die Migration darf Unteraufgaben nicht leeren');
 function isoPlus(t){ return anVorTage(H(), -t); }
 kopf('v2.6.0 §1 · Statusleiste Zeile 2: Akku · Tempo · Konto · Matrix-Verlauf');
 (function(){
-  var r2=(src.match(/<div class="sb-r2">([\s\S]*?)<\/div>\s*<\/div>\s*<div id="fkNav"/)||[])[1]||'';
+  var r2=(src.match(/<div class="sl-z3">([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>\s*<div id="fkNav"/)||[])[1]||'';   // v3.5.1 §2: Zeile 3 der Statusleiste
   var ids=(r2.match(/id="sZ\w+"/g)||[]).map(function(x){ return x.slice(4,-1); });
-  ok('§1 (v3.5.0 §3.1) Zellen in dieser Reihenfolge: '+ids.join(' · '), ids.join(',')==='sZAkku,sZKonto,sZTempo,sZMatrix');
+  ok('§1 (v3.5.1 §2) Zellen in dieser Reihenfolge: '+ids.join(' · ')+' (Punkte-Block dazwischen)', ids.join(',')==='sZAkku,sZKonto,sZTempo,sZMatrix' && r2.indexOf('id="btnKurve"')>r2.indexOf('sZKonto') && r2.indexOf('id="btnKurve"')<r2.indexOf('sZTempo'));
   ok('§1 Serie und Rang sind aus der Leiste heraus', r2.indexOf('sZSerie')<0 && r2.indexOf('sZRang')<0 && !/#sZRang|sZSerie/.test(src));
-  ok('§1 (v3.5.0 §3.1) Zeile 3 als Grid 44px 52px 1fr, Matrix über Zeile 2+3', /#statusbar \.sb-r2\{[^}]*44px 52px 1fr/.test(src) && /#statusbar #sZMatrix\{[^}]*grid-row:2\/4/.test(src));
+  ok('§1 (v3.5.1 §2) Zeile 3 als Grid 44px 64px 1fr 8px 72px, Höhe 72, Matrix 72×72; kein Play/Pause-Knopf mehr', /#statusbar \.sl-z3\{[^}]*44px 64px 1fr 8px 72px[^}]*height:72px/.test(src) && /#statusbar #sZMatrix\{[^}]*width:72px;height:72px/.test(src) && !/id="fkPP"/.test(src));
   ok('§1 Tipp auf die Mini-Tageskurve öffnet die Statistik OBEN', /el\('btnKurve'\)\.addEventListener\('click', \(\)=>\{[\s\S]{0,260}setTab\('statistik'\);\s*const m=document\.querySelector\('main'\); if\(m\) m\.scrollTop=0;/.test(src));
   frisch();
   S.karten=[ neueKarte({id:'sb1', domain:'dfm', titel:'Läuft', sollMin:60, matrixFeld:'werkzeug', faelligkeit:H()}) ];
@@ -1492,7 +1505,7 @@ kopf('v2.6.0 §1 · Statusleiste Zeile 2: Akku · Tempo · Konto · Matrix-Verla
   renderStatusbar();
   var tz=el('sZTempo').querySelector('.z').innerHTML;
   ok('§2.2 Tempo-Zelle = die schmale Leiste mit Ich, Zieltempo und der laufenden Karte', /class="tl klein/.test(tz) || true);
-  ok('§3.1 Matrix-Zelle trägt die kleine Linie', el('sMv').innerHTML.indexOf('mv-svg')>=0 && el('sMv').innerHTML.indexOf('<path d="M')>=0);
+  ok('§3.1 Matrix-Zelle trägt die kleine Linie (v3.5.1 §2: 72×72)', el('sMv').innerHTML.indexOf('viewBox="0 0 72 72"')>=0 && el('sMv').innerHTML.indexOf('<path d="M')>=0);
 })();
 
 kopf('v2.6.0 §2 · Tempo-Leiste — drei Marken, exakte Zahlen, Zahlenbeleg Counter');
@@ -1519,12 +1532,13 @@ ok('§2 „Wo ich stehe" und „Zieltempo" sind die bestehenden Größen (istRat
 kc.abhakbonus=1000;
 var tl=tempoLeisteHtml(tempoWerte(kc));
 ok('§2 Zahlen an den Marken exakt mit Tausenderpunkt, kein „k" ('+(tl.match(/Karte [\d.]+/)||[''])[0]+')', /Karte \d\.\d{3}/.test(tl) && !/\d+,?\d*k\b/.test(tl));
-ok('§2 Karten-Marke in der Matrixfeld-Farbe (v2.4.1), eigene Marke in der Ampel', /--fc:#4ade80/.test(tl) && /--af:/.test(tl) && /tl-k prog/.test(tl) && /tl-k live/.test(tl));
+ok('§2 (v3.5.1 §3 Nr. 2) Karten-Marke in der Familienfarbe (Konstanten), eigene Marke in der Ampel', /--fc:#(3b82f6|a855f7);--fc2:#(93c5fd|d8b4fe)/.test(tl) && /--af:#/.test(tl) && /tl-k prog/.test(tl) && /tl-k live/.test(tl) && tl.indexOf('Was die Karte mit meinem Tempo macht · Punkte je Stunde')>=0);
 if(!tw2.we){ ok('§2 drei Marken: Ich · Zieltempo · Karte', /tl-l ich/.test(tl) && /tl-l ziel/.test(tl) && /tl-l kprog/.test(tl)); }
 else ok('§2 (Wochenende) nur die Karte, Hinweis steht da', /Wochenende/.test(tl));
 kc.abhakbonus=100;
 S.ui.fokusZeigt=null; fokusKarteAnsehen('cnt'); renderFokus();
-ok('§2 (v3.5.0 §4.1.1) Tempo-Leiste entfällt im Karten-Kern; KPIs 2×2 neben dem Ring, Restminuten in der Ringmitte', !/id="tTempo"/.test(src) && /tkpis" id="tKpis"/.test(src) && /tringmitte/.test(src));
+ok('§2 (v3.5.1 §3 Nr. 1/2) Karten-Kern: Ring 50 % mit Outfit-Foto, vier Kennzahlen daneben, Tempo-Leiste der Karte zurück', /id="tTempo"/.test(src) && /class="kring"/.test(src) && /class="kfoto"/.test(src) &&
+   ['tRest','tKpiTempo','tKpiPunkte','tKpiSchritte'].every(function(id){ return el('fokusView').innerHTML.indexOf('id="'+id+'"')>=0; }) && /\.kreihe\{[^}]*grid-template-columns:50% 1fr/.test(src));
 
 kopf('v2.6.0 §3 · Matrix-Verlauf');
 frisch();
@@ -1901,7 +1915,7 @@ ok('§1.2 Counter bleibt an seinem Platz und zeigt den Zählstand im Zähler-Fel
 ok('§1.2 der +1-Handler: Tick ohne Dialog, Abschluss nur beim Tageslimit (v3.1)', /const p=altTick\(k\); saveKarten\(\)/.test(src) && /if\(istTickKarte\(k\)\)\{ karteTick\(k\.id, true\)/.test(src));
 S.ui.fokusZeigt=null; fokusKarteAnsehen('aK'); renderFokus();
 var fvA=el('fokusView').innerHTML;
-ok('§1.2 (v3.5.0 §4.1.7) Kartenliste „meistgenutzt" ganz unten in der Fokusansicht', fvA.indexOf('Karten · meistgenutzt')>fvA.indexOf('Matrix heute'));
+ok('§1.2 (v3.5.1 §3 Nr. 9) Kartenliste „Meistgenutzt · letzte 7 Tage" ganz unten in der Fokusansicht', fvA.indexOf('Meistgenutzt · letzte 7 Tage')>fvA.indexOf('Matrix heute') && fvA.indexOf('Matrix heute')>0);
 var zs=zeitstrahlHtml();
 // v3.0.0 (Entscheidung Pascal): Routinen stehen AUCH wieder im Tagesablauf
 ok('§1.2 Routinen stehen auch im Tagesablauf (v3.0), Aufgaben sowieso', zs.indexOf('Zähne')>=0 && zs.indexOf('Kalkulation Welle')>=0);
@@ -2338,9 +2352,9 @@ syncImport(JSON.stringify({appVersion:'2.9.1', karten:[], korrekturen:[{ datum:S
 renderAlles(); renderStatusbar();
 var am=(function(){ _ampelMemo=null; return tagesAmpel(); })(), nz=normalZurUhrzeit('alle'), kurve=syncExport('delta').kurvenHeute.stunden, zi=zielUndIstHeute();
 print('   (Tempo '+Math.round(paceWerte().ist)+' · Normal '+Math.round(nz.ist)+')');
-print('   offen: vorher '+vor+' → nachher '+bilanz()+' · Leiste Pv '+el('sPhPrv').textContent+' · heute '+el('fkRight').innerHTML.replace(/<[^>]+>/g,' ').trim()+' · Ampel '+Math.round(am.ist)+' · Tagesziel '+Math.round(zi.ist)+' · Kurve '+kurve[kurve.length-1].ist+' · Log '+logS());
+print('   offen: vorher '+vor+' → nachher '+bilanz()+' · Leiste Pv '+el('sBarZP').textContent+' · heute '+el('fkRight').textContent+' · Ampel '+Math.round(am.ist)+' · Tagesziel '+Math.round(zi.ist)+' · Kurve '+kurve[kurve.length-1].ist+' · Log '+logS());
 ok('§5 BELEG offener Tag: 1.802 → 1.065 — Statusleiste, „heute", Ampel, Tempo, Tagesziel-Ring und Kurve zeigen den korrigierten Wert',
-   vor===1802 && bilanz()===1065 && String(el('sPhPrv').textContent)==='65' && /<div class="pt">1065</.test(el('fkRight').innerHTML) &&
+   vor===1802 && bilanz()===1065 && String(el('sBarZP').textContent)==='65' && String(el('fkRight').textContent)==='1.065' &&
    Math.round(am.ist)===1065 && Math.round(nz.ist)===1065 && Math.round(zi.ist)===1065 && kurve[kurve.length-1].ist===1065 && Math.round(paceWerte().ist)===1065);
 ok('§4 die Korrektur steht im Stunden-Log (Tagesbilanz = Summe des Logs)', logS()===1065);
 
@@ -2351,10 +2365,10 @@ var konto0=num(S.meta.muenzenGesamt);
 syncImport(JSON.stringify({appVersion:'2.9.1', karten:[], korrekturen:[{ datum:S.tag.datum, grund:'Prognose beim Abhaken mitgebucht', tag:{punktePrivat:65} }]}));
 renderFokusleiste(); _ampelMemo=null;
 var prot=S.meta.korrekturProtokoll[S.meta.korrekturProtokoll.length-1], am2=tagesAmpel();
-print('   abgeschlossen: Protokoll '+prot.vorher.punkte+' → '+prot.nachher.punkte+' · '+prot.aenderungen.join(' · ')+' · „heute" '+el('fkRight').innerHTML.replace(/<[^>]+>/g,' ').trim()+' · Ampel '+Math.round(am2.ist));
+print('   abgeschlossen: Protokoll '+prot.vorher.punkte+' → '+prot.nachher.punkte+' · '+prot.aenderungen.join(' · ')+' · „heute" '+el('fkRight').textContent+' · Ampel '+Math.round(am2.ist));
 ok('§5 BELEG abgeschlossener Tag (der Fall vom 26.09.): Protokoll 1.802 → 1.065, Konto zurückgebucht — und „heute" zeigt 1.065 statt 1.802',
    prot.vorher.punkte===1802 && prot.nachher.punkte===1065 && num(S.meta.muenzenGesamt)<konto0 &&
-   /<div class="pt">1065</.test(el('fkRight').innerHTML) && Math.round(tagesPunkteLive())===1065 && Math.round(zielUndIstHeute().ist)===1065);
+   String(el('fkRight').textContent)==='1.065' && Math.round(tagesPunkteLive())===1065 && Math.round(zielUndIstHeute().ist)===1065);
 ok('§3 auch Ampel und Stunden-Log des abgeschlossenen Tags stehen auf dem korrigierten Wert', Math.round(am2.ist)===1065 && logS(S.tag)===1065);
 
 kopf('v2.9.1 §4 · Jede Punktebuchung steht im Stunden-Log');
