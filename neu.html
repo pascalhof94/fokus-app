@@ -598,7 +598,48 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 #fokusAktiv.tkern{border-left:4px solid var(--line);padding:12px}
 #fokusAktiv.tkern.laeuft{box-shadow:0 0 0 1px var(--blue) inset}
 .tkopfreihe{display:flex;align-items:center;gap:12px}
-.tringwrap{position:relative;width:132px;height:132px;flex:none}
+.tringwrap{position:relative;width:76px;height:76px;flex:none}   /* §4.1.1 (v3.5.0): Ring 76 px */
+.tringwrap svg{display:block}
+.tringmitte{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.tringmitte .trest{font-size:22px;line-height:1}
+.tringmitte .trestsub{font-size:8px;color:#9a9ca2;margin:1px 0 0}
+.tkopfreihe .tkpis{flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:0}
+/* §4 (v3.5.0): Tagesketten · Der Tag · Matrix heute · Flow/Belastung · Kartenliste */
+.tk{padding:10px 12px}
+.tk-kopf{display:flex;justify-content:space-between;align-items:center;font-size:14px;cursor:pointer}
+.tk-kopf .tk-r{font-size:11px;color:#9a9ca2}
+.tk-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tk-chip.on{background:rgba(255,255,255,.08)}
+.tk-reihe{font-size:12px;color:#9a9ca2;margin-top:8px;line-height:1.45}
+.dt-kacheln{grid-template-columns:1fr 1fr;gap:8px}
+.dt-w{font-family:ui-monospace,monospace;font-size:20px;font-weight:600;line-height:1.15;display:flex;align-items:center;gap:4px}
+.dt-w small{font-size:12px;color:#9a9ca2;font-weight:500}
+.dt-s{font-size:10.5px;color:#9a9ca2;margin:2px 0 4px}
+.dt-bonus{font-size:11px;color:#9a9ca2;margin-top:8px}
+.dt-bonus .fbk-bar{margin-top:4px}
+.mx-heute{display:block;width:100%;margin-top:4px}
+.mx-leiste{display:flex;height:8px;border-radius:4px;overflow:hidden;background:#1c1f25;margin-top:8px}
+.mx-leiste i{display:block;height:100%}
+.fl-z{display:flex;justify-content:space-between;font-family:ui-monospace,monospace;font-size:13px;padding:2px 0}
+.acwr-bullet{position:relative;height:10px;border-radius:5px;overflow:hidden;background:#1c1f25;margin-top:6px}
+.acwr-bullet i{position:absolute;top:0;bottom:0;opacity:.3}
+.acwr-bullet b{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff}
+.tickknopf{position:relative;width:40px;height:40px;flex:none;border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#e8e9ec}
+.tickknopf span{width:30px;height:30px;border-radius:50%;background:rgba(232,233,236,.18);display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1}
+.tickknopf b{position:absolute;top:-2px;font-family:ui-monospace,monospace;font-size:14px;font-weight:700;line-height:1;text-shadow:0 0 4px #000}
+.uzzeile{align-items:center}
+.uzzeile .uatitel{flex:1}
+.uzlimit{font-size:10.5px;color:#9a9ca2}
+.kl{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.kl-z{display:grid;grid-template-columns:34px 1fr 40px 34px;gap:8px;align-items:center;border-left:3px solid #3b82f6;border-radius:12px;background:#121418;padding:8px 8px 8px 10px;min-height:52px}
+.kl-z.laeuft{background:#16203a}
+.kl-z.fertig .kl-titel{color:#9a9ca2;text-decoration:line-through}
+.kl-play{width:34px;height:34px;border-radius:9px;border:1px solid #2a2d33;background:#1a1d22;color:#e8e9ec;font-size:14px;display:flex;align-items:center;justify-content:center}
+.kl-t{min-width:0}
+.kl-titel{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kl-meta{font-size:10.5px;color:#9a9ca2;font-family:ui-monospace,monospace}
+.kl-check{width:34px;height:34px;border-radius:50%;border:2px solid #2a2d33;background:none;color:#2a2d33;font-size:15px;display:flex;align-items:center;justify-content:center;padding:0}
+.kl-check.ok{background:#3ecf8e;border-color:#3ecf8e;color:#0a0f1a}
 /* UI-A (v1.5.2): Kopf/Oberkörper-Zoom — der Kreis ist jetzt ein Clip-Wrapper
    (.avclip), das Bild hängt mit ~320 % Höhe oben zentriert darin (alpha-
    gecroppte PNGs, Kopf beginnt oben → sichtbar bleibt das obere Drittel).
@@ -5052,36 +5093,21 @@ function renderFokus(){
   const idx=Math.max(0, kand.findIndex(x=>x.id===k.id));
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
   // §5 (v1.11.0): Die Kleidung zeigt den Tag — Bild-Slot = heutiges Outfit.
-  const vital=(typeof vitalitaet==='function')?vitalitaet():true;
-  const av = '<span class="avclip" id="tRingBg">'+
-             '<img class="avfoto" src="'+AVATAR_BILDER[(typeof outfitHeute==='function'?outfitHeute():1)-1]+'" alt="Avatar" onerror="this.style.display=\'none\';var f=this.nextElementSibling;if(f)f.style.display=\'flex\'">'+
-             '<span class="avfallback" style="display:none">🧑</span></span>';
-  // Tacho-Ring (SVG): äußerer Zeit-Ring + Überzug + innerer Fortschritts-Ring + Kopf-Punkt.
-  const ring='<div class="tringwrap"><svg viewBox="0 0 132 132" width="132" height="132">'+
-    '<defs>'+
-    '<linearGradient id="gLauf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3ecf8e"/><stop offset="1" stop-color="#6dd3e0"/></linearGradient>'+
-    '<linearGradient id="gGelb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2b84b"/><stop offset="1" stop-color="#f08c4b"/></linearGradient>'+
-    '<linearGradient id="gRot" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f66d6d"/><stop offset="1" stop-color="#c23a3a"/></linearGradient>'+
-    '<linearGradient id="gProg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f8ef7"/><stop offset="1" stop-color="#6dd3e0"/></linearGradient>'+
-    '</defs>'+
-    '<circle cx="66" cy="66" r="58" fill="none" stroke="var(--line)" stroke-width="8"/>'+
-    '<circle cx="66" cy="66" r="48" fill="none" stroke="var(--line)" stroke-width="4" opacity=".45"/>'+
-    '<circle id="tZeitArc" cx="66" cy="66" r="58" fill="none" stroke="url(#gLauf)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 '+RING_C.toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
-    '<circle id="tRotArc" cx="66" cy="66" r="58" fill="none" stroke="url(#gRot)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 '+RING_C.toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
-    '<circle id="tProgArc" cx="66" cy="66" r="48" fill="none" stroke="url(#gProg)" stroke-width="4" stroke-linecap="round" stroke-dasharray="0 '+RING_CP.toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
+  // §4.1.1 (v3.5.0): Ring 76 px — Zeit-Bogen in der Familienfarbe, ueber Plan UEBER; in der Mitte Restminuten
+  const famK=k.domain==='privat' ? FARBE.LILA : FARBE.BLAU;
+  const ring='<div class="tringwrap"><svg viewBox="0 0 132 132" width="76" height="76">'+
+    '<circle cx="66" cy="66" r="58" fill="none" stroke="'+FARBE.BAHN+'" stroke-width="10"/>'+
+    '<circle cx="66" cy="66" r="46" fill="none" stroke="'+FARBE.BAHN+'" stroke-width="5" opacity=".6"/>'+
+    '<circle id="tZeitArc" cx="66" cy="66" r="58" fill="none" stroke="'+famK+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 '+RING_C.toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
+    '<circle id="tRotArc" cx="66" cy="66" r="58" fill="none" stroke="'+FARBE.UEBER+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 '+RING_C.toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
+    '<circle id="tProgArc" cx="66" cy="66" r="46" fill="none" stroke="'+FARBE.WEISS+'" stroke-opacity=".6" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 '+RING_CP.toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
     '<g id="tTicks"></g>'+
-    '<circle id="tKopfHalo" class="tkopfpuls" r="7" fill="var(--ok)" cx="66" cy="8" opacity="0"/>'+
-    '<circle id="tKopfDot" r="3.5" fill="#e8eef7" cx="66" cy="8" opacity="0"/>'+
-    '</svg>'+av+'</div>';
-  const kopf='<div class="tkopfreihe">'+ring+
-    '<div class="tinfos"><div class="trest" id="tRest">–</div><div class="trestsub" id="tRestSub"></div>'+
+    '<circle id="tKopfHalo" class="tkopfpuls" r="7" fill="#fff" cx="66" cy="8" opacity="0"/>'+
+    '<circle id="tKopfDot" r="4" fill="#fff" cx="66" cy="8" opacity="0"/>'+
+    '</svg><div class="tringmitte"><b class="trest" id="tRest">–</b><small class="trestsub" id="tRestSub">Min Rest</small></div></div>';
+  const kopf='<div class="tkopfreihe">'+ring+'<div class="tkpis" id="tKpis"></div></div>'+
       '<div class="tuabox" id="tUaBox" hidden><div class="l">UNTERAUFGABE <span id="tUaNum"></span></div>'+
-      '<div class="n" id="tUaName"></div><div class="r" id="tUaRest"></div></div></div></div>';
-  const stats='<div class="tstats">'+
-    '<div class="tstat akku" data-akkuquick="1" style="cursor:pointer"><b><span class="tsi">🔋</span> <span id="tAkku">–%</span></b><span class="tss">Akku ✎</span></div>'+
-    '<div class="tstat"><b id="tPktW">–</b><span class="tss" id="tPktSub">Pkt heute</span></div>'+
-    '<div class="tstat"><b id="tZeitW">–</b><span class="tss" id="tZeitSub">Zeit heute</span></div></div>';
-  const kpis='<div class="tkpis" id="tKpis"></div>';
+      '<div class="n" id="tUaName"></div><div class="r" id="tUaRest"></div></div>';
   const planbar='<div class="tpbar"><div class="tpb-track"><i class="tpb-g" id="tpbG"></i><i class="tpb-y" id="tpbY"></i><i class="tpb-r" id="tpbR"></i>'+
     '<div class="tpb-marks" id="tpbMarks"></div></div><div class="tpb-info" id="tpbInfo"></div></div>';
   // Hotfix2: Titel ganz oben über der Zeit (voll, mehrzeilig, A2); unten nur Meta + Buttons.
@@ -5129,11 +5155,10 @@ function renderFokus(){
     '<button class="sw r'+(rechtsGeht?'':' aus')+'" data-fkswipe="1">Verlauf ▶</button></div>';
   host.innerHTML =
     '<div id="fokusAktiv" class="tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+(num(nav.hist)>0?'imverlauf ':'')+'" style="border-left-color:'+karteFarbe(k)+'">'+
-      titel+kopf+stats+'<div id="tTempo" class="tl-wrap"></div>'+kpis+planbar+(k.status==='erledigt' && !uhrFrei(k)?aufgabeErledigt:aufgabe)+swipeLeiste+'</div>'+
+      titel+kopf+planbar+(k.status==='erledigt' && !uhrFrei(k)?aufgabeErledigt:aufgabe)+swipeLeiste+'</div>'+
     fokusSubsHtml(k)+
-    // §8 (v2.0.0): drei Belohnungsblöcke, kompakt untereinander — danach der
-    // Zeitstrahl von oben nach unten.
-    fokusBloeckeExakt(k);
+    // §4 (v3.5.0): Tagesketten · Der Tag · Matrix heute · Flow + Belastung · Karten meistgenutzt
+    fokusBloecke350(k);
   renderFkNav();
   fokusTacho(k);   // Ring, Timer, Kennzahlen, Balken befüllen
 }
@@ -6415,30 +6440,30 @@ function fokusTacho(k){
   if(!k) k=aktiveFokusKarte();
   const zeitArc=el('tZeitArc'); if(!zeitArc || !k) return;
   const rotArc=el('tRotArc'), progArc=el('tProgArc'), dot=el('tKopfDot'), halo=el('tKopfHalo');
-  const geplant=num(k.sollMin), min=istSekLive(k)/60;
-  let farbeKlasse='gruen', kopf='var(--ok)';
+  const geplant=num(k.sollMin), min=istSekLive(k)/60, famT=k.domain==='privat' ? FARBE.LILA : FARBE.BLAU;   // §4.1.1 (v3.5.0)
+  let farbeKlasse='gruen', kopf='#fff';
   if(geplant>0){
     const pct=min/geplant;
-    if(pct>=1.1){ farbeKlasse='rot'; kopf='var(--bad)'; } else if(pct>=0.8){ farbeKlasse='gelb'; kopf='var(--warn)'; }
-    zeitArc.setAttribute('stroke', pct>=0.8?'url(#gGelb)':'url(#gLauf)');
+    if(pct>=1){ farbeKlasse='rot'; }
+    zeitArc.setAttribute('stroke', famT);
     zeitArc.setAttribute('stroke-dashoffset','0');
     zeitArc.setAttribute('stroke-dasharray',(Math.min(1,pct)*RING_C).toFixed(1)+' '+RING_C);
     const ueber=pct>1?Math.min(1,pct-1):0;
-    rotArc.setAttribute('stroke', pct>=1.1?'url(#gRot)':'url(#gGelb)');
+    rotArc.setAttribute('stroke', FARBE.UEBER);
     rotArc.setAttribute('stroke-dasharray',(ueber*RING_C).toFixed(1)+' '+RING_C);
     const rest=geplant-min;
-    el('tRest').textContent = rest>=0 ? hms(rest*60) : '+'+hms(-rest*60);
+    el('tRest').textContent = rest>=0 ? String(Math.ceil(rest)) : '+'+Math.ceil(-rest);
     el('tRest').className='trest '+farbeKlasse;
-    el('tRestSub').textContent='von '+geplant+' min · '+Math.round(pct*100)+'% verbraucht';
+    el('tRestSub').textContent = rest>=0 ? 'Min Rest' : 'Min drüber';
     setzeKopf(dot,halo,(pct%1),kopf);
   } else {
     const frac=(min*60%60)/60;
-    zeitArc.setAttribute('stroke','url(#gLauf)');
+    zeitArc.setAttribute('stroke',famT);
     zeitArc.setAttribute('stroke-dasharray','52 '+RING_C);
     zeitArc.setAttribute('stroke-dashoffset',(-frac*RING_C).toFixed(1));
     rotArc.setAttribute('stroke-dasharray','0 '+RING_C);
-    el('tRest').textContent=hms(min*60); el('tRest').className='trest';
-    el('tRestSub').textContent='keine Zeit geplant — Stoppuhr';
+    el('tRest').textContent=String(Math.floor(min)); el('tRest').className='trest';
+    el('tRestSub').textContent='Min · Stoppuhr';
     setzeKopf(dot,halo,frac,FARBE.WEISS);   // §1.2 (v3.5.0): Jetzt-Punkt weiss
   }
   // Fortschritts-Ring + Ticks aus Unteraufgaben-Sollzeiten
@@ -6517,8 +6542,8 @@ function fokusKpis(k){
   // §2.1 (v3.3.0): Schriftfarbe = ampel(tempoKarte, tempoZiel)
   box.innerHTML = kp(f1, '<span style="color:'+diaAmpel(r, diaGroessen().tempoZiel)+'">'+fmtP(r)+'</span>', 'P/Std ⌀', 'Ziel '+fmtP(ziel))
     + kp('', fmtP(earnedP), 'Punkte', proz+'% v. '+fmtP(planP))
-    + kp('', tZeitKurz(min), 'bearbeitet', geplant>0?'Rest '+tZeitKurz(restMin):'Stoppuhr')
-    + kp('', fertig+'/'+subs.length, 'Unteraufg.', (subs.length-fertig)+' offen');
+    + kp('', tZeitKurz(min), 'Min', geplant>0?'Rest '+tZeitKurz(restMin):'Stoppuhr')
+    + kp('', fertig+'/'+subs.length, 'Schritte', (subs.length-fertig)+' offen');
 }
 /* Aufgabenbezogener Punkte-Balken: grün erhalten · gelb offen · rot Überzug. */
 function fokusPlanbar(k){
@@ -6571,7 +6596,38 @@ function fokusSubsHtml(k){
       '<input id="fkUaMin" class="uaminneu" type="number" inputmode="numeric" min="1" placeholder="Min">'+
       '<button data-uaadd="'+k.id+'">+</button></div>'+
     '<div class="thinweis">Soll-Minuten sind Pflicht — sie erhöhen die Kartenzeit.</div>'+
+    unterZaehlerZeilenHtml(k)+   // §4.1.2 (v3.5.0)
     '</div></div>';
+}
+/* §4.1.2 (v3.5.0): Unter-Zaehler als Zeile „Titel · Limit n" + Tick-Knopf (Plus 30 px, Zahl heute darueber);
+   Ticks ueber dem Tageslimit werden gezaehlt und gebucht (0 P, Zeit zaehlt), die Zahl steht dann in UEBER */
+function tickKnopfHtml(attr, id, n, limit, laeuft){
+  const ueber=limit>0 && n>limit;
+  return '<button class="tickknopf" '+attr+'="'+id+'" aria-label="Tick +1"><b style="color:'+(ueber?FARBE.UEBER:FARBE.WEISS)+'">'+n+'</b><span>+</span></button>';
+}
+function unterZaehlerZeilenHtml(k){
+  const uz=unterZaehler(k); if(!uz.length) return '';
+  return uz.map(u=>'<div class="uareihe uzzeile"><div class="uatitel"><span class="uat">'+esc(u.titel||'Zähler')+'</span>'+
+    (!leer(u.tageslimit)?' <span class="uzlimit">· Limit '+num(u.tageslimit)+'</span>':(!leer(u.tagesziel)?' <span class="uzlimit">· Ziel '+num(u.tagesziel)+'</span>':''))+'</div>'+
+    tickKnopfHtml('data-uztick', u.id, tickAnzahlHeute(u), num(u.tageslimit))+'</div>').join('');
+}
+/* Tick ueber dem Tageslimit: zaehlt und bucht (0 P, Belegzeit zaehlt), schliesst nichts erneut */
+function tickUeberLimit(x, k){
+  const min=istSonderRolle(k) ? 0 : tickMinutenVon(x);
+  tickLogHeute(x).push({ ts:jetztIso(), nr:tickAnzahlHeute(x)+1, basis:0, faktor:1, punkte:0, min, ueberLimit:true });
+  if(x===k) k.ticksHeute=tickAnzahlHeute(k);
+  if(min>0) akkuBuchen(k, min);
+  if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
+  beruehre(k);
+  const e=logIntraday(k,{punkte:0, minuten:0, tickMin:min, typ:'tick'}); buchungAbgleich(k, e);
+}
+function unterZaehlerTick(uid){
+  const u=(S.unteraufgaben||[]).find(x=>x.id===uid), k=u && S.karten.find(x=>x.id===u.parentId);
+  if(!k) return;
+  if(!routineBuchbar(k)){ toast('Der Tag ist geschlossen'); return; }
+  if(limitErreicht(u)){ tickUeberLimit(u, k); saveKarten(); saveTag(); toast('+1 · über dem Limit (0 P)'); }
+  else unterTickUI(uid);
+  renderAlles();
 }
 /* §4: gemeinsamer Pfad für Button und Enter. Ohne Minuten kein Anlegen. */
 function fokusSubAnlegen(kid){
@@ -7721,6 +7777,165 @@ function fmtP(v){
 /* §6 (v2.6.0): Solange die Fokusansicht rendert, schreiben auch die dort
    eingebetteten Module (Detailanalyse-Originale) exakt statt mit „k". */
 let _fokusExakt=false;
+/* ══ §4 (v3.5.0) · DIE FOKUSANSICHT UNTER DEM KARTEN-KERN ═══════════════════
+   3 Tagesketten · 4 Der Tag (2×2 + Tempo und Bloecke) · 5 Matrix heute · 6 Flow + Belastung
+   · 7 Karten meistgenutzt letzte 7 Tage */
+function fokusBloecke350(k){
+  _fokusExakt=true;
+  try{ return tageskettenHtml(k)+derTagHtml(k)+matrixHeuteBlockHtml()+flowBelastungHtml()+kartenMeistgenutztHtml(); }
+  finally{ _fokusExakt=false; }
+}
+/* §4.1.3 · Tagesketten — benannte Sichten (S.tagesketten), aufklappbar, Mehrfach-Zugehoerigkeit */
+function tagesketten(){ return Array.isArray(S.tagesketten) ? S.tagesketten : []; }
+function tageskettenHtml(k){
+  const tk=tagesketten(), by={}; S.karten.forEach(x=>by[x.id]=x);
+  const drin=tk.filter(c=>Array.isArray(c.karten) && c.karten.indexOf(k.id)>=0);
+  const offen=!!S.ui.tkOffen, famK=k.domain==='privat' ? FARBE.LILA : FARBE.BLAU;
+  let wahl=S.ui.tkWahl && tk.find(c=>c.id===S.ui.tkWahl) ? S.ui.tkWahl : (drin[0] ? drin[0].id : (tk[0] ? tk[0].id : null));
+  let h='<div class="fb tk"><div class="tk-kopf" data-tkkopf="1"><span>Tagesketten '+(offen?'▴':'▾')+'</span><span class="tk-r">'+(tk.length ? 'Karte in '+drin.length+' von '+tk.length : 'keine Ketten')+'</span></div>';
+  if(offen && tk.length){
+    h+='<div class="tk-chips">'+tk.map(c=>{ const inK=drin.indexOf(c)>=0;
+      return '<button class="chip tk-chip'+(c.id===wahl?' on':'')+'" data-tkwahl="'+esc(c.id)+'"'+(inK?' style="border-color:'+famK+';color:'+famK+'"':'')+'>'+esc(c.name||'Kette')+' · '+(c.karten||[]).length+'</button>'; }).join('')+'</div>';
+    const c=tk.find(x=>x.id===wahl);
+    if(c) h+='<div class="tk-reihe"><b>'+esc(c.name||'Kette')+':</b> '+(c.karten||[]).map(id=>{ const x=by[id]; const t=x ? esc(String(x.titel||'?').slice(0,28)) : '?';
+      return id===k.id ? '<b style="color:'+FARBE.WEISS+'">'+t+'</b>' : t; }).join(' · ')+'</div>';
+  }
+  return h+'</div>';
+}
+/* §4.1.4 · Der Tag — 2×2 Kombikacheln, Bewegungsbonus, Tempo und Bloecke */
+function miniPrognoseSvg(g, farbe){
+  const W=200, H=40, P=3; let a=null; try{ a=tagesAmpel(); }catch(e){ a=null; }
+  const von=a ? a.von : belX(new Date(g.startMs).toISOString()), nowX=belX(jetztIso()), endeX=Math.max(nowX+0.25, belX(new Date(g.tagesEndeMs).toISOString()));
+  const span=Math.max(0.5, endeX-von), maxY=Math.max(10, g.zielHeute, g.prognoseHeute, g.punkteHeute)*1.08;
+  const X=x=>P+((Math.max(von,Math.min(endeX,x))-von)/span)*(W-2*P), Y=p=>H-P-(p/maxY)*(H-2*P);
+  const heute=a ? a.kHeute.filter(q=>q.x<=nowX+0.001) : [{x:von,p:0},{x:nowX,p:g.punkteHeute}];
+  const pfad=glattPfad(heute.map(q=>({x:X(q.x), y:Y(q.p)})));
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" aria-hidden="true">'+
+    '<line x1="'+P+'" y1="'+Y(g.zielHeute).toFixed(1)+'" x2="'+(W-P)+'" y2="'+Y(g.zielHeute).toFixed(1)+'" stroke="'+FARBE.WEISS+'" stroke-opacity=".6" stroke-width="1" stroke-dasharray="2 3"/>'+
+    (pfad?'<path d="'+pfad+'" fill="none" stroke="'+farbe+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>':'')+
+    '<line x1="'+X(nowX).toFixed(1)+'" y1="'+Y(g.punkteHeute).toFixed(1)+'" x2="'+X(endeX).toFixed(1)+'" y2="'+Y(g.prognoseHeute).toFixed(1)+'" stroke="'+FARBE.WEISS+'" stroke-opacity=".7" stroke-width="1.2" stroke-dasharray="3 2"/>'+
+    '<circle cx="'+X(nowX).toFixed(1)+'" cy="'+Y(g.punkteHeute).toFixed(1)+'" r="2.5" fill="#fff"/></svg>';
+}
+function derTagHtml(k){
+  const g=diaGroessen(), ziel=g.zielHeute, prog=g.prognoseHeute, cP=diaAmpel(prog, ziel);
+  const X=kartePunkteHeute(k), rest=Math.max(0, g.punkteHeute-X), pz=v=>Math.max(0, Math.min(100, num(v)/Math.max(1,ziel)*100)), famK=k.domain==='privat' ? FARBE.LILA : FARBE.BLAU;
+  let zeitIst=0, zeitPlan=0; S.karten.forEach(x=>{ if(!imTagesstrom(x)) return; zeitIst+=heuteInvestiertMin(x); zeitPlan+=num(x.sollMin); });
+  const F=outfitF(), of=outfitFortschritt(); let ampTag='--af:'+FARBE.GRAU; try{ ampTag=ampelStil(ampelStufe(normalZurUhrzeit('alle').r)); }catch(e){}
+  let pfeil=''; try{ pfeil=tempopfeilSvg(tempoVerhaeltnis(), 12); }catch(e){}
+  let h='<div class="fb"><div class="fb-h">Der Tag</div><div class="fb-kacheln dt-kacheln">'+
+    '<div class="fbk"><div class="fbk-h">Tagesprognose</div><div class="dt-w" style="color:'+cP+'">'+fmtP(prog)+'</div><div class="dt-s">'+(prog>=ziel ? 'Ziel ✓' : 'fehlen '+fmtP(ziel-prog))+'</div>'+miniPrognoseSvg(g, cP)+'</div>'+
+    '<div class="fbk"><div class="fbk-h">Diese Karte schiebt</div><div class="dt-w">'+(X>=0?'+':'−')+fmtP(Math.abs(X))+'</div><div class="dt-s">= '+Math.round(X/Math.max(1,ziel)*100)+' % vom Tagesziel</div>'+
+      '<span class="dia-mini" aria-hidden="true"><i style="width:'+pz(rest).toFixed(1)+'%;background:'+FARBE.GRAU+';opacity:.5"></i><i style="left:'+pz(rest).toFixed(1)+'%;width:'+Math.min(pz(Math.max(0,X)), 100-pz(rest)).toFixed(1)+'%;background:'+famK+'"></i></span></div>'+
+    '<div class="fbk"><div class="fbk-h">Zeit heute</div><div class="dt-w">'+hMin(zeitIst)+'<small>/'+hMin(zeitPlan)+'</small></div><div class="dt-s">Ist / Plan</div>'+
+      '<div class="fbk-bar"><i style="width:'+(zeitPlan>0?Math.min(100,zeitIst/zeitPlan*100):0).toFixed(1)+'%;background:'+FARBE.WEISS+'"></i></div></div>'+
+    '<div class="fbk amp" style="'+ampTag+'"><div class="fbk-h">Faktor F</div><div class="dt-w" style="color:var(--af)">'+(F!=null ? F.toFixed(2).replace('.',',') : '—')+' '+pfeil+'</div>'+
+      '<div class="dt-s">'+(of.of>=20 ? 'Outfit 20 · höchstes' : 'Outfit '+of.of+' → '+of.naechste+' bei '+fbOutfitSchwelleF(of.naechste).toFixed(2).replace('.',','))+'</div></div>'+
+    '</div>';
+  if(num(k.bewegungsBonus)>0){ const m=Math.max(1, num(S.settings.bewegungsBonus)), n=num(k.bewegungsBonus);
+    h+='<div class="dt-bonus">Bewegungsbonus heute +'+fmtP(n)+' von '+fmtP(m)+' P<div class="fbk-bar"><i style="width:'+Math.min(100, n/m*100).toFixed(1)+'%;background:'+FARBE.GRUEN+'"></i></div></div>'; }
+  let tt=''; try{ tt=heuteGegenTypischHtml({bloecke:true, id:'ttf'}); }catch(e){ tt=''; }
+  h+='<div class="fbk voll fb-modul" style="margin-top:8px"><div class="fbk-h">Tempo und Blöcke</div>'+tt+'</div>';
+  return h+'</div>';
+}
+/* §4.1.5 · Matrix heute — 340×96, Flaechenverlauf ROT→GRUEN, Zeit je Feld in den Ecken, Spur weiss nach Alter, Leiste darunter */
+function matrixHeuteHtml(opt){
+  opt=opt||{};
+  const W=340, H=96, P=4, z=matrixZeitFelder(), sp=matrixSpur().filter(e=>!e.uebersprungen && e.ts);
+  const X=v=>P+((Math.max(-1,Math.min(1,num(v)))+1)/2)*(W-2*P), Y=v=>P+((1-Math.max(-1,Math.min(1,num(v))))/2)*(H-2*P);
+  const gid=svgId('mh');
+  let g='<svg class="fb-mx mx-heute'+(opt.klick!==false?' klick':'')+'" data-tbmatrix="1" data-rand="'+P+'" viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Matrix heute — tippen für einen Tagebuch-Eintrag">'+
+    '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="'+FARBE.ROT+'" stop-opacity=".22"/><stop offset=".5" stop-color="'+FARBE.WEISS+'" stop-opacity=".08"/><stop offset="1" stop-color="'+FARBE.GRUEN+'" stop-opacity=".22"/></linearGradient></defs>'+
+    '<rect x="'+P+'" y="'+P+'" width="'+(W-2*P)+'" height="'+(H-2*P)+'" rx="8" fill="url(#'+gid+')"/>'+
+    '<line x1="'+(W/2)+'" y1="'+P+'" x2="'+(W/2)+'" y2="'+(H-P)+'" stroke="'+FARBE.RASTER+'"/><line x1="'+P+'" y1="'+(H/2)+'" x2="'+(W-P)+'" y2="'+(H/2)+'" stroke="'+FARBE.RASTER+'"/>';
+  const lab=(t,x,y,anchor)=>'<text x="'+x+'" y="'+y+'" font-size="9" fill="'+FARBE.GRAU+'" text-anchor="'+anchor+'">'+t+'</text>';
+  const zt=f=>hMin(z.felder[f]);
+  g+=lab('Ablenkung '+zt('ablenkung'), P+6, P+12, 'start')+lab('Werkzeug '+zt('werkzeug'), W-P-6, P+12, 'end')+
+     lab('Zustand '+zt('zustand'), P+6, H-P-5, 'start')+lab('Ziel '+zt('ziel'), W-P-6, H-P-5, 'end');
+  for(let i=1;i<sp.length;i++){ const o=0.2+0.8*(i/Math.max(1,sp.length-1));
+    g+='<line x1="'+X(sp[i-1].x).toFixed(1)+'" y1="'+Y(sp[i-1].y).toFixed(1)+'" x2="'+X(sp[i].x).toFixed(1)+'" y2="'+Y(sp[i].y).toFixed(1)+'" stroke="#fff" stroke-opacity="'+o.toFixed(2)+'" stroke-width="1.5" stroke-linecap="round"/>'; }
+  sp.forEach((e,i)=>{ const letzte=i===sp.length-1, o=letzte?1:(0.2+0.8*(i/Math.max(1,sp.length-1)));
+    if(e.quelle==='tagebuch' && !letzte){ const cx=X(e.x), cy=Y(e.y), r=3.5; g+='<path d="M'+cx.toFixed(1)+' '+(cy-r).toFixed(1)+' L'+(cx+r).toFixed(1)+' '+cy.toFixed(1)+' L'+cx.toFixed(1)+' '+(cy+r).toFixed(1)+' L'+(cx-r).toFixed(1)+' '+cy.toFixed(1)+' Z" fill="none" stroke="#fff" stroke-opacity="'+o.toFixed(2)+'" stroke-width="1.2"/>'; }
+    else g+=letzte ? '<circle cx="'+X(e.x).toFixed(1)+'" cy="'+Y(e.y).toFixed(1)+'" r="8" fill="#fff" fill-opacity=".2"/><circle cx="'+X(e.x).toFixed(1)+'" cy="'+Y(e.y).toFixed(1)+'" r="4.5" fill="#fff"/>'
+                   : '<circle cx="'+X(e.x).toFixed(1)+'" cy="'+Y(e.y).toFixed(1)+'" r="2.5" fill="#fff" fill-opacity="'+o.toFixed(2)+'"/>'; });
+  g+='</svg>';
+  const ges=Math.max(1e-9, z.felder.ablenkung+z.felder.zustand+z.felder.werkzeug+z.felder.ziel);
+  const seg=[['ablenkung',FARBE.ROT],['zustand',FARBE.ORANGE],['werkzeug',FARBE.WEISS],['ziel',FARBE.GRUEN]];
+  const leiste='<div class="mx-leiste">'+seg.map(q=>'<i style="width:'+(z.felder[q[0]]/ges*100).toFixed(1)+'%;background:'+q[1]+'"></i>').join('')+'</div>'+
+    '<div class="dia-zeile">Zeit je Feld als Leiste · unbekannt '+hMin(z.unbekannt)+'</div>';
+  return { svg:g, leiste, zeit:z, n:sp.length };
+}
+function matrixHeuteBlockHtml(){
+  const m=matrixHeuteHtml({klick:true});
+  return '<div class="fb"><div class="fb-h">Matrix heute</div>'+m.svg+m.leiste+'</div>';
+}
+/* §4.1.6 · Aufgaben-Flow heute + Belastung ACWR als zwei Kacheln */
+function flowHeuteWerte(){
+  const heute=belFensterDatum(jetztIso());
+  try{ const fl=anFlowReihe('dfm', {routinen:true}), r=reinRausTag(fl, heute); return { neu:r.rein, erledigt:r.raus, geschoben:r.geschoben, netto:r.rein-r.raus }; }
+  catch(e){ return { neu:0, erledigt:0, geschoben:0, netto:0 }; }
+}
+function acwrHeuteWert(){
+  try{ const F=analyseFenster(); if(F.alle.length<8) return null; return anAcwrReihe(F.alle, F.bis, F.span, 'alle', 'punkte').current; }catch(e){ return null; }
+}
+function acwrBulletHtml(v){
+  const pos=x=>Math.max(0, Math.min(100, x/2*100)).toFixed(1);
+  const b=[[0,0.8,FARBE.ORANGE],[0.8,1.3,FARBE.GRUEN],[1.3,1.5,FARBE.GELB],[1.5,2,FARBE.ROT]];
+  return '<div class="acwr-bullet">'+b.map(q=>'<i style="left:'+pos(q[0])+'%;width:'+(pos(q[1])-pos(q[0])).toFixed(1)+'%;background:'+q[2]+'"></i>').join('')+
+    (v!=null?'<b style="left:'+pos(v)+'%"></b>':'')+'</div><div class="dt-s">0,8 · 1,3 · 1,5</div>';
+}
+function flowBelastungHtml(){
+  const f=flowHeuteWerte(), v=acwrHeuteWert(), st=acwrStufe(v), c=(AMPEL_FARBE[st]||AMPEL_FARBE.grau)[0];
+  const z=(l,w,col)=>'<div class="fl-z"><span>'+l+'</span><b style="color:'+(col||FARBE.WEISS)+'">'+w+'</b></div>';
+  return '<div class="fb-kacheln dt-kacheln"><div class="fbk"><div class="fbk-h">Aufgaben-Flow heute</div>'+
+    z('neu','+'+f.neu)+z('erledigt','−'+f.erledigt)+z('geschoben',String(f.geschoben), f.geschoben>0?FARBE.GELB:null)+z('netto',(f.netto>0?'+':'')+f.netto, f.netto<=0?FARBE.GRUEN:FARBE.ROT)+'</div>'+
+    '<div class="fbk"><div class="fbk-h">Belastung ACWR</div><div class="dt-w" style="color:'+c+'">'+(v!=null ? (Math.round(v*100)/100).toFixed(2).replace('.',',') : '—')+'</div>'+acwrBulletHtml(v)+'</div></div>';
+}
+/* §4.1.7 · Karten · meistgenutzt letzte 7 Tage — ersetzt den Zeitstrahl und die Abhak-Leiste */
+function kartenMeistgenutzt(){
+  const heute=belFensterDatum(jetztIso()), ab=anVorTage(heute, 6), tid=aktuelleTagId(), n={}, last={};
+  (S.intraday||[]).forEach(e=>{ if(!e || !e.ts || !e.kartenId) return; if(['timer','autopause','nachtrag','tick','abhaken'].indexOf(e.typ)<0) return;
+    const d=belFensterDatum(e.ts); if(d<ab || d>heute) return; n[e.kartenId]=(n[e.kartenId]||0)+1; if(!last[e.kartenId] || e.ts>last[e.kartenId]) last[e.kartenId]=e.ts; });
+  return S.karten.filter(k=>k.status!=='archiviert' && (k.status==='offen' || (k.status==='erledigt' && k.tagId===tid)))
+    .map(k=>({k, n:n[k.id]||0, last:last[k.id]||''})).sort((a,b)=>(b.n-a.n) || (b.last<a.last?-1:b.last>a.last?1:0));
+}
+function kartenMeistgenutztHtml(){
+  const liste=kartenMeistgenutzt(); if(!liste.length) return '';
+  let h='<div class="fb"><div class="fb-h">Karten · meistgenutzt letzte 7 Tage</div><div class="kl">';
+  liste.forEach(({k,n})=>{ const fam=k.domain==='privat' ? FARBE.LILA : FARBE.BLAU, laeuft=uhrLaeuftAuf(k), fertig=kartenStatusHeute(k)==='erledigt';
+    const ticks=Math.max(tickAnzahlHeute(k), num(k.ticksHeute)), limit=num(k.tageslimit);
+    const meta=n+'× · '+(k.domain==='privat'?'Privat':'DFM')+(limit>0?' · Limit '+limit:'')+(laeuft?' · <span style="color:'+fam+'">läuft</span>':'');
+    h+='<div class="kl-z'+(laeuft?' laeuft':'')+(fertig?' fertig':'')+'" style="border-left-color:'+fam+'" data-klkarte="'+k.id+'">'+
+      '<button class="kl-play" data-klplay="'+k.id+'" aria-label="'+(laeuft?'Pause':'Start')+'"'+(laeuft?' style="background:'+fam+';color:#0a0f1a"':'')+'>'+(laeuft?'⏸':'▶')+'</button>'+
+      '<div class="kl-t" data-detail="'+k.id+'"><div class="kl-titel">'+esc(String(k.titel||'?'))+'</div><div class="kl-meta">'+meta+'</div></div>'+
+      tickKnopfHtml('data-kltick', k.id, ticks, limit)+
+      (fertig ? '<span class="kl-check ok" aria-label="erledigt">✓</span>' : '<button class="kl-check" data-klcheck="'+k.id+'" aria-label="Erledigt">✓</button>')+'</div>'; });
+  return h+'</div></div>';
+}
+/* Tick aus der Kartenliste (F1/F2): Aufgaben nach den Regeln des Modus zeit, Routinen/Counter wie ihre Zaehler-Zeile;
+   ueber dem Limit zaehlt und bucht der Tick (0 P) */
+function kartenListeTick(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  if(k.rolle==='aufstehen' || k.rolle==='tagesabschluss' || k.rolle==='schlafen'){ leisteTicken(kid); return; }
+  if(!routineBuchbar(k)){ toast('Der Tag ist geschlossen'); return; }
+  if(limitErreicht(k)){ tickUeberLimit(k, k); saveKarten(); saveTag(); toast('+1 · über dem Limit (0 P)'); renderAlles(); return; }
+  if(istAufgabeKarte(k)){ const t=routineTick(k); saveKarten(); saveTag(); if(t) toast('+'+fmtP(Math.abs(t.punkte))+' P · '+t.min+' Min belegt'); renderAlles(); return; }
+  leisteTicken(kid);
+}
+function kartenListeCheck(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  if(istAufgabeKarte(k)){ karteAbhakenAuto(kid, false); return; }
+  if(!routineBuchbar(k)){ toast('Der Tag ist geschlossen'); return; }
+  if(kartenStatusHeute(k)!=='erledigt'){ routineErledigen(k); saveKarten(); saveTag(); renderAlles(); }
+}
+function fokusKlick350(e){
+  const t=e.target; if(!t || !t.closest) return;
+  const tk=t.closest('[data-tkkopf]'); if(tk){ e.stopPropagation(); S.ui.tkOffen=!S.ui.tkOffen; saveUi(); renderFokus(); return; }
+  const tw=t.closest('[data-tkwahl]'); if(tw){ e.stopPropagation(); S.ui.tkWahl=tw.dataset.tkwahl; saveUi(); renderFokus(); return; }
+  const uz=t.closest('[data-uztick]'); if(uz){ e.stopPropagation(); haptik(10); unterZaehlerTick(uz.dataset.uztick); return; }
+  const kt=t.closest('[data-kltick]'); if(kt){ e.stopPropagation(); haptik(10); kartenListeTick(kt.dataset.kltick); return; }
+  const kc=t.closest('[data-klcheck]'); if(kc){ e.stopPropagation(); haptik(12); kartenListeCheck(kc.dataset.klcheck); return; }
+  const kp=t.closest('[data-klplay]'); if(kp){ e.stopPropagation(); haptik(10); leistePlay(kp.dataset.klplay); return; }
+}
 function fokusBloeckeExakt(k){
   _fokusExakt=true;
   try{ return fbWasDieseKarte(k)+fbWoIchStehe()+fbWasIchBewege(k)+zeitstrahlHtml()+abhakLeisteHtml(); }   // §1 (v2.8.0): Abhak-Leiste ganz unten
@@ -16991,6 +17206,7 @@ function zurBelohnung(){
   const m=document.querySelector('main'); if(m) m.scrollTop=0;
 }
 el('btnFigur').addEventListener('click', zurBelohnung);
+el('fokusView').addEventListener('click', fokusKlick350, true);   // §4 (v3.5.0): Tagesketten, Unter-Zaehler, Kartenliste
 el('btnKurve').addEventListener('click', ()=>{
   // §1 (v2.6.0): Tipp auf die Mini-Kurve oeffnet die Statistik, OBEN
   // (dort stehen jetzt Matrix und direkt darunter der Tagesverlauf).
