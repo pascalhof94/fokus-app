@@ -355,8 +355,8 @@ ok('v3.0.1 Einstellungen (Info und Fuß) und Export zeigen dieselbe Version', ei
    tagBackupPaket().appVersion===APP_VERSION);
 ok('v3.0.1 der Seitentitel liest APP_VERSION, kein fester Titel mehr', /<title>Fokus<\/title>/.test(src) && /document\.title='Fokus '\+UI_VERSION/.test(src) && src.indexOf('Fokus v1')<0);
 ok('v3.0.1 die .md des Abschlusses nennt Version und Build', abschlussMarkdown().indexOf('- App: v'+APP_VERSION+' · Build '+APP_BUILD)>=0);
-ok('v3.0.1 das Gate prüft gegen DATENVERTRAG (2.0.0), nicht gegen die App-Version', DATENVERTRAG==='2.1.0' && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'g', titel:'g'}]})).fehler &&
-   /älter als 2\.0\.0/.test(syncImport(JSON.stringify({appVersion:'1.13.5', karten:[{id:'g', titel:'g'}]})).fehler));
+ok('v3.0.1 das Gate prüft gegen DATENVERTRAG (2.1.0 seit v3.5.0), nicht gegen die App-Version', DATENVERTRAG==='2.1.0' && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'g', titel:'g'}]})).fehler &&
+   /älter als 2\.1\.0/.test(syncImport(JSON.stringify({appVersion:'1.13.5', karten:[{id:'g', titel:'g'}]})).fehler));
 
 /* ══════════════════════════════════════════════════════════════════════
    v3.1.0 „Sync-Tür" — §1 die drei Fehler vom 27.09.
@@ -478,13 +478,13 @@ ok('§2 Tagesstruktur wird gezeigt; alle Parameter haben ein Eingabefeld (auch G
    /data-tuer="statistik\|ampel\|gruen"/.test(el('einstBody').innerHTML));
 
 kopf('v3.1 §3 · statistik per Paket');
-var pS={ appVersion:'3.1.0', statistik:{ grund:'Statistik entrümpeln', zeitfenster:14, ampel:{ gruen:0.3 }, module:{ ausgeblendet:['belastung','acwr'] } } };
+var pS={ appVersion:'3.1.0', statistik:{ grund:'Statistik entrümpeln', zeitfenster:14, ampel:{ gruen:0.3 }, module:{ ausgeblendet:['acwr','routinen'] } } };   // v3.5.0 §5: neue Modul-IDs
 var rS=syncImport(JSON.stringify(pS));
 ok('§3 Zusammenfassung vor dem Anwenden (3 Änderungen)', rS.freigabeNoetig && rS.vorschau.statistik.aenderungen.length===3);
 syncImport(JSON.stringify(pS), {freigabe:true});
 renderStatistik(); var sh=el('statistikBody').innerHTML;
-ok('§3 Zeitfenster 14 Tage, Ampelgrenze 0,3 (0,25 ist jetzt gelb), Belastung und ACWR ausgeblendet', analyseFenster().span===14 && ampelStufe(0.25)==='gelb' && ampelStufe(0.31)==='gruen' &&
-   sh.indexOf('data-stmodul="belastung"')<0 && sh.indexOf('data-stmodul="tagesverlauf"')>=0);
+ok('§3 Zeitfenster 14 Tage, Ampelgrenze 0,3 (0,25 ist jetzt gelb), ACWR und Routinen ausgeblendet (v3.5.0-IDs)', analyseFenster().span===14 && ampelStufe(0.25)==='gelb' && ampelStufe(0.31)==='gruen' &&
+   sh.indexOf('data-stmodul="acwr"')<0 && sh.indexOf('data-stmodul="routinen"')<0 && sh.indexOf('data-stmodul="tag"')>=0);
 ok('§3 unbekanntes Modul wird abgewiesen', syncImport(JSON.stringify({appVersion:'3.1.0', statistik:{ module:{ ausgeblendet:['gibtsnicht'] } }})).vorschau.statistik.fehler.length===1);
 ok('§3 Statistik-Änderungen im Protokoll', (S.meta.korrekturProtokoll||[]).some(function(e){ return e.art==='statistik' && e.grund==='Statistik entrümpeln'; }));
 

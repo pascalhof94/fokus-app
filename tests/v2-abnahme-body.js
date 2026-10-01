@@ -970,14 +970,14 @@ frisch(); belohnungInit();
 S.meta.muenzenGesamt=100000; S.meta.ausgegebenGesamt=0;
 renderBelohnung();
 var bh=el('belohnungBody').innerHTML;
-ok('§4 drei Bereiche', bh.indexOf('Was heute noch geht')>=0 && bh.indexOf('Was ich schon erklommen habe')>=0 && bh.indexOf('Outfit und Shop')>=0);
+ok('§4 (v3.5.0 §6.6) Bereiche: Was heute noch geht · Shop · Was ich schon erklommen habe', bh.indexOf('Was heute noch geht')>=0 && bh.indexOf('Was ich schon erklommen habe')>=0 && bh.indexOf('>Shop<')>=0);
 var kach=bh.split(/<div class="fbk( voll)?"/).filter(function(x,i){ return i>0 && x!==undefined && x!==' voll'; });
-var ohneGrafik=kach.filter(function(k){ return !/<svg|fbk-bar|bw-of|dia-of|dia-kulisse/.test(k); });   // v3.3.0 §3.5/§3.6: Outfit-Sammlung und Kulisse zeigen Bilder
+var ohneGrafik=kach.filter(function(k){ return !/<svg|fbk-bar|bw-of|dia-of|dia-kulisse|dt-w|dia-leiste/.test(k); });   // v3.5.0 §6.6: KPI-Kacheln tragen den grossen Wert
 ok('§4 jede Kachel hat eine Grafik ('+kach.length+' Kacheln, ohne: '+ohneGrafik.length+')', kach.length>=9 && ohneGrafik.length===0);
-ok('§4 Outfit-Leiste zeigt alle 20 Stufen', (bh.match(/class="bw-ofz /g)||[]).length===20);
-ok('§4 Outfit: heute + nächste markiert, spätere als Silhouette', /bw-ofz heute/.test(bh) && /bw-ofz naechste/.test(bh) && /bw-ofz spaeter/.test(bh));
+ok('§4 (v3.5.0 §6.6) Szene mit Avatar und Album-Knopf statt Outfit-Leiste', /mal-av/.test(bh) && /data-album="1"/.test(bh));
+ok('§4 (v3.5.0 §6.6) Malmodus-Knopf und KPI-Kacheln (Töpfe, nächster Kauf)', /data-malmodus="1"/.test(bh) && bh.indexOf('Töpfe')>=0 && bh.indexOf('nächster Kauf')>=0);
 ok('§4 Shop: sechs Kategorien', (bh.match(/class="bw-kat"/g)||[]).length===6);
-ok('§4 Rang-Kachel und Mini-Kurve Rangverlauf', bh.indexOf('Rang über 8 Wochen')>=0);
+ok('§4 (v3.5.0 §6.6) Rang + Bestwert in „Was ich schon erklommen habe"', bh.indexOf('Rang · Bestwert')>=0);
 ok('§4 Shop-Reset NICHT auf der Seite', bh.indexOf('data-shopreset')<0);
 var kontoVor=konto(), stufeVor=num(S.belohnung.stufen.soziales);
 ok('§4 Kaufen-Knopf auf der Seite', bh.indexOf('data-kauf="soziales"')>=0);
@@ -998,12 +998,13 @@ S.ui.belKatAuf={}; KAT_KEYS.forEach(function(k){ S.ui.belKatAuf[k]=true; }); ren
 var sicht=sichtbareTexte(bh), erwartet=KAT_KEYS.map(function(k){ return k+':'+(num(S.belohnung.stufen[k])+1); });
 ok('Nachtrag: je Kategorie genau EINE ungekaufte Stufe mit Text — die nächste ('+sicht.join(', ')+')',
    JSON.stringify(sicht.slice().sort())===JSON.stringify(erwartet.slice().sort()));
-ok('Nachtrag: soziales Stufe 3 sichtbar, Stufe 4 „???"', bh.indexOf('Grillabend bei dir')>=0 && bh.indexOf('Grillabend, der bis nachts geht')<0);
+var sz=BELOHNUNG.soziales.stufen.map(function(st){ return esc(st[0]); });   // v3.5.0 §9.4: Startstufe 0 → nach einem Kauf ist Stufe 2 die naechste
+ok('Nachtrag (v3.5.0 Startstufe 0): soziales Stufe 2 sichtbar, Stufe 3 „???"', bh.indexOf(sz[1])>=0 && bh.indexOf(sz[2])<0);
 ok('Nachtrag: nächste Stufe hat Preis/Kaufen-Knopf', bh.indexOf('data-kauf="soziales"')>=0);
 kaufen('soziales'); renderBelohnung(); bh=el('belohnungBody').innerHTML;
 ok('Nachtrag: Kauf deckt die darauffolgende Stufe auf (soziales 4 sichtbar, 5 „???")',
-   bh.indexOf('Grillabend, der bis nachts geht')>=0 && bh.indexOf('Roadtrip mit vier Leuten')<0 &&
-   sichtbareTexte(bh).filter(function(x){ return x.indexOf('soziales:')===0; }).join()==='soziales:4');
+   bh.indexOf(sz[2])>=0 && bh.indexOf(sz[3])<0 &&
+   sichtbareTexte(bh).filter(function(x){ return x.indexOf('soziales:')===0; }).join()==='soziales:3');
 // v2.6.0 §1: die Rang-Zelle ist entfallen — die Belohnungsseite bleibt ueber die Figur erreichbar
 ok('§1 Figur führt auf die Seite (Code-Pfad; Rang-Zelle seit v2.6 entfallen)', typeof zurBelohnung==='function' &&
    !/#sZRang/.test(src) && /el\('btnFigur'\)\.addEventListener\('click', zurBelohnung\)/.test(src));
@@ -1157,7 +1158,7 @@ ok('§10→v2.5 §1.1 „Heute gegen typische Tage" (Aktivitätsfenster) statt T
    b9.indexOf('Heute gegen typische Tage')>=0 && b9.indexOf('fb-kurve')<0);
 // v3.3.0 §2.6/§4: Fokus und Statistik zeigen DASSELBE Diagramm — jetzt heuteGegenTypischHtml (kumulierte Punkte, sieben Linien)
 ok('§10→v2.5 §1.1 identisch zur Detailanalyse (v3.3: heuteGegenTypischHtml ist der Kopf von „Verhalten")',
-   b9.indexOf(heuteGegenTypischHtml())>=0 && /function anModVerhalten\(F,dom\)\{\s*const chart=heuteGegenTypischHtml\(\)/.test(src));
+   b9.indexOf('data-dialive="tt"')>=0 && /function anModVerhalten\(F,dom,opt\)/.test(src));   // v3.5.0: eigene Diagramm-ids je Ort
 
 kopf('v2.4.0 §1 · Drei Tabs, Import oben, Ampel');
 ok('§1.1 drei Tabs: Suche · Statistik · Einstellungen',
@@ -1309,8 +1310,8 @@ ok('§6 drei Einstiege: Statistik-Matrix, Fokus-Matrix, Knopf in der Matrix-Sich
    (function(){ S.ui.suMatrixFeld=null; return suMatrixHtml().indexOf('data-tagebuch')>=0; })());
 renderStatistik();
 var sb=el('statistikBody').innerHTML;
-ok('§7 Statistik beginnt mit der Matrix', sb.indexOf('Der Tag in der Matrix')>=0 && sb.indexOf('Der Tag in der Matrix')<sb.indexOf('Tagesverlauf'));
-ok('§7 Tagebuch-Punkte unterscheidbar (Raute)', (sb.match(/class="tb-pt"/g)||[]).length===2);
+ok('§7 (v3.5.0 §5.1) Statistik beginnt mit Gruppe 1 · Heute: Der Tag vor Matrix heute', sb.indexOf('1 · Heute')>=0 && sb.indexOf('data-stmodul="tag"')<sb.indexOf('data-stmodul="matrixHeute"'));
+ok('§7 Tagebuch-Punkte unterscheidbar (Raute, Matrix heute)', (matrixHeuteHtml().svg.match(/Z" fill="none" stroke="#fff"/g)||[]).length>=1);
 var fb2=fbWoIchStehe();
 ok('§8→v2.5 §1.1 Fokusansicht zeigt die Belastungssteuerung (Original anModACWR), nicht mehr die Matrix-Belastung',
    fb2.indexOf(anModACWR(analyseFenster(), S.ui.analyseDomain||'alle'))>=0 && fb2.indexOf('über die Matrix, nicht über eine Sportformel')<0);
@@ -1339,8 +1340,8 @@ frisch();
 S.karten=[ neueKarte({id:'f1', domain:'dfm', titel:'Fokus-Karte', matrixFeld:'ziel', sollMin:30, faelligkeit:H()}) ];
 var fb5=fbWoIchStehe();
 ok('§1.1 Belastungssteuerung (Original) in der Fokusansicht', fb5.indexOf('Belastungssteuerung')>=0 && fb5.indexOf(anModACWR(analyseFenster(),'alle'))>=0);
-ok('§1.1 „Heute gegen typische Tage" = dasselbe Diagramm wie „Verhalten" (v3.3: heuteGegenTypischHtml)', fb5.indexOf('Heute gegen typische Tage')>=0 &&
-   anModVerhalten(analyseFenster(),'alle').indexOf(heuteGegenTypischHtml())>=0 && fb5.indexOf(heuteGegenTypischHtml())>=0);
+ok('§1.1 (v3.5.0 §4.1.4) „Tempo und Blöcke" im Fokus-Block „Der Tag" = dieselbe Render-Funktion wie „Verhalten"', derTagHtml(null).indexOf('Tempo und Blöcke')>=0 &&
+   anModVerhalten(analyseFenster(),'alle').indexOf('data-dialive="tt"')>=0 && derTagHtml(null).indexOf('data-dialive="tt"')>=0);
 ok('§1.1 die Neubauten sind weg (Tagesverlauf-Kachel, Matrix-Belastung)', fb5.indexOf('Tagesverlauf · Soll')<0 && fb5.indexOf('Sportformel')<0);
 ok('§1.2 Outfit und Faktor F tragen die Ampelfarbe', (fb5.match(/class="fbk amp" style="--af:/g)||[]).length>=2 ||
    (fb5.match(/fbk[^"]* amp" style="--af:/g)||[]).length>=2);
@@ -1399,10 +1400,9 @@ kopf('v2.5.0 §3 · Detailanalyse in der Statistik, Prognose, DFM-Flows');
 frisch(); renderStatistik();
 var st5=el('statistikBody').innerHTML;
 // v2.6.0 §4.1: Matrix · Tagesverlauf direkt darunter · dann die Detailanalyse
-ok('§3.1 Detailanalyse steht in der Statistik unter Matrix und Tagesverlauf (v2.6)',
-   st5.indexOf('Der Tag in der Matrix')<st5.indexOf('Tagesverlauf') && st5.indexOf('Tagesverlauf')<st5.indexOf('Detailanalyse') &&
-   st5.indexOf('data-anzr=')>=0);
-ok('§3.1 Belohnungsseite behält nur einen Verweis', /data-analyse="1">📊 Detailanalyse → Statistik/.test(src));
+ok('§3.1 (v3.5.0 §5.1) Filter steht über Gruppe 2, Gruppe 1 davor',
+   st5.indexOf('1 · Heute')<st5.indexOf('2 · Leistung') && st5.indexOf('data-stmodul="tag"')<st5.indexOf('data-anzr=') && st5.indexOf('data-anzr=')<st5.indexOf('data-stmodul="leistung"'));
+ok('§3.1 Belohnungsseite behält nur einen Verweis', /data-analyse="1">📊 Statistik/.test(src));
 ok('§4 Kalibrierung verlässt die Detailanalyse …', anModuleHtml().indexOf('Kalibrierung')<0);
 renderEinst();
 ok('§4 … und steht als Diagramm in den Einstellungen', el('einstBody').innerHTML.indexOf('Kalibrierung')>=0);
@@ -1481,9 +1481,9 @@ kopf('v2.6.0 §1 · Statusleiste Zeile 2: Akku · Tempo · Konto · Matrix-Verla
 (function(){
   var r2=(src.match(/<div class="sb-r2">([\s\S]*?)<\/div>\s*<\/div>\s*<div id="fkNav"/)||[])[1]||'';
   var ids=(r2.match(/id="sZ\w+"/g)||[]).map(function(x){ return x.slice(4,-1); });
-  ok('§1 vier Zellen in dieser Reihenfolge: '+ids.join(' · '), ids.join(',')==='sZAkku,sZTempo,sZKonto,sZMatrix');
+  ok('§1 (v3.5.0 §3.1) Zellen in dieser Reihenfolge: '+ids.join(' · '), ids.join(',')==='sZAkku,sZKonto,sZTempo,sZMatrix');
   ok('§1 Serie und Rang sind aus der Leiste heraus', r2.indexOf('sZSerie')<0 && r2.indexOf('sZRang')<0 && !/#sZRang|sZSerie/.test(src));
-  ok('§1 jede Zelle mindestens 44 px hoch, vier gleich breite Spalten', /#statusbar \.sb-cell\{[^}]*min-height:44px/.test(src) && /#statusbar \.sb-r2\{[^}]*repeat\(4,1fr\)/.test(src));
+  ok('§1 (v3.5.0 §3.1) Zeile 3 als Grid 44px 52px 1fr, Matrix über Zeile 2+3', /#statusbar \.sb-r2\{[^}]*44px 52px 1fr/.test(src) && /#statusbar #sZMatrix\{[^}]*grid-row:2\/4/.test(src));
   ok('§1 Tipp auf die Mini-Tageskurve öffnet die Statistik OBEN', /el\('btnKurve'\)\.addEventListener\('click', \(\)=>\{[\s\S]{0,260}setTab\('statistik'\);\s*const m=document\.querySelector\('main'\); if\(m\) m\.scrollTop=0;/.test(src));
   frisch();
   S.karten=[ neueKarte({id:'sb1', domain:'dfm', titel:'Läuft', sollMin:60, matrixFeld:'werkzeug', faelligkeit:H()}) ];
@@ -1524,7 +1524,7 @@ if(!tw2.we){ ok('§2 drei Marken: Ich · Zieltempo · Karte', /tl-l ich/.test(tl
 else ok('§2 (Wochenende) nur die Karte, Hinweis steht da', /Wochenende/.test(tl));
 kc.abhakbonus=100;
 S.ui.fokusZeigt=null; fokusKarteAnsehen('cnt'); renderFokus();
-ok('§2 die Tempo-Leiste steht in der Fokusansicht oben bei den Punkten', /id="tTempo"/.test(src) && /stats\+'<div id="tTempo" class="tl-wrap"><\/div>'\+kpis/.test(src) && el('tTempo').innerHTML.indexOf('Tempo · Punkte je Stunde')>=0);
+ok('§2 (v3.5.0 §4.1.1) Tempo-Leiste entfällt im Karten-Kern; KPIs 2×2 neben dem Ring, Restminuten in der Ringmitte', !/id="tTempo"/.test(src) && /tkpis" id="tKpis"/.test(src) && /tringmitte/.test(src));
 
 kopf('v2.6.0 §3 · Matrix-Verlauf');
 frisch();
@@ -1539,13 +1539,13 @@ S.tag.matrixSpur=[
 ];
 var mk=matrixVerlaufSvg(S.tag.matrixSpur,{klein:true}), mg=matrixVerlaufSvg(S.tag.matrixSpur);
 ok('§3 klein: nur die Linie (keine Rauten, keine Tap-Ziele)', mk.indexOf('<path d="M')>=0 && mk.indexOf('l6 6')<0 && mk.indexOf('data-mspunkt')<0);
-ok('§3 Hintergrund rot links → grün rechts', /offset="0" stop-color="#f87171"/.test(mg) && /offset="1" stop-color="#34d399"/.test(mg));
+ok('§3 Hintergrund rot links → grün rechts (v3.5.0 FARBE)', /offset="0" stop-color="#f66d6d"/.test(mg) && /offset="1" stop-color="#3ecf8e"/.test(mg));
 var ys=(mg.match(/data-mspunkt="\d" cx="[\d.]+" cy="([\d.]+)"/g)||[]).map(function(x){ return num(x.match(/cy="([\d.]+)"/)[1]); });
 var xs=(mg.match(/data-mspunkt="\d" cx="([\d.]+)"/g)||[]).map(function(x){ return num(x.match(/cx="([\d.]+)"/)[1]); });
 ok('§3 ein Punkt je Position inkl. Tagebuch (3; die übersprungene Abfrage ist keiner)', ys.length===3);
 ok('§3 Zeit senkrecht: oben früh, unten spät ('+ys.map(Math.round).join(' < ')+')', ys[0]<ys[1] && ys[1]<ys[2]);
 ok('§3 waagerecht x: weg von links, hin zu rechts ('+xs.map(Math.round).join(' < ')+')', xs[0]<xs[1] && xs[1]<xs[2]);
-ok('§3 Tagebuch als Raute, Karte in Matrixfeld-Farbe', mg.indexOf('l6 6 l-6 6 l-6 -6 z')>=0 && mg.indexOf('fill="#22d3c5"')>=0);
+ok('§3 Tagebuch als Raute, Karte weiß nach Alter (v3.5.0 F4)', mg.indexOf('l6 6 l-6 6 l-6 -6 z')>=0 && /fill="#fff" fill-opacity="/.test(mg));
 ok('§3 weich verbunden (kubische Kurve durch die Punkte)', / C[\d.]+ [\d.]+ [\d.]+ [\d.]+ [\d.]+ [\d.]+/.test(mg));
 ok('§3.2 Uhrzeiten an der Zeitachse', /\d\d:00<\/text>/.test(mg));
 var i2=matrixPunktInfoHtml(2), i1=matrixPunktInfoHtml(1);
@@ -1567,17 +1567,17 @@ frisch();
 S.ui.analyseZeitraum='14';
 renderStatistik();
 var st6=el('statistikBody').innerHTML;
-ok('§4.1 Reihenfolge: Matrix · Tagesverlauf · Detailanalyse · Matrix-Spur',
-   st6.indexOf('Der Tag in der Matrix')<st6.indexOf('📈') && st6.indexOf('Tagesverlauf')<st6.indexOf('Detailanalyse') && st6.indexOf('Detailanalyse')<st6.indexOf('Matrix-Spur'));
+ok('§4.1 (v3.5.0 §5.1) Gruppen in Reihenfolge: Heute · Leistung & Rhythmus · Aufgaben & Routinen · Belastung · Spiel & Shop',
+   st6.indexOf('1 · Heute')<st6.indexOf('2 · Leistung') && st6.indexOf('2 · Leistung')<st6.indexOf('3 · Aufgaben') && st6.indexOf('4 · Belastung')<st6.indexOf('5 · Spiel'));
 var lei=anModLeistung(analyseFenster(),'alle');
-ok('§4.2 Leistung: Tage als Ampel-Punkte gegen den Schnitt, keine alten Bedeutungsfarben', /fill="#(34d399|f7d046|fb923c|f87171)"/.test(lei) && lei.indexOf('var(--cyan)')<0 && lei.indexOf('var(--warn)')<0);
+ok('§4.2 Leistung: Tage als Ampel-Punkte gegen den Schnitt, keine alten Bedeutungsfarben', /fill="#(3ecf8e|f2b84b|FF9F0A|f66d6d)"/i.test(lei) && lei.indexOf('var(--cyan)')<0 && lei.indexOf('var(--warn)')<0);
 var kon=anModKonsistenz(analyseFenster(),'alle');
-ok('§4.2 Konsistenz: Heatmap in der Ampel (statt Grün-Intensität)', /color-mix\(in srgb,#(34d399|f7d046|fb923c|f87171)/.test(kon) && kon.indexOf('rgba(62,207,142')<0);
+ok('§4.2 Konsistenz: Heatmap in der Ampel (v3.5.0: diskrete Bewertungsskala)', /color-mix\(in srgb,#(3ecf8e|f2b84b|FF9F0A|f66d6d)/i.test(kon) && heatmapHtml(function(){ return 1; }).indexOf(FARBE.GRUEN)>=0);
 var rd=anModReadiness(analyseFenster(),'alle');
-ok('§4.2 Readiness: Tage als Ampel-Punkte', /fill="#(34d399|f7d046|fb923c|f87171)"/.test(rd));
+ok('§4.2 Readiness: Tage als Ampel-Punkte', /fill="#(3ecf8e|f2b84b|FF9F0A|f66d6d)"/i.test(rd));
 ok('§4.2 Routinen-Flow: Streak-/Ausreißer-Balken zeigen die Karte (Matrixfeld-Farbe)', /karteBalken\(k\)/.test(src) && /karteBalken\(x\.k\)/.test(src));
 ok('§4.2 Rein/Raus: Ampelfarben statt var(--ok)/var(--bad)', (function(){ var r=reinRausBalkenHtml(7,'dfm')+reinRausTagHtml(H(),'dfm');
-   return r.indexOf('var(--ok)')<0 && r.indexOf('var(--bad)')<0 && r.indexOf('#34d399')>=0; })());
+   return r.indexOf('var(--ok)')<0 && r.indexOf('var(--bad)')<0 && r.indexOf('#3ecf8e')>=0; })());
 ok('§4.2 Belastungssteuerung bleibt nach ihren eigenen Zonen', /function acwrStufe\(v\)/.test(src) && anModACWR(analyseFenster(),'alle').indexOf('Sweet-Spot')>=0);
 
 kopf('v2.6.0 §5 · Geld-Impact als Zahl');
@@ -1901,7 +1901,7 @@ ok('§1.2 Counter bleibt an seinem Platz und zeigt den Zählstand im Zähler-Fel
 ok('§1.2 der +1-Handler: Tick ohne Dialog, Abschluss nur beim Tageslimit (v3.1)', /const p=altTick\(k\); saveKarten\(\)/.test(src) && /if\(istTickKarte\(k\)\)\{ karteTick\(k\.id, true\)/.test(src));
 S.ui.fokusZeigt=null; fokusKarteAnsehen('aK'); renderFokus();
 var fvA=el('fokusView').innerHTML;
-ok('§1.2 Routinen-Leiste ganz unten in der Fokusansicht', fvA.indexOf('Routinen und Counter · ')>fvA.indexOf('Der Tag von oben nach unten'));
+ok('§1.2 (v3.5.0 §4.1.7) Kartenliste „meistgenutzt" ganz unten in der Fokusansicht', fvA.indexOf('Karten · meistgenutzt')>fvA.indexOf('Matrix heute'));
 var zs=zeitstrahlHtml();
 // v3.0.0 (Entscheidung Pascal): Routinen stehen AUCH wieder im Tagesablauf
 ok('§1.2 Routinen stehen auch im Tagesablauf (v3.0), Aufgaben sowieso', zs.indexOf('Zähne')>=0 && zs.indexOf('Kalkulation Welle')>=0);
@@ -2011,12 +2011,12 @@ syncImport(JSON.stringify({appVersion:'2.8.0', karten:[{id:'n2', nurAbhaken:fals
 ok('§6 Import nimmt nurAbhaken an', kid('n2').nurAbhaken===false);
 
 kopf('v2.8.0 §5 · Farben (Stichproben; die Tabelle steht im Report)');
-ok('§5 Statusleiste: Privat lila statt gelb', /\.ist\.privat\{background:linear-gradient\(90deg,#d8b4fe,#a855f7\)\}/.test(src));
+ok('§5 Statusleiste: Privat lila (v3.5.0 flächig)', /\.ist\.privat\{background:#a855f7\}/.test(src));
 ok('§5 Linien tragen Farbe + Verlauf darunter (anSvgLine flaeche, leuchtende Punkte)', /s\.flaeche\) fl\+=flaecheSvg/.test(src) && /leuchten\(df,3\)/.test(src));
 ok('§5 Akku als eigener Verlauf rot → gelb → grün', /akkuVerlaufDef\(aid, Y\(0\), Y\(100\)\)/.test(src));
 ok('§5 Matrix-Verlauf: Linie in der Richtungsfarbe statt weiß', /stroke="url\(#'\+rid\+'\)"/.test(src));
 // v3.3.0 §0.1: Rang und Kulisse zeichnen nur noch mit den Farben der Tabelle (Abstieg ORANGE, Aufstieg GRUEN, Kulisse GELB)
-ok('§5→v3.3 Belohnung: Rang-Verlauf und Kulisse in den Tabellenfarben', /\[ab,'Abstieg',DIA_FARBE\.orange\],\[auf,'Aufstieg',DIA_FARBE\.gruen\]/.test(src) && /background:'\+DIA_FARBE\.gelb\+'"><\/i><\/span>'\+\s*'<div class="dia-lr">/.test(src));
+ok('§5→v3.5 Belohnung: Rang-Bänder (16 %) und Kulisse im Verlauf der zwei größten Farben', /fill-opacity="\.16"/.test(src) && /topFarben\[0\]/.test(src));
 
 /* ══ v2.8.1 · Hotfix: Wiederholungen und Zuruecksetzen per Paket ══ */
 kopf('v2.8.1 §1 · Karte erneut anlegen');
@@ -2185,7 +2185,7 @@ var blk=pflichtBlockHtml(entwurf);
 ok('§3 Kurve mit drei Griffen (Knick · Stufe · Untergrenze) und vier Plus/Minus-Zeilen', /data-pgriff="knick"/.test(blk) && /data-pgriff="stufe"/.test(blk) && /data-pgriff="min"/.test(blk) &&
    (blk.match(/data-pfplus="/g)||[]).length===8 && /r="22" fill="transparent"/.test(blk));
 ok('§3 Kurve in der Farbe des Matrixfelds (Werkzeug)', blk.indexOf('stroke="'+MX_FARBE.werkzeug[0]+'"')>=0);
-ok('§3 echte Dauern als Punkte (4), über dem Deckel in der Abzugsfarbe (1)', (blk.match(/class="pf-dauer"/g)||[]).length===4 && (blk.match(/class="pf-dauer"[^>]*fill="#f87171"/g)||[]).length===1);
+ok('§3 echte Dauern als Punkte (4), über dem Deckel in der Abzugsfarbe (1)', (blk.match(/class="pf-dauer"/g)||[]).length===4 && (blk.match(/class="pf-dauer"[^>]*fill="#f66d6d"/g)||[]).length===1);
 var lz=pflichtLiveZeile(entwurf);
 print('   Live-Zeile: '+lz);
 ok('§3 Live-Zeile rechnet: typisch 14 Min → 50 · 1 von 4 über dem Deckel · längstes Mal 45 Min → 30 (2 angefangene 10er)', lz==='Typisch 14 Min → 50 P · 1 von 4 Mal über dem Deckel · längstes Mal (45 Min) → 30 P');

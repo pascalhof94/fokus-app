@@ -48,8 +48,8 @@ ok('2 tempoSchnitt 700 → GRUEN', a3===DIA_FARBE.gruen);
 ok('0.3 r = 0,90 → genau GELB; soll 0 → GRUEN', diaAmpel(90,100)===DIA_FARBE.gelb && diaAmpel(5,0)===DIA_FARBE.gruen);
 frisch(); tagMit(6, 9); punkte(1000, 500);
 var sk=tempoSkalaHtml(diaGroessen());
-ok('1.1 Skala: Balken 0 … tempoSchnitt in der Ampel, Punkte ROT (Ziel) und GELB (Schnitt), ohne laufende Karte kein GRUEN', /ts-bar/.test(sk) &&
-   sk.indexOf('background:'+DIA_FARBE.rot)>=0 && sk.indexOf('background:'+DIA_FARBE.gelb)>=0 && sk.indexOf('background:'+DIA_FARBE.gruen)<0);
+ok('1.1 Skala (v3.5.0 §3.3): Balken 0 … tempoSchnitt in der Ampel, Ziel-Marke WEISS gepunktet, Jetzt-Punkt; ohne laufende Karte kein Karten-Punkt', /ts-bar/.test(sk) &&
+   /ts-ziel/.test(sk) && /ts-jetzt/.test(sk) && sk.indexOf('ts-karte')<0);
 
 /* ══ 3 · Tagesprognose ═══════════════════════════════════════════════ */
 kopf('3 · Tagesprognose (§2.2)');
@@ -72,8 +72,8 @@ ok('4 die Statusleiste zeichnet keine Position, die älter als 5 Stunden ist (2 
 /* ══ 5 · Rang mit einem Tag Historie ═════════════════════════════════ */
 kopf('5 · Rang-Diagramm (§3.3)');
 var r5=rangDiagrammHtml({ rang:null, n:1, tage:[{datum:belFensterDatum(jetztIso()), r:{rate:210}}] });
-ok('5 ein Tag: ein Punkt (der heutige, 8 px, mit Wert), beide Schwellen mit Beschriftung, kein Fehler', (r5.match(/<circle/g)||[]).length===1 && /r="4"/.test(r5) && />210</.test(r5) &&
-   />Abstieg</.test(r5) && />Aufstieg</.test(r5) && r5.indexOf('stroke="'+DIA_FARBE.orange+'"')>=0 && r5.indexOf('stroke="'+DIA_FARBE.gruen+'"')>=0);
+ok('5 ein Tag (v3.5.0 §5.3): heutiger Punkt weiß mit Wert, Rang-Bänder (16 %) statt Schwellen-Linien, Kürzel R1, kein Fehler', /r="3.5" fill="#fff"/.test(r5) && />210</.test(r5) &&
+   /fill-opacity="\.16"/.test(r5) && />R1</.test(r5) && r5.indexOf('>Abstieg')<0);
 var r5b=rangDiagrammHtml({ rang:3, n:5, tage:[1,2,3,4,5].map(function(i){ return {datum:'2026-09-'+(10+i), r:{rate:200+i*10}}; }) });
 ok('5 fünf Tage: fünf Punkte, eine Linie', (r5b.match(/<circle/g)||[]).length===5 && /<path d="M/.test(r5b));
 
@@ -83,7 +83,7 @@ frisch(); tagMit(6, 9); punkte(1000, 0);
 S.karten=[neueKarte({id:'k6', domain:'dfm', titel:'Karte', matrixFeld:'ziel', sollMin:30})];
 ok('6 kein grüner Tempo-Punkt, Tagesprognose „Diese Karte: 0 %"', tempoSkalaHtml(diaGroessen()).indexOf(DIA_FARBE.gruen)<0 && fbWasDieseKarte(S.karten[0]).indexOf('Diese Karte: 0 %')>=0);
 S.fokus={ karteId:'k6', laeuft:true, startMs:Date.now()-600000, sessionSek:0 };
-ok('6 mit laufender Karte: grüner Punkt da (tempoKarte)', tempoSkalaHtml(diaGroessen()).indexOf('background:'+DIA_FARBE.gruen)>=0);
+ok('6 mit laufender Karte (v3.5.0 §3.3): Karten-Punkt in der Familienfarbe', /ts-karte[^>]*background:#3b82f6/.test(tempoSkalaHtml(diaGroessen())));
 S.fokus=null;
 
 /* ══ 7 · Dieselbe Kachel überall ═════════════════════════════════════ */
@@ -91,8 +91,8 @@ kopf('7 · Dieselbe Render-Funktion in Fokus, Shop und Statistik');
 frisch(); tagMit(6, 9); punkte(1000, 500); S.belohnung=null; belohnungInit();
 var fok=fbWoIchStehe(), bel=belHeuteNoch();
 ok('7 Outfit-Kachel: Fokus und Shop zeigen dieselbe (outfitKachelHtml)', fok.indexOf(outfitKachelHtml())>=0 && bel.indexOf(outfitKachelHtml())>=0);
-ok('7 „Heute gegen typische Tage": Fokus und Statistik zeigen dasselbe (heuteGegenTypischHtml)', fok.indexOf(heuteGegenTypischHtml())>=0 &&
-   anModVerhalten(analyseFenster(),'alle').indexOf(heuteGegenTypischHtml())>=0);
+ok('7 „Tempo und Blöcke" (v3.5.0): Fokus („Der Tag") und Statistik nutzen dieselbe Render-Funktion (heuteGegenTypischHtml)', derTagHtml(null).indexOf('data-dialive="tt"')>=0 &&
+   anModVerhalten(analyseFenster(),'alle').indexOf('data-dialive="tt"')>=0);
 ok('7 je Kachel genau eine Render-Funktion (Quelltext)', ['outfitKachelHtml','faktorKachelHtml','muenzenKachelHtml','rangDiagrammHtml','kulisseKachelHtml','heuteGegenTypischHtml','tempoSkalaHtml']
    .every(function(f){ return (src.match(new RegExp('function '+f+'\\(','g'))||[]).length===1; }));
 
@@ -104,14 +104,14 @@ el('sKontoLeiste').firstChild=dummyEl();   // der DOM-Stub hat keine Kinder
 renderStatusbar();
 var nk=belNaechsterKauf(), kl=el('sKontoLeiste').firstChild.style;
 print('   Konto '+Math.round(konto())+' · nächster Artikel '+(nk?Math.round(nk.preis):'—')+' · Leiste '+kl.width);
-ok('1.2 Konto-Leiste = Konto ÷ Preis des nächsten Artikels, GELB', nk && pz(kl.width)===Math.round(Math.min(1,konto()/nk.preis)*1000)/10 && kl.background===DIA_FARBE.gelb);
+ok('1.2 (v3.5.0 §3.1) Konto-Zelle: Wert GOLD, keine Leiste mehr', /zelle\('sZKonto', fmtKurzP\(k\), '', FARBE\.GOLD\)/.test(src) && !/id="sKontoLeiste"/.test(src));
 var ok4=outfitKachelHtml();
 ok('2.4 Outfit: quadratisch, Ring 6 px (GRUEN, Rest GRAU 30 %), Bild in der Mitte, darunter nur der nächste Name', /dia-quad/.test(ok4) && /stroke-width="6"/.test(ok4) &&
    ok4.indexOf('stroke="'+DIA_FARBE.grau+'" stroke-opacity=".3"')>=0 && /<img class="dia-ringbild"/.test(ok4) && /class="dia-name">Outfit \d+</.test(ok4) && ok4.indexOf('fbk-h')<0);
 ok('2.5 Faktor: quadratisch neben dem Outfit, der große Wert', /dia-quad amp/.test(fok) && fok.indexOf(outfitKachelHtml()+faktorKachelHtml(ampelStil(ampelStufe(normalZurUhrzeit('alle').r))))>=0);
 var tg=heuteGegenTypischHtml();
-ok('2.6 sieben Linien-Einträge in der Legende, gestrichelt 1,5 px (4/4), durchgezogen 2 px', (tg.match(/<span><i/g)||[]).length===7 &&
-   ['Heute','Ø alle Tage','Ø 14 Tage','DFM heute','DFM Ø 14 Tage','Privat heute','Privat Ø 14 Tage'].every(function(l){ return tg.indexOf('</i>'+l+'<')>=0; }));
+ok('2.6 (v3.5.0 §4.1.4) Legende „Plan gestrichelt · Ist gefüllt · heute · gestern · Ø Wd" mit drei Werten zu jetzt', tg.indexOf('Plan gestrichelt')>=0 && tg.indexOf('Ist gefüllt')>=0 &&
+   tg.indexOf('gestern')>=0 && (tg.match(/dia-tt-zahl/g)||[]).length===3);
 S.karten=[neueKarte({id:'k7', domain:'privat', titel:'Karte', matrixFeld:'werkzeug', sollMin:30})];
 S.tag.matrixSpur=[{ts:jetztIso(), x:0.2, y:0.1}];
 var fb7=fbWasIchBewege(S.karten[0]);
@@ -123,7 +123,7 @@ ok('3.4 „Als Nächstes im Shop" mit Ankunftszeit', !nk || /dia-zeile">(ca\. \d
 var sam=outfitSammlungHtml();
 ok('3.5 Outfit-Sammlung: 48×48-Bilder mit „N×"', /width="48" height="48"/.test(sam) && /<small>\d+×<\/small>/.test(sam));
 var ku=kulisseKachelHtml();
-ok('3.6 Kulisse: Bild der aktuellen, Leiste GELB, links aktuelle, rechts nächste', /dia-kulisse" style="background-image:url\('img\/bg\d\d\.jpg'\)/.test(ku) && ku.indexOf('background:'+DIA_FARBE.gelb)>=0 && /Kulisse \d+<\/span><span>Kulisse \d+/.test(ku));
+ok('3.6 (v3.5.0 §6.6) Kulisse: Kopf KULISSE n/10, Prozent, Balken im Verlauf zweier Farben, Felder-Text', /KULISSE \d+\/10/.test(ku) && /linear-gradient\(90deg,#[0-9a-f]{6},#[0-9a-f]{6}\)/i.test(ku) && /Feldern/.test(ku));
 ok('0.1 UEBER #FF2D95 war vorher nirgends benutzt', (src.match(/#FF2D95/gi)||[]).length>=1 && DIA_FARBE.ueber==='#FF2D95');
 
 /* ══ Version ════════════════════════════════════════════════════════ */
