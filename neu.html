@@ -668,6 +668,17 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .wtp-c i{display:block;width:100%;border-radius:4px 4px 0 0;min-height:2px}
 .stapel{display:flex;height:10px;border-radius:5px;overflow:hidden;background:#1c1f25;margin-bottom:6px}
 .stapel i{display:block;height:100%}
+/* §8 (v3.5.0): Matrixfaktor */
+.mf-z{display:grid;grid-template-columns:96px 1fr 40px;gap:8px;align-items:center;font-size:12px;margin:5px 0}
+.mf-z .nm{color:#9a9ca2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mf-z b{font-family:ui-monospace,monospace;text-align:right}
+.mf-bahn{position:relative;height:10px;border-radius:5px;background:#1c1f25;overflow:hidden}
+.mf-bahn i{position:absolute;left:0;top:0;bottom:0;border-radius:5px}
+.mf-bahn i.ohne{background:#9a9ca2;opacity:.35}
+.mf-k{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;padding:6px 0;border-bottom:1px solid #1c1f25;font-size:12px}
+.mf-k .t{grid-column:1}.mf-k .mf-m{grid-column:1;font-size:10.5px;color:#9a9ca2;font-family:ui-monospace,monospace}
+.mf-k button{grid-column:2;grid-row:1/3}
+.mf-wahl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 /* §6 (v3.5.0): Shop-Uebersicht, Malmodus, Banner */
 .mal-scene{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:1200/669;background:#111;transition:opacity .6s}
 .mal-scene.wechsel{opacity:0}
@@ -16510,6 +16521,51 @@ function stmSpielShop(F,dom){
       return '<div class="an-bar"><span class="nm">'+BELOHNUNG[kk].icon+' '+esc(BELOHNUNG[kk].name)+'</span><span class="track"><i style="width:'+(n/max*100).toFixed(0)+'%;background:linear-gradient(90deg,'+FARBE.GOLD_DUNKEL+','+FARBE.GOLD+')"></i></span><span class="vv">'+n+'/'+max+'</span></div>'; }).join('')+'</div>'; }catch(e){}
     return h; });
 }
+/* ══ §8 (v3.5.0) · MATRIXFAKTOR — Modul und Bearbeiten ═══════════════════════
+   Punkte/h = Basisrate × Matrixfaktor × Geld-Faktor; der Faktor haengt nur am Matrixfeld.
+   „Punkte ohne Faktor" = gebuchte Punkte ÷ Faktor (Faktor 0: Minuten × Basisrate × Geld-Faktor). */
+function matrixfaktorDaten(F, dom){
+  const by={}, von=F.von, bis=F.bis;
+  (S.intraday||[]).forEach(e=>{ if(!e || !e.ts || !e.kartenId) return; const d=belFensterDatum(e.ts); if(d<von || d>bis) return;
+    const k=S.karten.find(x=>x.id===e.kartenId); if(!k || (dom!=='alle' && k.domain!==dom)) return;
+    const q=by[k.id]||(by[k.id]={k, punkte:0, min:0}); q.punkte+=Math.max(0, num(e.punkte)); q.min+=Math.max(0, num(e.minuten)); });
+  const karten=Object.keys(by).map(id=>{ const q=by[id], f=matrixFaktor(q.k), feld=matrixFeldVon(q.k);
+    const ohne = f>0 ? q.punkte/f : q.min/60*basisRate(q.k)*(typeof geldFaktor==='function' ? num(geldFaktor(q.k),1)||1 : 1);
+    return { k:q.k, feld, faktor:f, min:q.min, mit:q.punkte, ohne }; });
+  const felder={}; MATRIX_FELDER.forEach(f=>{ felder[f]={mit:0, ohne:0, min:0, faktor:num((S.settings.matrixFaktor||{})[f], f==='ziel'?1:f==='zustand'?0.9:f==='werkzeug'?0.8:0)}; });
+  karten.forEach(c=>{ const q=felder[c.feld]||felder.ziel; q.mit+=c.mit; q.ohne+=c.ohne; q.min+=c.min; });
+  const mitGes=karten.reduce((a,c)=>a+c.mit,0), ohneGes=karten.reduce((a,c)=>a+c.ohne,0), minGes=karten.reduce((a,c)=>a+c.min,0), minKlein=karten.filter(c=>c.faktor<1).reduce((a,c)=>a+c.min,0);
+  return { karten, felder, mitGes, ohneGes, minGes, minKlein };
+}
+function anModMatrixfaktor(F, dom){
+  const D=matrixfaktorDaten(F, dom), FELDF={ ziel:FARBE.GRUEN, werkzeug:FARBE.WEISS, zustand:FARBE.ORANGE, ablenkung:FARBE.ROT };
+  const mx=Math.max(1, Math.max.apply(null, MATRIX_FELDER.map(f=>D.felder[f].ohne)));
+  const haupt='<div class="mf-liste">'+['ziel','werkzeug','zustand','ablenkung'].map(f=>{ const q=D.felder[f];
+    return '<div class="mf-z"><span class="nm">'+MATRIX_META[f].icon+' '+esc(MATRIX_META[f].name)+'</span><span class="mf-bahn"><i class="ohne" style="width:'+(q.ohne/mx*100).toFixed(1)+'%"></i><i class="mit" style="width:'+(q.mit/mx*100).toFixed(1)+'%;background:'+FELDF[f]+'"></i></span><b>×'+String(Math.round(q.faktor*100)/100).replace('.',',')+'</b></div>'; }).join('')+'</div>'+
+    '<div class="an-legend"><span><i style="background:'+FARBE.GRAU+';opacity:.35"></i>Punkte ohne Faktor</span><span><i style="background:'+FARBE.WEISS+'"></i>mit Faktor (Feldfarbe nur hier)</span></div>';
+  const eff=D.ohneGes>0 ? D.mitGes/D.ohneGes : null;
+  const kpis=[ stKpi(eff!=null?'×'+(Math.round(eff*100)/100).toFixed(2).replace('.',','):'—','effektiver Ø-Faktor'), stKpi('−'+anFmt(Math.max(0, D.ohneGes-D.mitGes)),'Punkte abgezogen'), stKpi(D.minGes>0?Math.round(D.minKlein/D.minGes*100)+' %':'—','Zeit auf Faktor < 1') ];
+  return statModul('matrixfaktor','Matrixfaktor · Punkte je Feld', haupt, kpis, ()=>{
+    const l=D.karten.filter(c=>Math.abs(c.faktor-1)>1e-9).sort((a,b)=>(b.ohne-b.mit)-(a.ohne-a.mit));
+    return '<div class="stm-dh">Karten mit Faktor ≠ 1,0 · '+l.length+'</div>'+(l.length ? l.map(c=>'<div class="mf-k"><span class="t">'+esc(String(c.k.titel||'?').slice(0,30))+'</span><span class="mf-m">'+MATRIX_META[c.feld].icon+' '+esc(MATRIX_META[c.feld].name)+' · ×'+String(Math.round(c.faktor*100)/100).replace('.',',')+' · '+Math.round(c.min)+' Min · −'+anFmt(Math.max(0,c.ohne-c.mit))+' P</span><button class="btn sm" data-mfedit="'+c.k.id+'">✎</button></div>').join('') : '<div class="an-leer">keine</div>')+
+      '<div class="dia-zeile" style="margin-top:8px"><a href="#" data-mfeinst="1">Faktoren je Feld → Einstellungen</a></div>'; });
+}
+/* §8.2 · Bearbeiten = Matrixfeld der Karte aendern (gilt ab jetzt, gebuchte Punkte bleiben), protokolliert in matrixfeldAenderungen */
+function matrixfeldSheet(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  const f=matrixFeldVon(k);
+  openSheet('Matrixfeld · '+esc(String(k.titel||'').slice(0,30)), '<div class="hint">Das neue Feld gilt ab jetzt; bereits gebuchte Punkte bleiben. Kein eigener Faktor je Karte.</div>'+
+    '<div class="mf-wahl">'+MATRIX_FELDER.map(x=>'<button class="btn'+(x===f?' prim':'')+'" data-mfxset="'+x+'" data-kid="'+kid+'">'+MATRIX_META[x].icon+' '+esc(MATRIX_META[x].name)+' · ×'+String(Math.round(matrixFaktor({matrixFeld:x, domain:k.domain})*100)/100).replace('.',',')+'</button>').join('')+'</div>', '');
+}
+function matrixfeldSetzen(kid, feld){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  const von=matrixFeldVon(k), nach=matrixFeldVon({matrixFeld:feld}); if(von===nach) return;
+  k.matrixFeld=nach; beruehre(k);
+  if(!Array.isArray(S.meta.matrixfeldAenderungen)) S.meta.matrixfeldAenderungen=[];
+  S.meta.matrixfeldAenderungen.push({ karteId:kid, von, nach, ts:jetztIso() });
+  if(S.meta.matrixfeldAenderungen.length>500) S.meta.matrixfeldAenderungen=S.meta.matrixfeldAenderungen.slice(-500);
+  saveKarten(); saveMeta(); toast('Matrixfeld: '+MATRIX_META[von].name+' → '+MATRIX_META[nach].name);
+}
 /* §5.3 · historische Kennzahlen des Rangs (2×2): Bestwert · vor 4 Wochen · Tage auf aktuellem Rang · Auf-/Abstiege 8 Wochen */
 function rangHistorieHtml(rm){
   rm=rm||rangMass(); let w=[]; try{ w=belVerlaufDaten().wochen; }catch(e){ w=[]; }
@@ -17718,6 +17774,8 @@ function statKlick(e){
   const smt=e.target.closest('#statistikBody [data-stmtoggle]');
   if(smt && !e.target.closest('.dia-tv-scroll,[data-tbmatrix],[data-statdom],[data-statstep],[data-statheute],input,button')){
     const id=smt.dataset.stmtoggle; S.ui.statOffen=Object.assign({}, S.ui.statOffen); S.ui.statOffen[id]=!S.ui.statOffen[id]; saveUi(); renderStatistik(); return; }
+  const mfe=e.target.closest('#statistikBody [data-mfedit]'); if(mfe){ matrixfeldSheet(mfe.dataset.mfedit); return; }
+  if(e.target.closest('#statistikBody [data-mfeinst]')){ e.preventDefault(); setTab('einst'); return; }
   const smg=e.target.closest('#statistikBody [data-stmgo]'); if(smg){ const id=smg.dataset.stmgo; S.ui.statOffen=Object.assign({}, S.ui.statOffen); S.ui.statOffen[id]=true; saveUi(); renderStatistik();
     const z=document.querySelector('#statistikBody [data-stmodul="'+id+'"]'); if(z && z.scrollIntoView) z.scrollIntoView({behavior:'smooth', block:'start'}); return; }
   // §3 (v2.5.0): Filter der Detailanalyse in der Statistik
@@ -18021,7 +18079,8 @@ function zurBelohnung(){
 el('btnFigur').addEventListener('click', zurBelohnung);
 el('fokusView').addEventListener('click', fokusKlick350, true);   // §4 (v3.5.0): Tagesketten, Unter-Zaehler, Kartenliste
 document.addEventListener('click', e=>{ const t=e.target && e.target.closest ? e.target.closest('[data-uztick],[data-kltick],[data-alcheck],[data-ftick],[data-zzplus],[data-tickplus],[data-alsub],[data-zzsub]') : null; if(t) _letzterTickKnopf={ el:t, ts:Date.now() }; }, true);   // §7.4 (v3.5.0)
-el('sheetBody').addEventListener('click', e=>{ const t=e.target.closest('[data-maltopfunter]'); if(t){ e.stopPropagation(); topfUnterStation(num(t.dataset.maltopfunter)); closeSheet(); renderBelohnung(); } }, true);   // §6.4 (v3.5.0)
+el('sheetBody').addEventListener('click', e=>{ const t=e.target.closest('[data-maltopfunter]'); if(t){ e.stopPropagation(); topfUnterStation(num(t.dataset.maltopfunter)); closeSheet(); renderBelohnung(); return; }
+  const m=e.target.closest('[data-mfxset]'); if(m){ e.stopPropagation(); matrixfeldSetzen(m.dataset.kid, m.dataset.mfxset); closeSheet(); renderStatistik(); } }, true);   // §6.4/§8.2 (v3.5.0)
 el('btnKurve').addEventListener('click', ()=>{
   // §1 (v2.6.0): Tipp auf die Mini-Kurve oeffnet die Statistik, OBEN
   // (dort stehen jetzt Matrix und direkt darunter der Tagesverlauf).
