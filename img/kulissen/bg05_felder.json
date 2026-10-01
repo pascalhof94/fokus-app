@@ -1,0 +1,776 @@
+{
+ "kulisse": 5,
+ "datei": "img/bg05.jpg",
+ "breite": 1200,
+ "hoehe": 669,
+ "anzahlFarben": 10,
+ "anzahlFelder": 60,
+ "groesstesFeldPx": 76673,
+ "topfFassungPx": 92008,
+ "hinweisPunkte": "Feldpunkte noch offen: Vorschlag anteil x Kulissenwert",
+ "kulissenwertVorschlag": 52768,
+ "farben": [
+  {
+   "farbe": 0,
+   "hex": "#b98145"
+  },
+  {
+   "farbe": 1,
+   "hex": "#f5c281"
+  },
+  {
+   "farbe": 2,
+   "hex": "#47351f"
+  },
+  {
+   "farbe": 3,
+   "hex": "#feea98"
+  },
+  {
+   "farbe": 4,
+   "hex": "#6f4f28"
+  },
+  {
+   "farbe": 5,
+   "hex": "#1f130b"
+  },
+  {
+   "farbe": 6,
+   "hex": "#d89c55"
+  },
+  {
+   "farbe": 7,
+   "hex": "#fffee8"
+  },
+  {
+   "farbe": 8,
+   "hex": "#eaaf6a"
+  },
+  {
+   "farbe": 9,
+   "hex": "#966a35"
+  }
+ ],
+ "felder": [
+  {
+   "feld": 1,
+   "farbe": 0,
+   "flaechePx": 3914,
+   "anteil": 0.004875,
+   "bbox": [
+    0,
+    172,
+    282,
+    309
+   ]
+  },
+  {
+   "feld": 2,
+   "farbe": 0,
+   "flaechePx": 32623,
+   "anteil": 0.040637,
+   "bbox": [
+    0,
+    230,
+    268,
+    586
+   ]
+  },
+  {
+   "feld": 3,
+   "farbe": 0,
+   "flaechePx": 12218,
+   "anteil": 0.015219,
+   "bbox": [
+    1047,
+    233,
+    1200,
+    392
+   ]
+  },
+  {
+   "feld": 4,
+   "farbe": 0,
+   "flaechePx": 7380,
+   "anteil": 0.009193,
+   "bbox": [
+    601,
+    274,
+    765,
+    510
+   ]
+  },
+  {
+   "feld": 5,
+   "farbe": 0,
+   "flaechePx": 7854,
+   "anteil": 0.009783,
+   "bbox": [
+    388,
+    326,
+    564,
+    532
+   ]
+  },
+  {
+   "feld": 6,
+   "farbe": 0,
+   "flaechePx": 9769,
+   "anteil": 0.012169,
+   "bbox": [
+    288,
+    332,
+    388,
+    551
+   ]
+  },
+  {
+   "feld": 7,
+   "farbe": 0,
+   "flaechePx": 5387,
+   "anteil": 0.00671,
+   "bbox": [
+    837,
+    351,
+    879,
+    550
+   ]
+  },
+  {
+   "feld": 8,
+   "farbe": 1,
+   "flaechePx": 5418,
+   "anteil": 0.006749,
+   "bbox": [
+    179,
+    0,
+    275,
+    90
+   ]
+  },
+  {
+   "feld": 9,
+   "farbe": 1,
+   "flaechePx": 11896,
+   "anteil": 0.014818,
+   "bbox": [
+    293,
+    0,
+    381,
+    204
+   ]
+  },
+  {
+   "feld": 10,
+   "farbe": 1,
+   "flaechePx": 15445,
+   "anteil": 0.019239,
+   "bbox": [
+    794,
+    0,
+    875,
+    333
+   ]
+  },
+  {
+   "feld": 11,
+   "farbe": 6,
+   "flaechePx": 18872,
+   "anteil": 0.023508,
+   "bbox": [
+    382,
+    56,
+    471,
+    385
+   ]
+  },
+  {
+   "feld": 12,
+   "farbe": 1,
+   "flaechePx": 9455,
+   "anteil": 0.011778,
+   "bbox": [
+    450,
+    137,
+    539,
+    377
+   ]
+  },
+  {
+   "feld": 13,
+   "farbe": 1,
+   "flaechePx": 7506,
+   "anteil": 0.00935,
+   "bbox": [
+    508,
+    156,
+    724,
+    284
+   ]
+  },
+  {
+   "feld": 14,
+   "farbe": 1,
+   "flaechePx": 6121,
+   "anteil": 0.007625,
+   "bbox": [
+    545,
+    255,
+    602,
+    415
+   ]
+  },
+  {
+   "feld": 15,
+   "farbe": 1,
+   "flaechePx": 76673,
+   "anteil": 0.095507,
+   "bbox": [
+    320,
+    504,
+    997,
+    669
+   ]
+  },
+  {
+   "feld": 16,
+   "farbe": 2,
+   "flaechePx": 8225,
+   "anteil": 0.010245,
+   "bbox": [
+    1012,
+    176,
+    1200,
+    595
+   ]
+  },
+  {
+   "feld": 17,
+   "farbe": 2,
+   "flaechePx": 8910,
+   "anteil": 0.011099,
+   "bbox": [
+    0,
+    189,
+    333,
+    563
+   ]
+  },
+  {
+   "feld": 18,
+   "farbe": 2,
+   "flaechePx": 4015,
+   "anteil": 0.005001,
+   "bbox": [
+    37,
+    349,
+    99,
+    533
+   ]
+  },
+  {
+   "feld": 19,
+   "farbe": 2,
+   "flaechePx": 16731,
+   "anteil": 0.020841,
+   "bbox": [
+    1050,
+    359,
+    1176,
+    602
+   ]
+  },
+  {
+   "feld": 20,
+   "farbe": 2,
+   "flaechePx": 5822,
+   "anteil": 0.007252,
+   "bbox": [
+    140,
+    372,
+    173,
+    585
+   ]
+  },
+  {
+   "feld": 21,
+   "farbe": 2,
+   "flaechePx": 3066,
+   "anteil": 0.003819,
+   "bbox": [
+    34,
+    388,
+    64,
+    537
+   ]
+  },
+  {
+   "feld": 22,
+   "farbe": 2,
+   "flaechePx": 9108,
+   "anteil": 0.011345,
+   "bbox": [
+    202,
+    354,
+    260,
+    560
+   ]
+  },
+  {
+   "feld": 23,
+   "farbe": 3,
+   "flaechePx": 43450,
+   "anteil": 0.054123,
+   "bbox": [
+    863,
+    0,
+    1010,
+    345
+   ]
+  },
+  {
+   "feld": 24,
+   "farbe": 4,
+   "flaechePx": 10543,
+   "anteil": 0.013133,
+   "bbox": [
+    244,
+    0,
+    296,
+    321
+   ]
+  },
+  {
+   "feld": 25,
+   "farbe": 4,
+   "flaechePx": 8035,
+   "anteil": 0.010009,
+   "bbox": [
+    892,
+    0,
+    1031,
+    595
+   ]
+  },
+  {
+   "feld": 26,
+   "farbe": 4,
+   "flaechePx": 7766,
+   "anteil": 0.009674,
+   "bbox": [
+    284,
+    318,
+    478,
+    560
+   ]
+  },
+  {
+   "feld": 27,
+   "farbe": 2,
+   "flaechePx": 4055,
+   "anteil": 0.005051,
+   "bbox": [
+    824,
+    340,
+    875,
+    535
+   ]
+  },
+  {
+   "feld": 28,
+   "farbe": 2,
+   "flaechePx": 4963,
+   "anteil": 0.006182,
+   "bbox": [
+    288,
+    369,
+    322,
+    559
+   ]
+  },
+  {
+   "feld": 29,
+   "farbe": 5,
+   "flaechePx": 5311,
+   "anteil": 0.006616,
+   "bbox": [
+    1018,
+    197,
+    1200,
+    592
+   ]
+  },
+  {
+   "feld": 30,
+   "farbe": 5,
+   "flaechePx": 3027,
+   "anteil": 0.003771,
+   "bbox": [
+    38,
+    313,
+    97,
+    381
+   ]
+  },
+  {
+   "feld": 31,
+   "farbe": 5,
+   "flaechePx": 9178,
+   "anteil": 0.011432,
+   "bbox": [
+    1053,
+    329,
+    1171,
+    541
+   ]
+  },
+  {
+   "feld": 32,
+   "farbe": 5,
+   "flaechePx": 2806,
+   "anteil": 0.003495,
+   "bbox": [
+    38,
+    385,
+    80,
+    533
+   ]
+  },
+  {
+   "feld": 33,
+   "farbe": 6,
+   "flaechePx": 37848,
+   "anteil": 0.047145,
+   "bbox": [
+    0,
+    0,
+    271,
+    294
+   ]
+  },
+  {
+   "feld": 34,
+   "farbe": 6,
+   "flaechePx": 16338,
+   "anteil": 0.020351,
+   "bbox": [
+    1028,
+    0,
+    1200,
+    245
+   ]
+  },
+  {
+   "feld": 35,
+   "farbe": 6,
+   "flaechePx": 13109,
+   "anteil": 0.016329,
+   "bbox": [
+    290,
+    112,
+    386,
+    356
+   ]
+  },
+  {
+   "feld": 36,
+   "farbe": 6,
+   "flaechePx": 29152,
+   "anteil": 0.036313,
+   "bbox": [
+    0,
+    202,
+    789,
+    666
+   ]
+  },
+  {
+   "feld": 37,
+   "farbe": 6,
+   "flaechePx": 3850,
+   "anteil": 0.004796,
+   "bbox": [
+    314,
+    349,
+    381,
+    503
+   ]
+  },
+  {
+   "feld": 38,
+   "farbe": 6,
+   "flaechePx": 3588,
+   "anteil": 0.004469,
+   "bbox": [
+    888,
+    432,
+    981,
+    578
+   ]
+  },
+  {
+   "feld": 39,
+   "farbe": 7,
+   "flaechePx": 68684,
+   "anteil": 0.085556,
+   "bbox": [
+    393,
+    0,
+    844,
+    244
+   ]
+  },
+  {
+   "feld": 40,
+   "farbe": 8,
+   "flaechePx": 12767,
+   "anteil": 0.015903,
+   "bbox": [
+    34,
+    0,
+    133,
+    192
+   ]
+  },
+  {
+   "feld": 41,
+   "farbe": 8,
+   "flaechePx": 2994,
+   "anteil": 0.003729,
+   "bbox": [
+    176,
+    0,
+    205,
+    204
+   ]
+  },
+  {
+   "feld": 42,
+   "farbe": 8,
+   "flaechePx": 9416,
+   "anteil": 0.011729,
+   "bbox": [
+    1088,
+    0,
+    1162,
+    162
+   ]
+  },
+  {
+   "feld": 43,
+   "farbe": 3,
+   "flaechePx": 4942,
+   "anteil": 0.006156,
+   "bbox": [
+    779,
+    45,
+    824,
+    270
+   ]
+  },
+  {
+   "feld": 44,
+   "farbe": 8,
+   "flaechePx": 3045,
+   "anteil": 0.003793,
+   "bbox": [
+    316,
+    132,
+    384,
+    289
+   ]
+  },
+  {
+   "feld": 45,
+   "farbe": 8,
+   "flaechePx": 10183,
+   "anteil": 0.012684,
+   "bbox": [
+    479,
+    154,
+    765,
+    356
+   ]
+  },
+  {
+   "feld": 46,
+   "farbe": 8,
+   "flaechePx": 5559,
+   "anteil": 0.006925,
+   "bbox": [
+    443,
+    238,
+    537,
+    409
+   ]
+  },
+  {
+   "feld": 47,
+   "farbe": 8,
+   "flaechePx": 4632,
+   "anteil": 0.00577,
+   "bbox": [
+    544,
+    253,
+    677,
+    418
+   ]
+  },
+  {
+   "feld": 48,
+   "farbe": 1,
+   "flaechePx": 3995,
+   "anteil": 0.004976,
+   "bbox": [
+    756,
+    123,
+    787,
+    381
+   ]
+  },
+  {
+   "feld": 49,
+   "farbe": 8,
+   "flaechePx": 18422,
+   "anteil": 0.022947,
+   "bbox": [
+    890,
+    312,
+    1014,
+    554
+   ]
+  },
+  {
+   "feld": 50,
+   "farbe": 8,
+   "flaechePx": 50598,
+   "anteil": 0.063027,
+   "bbox": [
+    0,
+    423,
+    1200,
+    669
+   ]
+  },
+  {
+   "feld": 51,
+   "farbe": 8,
+   "flaechePx": 9977,
+   "anteil": 0.012428,
+   "bbox": [
+    757,
+    0,
+    875,
+    370
+   ]
+  },
+  {
+   "feld": 52,
+   "farbe": 8,
+   "flaechePx": 9124,
+   "anteil": 0.011365,
+   "bbox": [
+    1027,
+    0,
+    1085,
+    183
+   ]
+  },
+  {
+   "feld": 53,
+   "farbe": 6,
+   "flaechePx": 5757,
+   "anteil": 0.007171,
+   "bbox": [
+    362,
+    0,
+    432,
+    220
+   ]
+  },
+  {
+   "feld": 54,
+   "farbe": 9,
+   "flaechePx": 9626,
+   "anteil": 0.011991,
+   "bbox": [
+    1028,
+    214,
+    1200,
+    602
+   ]
+  },
+  {
+   "feld": 55,
+   "farbe": 9,
+   "flaechePx": 31057,
+   "anteil": 0.038686,
+   "bbox": [
+    0,
+    211,
+    274,
+    644
+   ]
+  },
+  {
+   "feld": 56,
+   "farbe": 9,
+   "flaechePx": 14684,
+   "anteil": 0.018291,
+   "bbox": [
+    1064,
+    329,
+    1200,
+    649
+   ]
+  },
+  {
+   "feld": 57,
+   "farbe": 9,
+   "flaechePx": 19758,
+   "anteil": 0.024611,
+   "bbox": [
+    657,
+    327,
+    835,
+    534
+   ]
+  },
+  {
+   "feld": 58,
+   "farbe": 4,
+   "flaechePx": 3171,
+   "anteil": 0.00395,
+   "bbox": [
+    871,
+    271,
+    899,
+    552
+   ]
+  },
+  {
+   "feld": 59,
+   "farbe": 9,
+   "flaechePx": 6911,
+   "anteil": 0.008609,
+   "bbox": [
+    976,
+    360,
+    1014,
+    593
+   ]
+  },
+  {
+   "feld": 60,
+   "farbe": 9,
+   "flaechePx": 8071,
+   "anteil": 0.010054,
+   "bbox": [
+    391,
+    380,
+    545,
+    517
+   ]
+  }
+ ]
+}

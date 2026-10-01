@@ -1,0 +1,500 @@
+{
+ "kulisse": 7,
+ "datei": "img/bg07.jpg",
+ "breite": 1200,
+ "hoehe": 669,
+ "anzahlFarben": 10,
+ "anzahlFelder": 37,
+ "groesstesFeldPx": 136418,
+ "topfFassungPx": 163702,
+ "hinweisPunkte": "Feldpunkte noch offen: Vorschlag anteil x Kulissenwert",
+ "kulissenwertVorschlag": 78954,
+ "farben": [
+  {
+   "farbe": 0,
+   "hex": "#87bfbf"
+  },
+  {
+   "farbe": 1,
+   "hex": "#daf8f5"
+  },
+  {
+   "farbe": 2,
+   "hex": "#476168"
+  },
+  {
+   "farbe": 3,
+   "hex": "#e3a450"
+  },
+  {
+   "farbe": 4,
+   "hex": "#f9c56f"
+  },
+  {
+   "farbe": 5,
+   "hex": "#b38c4f"
+  },
+  {
+   "farbe": 6,
+   "hex": "#fafee7"
+  },
+  {
+   "farbe": 7,
+   "hex": "#114c6b"
+  },
+  {
+   "farbe": 8,
+   "hex": "#687d70"
+  },
+  {
+   "farbe": 9,
+   "hex": "#619fa7"
+  }
+ ],
+ "felder": [
+  {
+   "feld": 1,
+   "farbe": 0,
+   "flaechePx": 12838,
+   "anteil": 0.015992,
+   "bbox": [
+    584,
+    155,
+    936,
+    299
+   ]
+  },
+  {
+   "feld": 2,
+   "farbe": 0,
+   "flaechePx": 136418,
+   "anteil": 0.169928,
+   "bbox": [
+    414,
+    374,
+    1065,
+    669
+   ]
+  },
+  {
+   "feld": 3,
+   "farbe": 1,
+   "flaechePx": 81990,
+   "anteil": 0.10213,
+   "bbox": [
+    0,
+    0,
+    840,
+    225
+   ]
+  },
+  {
+   "feld": 4,
+   "farbe": 2,
+   "flaechePx": 16190,
+   "anteil": 0.020167,
+   "bbox": [
+    950,
+    51,
+    1200,
+    306
+   ]
+  },
+  {
+   "feld": 5,
+   "farbe": 2,
+   "flaechePx": 4824,
+   "anteil": 0.006009,
+   "bbox": [
+    0,
+    73,
+    47,
+    217
+   ]
+  },
+  {
+   "feld": 6,
+   "farbe": 2,
+   "flaechePx": 9568,
+   "anteil": 0.011918,
+   "bbox": [
+    165,
+    125,
+    308,
+    277
+   ]
+  },
+  {
+   "feld": 7,
+   "farbe": 2,
+   "flaechePx": 3481,
+   "anteil": 0.004336,
+   "bbox": [
+    458,
+    228,
+    567,
+    337
+   ]
+  },
+  {
+   "feld": 8,
+   "farbe": 2,
+   "flaechePx": 10504,
+   "anteil": 0.013084,
+   "bbox": [
+    863,
+    319,
+    1200,
+    440
+   ]
+  },
+  {
+   "feld": 9,
+   "farbe": 2,
+   "flaechePx": 2948,
+   "anteil": 0.003672,
+   "bbox": [
+    752,
+    364,
+    984,
+    411
+   ]
+  },
+  {
+   "feld": 10,
+   "farbe": 2,
+   "flaechePx": 6887,
+   "anteil": 0.008579,
+   "bbox": [
+    1057,
+    487,
+    1200,
+    572
+   ]
+  },
+  {
+   "feld": 11,
+   "farbe": 3,
+   "flaechePx": 5614,
+   "anteil": 0.006993,
+   "bbox": [
+    318,
+    85,
+    442,
+    274
+   ]
+  },
+  {
+   "feld": 12,
+   "farbe": 3,
+   "flaechePx": 40797,
+   "anteil": 0.050818,
+   "bbox": [
+    0,
+    180,
+    740,
+    460
+   ]
+  },
+  {
+   "feld": 13,
+   "farbe": 3,
+   "flaechePx": 41660,
+   "anteil": 0.051893,
+   "bbox": [
+    0,
+    371,
+    306,
+    669
+   ]
+  },
+  {
+   "feld": 14,
+   "farbe": 3,
+   "flaechePx": 4172,
+   "anteil": 0.005197,
+   "bbox": [
+    177,
+    374,
+    379,
+    436
+   ]
+  },
+  {
+   "feld": 15,
+   "farbe": 4,
+   "flaechePx": 18865,
+   "anteil": 0.023499,
+   "bbox": [
+    320,
+    81,
+    693,
+    350
+   ]
+  },
+  {
+   "feld": 16,
+   "farbe": 4,
+   "flaechePx": 23053,
+   "anteil": 0.028716,
+   "bbox": [
+    32,
+    95,
+    268,
+    322
+   ]
+  },
+  {
+   "feld": 17,
+   "farbe": 4,
+   "flaechePx": 8397,
+   "anteil": 0.01046,
+   "bbox": [
+    909,
+    151,
+    1045,
+    253
+   ]
+  },
+  {
+   "feld": 18,
+   "farbe": 4,
+   "flaechePx": 3332,
+   "anteil": 0.00415,
+   "bbox": [
+    217,
+    487,
+    339,
+    556
+   ]
+  },
+  {
+   "feld": 19,
+   "farbe": 5,
+   "flaechePx": 14688,
+   "anteil": 0.018296,
+   "bbox": [
+    235,
+    94,
+    454,
+    349
+   ]
+  },
+  {
+   "feld": 20,
+   "farbe": 5,
+   "flaechePx": 20610,
+   "anteil": 0.025673,
+   "bbox": [
+    641,
+    224,
+    969,
+    375
+   ]
+  },
+  {
+   "feld": 21,
+   "farbe": 5,
+   "flaechePx": 22474,
+   "anteil": 0.027995,
+   "bbox": [
+    0,
+    229,
+    376,
+    456
+   ]
+  },
+  {
+   "feld": 22,
+   "farbe": 5,
+   "flaechePx": 6336,
+   "anteil": 0.007892,
+   "bbox": [
+    458,
+    321,
+    620,
+    423
+   ]
+  },
+  {
+   "feld": 23,
+   "farbe": 5,
+   "flaechePx": 10574,
+   "anteil": 0.013171,
+   "bbox": [
+    890,
+    431,
+    1200,
+    523
+   ]
+  },
+  {
+   "feld": 24,
+   "farbe": 5,
+   "flaechePx": 8371,
+   "anteil": 0.010427,
+   "bbox": [
+    0,
+    434,
+    118,
+    538
+   ]
+  },
+  {
+   "feld": 25,
+   "farbe": 6,
+   "flaechePx": 110626,
+   "anteil": 0.1378,
+   "bbox": [
+    420,
+    0,
+    1200,
+    266
+   ]
+  },
+  {
+   "feld": 26,
+   "farbe": 7,
+   "flaechePx": 50147,
+   "anteil": 0.062465,
+   "bbox": [
+    722,
+    146,
+    1200,
+    422
+   ]
+  },
+  {
+   "feld": 27,
+   "farbe": 7,
+   "flaechePx": 8937,
+   "anteil": 0.011132,
+   "bbox": [
+    153,
+    311,
+    413,
+    419
+   ]
+  },
+  {
+   "feld": 28,
+   "farbe": 7,
+   "flaechePx": 13238,
+   "anteil": 0.01649,
+   "bbox": [
+    958,
+    385,
+    1200,
+    476
+   ]
+  },
+  {
+   "feld": 29,
+   "farbe": 7,
+   "flaechePx": 6540,
+   "anteil": 0.008146,
+   "bbox": [
+    886,
+    505,
+    1072,
+    570
+   ]
+  },
+  {
+   "feld": 30,
+   "farbe": 8,
+   "flaechePx": 10188,
+   "anteil": 0.012691,
+   "bbox": [
+    239,
+    85,
+    354,
+    279
+   ]
+  },
+  {
+   "feld": 31,
+   "farbe": 8,
+   "flaechePx": 4135,
+   "anteil": 0.005151,
+   "bbox": [
+    655,
+    292,
+    891,
+    367
+   ]
+  },
+  {
+   "feld": 32,
+   "farbe": 8,
+   "flaechePx": 11074,
+   "anteil": 0.013794,
+   "bbox": [
+    140,
+    411,
+    421,
+    522
+   ]
+  },
+  {
+   "feld": 33,
+   "farbe": 8,
+   "flaechePx": 10376,
+   "anteil": 0.012925,
+   "bbox": [
+    932,
+    520,
+    1200,
+    669
+   ]
+  },
+  {
+   "feld": 34,
+   "farbe": 9,
+   "flaechePx": 9719,
+   "anteil": 0.012106,
+   "bbox": [
+    672,
+    371,
+    1023,
+    495
+   ]
+  },
+  {
+   "feld": 35,
+   "farbe": 9,
+   "flaechePx": 3131,
+   "anteil": 0.0039,
+   "bbox": [
+    483,
+    392,
+    566,
+    464
+   ]
+  },
+  {
+   "feld": 36,
+   "farbe": 9,
+   "flaechePx": 41148,
+   "anteil": 0.051256,
+   "bbox": [
+    67,
+    411,
+    452,
+    669
+   ]
+  },
+  {
+   "feld": 37,
+   "farbe": 9,
+   "flaechePx": 8950,
+   "anteil": 0.011148,
+   "bbox": [
+    896,
+    532,
+    1172,
+    669
+   ]
+  }
+ ]
+}
