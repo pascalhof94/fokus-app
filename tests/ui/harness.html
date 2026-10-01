@@ -98,6 +98,12 @@ function bestandSchreiben(){
     { sel:'.chip',                              min:26 },
     { sel:'.uamin, .uabonus, .uax, .uaneu button, .uaneu input', min:24 },
     { sel:'.tstreifen *, #fkNav *, .pql-b, .pql-chip', min:0 },   // Karten-Streifen/Quick-Leiste: Bestand
+    { sel:'.kl-check, .kl-play', min:34 },                         // v3.5.0 §4.1.7: Kartenliste — Play 34 px, Haken-Kreis 34 px (Spezifikation)
+    { sel:'.tickknopf', min:40 },                                  // v3.5.0 §4.1.2: Tick-Knopf — Plus 30 px, Tap-Flaeche 40 px
+    { sel:'.mal-farbe, .mal-farbe *', min:26 },                    // v3.5.0 §6.4: Farbkreise der Auswahlstation 26 px (Spezifikation)
+    { sel:'.mal-topf, .mal-topf *, .tb-kurve, .tb-kurve *', min:0 },   // v3.5.0: Toepfe (34 px, Spezifikation) · Mini-Kurve 44×28 (§3.1)
+    { sel:'#topbar .pp', min:34 },                                 // v3.5.0 §3.1: Pause/Play 34×34
+    { sel:'.tb-figur, .tb-ring', min:40 },                         // v3.5.0 §3.1: Outfit-Foto 34 px im Ring (40 px Tap)
     { sel:'.st-edit, .st-groesse, .caret, .segmini button, .seg', min:24 },
     { sel:'.minibtn, .kg-edit, .albtab, .albitem', min:24 },
     { sel:'.tb-btn, .btn.sm, .btn.ghost.sm', min:30 },

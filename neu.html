@@ -1138,10 +1138,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .an-legend.dia-legende i.gestr{background:none;border-top:1.5px dashed;height:0;width:12px;border-radius:0}
 .an-legend.dia-legende i.punkt{background:none;border-top:1.5px dotted;height:0;width:12px;border-radius:0}
 /* v3.4.7 §3: Tagesverlauf — horizontal scrollbar, y-Beschriftung steht */
-.dia-tv{position:relative;margin-top:4px}
+.dia-tv{position:relative;margin-top:14px}
 .dia-tv-y{position:absolute;left:0;top:0;width:28px;pointer-events:none}
 .dia-tv-y span{position:absolute;right:3px;font-size:8px;color:#9a9ca2;font-variant-numeric:tabular-nums}
-.dia-tv-y em{position:absolute;left:0;top:-1px;font-size:8px;font-style:normal;color:#9a9ca2}   /* §2.5: Einheit oben links */
+.dia-tv-y em{position:absolute;left:0;top:-12px;font-size:8px;font-style:normal;color:#9a9ca2}   /* §2.5: Einheit oben links, ueber der Skala */
 .dia-tv-scroll{margin-left:28px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .dia-tv-scroll::-webkit-scrollbar{display:none}
 .dia-tv-flaeche{position:relative}
@@ -5392,7 +5392,7 @@ function tempopfeilSvg(r, px){
 /* Alias (§1.5): die alte Tabelle bleibt, die Werte kommen aus FARBE */
 const DIA_FARBE={ gruen:FARBE.GRUEN, gelb:FARBE.GELB, orange:FARBE.ORANGE, rot:FARBE.ROT,
                   blau:FARBE.BLAU, lila:FARBE.LILA, grau:FARBE.GRAU, ueber:FARBE.UEBER,
-                  BLAU_HELL:FARBE.BLAU_HELL, LILA_HELL:FARBE.LILA_HELL, GELB_HELL:'#f8d68f' };   // GELB_HELL unbenutzt
+                  BLAU_HELL:FARBE.BLAU_HELL, LILA_HELL:FARBE.LILA_HELL, GELB_HELL:FARBE.GELB };   // GELB_HELL unbenutzt (§1.5)
 /* v3.4.3 §1: Farbfamilien der Tagesdiagramme — heute kraeftig, Ø alle gestrichelt blass, Ø letzte 2 gepunktet hell */
 /* §1.5/§2.1 (v3.5.0): heute = Familienfarbe (Gesamt WEISS) 2,5 px · Ø Wochentag = GRAU 45 % 1,5 px durchgezogen */
 const DIA_LINIE={
@@ -5783,7 +5783,7 @@ function ttZeichnen(sc, D){
   const schritt=(x1-x0)>8 ? 2 : 1;
   for(let hh=Math.ceil(T.von); hh<=T.bis+1e-9; hh+=schritt){ const x=X(hh).toFixed(1);
     g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+yC+'" stroke="'+FARBE.RASTER+'" stroke-width="1"/>'+
-       '<text x="'+x+'" y="'+(H-4)+'" text-anchor="middle" font-size="8" fill="'+FARBE.GRAU+'">'+String(hh%24).padStart(2,'0')+'</text>'; }
+       (Math.abs(X(hh)-X(T.jetztX))<16 ? '' : '<text x="'+x+'" y="'+(H-4)+'" text-anchor="middle" font-size="8" fill="'+FARBE.GRAU+'">'+String(hh%24).padStart(2,'0')+'</text>'); }   // §2.5: „jetzt" verdraengt die Stunde daneben
   const punkte=a=>{ const p=[]; (a||[]).forEach((v,i)=>{ if(v!=null) p.push({x:X(T.xs[i]), y:Y(Math.max(lo, Math.min(hi, v))), i}); }); return p; };
   const linie=(p, c, o, w)=>p.length<2 ? '' : '<path d="'+glattPfad(p)+'" fill="none" stroke="'+c+'" stroke-opacity="'+o+'" stroke-width="'+w+'" stroke-linejoin="round" stroke-linecap="round"/>';
   const pH=punkte(T.heute), farbe=q=>diaAmpel(T.heute[q.i], T.zwei ? T.zwei[q.i] : 0);
@@ -5803,7 +5803,7 @@ function ttZeichnen(sc, D){
       g+='<rect x="'+xa.toFixed(1)+'" y="'+yI+'" width="'+w.toFixed(1)+'" height="'+hI+'" rx="3" fill="'+fam(b.typ)+'" fill-opacity=".9"/>'; }); }
   const jx=X(T.jetztX);
   g+=diaJetztSvg(jx, pT, D.mitBl ? H-12 : yC, e ? e.y : null)+
-     '<text x="'+jx.toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle" font-size="8" fill="#fff" style="paint-order:stroke" stroke="#000" stroke-width="3">jetzt</text>';
+     '<text x="'+jx.toFixed(1)+'" y="'+(H-4)+'" text-anchor="'+(jx<16?'start':'middle')+'" font-size="8" fill="#fff" style="paint-order:stroke" stroke="#000" stroke-width="3">jetzt</text>';
   svg.setAttribute('viewBox', '0 0 '+Wpx+' '+H); svg.setAttribute('width', Wpx); svg.innerHTML=g;
   const ya=sc.parentNode && sc.parentNode.querySelector('.dia-tv-y');
   if(ya) ya.innerHTML='<em>P/h</em>'+[0,1,2].map(i=>{ const v=lo+(hi-lo)*i/2; return '<span style="top:'+(Y(v)-6).toFixed(0)+'px">'+anFmt(v)+'</span>'; }).join('');
@@ -7955,7 +7955,7 @@ function derTagHtml(k, opt){
   let zeitIst=0, zeitPlan=0; S.karten.forEach(x=>{ if(!imTagesstrom(x)) return; zeitIst+=heuteInvestiertMin(x); zeitPlan+=num(x.sollMin); });
   const F=outfitF(), of=outfitFortschritt(); let ampTag='--af:'+FARBE.GRAU; try{ ampTag=ampelStil(ampelStufe(normalZurUhrzeit('alle').r)); }catch(e){}
   let pfeil=''; try{ pfeil=tempopfeilSvg(tempoVerhaeltnis(), 12); }catch(e){}
-  let h='<div class="fb"><div class="fb-h">Der Tag</div><div class="fb-kacheln dt-kacheln">'+
+  let h='<div class="fb">'+(opt.ohneKopf?'':'<div class="fb-h">Der Tag</div>')+'<div class="fb-kacheln dt-kacheln">'+
     '<div class="fbk"><div class="fbk-h">Tagesprognose</div><div class="dt-w" style="color:'+cP+'">'+fmtP(prog)+'</div><div class="dt-s">'+(prog>=ziel ? 'Ziel ✓' : 'fehlen '+fmtP(ziel-prog))+'</div>'+miniPrognoseSvg(g, cP)+'</div>'+
     '<div class="fbk"><div class="fbk-h">'+(k?'Diese Karte schiebt':'Karte schiebt')+'</div><div class="dt-w">'+(X>=0?'+':'−')+fmtP(Math.abs(X))+'</div><div class="dt-s">= '+Math.round(X/Math.max(1,ziel)*100)+' % vom Tagesziel</div>'+
       '<span class="dia-mini" aria-hidden="true"><i style="width:'+pz(rest).toFixed(1)+'%;background:'+FARBE.GRAU+';opacity:.5"></i><i style="left:'+pz(rest).toFixed(1)+'%;width:'+Math.min(pz(Math.max(0,X)), 100-pz(rest)).toFixed(1)+'%;background:'+famK+'"></i></span></div>'+
@@ -16420,7 +16420,7 @@ function heatmapHtml(wert, wochen){
 /* ══ Gruppe 1 · Heute ══ */
 function stmTag(F,dom){
   const k=aktiveFokusKarte();
-  let haupt=''; try{ haupt=derTagHtml(k, {id:'tts'}); }catch(e){ haupt='<div class="an-leer">nicht verfügbar</div>'; }
+  let haupt=''; try{ haupt=derTagHtml(k, {id:'tts', ohneKopf:true}); }catch(e){ haupt='<div class="an-leer">nicht verfügbar</div>'; }
   return statModul('tag','Der Tag', haupt, null, ()=>{ let tv=''; try{ tv=belTagesDiagramm(); }catch(e){ tv=''; }
     return tv+anModVerhalten(F,dom,{nurKpis:true}); }, {tipp:false});
 }
