@@ -2061,6 +2061,52 @@ main{padding-left:8px;padding-right:8px}                       /* §1.3: Seitenr
 .kl-check{flex:none;width:36px;height:36px;border-radius:10px;border:1.5px solid #3a3e46;color:#9a9ca2;font-size:15px;font-weight:800}
 .kl-check.ok{background:#3ecf8e;border-color:#3ecf8e;color:#062417}
 .kl-z .hak-flug{position:absolute;right:50px;top:2px;margin:0}
+/* ══ HOTFIX 3.5.1 §4 · STATISTIK (Draft) ══ */
+.st-gh{font-size:14px;font-weight:750;margin:16px 4px 8px}
+.st-gh small{font-size:11.5px;font-weight:500}
+.st-gruppe{margin-bottom:0}
+.stm{border-radius:14px;padding:10px 10px 12px;margin-bottom:8px}
+.stm-k{min-height:44px;margin:-4px 0 4px;gap:8px;color:#e8e9ec}
+.stm-k .t{font-size:14px;font-weight:700;color:#e8e9ec;min-width:0}
+.stm-k .t small{display:block;font-size:11px;color:#9a9ca2;font-weight:500;margin-top:1px}
+.stm-tog{flex:none;width:44px;height:44px;border-radius:12px;background:#1a1d22;border:1px solid #2a2d33;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.stm-tog svg{width:20px;height:20px;display:block;transition:transform .15s}
+.stm-tog.auf{background:#23262d;border-color:#9a9ca2}
+.stm-tog.auf svg{transform:rotate(180deg)}
+.stm-tog.auf.dreh svg{animation:stmAuf .15s ease-out}
+.stm-tog.dreh:not(.auf) svg{animation:stmZu .15s ease-out}
+@keyframes stmAuf{from{transform:rotate(0deg)}to{transform:rotate(180deg)}}
+@keyframes stmZu{from{transform:rotate(180deg)}to{transform:rotate(0deg)}}
+@media (prefers-reduced-motion: reduce){ .stm-tog svg,.stm-tog.dreh svg{animation:none;transition:none} }
+.stm-haupt{cursor:default}
+.stm-kpis{gap:6px}
+.stm-kpi{padding:7px 8px;min-width:0}
+.stm-kpi .v{font-size:16px;font-weight:750}
+.stm-kpi .l{font-size:10.5px;line-height:1.3;margin-top:1px}
+.stm-detail{border-top:1px solid #23262d;margin-top:12px;padding-top:10px}
+.stm-dh{font-size:12px;color:#9a9ca2;font-weight:600;margin:10px 0 6px;letter-spacing:0}
+.fam-pille{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:8px;margin-left:6px;vertical-align:2px}
+.fam-pille.p{background:rgba(168,85,247,.2);color:#d8b4fe}
+.fam-pille.d{background:rgba(59,130,246,.2);color:#93c5fd}
+table.zt{width:100%;border-collapse:collapse;font-size:12.5px}
+table.zt td{padding:6px 4px;border-top:1px solid #1d2026}
+table.zt tr:first-child td{border-top:0}
+table.zt td.r{text-align:right;font-weight:700}
+table.zt td.g{color:#9a9ca2;text-align:right}
+table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+.seg{display:flex;gap:3px;margin-top:8px}
+.seg i{flex:1;height:10px;border-radius:3px;background:#262a32}
+.legende i.rund{width:10px;height:10px;border-radius:50%}
+.rd-svg{aspect-ratio:1/1}
+.stm .card[data-dialive="tv"]{background:none;border:0;border-radius:0;padding:0;margin:10px 0 0;box-shadow:none}
+.stm .card[data-dialive="tv"] h3{font-size:12px;color:#9a9ca2;font-weight:600;margin:0 0 6px}
+.kulbar{position:relative;border-radius:12px;overflow:hidden;height:120px;background-color:#1a1d22;background-size:cover;background-position:center}
+.kulbar .schleier{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.65))}
+.kulbar .inh{position:absolute;left:10px;right:10px;bottom:10px}
+.kulbar .inh b{font-size:15px}
+.kulbar .inh span{font-size:11.5px;color:#e6e6e6}
+.kulbar .lbar{background:rgba(0,0,0,.55);height:10px;border-radius:5px;margin-top:6px}
+.kulbar .lbar i{border-radius:5px}
 </style>
 </head>
 <body>
@@ -5441,7 +5487,7 @@ function renderFokus(){
     '</div></div>';
   const zurueck='<button class="fk-zu" data-fokuszu="1" aria-label="Zur Suche">▾ Zur Suche</button>';
   const titel=zurueck+'<div class="ktitel fk-haupttitel" data-detail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</div>'+
-    '<div class="kmeta"><b style="color:'+famH+'">'+(k.domain==='dfm'?'DFM':'Privat')+'</b> · '+esc(matrixName(matrixFeldVon(k)))+' · <span id="tGesamtP">'+fmtP(kartePunkteGeplant(k))+'</span> P gesamt</div>';
+    '<div class="kmeta"><b style="color:'+famH+'">'+(k.domain==='dfm'?'DFM':'Privat')+'</b> · '+MX_FELD_NAME[matrixFeldVon(k)]+' · <span id="tGesamtP">'+fmtP(kartePunkteGeplant(k))+'</span> P gesamt</div>';
   // §7 (v1.12.0): ERLEDIGTE Karte im Verlauf — gebuchte Zeit und Punkte, zwei Aktionen: Punkte anpassen · Wiederholen.
   const aufgabeErledigt='<div class="taufgabe"><div class="tsub">✓ erledigt'+(k.tagId?' am '+esc(String(k.tagId).slice(0,10)):'')+
     ' · ⏱ <b>'+tZeitKurz(istSekLive(k)/60)+'</b> · <b>'+fmtP(kartePunkte(k))+' P</b> gebucht</div>'+zaehlerZeileHtml(k)+
@@ -5812,7 +5858,7 @@ function outfitSammlungHtml(){
   const oh=outfitHeute(); zaehl[oh]=(zaehl[oh]||0)+1;
   const best=Math.max.apply(null, Object.keys(zaehl).map(Number)), maxN=Math.max.apply(null, Object.keys(zaehl).map(k=>zaehl[k]));
   let h='<div class="of-liste">';
-  for(let o=AVATAR_BILDER.length; o>=1; o--){ const n=zaehl[o]||0, f=n/Math.max(1, maxN);
+  for(let o=1; o<=AVATAR_BILDER.length; o++){ const n=zaehl[o]||0, f=n/Math.max(1, maxN);   // §4 Nr. 9 (v3.5.1): Outfit 1 oben
     const cls=(o===oh?' heute':'')+(n?'':' nie')+(o>best?' spaeter':'');
     h+='<div class="of-zeile"><img class="'+cls.trim()+'" src="'+AVATAR_BILDER[o-1]+'" width="48" height="48" alt="" loading="lazy" decoding="async">'+
       '<span class="of-bahn"><i style="width:'+(f*100).toFixed(1)+'%;background:linear-gradient(90deg,'+anteilFarbe(0)+','+anteilFarbe(f)+')"></i></span>'+
@@ -5831,13 +5877,11 @@ function outfitSammlungHtml(){
 }
 /* §3.6: Kulisse — Bild der aktuellen, Leiste zur naechsten */
 function kulisseKachelHtml(){
-  // §6.6/F6 (v3.5.0): Kopf „KULISSE n/10", Prozent, Balken im Verlauf der zwei flaechengroessten Farben, Text
-  const st=ausmalStand(), D=ausmalDaten(st.kulisse), A=ausmalState();
-  const f1=D ? D.topFarben[0] : FARBE.GOLD_DUNKEL, f2=D ? D.topFarben[1] : FARBE.GOLD;
-  return '<div class="fbk voll"><div class="fbk-h">KULISSE '+st.kulisse+'/10 · Kulisse '+st.kulisse+'</div>'+
-    '<div class="dt-w">'+Math.round(st.anteil*100)+' %</div>'+
-    '<span class="dia-leiste"><i style="width:'+(st.anteil*100).toFixed(1)+'%;background:linear-gradient(90deg,'+f1+','+f2+')"></i></span>'+
-    '<div class="dia-zeile">'+st.gefaerbt+' von '+st.felder+' Feldern'+(st.kulisse<10 ? ' · Kulisse '+(st.kulisse+1)+' frei ab '+fmtKurzP(st.naechsteFrei)+' · wechselt, wenn '+st.kulisse+' fertig ist' : ' · letzte Kulisse')+'</div></div>';
+  // §4 Nr. 9 / §5 Nr. 3 (v3.5.1): Hintergrund = farbige Fassung der aktuellen Kulisse, Schleier, Balken im GOLD-Verlauf
+  const st=ausmalStand(), nn=String(st.kulisse).padStart(2,'0');
+  const naechste = st.kulisse>=10 ? ' · letzte Kulisse' : (st.freigeschaltetBis>st.kulisse ? ' · nächste schon frei' : (st.naechsteFrei!=null ? ' · nächste frei bei '+fmtP(st.naechsteFrei)+' Wohlstand' : ''));
+  return '<div class="kulbar" style="background-image:url(img/kulissen/bg'+nn+'_farbig.jpg)"><div class="schleier"></div><div class="inh"><b>Kulisse '+st.kulisse+'</b> <span>· '+Math.round(st.anteil*100)+' % ausgemalt'+naechste+'</span>'+
+    '<div class="lbar"><i style="left:0;width:'+(st.anteil*100).toFixed(1)+'%;background:'+verlauf(FARBE.GOLD)+'"></i></div></div></div>';
 }
 /* ══ v3.4.7 §1 · TAGESKURVE FUER DIE DIAGRAMME ═══════════════════════
    Nur Darstellung — Buchungen, Stunden-Log, Export, Rang und Summen bleiben.
@@ -5993,16 +6037,20 @@ function tempoBloeckeZeichnen(sc, D){
   const T=D.T, fl=sc.firstElementChild, svg=fl && fl.querySelector('svg'); if(!svg) return;
   const Wpx=Math.max(1, fl.offsetWidth), span=Math.max(1e-9, T.bis-T.von), H=D.H, pT=14, yC=126, yB=134, hB=16;
   const x0=T.von+sc.scrollLeft/Wpx*span, x1=x0+sc.clientWidth/Wpx*span;
-  let mx=num(D.zielT), mn=0; [T.heute, D.plan].forEach(a=>(a||[]).forEach(v=>{ if(v!=null){ if(v>mx) mx=v; if(v<mn) mn=v; } }));
-  const hi=Math.max(150, Math.ceil(mx*1.1/150)*150), lo=mn<0 ? Math.floor(mn/150)*150 : 0;   // feste Skala ueber den ganzen Tag
+  let mx=0, mn=0; [T.heute, D.plan].forEach(a=>(a||[]).forEach(v=>{ if(v!=null){ if(v>mx) mx=v; if(v<mn) mn=v; } }));
+  // feste Skala ueber den ganzen Tag; das noetige Tempo zaehlt nur mit, solange es die Kurve nicht plattdrueckt (kurz vor
+  // Tagesende wird es beliebig gross) — sonst steht es als Zahl mit Pfeil am oberen Rand
+  if(num(D.zielT)<=Math.max(150, mx)*2.5) mx=Math.max(mx, num(D.zielT));
+  const hi=Math.max(150, Math.ceil(mx*1.1/150)*150), lo=mn<0 ? Math.floor(mn/150)*150 : 0;
   const X=x=>(x-T.von)/span*Wpx, Y=v=>pT+(1-(Math.max(lo, Math.min(hi, v))-lo)/Math.max(1e-9, hi-lo))*(yC-pT);
   const sid=svgId('sch'), marken=[1,2,3].map(i=>lo+(hi-lo)*i/3);
   let g='<defs><pattern id="'+sid+'" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="rgba(255,255,255,.14)" stroke-width="2"/></pattern></defs>';
   marken.forEach(v=>{ const y=Y(v).toFixed(1); g+='<line x1="0" y1="'+y+'" x2="'+Wpx+'" y2="'+y+'" stroke="'+FARBE.RASTER+'" stroke-width="1"/>'; });
-  const xr=X(x1)-4;
+  const xr=X(x1)-4, xl=X(x0)+4, jxR=X(T.jetztX), zLinks=jxR>xr-96 && jxR<xr+40;   // „jetzt" steht rechts → Ziel-Name nach links
+  const zText=(y, t)=>'<text x="'+(zLinks?xl:xr).toFixed(1)+'" y="'+y.toFixed(1)+'" text-anchor="'+(zLinks?'start':'end')+'" font-size="9" fill="'+FARBE.WEISS+'" fill-opacity=".8">'+t+'</text>';
   if(D.zielT>0 && D.zielT<=hi){ const y=Y(D.zielT);
-    g+='<line x1="0" y1="'+y.toFixed(1)+'" x2="'+Wpx+'" y2="'+y.toFixed(1)+'" stroke="'+FARBE.WEISS+'" stroke-opacity=".6" stroke-width="1" stroke-dasharray="2 3"/>'+
-       '<text x="'+xr.toFixed(1)+'" y="'+(y-3).toFixed(1)+'" text-anchor="end" font-size="9" fill="'+FARBE.WEISS+'" fill-opacity=".8">Ziel '+fmtP(D.zielT)+'</text>'; }
+    g+='<line x1="0" y1="'+y.toFixed(1)+'" x2="'+Wpx+'" y2="'+y.toFixed(1)+'" stroke="'+FARBE.WEISS+'" stroke-opacity=".6" stroke-width="1" stroke-dasharray="2 3"/>'+zText(y-3, 'Ziel '+fmtP(D.zielT)); }
+  else if(D.zielT>hi) g+=zText(pT-3, 'Ziel '+fmtP(D.zielT)+' ↑');
   const punkte=a=>{ const q=[]; (a||[]).forEach((v,i)=>{ if(v!=null) q.push({x:X(T.xs[i]), y:Y(v), i}); }); return q; };
   const pH=punkte(T.heute), pP=punkte(D.plan), y0=Y(Math.max(lo, 0)).toFixed(1);
   const zu=q=>' L'+q[q.length-1].x.toFixed(1)+' '+y0+' L'+q[0].x.toFixed(1)+' '+y0+' Z';
@@ -8209,21 +8257,22 @@ function derTagHtml(k, opt){
   const F=outfitF(), of=outfitFortschritt(), cF=F!=null ? bewertungDiskret(F) : FARBE.GRAU, dF=F!=null ? Math.round((F-1)*100) : 0;
   let pfeil=''; try{ pfeil=tempopfeilSvg(tempoVerhaeltnis(), 16); }catch(e){}
   const kach=(h, w, s, unten, extra)=>'<div class="kch'+(extra||'')+'"><div class="h">'+h+'</div><div class="w">'+w+'</div><div class="s">'+s+'</div><div class="unten">'+unten+'</div></div>';
+  const wahl=opt.kacheln||['prognose','karte','dfm','form'], zeig=n=>wahl.indexOf(n)>=0;
   let h=(opt.ohneKopf ? '<div class="dt-roh">' : '<div class="blk"><div class="blk-h">Der Tag</div>')+'<div class="kach">'+
-    kach('Tagesprognose', '<span style="color:'+cP+'">'+fmtP(prog)+'</span>', prog>=ziel ? 'Ziel ✓' : 'fehlen '+fmtP(ziel-prog), miniPrognoseSvg(g, cP))+
-    kach(k?'Diese Karte schiebt':'Karte schiebt', (X>=0?'+':'−')+fmtP(Math.abs(X)), '= '+Math.round(X/Math.max(1,ziel)*100)+' % vom Tagesziel',
+    (!zeig('prognose') ? '' : kach('Tagesprognose', '<span style="color:'+cP+'">'+fmtP(prog)+'</span>', prog>=ziel ? 'Ziel ✓' : 'fehlen '+fmtP(ziel-prog), opt.flach ? '' : miniPrognoseSvg(g, cP), opt.flach ? ' flach' : ''))+
+    (!zeig('karte') ? '' : kach(k?'Diese Karte schiebt':'Karte schiebt', (X>=0?'+':'−')+fmtP(Math.abs(X)), '= '+Math.round(X/Math.max(1,ziel)*100)+' % vom Tagesziel',
       '<div class="lbar"><i style="left:0;width:'+pz(rest).toFixed(1)+'%;background:'+FARBE.GRAU+';opacity:.5"></i><i style="left:'+pz(rest).toFixed(1)+'%;width:'+Math.min(pz(Math.max(0,X)), 100-pz(rest)).toFixed(1)+'%;background:'+verlauf(famFarbe(k))+'"></i></div>'+
-      '<div class="skala"><span>0</span><span>Ziel '+fmtP(ziel)+'</span></div>')+
-    kach('DFM-Zeit heute', hMin(dz.ist)+'<small> / '+hMin(dz.plan)+'</small>', 'abgeschlossen / Plan',
+      '<div class="skala"><span>0</span><span>Ziel '+fmtP(ziel)+'</span></div>'))+
+    (!zeig('dfm') ? '' : kach('DFM-Zeit heute', hMin(dz.ist)+'<small> / '+hMin(dz.plan)+'</small>', 'abgeschlossen / Plan',
       '<div class="lbar"><i style="left:0;width:'+dzP(dz.ist).toFixed(1)+'%;background:'+verlauf(FARBE.BLAU)+'"></i>'+
       (dz.laufend>0 ? '<i style="left:'+dzP(dz.ist).toFixed(1)+'%;width:'+Math.min(dzP(dz.laufend), 100-dzP(dz.ist)).toFixed(1)+'%;background:repeating-linear-gradient(90deg,'+farbeAlpha(FARBE.BLAU,.55)+' 0 3px,transparent 3px 5px)"></i>' : '')+'</div>'+
-      '<div class="skala"><span>Plan aktualisiert sich</span><span>'+hMin(dz.plan)+'</span></div>', ' dfmzeit')+
-    kach('Tagesform', '<span style="color:'+cF+'">'+(F!=null ? F.toFixed(2).replace('.',',') : '—')+'</span>'+pfeil,
+      '<div class="skala"><span>Plan aktualisiert sich</span><span>'+hMin(dz.plan)+'</span></div>', ' dfmzeit'))+
+    (!zeig('form') ? '' : kach('Tagesform', '<span style="color:'+cF+'">'+(F!=null ? F.toFixed(2).replace('.',',') : '—')+'</span>'+pfeil,
       F==null ? '' : (dF===0 ? 'wie dein normaler Tag' : Math.abs(dF)+' % '+(dF>0?'über':'unter')+' deinem normalen Tag'),
-      '<div class="lbar"><i style="left:0;width:'+(of.frac*100).toFixed(1)+'%;background:'+verlauf(cF)+'"></i></div>'+
-      '<div class="skala"><span>Outfit '+of.of+'</span><span>'+(of.of>=20 ? 'höchstes' : 'Outfit '+of.naechste+' bei '+fbOutfitSchwelleF(of.naechste).toFixed(2).replace('.',','))+'</span></div>', ' tagesform')+
+      opt.flach ? '' : '<div class="lbar"><i style="left:0;width:'+(of.frac*100).toFixed(1)+'%;background:'+verlauf(cF)+'"></i></div>'+
+      '<div class="skala"><span>Outfit '+of.of+'</span><span>'+(of.of>=20 ? 'höchstes' : 'Outfit '+of.naechste+' bei '+fbOutfitSchwelleF(of.naechste).toFixed(2).replace('.',','))+'</span></div>', ' tagesform'+(opt.flach ? ' flach' : '')))+
     '</div>';
-  if(k && num(k.bewegungsBonus)>0){ const m=Math.max(1, num(S.settings.bewegungsBonus)), n=num(k.bewegungsBonus);
+  if(k && num(k.bewegungsBonus)>0 && !opt.flach){ const m=Math.max(1, num(S.settings.bewegungsBonus)), n=num(k.bewegungsBonus);
     h+='<div class="dt-bonus">Bewegungsbonus heute +'+fmtP(n)+' von '+fmtP(m)+' P<div class="lbar"><i style="left:0;width:'+Math.min(100, n/m*100).toFixed(1)+'%;background:'+verlauf(FARBE.GRUEN)+'"></i></div></div>'; }
   if(opt.ohneTempo) return h+'</div>';
   let tt=''; try{ tt=heuteGegenTypischHtml({bloecke:true, id:opt.id||'ttf'}); }catch(e){ tt=''; }
@@ -8233,6 +8282,7 @@ function derTagHtml(k, opt){
 /* §3 Nr. 7 (v3.5.1) · Matrix heute — immer quadratisch ueber die volle Blockbreite, Zeit je Feld in den Ecken,
    Wolke GRAU, Linie WEISS 35 %, Endpunkt mit Hof. Darunter die Zeitanteile in fester Reihenfolge
    Ablenkung · Zustand · unbekannt (grau schraffiert) · Werkzeug · Ziel mit Legende (Feldtoene: bewusste Ausnahme von F4). */
+const MX_FELD_NAME={ ablenkung:'Ablenkung', zustand:'Zustand', werkzeug:'Werkzeug', ziel:'Ziel' };
 const MX_LEISTE_UNBEKANNT='repeating-linear-gradient(135deg,#3a3e46 0 3px,#262a32 3px 6px)';
 function matrixHeuteHtml(opt){
   opt=opt||{};
@@ -8329,7 +8379,7 @@ function prioFarbe(k){
 function kartenZeileHtml(k){
   const fam=famFarbe(k), laeuft=uhrLaeuftAuf(k), fertig=kartenStatusHeute(k)==='erledigt';
   const ticks=Math.max(tickAnzahlHeute(k), num(k.ticksHeute)), limit=num(k.tageslimit), art=kartenArt(k);
-  const unter=(k.domain==='privat'?'Privat':'DFM')+' · '+(istPflicht(k) ? 'Pflicht' : art!=='Aufgabe' ? art : (num(k.sollMin)>0 ? Math.round(num(k.sollMin))+' Min' : matrixName(matrixFeldVon(k))));
+  const unter=(k.domain==='privat'?'Privat':'DFM')+' · '+(istPflicht(k) ? 'Pflicht' : art!=='Aufgabe' ? art : (num(k.sollMin)>0 ? Math.round(num(k.sollMin))+' Min' : MX_FELD_NAME[matrixFeldVon(k)]));
   return '<div class="kl-z'+(laeuft?' laeuft':'')+(fertig?' fertig':'')+'" style="--fam:'+fam+';--prio:'+prioFarbe(k)+'" data-klkarte="'+k.id+'">'+
     '<button class="kl-play" data-klplay="'+k.id+'" aria-label="'+(laeuft?'Pause':'Start')+'"'+(laeuft?' style="background:'+verlauf(fam, 180)+';color:#08111f"':'')+'>'+(laeuft?'⏸':'▶')+'</button>'+
     '<div class="kl-t" data-detail="'+k.id+'"><b class="kl-titel">'+esc(String(k.titel||'?'))+'</b><span class="kl-meta">'+unter+'</span></div>'+
@@ -16635,11 +16685,17 @@ function renderStatistikBody(){
 function anZeitraumLabel(){ const z=S.ui.analyseZeitraum||statParam('zeitfenster')||'7'; return z==='frei' ? 'frei' : z+' T'; }
 /* ══ §5 (v3.5.0) · MODUL-RAHMEN: Kopf (Titel, ▾/▴) · Hauptdiagramm · 3 KPI-Kacheln · Detail per Tipp ══ */
 function stKpi(w, l, c){ return '<div class="stm-kpi"><div class="v"'+(c?' style="color:'+c+'"':'')+'>'+w+'</div><div class="l">'+l+'</div></div>'; }
+/* §4 (v3.5.1): Auf-/Zuklappen ueber einen Knopf 44×44 rechts im Kopf mit Chevron 20 px — zugeklappt Chevron nach unten,
+   aufgeklappt nach oben, Flaeche heller, Rand GRAU; Drehung 180° in 150 ms. Module ohne Detail tragen keinen Knopf. */
+const STM_CHEVRON='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7l6 6 6-6" fill="none" stroke="#e8e9ec" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+let _stmGedreht=null;
 function statModul(id, titel, haupt, kpis, detailFn, opt){
   opt=opt||{}; const offen=!!(S.ui.statOffen && S.ui.statOffen[id]);
   let detail=''; if(offen && detailFn){ try{ detail=detailFn(); }catch(e){ detail='<div class="an-leer">Detail nicht verfügbar</div>'; } }
-  return '<div class="stm" data-stmodul="'+id+'"><div class="stm-k" data-stmtoggle="'+id+'"><span>'+titel+'</span><span class="stm-pf">'+(offen?'▴':'▾')+'</span></div>'+
-    '<div class="stm-haupt"'+(opt.tipp===false?'':' data-stmtoggle="'+id+'"')+'>'+haupt+'</div>'+
+  const dreh=_stmGedreht===id; if(dreh) _stmGedreht=null;
+  const knopf=detailFn ? '<span class="stm-tog'+(offen?' auf':'')+(dreh?' dreh':'')+'" role="button" aria-label="'+(offen?'Zuklappen':'Aufklappen')+'" aria-expanded="'+(offen?'true':'false')+'">'+STM_CHEVRON+'</span>' : '';
+  return '<div class="stm'+(offen?' offen':'')+'" data-stmodul="'+id+'"><div class="stm-k"'+(detailFn?' data-stmtoggle="'+id+'"':'')+'><span class="t">'+titel+'</span>'+knopf+'</div>'+
+    '<div class="stm-haupt"'+(opt.tipp===false || !detailFn?'':' data-stmtoggle="'+id+'"')+'>'+haupt+'</div>'+
     (kpis && kpis.length ? '<div class="stm-kpis">'+kpis.join('')+'</div>' : '')+
     (offen ? '<div class="stm-detail">'+detail+'</div>' : '')+'</div>';
 }
@@ -16656,7 +16712,7 @@ function isoKW(iso){ const d=new Date(iso+'T12:00:00'); const t=new Date(Date.UT
 /* ── §2.1 · Tageskurve: Punktewolke (Rohwerte), gleitendes Mittel ueber 3 Tage, glattPfad; Baender, Referenzlinien, Flaeche ── */
 function tagesKurveSvg(cfg){
   const labels=cfg.labels, n=labels.length; if(!n) return anLeer('keine Daten');
-  const W=320, H=cfg.height||140, pL=30, pR=cfg.pR!=null?cfg.pR:34, pT=12, pB=18, heute=heuteApp();
+  const W=320, H=cfg.height||140, pL=30, pR=cfg.pR!=null?cfg.pR:8, pT=16, pB=18, heute=heuteApp();   // §4 (v3.5.1): volle Breite, Linien-Namen innen
   const roh=cfg.roh, gl=cfg.glatt===false ? roh : anGleitend3(roh);
   let lo=cfg.yMin, hi=cfg.yMax;
   if(lo==null || hi==null){ let mn=Infinity, mx=-Infinity; roh.forEach(v=>{ if(v!=null){ mn=Math.min(mn,v); mx=Math.max(mx,v); } });
@@ -16672,7 +16728,8 @@ function tagesKurveSvg(cfg){
   g+='<text x="2" y="9" font-size="8" fill="'+FARBE.GRAU+'">'+(cfg.einheit||'')+'</text>';
   (cfg.linien||[]).forEach(l=>{ if(l.y==null) return; const y=Y(l.y).toFixed(1);
     g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+l.farbe+'" stroke-opacity="'+(l.alpha||.7)+'" stroke-width="1" stroke-dasharray="'+(l.dash||'2 3')+'"/>'+
-      (l.label?'<text x="'+(W-pR+3)+'" y="'+(Y(l.y)+3).toFixed(1)+'" font-size="8" fill="'+l.farbe+'">'+l.label+'</text>':''); });
+      (l.label?(pR<24 ? '<text x="'+(W-pR-2)+'" y="'+(Y(l.y)-3).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+l.farbe+'">'+l.label+'</text>'
+                       : '<text x="'+(W-pR+3)+'" y="'+(Y(l.y)+3).toFixed(1)+'" font-size="8" fill="'+l.farbe+'">'+l.label+'</text>'):''); });
   const pts=[]; gl.forEach((v,i)=>{ if(v!=null) pts.push({x:X(i), y:Y(v), i}); });
   if(pts.length>1){
     const farbe=cfg.farbe ? (q=>cfg.farbe(roh[q.i], q.i)) : null;
@@ -16692,8 +16749,9 @@ function anGleitend3(v){ return v.map((w,i)=>{ if(w==null) return null; const n=
 /* ── Saeulen je Tag (gestapelt moeglich, negative nach unten) ── */
 function saeulenSvg(cfg){
   const labels=cfg.labels, n=labels.length; if(!n) return anLeer('keine Daten');
-  const W=320, H=cfg.height||130, pL=30, pR=cfg.pR!=null?cfg.pR:10, pT=12, pB=18, heute=heuteApp();
-  let mx=0, mn=0; cfg.saeulen.forEach(col=>{ let up=0, dn=0; col.forEach(seg=>{ if(seg.v>=0) up+=seg.v; else dn+=seg.v; }); mx=Math.max(mx,up); mn=Math.min(mn,dn); });
+  const W=320, H=cfg.height||130, pL=30, pR=cfg.pR!=null?cfg.pR:8, pT=16, pB=18, heute=heuteApp();
+  let mx=0, mn=0; (cfg.ref||[]).forEach(v=>{ if(v!=null) mx=Math.max(mx, v); });
+  cfg.saeulen.forEach(col=>{ let up=0, dn=0; col.forEach(seg=>{ if(seg.v>=0) up+=seg.v; else dn+=seg.v; }); mx=Math.max(mx,up); mn=Math.min(mn,dn); });
   (cfg.linien||[]).forEach(l=>{ if(l.y!=null){ mx=Math.max(mx,l.y); mn=Math.min(mn,l.y); } });
   (cfg.linie||[]).forEach(v=>{ if(v!=null){ mx=Math.max(mx,v); mn=Math.min(mn,v); } });
   if(mx===0 && mn===0) mx=1; mx*=1.08; mn*=1.08;
@@ -16701,16 +16759,49 @@ function saeulenSvg(cfg){
   let g='<text x="2" y="9" font-size="8" fill="'+FARBE.GRAU+'">'+(cfg.einheit||'')+'</text>';
   [mn, (mn+mx)/2, mx].forEach(v=>{ if(Math.abs(v)<1e-9 && mn<0) return; const y=Y(v).toFixed(1); g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+FARBE.RASTER+'"/><text x="'+(pL-3)+'" y="'+(Y(v)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+FARBE.GRAU+'">'+anFmt(v)+'</text>'; });
   g+='<line x1="'+pL+'" y1="'+y0.toFixed(1)+'" x2="'+(W-pR)+'" y2="'+y0.toFixed(1)+'" stroke="'+FARBE.GRAU+'" stroke-opacity=".5"/>';
-  (cfg.linien||[]).forEach(l=>{ if(l.y==null) return; const y=Y(l.y).toFixed(1); g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+l.farbe+'" stroke-opacity=".7" stroke-dasharray="'+(l.dash||'2 3')+'"/>'+(l.label?'<text x="'+(W-pR+3)+'" y="'+(Y(l.y)+3).toFixed(1)+'" font-size="8" fill="'+l.farbe+'">'+l.label+'</text>':''); });
+  (cfg.linien||[]).forEach(l=>{ if(l.y==null) return; const y=Y(l.y).toFixed(1); g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+l.farbe+'" stroke-opacity=".7" stroke-dasharray="'+(l.dash||'2 3')+'"/>'+(l.label?'<text x="'+(W-pR-2)+'" y="'+(Y(l.y)-3).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+l.farbe+'">'+l.label+'</text>':''); });
   cfg.saeulen.forEach((col,i)=>{ let up=0, dn=0; col.forEach(seg=>{ if(!seg.v) return; const v=seg.v, a=v>=0?up:dn, b=a+v; if(v>=0) up=b; else dn=b;
     const y1=Y(Math.max(a,b)), y2=Y(Math.min(a,b));
     const gid=svgId('sv');   // §1.2 (v3.5.1): Saeulen im Verlauf (voll → 55 %)
     g+='<defs>'+verlaufDefSvg(gid, seg.farbe)+'</defs><rect x="'+(X(i)-bw/2).toFixed(1)+'" y="'+y1.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(0.5, y2-y1).toFixed(1)+'" rx="3" fill="url(#'+gid+')"'+(seg.alpha!=null?' fill-opacity="'+seg.alpha+'"':'')+'/>'; });
     if(labels[i]===heute && cfg.wert){ g+='<text x="'+X(i).toFixed(1)+'" y="'+(Y(Math.max(up,0))-3).toFixed(1)+'" text-anchor="middle" font-size="9" fill="#fff">'+cfg.wert(i)+'</text>'; } });
+  // §4 (v3.5.1): Referenz je Saeule (z. B. das Tagesziel des Tages) als weiss gepunkteter Strich ueber der Saeulenbreite
+  (cfg.ref||[]).forEach((v,i)=>{ if(v==null) return; const y=Y(v).toFixed(1), hb=(W-pL-pR)/n/2-1;
+    g+='<line x1="'+(X(i)-hb).toFixed(1)+'" y1="'+y+'" x2="'+(X(i)+hb).toFixed(1)+'" y2="'+y+'" stroke="'+FARBE.WEISS+'" stroke-opacity=".8" stroke-dasharray="2 3"/>'; });
   if(cfg.linie){ const pts=[]; cfg.linie.forEach((v,i)=>{ if(v!=null) pts.push({x:X(i), y:Y(v)}); });
     if(pts.length>1) g+='<path d="'+glattPfad(pts)+'" fill="none" stroke="'+FARBE.WEISS+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'; }
   g+=stXLabels(labels, X, H-4, heute);
   return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+g+'</svg>';
+}
+/* §4 Nr. 4/8 (v3.5.1): Saeulen je Tag in der diskreten Ampel (Ist ÷ Tagesziel), das Tagesziel je Tag weiss gepunktet */
+function tagesAmpelSaeulen(labels, werte, ziele){
+  return saeulenSvg({ labels, einheit:'Punkte', ref:ziele,
+    saeulen:werte.map((v,i)=>[{ v:Math.max(0, num(v)), farbe:bewertungDiskret(num(ziele[i])>0 ? num(v)/num(ziele[i]) : null) }]) });
+}
+/* Mehrere Linien ueber dieselbe Tagesachse (serien: {vals, farbe, w, dash}); Luecken (null) trennen die Linie */
+function linienSvg(cfg){
+  const labels=cfg.labels, n=labels.length; if(!n) return anLeer('keine Daten');
+  const W=320, H=cfg.height||130, pL=30, pR=8, pT=16, pB=18, heute=heuteApp(), lo=cfg.yMin!=null ? cfg.yMin : 0;
+  let hi=cfg.yMax;
+  if(hi==null){ hi=0; cfg.serien.forEach(se=>se.vals.forEach(v=>{ if(v!=null) hi=Math.max(hi, v); })); (cfg.linien||[]).forEach(l=>{ hi=Math.max(hi, l.y); }); hi=hi*1.1 || 1; }
+  const X=i=>pL+(n===1?(W-pL-pR)/2:i/(n-1)*(W-pL-pR)), Y=v=>pT+(1-(Math.max(lo,Math.min(hi,v))-lo)/Math.max(1e-9,hi-lo))*(H-pT-pB), fmt=cfg.fmt||anFmt;
+  let g='<text x="2" y="9" font-size="8" fill="'+FARBE.GRAU+'">'+(cfg.einheit||'')+'</text>';
+  [lo, lo+(hi-lo)/2, hi].forEach(v=>{ const y=Y(v).toFixed(1); g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+FARBE.RASTER+'"/>'+
+    '<text x="'+(pL-3)+'" y="'+(Y(v)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+FARBE.GRAU+'">'+fmt(v)+'</text>'; });
+  (cfg.linien||[]).forEach(l=>{ const y=Y(l.y).toFixed(1);
+    g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+l.farbe+'" stroke-opacity=".7" stroke-dasharray="'+(l.dash||'2 3')+'"/>'+
+      (l.label?'<text x="'+(W-pR-2)+'" y="'+(Y(l.y)-3).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+FARBE.GRAU+'">'+l.label+'</text>':''); });
+  cfg.serien.forEach(se=>{ let teil=[]; const raus=()=>{ if(teil.length>1) g+='<path d="'+glattPfad(teil)+'" fill="none" stroke="'+se.farbe+'" stroke-width="'+(se.w||2.5)+'"'+(se.dash?' stroke-dasharray="'+se.dash+'"':'')+' stroke-linejoin="round" stroke-linecap="round"/>';
+      else if(teil.length===1) g+='<circle cx="'+teil[0].x.toFixed(1)+'" cy="'+teil[0].y.toFixed(1)+'" r="1.8" fill="'+se.farbe+'"/>'; teil=[]; };
+    se.vals.forEach((v,i)=>{ if(v==null){ raus(); return; } teil.push({x:X(i), y:Y(v)}); }); raus(); });
+  g+=stXLabels(labels, X, H-4, heute);
+  return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+g+'</svg>';
+}
+/* Segmentleiste (n Segmente): volle in farbe, das angefangene in farbeTeil */
+function segLeisteHtml(anteil, n, farbe, farbeTeil){
+  const v=Math.max(0, Math.min(1, num(anteil)))*n, voll=Math.floor(v+1e-9), teil=v-voll>0.02;
+  let h='<div class="seg">'; for(let i=0;i<n;i++) h+='<i'+(i<voll ? ' style="background:'+farbe+'"' : (i===voll && teil ? ' style="background:'+(farbeTeil||farbe)+'"' : ''))+'></i>';
+  return h+'</div>';
 }
 /* ── §2.5 · Heatmap 4 Wochen: Spaltenkopf Mo…So, Zeilen „KW nn", heute weiss umrandet, Farbskala darunter ── */
 function heatmapHtml(wert, wochen){
@@ -16726,21 +16817,65 @@ function heatmapHtml(wert, wochen){
 }
 /* ══ Gruppe 1 · Heute ══ */
 function stmTag(F,dom){
+  // §4 Nr. 1 (v3.5.1): Inhalt wie Fokusansicht; der Tagesverlauf (Punkte kumuliert gegen Soll) steht auch zugeklappt
   const k=aktiveFokusKarte();
-  let haupt=''; try{ haupt=derTagHtml(k, {id:'tts', ohneKopf:true}); }catch(e){ haupt='<div class="an-leer">nicht verfügbar</div>'; }
-  return statModul('tag','Der Tag', haupt, null, ()=>{ let tv=''; try{ tv=belTagesDiagramm(); }catch(e){ tv=''; }
-    return tv+anModVerhalten(F,dom,{nurKpis:true}); }, {tipp:false});
+  let haupt=''; try{ haupt=derTagHtml(k, {ohneKopf:true, kacheln:['prognose','form'], flach:true, ohneTempo:true}); }catch(e){ haupt='<div class="an-leer">nicht verfügbar</div>'; }
+  let tv=''; try{ tv=belTagesDiagramm(); }catch(e){ tv=''; }
+  haupt+=tv;
+  return statModul('tag','Der Tag', haupt, null, ()=>{ let d=''; try{ d=derTagHtml(k, {ohneKopf:true, kacheln:['karte','dfm'], id:'tts'}); }catch(e){ d=''; }
+    return d+anModVerhalten(F,dom,{nurKpis:true}); }, {tipp:false});
+}
+/* §4 Nr. 2 (v3.5.1): Phasen des Tages in der Matrix — dieselbe Zerlegung wie matrixZeitFelder: jede Messung gilt bis zur
+   naechsten; aufeinanderfolgende Messungen im selben Feld bilden EINE zusammenhaengende Phase. Unbekannt aufgeschluesselt:
+   vor der ersten Messung · nach der letzten · uebersprungene Abfragen (mit Anzahl) · Rest ueber der Gueltigkeitsdauer */
+function matrixPhasen(){
+  const start=(S.tag && S.tag.startTs) ? Date.parse(S.tag.startTs) : null, jetzt=Date.now();
+  const sp=((S.tag && Array.isArray(S.tag.matrixSpur)) ? S.tag.matrixSpur : []).filter(e=>e && e.ts && !isNaN(Date.parse(e.ts))).slice().sort((a,b)=>Date.parse(a.ts)-Date.parse(b.ts));
+  const mz=statParam('matrixZeit')||{}, gMax=(mz.gueltigMaxMin==null||mz.gueltigMaxMin==='') ? Infinity : Math.max(0,num(mz.gueltigMaxMin));
+  const o={ phasen:[], vor:0, nach:0, skipMin:0, skipN:0, rest:0 };
+  if(!sp.length){ o.vor = start!=null ? Math.max(0,(jetzt-start)/60000) : 0; return o; }
+  if(start!=null) o.vor=Math.max(0, (Date.parse(sp[0].ts)-start)/60000);
+  sp.forEach((e,i)=>{ const a=Date.parse(e.ts), bis=(i+1<sp.length) ? Date.parse(sp[i+1].ts) : jetzt, dt=Math.max(0, (bis-a)/60000);
+    if(e.uebersprungen){ o.skipMin+=dt; o.skipN++; return; }
+    if(i+1>=sp.length && !mz.letzteZaehlt){ o.nach+=dt; return; }
+    const f=Math.min(dt, gMax), feld=matrixFeldAusXY(e.x, e.y), l=o.phasen[o.phasen.length-1]; o.rest+=dt-f;
+    if(l && l.feld===feld && Math.abs(l.bis-a)<1000){ l.bis=a+f*60000; l.min+=f; }
+    else o.phasen.push({ feld, von:a, bis:a+f*60000, min:f });
+  });
+  return o;
+}
+/* die Karte, die nach einer Phase links zurueckgeholt hat: die erste danach bearbeitete Karte mit Matrixfeld Werkzeug oder Ziel */
+function matrixZurueckgeholtDurch(bisMs){
+  let best=null;
+  (S.intraday||[]).forEach(e=>{ if(!e || !e.ts || !e.kartenId) return; if(['timer','autopause','nachtrag','tick','abhaken'].indexOf(e.typ)<0) return;
+    const t=Date.parse(e.ts); if(!(t>bisMs) || (best && t>=best.t)) return;
+    const k=S.karten.find(x=>x.id===e.kartenId), f=k ? matrixFeldVon(k) : null; if(f==='werkzeug' || f==='ziel') best={ t, k }; });
+  return best ? best.k : null;
+}
+const MX_FELD_TON={ ablenkung:'#f66d6d', zustand:'#b05a5a', werkzeug:'#5bb487', ziel:'#3ecf8e' };
+function matrixHeuteDetailHtml(){
+  const z=matrixZeitFelder(), P=matrixPhasen(), ges=Math.max(1e-9, z.mess), uhr=ms=>belUhr(kalStunde(new Date(ms).toISOString()));
+  const laengste=f=>P.phasen.filter(q=>q.feld===f).reduce((a,q)=>Math.max(a, q.min), 0);
+  let h='<div class="stm-dh">Zeit je Feld</div><table class="zt">'+['ablenkung','zustand','werkzeug','ziel'].map(f=>
+    '<tr><td><span class="dot" style="background:'+MX_FELD_TON[f]+'"></span>'+MX_FELD_NAME[f]+'</td><td class="r">'+hMin(z.felder[f])+'</td><td class="g">'+Math.round(z.felder[f]/ges*100)+' %</td><td class="g">längste '+hMin(laengste(f))+'</td></tr>').join('')+'</table>';
+  const links=P.phasen.filter(q=>q.feld==='ablenkung' || q.feld==='zustand').slice(-5).reverse();
+  h+='<div class="stm-dh">Zuletzt links</div>'+(links.length ? '<table class="zt">'+links.map(q=>{ const k=matrixZurueckgeholtDurch(q.bis);
+    return '<tr><td>'+uhr(q.von)+'–'+uhr(q.bis)+' · '+MX_FELD_NAME[q.feld]+'</td><td class="g">zurückgeholt durch</td><td class="r">'+(k ? esc(String(k.titel||'?').slice(0,24)) : '—')+'</td></tr>'; }).join('')+'</table>'
+    : '<div class="an-leer">Heute noch keine Phase links.</div>');
+  h+='<div class="stm-dh">Unbekannte Zeit '+hMin(z.unbekannt)+'</div><table class="zt">'+
+    '<tr><td>vor erster Messung</td><td class="r">'+hMin(P.vor)+'</td></tr><tr><td>nach letzter Messung</td><td class="r">'+hMin(P.nach)+'</td></tr>'+
+    '<tr><td>übersprungene Abfragen ('+P.skipN+')</td><td class="r">'+hMin(P.skipMin)+'</td></tr>'+
+    (P.rest>=0.5 ? '<tr><td>über der Gültigkeitsdauer einer Messung</td><td class="r">'+hMin(P.rest)+'</td></tr>' : '')+'</table>';
+  return h;
 }
 function stmMatrixHeute(F,dom){
   const m=matrixHeuteHtml({klick:true});
-  return statModul('matrixHeute','Matrix heute', m.svg+m.leiste, null, ()=>{ let a='',b=''; try{ a=stMatrixSpur(); }catch(e){} try{ b=stBelastung(); }catch(e){} return a+b; }, {tipp:false});
+  return statModul('matrixHeute','Matrix heute', m.svg+m.leiste, null, ()=>{ let d='',a='',b=''; try{ d=matrixHeuteDetailHtml(); }catch(e){} try{ b=stBelastung(); }catch(e){} try{ a=stMatrixSpur(); }catch(e){}
+    return d+b+a; }, {tipp:false});
 }
 function stmHeuteKurz(F,dom){
-  const f=flowHeuteWerte(), v=acwrHeuteWert(), st=acwrStufe(v), c=(AMPEL_FARBE[st]||AMPEL_FARBE.grau)[0];
-  const zone=v==null?'—': v<0.8?'Unterlast':v<=1.3?'optimal':v<=1.5?'erhöht':'Overload';
-  const haupt='<div class="fb-kacheln dt-kacheln"><div class="fbk" data-stmgo="flow"><div class="fbk-h">Aufgaben-Flow heute</div><div class="dt-w" style="color:'+(f.netto<=0?FARBE.GRUEN:FARBE.ROT)+'">'+(f.netto>0?'+':'')+f.netto+'</div><div class="dt-s">+'+f.neu+' · −'+f.erledigt+' · '+f.geschoben+' geschoben</div></div>'+
-    '<div class="fbk" data-stmgo="acwr"><div class="fbk-h">Belastung ACWR</div><div class="dt-w" style="color:'+c+'">'+(v!=null?(Math.round(v*100)/100).toFixed(2).replace('.',','):'—')+'</div><div class="dt-s">'+zone+' · 0,8–1,3</div></div></div>';
-  return statModul('heuteKurz','Flow und Belastung heute', haupt, null, null, {tipp:false});
+  // §4 Nr. 3 (v3.5.1): die zwei Leisten der Fokusansicht, ohne KPI-Kacheln; die Bubbles entfallen
+  return statModul('heuteKurz','Flow und Belastung heute', flowBelastungHtml({roh:true, ohneKpi:true}), null, null, {tipp:false});
 }
 /* ══ Gruppe 2 · Leistung & Rhythmus ══ */
 function stmLeistung(F,dom){
@@ -16752,13 +16887,20 @@ function stmLeistung(F,dom){
   const r=(prevMed>0 && med!=null) ? med/prevMed : null, dp=anDeltaPct(med, prevMed);
   const kpis=[ stKpi(anFmt(med||0),'Median P/h'), stKpi((r!=null?tempopfeilSvg(r,12)+' ':'')+(dp!=null?(dp>=0?'+':'')+Math.round(dp)+' %':'—'),'vs. Vorperiode', r!=null?tempopfeilStufe(r).c:null), stKpi(anFmt(best),'Bestwert') ];
   return statModul('leistung','Leistung · P/h je Tag', haupt, kpis, ()=>{
-    const doms= dom==='alle'?[['dfm',FARBE.BLAU],['privat',FARBE.LILA]]:[[dom, dom==='dfm'?FARBE.BLAU:FARBE.LILA]];
-    const sae=F.cur.map(e=>doms.map(d=>({v:anPunkte(e,d[0]), farbe:d[1]})));
-    const zielM=anMean(F.cur.map(e=>anZiel(dom,e.datum)));
-    let h='<div class="stm-dh">Zielerreichung je Domäne</div>'+saeulenSvg({ labels, saeulen:sae, einheit:'P', linien:[{y:zielM, farbe:FARBE.WEISS, label:'Ziel'}] });
-    const l28=[]; for(let i=27;i>=0;i--) l28.push(anVorTage(heuteApp(), i));
-    h+='<div class="stm-dh">Tagespunkte · 28 Tage</div>'+tagesKurveSvg({ labels:l28, roh:l28.map(d=>{ const sn=tagSnapshot(d); return sn ? Math.max(0,num(sn.punkteBilanz)) : null; }), einheit:'P', linie:FARBE.WEISS });
+    // §4 Nr. 4 (v3.5.1): Tagespunkte als Ampel-Saeulen gegen das Tagesziel · Zielerreichung: Gesamt WEISS, DFM und Privat gestrichelt
+    let h='<div class="stm-dh">Tagespunkte · Ampel gegen Tagesziel</div>'+tagesAmpelSaeulen(labels, F.cur.map(e=>anPunkte(e,dom)), F.cur.map(e=>anZiel(dom,e.datum)));
+    const quote=d=>F.cur.map(e=>{ const z=anZiel(d,e.datum); return z>0 ? Math.max(0, num(anPunkte(e,d)))/z : null; });
+    const top=Math.max(1.2, Math.min(3, Math.max.apply(null, quote('alle').concat(quote('dfm'), quote('privat')).map(v=>v||0))*1.08));
+    h+='<div class="stm-dh">Zielerreichung je Domäne</div>'+linienSvg({ labels, einheit:'% Ziel', yMax:top, fmt:v=>Math.round(v*100)+' %', linien:[{y:1, farbe:FARBE.WEISS, label:'100 %'}],
+      serien:[{vals:quote('alle'), farbe:FARBE.WEISS},{vals:quote('dfm'), farbe:FARBE.BLAU, w:1.5, dash:'4 3'},{vals:quote('privat'), farbe:FARBE.LILA, w:1.5, dash:'4 3'}] })+
+      '<div class="legende"><span><i style="background:'+FARBE.WEISS+';height:3px"></i>Gesamt</span><span><i style="border-top:2px dashed '+FARBE.BLAU+';height:0"></i>DFM</span>'+
+      '<span><i style="border-top:2px dashed '+FARBE.LILA+';height:0"></i>Privat</span><span><i style="border-top:1px dotted '+FARBE.WEISS+';height:0"></i>100 %</span></div>';
     return h; });
+}
+/* Anzahl Tage im Zeitraum mit Tagespunkte ≥ 0,8 × Tagesziel */
+function tageAb80Ziel(tage, dom){
+  let n=0; (tage||[]).forEach(e=>{ const z=anZiel(dom, e.datum); if(z>0 && num(anPunkte(e,dom))>=0.8*z) n++; });
+  return { n, von:(tage||[]).length };
 }
 function stmKonsistenz(F,dom){
   const labels=F.cur.map(e=>e.datum), pk=F.cur.map(e=>anPunkte(e,dom)), ziele=F.cur.map(e=>anZiel(dom,e.datum));
@@ -16769,8 +16911,10 @@ function stmKonsistenz(F,dom){
     baender:[{von:zielM, bis:1e12, farbe:FARBE.GRUEN, alpha:.13},{von:zielM*0.75, bis:zielM, farbe:FARBE.GELB, alpha:.12},{von:-1e12, bis:zielM*0.75, farbe:FARBE.ROT, alpha:.13}] });
   const wk=F.cur.filter(e=>anWochentag(e.datum)<5), wkIm=wk.filter(e=>anPunkte(e,dom)>=anZiel(dom,e.datum)).length;
   const mad=med!=null ? medianVon(pk.map(v=>Math.abs(v-med))) : null, streu=(mad!=null && med>0) ? Math.round(mad/med*100) : null;
-  let serie=0, best=0; F.cur.forEach(e=>{ if(anPunkte(e,dom)>=anZiel(dom,e.datum)){ serie++; best=Math.max(best,serie); } else serie=0; });
-  const kpis=[ stKpi(wkIm+'/'+wk.length,'Werktage im Ziel', wk.length?bewertungDiskret(wkIm/wk.length):null), stKpi(streu!=null?'±'+streu+' %':'—','Streuung'), stKpi(best+' T','längste Serie') ];
+  // §4 Nr. 5 (v3.5.1): „Tage ≥ 80 % Ziel" ersetzt die laengste Serie — Format „9 / 14", Farbe = diskrete Ampel des Anteils
+  const t80=tageAb80Ziel(F.cur, dom);
+  const kpis=[ stKpi(wkIm+'/'+wk.length,'Werktage im Ziel', wk.length?bewertungDiskret(wkIm/wk.length):null), stKpi(streu!=null?'±'+streu+' %':'—','Streuung'),
+    stKpi(t80.n+' / '+t80.von,'Tage ≥ 80 % Ziel', t80.von ? bewertungDiskret(t80.n/t80.von) : null) ];
   return statModul('konsistenz','Konsistenz · Tagespunkte um den Median', haupt, kpis, ()=>{
     const wert=d=>{ const sn=tagSnapshot(d); if(!sn) return null; const z=anZiel(dom,d); const v=dom==='dfm'?num(sn.punkteDfm!=null?sn.punkteDfm:sn.punkteBilanz):dom==='privat'?num(sn.punktePrivat!=null?sn.punktePrivat:sn.punkteBilanz):num(sn.punkteBilanz); return z>0 ? Math.max(0,v)/z : null; };
     let h='<div class="stm-dh">Heatmap · 4 Wochen</div>'+heatmapHtml(wert, 4);
@@ -16787,31 +16931,46 @@ function stmMatrixfaktor(F,dom){
   if(typeof anModMatrixfaktor!=='function') return statModul('matrixfaktor','Matrixfaktor','<div class="an-leer">folgt</div>', null, null);
   return anModMatrixfaktor(F,dom);
 }
+/* §4 Nr. 6 (v3.5.1): Optimalbereich = diagonales Band von (15 %, 15 %) bis in die Ecke oben rechts; x = Akku am Start (0…1),
+   y = Tagesscore im Verhaeltnis zur Skala (0…1) */
+function readinessOptimal(x, y){ const u=x-0.15, v=y-0.15; return u>=0 && v>=0 && v<=u*(0.85/0.71)+1e-9 && v>=u*(0.71/0.85)-1e-9; }
+function readinessSvg(pts, yMax){
+  const Q=300, P=30, A=Q-P-6, X=v=>P+Math.max(0,Math.min(1,v))*A, Y=v=>Q-P-Math.max(0,Math.min(1,v))*A, heute=heuteApp(), uid=svgId('ue'), pt=(x,y)=>X(x).toFixed(1)+','+Y(y).toFixed(1);
+  let g='<defs><linearGradient id="'+uid+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+FARBE.ROT+'" stop-opacity=".18"/><stop offset="1" stop-color="'+FARBE.ORANGE+'" stop-opacity=".1"/></linearGradient></defs>'+
+    '<polygon points="'+pt(0,1)+' '+pt(0,.32)+' '+pt(.15,.15)+' '+pt(.86,1)+'" fill="url(#'+uid+')"/>'+
+    '<polygon points="'+pt(1,0)+' '+pt(.32,0)+' '+pt(.15,.15)+' '+pt(1,.86)+'" fill="'+FARBE.GELB+'" fill-opacity=".14"/>'+
+    '<polygon points="'+pt(.15,.15)+' '+pt(.86,1)+' '+pt(1,1)+' '+pt(1,.86)+'" fill="'+FARBE.GRUEN+'" fill-opacity=".22"/>'+
+    '<line x1="'+X(.15).toFixed(1)+'" y1="'+Y(.15).toFixed(1)+'" x2="'+X(1).toFixed(1)+'" y2="'+Y(1).toFixed(1)+'" stroke="'+FARBE.GRUEN+'" stroke-opacity=".5" stroke-dasharray="2 3"/>'+
+    '<text x="'+X(.06).toFixed(1)+'" y="'+Y(.9).toFixed(1)+'" fill="'+FARBE.ORANGE+'" font-size="12" font-weight="700">Überlastung</text><text x="'+X(.06).toFixed(1)+'" y="'+(Y(.9)+14).toFixed(1)+'" fill="'+FARBE.GRAU+'" font-size="10">wenig Akku, viel Leistung</text>'+
+    '<text x="'+X(.96).toFixed(1)+'" y="'+Y(.12).toFixed(1)+'" fill="'+FARBE.GELB+'" font-size="12" font-weight="700" text-anchor="end">Unterlastung</text><text x="'+X(.96).toFixed(1)+'" y="'+(Y(.12)+14).toFixed(1)+'" fill="'+FARBE.GRAU+'" font-size="10" text-anchor="end">viel Akku, wenig Leistung</text>'+
+    '<text x="'+X(.62).toFixed(1)+'" y="'+Y(.74).toFixed(1)+'" fill="'+FARBE.GRUEN+'" font-size="12" font-weight="700" transform="rotate(-45 '+X(.62).toFixed(1)+' '+Y(.74).toFixed(1)+')" text-anchor="middle">optimal</text>';
+  pts.forEach(q=>{ const cx=X(q.x/100).toFixed(1), cy=Y(q.y/yMax).toFixed(1);
+    g+=(q.d===heute ? '<circle cx="'+cx+'" cy="'+cy+'" r="9" fill="#fff" fill-opacity=".2"/>' : '')+'<circle cx="'+cx+'" cy="'+cy+'" r="'+(q.d===heute?4.5:4)+'" fill="#fff" fill-opacity="'+(q.d===heute?1:.85)+'" stroke="#000"/>'; });
+  g+='<line x1="'+P+'" y1="'+(Q-P)+'" x2="'+Q+'" y2="'+(Q-P)+'" stroke="rgba(255,255,255,.2)"/><line x1="'+P+'" y1="0" x2="'+P+'" y2="'+(Q-P)+'" stroke="rgba(255,255,255,.2)"/>'+
+    '<text x="'+((Q+P)/2)+'" y="'+(Q-8)+'" fill="'+FARBE.GRAU+'" font-size="10" text-anchor="middle">Akku am Start →</text>'+
+    '<text x="11" y="'+((Q-P)/2)+'" fill="'+FARBE.GRAU+'" font-size="10" text-anchor="middle" transform="rotate(-90 11 '+((Q-P)/2)+')">Tagesscore →</text>'+
+    '<text x="'+P+'" y="'+(Q-P+12)+'" fill="'+FARBE.GRAU+'" font-size="9" text-anchor="middle">0 %</text><text x="'+(Q-6)+'" y="'+(Q-P+12)+'" fill="'+FARBE.GRAU+'" font-size="9" text-anchor="end">100 %</text>';
+  return '<svg class="an-svg rd-svg" viewBox="0 0 '+Q+' '+Q+'" aria-hidden="true">'+g+'</svg>';
+}
 function stmReadiness(F,dom){
-  const pts=F.cur.filter(e=>e.akku!=null).map(e=>({x:e.akku, y:anPunkte(e,dom), d:e.datum}));
+  const pts=F.cur.filter(e=>e.akku!=null).map(e=>({x:e.akku, y:Math.max(0, num(anPunkte(e,dom))), d:e.datum}));
   let haupt, kpis=null;
   if(pts.length<4){ haupt=anSammelt(pts.length,4); }
   else {
-    const W=320,H=140,pL=30,pR=10,pT=10,pB=18, yMax=Math.max.apply(null, pts.map(p=>p.y).concat([1]))*1.08;
-    const X=x=>pL+Math.max(0,Math.min(100,x))/100*(W-pL-pR), Y=y=>pT+(1-y/yMax)*(H-pT-pB);
-    const n=pts.length, mx=anMean(pts.map(p=>p.x)), my=anMean(pts.map(p=>p.y));
-    let sxy=0,sxx=0,syy=0; pts.forEach(p=>{ sxy+=(p.x-mx)*(p.y-my); sxx+=(p.x-mx)*(p.x-mx); syy+=(p.y-my)*(p.y-my); });
-    const r=(sxx>0&&syy>0)?sxy/Math.sqrt(sxx*syy):0, b=sxx>0?sxy/sxx:0, a=my-b*mx;
-    const heute=heuteApp();
-    let g='<rect x="'+pL+'" y="'+pT+'" width="'+((W-pL-pR)/2).toFixed(1)+'" height="'+(H-pT-pB)+'" fill="'+FARBE.ROT+'" fill-opacity=".1"/><rect x="'+(pL+(W-pL-pR)/2).toFixed(1)+'" y="'+pT+'" width="'+((W-pL-pR)/2).toFixed(1)+'" height="'+((H-pT-pB)/2).toFixed(1)+'" fill="'+FARBE.GRUEN+'" fill-opacity=".14"/>';
-    g+='<text x="2" y="9" font-size="8" fill="'+FARBE.GRAU+'">P</text><text x="'+pL+'" y="'+(H-4)+'" font-size="8" fill="'+FARBE.GRAU+'">Akku 0 %</text><text x="'+(W-pR)+'" y="'+(H-4)+'" text-anchor="end" font-size="8" fill="'+FARBE.GRAU+'">100 %</text>';
-    pts.forEach(p=>{ g+= p.d===heute ? '<circle cx="'+X(p.x).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="7" fill="#fff" fill-opacity=".2"/><circle cx="'+X(p.x).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="3.5" fill="#fff"/>' : '<circle cx="'+X(p.x).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="2.5" fill="'+FARBE.GRAU+'" fill-opacity=".6"/>'; });
-    g+='<line x1="'+X(0).toFixed(1)+'" y1="'+Y(Math.max(0,Math.min(yMax,a))).toFixed(1)+'" x2="'+X(100).toFixed(1)+'" y2="'+Y(Math.max(0,Math.min(yMax,a+100*b))).toFixed(1)+'" stroke="'+FARBE.WEISS+'" stroke-width="2" stroke-linecap="round"/>';
-    haupt='<svg class="an-svg" viewBox="0 0 '+W+' '+H+'">'+g+'</svg>';
-    const ar=Math.abs(r), zs=ar<0.3?'schwach':ar<0.6?'mittel':'stark';
-    const hoch=anMean(pts.filter(p=>p.x>=70).map(p=>p.y)), tief=anMean(pts.filter(p=>p.x<50).map(p=>p.y));
-    const diff=(hoch!=null && tief>0) ? Math.round((hoch-tief)/tief*100) : null;
-    let ah=null; try{ ah=akkuLive(); }catch(e){}
-    kpis=[ stKpi(zs,'Zusammenhang', ar>=0.6?FARBE.GRUEN:ar>=0.3?FARBE.GELB:FARBE.GRAU), stKpi(ah!=null?Math.round(ah)+' %':'—','Akku heute'), stKpi(diff!=null?(diff>=0?'+':'')+diff+' %':'—','Score ab 70 % Akku') ];
+    const yMax=Math.max.apply(null, pts.map(q=>q.y).concat([1]))*1.08;
+    const mx=anMean(pts.map(q=>q.x)), my=anMean(pts.map(q=>q.y));
+    let sxy=0,sxx=0,syy=0; pts.forEach(q=>{ sxy+=(q.x-mx)*(q.y-my); sxx+=(q.x-mx)*(q.x-mx); syy+=(q.y-my)*(q.y-my); });
+    const r=(sxx>0&&syy>0)?sxy/Math.sqrt(sxx*syy):0, ar=Math.abs(r);
+    const opt=pts.filter(q=>readinessOptimal(q.x/100, q.y/yMax)).length;
+    const schuld=num(S.meta && S.meta.schlaf && S.meta.schlaf.schuldStd);
+    haupt=readinessSvg(pts, yMax);
+    kpis=[ stKpi((Math.round(r*100)/100).toFixed(2).replace('.',','),'Zusammenhang (r)', ar>=0.6?FARBE.GRUEN:ar>=0.3?FARBE.GELB:null),
+      stKpi(opt+' / '+pts.length,'Tage im Optimalbereich', FARBE.GRUEN),
+      stKpi(fbZahl(schuld,1)+' Std','Schlafmangel', schuld>0 ? FARBE.ORANGE : FARBE.GRUEN) ];
   }
   return statModul('readiness','Readiness · Akku am Start gegen Tagesscore', haupt, kpis, ()=>{
     const b=[[0,30],[30,50],[50,70],[70,101]], vals=b.map(q=>anMean(pts.filter(p=>p.x>=q[0]&&p.x<q[1]).map(p=>p.y))), mx=Math.max.apply(null, vals.map(v=>v||0).concat([1]));
-    return '<div class="stm-dh">Score je Akku-Band</div><div class="an-bars">'+b.map((q,i)=>'<div class="an-bar"><span class="nm">'+q[0]+'–'+(q[1]>100?100:q[1])+' %</span><span class="track"><i style="width:'+((vals[i]||0)/mx*100).toFixed(0)+'%;background:'+FARBE.WEISS+'"></i></span><span class="vv">'+(vals[i]!=null?anFmt(vals[i]):'—')+'</span></div>').join('')+'</div>'; });
+    return '<div class="stm-dh">Score je Akku-Band</div><div class="an-bars">'+b.map((q,i)=>'<div class="an-bar"><span class="nm">'+q[0]+'–'+(q[1]>100?100:q[1])+' %</span><span class="track"><i style="width:'+((vals[i]||0)/mx*100).toFixed(0)+'%;background:'+verlauf(FARBE.WEISS)+'"></i></span><span class="vv">'+(vals[i]!=null?anFmt(vals[i]):'—')+'</span></div>').join('')+'</div>'; });
 }
 /* ══ Gruppe 3 · Aufgaben & Routinen ══ */
 function stmFlow(F,dom){
@@ -16834,7 +16993,7 @@ function stmRoutinen(F,dom){
   const je={}; (S.historie||[]).filter(h=>!h.luecke && h.datum>=F.von && h.datum<=F.bis).forEach(h=>{ (h.log||[]).forEach(l=>{ if(l.art==='Routine' && num(l.punkte)>0 && l.itemId){ (je[l.itemId]=je[l.itemId]||{e:0,v:0}).e++; } }); (h.routinenBilanz||[]).forEach(r=>{ if(r.verpasst && r.id){ (je[r.id]=je[r.id]||{e:0,v:0}).v++; } }); });
   let schw=null; Object.keys(je).forEach(id=>{ const q=je[id], k=S.karten.find(x=>x.id===id); if(!k || (dom!=='alle' && k.domain!==dom) || q.e+q.v<3) return; const qu=q.e/(q.e+q.v); if(!schw || qu<schw.qu) schw={k, qu}; });
   const kpis=[ stKpi(quote!=null?quote+' %':'—','erfüllt', quote!=null?bewertungDiskret(quote/100):null), stKpi(serie+' T','Serie'), stKpi(schw?esc(String(schw.k.titel||'').slice(0,14)):'—','schwächste') ];
-  return statModul('routinen','Routinen-Flow · je Tag', haupt, kpis, ()=>{
+  return statModul('routinen','Routinen-Flow <span class="fam-pille p">Privat</span>', haupt, kpis, ()=>{   // §4 Nr. 7 (v3.5.1)
     const liste=Object.keys(je).map(id=>({k:S.karten.find(x=>x.id===id), q:je[id]})).filter(x=>x.k && (dom==='alle'||x.k.domain===dom) && x.q.e+x.q.v>0).map(x=>({t:x.k.titel, qu:x.q.e/(x.q.e+x.q.v)})).sort((a,b)=>a.qu-b.qu);
     let h='<div class="stm-dh">Je Routine · Quote aufsteigend</div><div class="an-bars">'+liste.map(x=>'<div class="an-bar"><span class="nm">'+esc(String(x.t||'?').slice(0,18))+'</span><span class="track"><i style="width:'+(x.qu*100).toFixed(0)+'%;background:'+bewertungDiskret(x.qu)+'"></i></span><span class="vv">'+Math.round(x.qu*100)+' %</span></div>').join('')+'</div>';
     try{ h+=anModRoutinenFlow(F,dom); }catch(e){} return h; });
@@ -16850,31 +17009,64 @@ function stmAcwr(F,dom){
     haupt=tagesKurveSvg({ labels, roh:P.vals.map((v,i)=>v!=null?Math.min(2,v):null), glatt:false, einheit:'ACWR', yMin:0, yMax:2, linie:FARBE.WEISS, pR:30,
       baender:[{von:1.5,bis:2,farbe:FARBE.ROT},{von:1.3,bis:1.5,farbe:FARBE.GELB},{von:0.8,bis:1.3,farbe:FARBE.GRUEN},{von:0,bis:0.8,farbe:FARBE.ORANGE}],
       linien:[{y:1.5,farbe:FARBE.GRAU,label:'1,5'},{y:1.3,farbe:FARBE.GRAU,label:'1,3'},{y:0.8,farbe:FARBE.GRAU,label:'0,8'}] })
-      .replace('</svg>', wolke.map((v,i)=>'<circle cx="'+(30+(labels.length===1?128:i/(labels.length-1)*(320-60))).toFixed(1)+'" cy="'+(12+(1-v/2)*(140-30)).toFixed(1)+'" r="1.5" fill="'+FARBE.GRAU+'" fill-opacity=".45"/>').join('')+'</svg>');
+      .replace('</svg>', wolke.map((v,i)=>'<circle cx="'+(30+(labels.length===1?128:i/(labels.length-1)*(320-60))).toFixed(1)+'" cy="'+(16+(1-v/2)*(140-34)).toFixed(1)+'" r="1.5" fill="'+FARBE.GRAU+'" fill-opacity=".45"/>').join('')+'</svg>');
     const l7=anSum(load.slice(-7)), m28=anMean(load.slice(-28))*7, c=(AMPEL_FARBE[acwrStufe(P.current)]||AMPEL_FARBE.grau)[0];
-    kpis=[ stKpi(P.current!=null?(Math.round(P.current*100)/100).toFixed(2).replace('.',','):'—','ACWR', c), stKpi(anFmt(l7),'Last 7 T'), stKpi(anFmt(m28),'Ø 28 T je 7 T') ];
+    // §4 Nr. 8 (v3.5.1): KPIs mit Erklaerung, was akut und chronisch sind
+    kpis=[ stKpi(P.current!=null?(Math.round(P.current*100)/100).toFixed(2).replace('.',','):'—','ACWR = 7 Tage ÷ Ø 28 Tage', c), stKpi(fmtP(l7),'Punkte der letzten 7 Tage (akut)'), stKpi(fmtP(m28),'Ø je 7 Tage über 28 Tage (chronisch)') ];
   }
   return statModul('acwr','Belastungssteuerung ACWR · 28 Tage', haupt, kpis, ()=>{
     const l=[]; for(let i=27;i>=0;i--) l.push(anVorTage(heuteApp(), i)); const by={}; F.alle.forEach(e=>by[e.datum]=e);
-    let h='<div class="stm-dh">Last je Tag</div>'+saeulenSvg({ labels:l, einheit:'P', saeulen:l.map(d=>[{v:by[d]?anPunkte(by[d],dom):0, farbe:FARBE.WEISS, alpha:.8}]) });
+    let h='<div class="stm-dh">Last je Tag · Ampel gegen Tagesziel</div>'+tagesAmpelSaeulen(l, l.map(d=>by[d]?anPunkte(by[d],dom):0), l.map(d=>anZiel(dom,d)));
     try{ h+=anModACWR(F,dom); }catch(e){} return h; });
 }
 /* ══ Gruppe 5 · Spiel & Shop ══ */
+/* §4 Nr. 9 (v3.5.1): Rang ueber 8 Wochen — Linie WEISS, jeder Wochenpunkt gefuellt nach Wochentrend
+   (gestiegen GRUEN · gehalten GELB · gefallen ROT) */
+function rang8WochenSvg(wochen){
+  const v=wochen.map(x=>x.rang), echt=v.filter(x=>x!=null), n=v.length; if(!echt.length) return anLeer('sammelt');
+  const W=320, H=120, pL=28, pR=8, pT=14, pB=20;
+  let lo=Math.max(1, Math.min.apply(null, echt)-2), hi=Math.min(RANG_MAX, Math.max.apply(null, echt)+2); if(hi-lo<4) hi=lo+4;
+  const X=i=>pL+(i+0.5)*(W-pL-pR)/n, Y=r=>pT+(1-(r-lo)/(hi-lo))*(H-pT-pB);
+  let g='<text x="2" y="9" font-size="8" fill="'+FARBE.GRAU+'">Rang</text>';
+  [lo, Math.round((lo+hi)/2), hi].forEach(r=>{ const y=Y(r).toFixed(1); g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+FARBE.RASTER+'"/><text x="'+(pL-4)+'" y="'+(Y(r)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+FARBE.GRAU+'">'+r+'</text>'; });
+  const pts=[]; v.forEach((r,i)=>{ if(r!=null) pts.push({x:X(i), y:Y(r), r, i}); });
+  if(pts.length>1) g+='<path d="'+pts.map((q,i)=>(i?'L':'M')+q.x.toFixed(1)+' '+q.y.toFixed(1)).join(' ')+'" fill="none" stroke="'+FARBE.WEISS+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+  pts.forEach((q,j)=>{ const vor=j>0 ? pts[j-1].r : null, c=vor==null || q.r===vor ? FARBE.GELB : (q.r>vor ? FARBE.GRUEN : FARBE.ROT);
+    g+='<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="6" fill="'+c+'" stroke="#000" stroke-width="1.5"/>'; });
+  wochen.forEach((x,i)=>{ g+='<text x="'+X(i).toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle" font-size="8" fill="'+(i===n-1?'#fff':FARBE.GRAU)+'">KW'+isoKW(x.datum)+'</text>'; });
+  return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+g+'</svg>'+
+    '<div class="legende"><span><i class="rund" style="background:'+FARBE.GRUEN+'"></i>Woche gestiegen</span><span><i class="rund" style="background:'+FARBE.GELB+'"></i>gehalten</span><span><i class="rund" style="background:'+FARBE.ROT+'"></i>gefallen</span></div>';
+}
+/* Rang-Trend seit Montag: der Rang im letzten Tages-Snapshot vor dem Montag dieser Woche gegen den Rang jetzt */
+function rangTrendSeitMontag(rm){
+  if(!rm || rm.rang==null) return '';
+  const montag=anVorTage(heuteApp(), anWochentag(heuteApp()));
+  const vor=(S.historie||[]).filter(h=>!h.luecke && h.datum && h.datum<montag && h.rang!=null).sort((a,b)=>a.datum<b.datum?1:-1)[0];
+  if(!vor) return '';
+  return ' · '+(rm.rang>vor.rang ? '↗' : rm.rang<vor.rang ? '↘' : '→')+' seit Montag';
+}
 function stmSpielShop(F,dom){
-  const rm=rangMass(), pr=rangPrognose(rm), k=konto(), nk=(S.belohnung && S.belohnung.stufen) ? belNaechsterKauf() : null;
-  const haupt=meilensteinHtml();
-  const rangTxt=rm.rang!=null ? 'R'+rm.rang+(pr ? (pr.N===0 ? ' · Aufstieg steht an' : pr.N!=null ? ' · R'+(rm.rang+1)+' in ~'+pr.N+' T' : '') : '') : 'sammelt';
-  const kpis=[ stKpi(fmtKurzP(k),'Konto', FARBE.GOLD), stKpi(nk ? esc(shopAnkunftText(nk).replace('nicht mehr heute · ','')) : '—','nächster Kauf'), stKpi(rangTxt,'Rang') ];
-  return statModul('spielShop','Meilensteine · ab jetzt', haupt, kpis, ()=>{
+  const rm=rangMass(), k=konto(), nk=(S.belohnung && S.belohnung.stufen) ? belNaechsterKauf() : null;
+  // §4 Nr. 9 (v3.5.1): der Meilenstein-Zeitstrahl bleibt; darunter Konto und Rang als Kacheln mit Segmentleiste und
+  // „Bis zum nächsten Kauf" als sich fuellender Balken im GOLD-Verlauf
+  let haupt=meilensteinHtml();
+  haupt+='<div class="kach" style="margin-top:8px">'+
+    '<div class="kch flach"><div class="h">Konto</div><div class="w" style="color:'+FARBE.GOLD+'">'+fmtP(k)+'</div><div class="s">Münzen</div><div class="unten">'+segLeisteHtml(nk && nk.preis>0 ? k/nk.preis : 0, 5, FARBE.GOLD, FARBE.GOLD_DUNKEL)+'</div></div>'+
+    '<div class="kch flach"><div class="h">Rang</div><div class="w">'+(rm.rang!=null ? rm.rang : '–')+'</div><div class="s">von '+RANG_MAX+rangTrendSeitMontag(rm)+'</div><div class="unten">'+segLeisteHtml(rm.rang!=null ? rm.rang/RANG_MAX : 0, 5, FARBE.GRUEN, FARBE.GELBGRUEN)+'</div></div></div>';
+  if(nk){ const fehlt=Math.max(0, nk.preis-k), name=(BELOHNUNG[nk.kat] && BELOHNUNG[nk.kat].name) || '';
+    haupt+='<div class="kch" style="margin-top:8px;min-height:0"><div class="h">Bis zum nächsten Kauf</div><div class="w" style="color:'+FARBE.GOLD+'">'+(fehlt>0 ? 'fehlen '+fmtP(fehlt) : 'jetzt möglich')+'</div>'+
+      '<div class="s">'+esc(name)+' · Stufe '+nk.stufe+' für '+fmtP(nk.preis)+' Münzen</div>'+
+      '<div class="lbar" style="height:12px;border-radius:6px"><i style="left:0;width:'+Math.max(0, Math.min(100, k/Math.max(1,nk.preis)*100)).toFixed(1)+'%;background:'+verlauf(FARBE.GOLD)+'"></i></div>'+
+      '<div class="skala"><span>'+fmtP(k)+'</span><span>'+fmtP(nk.preis)+'</span></div></div>'; }
+  return statModul('spielShop','Meilensteine · ab jetzt', haupt, null, ()=>{
     let h='<div class="stm-dh">Rang · Tages-P/h auf Rang-Bändern + Prognose</div>'+rangDiagrammHtml(rm)+rangHistorieHtml(rm);
-    try{ const vd=belVerlaufDaten(), rw=vd.wochen.map(x=>x.rang), hat=rw.filter(v=>v!=null).length;
-      h+='<div class="stm-dh">Rang über 8 Wochen</div>'+(hat>=1 ? belKurve(rw, 1, Math.max(4, Math.max.apply(null, rw.filter(v=>v!=null))+1), FARBE.WEISS) : anLeer('sammelt')); }catch(e){}
+    try{ h+='<div class="stm-dh">Rang · 8 Wochen</div>'+rang8WochenSvg(belVerlaufDaten().wochen); }catch(e){}
     try{ const g=diaGroessen(), m=Math.max(0, spielLiveZufluss()), ziel=Math.max(1, zielUndIstHeute().ziel*streakFaktor()), prog=m+(m/g.stundenBisher)*g.stundenRest, pz=v=>Math.max(0,Math.min(100,v/ziel*100));
-      h+='<div class="stm-dh">Münzen heute</div><div class="fbk-bar mitmarke"><i style="width:'+pz(m).toFixed(1)+'%;background:'+FARBE.GOLD+'"></i><i style="left:'+pz(m).toFixed(1)+'%;width:'+Math.max(0,pz(prog)-pz(m)).toFixed(1)+'%;background:'+FARBE.GOLD+';opacity:.3"></i><u style="left:100%"></u></div><div class="dt-s" style="color:'+FARBE.GOLD+'">'+Math.round(m)+' 🪙 · Prognose '+Math.round(prog)+' · Ziel '+Math.round(ziel)+'</div>'; }catch(e){}
+      h+='<div class="stm-dh">Münzen heute</div><div class="fbk-bar mitmarke"><i style="width:'+pz(m).toFixed(1)+'%;background:'+verlauf(FARBE.GOLD)+'"></i><i style="left:'+pz(m).toFixed(1)+'%;width:'+Math.max(0,pz(prog)-pz(m)).toFixed(1)+'%;background:'+FARBE.GOLD+';opacity:.3"></i><u style="left:100%"></u></div><div class="dt-s" style="color:'+FARBE.GOLD+'">'+Math.round(m)+' 🪙 · Prognose '+Math.round(prog)+' · Ziel '+Math.round(ziel)+'</div>'; }catch(e){}
     try{ h+='<div class="stm-dh">Kulisse</div>'+kulisseKachelHtml(); }catch(e){}
-    try{ h+='<div class="stm-dh">Outfit-Sammlung</div>'+outfitSammlungHtml(); }catch(e){}
+    try{ h+='<div class="stm-dh">Outfit-Sammlung · erstes oben</div>'+outfitSammlungHtml(); }catch(e){}
     try{ h+='<div class="stm-dh">Shop-Stand je Kategorie</div><div class="an-bars">'+KAT_KEYS.map(kk=>{ const n=Math.max(0, num(S.belohnung.stufen[kk])), max=BELOHNUNG[kk].stufen.length;
-      return '<div class="an-bar"><span class="nm">'+BELOHNUNG[kk].icon+' '+esc(BELOHNUNG[kk].name)+'</span><span class="track"><i style="width:'+(n/max*100).toFixed(0)+'%;background:linear-gradient(90deg,'+FARBE.GOLD_DUNKEL+','+FARBE.GOLD+')"></i></span><span class="vv">'+n+'/'+max+'</span></div>'; }).join('')+'</div>'; }catch(e){}
+      return '<div class="an-bar"><span class="nm">'+BELOHNUNG[kk].icon+' '+esc(BELOHNUNG[kk].name)+'</span><span class="track"><i style="width:'+(n/max*100).toFixed(0)+'%;background:'+verlauf(FARBE.GOLD)+'"></i></span><span class="vv">'+n+'/'+max+'</span></div>'; }).join('')+'</div>'; }catch(e){}
     return h; });
 }
 /* ══ §8 (v3.5.0) · MATRIXFAKTOR — Modul und Bearbeiten ═══════════════════════
@@ -17221,7 +17413,7 @@ function stBelastung(){
   let h='<div class="st-kpis">';
   h+='<div class="st-kpi amp" style="'+ampelStil(ampelStufe(rLinks))+'"><span class="k">Links</span><b>'+Math.round(linksPct*100)+' %</b>'+
      '<span class="z">'+(bn?('Ø '+Math.round(bn.links*100)+' %'):'der Tageszeit')+'</span></div>';
-  h+='<div class="st-kpi"><span class="k">Werkzeuge</span><b>'+wz+'</b><span class="z">nötig</span></div>';
+  h+='<div class="st-kpi"><span class="k">Werkzeuge</span><b>'+hMin(matrixZeitFelder().felder.werkzeug)+'</b><span class="z">Zeit im Feld</span></div>';   // §4 Nr. 2 (v3.5.1)
   h+='<div class="st-kpi amp" style="'+ampelStil(ampelStufe(rRate))+'"><span class="k">Energie</span><b>'+
      (akkuRateTag!=null?((akkuRateTag>0?'+':'')+Math.round(akkuRateTag)):'—')+'</b><span class="z">'+
      ((bn && bn.rate!=null)?('Ø '+(bn.rate>0?'+':'')+Math.round(bn.rate)+' %/Std'):'%/Std')+'</span></div>';
@@ -18139,7 +18331,7 @@ function statKlick(e){
   // §5.1 (v3.5.0): Tipp auf Kopf oder Hauptdiagramm klappt das Detail auf; Kacheln „heuteKurz" springen zum Modul
   const smt=e.target.closest('#statistikBody [data-stmtoggle]');
   if(smt && !e.target.closest('.dia-tv-scroll,[data-tbmatrix],[data-statdom],[data-statstep],[data-statheute],input,button')){
-    const id=smt.dataset.stmtoggle; S.ui.statOffen=Object.assign({}, S.ui.statOffen); S.ui.statOffen[id]=!S.ui.statOffen[id]; saveUi(); renderStatistik(); return; }
+    const id=smt.dataset.stmtoggle; S.ui.statOffen=Object.assign({}, S.ui.statOffen); S.ui.statOffen[id]=!S.ui.statOffen[id]; _stmGedreht=id; saveUi(); renderStatistik(); return; }
   const mfe=e.target.closest('#statistikBody [data-mfedit]'); if(mfe){ matrixfeldSheet(mfe.dataset.mfedit); return; }
   if(e.target.closest('#statistikBody [data-mfeinst]')){ e.preventDefault(); setTab('einst'); return; }
   const smg=e.target.closest('#statistikBody [data-stmgo]'); if(smg){ const id=smg.dataset.stmgo; S.ui.statOffen=Object.assign({}, S.ui.statOffen); S.ui.statOffen[id]=true; saveUi(); renderStatistik();
