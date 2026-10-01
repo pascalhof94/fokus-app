@@ -975,12 +975,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .an-legend.dia-legende i.punkt{background:none;border-top:1.5px dotted;height:0;width:12px;border-radius:0}
 /* v3.4.7 §3: Tagesverlauf — horizontal scrollbar, y-Beschriftung steht */
 .dia-tv{position:relative;margin-top:4px}
-.dia-tv-y{position:absolute;left:0;top:0;width:28px;height:176px;pointer-events:none}
-.dia-tv-y span{position:absolute;right:3px;font-size:8px;color:var(--mut2);font-variant-numeric:tabular-nums}
+.dia-tv-y{position:absolute;left:0;top:0;width:28px;pointer-events:none}
+.dia-tv-y span{position:absolute;right:3px;font-size:8px;color:#9a9ca2;font-variant-numeric:tabular-nums}
+.dia-tv-y em{position:absolute;left:0;top:-1px;font-size:8px;font-style:normal;color:#9a9ca2}   /* §2.5: Einheit oben links */
 .dia-tv-scroll{margin-left:28px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .dia-tv-scroll::-webkit-scrollbar{display:none}
-.dia-tv-flaeche{position:relative;height:176px}
-.dia-tv-flaeche svg{position:absolute;left:0;top:0;height:176px;display:block;overflow:hidden}
+.dia-tv-flaeche{position:relative}
+.dia-tv-flaeche svg{position:absolute;left:0;top:0;display:block;overflow:hidden}
+.tpf{display:inline-block;vertical-align:middle}
 .dia-tt-zahl{font-variant-numeric:tabular-nums}
 /* v3.4.6 §C: Rang — Stand-Balken zwischen den Raengen */
 .rang-stand{margin-top:18px}
@@ -1418,11 +1420,13 @@ body{background:var(--bg)}
 .fbk-w.rechts b{justify-content:flex-end}
 .fb-kacheln>.fbk:not(.voll) .fbk-w b{font-size:20px}
 /* Balken: gerundet, weicher Verlauf; Ziel/Schnitt gestrichelt */
-.fbk-bar{height:12px;border-radius:6px;background:#26282c}
-.fbk-bar i{border-radius:6px;background:linear-gradient(90deg,#6f7278,#f2f2f3)}
-.fbk-bar i.gut{background:linear-gradient(90deg,#9fa2a8,#ffffff);box-shadow:0 0 10px rgba(255,255,255,.35)}
+/* §2.2 (v3.5.0): Balken-Standard — Bahn BAHN, Radius = halbe Hoehe, Fuellung in Rollenfarbe, Ziel-Marke WEISS gepunktet */
+.fbk-bar{height:12px;border-radius:6px;background:#1c1f25}
+.fbk-bar i{border-radius:6px;background:#e8e9ec}
+.fbk-bar i.gut{background:#3ecf8e}
 .fbk-bar i.hell{background:rgba(255,255,255,.16)}
-.fbk-bar u{width:0;margin-left:0;background:none;border-left:2px dashed #c9cace;top:-5px;bottom:-5px}
+.fbk-bar u{width:0;margin-left:0;background:none;border-left:2px dotted #e8e9ec;top:-4px;bottom:-4px}
+.of-bahn,.rang-stand-bahn,#statusbar .sb-kleiste,.ts-skala,.tpb-track{background:#1c1f25!important}
 /* Grosse Zahl + Trendpfeil */
 .gz{min-width:0}
 .gz-w{display:flex;align-items:center;gap:8px}
@@ -5501,11 +5505,62 @@ function diaTagKurve(fensterDatum, dom){
 /* Tagesende der Diagramme im belX-Raum: Ende des letzten Rahmen-Blocks, sonst 23:00 */
 function diaTagesEndeX(){ const x=belX(diaTagesEndeMs()); return x>5 ? x : 23; }
 
-/* ══ v3.4.7 §2 · v3.4.8 §3 · „Heute gegen typische Tage" — Tempo gesamt (P/h, gleitende Stunde) ══
-   Drei durchgezogene Linien (Gesamt = DFM + Privat): heute in Ampelfarbe gegen „Ø letzte 2" mit
-   getoenter Flaeche, gestern blau, Ø letzte 2 gleiche Wochentage grau. Stuetzpunkte alle 30 Min,
-   darauf ein zentriertes gleitendes Mittel ueber 3 Stuetzpunkte; blasse Rohwert-Punkte fuer heute.
-   Feste Achse Tagesstart → Tagesende, kein Scrollen. */
+/* ══ §2 (v3.5.0) · DIAGRAMM-STANDARDS — gemeinsame Bausteine ══════════════
+   Kurven: gleitende 60 Min, Stuetzpunkte alle 30 Min + jetzt, zentriertes Mittel ueber 3,
+   glattPfad(); Punktewolke (Rohwerte GRAU 45 %, r 1,5) hinter der Linie; Flaeche unter der
+   Ist-Kurve im Ampel-Verlauf 22 %. Zeitachse der Tagesdiagramme: Tagesstart → sichtbar
+   jetzt + 3 Std, wischbar bis Tagesende; y-Skala nach dem Wischen (150 ms), y-Beschriftung steht.
+   Jetzt = Punkt r 3 weiss + Hof r 6 weiss 20 % + senkrechte Linie weiss 35 %. */
+function diaJetztSvg(x, yTop, yBot, yPunkt){
+  const xs=num(x).toFixed(1);
+  return '<line x1="'+xs+'" y1="'+yTop.toFixed(1)+'" x2="'+xs+'" y2="'+yBot.toFixed(1)+'" stroke="#fff" stroke-opacity=".35" stroke-width="1"/>'+
+    (yPunkt!=null ? '<circle cx="'+xs+'" cy="'+yPunkt.toFixed(1)+'" r="6" fill="#fff" fill-opacity=".2"/><circle cx="'+xs+'" cy="'+yPunkt.toFixed(1)+'" r="3" fill="#fff"/>' : '');
+}
+/* Punktewolke: Rohwerte als blasse Kreise */
+function diaWolkeSvg(pts){ return (pts||[]).map(q=>'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="1.5" fill="'+FARBE.GRAU+'" fill-opacity=".45"/>').join(''); }
+/* Ampel-Verlauf je Stuetzpunkt (waagerecht, userSpaceOnUse) — fuer Linie und Flaeche */
+function diaAmpelVerlaufDef(id, pts, farbe){
+  if(pts.length<2) return '';
+  const x1=pts[0].x, x2=pts[pts.length-1].x;
+  return '<defs><linearGradient id="'+id+'" gradientUnits="userSpaceOnUse" x1="'+x1.toFixed(1)+'" y1="0" x2="'+x2.toFixed(1)+'" y2="0">'+
+    pts.map(q=>'<stop offset="'+((q.x-x1)/Math.max(1e-9, x2-x1)).toFixed(4)+'" stop-color="'+farbe(q)+'"/>').join('')+'</linearGradient></defs>';
+}
+/* gleitendes Mittel ueber 3 Nachbarn (Rand: nur vorhandene) */
+function diaGlaetten(v){ return v.map((w,i)=>{ if(w==null) return null; const n=[v[i-1],w,v[i+1]].filter(q=>q!=null); return n.reduce((q,z)=>q+z,0)/n.length; }); }
+/* §2.3: r = Tempo(letzte 60 Min) ÷ Tempo(60 Min davor), beide aus der Tageskurve; <15 Min Messzeit → null */
+function tempoVerhaeltnis(){
+  if(!tagOffen()) return null;
+  const heute=belFensterDatum(jetztIso()), now=belX(jetztIso()), von=belTagFenster(heute).von, K=diaTagKurve(heute,'alle');
+  const m1=now-Math.max(von, now-1), m0=(now-1)-Math.max(von, now-2);
+  if(m1<0.25 || m0<0.25) return null;
+  const t1=K.wert(now)-K.wert(now-1), t0=K.wert(now-1)-K.wert(now-2);
+  if(t0>0) return t1/t0;
+  return t1>0 ? 99 : null;
+}
+/* Wischbare Tagesdiagramme: Registrierung je id, Scrollstand je Ort (fokus/stat) bleibt 60 s erhalten */
+let _diaReg={}, _tvScroll={};
+function diaRegistrieren(id, D){ _diaReg[id]=D; setTimeout(tvScrollen, 0); }
+function tvOrt(sc){ return (sc && sc.closest('#fokusView') ? 'fokus' : 'stat')+'|'+(sc.dataset.diaid||''); }
+function tvScrollen(){
+  try{ document.querySelectorAll('.dia-tv-scroll[data-diaid]').forEach(sc=>{ const D=_diaReg[sc.dataset.diaid]; if(!D) return; const m=_tvScroll[tvOrt(sc)];
+    if(!sc.dataset.init){ sc.dataset.init='1'; sc.scrollLeft=(m && Date.now()-m.ts<60000) ? m.left : 0; }
+    D.zeichnen(sc, D); }); }catch(e){}
+}
+function tvGescrollt(sc){
+  try{ _tvScroll[tvOrt(sc)]={ left:sc.scrollLeft, ts:Date.now() }; }catch(e){}
+  clearTimeout(sc._wisch); sc._wisch=setTimeout(()=>{ const D=_diaReg[sc.dataset.diaid]; if(D) D.zeichnen(sc, D); }, 150);
+}
+/* HTML-Rahmen eines wischbaren Diagramms: y-Spalte (steht) + Scrollflaeche (Breite = gesamt ÷ sichtbar) */
+function diaScrollRahmenHtml(id, H, gesamt, sichtbar, einheit){
+  return '<div class="dia-tv" style="height:'+H+'px"><div class="dia-tv-y" style="height:'+H+'px">'+(einheit?'<em>'+einheit+'</em>':'')+'</div>'+
+    '<div class="dia-tv-scroll" data-diaid="'+id+'" onscroll="tvGescrollt(this)">'+
+    '<div class="dia-tv-flaeche" style="height:'+H+'px;width:calc(100% * '+(Math.max(1, gesamt/Math.max(0.5, sichtbar))).toFixed(4)+')"><svg aria-hidden="true" style="height:'+H+'px"></svg></div></div></div>';
+}
+
+/* ══ §2.1/§4.1.4 (v3.5.0) · TEMPO-DIAGRAMM „Tempo und Bloecke" ═══════════════
+   Tempo gesamt (P/h, gleitende Stunde): heute in Ampelfarbe gegen „Ø letzte 2 gleicher
+   Wochentag" mit Flaeche, gestern GRAU 80 %, Ø letzte 2 GRAU 45 %; Punktewolke; darunter auf
+   derselben x-Achse die Tagesbloecke (Plan gestrichelt in Familienfarbe, Ist gefuellt). */
 let _typMemo=null, _typMemoKey='';
 function heuteWochentagsKurven(){
   const iv=S.intraday||[], heute=belFensterDatum(jetztIso()), wt=belWochentag(heute), jetztX=belX(jetztIso());
@@ -5515,79 +5570,95 @@ function heuteWochentagsKurven(){
   const tage={}; intradayStatistik().forEach(e=>{ if(e && e.ts && num(e.punkte)!==0) tage[belFensterDatum(e.ts)]=true; });
   const gleiche=Object.keys(tage).filter(d=>d<heute && belWochentag(d)===wt && !tagIstUrlaub(d)).sort(), letzte2=gleiche.slice(-2);
   const gd=anVorTage(heute, 1), gestern=(tage[gd] && !tagIstUrlaub(gd)) ? gd : null;
-  const von=belTagFenster(heute).von, bis=Math.max(von+1, diaTagesEndeX(), jetztX);
+  const bl=tagesBloecke()||[], blBis=bl.length ? Math.max.apply(null, bl.map(b=>num(b.bis)<5?num(b.bis)+24:num(b.bis))) : 0;
+  const von=belTagFenster(heute).von, bis=Math.max(von+1, diaTagesEndeX(), jetztX+3, blBis);
   const xs=[]; for(let x=Math.ceil(von*2)/2; x<=bis+1e-9; x+=0.5) xs.push(x);
   if(xs.indexOf(jetztX)<0){ xs.push(jetztX); xs.sort((a,b)=>a-b); }
   const tempo=(d, x)=>{ const a=diaTagKurve(d,'dfm'), b=diaTagKurve(d,'privat'); return a.wert(x)-a.wert(x-1)+b.wert(x)-b.wert(x-1); };
-  const glaetten=v=>v.map((w,i)=>{ if(w==null) return null; const n=[v[i-1],w,v[i+1]].filter(q=>q!=null); return n.reduce((q,z)=>q+z,0)/n.length; });
   const roh=xs.map(x=>x<=jetztX+1e-9 ? tempo(heute, x) : null);
   const zweiRoh=letzte2.length ? xs.map(x=>letzte2.reduce((q,d)=>q+tempo(d, x),0)/letzte2.length) : null;
-  _typMemo={ wt, von, bis, xs, jetztX, roh, heute:glaetten(roh),
-    gestern:gestern ? glaetten(xs.map(x=>tempo(gestern, x))) : null, zwei:zweiRoh ? glaetten(zweiRoh) : null };
+  _typMemo={ wt, von, bis, xs, jetztX, roh, heute:diaGlaetten(roh), dauer:Math.max(1, jetztX+3-von),
+    gestern:gestern ? diaGlaetten(xs.map(x=>tempo(gestern, x))) : null, zwei:zweiRoh ? diaGlaetten(zweiRoh) : null };
   _typMemoKey=key;
   return _typMemo;
 }
-function heuteGegenTypischHtml(){
-  const T=heuteWochentagsKurven(), BLAU='#3b82f6', GRAU='#9a9ca2';
-  const W=320, H=150, pL=30, pR=6, pT=8, pB=18, span=Math.max(1e-9, T.bis-T.von);
-  let mn=0, mx=0; [T.heute, T.gestern, T.zwei].forEach(a=>(a||[]).forEach(v=>{ if(v!=null){ if(v<mn) mn=v; if(v>mx) mx=v; } }));
-  const lo=mn, hi=Math.max(50, Math.ceil(mx*1.1/50)*50);
-  const X=x=>pL+(x-T.von)/span*(W-pL-pR), Y=v=>pT+(1-(v-lo)/Math.max(1e-9, hi-lo))*(H-pT-pB);
-  let g='';
-  for(let i=0;i<4;i++){ const v=lo+(hi-lo)*i/3, y=Y(v).toFixed(1);
-    g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+GRAU+'" stroke-opacity=".12" stroke-width="1"/>'+
-       '<text x="'+(pL-3)+'" y="'+(Y(v)+3).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+anFmt(v)+(i===3?' P/h':'')+'</text>'; }
-  const schritt=span>8 ? 2 : 1;
-  for(let hh=Math.ceil(T.von); hh<=T.bis+1e-9; hh+=schritt)
-    g+='<text x="'+X(hh).toFixed(1)+'" y="'+(H-5)+'" text-anchor="middle" font-size="8" fill="var(--mut2)">'+String(hh%24).padStart(2,'0')+'</text>';
-  const punkte=a=>{ const p=[]; (a||[]).forEach((v,i)=>{ if(v!=null) p.push({x:X(T.xs[i]), y:Y(v), i}); }); return p; };
-  const linie=(p, c, o, w)=>p.length<2 ? '' : '<path d="'+glattPfad(p)+'" fill="none" stroke="'+c+'" stroke-opacity="'+o+'" stroke-width="'+w+'" stroke-linejoin="round" stroke-linecap="round"/>';
-  // Ampelfarbe je Stuetzpunkt: heute gegen Ø letzte 2 (ohne Vergleich gruen)
-  const pH=punkte(T.heute), farbe=q=>diaAmpel(T.heute[q.i], T.zwei ? T.zwei[q.i] : 0);
-  let hLinie='', hFlaeche='', hPunkt='', cJetzt=DIA_FARBE.gruen;
-  if(pH.length){ cJetzt=farbe(pH[pH.length-1]);
-    if(pH.length>1){ const id=svgId('tt'), x1=pH[0].x, x2=pH[pH.length-1].x, y0=Y(Math.max(lo, 0)).toFixed(1);
-      g+='<defs><linearGradient id="'+id+'" gradientUnits="userSpaceOnUse" x1="'+x1.toFixed(1)+'" y1="0" x2="'+x2.toFixed(1)+'" y2="0">'+
-        pH.map(q=>'<stop offset="'+((q.x-x1)/Math.max(1e-9, x2-x1)).toFixed(4)+'" stop-color="'+farbe(q)+'"/>').join('')+'</linearGradient></defs>';
-      hFlaeche='<path d="'+glattPfad(pH)+' L'+x2.toFixed(1)+' '+y0+' L'+x1.toFixed(1)+' '+y0+' Z" fill="url(#'+id+')" fill-opacity=".22" stroke="none"/>';
-      hLinie='<path d="'+glattPfad(pH)+'" fill="none" stroke="url(#'+id+')" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'; }
-    const e=pH[pH.length-1]; hPunkt='<circle cx="'+e.x.toFixed(1)+'" cy="'+e.y.toFixed(1)+'" r="3.5" fill="'+cJetzt+'"/>'; }
-  const roh=punkte(T.roh).map(q=>'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="1.5" fill="'+GRAU+'" fill-opacity=".35"/>').join('');
-  const jx=X(T.jetztX).toFixed(1);
-  g+=hFlaeche+linie(punkte(T.zwei), GRAU, .8, 1.5)+linie(punkte(T.gestern), BLAU, .8, 1.5)+
-     '<line x1="'+jx+'" y1="'+pT+'" x2="'+jx+'" y2="'+(H-pB)+'" stroke="'+DIA_JETZT+'" stroke-width="1"/>'+roh+hLinie+hPunkt;
-  // Legende: Werte zu „jetzt" (geglaettet)
-  const iJ=T.xs.indexOf(T.jetztX), wtK=['So','Mo','Di','Mi','Do','Fr','Sa'][T.wt];
-  const zahl=(a, c, fett)=>' <span class="dia-tt-zahl" style="color:'+c+(fett?';font-weight:700':'')+'">'+(a && a[iJ]!=null ? fmtP(Math.round(a[iJ])) : '–')+'</span>';
-  return '<div data-dialive="tt"><svg class="an-svg" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+g+'</svg>'+
-    '<div class="an-legend dia-legende"><span><i style="background:'+cJetzt+'"></i>heute'+zahl(T.heute, cJetzt, true)+'</span>'+
-      '<span>· <i class="linie" style="border-color:'+BLAU+'"></i>gestern'+zahl(T.gestern, BLAU)+'</span>'+
-      '<span>· <i class="linie" style="border-color:'+GRAU+'"></i>Ø letzte 2 '+wtK+zahl(T.zwei, GRAU)+' P/h</span></div></div>';
+/* Tagesbloecke fuer den Zeitstrahl: Plan = Bloecke der ersten Ebene, Ist = Sitzungen heute (+ laufende Uhr) */
+function tagesBloeckeStrahl(){
+  const heute=belFensterDatum(jetztIso()), hx=v=>num(v)<5 ? num(v)+24 : num(v);
+  const plan=(tagesBloecke()||[]).filter(b=>!b.parent).map(b=>({ von:hx(b.von), bis:hx(b.bis), typ:b.typ, name:b.name||BLOCK_TYP_NAME[b.typ]||'' }));
+  const ist=[]; (S.intraday||[]).forEach(e=>{ if(!e || !e.ts || SITZUNG_TYPEN.indexOf(e.typ)<0 || num(e.minuten)<1 || belFensterDatum(e.ts)!==heute) return;
+    const b=belX(e.ts); ist.push({ von:b-num(e.minuten)/60, bis:b, typ:e.domaene==='privat'?'privat':'dfm' }); });
+  if(S.fokus && S.fokus.laeuft && num(S.fokus.startMs)){ const k=S.karten.find(x=>x.id===S.fokus.karteId);
+    ist.push({ von:belX(new Date(S.fokus.startMs).toISOString()), bis:belX(jetztIso()), typ:(k && k.domain==='privat')?'privat':'dfm', laeuft:true }); }
+  return { plan, ist };
 }
-/* v3.4.7: Live-Neuzeichnen beider Tagesdiagramme (Ticker alle 60 s bei laufender Uhr, nur sichtbare) */
+function heuteGegenTypischHtml(opt){
+  opt=opt||{}; const T=heuteWochentagsKurven(), mitBl=opt.bloecke!==false;
+  const H=mitBl ? 196 : 150, id=opt.id||'tt';
+  const iJ=T.xs.indexOf(T.jetztX), wtK=['So','Mo','Di','Mi','Do','Fr','Sa'][T.wt];
+  const wert=a=>(a && a[iJ]!=null) ? a[iJ] : null;
+  const cJetzt=diaAmpel(wert(T.heute)||0, T.zwei ? (wert(T.zwei)||0) : 0);
+  diaRegistrieren(id, { T, H, mitBl, bl:mitBl ? tagesBloeckeStrahl() : null, zeichnen:ttZeichnen });
+  const zahl=(a, c, fett)=>' <span class="dia-tt-zahl" style="color:'+c+(fett?';font-weight:700':'')+'">'+(wert(a)!=null ? fmtP(Math.round(wert(a))) : '–')+'</span>';
+  const legende = mitBl
+    ? '<div class="an-legend dia-legende"><span><i class="gestr" style="border-color:'+FARBE.GRAU+'"></i>Plan gestrichelt</span><span>· <i style="background:'+FARBE.GRAU+'"></i>Ist gefüllt</span>'+
+      '<span>· <i style="background:'+cJetzt+'"></i>heute'+zahl(T.heute, cJetzt, true)+' P/h</span><span>· gestern'+zahl(T.gestern, FARBE.GRAU)+'</span><span>· Ø '+wtK+zahl(T.zwei, FARBE.GRAU)+'</span></div>'
+    : '<div class="an-legend dia-legende"><span><i style="background:'+cJetzt+'"></i>heute'+zahl(T.heute, cJetzt, true)+'</span>'+
+      '<span>· <i class="linie" style="border-color:'+FARBE.GRAU+'"></i>gestern'+zahl(T.gestern, FARBE.GRAU)+'</span>'+
+      '<span>· <i class="linie" style="border-color:'+FARBE.GRAU+';opacity:.45"></i>Ø letzte 2 '+wtK+zahl(T.zwei, FARBE.GRAU)+' P/h</span></div>';
+  return '<div data-dialive="tt" data-diaopt=\''+JSON.stringify({bloecke:mitBl, id})+'\'>'+diaScrollRahmenHtml(id, H, T.bis-T.von, T.dauer, 'P/h')+legende+'</div>';
+}
+function ttZeichnen(sc, D){
+  const T=D.T, fl=sc.firstElementChild, svg=fl && fl.querySelector('svg'); if(!svg) return;
+  const Wpx=Math.max(1, fl.offsetWidth), span=Math.max(1e-9, T.bis-T.von), H=D.H, pT=10, yC=D.mitBl ? 124 : H-18;   // Kurvenbereich pT…yC
+  const x0=T.von+sc.scrollLeft/Wpx*span, x1=x0+sc.clientWidth/Wpx*span;
+  let mn=0, mx=0; [T.heute, T.gestern, T.zwei].forEach(a=>(a||[]).forEach((v,i)=>{ const x=T.xs[i]; if(v!=null && x>=x0-1e-9 && x<=x1+1e-9){ if(v<mn) mn=v; if(v>mx) mx=v; } }));
+  const lo=mn, hi=Math.max(50, Math.ceil(mx*1.1/50)*50);
+  const X=x=>(x-T.von)/span*Wpx, Y=v=>pT+(1-(v-lo)/Math.max(1e-9, hi-lo))*(yC-pT);
+  let g='';
+  for(let i=0;i<3;i++){ const v=lo+(hi-lo)*i/2, y=Y(v).toFixed(1); g+='<line x1="0" y1="'+y+'" x2="'+Wpx+'" y2="'+y+'" stroke="'+FARBE.RASTER+'" stroke-width="1"/>'; }
+  const schritt=(x1-x0)>8 ? 2 : 1;
+  for(let hh=Math.ceil(T.von); hh<=T.bis+1e-9; hh+=schritt){ const x=X(hh).toFixed(1);
+    g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+yC+'" stroke="'+FARBE.RASTER+'" stroke-width="1"/>'+
+       '<text x="'+x+'" y="'+(H-4)+'" text-anchor="middle" font-size="8" fill="'+FARBE.GRAU+'">'+String(hh%24).padStart(2,'0')+'</text>'; }
+  const punkte=a=>{ const p=[]; (a||[]).forEach((v,i)=>{ if(v!=null) p.push({x:X(T.xs[i]), y:Y(Math.max(lo, Math.min(hi, v))), i}); }); return p; };
+  const linie=(p, c, o, w)=>p.length<2 ? '' : '<path d="'+glattPfad(p)+'" fill="none" stroke="'+c+'" stroke-opacity="'+o+'" stroke-width="'+w+'" stroke-linejoin="round" stroke-linecap="round"/>';
+  const pH=punkte(T.heute), farbe=q=>diaAmpel(T.heute[q.i], T.zwei ? T.zwei[q.i] : 0);
+  let hLinie='', hFlaeche='';
+  if(pH.length>1){ const gid=svgId('tt'); g+=diaAmpelVerlaufDef(gid, pH, farbe);
+    const y0=Y(Math.max(lo, 0)).toFixed(1);
+    hFlaeche='<path d="'+glattPfad(pH)+' L'+pH[pH.length-1].x.toFixed(1)+' '+y0+' L'+pH[0].x.toFixed(1)+' '+y0+' Z" fill="url(#'+gid+')" fill-opacity=".22" stroke="none"/>';
+    hLinie='<path d="'+glattPfad(pH)+'" fill="none" stroke="url(#'+gid+')" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'; }
+  const e=pH.length ? pH[pH.length-1] : null;
+  g+=hFlaeche+linie(punkte(T.zwei), FARBE.GRAU, .45, 1.5)+linie(punkte(T.gestern), FARBE.GRAU, .8, 1.5)+diaWolkeSvg(punkte(T.roh))+hLinie;
+  // Tagesbloecke auf derselben x-Achse: Namen 9 px, Plan gestrichelt, Ist gefuellt
+  if(D.mitBl && D.bl){ const yN=140, yP=146, hP=16, yI=168, hI=12, fam=t=>t==='privat' ? FARBE.LILA : t==='dfm' ? FARBE.BLAU : FARBE.GRAU;
+    D.bl.plan.forEach(b=>{ const xa=X(b.von), w=Math.max(2, X(b.bis)-xa);
+      g+='<rect x="'+xa.toFixed(1)+'" y="'+yP+'" width="'+w.toFixed(1)+'" height="'+hP+'" rx="4" fill="none" stroke="'+fam(b.typ)+'" stroke-width="1" stroke-dasharray="4 3"/>'+
+         '<text x="'+(xa+3).toFixed(1)+'" y="'+yN+'" font-size="9" fill="'+fam(b.typ)+'">'+esc(String(b.name).slice(0,22))+'</text>'; });
+    D.bl.ist.forEach(b=>{ const xa=X(b.von), w=Math.max(1.5, X(b.bis)-xa);
+      g+='<rect x="'+xa.toFixed(1)+'" y="'+yI+'" width="'+w.toFixed(1)+'" height="'+hI+'" rx="3" fill="'+fam(b.typ)+'" fill-opacity=".9"/>'; }); }
+  const jx=X(T.jetztX);
+  g+=diaJetztSvg(jx, pT, D.mitBl ? H-12 : yC, e ? e.y : null)+
+     '<text x="'+jx.toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle" font-size="8" fill="#fff" style="paint-order:stroke" stroke="#000" stroke-width="3">jetzt</text>';
+  svg.setAttribute('viewBox', '0 0 '+Wpx+' '+H); svg.setAttribute('width', Wpx); svg.innerHTML=g;
+  const ya=sc.parentNode && sc.parentNode.querySelector('.dia-tv-y');
+  if(ya) ya.innerHTML='<em>P/h</em>'+[0,1,2].map(i=>{ const v=lo+(hi-lo)*i/2; return '<span style="top:'+(Y(v)-6).toFixed(0)+'px">'+anFmt(v)+'</span>'; }).join('');
+}
+/* v3.4.7: Live-Neuzeichnen der Tagesdiagramme (Ticker alle 60 s bei laufender Uhr, nur sichtbare) */
 function diagrammeLive(){
   if(document.hidden) return;
   try{ document.querySelectorAll('[data-dialive]').forEach(el=>{ if(!el.offsetParent) return;
     const sc=el.querySelector('.dia-tv-scroll'); if(sc) _tvScroll[tvOrt(sc)]={ left:sc.scrollLeft, ts:Date.now() };
-    let h=''; try{ h=el.dataset.dialive==='tt' ? heuteGegenTypischHtml() : belTagesDiagramm(); }catch(e){ return; }
+    let h=''; try{ h=el.dataset.dialive==='tt' ? heuteGegenTypischHtml(el.dataset.diaopt ? JSON.parse(el.dataset.diaopt) : {}) : belTagesDiagramm(); }catch(e){ return; }
     if(h) el.outerHTML=h; }); }catch(e){}
 }
 /* ══ v3.4.7 §3 · „Tagesverlauf" scrollbar ═══════════════════════════════
    Zeichenflaeche Tagesstart → max(Tagesende, jetzt + 3 Std, Ende der Vergleichskurven);
    sichtbar ist D = (jetzt + 3 Std) − Tagesstart, beim Oeffnen ab Tagesstart. Die y-Skala
    folgt dem sichtbaren Ausschnitt (neu 150 ms nach dem Wischen), die y-Beschriftung steht. */
-let _tvDaten=null, _tvScroll={}, _tvWischTimer=null;
-function tvOrt(sc){ return sc && sc.closest('#fokusView') ? 'fokus' : 'stat'; }
-function tvScrollen(){
-  try{ document.querySelectorAll('.dia-tv-scroll').forEach(sc=>{ const m=_tvScroll[tvOrt(sc)];
-    sc.scrollLeft=(m && Date.now()-m.ts<60000) ? m.left : 0; tvZeichnen(sc); }); }catch(e){}
-}
-function tvGescrollt(sc){
-  try{ _tvScroll[tvOrt(sc)]={ left:sc.scrollLeft, ts:Date.now() }; }catch(e){}
-  clearTimeout(_tvWischTimer); _tvWischTimer=setTimeout(()=>tvZeichnen(sc), 150);
-}
-function tvZeichnen(sc){
-  const D=_tvDaten, fl=sc && sc.firstElementChild, svg=fl && fl.querySelector('svg'); if(!D || !svg) return;
+function tvZeichnen(sc, D){
+  const fl=sc && sc.firstElementChild, svg=fl && fl.querySelector('svg'); if(!D || !svg) return;
   const Wpx=Math.max(1, fl.offsetWidth), H=D.H, pT=12, pB=20, span=Math.max(1e-9, D.bis-D.von);
   const x0=D.von+sc.scrollLeft/Wpx*span, x1=x0+sc.clientWidth/Wpx*span;
   let mn=Infinity, mx=-Infinity;
@@ -5596,28 +5667,27 @@ function tvZeichnen(sc){
   const lo=Math.max(0, Math.floor(mn*0.9/100)*100); let hi=Math.ceil(mx*1.1/100)*100; if(hi<=lo) hi=lo+100;
   const X=x=>(x-D.von)/span*Wpx, Y=v=>pT+(1-(Math.max(lo, Math.min(hi, v))-lo)/(hi-lo))*(H-pT-pB);
   let g='';
-  for(let i=0;i<4;i++){ const y=Y(lo+(hi-lo)*i/3).toFixed(1); g+='<line x1="0" y1="'+y+'" x2="'+Wpx+'" y2="'+y+'" stroke="var(--line)" stroke-width=".5" opacity=".35"/>'; }
+  for(let i=0;i<4;i++){ const y=Y(lo+(hi-lo)*i/3).toFixed(1); g+='<line x1="0" y1="'+y+'" x2="'+Wpx+'" y2="'+y+'" stroke="'+FARBE.RASTER+'" stroke-width="1"/>'; }
   const schritt=D.dauer>8 ? 2 : 1;
   for(let hh=Math.ceil(D.von); hh<=D.bis+1e-9; hh+=schritt){ const x=X(hh).toFixed(1);
-    g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--line)" stroke-width=".5" opacity=".5"/>'+
-       '<text x="'+x+'" y="'+(H-6)+'" text-anchor="middle" font-size="8" fill="var(--mut2)">'+(Math.abs(hh-24)<0.01?'24':String(hh%24))+'</text>'; }
-  if(D.bis>24.01){ const x=X(24).toFixed(1); g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="var(--purple)" stroke-width="0.9" stroke-dasharray="2 2" opacity=".7"/>'; }
+    g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="'+FARBE.RASTER+'" stroke-width="1"/>'+
+       '<text x="'+x+'" y="'+(H-6)+'" text-anchor="middle" font-size="8" fill="'+FARBE.GRAU+'">'+(Math.abs(hh-24)<0.01?'24':String(hh%24))+'</text>'; }
+  if(D.bis>24.01){ const x=X(24).toFixed(1); g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="'+FARBE.GRAU+'" stroke-width="0.9" stroke-dasharray="2 2" opacity=".7"/>'; }
   const xr=X(x1)-4;   // rechter Rand des sichtbaren Fensters
-  if(D.ziel>=lo && D.ziel<=hi){ const y=Y(D.ziel).toFixed(1);
-    g+='<line x1="0" y1="'+y+'" x2="'+Wpx+'" y2="'+y+'" stroke="var(--mut2)" stroke-width="0.7" stroke-dasharray="2 3"/><text x="'+xr.toFixed(1)+'" y="'+(Y(D.ziel)-2).toFixed(1)+'" text-anchor="end" font-size="8" fill="var(--mut2)">Ziel '+Math.round(D.ziel)+'</text>'; }
+  if(D.ziel>=lo && D.ziel<=hi){ const y=Y(D.ziel).toFixed(1);   // §1.2: Ziel-Grenze WEISS gepunktet, Name rechts
+    g+='<line x1="0" y1="'+y+'" x2="'+Wpx+'" y2="'+y+'" stroke="'+FARBE.WEISS+'" stroke-opacity=".6" stroke-width="1" stroke-dasharray="2 3"/><text x="'+xr.toFixed(1)+'" y="'+(Y(D.ziel)-2).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+FARBE.WEISS+'" fill-opacity=".7">Ziel '+Math.round(D.ziel)+'</text>'; }
   const pfad=se=>glattPfad(se.pts.map(q=>({x:X(q.x), y:Y(q.p)})));
   D.serien.forEach(se=>{ if(se.pts.length<2) return; const st=se.st;
-    if(se.haupt) g+=flaecheSvg(se.pts.map(q=>({x:X(q.x), y:Y(q.p)})), H-pB, st.c);
     g+='<path d="'+pfad(se)+'" fill="none" stroke="'+st.c+'" stroke-opacity="'+st.o+'" stroke-width="'+st.w+'"'+(st.dash?' stroke-dasharray="'+st.dash+'"':'')+' stroke-linejoin="round" stroke-linecap="round"/>';
-    if(se.kopf){ const e=se.pts[se.pts.length-1]; g+='<circle cx="'+X(e.x).toFixed(1)+'" cy="'+Y(e.p).toFixed(1)+'" r="3.4" fill="'+st.c+'" stroke="#0b0b0c" stroke-width="1.2"/>'; } });
-  if(D.istHeute){ const x=X(D.nowX).toFixed(1);
-    g+='<line x1="'+x+'" y1="'+pT+'" x2="'+x+'" y2="'+(H-pB)+'" stroke="'+DIA_JETZT+'" stroke-width="1"/>';
-    if(D.zielX!=null && D.zielX<=D.bis){ const xz=X(D.zielX).toFixed(1); g+='<line x1="'+xz+'" y1="'+pT+'" x2="'+xz+'" y2="'+(H-pB)+'" stroke="var(--ok)" stroke-width="1.4" stroke-dasharray="3 2"/><text x="'+xz+'" y="'+(pT+8)+'" text-anchor="middle" font-size="8" fill="var(--ok)">🎯 ~'+belUhr(D.zielX)+'</text>'; }
-    else g+='<text x="'+xr.toFixed(1)+'" y="'+(pT+8)+'" text-anchor="end" font-size="8" fill="var(--bad)">🎯 außer Reichweite ▸</text>';
-  } else g+='<text x="'+xr.toFixed(1)+'" y="'+(pT+8)+'" text-anchor="end" font-size="8" fill="var(--mut2)">'+Math.round(D.selGes)+' P gesamt</text>';
+    if(se.kopf && !D.istHeute){ const e=se.pts[se.pts.length-1]; g+='<circle cx="'+X(e.x).toFixed(1)+'" cy="'+Y(e.p).toFixed(1)+'" r="3" fill="'+st.c+'"/>'; } });
+  if(D.istHeute){ const haupt=D.serien.find(se=>se.haupt), e=haupt && haupt.pts.length ? haupt.pts[haupt.pts.length-1] : null;
+    g+=diaJetztSvg(X(D.nowX), pT, H-pB, e ? Y(e.p) : null)+'<text x="'+X(D.nowX).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" font-size="8" fill="#fff" stroke="#000" stroke-width="3" style="paint-order:stroke">jetzt</text>';
+    if(D.zielX!=null && D.zielX<=D.bis){ const xz=X(D.zielX).toFixed(1); g+='<line x1="'+xz+'" y1="'+pT+'" x2="'+xz+'" y2="'+(H-pB)+'" stroke="'+FARBE.WEISS+'" stroke-opacity=".6" stroke-width="1" stroke-dasharray="4 3"/><text x="'+xz+'" y="'+(pT+8)+'" text-anchor="middle" font-size="8" fill="'+FARBE.WEISS+'">🎯 ~'+belUhr(D.zielX)+'</text>'; }
+    else g+='<text x="'+xr.toFixed(1)+'" y="'+(pT+8)+'" text-anchor="end" font-size="8" fill="'+FARBE.GRAU+'">🎯 außer Reichweite ▸</text>';
+  } else g+='<text x="'+xr.toFixed(1)+'" y="'+(pT+8)+'" text-anchor="end" font-size="8" fill="'+FARBE.GRAU+'">'+Math.round(D.selGes)+' P gesamt</text>';
   svg.setAttribute('viewBox', '0 0 '+Wpx+' '+H); svg.setAttribute('width', Wpx); svg.innerHTML=g;
   const ya=sc.parentNode && sc.parentNode.querySelector('.dia-tv-y');
-  if(ya) ya.innerHTML=[0,1,2,3].map(i=>{ const v=lo+(hi-lo)*i/3; return '<span style="top:'+(Y(v)-6).toFixed(0)+'px">'+anFmt(v)+'</span>'; }).join('');
+  if(ya) ya.innerHTML='<em>P</em>'+[0,1,2,3].map(i=>{ const v=lo+(hi-lo)*i/3; return '<span style="top:'+(Y(v)-6).toFixed(0)+'px">'+anFmt(v)+'</span>'; }).join('');
 }
 /* weicher Verlauf unter einer Kurve (Pixelpunkte, x aufsteigend) */
 function flaecheSvg(pts, yBasis, farbe){
@@ -14288,8 +14358,7 @@ function belTagesDiagramm(){
   }
   [[zeigD,'dfm'],[zeigP,'privat'],[zeigG,'alle']].forEach(([z,d])=>{ if(z) serien.push({pts:serie(K[d]), st:DIA_LINIE[d].heute, kopf:istHeute,
     haupt:(dom==='alle'?d==='alle':d===dom)}); });
-  _tvDaten={ von:vonX, bis:bisX, dauer, nowX, istHeute, H:176, serien, ziel, zielX, selGes };
-  setTimeout(tvScrollen, 0);
+  diaRegistrieren('tv', { von:vonX, bis:bisX, dauer, nowX, istHeute, H:176, serien, ziel, zielX, selGes, zeichnen:tvZeichnen });
   // F1: Filterzeile — Domänen-Segment + Tagesauswahl (Datumsfeld + ‹ › Schritt)
   const dseg=(v,l)=>'<button class="'+(dom===v?'on':'')+'" data-statdom="'+v+'">'+l+'</button>';
   const controls='<div class="statfilter"><span class="segmini">'+dseg('alle','Alle')+dseg('dfm','DFM')+dseg('privat','Privat')+'</span>'+
@@ -14311,8 +14380,7 @@ function belTagesDiagramm(){
     + (endX>24.01?' (Abschluss nach Mitternacht)':'');
   const titel='Tagesverlauf · '+fensterTxt+(istHeute?'':' · '+AN_WT_LANG[wt]+' '+anKurzDatum(sel));
   return '<div class="card" data-dialive="tv"><h3>'+titel+'</h3>'+controls+
-    '<div class="dia-tv"><div class="dia-tv-y"></div><div class="dia-tv-scroll" onscroll="tvGescrollt(this)">'+
-    '<div class="dia-tv-flaeche" style="width:calc(100% * '+((bisX-vonX)/dauer).toFixed(4)+')"><svg aria-hidden="true"></svg></div></div></div>'+legende+hint+'</div>';
+    diaScrollRahmenHtml('tv', 176, bisX-vonX, dauer, 'P')+legende+hint+'</div>';
 }
 
 /* V2.2: KPI-Felder mit Farbverläufen. */
