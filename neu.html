@@ -1902,37 +1902,79 @@ main{padding-left:8px;padding-right:8px}                       /* §1.3: Seitenr
 .hak-flug{display:inline-block;margin-left:6px;font-size:12px;font-weight:800;color:var(--hakh,#93c5fd);animation:hakFlug .6s ease-out forwards;pointer-events:none}
 @keyframes hakFlug{0%{opacity:0;transform:translateY(4px)}25%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
 @media (prefers-reduced-motion: reduce){ .hak-neu{animation:none} .hak-flug{animation:none;opacity:1} }
+/* ══ HOTFIX 3.5.1 §2 · STATUSLEISTE (Draft) ══ */
+#topbar .inner{display:grid;grid-template-columns:1fr;grid-template-rows:auto;row-gap:5px;padding:8px 8px 7px;align-items:stretch;font-variant-numeric:tabular-nums}
+#topbar .sl-z1{display:flex;align-items:center;gap:9px;min-width:0}
+#topbar .sl-z1 .mid{flex:1;min-width:0}
+#topbar .title{font-size:15px;font-weight:650;letter-spacing:-.1px}
+#topbar .title.idle{color:#9a9ca2;font-weight:500}
+.tb-figur{min-width:42px;min-height:42px}
+.tb-ring{width:42px;height:42px;background:conic-gradient(#3ecf8e var(--frac,0%),rgba(154,156,162,.25) 0)}
+.tb-ring img{width:36px;height:36px}
+#topbar .sl-kr{flex:none;text-align:right;line-height:1.05}
+#topbar .sl-kr[hidden]{display:none}
+#topbar .sl-kr .uhr{font-size:19px;font-weight:700;color:#e8e9ec}
+#topbar .sl-kr .kp{font-size:12px;font-weight:700;color:#93c5fd}
+#statusbar .sb-bar{grid-column:1;position:relative;flex:none;height:20px;border-radius:10px;background:#1c1f25;overflow:hidden}
+#statusbar .sb-bar .ist.dfm{left:0;background:linear-gradient(90deg,#93c5fd,#3b82f6)}
+#statusbar .sb-bar .ist.privat{background:linear-gradient(270deg,#d8b4fe,#a855f7)}
+#statusbar .sb-bar .prog{opacity:.28}
+#statusbar .sb-bar .ist.dfm.prog{background:#3b82f6}
+#statusbar .sb-bar .ist.privat.prog{background:#a855f7}
+#statusbar .sb-bar .mark{width:2px;background:#d4af37;opacity:1}
+#statusbar .sb-bar .sollmark{top:-1px;bottom:-1px;width:2px;background:repeating-linear-gradient(180deg,#e8e9ec 0 2px,transparent 2px 5px)}
+#statusbar .sb-bar .zahl{position:absolute;top:0;bottom:0;display:flex;align-items:center;z-index:4;font-size:11.5px;font-weight:750;padding:0 7px;white-space:nowrap;color:#fff;text-shadow:0 0 3px rgba(0,0,0,.85),0 1px 1px rgba(0,0,0,.9)}
+#statusbar .sb-bar .zahl.d{left:0}
+#statusbar .sb-bar .zahl.p{right:0}
+#statusbar .sb-bar .zahl.s{transform:translateX(-50%);padding:0}
+#statusbar .sb-bar .zahl.s b{background:rgba(0,0,0,.72);border:1px solid rgba(232,233,236,.55);border-radius:6px;padding:0 5px;line-height:15px;font-weight:750;text-shadow:none}
+#statusbar .sl-z3{grid-column:1;display:grid;grid-template-columns:44px 64px 1fr 8px 72px;column-gap:8px;align-items:stretch;height:72px;min-width:0}
+#statusbar .sb-cell{display:flex;flex-direction:column;justify-content:center;min-width:0;min-height:0;text-align:left;overflow:hidden}
+#statusbar .akku .w{font-size:17px;font-weight:750;white-space:nowrap}
+#statusbar .konto{gap:3px}
+#statusbar .konto div{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;line-height:1;color:#e8e9ec}
+#statusbar .konto i{flex:none;width:9px;height:9px;display:block}
+#statusbar .konto .kw i{background:#e8e9ec;transform:rotate(45deg) scale(.82)}
+#statusbar .konto .km{color:#d4af37}
+#statusbar .konto .km i{border-radius:50%;background:radial-gradient(circle at 35% 35%,#f3dc8a,#d4af37 55%,#8a6d1f)}
+#statusbar .konto .kf i{border-radius:50%;background:conic-gradient(#f66d6d,#f2b84b,#3ecf8e,#3b82f6,#a855f7,#f66d6d)}
+#statusbar .konto .kf small{color:#9a9ca2;font-weight:600}
+#statusbar .punkte{justify-content:space-between;padding:1px 0;width:auto;height:auto;min-width:0;min-height:0;align-items:stretch;border:0;background:none;text-align:left;font:inherit;color:inherit}
+#statusbar .punkte .sl-kurve{display:block;height:38px}
+#statusbar .punkte svg{display:block;width:100%;height:38px}
+#statusbar .punkte .reihe{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+#statusbar .tempo{font-size:13px;font-weight:750;white-space:nowrap;display:inline-flex;align-items:center;gap:2px}
+#statusbar .tempo small{font-size:9.5px;color:#9a9ca2;font-weight:600;margin-left:2px}
+#statusbar .gesamt{font-size:17px;font-weight:800;color:#e8e9ec}
+#statusbar .sl-tl{position:relative}
+.ts-skala.senkrecht{position:absolute;inset:0;display:block;height:auto;margin:0;border-radius:4px;background:#1c1f25!important;overflow:visible}
+.ts-skala.senkrecht .ts-bar{position:absolute;left:0;right:0;top:auto;bottom:0;border-radius:4px}
+.ts-skala.senkrecht .ts-ziel{position:absolute;left:-3px;right:-3px;top:auto;width:auto;height:2px;border:0;background:#e8e9ec}
+.ts-skala.senkrecht .ts-jetzt{left:50%;width:8px;height:8px;margin:-4px 0 0 -4px;box-shadow:0 0 0 4px rgba(255,255,255,.2)}
+.ts-skala.senkrecht .ts-karte{left:50%;width:6px;height:6px;margin:-3px 0 0 -3px}
+#statusbar #sZMatrix{grid-column:auto;grid-row:auto;width:72px;height:72px;border-radius:7px;overflow:hidden;background:#121418;padding:0;cursor:pointer}
+#statusbar .sb-mv{display:block;height:100%;min-height:0}
+#statusbar .sb-mv svg{display:block;width:100%;height:100%}
 </style>
 </head>
 <body>
 
 <div id="topbar"><div class="inner">
-  <!-- §3 (v3.5.0): Statusleiste als Raster — links minmax(0,1fr), rechts 148 px, drei Zeilen -->
-  <div class="tb-z1l">
-    <button class="pp" id="fkPP">▶</button>
-    <div class="mid" id="fkMid">
-      <div class="title idle" id="fkTitle">Kein Fokus aktiv</div>
-      <div class="sub" id="fkSub" hidden><span class="timer" id="fkTimer">0:00</span><span class="ppm" id="fkPts"></span></div>
-    </div>
-  </div>
-  <div class="tb-z1r">
-    <div class="right" id="fkRight"></div>
+  <!-- §2 (v3.5.1): Statusleiste nach Draft — Zeile 1 Ring · Titel · Uhr/Kartenpunkte · Zeile 2 Punkteleiste mit Zahlen · Zeile 3 Akku · Konto · Punkte-Block · Tempoleiste senkrecht · Matrix -->
+  <div class="sl-z1">
     <button class="tb-figur" id="btnFigur" aria-label="Belohnung und Shop"><span class="tb-ring" id="tbRing"><img id="tbFigurImg" alt=""></span></button>
-    <button class="tb-kurve grau" id="btnKurve" aria-label="Tagesverlauf — heute gegen Soll"></button>
+    <div class="mid" id="fkMid"><div class="title idle" id="fkTitle">Kein Fokus aktiv</div></div>
+    <div class="sl-kr" id="fkSub" hidden><div class="uhr timer" id="fkTimer">0:00</div><div class="kp ppm" id="fkPts"></div></div>
   </div>
   <div id="statusbar" hidden>
-    <div class="sb-r1">
-      <span class="sbph d">DFM<b id="sPhDfm">0</b></span>
-      <div class="sb-bar"><span class="ist dfm prog" id="sBarProgD"></span><span class="ist privat prog" id="sBarProgP"></span><span class="ist dfm" id="sBarIstD"></span><span class="ist privat" id="sBarIstP"></span><span class="ueber" id="sBarUeber"></span><span class="soll" id="sBarSoll"></span><span class="sollmark" id="sBarSollMark"></span><span id="sBarMarks"></span></div>
-      <span class="sbph p">Pv<b id="sPhPrv">0</b></span>
-      <span class="sbph s">Soll<b id="sPhSoll">0</b></span>
+    <div class="sb-bar" id="sBar"><span class="ist dfm prog" id="sBarProgD"></span><span class="ist privat prog" id="sBarProgP"></span><span class="ist dfm" id="sBarIstD"></span><span class="ist privat" id="sBarIstP"></span><span class="ueber" id="sBarUeber"></span><span id="sBarMarks"></span><span class="sollmark" id="sBarSollMark"></span><span class="zahl d" id="sBarZD"></span><span class="zahl p" id="sBarZP"></span><span class="zahl s" id="sBarZS"><b id="sPhSoll"></b></span></div>
+    <div class="sl-z3">
+      <div class="sb-cell akku" id="sZAkku"><b class="w">– %</b></div>
+      <div class="sb-cell konto" id="sZKonto"><div class="kw"><i></i><span id="sKW">0</span></div><div class="km"><i></i><span id="sKM">0</span></div><div class="kf"><i></i><span id="sKF">0</span><small>/5</small></div></div>
+      <button class="sb-cell punkte tb-kurve grau" id="btnKurve" aria-label="Tagesverlauf — Punkte gegen Soll"><span class="sl-kurve" id="sKurve"></span><span class="reihe"><span class="tempo" id="sTempo"></span><span class="gesamt" id="fkRight"></span></span></button>
+      <div class="sl-tl" id="sZTempo" aria-hidden="true"></div>
+      <div class="sb-cell mx" id="sZMatrix" aria-label="Matrix-Verlauf 5 Stunden — zur Matrix-Spur"><span class="sb-mv" id="sMv"></span></div>
     </div>
-    <div class="sb-r2">
-      <div class="sb-cell" id="sZAkku"><span class="k">Akku</span><b class="w">–%</b><span class="z">–</span></div>
-      <div class="sb-cell" id="sZKonto"><span class="k">Konto</span><b class="w">0</b><span class="z"></span></div>
-      <div class="sb-cell" id="sZTempo"><span class="k sb-tk"><span>Tempo</span><b class="w"></b></span><span class="z"></span></div>
-    </div>
-    <div class="sb-cell" id="sZMatrix" aria-label="Matrix-Verlauf 5 Stunden — zur Matrix-Spur"><span class="sb-mv" id="sMv"></span></div>
   </div>
 </div>
 <div id="fkNav" hidden></div>
@@ -5491,17 +5533,17 @@ function diaGroessen(){
     prognoseHeute:punkteHeute+tempoSchnitt*stundenRest, sollBisJetzt:zielHeute*stundenBisher/(stundenBisher+stundenRest) };
 }
 /* §1.1: die Tempo-Skala der Statusleiste — Balken 0 … tempoSchnitt (Ampel), drei Punkte */
-/* §3.3 (v3.5.0): Balken 0…Schnitt in Ampel · Ziel = Marke WEISS gepunktet · Schnitt = Balkenende mit Jetzt-Punkt
-   · laufende Karte = Punkt in ihrer Familienfarbe */
+/* §2 (v3.5.1): Tempoleiste SENKRECHT, 8 px breit, fuellt von unten — Fuellung Ampel als Verlauf, noetiges Tempo =
+   weisse Marke quer, Schnitt = Jetzt-Punkt, laufende Karte = Punkt in ihrer Familienfarbe */
 function tempoSkalaHtml(g){
   const vals=[g.tempoZiel, g.tempoSchnitt].concat(g.tempoKarte!=null ? [g.tempoKarte] : []);
   const max=Math.max(1e-9, 1.2*Math.max.apply(null, vals));
-  const pos=v=>Math.max(0, Math.min(100, num(v)/max*100)).toFixed(1)+'%';
-  const lk=g.karteLaeuft ? S.karten.find(x=>x.id===g.karteLaeuft) : null, famK=lk ? (lk.domain==='privat' ? FARBE.LILA : FARBE.BLAU) : FARBE.WEISS;
-  return '<span class="ts-skala" aria-hidden="true"><i class="ts-bar" style="width:'+pos(g.tempoSchnitt)+';background:'+diaAmpel(g.tempoSchnitt, g.tempoZiel)+'"></i>'+
-    '<b class="ts-ziel" style="left:'+pos(g.tempoZiel)+'"></b>'+
-    (g.tempoKarte!=null ? '<b class="ts-karte" style="left:'+pos(g.tempoKarte)+';background:'+famK+'"></b>' : '')+
-    '<b class="ts-jetzt" style="left:'+pos(g.tempoSchnitt)+'"></b></span>';
+  const pos=v=>Math.max(0, Math.min(100, num(v)/max*100)), tf=diaAmpel(g.tempoSchnitt, g.tempoZiel);
+  const lk=g.karteLaeuft ? S.karten.find(x=>x.id===g.karteLaeuft) : null;
+  return '<span class="ts-skala senkrecht" aria-hidden="true"><i class="ts-bar" style="height:'+pos(g.tempoSchnitt).toFixed(1)+'%;background:'+verlauf(tf, 0)+'"></i>'+
+    '<b class="ts-ziel" style="bottom:'+pos(g.tempoZiel).toFixed(1)+'%"></b>'+
+    (g.tempoKarte!=null ? '<b class="ts-karte" style="top:'+(100-pos(g.tempoKarte)).toFixed(1)+'%;background:'+famFarbe(lk)+'"></b>' : '')+
+    '<b class="ts-jetzt" style="top:'+(100-pos(g.tempoSchnitt)).toFixed(1)+'%"></b></span>';
 }
 /* §2.4/§3.1: Ring (6 px, Start oben, im Uhrzeigersinn) — gefuellt in der Farbe, Rest GRAU 30 % */
 function diaRingSvg(frac, farbe){
@@ -7012,32 +7054,25 @@ function renderFokusleiste(){
   const bar=el('topbar'), k=fokusKarte();
   const laeuft = S.fokus && S.fokus.laeuft;
   bar.classList.toggle('laeuft', !!laeuft);
-  el('fkPP').textContent = laeuft ? '⏸' : '▶';
-  // §3.1 (v3.5.0): Play/Pause in der Familienfarbe der laufenden Karte, Punkte der Karte ebenso
-  const fam=k ? (k.domain==='privat' ? FARBE.LILA : FARBE.BLAU) : null;
-  el('fkPP').style.background=(laeuft && fam) ? fam : '';
+  // §2 (v3.5.1): kein Play/Pause mehr in der Statusleiste — rechts Uhr (WEISS) und Kartenpunkte (Familie, hell)
   if(k){
     el('fkTitle').textContent=k.titel||'(ohne Titel)';
     el('fkTitle').classList.remove('idle');
     el('fkSub').hidden=false;
     el('fkTimer').textContent=mmss(istSekLive(k));
-    el('fkPts').textContent=fmtP(kartePunkte(k))+' P';
-    el('fkPts').style.color=fam;
+    el('fkPts').textContent='+'+fmtP(kartePunkte(k));
+    el('fkPts').style.color=famHell(k);
   } else {
     el('fkTitle').textContent='Kein Fokus aktiv';
     el('fkTitle').classList.add('idle');
     el('fkSub').hidden=true;
   }
-  const tages=Math.round(tagesPunkteLive());
-  let pfeil=''; try{ pfeil=tempopfeilSvg(tempoVerhaeltnis(), 12); }catch(e){ pfeil=''; }   // §2.3 (v3.5.0): Tempopfeil
-  el('fkRight').innerHTML='<div class="pt">'+tages+pfeil+'</div><div class="lbl">heute · P</div>';
-  // §3.1 (v3.5.0): Ring um das Outfit fuellt sich bis zum naechsten Outfit; blinkt, wenn alle Toepfe voll sind (§6.4)
+  el('fkRight').textContent=fmtP(Math.round(tagesPunkteLive()));
+  // Ring um das Outfit fuellt sich bis zum naechsten Outfit; blinkt, wenn alle Toepfe voll sind (§6.4)
   { const r=el('tbRing'); if(r){ let f=0; try{ f=outfitFortschritt().frac; }catch(e){ f=0; }
       try{ r.style.setProperty('--frac', (Math.max(0,Math.min(1,num(f)))*100).toFixed(1)+'%'); }catch(e){}
       let voll=false; try{ voll=(typeof ausmalAlleVoll==='function') && ausmalAlleVoll(); }catch(e){ voll=false; }
       r.classList.toggle('blinkt', !!voll); } }
-  // §13 (v2.0.0): Die Figur im Kopf IST der Shop-Zugang — sie trägt das
-  // heutige Outfit, damit der Weg dorthin selbst eine Belohnung anzeigt.
   { const fi=el('tbFigurImg');
     if(fi){ const of=(typeof outfitHeute==='function')?outfitHeute():1;
       const src=AVATAR_BILDER[Math.max(0,Math.min(AVATAR_BILDER.length-1,(of||1)-1))];
@@ -7451,35 +7486,52 @@ function tagesAmpel(){
   _ampelKey=key;
   return _ampelMemo;
 }
-/* §3.1 (v3.5.0): Mini-Kurve 44×28 — Ist-Linie in diaAmpel(punkteHeute, sollBisJetzt), Fortsetzung bis
-   Tagesende gestrichelt WEISS 70 % (lineare Prognose), Jetzt-Punkt weiss */
+/* §2 (v3.5.1): Mini-Kurve im Punkte-Block — Gesamt gegen Soll ueber den ganzen Tag: Ist in Ampel 2 px + Flaeche 22 %,
+   Soll WEISS gepunktet, Prognose gestrichelt, Jetzt-Punkt weiss */
 function ampelKurveSvg(a){
-  const W=44, H=28, P=2, g=diaGroessen();
+  const W=120, H=38, P=2, g=diaGroessen(), heute=belFensterDatum(jetztIso());
   const endeX=Math.max(a.nowX+0.25, belX(new Date(g.tagesEndeMs).toISOString()));
   const bis=Math.max(a.bis, endeX), span=Math.max(0.5, bis-a.von);
-  const maxY=Math.max(10, a.ist, g.prognoseHeute)*1.08;
-  const X=x=>P+((Math.max(a.von,Math.min(bis,x))-a.von)/span)*(W-2*P), Y=p=>H-P-(p/maxY)*(H-2*P);
-  const pfad=pts=>glattPfad(pts.map(q=>({x:X(q.x), y:Y(q.p)})));
-  const heute=a.kHeute.filter(q=>q.x<=a.nowX+0.001);
-  const letzt=heute[heute.length-1];
+  const maxY=Math.max(10, a.ist, g.prognoseHeute, g.zielHeute)*1.05;
+  const X=x=>((Math.max(a.von,Math.min(bis,x))-a.von)/span)*W, Y=p=>H-P-(Math.max(0,p)/maxY)*(H-2*P);
+  const heuteP=a.kHeute.filter(q=>q.x<=a.nowX+0.001), letzt=heuteP[heuteP.length-1];
   const af=diaAmpel(g.punkteHeute, g.sollBisJetzt);
-  return '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+
-    flaecheSvg(heute.map(q=>({x:X(q.x), y:Y(q.p)})), H-P, af)+
-    '<path d="'+pfad(heute)+'" fill="none" stroke="'+af+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
-    (letzt?'<line x1="'+X(letzt.x).toFixed(1)+'" y1="'+Y(letzt.p).toFixed(1)+'" x2="'+X(endeX).toFixed(1)+'" y2="'+Y(g.prognoseHeute).toFixed(1)+'" stroke="#e8e9ec" stroke-opacity=".7" stroke-width="1.2" stroke-dasharray="3 2"/>':'')+
-    (letzt?'<circle cx="'+X(letzt.x).toFixed(1)+'" cy="'+Y(letzt.p).toFixed(1)+'" r="4" fill="#fff" fill-opacity=".2"/><circle cx="'+X(letzt.x).toFixed(1)+'" cy="'+Y(letzt.p).toFixed(1)+'" r="2.4" fill="#fff"/>':'')+
-    '</svg>';
+  // Soll-Kurve: die Plankurve des Tages (Rahmen bzw. Profil), sonst linear bis zum Tagesziel
+  let soll=[]; try{ const plan=planKurveInfo(heute); for(let i=0;i<=12;i++){ const x=a.von+span*i/12; soll.push({x, p:plan.wert(x)}); } if(!(soll[soll.length-1].p>0)) soll=[]; }catch(e){ soll=[]; }
+  if(!soll.length) soll=[{x:a.von,p:0},{x:bis,p:g.zielHeute}];
+  const pf=pts=>pts.map((q,i)=>(i?'L':'M')+X(q.x).toFixed(1)+' '+Y(q.p).toFixed(1)).join(' ');
+  const ip=heuteP.length>1 ? glattPfad(heuteP.map(q=>({x:X(q.x), y:Y(q.p)}))) : '';
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">'+
+    (ip ? '<path d="'+ip+' L'+X(letzt.x).toFixed(1)+' '+H+' L'+X(a.von).toFixed(1)+' '+H+'Z" fill="'+af+'" opacity=".22"/>' : '')+
+    '<path d="'+pf(soll)+'" fill="none" stroke="'+FARBE.WEISS+'" stroke-width="1" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"/>'+
+    (letzt ? '<path d="M'+X(letzt.x).toFixed(1)+' '+Y(letzt.p).toFixed(1)+' L'+X(endeX).toFixed(1)+' '+Y(g.prognoseHeute).toFixed(1)+'" fill="none" stroke="'+af+'" stroke-width="1.5" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>' : '')+
+    (ip ? '<path d="'+ip+'" fill="none" stroke="'+af+'" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>' : '')+
+    (letzt ? '<circle cx="'+X(letzt.x).toFixed(1)+'" cy="'+Y(letzt.p).toFixed(1)+'" r="2.6" fill="#fff"/>' : '')+'</svg>';
 }
 function renderAmpelKurve(){
-  const b=el('btnKurve'); if(!b) return;
+  const b=el('btnKurve'), ziel=el('sKurve'); if(!b || !ziel) return;
   let a=null; try{ a=tagesAmpel(); }catch(e){ a=null; }
-  if(!a){ b.className='tb-kurve grau'; b.innerHTML=''; return; }
-  b.className='tb-kurve '+a.stufe;
+  if(!a){ b.className='sb-cell punkte tb-kurve grau'; ziel.innerHTML=''; return; }
+  b.className='sb-cell punkte tb-kurve '+a.stufe;
   b.dataset.ampel=a.stufe;
-  b.innerHTML=ampelKurveSvg(a);
+  let svg=''; try{ svg=ampelKurveSvg(a); }catch(e){ svg=''; }
+  ziel.innerHTML=svg;
   b.setAttribute('aria-label','Tagesverlauf — '+(a.belastbar
     ? (Math.round(a.r*100)>0?'+':'')+Math.round(a.r*100)+' % gegen den typischen '+(a.we?'Wochenendtag':'Werktag')
     : 'noch keine belastbare Vergleichsbasis'));
+}
+/* Akku-Ampel (§2 v3.5.1): 41 % → GELB, 78 % → GRUEN, 22 % → ORANGE */
+function akkuFarbe(a){ a=num(a); return a>=70 ? FARBE.GRUEN : a>=55 ? FARBE.GELBGRUEN : a>=35 ? FARBE.GELB : a>=20 ? FARBE.ORANGE : FARBE.ROT; }
+/* Matrix der Statusleiste: 72×72, sehr dunkle Feldtoene, Spur der letzten 5 Std als Punktewolke, Linie WEISS 35 %, Endpunkt mit Hof */
+function matrixMiniSvg(spur){
+  const pts=(spur||[]).filter(e=>e && !e.uebersprungen && e.x!=null && e.y!=null).map(e=>[36+Math.max(-1,Math.min(1,num(e.x)))*31, 36-Math.max(-1,Math.min(1,num(e.y)))*31]);
+  let g='<rect x="0" y="0" width="36" height="36" fill="rgba(246,109,109,.07)"/><rect x="36" y="0" width="36" height="36" fill="rgba(62,207,142,.07)"/>'+
+    '<rect x="0" y="36" width="36" height="36" fill="rgba(246,109,109,.04)"/><rect x="36" y="36" width="36" height="36" fill="rgba(62,207,142,.04)"/>'+
+    '<line x1="36" y1="0" x2="36" y2="72" stroke="rgba(255,255,255,.08)"/><line x1="0" y1="36" x2="72" y2="36" stroke="rgba(255,255,255,.08)"/>';
+  pts.forEach(q=>{ g+='<circle cx="'+q[0].toFixed(1)+'" cy="'+q[1].toFixed(1)+'" r="1.5" fill="'+FARBE.GRAU+'" opacity=".45"/>'; });
+  if(pts.length>1) g+='<path d="'+pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ')+'" fill="none" stroke="rgba(232,233,236,.35)" stroke-width="1.2"/>';
+  if(pts.length){ const e=pts[pts.length-1]; g+='<circle cx="'+e[0].toFixed(1)+'" cy="'+e[1].toFixed(1)+'" r="6" fill="rgba(255,255,255,.2)"/><circle cx="'+e[0].toFixed(1)+'" cy="'+e[1].toFixed(1)+'" r="3" fill="#fff"/>'; }
+  return '<svg viewBox="0 0 72 72" aria-hidden="true">'+g+'</svg>';
 }
 function renderStatusbar(){
   renderAmpelKurve();
@@ -7490,29 +7542,21 @@ function renderStatusbar(){
   const eb=energieBatterie();
   const istHeute=punkteHeuteAnzeige();
   const k=(S.belohnung?konto():0);
-  // S1 (v1.3.2): Balkenlänge = Tagesziel (DFM+Privat, Wochenende via H4.3-Regel:
-  // belZielGesamt/belIstDfm rechnen Sa/So kombiniert gg. 3000 DFM). Ist zweifarbig
-  // gestapelt (DFM blau · Privat gelb). Soll-Layer = reines 8:30–22:00-Uhrfenster
-  // (sbFensterAnteil) — Buchungen außerhalb zählen unverändert voll in Ist/Statistik.
-  // §1.4 (v3.3.0): Gesamtbreite = zielHeute. DFM fuellt von links, Privat von rechts; die rote
-  // Linie trennt die beiden Ziele und wandert um einen Ueberschuss; ueber dem Tagesziel liegt UEBER
-  // von rechts deckend darueber. (Die rote Rueckstands-Flaeche von bisher entfaellt.)
+  // Punkteleiste: Breite = Tagesziel. DFM von links, Privat von rechts (Verlauf hell → voll), Prognose je Familie 28 %,
+  // Ziel-Grenze WEISS gepunktet, Viertel GRAU 40 %, Kauf-Schwellen GOLD 2 px, ueber Ziel UEBER.
   const g=diaGroessen();
   const istWe=istWochenendTag(heuteApp());
   const zielGes=g.zielHeute, pDfm=g.dfm, pPriv=g.privat;
-  const pctZ=v=>Math.max(0, Math.min(100, num(v)/zielGes*100)).toFixed(1)+'%';
+  const pz=v=>Math.max(0, Math.min(100, num(v)/zielGes*100)), pctZ=v=>pz(v).toFixed(1)+'%';
   el('sBarIstD').style.width=pctZ(pDfm);
   { const bp=el('sBarIstP'); bp.style.left='auto'; bp.style.right='0'; bp.style.width=pctZ(pPriv); }
-  // §3.2 (v3.5.0): Prognose bis Tagesende je Familie als Verlaengerung in Familienfarbe 30 %
-  { const ges=Math.max(1e-9, pDfm+pPriv), progD=g.tempoSchnitt*(pDfm/ges)*g.stundenRest, progP=g.tempoSchnitt*(pPriv/ges)*g.stundenRest;
+  { const ges=Math.max(1e-9, pDfm+pPriv), frei=Math.max(0, zielGes-pDfm-pPriv), progD=Math.min(g.tempoSchnitt*(pDfm/ges)*g.stundenRest, frei), progP=Math.min(g.tempoSchnitt*(pPriv/ges)*g.stundenRest, Math.max(0, frei-progD));
     const pd=el('sBarProgD'), pp=el('sBarProgP');
-    if(pd){ pd.style.left=pctZ(pDfm); pd.style.width=pctZ(Math.min(progD, Math.max(0, zielGes-pDfm-pPriv))); }
-    if(pp){ pp.style.left='auto'; pp.style.right=pctZ(pPriv); pp.style.width=pctZ(Math.min(progP, Math.max(0, zielGes-pDfm-pPriv-Math.min(progD, Math.max(0, zielGes-pDfm-pPriv))))); } }
-  el('sBarSoll').style.width='0%';
+    if(pd){ pd.style.left=pctZ(pDfm); pd.style.width=pctZ(progD); }
+    if(pp){ pp.style.left='auto'; pp.style.right=pctZ(pPriv); pp.style.width=pctZ(progP); } }
   { const x=Math.max(0, Math.min(zielGes, g.zielDfm+Math.max(0, pDfm-g.zielDfm)-Math.max(0, pPriv-g.zielPrivat)));
     const mk=el('sBarSollMark'); mk.style.left=pctZ(x); mk.style.display='block'; }
   el('sBarUeber').style.width=pctZ(Math.max(0, pDfm+pPriv-zielGes));
-  // §6.2 (v1.9.0): vier Meilensteine im Tagesbalken (¼ · ½ · ¾ · Ziel)
   let marks='<span class="qmark" style="left:25%"></span><span class="qmark" style="left:50%"></span><span class="qmark" style="left:75%"></span>';
   if(S.belohnung){
     const bankOhneHeute=k-istHeute; let kum=0;
@@ -7522,32 +7566,33 @@ function renderStatusbar(){
     });
   }
   el('sBarMarks').innerHTML=marks;
-  // S2 (v1.3.2): Beschriftung unter der Leiste — Ist DFM/Privat (Punkte) + Soll-jetzt (rot)
-  // §4.3 (v1.13.0): Anzeige-Zahlen laufen über den Upgrade-Faktor (Ist UND
-  // Soll — die Verhältnisse und der Balken bleiben identisch).
-  el('sPhDfm').textContent=Math.round(pDfm);
-  el('sPhPrv').textContent=Math.round(pPriv);
-  el('sPhSoll').textContent=urlaubHeute()?'🏖':(istWe?'WE':Math.round(sollStandGesamt()));
-  // §1 (v2.6.0): vier Zellen — Kopf, Wert, Zusatz. Der Pace-Pfeil ist
-  // entfallen: die Tempo-Zelle zeigt die Leiste, die Farbe folgt der Ampel.
-  const pw=paceWerte();
-  const zelle=(id,w,z,farb)=>{ const c=el(id); if(!c) return;
-    c.querySelector('.w').innerHTML=w; c.querySelector('.z').innerHTML=z;
-    if(farb) c.querySelector('.w').style.color=farb; };
-  // Zelle 1: Akku + Reichweite (§1.2) — gekürzt auf die Uhrzeit („17:10" statt „bis 17:10")
-  const rw=akkuReichweite(eb);
-  zelle('sZAkku', (eb.akku!=null?Math.round(eb.akku)+'%':'–'), rw);
-  // §2.2 (v2.6.0): Tempo = die Tempo-Leiste der Fokusansicht, schmal —
-  // „wo ich stehe" (Ampel) und Zieltempo; laeuft eine Karte, deren Marke.
-  // §3.1 (v3.5.0): TEMPO — Kopf links „TEMPO", rechts „Schnitt → Ziel" (Schnitt in Ampelfarbe, ohne Pfeil), Skala darunter
-  { const c=el('sZTempo'); if(c){ const w=c.querySelector('.w'), z=c.querySelector('.z');
-      if(urlaubHeute()){ w.innerHTML='🏖'; w.style.color=FARBE.WEISS; z.innerHTML='Urlaub'; }
-      else if(pw.we){ w.innerHTML=fmtKurzP(pw.ist)+' → '+fmtKurzP(pw.ziel); w.style.color=FARBE.WEISS; z.innerHTML=tempoSkalaHtml(g); }
-      else { w.innerHTML='<span style="color:'+diaAmpel(g.tempoSchnitt, g.tempoZiel)+'">'+fmtP(g.tempoSchnitt)+'</span> → '+(g.tempoZiel<=0?'✓':fmtP(g.tempoZiel)); w.style.color=FARBE.GRAU; z.innerHTML=tempoSkalaHtml(g); } } }
-  // Zelle 2 (§3.1 v3.5.0): Konto in GOLD — ohne Leiste, ohne Kulissen-Abstand
-  zelle('sZKonto', fmtKurzP(k), '', FARBE.GOLD);
-  // Matrix-Kachel (§3.1 v3.5.0): 5 Stunden, ueber Zeile 2 + 3, Endpunkt weiss
-  if(el('sMv')) el('sMv').innerHTML=matrixVerlaufSvg(matrixSpur().filter(p=>p && p.ts && Date.parse(p.ts)>=Date.now()-5*3600000), {klein:true});
+  // Zahlen IN der Leiste: DFM links, Privat rechts, Soll jetzt als Pille mittig auf der freien Strecke
+  { const sollTxt=urlaubHeute() ? '🏖' : (istWe ? 'WE' : fmtP(Math.round(sollStandGesamt()))), dTxt=fmtP(Math.round(pDfm)), pTxt=fmtP(Math.round(pPriv));
+    const zd=el('sBarZD'), zp=el('sBarZP'), zs=el('sBarZS');
+    el('sPhSoll').textContent=sollTxt; zd.textContent=dTxt; zp.textContent=pTxt;
+    const mitte=(pz(pDfm)+(100-pz(pPriv)))/2; zs.style.left=mitte.toFixed(1)+'%';
+    // Kollisionsregel: reicht der Platz nicht, entfaellt zuerst die Privatzahl, dann die DFM-Zahl — die Soll-Zahl bleibt immer
+    const W=num(el('sBar') && el('sBar').offsetWidth), brt=t=>String(t).length*7+14;
+    let zeigD=true, zeigP=true;
+    if(W>0){ const wS=brt(sollTxt)+4, pl=mitte/100*W-wS/2, pr=mitte/100*W+wS/2, wD=brt(dTxt), wP=brt(pTxt);
+      const kollP=pr>W-wP, kollD=pl<wD;
+      if(kollP || kollD) zeigP=false;
+      if(kollD) zeigD=false; }
+    zd.style.display=zeigD?'':'none'; zp.style.display=zeigP?'':'none'; }
+  // Zeile 3 · Akku: nur „41 %", Farbe nach Akku-Ampel
+  { const c=el('sZAkku'); if(c){ const w=c.querySelector('.w'); w.textContent=(eb.akku!=null ? Math.round(eb.akku)+' %' : '– %'); w.style.color=eb.akku!=null ? akkuFarbe(eb.akku) : FARBE.GRAU; } }
+  // Konto: ◆ Wohlstand WEISS · ● Muenzen GOLD · Farbkreis volle Toepfe/5
+  { let w=0, voll=0; try{ w=ausmalW(); voll=ausmalState().toepfe.filter(topfVoll).length; }catch(e){}
+    if(el('sKW')) el('sKW').textContent=fmtP(Math.round(w)); if(el('sKM')) el('sKM').textContent=fmtP(Math.round(k)); if(el('sKF')) el('sKF').textContent=String(voll); }
+  // Punkte-Block: Tempo P/h in Ampelfarbe + Tempopfeil (5-stufig)
+  { const t=el('sTempo'); if(t){ const pw=paceWerte();
+      if(urlaubHeute()){ t.innerHTML='🏖'; t.style.color=FARBE.WEISS; }
+      else { let pfeil=''; try{ pfeil=tempopfeilSvg(tempoVerhaeltnis(), 13); }catch(e){ pfeil=''; }
+        t.style.color=diaAmpel(g.tempoSchnitt, g.tempoZiel); t.innerHTML=fmtP(Math.round(g.tempoSchnitt))+'<small>P/h</small>'+pfeil; } } }
+  // Tempoleiste senkrecht
+  if(el('sZTempo')) el('sZTempo').innerHTML=tempoSkalaHtml(g);
+  // Matrix 72×72 — Spur der letzten 5 Stunden
+  if(el('sMv')) el('sMv').innerHTML=matrixMiniSvg(matrixSpur().filter(p=>p && p.ts && Date.parse(p.ts)>=Date.now()-5*3600000));
   momentRangCheck();   // §6 (1.9.0): Rang/Stern/Meilenstein/Joker zentral erkennen
   try{ ausmalVerteilen(); }catch(e){}   // §6.4 (v3.5.0): Wohlstand-Zufluss in den aktiven Topf
   }catch(e){ /* Statusleiste bleibt sichtbar, auch wenn ein Wert scheitert */ }
@@ -17092,7 +17137,7 @@ el('sheetBody').addEventListener('click', e=>{
    mehr erreichbar (keine eigenen Stapel mehr, Filterung läuft über Ebene 1–3). */
 
 // Fokus-Leiste: Play/Pause-Toggle + Mitte tippen → Fokus-Tab
-el('fkPP').addEventListener('click', ()=>{ if(S.fokus) fokusToggle(); else setTab('suche'); });
+// §2 (v3.5.1): der Play/Pause-Knopf der Statusleiste ist entfallen (Bedienung in der Fokusansicht)
 /* §1 (v2.0.1): Tippen auf die Leiste holt die Fokusansicht zurueck.
    Laeuft keine Karte, ist die Leiste nur Anzeige. */
 el('fkMid').addEventListener('click', ()=>{
@@ -17103,6 +17148,7 @@ el('statusbar').addEventListener('click', e=>{
   // Der Matrix-Verlauf fuehrt zur ausfuehrlichen Matrix-Spur der Statistik;
   // der Rest der Leiste oeffnet wie bisher das Status-Sheet.
   if(e.target.closest('#sZMatrix')){ zurMatrixSpur(); return; }
+  if(e.target.closest('#btnKurve')) return;   // §2 (v3.5.1): der Punkte-Block fuehrt zur Statistik (eigener Handler)
   oeffneStatusSheet();
 });   // §2 (1.10.0): Sheet statt Live-Kurve
 
@@ -18191,8 +18237,10 @@ el('btnKurve').addEventListener('click', ()=>{
   const m=document.querySelector('main'); if(m) m.scrollTop=0;
 });
 function zurMatrixSpur(){
+  // §2 (v3.5.1): die Matrix-Spur liegt im Detail von „Matrix heute" — aufklappen und dorthin
+  S.ui.statOffen=Object.assign({}, S.ui.statOffen, {matrixHeute:true}); saveUi();
   setTab('statistik');
-  const m=document.querySelector('main'), z=el('stMatrixSpurAnker'), tb=el('topbar');
+  const m=document.querySelector('main'), z=document.querySelector('#statistikBody [data-stmodul="matrixHeute"]'), tb=el('topbar');
   if(m) m.scrollTop=0;
   if(m && z){ const oben=tb?tb.getBoundingClientRect().bottom:0; m.scrollTop += z.getBoundingClientRect().top - oben - 8; }
 }
