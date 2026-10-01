@@ -253,7 +253,7 @@ print('   Tages-Sync '+Math.round(JSON.stringify(tagesPaket).length/1024)+' KB �
 /* ══ Ein normales Chat-Paket darf die App-Hoheit NICHT brechen ══ */
 kopf('Schutz · App-Hoheit im Normalbetrieb');
 var vorIst=S.karten.find(function(k){return k.id==='d-angebot';}).istSek;
-syncImport(JSON.stringify({ appVersion:'2.0.0', karten:[
+syncImport(JSON.stringify({ appVersion:'2.1.0', karten:[
   { id:'d-angebot', titel:'Angebot rechnen', istMin:9999, status:'offen', punkteOverride:1 }]}));
 var d2=S.karten.find(function(k){return k.id==='d-angebot';});
 ok('Ohne Wiederherstellungs-Block bleibt die Ist-Zeit unangetastet', d2.istSek===vorIst);

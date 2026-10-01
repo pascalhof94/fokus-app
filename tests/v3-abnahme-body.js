@@ -343,7 +343,7 @@ ok('9 jede Ansicht beginnt oben: setTab, Sortierung, Filter, Fokus und Sheet ruf
 
 /* ══ 12 · Version ═════════════════════════════════════════════════════ */
 kopf('12 · Version');
-ok('12 APP_VERSION 3.4.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.4.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'x', titel:'x'}]})).fehler);
+ok('12 APP_VERSION 3.4.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.5.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'x', titel:'x'}]})).fehler);
 
 kopf('Nachtrag v3.0.1 · eine Versionskonstante');
 frisch(); S.tag=neuerTag(MO,1);
@@ -355,7 +355,7 @@ ok('v3.0.1 Einstellungen (Info und Fuß) und Export zeigen dieselbe Version', ei
    tagBackupPaket().appVersion===APP_VERSION);
 ok('v3.0.1 der Seitentitel liest APP_VERSION, kein fester Titel mehr', /<title>Fokus<\/title>/.test(src) && /document\.title='Fokus '\+UI_VERSION/.test(src) && src.indexOf('Fokus v1')<0);
 ok('v3.0.1 die .md des Abschlusses nennt Version und Build', abschlussMarkdown().indexOf('- App: v'+APP_VERSION+' · Build '+APP_BUILD)>=0);
-ok('v3.0.1 das Gate prüft gegen DATENVERTRAG (2.0.0), nicht gegen die App-Version', DATENVERTRAG==='2.0.0' && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'g', titel:'g'}]})).fehler &&
+ok('v3.0.1 das Gate prüft gegen DATENVERTRAG (2.0.0), nicht gegen die App-Version', DATENVERTRAG==='2.1.0' && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'g', titel:'g'}]})).fehler &&
    /älter als 2\.0\.0/.test(syncImport(JSON.stringify({appVersion:'1.13.5', karten:[{id:'g', titel:'g'}]})).fehler));
 
 /* ══════════════════════════════════════════════════════════════════════

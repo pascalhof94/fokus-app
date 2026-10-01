@@ -12,7 +12,7 @@ function frisch(){
   S.tag=null; S.fokus=null; S.meta.ketten=null; matrixTmp=null; S.ui.fokusOffen=false; S.ui.fokusZeigt=null;
   abv3.aktiv=false; abv3.zurueck=false; abv3.schritt=1; aufstehenTmp=null;
 }
-function imp(karten){ var r=syncImport(JSON.stringify({appVersion:'3.4.0', karten:karten})); if(r && r.fehler) print('   IMPORT-FEHLER '+r.fehler); return r; }
+function imp(karten){ var r=syncImport(JSON.stringify({appVersion:'3.5.0', karten:karten})); if(r && r.fehler) print('   IMPORT-FEHLER '+r.fehler); return r; }
 function logKarte(id){ return logRund((S.intraday||[]).filter(function(e){ return e.kartenId===id && logGehoertZuTag(e); }).reduce(function(a,e){ return a+num(e.punkte); },0)); }
 function bilanzGleichLog(){ return Math.round(ohneLaufendeUhr(function(){ return tagesPunkteLive(); })*10)/10===Math.round(logSummeTag()*10)/10; }
 function leisteZeile(id){ var h=abhakLeisteHtml(), i=h.indexOf('data-alkarte="'+id+'"'); if(i<0) return ''; var a=h.lastIndexOf('<div class="zs-k al-z', i); var b=h.indexOf('<div class="zs-k al-z', i); return h.slice(a, b<0?h.length:b); }
@@ -209,7 +209,7 @@ aufstehenBestaetigenUI();
 var d=syncExport('delta'), v=syncExport('voll'), md=abschlussMarkdown();
 ok('9 Export Delta: aufstehen.kommentarClaude wortgleich', d.aufstehen.kommentarClaude==='Kopf schwer, später starten' && d.aufstehen.nachtGebucht===true);
 ok('9 Vollexport und Tagesabschluss-.md tragen es ebenso', v.aufstehen.kommentarClaude==='Kopf schwer, später starten' && md.indexOf('"kommentarClaude": "Kopf schwer, später starten"')>=0);
-ok('9 Datenvertrag bleibt 2.0 (Ergänzung)', DATENVERTRAG==='2.0.0' && !syncImport(JSON.stringify(d)).fehler);
+ok('9 Datenvertrag bleibt 2.0 (Ergänzung)', DATENVERTRAG==='2.1.0' && !syncImport(JSON.stringify(d)).fehler);
 // leer ist erlaubt
 tagMontag(); uhr('2026-09-28T22:45:00+02:00'); abschliessen(); uhr('2026-09-29T07:00:00+02:00');
 oeffneAufstehen(); el('aufEinschlaf').value=''; el('aufKom').value='';   // der DOM-Stub behaelt Felder — im Browser ist das Feld neu
@@ -239,7 +239,7 @@ ok('1.2 der lange Druck wirkt nur noch auf „Schließen" im Tagesabschluss', /c
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION 3.4.0, Build 2026-09-29-1', APP_VERSION==='3.4.0' && UI_VERSION==='v3.4.0' && APP_BUILD==='2026-09-29-1');
+ok('APP_VERSION 3.4.0, Build 2026-10-01-1', APP_VERSION==='3.5.0' && UI_VERSION==='v3.5.0' && APP_BUILD==='2026-10-01-1');
 
 print('');
 if(fails){ print(fails+' von '+n+' FEHLGESCHLAGEN'); throw new Error('Abnahme rot'); }

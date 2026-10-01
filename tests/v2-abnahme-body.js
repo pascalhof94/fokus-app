@@ -222,7 +222,7 @@ ok('N3 zielTag liefert die neuen Werte',
 ok('6 komplex/energie/blockade sind aus dem Kartenmodell verschwunden', (function(){
      var k=neueKarte({}); return k.komplex===undefined && k.energie===undefined && k.blockade===undefined; })());
 ok('6 ... und werden auch vom Import nicht mehr gesetzt', (function(){
-     S.karten=[]; syncImport(JSON.stringify({appVersion:'2.0.0', karten:[
+     S.karten=[]; syncImport(JSON.stringify({appVersion:'2.1.0', karten:[
        {id:'x', titel:'X', komplex:2, energie:2, blockade:2}]}));
      var k=S.karten[0]; return k && k.komplex===undefined && k.blockade===undefined; })());
 
@@ -487,7 +487,7 @@ var ex=syncExport('delta');
    App-Version zieht auf 2.1.0 — sie reist als appVersion mit. */
 // v3.0.0: die App heisst 3.0.0, der Datenvertrag bleibt 2.0 (additiv) — das Gate laesst 2.0 und neuer herein
 ok('26 appVersion 3.x (Vertrag 2.0, additiv), Gate weiterhin ab 2.0',
-   /^3\./.test(ex.appVersion) && /^3\./.test(VERSION) && !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'v1', titel:'V1'}]})).fehler &&
+   /^3\./.test(ex.appVersion) && /^3\./.test(VERSION) && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'v1', titel:'V1'}]})).fehler &&
    !!syncImport(JSON.stringify({appVersion:'1.13.5', karten:[{id:'q',titel:'q'}]})).fehler);
 ok('26 Vertrag 2.0: EINE kette statt zweier',
    Array.isArray(ex.kette) && ex.ketteDfm===undefined && ex.kettePrivat===undefined);
@@ -503,11 +503,11 @@ ok('26 Vertrag 2.0: Sterne und upgradeFaktor sind nicht im Paket',
 ok('26 Gate auf 2.0: ein 1.13.4-Paket wird abgelehnt',
    !!syncImport(JSON.stringify({appVersion:'1.13.4', karten:[{id:'x',titel:'x'}]})).fehler);
 ok('27 BELEG: ein Paket OHNE karten-Array wird abgelehnt',
-   !!syncImport(JSON.stringify({appVersion:'2.0.0', kette:['v1']})).fehler);
+   !!syncImport(JSON.stringify({appVersion:'2.1.0', kette:['v1']})).fehler);
 ok('27 ... auch wenn es nur einen Tagesrahmen setzen will',
-   !!syncImport(JSON.stringify({appVersion:'2.0.0', tagesRahmen:[{von:8,bis:12,typ:'dfm'}]})).fehler);
+   !!syncImport(JSON.stringify({appVersion:'2.1.0', tagesRahmen:[{von:8,bis:12,typ:'dfm'}]})).fehler);
 ok('27 Mit karten-Array geht es durch',
-   !syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'v1'}], kette:['v1']})).fehler);
+   !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'v1'}], kette:['v1']})).fehler);
 ok('11/§14 sitzungen bleiben Teil des Vertrags', src.indexOf('o.sitzungen=sitz')>=0);
 
 /* ══ §12 · Statistik ══════════════════════════════════════════════════ */
@@ -556,8 +556,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.4.0' && UI_VERSION==='v3.4.0' &&
-   APP_BUILD==='2026-09-29-1');
+ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.5.0' && UI_VERSION==='v3.5.0' &&
+   APP_BUILD==='2026-10-01-1');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -1635,7 +1635,7 @@ ok('§5 Regler und Textfeld ziehen sich gegenseitig nach (ein Handler für beide
 })();
 /* Import / Export */
 frisch();
-syncImport(JSON.stringify({appVersion:'2.0.0', karten:[
+syncImport(JSON.stringify({appVersion:'2.1.0', karten:[
   {id:'i1', domain:'dfm', titel:'Mittel', geldImpact:'Mittel'}, {id:'i2', domain:'dfm', titel:'niedrig', geldImpact:'niedrig'},
   {id:'i3', domain:'dfm', titel:'Zahl', geldImpact:350}, {id:'i4', domain:'dfm', titel:'zu hoch', geldImpact:'600'},
   {id:'i5', domain:'dfm', titel:'Altpaket', geldScore:190, faelligkeit:isoPlus(10)} ]}));
@@ -1753,7 +1753,7 @@ ok('§1.6 Export trägt block je Karte und den Tagesrahmen mit Blöcken', eb1.bl
    exB.tagesRahmen.length===9 && exB.tagesRahmen.some(function(b){ return b.id==='f1a' && b.parent==='fokus1' && b.name==='Angebote'; }));
 /* §1 altes Paket */
 frisch();
-var rAlt=syncImport(JSON.stringify({appVersion:'2.0.0', karten:[{id:'o1', domain:'dfm', titel:'Alt'}], tagesRahmen:[{von:'09:00', bis:'12:00', typ:'dfm'},{von:'12:00', bis:'13:00', typ:'pause'},{von:'13:00', bis:'17:00', typ:'dfm'}]}));
+var rAlt=syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'o1', domain:'dfm', titel:'Alt'}], tagesRahmen:[{von:'09:00', bis:'12:00', typ:'dfm'},{von:'12:00', bis:'13:00', typ:'pause'},{von:'13:00', bis:'17:00', typ:'dfm'}]}));
 var blA=tagesBloecke();
 ok('§1.1 altes Paket ohne Block-Felder: jedes Segment ein Block der ersten Ebene, benannt nach typ ('+blA.map(function(b){return b.name;}).join(' · ')+')',
    blA.length===3 && blA[0].name==='DFM' && blA[1].name==='Pause' && blA.every(function(b){ return b.parent===null; }) && !(rAlt.uebersprungen||[]).length &&

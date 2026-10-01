@@ -36,7 +36,7 @@ var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnte
   'tickerAlleSicherstellen','tickerSicherstellen','tickerVon','brauchtTicker','istTicker','tickQuelle','istAufgabeKarte'];
 var _kartenFelder=null, UNTER_FELDER_BEKANNT=new Set(['id','parentId','titel','sollMin','done','bonusPunkte','airtableId','staffel','staffelDanach','tagesziel','tageslimit','entfernt','entferntTs','tickLog','tickProtokoll','punkteHeute','ziel','ticksHeute','typ','naechsterWert']);   // v3.1.0/v3.2.0: gespiegelt
 var WT_KURZ={ mo:1, di:2, mi:3, do:4, fr:5, sa:6, so:7 };   // v3.0.0: Konstante gespiegelt (nicht extrahierbar)
-var DATENVERTRAG='2.0.0';   // v3.0.1: Import-Gate-Konstante gespiegelt (nicht extrahierbar)
+var DATENVERTRAG='2.1.0';   // v3.0.1: Import-Gate-Konstante gespiegelt (nicht extrahierbar)
 // v2.7.0 §1: Block-Konstanten gespiegelt (nicht extrahierbar)
 var BLOCK_TYPEN=['dfm','privat','pause','schlaf'], BLOCK_TYP_NAME={ dfm:'DFM', privat:'Privat', pause:'Pause', schlaf:'Schlaf' };
 // v2.6.0 §5: Geld-Konstanten gespiegelt (nicht extrahierbar) — Geld-Impact 0 … 500, Stufen fuer Altpakete
@@ -102,7 +102,7 @@ function imp(p){ return syncImport(JSON.stringify(p)); }
 /* 1) App-Hoheit: der Import setzt NIE Status/tagId/Ist/Punkte — auch wenn das
       Paket sie mitschickt (historischer Konverter-Bug „offen → erledigt/heute"). */
 S.karten=[]; S.unteraufgaben=[];
-imp({ appVersion:'2.0.0', karten:[{ id:'k1', titel:'Probefahrt vereinbaren', faelligkeit:'2026-07-21',
+imp({ appVersion:'2.1.0', karten:[{ id:'k1', titel:'Probefahrt vereinbaren', faelligkeit:'2026-07-21',
   status:'erledigt', tagId:'2026-08-27-1', istMin:99, punkteIst:500,
   unteraufgaben:[{ id:'s1', titel:'A', sollMin:10 },{ id:'s2', titel:'B', sollMin:20 }] }] });
 var k=S.karten[0];
@@ -114,7 +114,7 @@ ok('Faelligkeit = ueberfaellige Deadline uebernommen', k.faelligkeit==='2026-07-
 
 /* 2) Unteraufgaben: Match NUR per App-id; done ist App-Hoheit. */
 S.unteraufgaben.forEach(function(u){ if(u.id==='s1') u.done=true; });
-imp({ appVersion:'2.0.0', karten:[{ id:'k1',
+imp({ appVersion:'2.1.0', karten:[{ id:'k1',
   unteraufgaben:[{ id:'s1', titel:'A neu', sollMin:15, done:false },{ id:'s3', titel:'C', sollMin:5 }] }] });
 var s1=S.unteraufgaben.filter(function(u){return u.id==='s1';})[0];
 ok('Sub per id gematcht, Titel/Soll aktualisiert', s1.titel==='A neu' && s1.sollMin===15);
@@ -124,19 +124,19 @@ ok('kein Titel-Match: gleicher Titel woanders erzeugt KEINE Verknuepfung',
   S.unteraufgaben.filter(function(u){return u.parentId==='k1';}).length===3);
 
 /* 3) No-delete: Archivierung ist der einzige Status-Einfluss des Imports. */
-var r3=imp({ appVersion:'2.0.0', karten:[{ id:'k1', status:'archiviert' }] });
+var r3=imp({ appVersion:'2.1.0', karten:[{ id:'k1', status:'archiviert' }] });
 ok('archiviert wird uebernommen (No-delete: nie loeschen)', k.status==='archiviert' && r3.arch===1);
 ok('Karte existiert weiter', S.karten.length===1);
 
 /* 4) Idempotenz: derselbe Re-Import erzeugt keine Duplikate. */
-imp({ appVersion:'2.0.0', karten:[{ id:'k1', titel:'Probefahrt vereinbaren' }] });
+imp({ appVersion:'2.1.0', karten:[{ id:'k1', titel:'Probefahrt vereinbaren' }] });
 ok('Re-Import: weiterhin genau 1 Karte', S.karten.length===1);
 
 /* 5) airtableId-Match als Zweitanker. */
 S.karten=[]; S.unteraufgaben=[];
-imp({ appVersion:'2.0.0', karten:[{ airtableId:'recX', titel:'Via Airtable' }] });
+imp({ appVersion:'2.1.0', karten:[{ airtableId:'recX', titel:'Via Airtable' }] });
 var vorher=S.karten.length;
-imp({ appVersion:'2.0.0', karten:[{ airtableId:'recX', titel:'Via Airtable v2' }] });
+imp({ appVersion:'2.1.0', karten:[{ airtableId:'recX', titel:'Via Airtable v2' }] });
 ok('airtableId-Match: Update statt Duplikat', S.karten.length===vorher && S.karten[0].titel==='Via Airtable v2');
 
 /* 6) §7 (v1.13.0): Gate — Vertrag-1.5-Pakete (1.12.x) werden abgelehnt. */
@@ -148,10 +148,10 @@ ok('Gate 2.0.0: 1.13.4-Paket abgelehnt', !!imp({ appVersion:'1.13.4', karten:[{i
 S.historie=[ { datum:'2026-08-30', punkteBilanz:100, endeTs:'2026-08-30T22:00:00', akku:40, luecke:false },
              { datum:'2026-08-29', punkteBilanz:70,  endeTs:'2026-08-29T21:00:00', akku:55, luecke:false } ];
 S.meta.syncKorrekturen=[];
-imp({ appVersion:'2.0.0', karten:[{ id:'k1', titel:'Nur Karten, kein Korrekturblock' }] });
+imp({ appVersion:'2.1.0', karten:[{ id:'k1', titel:'Nur Karten, kein Korrekturblock' }] });
 ok('BELEG 36a: ohne Korrekturblock bleibt punkteBilanz 100', S.historie[0].punkteBilanz===100);
 ok('BELEG 36b: ohne Korrekturblock kein Protokoll-Eintrag', S.meta.syncKorrekturen.length===0);
-var r7=imp({ appVersion:'2.0.0', karten:[{ id:'k1' }],
+var r7=imp({ appVersion:'2.1.0', karten:[{ id:'k1' }],
   korrekturen:[{ datum:'2026-08-30', punkteBilanz:150, endeTs:'2026-08-31T01:00:00' }] });
 ok('BELEG 36c: benannter Tag korrigiert (100 → 150, Abschluss 1 Uhr)',
   S.historie[0].punkteBilanz===150 && S.historie[0].endeTs==='2026-08-31T01:00:00');
@@ -159,20 +159,20 @@ ok('BELEG 36d: NUR die getragenen Felder (akku bleibt 40)', S.historie[0].akku==
 ok('BELEG 36e: NUR der benannte Tag (29.08. bleibt 70)', S.historie[1].punkteBilanz===70);
 ok('BELEG 36f: Protokoll traegt beide Feld-Aenderungen', r7.korrigiert===2 && S.meta.syncKorrekturen.length===2
   && S.meta.syncKorrekturen[0].vorher===100 && S.meta.syncKorrekturen[0].nachher===150);
-var r7b=imp({ appVersion:'2.0.0', karten:[{ id:'k1' }], korrekturen:[{ punkteBilanz:999 }] });
+var r7b=imp({ appVersion:'2.1.0', karten:[{ id:'k1' }], korrekturen:[{ punkteBilanz:999 }] });
 ok('BELEG 36g: Korrektur OHNE Datum wird abgewiesen und gemeldet',
   S.historie[0].punkteBilanz===150 && r7b.uebersprungen.some(function(u){ return u.grund.indexOf('BENANNTE')>=0; }));
 
 /* 8) §5.3 (v1.13.0): Tagesrahmen — Import setzt ihn; ein zweiter Sync ersetzt
       AB der aktuellen Uhrzeit (13:00), Vergangenes bleibt. */
 S.meta.tagesRahmen=null; _tagOffen=false;
-imp({ appVersion:'2.0.0', karten:[{ id:'k1' }],
+imp({ appVersion:'2.1.0', karten:[{ id:'k1' }],
   tagesRahmen:[ {von:9,bis:12,typ:'dfm'}, {von:'13:30',bis:17,typ:'privat'}, {von:12,bis:13,typ:'pause'}, {von:1,bis:2,typ:'quatsch'} ] });
 ok('Rahmen gesetzt (3 gueltige Segmente, HH:MM geparst, quatsch-Typ raus)',
   S.meta.tagesRahmen && S.meta.tagesRahmen.segmente.length===3
   && S.meta.tagesRahmen.segmente.some(function(s){ return s.typ==='privat' && Math.abs(s.von-13.5)<0.001; }));
 _tagOffen=true; S.tag={ datum:heuteIso(), endeTs:null };
-imp({ appVersion:'2.0.0', karten:[{ id:'k1' }],
+imp({ appVersion:'2.1.0', karten:[{ id:'k1' }],
   tagesRahmen:[ {von:8,bis:16,typ:'privat'} ] });
 (function(){
   var seg=S.meta.tagesRahmen.segmente;
@@ -194,7 +194,7 @@ for(var ki=1;ki<=8;ki++) S.karten.push(neueKarte({ id:'d'+ki, domain:'dfm', tite
 S.karten.push(neueKarte({ id:'pk1', domain:'privat', titel:'P1', faelligkeit:HK }));
 var vorher9=tagesKetteDom('dfm');
 ok('§1 VORHER: Auto-Kette traegt alle 8 faelligen DFM-Karten', vorher9.length===8);
-imp({ appVersion:'2.0.0', karten:[{id:'d1'},{id:'d2'},{id:'d3'},{id:'d4'}], kette:['d3','d1','d4','d2'] });
+imp({ appVersion:'2.1.0', karten:[{id:'d1'},{id:'d2'},{id:'d3'},{id:'d4'}], kette:['d3','d1','d4','d2'] });
 ok('§1 BELEG: 4 gesetzt → EXAKT 4 in Paket-Reihenfolge (vorher 8)',
   JSON.stringify(tagesKetteDom('dfm'))==='["d3","d1","d4","d2"]');
 ok('§1 BELEG: erneuter Aufruf zieht nichts nach (kein 4 → 41)',
@@ -230,15 +230,15 @@ ok('§2 BELEG: DFM-Umsortierung → juengster dfm-Eintrag traegt den Endstand',
 })();
 
 /* 10) §3 (v1.13.1): id = recId wird automatisch zur airtableId. */
-imp({ appVersion:'2.0.0', karten:[{ id:'recRbePrcQt821Rgv', titel:'Aus Airtable' }] });
+imp({ appVersion:'2.1.0', karten:[{ id:'recRbePrcQt821Rgv', titel:'Aus Airtable' }] });
 var rk=S.karten.filter(function(k){ return k.id==='recRbePrcQt821Rgv'; })[0];
 ok('§3 BELEG: Neuanlage mit rec-id → airtableId gesetzt', rk && rk.airtableId==='recRbePrcQt821Rgv');
 S.karten.push(neueKarte({ id:'recN99HFiSnkDT9Mx', domain:'dfm', titel:'Altbestand', airtableId:null }));
-imp({ appVersion:'2.0.0', karten:[{ id:'recN99HFiSnkDT9Mx', titel:'Altbestand v2' }] });
+imp({ appVersion:'2.1.0', karten:[{ id:'recN99HFiSnkDT9Mx', titel:'Altbestand v2' }] });
 var rk2=S.karten.filter(function(k){ return k.id==='recN99HFiSnkDT9Mx'; })[0];
 ok('§3: Bestandskarte ohne Anker wird beim Re-Import geheilt', rk2.airtableId==='recN99HFiSnkDT9Mx');
 S.karten.push(neueKarte({ id:'kurz-id', domain:'dfm', titel:'Keine rec-id' }));
-imp({ appVersion:'2.0.0', karten:[{ id:'kurz-id' }] });
+imp({ appVersion:'2.1.0', karten:[{ id:'kurz-id' }] });
 ok('§3: Nicht-rec-ids bleiben ohne airtableId',
   S.karten.filter(function(k){ return k.id==='kurz-id'; })[0].airtableId===null);
 

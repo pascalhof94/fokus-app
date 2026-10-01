@@ -54,7 +54,7 @@ var NAMES = ['num','uuid','heuteIso','jetztIso','heuteApp','neueKarte','neueUnte
   'tickerAlleSicherstellen','tickerSicherstellen','tickerVon','brauchtTicker','istTicker','tickQuelle','istAufgabeKarte'];
 var _kartenFelder=null, UNTER_FELDER_BEKANNT=new Set(['id','parentId','titel','sollMin','done','bonusPunkte','airtableId','staffel','staffelDanach','tagesziel','tageslimit','entfernt','entferntTs','tickLog','tickProtokoll','punkteHeute','ziel','ticksHeute','typ','naechsterWert']);   // v3.1.0/v3.2.0: gespiegelt
 var WT_KURZ={ mo:1, di:2, mi:3, do:4, fr:5, sa:6, so:7 };   // v3.0.0: Konstante gespiegelt (nicht extrahierbar)
-var DATENVERTRAG='2.0.0';   // v3.0.1: Import-Gate-Konstante gespiegelt (nicht extrahierbar)
+var DATENVERTRAG='2.1.0';   // v3.0.1: Import-Gate-Konstante gespiegelt (nicht extrahierbar)
 eval(NAMES.map(extract).join('\n'));
 
 /* v3.2.0 §4: eine unbekannte Karte wird nur mit titel, domain und matrixFeld angelegt (sonst
@@ -87,7 +87,7 @@ function imp(p){ return syncImport(JSON.stringify(p)); }
 
 /* 1) §2.1: Neuanlage mit domain — privat wird privat, fehlend bleibt dfm. */
 S.karten=[]; S.unteraufgaben=[]; S.routinenGruppen=[];
-var r1=imp({ appVersion:'2.0.0', karten:[
+var r1=imp({ appVersion:'2.1.0', karten:[
   { id:'n-dfm', titel:'DFM-Aufgabe', sollMin:30 },
   { id:'n-prv', domain:'privat', titel:'Private Routine', rhythmus:{typ:'taeglich'}, tickKurve:[10],
     matrixFeld:'werkzeug', abhakbonus:-25, punkteProStd:0, timerFlag:true, keineAutoPause:true },
@@ -111,23 +111,23 @@ ok('timerFlag + keineAutoPause gesetzt', prv.timerFlag===true && prv.keineAutoPa
    ticksAktiv + tickWert (erster Wert), negative Werte zulässig. */
 ok('Negativ-Counter: tickKurve → ticksAktiv + tickWert(-15)', cnt.ticksAktiv===true && cnt.tickWert===-15);
 /* 3) Fehlende Felder ändern nichts (Re-Import derselben Karte ohne Bausteine). */
-imp({ appVersion:'2.0.0', karten:[{ id:'n-prv', titel:'Private Routine v2' }] });
+imp({ appVersion:'2.1.0', karten:[{ id:'n-prv', titel:'Private Routine v2' }] });
 ok('Re-Import: nur 1 Karte (kein Duplikat)', S.karten.filter(function(k){return k.id==='n-prv';}).length===1);
 ok('Re-Import: rhythmus unangetastet', prv.rhythmus && prv.rhythmus.typ==='taeglich');
 ok('Re-Import: abhakbonus unangetastet', prv.abhakbonus===-25);
 /* 4) v3.1.0 §4: die Domaene einer BEKANNTEN Karte ist per Paket schreibbar (vorher §2.1: ignoriert).
    Ein Wechsel nach privat raeumt Projekt und Geld-Impact. */
-imp({ appVersion:'2.0.0', karten:[{ id:'n-dfm', domain:'privat', titel:'DFM wird privat' }] });
+imp({ appVersion:'2.1.0', karten:[{ id:'n-dfm', domain:'privat', titel:'DFM wird privat' }] });
 ok('bekannte Karte: domain-Wechsel wird übernommen (v3.1)', dfm.domain==='privat' && dfm.projekt===null && dfm.geldImpact===0);
-imp({ appVersion:'2.0.0', karten:[{ id:'n-dfm', domain:'dfm' }] });
+imp({ appVersion:'2.1.0', karten:[{ id:'n-dfm', domain:'dfm' }] });
 /* 5) §2.3: Gruppen — Auflösung per Titel UND App-ID, Unauflösbares gemeldet. */
-var r5=imp({ appVersion:'2.0.0', karten:[{ id:'n-prv' }],
+var r5=imp({ appVersion:'2.1.0', karten:[{ id:'n-prv' }],
   gruppen:[{ id:'g1', name:'Runde', domain:'privat', mitglieder:['Private Routine v2','n-cnt','Fehlt'], komplettBonus:150 }] });
 ok('Gruppe angelegt', r5.gruppenNeu===1 && S.routinenGruppen.length===1);
 ok('Mitglieder per Titel + ID aufgelöst', JSON.stringify(S.routinenGruppen[0].mitglieder)==='["n-prv","n-cnt"]');
 ok('Unauflösbares Mitglied gemeldet, nicht verschluckt',
   r5.uebersprungen.some(function(u){ return u.was.indexOf('Fehlt')>=0; }));
-var r5b=imp({ appVersion:'2.0.0', karten:[{ id:'n-prv' }],
+var r5b=imp({ appVersion:'2.1.0', karten:[{ id:'n-prv' }],
   gruppen:[{ id:'g1', name:'Runde v2', mitglieder:['n-prv'], komplettBonus:300 }] });
 ok('gleiche Gruppen-id → aktualisiert, nicht dupliziert', r5b.gruppenUpd===1 && S.routinenGruppen.length===1 && S.routinenGruppen[0].komplettBonus===300);
 /* 6) Gate unverändert: ohne appVersion / Array / 0.x abgelehnt. */

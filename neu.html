@@ -2013,11 +2013,11 @@ body{background:var(--bg)}
    sie — ueber die beiden Alias-Namen, die der Code seit v1.x benutzt.
    Der DATENVERTRAG ist etwas anderes: die aelteste Paket-Version, die der
    Import annimmt (Gate) — er bleibt 2.0, additiv erweitert. */
-const APP_VERSION = '3.4.8';
+const APP_VERSION = '3.5.0';
 const VERSION = APP_VERSION;                  // Alias: appVersion im Export
 const UI_VERSION = 'v'+APP_VERSION;           // Alias: Anzeige
-const DATENVERTRAG = '2.0.0';                 // Import-Gate: Pakete ab dieser appVersion
-const APP_BUILD = '2026-09-30-3';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const DATENVERTRAG = '2.1.0';                 // Import-Gate: Pakete ab dieser appVersion (§9 v3.5.0: Datenvertrag 2.1)
+const APP_BUILD = '2026-10-01-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 try{ document.title='Fokus '+UI_VERSION; }catch(e){}
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
@@ -2725,6 +2725,7 @@ function ladeAlles(){
   S.historie = DB.get('historie', []);
   S.intraday = DB.get('intraday', []);   // B0: App-only Intraday-Log
   S.routinenGruppen = DB.get('routinenGruppen', []);   // §3 (1.6.1): Routinen-Gruppen mit Komplett-Bonus
+  S.tagesketten = DB.get('tagesketten', []);           // §9.3 (v3.5.0): benannte Sichten auf den Tag
   S.belohnung= DB.get('belohnung', null);
   S.meta     = Object.assign({ wohlstand:0, seeded:false }, DB.get('meta', {}));
   // §3 (v2.0.1): Die Kette GENAU SO, wie sie im Speicher lag — vor jeder
@@ -3445,6 +3446,9 @@ function ladeAlles(){
     S.meta.abhak280Log=log; S.meta.abhak280=true;
     DB.set('settings', S.settings); saveMeta();
   }
+  // §9.4 (v3.5.0): einmaliger Reset beim ersten Start — Muenzen/Konto, Ausgaben, Shop-Stufen, Kulisse und Ausmal-Stand auf null;
+  // Rang, rangBest, Outfit-Historie, Historie, Punkte, Karten und Statistik bleiben
+  if(!S.meta.reset35){ try{ reset35Durchfuehren(); }catch(e){ S.meta.reset35={ ts:jetztIso(), fehler:String(e&&e.message||e) }; saveMeta(); } }
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
              if(!S.tag.istMinutenStart) S.tag.istMinutenStart={};
@@ -8809,6 +8813,7 @@ function tagAbschlussFinalisieren(){
     tagesBloecke:(tagesBloecke(S.tag.datum)||null),   // §1 (v2.7.0): so galt der Rahmen an diesem Tag
     log:(S.tag.log||[]).slice(), akkuVerlauf:(S.tag.akkuVerlauf||[]).slice(),
     streak:S.tag.streak, erledigtHeute:num(S.tag.erledigtHeute),
+    rang:(function(){ try{ return rangMass().rang; }catch(e){ return null; } })(),   // §5.3/§9.1 (v3.5.0): taeglicher Rang im Snapshot
     // §5–§7 (v3.0.0): Morgen, Abschluss und Routinen-Wertung reisen mit dem Tag
     morgen:S.tag.morgen||null, abschluss:S.tag.abschluss||null, routinenAuswertung:S.tag.routinenAuswertung||null
   });
@@ -9093,7 +9098,8 @@ function tagBackupPaket(){
     reinRaus:sx.reinRaus, routinenQuote:sx.routinenQuote,
     // §7 (v2.0.0): EINE Kette — die beiden Alt-Felder gibt es nicht mehr
     // (sie standen hier noch und waren seit dem Umbau undefined).
-    kette:sx.kette, matrixSpur:sx.matrixSpur };
+    kette:sx.kette, matrixSpur:sx.matrixSpur,
+    ausmalen:sx.ausmalen, matrixfeldAenderungen:sx.matrixfeldAenderungen, reset35:sx.reset35, tagesketten:sx.tagesketten };   // §9.1 (v3.5.0)
 }
 function backupDownload(paket, name){
   const href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(paket,null,2));
@@ -12432,6 +12438,11 @@ function syncExport(typ){
     // Nur im Vollexport. Er muss ohne die App wieder einlesbar sein: alles,
     // was in localStorage steht und Nutzerentscheidungen, Messungen oder
     // Spielstand trägt. Das Delta-Paket bleibt schlank.
+    // §9.1 (v3.5.0) · Datenvertrag 2.1: Ausmal-Stand, Matrixfeld-Aenderungen, Reset-Marke, Tagesketten
+    ausmalen: ausmalExport(),
+    matrixfeldAenderungen: (Array.isArray(S.meta.matrixfeldAenderungen) ? S.meta.matrixfeldAenderungen.slice(-200) : []),
+    reset35: (S.meta.reset35 && S.meta.reset35.ts) ? { ts:S.meta.reset35.ts } : null,
+    tagesketten: tagesketten().map(c=>({ id:c.id, name:c.name, karten:(c.karten||[]).slice() })),
     wiederherstellung: voll ? {
       hinweis:'Vollsicherung. Import mit gesetztem wiederherstellung-Block stellt Karten, '+
               'Unteraufgaben, Gruppen, Einstellungen, Spielstand und Messprotokolle wieder her.',
@@ -12771,6 +12782,10 @@ function syncImport(text, opt){
   let korrigiert=[], korrekturNeu=0;
   if(paket && !Array.isArray(paket) && Array.isArray(paket.korrekturen)){
     paket.korrekturen.forEach(kx=>{
+      // §9.2 (v3.5.0): korrekturen.ausmalen nur mit korrektur:true
+      if(kx && kx.ausmalen && typeof kx.ausmalen==='object'){
+        if(kx.korrektur!==true){ uebersprungen.push({was:'Korrektur ausmalen', grund:'nur mit korrektur:true'}); return; }
+        ausmalKorrektur(kx.ausmalen); protokollEintrag('ausmalen','korrektur',[Object.keys(kx.ausmalen).join(', ')]); return; }
       if(!kx || !/^\d{4}-\d{2}-\d{2}$/.test(String(kx.datum||''))){
         uebersprungen.push({was:'Korrektur ohne gültiges Datum', grund:'nur BENANNTE Tage (§5.7)'}); return; }
       const snaps=(S.historie||[]).filter(h2=>h2.datum===kx.datum && !h2.luecke);
@@ -12817,6 +12832,12 @@ function syncImport(text, opt){
   // Kartenschleife läuft). Unauflösbares wird gemeldet, nicht verschluckt.
   // Gleiche id → aktualisieren, nie duplizieren.
   let gruppenNeu=0, gruppenUpd=0;
+  // §9.2 (v3.5.0): tagesketten = vollstaendige Liste, ersetzt den Bestand (Karten per id, airtableId oder Titel)
+  if(paket && Array.isArray(paket.tagesketten)){
+    const aufl=ref=>{ if(ref==null) return null; const r=String(ref); let k=S.karten.find(x=>x.id===r) || S.karten.find(x=>x.airtableId===r) || S.karten.find(x=>String(x.titel||'').trim().toLowerCase()===r.trim().toLowerCase()); return k ? k.id : null; };
+    S.tagesketten=paket.tagesketten.filter(c=>c && (c.id || c.name)).map((c,i)=>({ id:String(c.id||('tk'+(i+1))), name:String(c.name||('Kette '+(i+1))), karten:(Array.isArray(c.karten)?c.karten:[]).map(aufl).filter(Boolean) }));
+    DB.set('tagesketten', S.tagesketten);
+  }
   if(paket && Array.isArray(paket.gruppen)){
     if(!Array.isArray(S.routinenGruppen)) S.routinenGruppen=[];
     paket.gruppen.forEach(g=>{
@@ -13764,7 +13785,8 @@ function spielLiveZufluss(){
 /* Anzeigen rechnen gegen Rohwert − Reset-Offset (§7.2). */
 function rangPunkteAnzeige(){ return Math.max(0, num(S.meta&&S.meta.rangPunkte) - num(S.meta&&S.meta.rangResetOffset) + spielLiveZufluss()); }
 function ausgabenAnzeige(){ return Math.max(0, num(S.meta&&S.meta.ausgegebenGesamt) - num(S.meta&&S.meta.ausgabenResetOffset)); }
-function muenzenAnzeige(){ return Math.max(0, num(S.meta&&S.meta.muenzenGesamt) - num(S.meta&&S.meta.muenzenResetOffset) + spielLiveZufluss()); }
+function muenzenAnzeige(){ const r=S.meta&&S.meta.reset35, lo=(r && r.tagId && r.tagId===aktuelleTagId()) ? num(r.liveOffset) : 0;   // §9.4 (v3.5.0): Konto = 0 am Reset-Tag
+  return Math.max(0, num(S.meta&&S.meta.muenzenGesamt) - num(S.meta&&S.meta.muenzenResetOffset) + Math.max(0, spielLiveZufluss()-lo)); }
 function spielStand(){
   const rp=rangPunkteAnzeige(), n=rangVon(rp);
   const naechste=n<RANG_MAX ? rangSchwelle(n+1) : null;
@@ -15186,8 +15208,35 @@ function ausmalEinst(){ const e=(S.settings && S.settings.ausmalen)||{}; return 
 function ausmalW(){
   const ab=(S.meta && S.meta.reset35 && S.meta.reset35.ts) ? String(S.meta.reset35.ts).slice(0,10) : '';
   let w=0; (S.historie||[]).forEach(h=>{ if(h && !h.luecke && h.datum && h.datum>=ab) w+=Math.max(0, num(h.punkteBilanz)); });
-  if(tagOffen() && S.tag.datum>=ab) w+=Math.max(0, tagesPunkteLive());
+  if(tagOffen() && S.tag.datum>=ab){ const r=S.meta.reset35, lo=(r && r.tagId===aktuelleTagId()) ? num(r.liveOffset) : 0; w+=Math.max(0, Math.max(0, tagesPunkteLive())-lo); }
   return w;
+}
+function ausmalExport(){ const A=ausmalState(); return { kulisse:A.kulisse, gefaerbt:A.gefaerbt.slice(), toepfe:A.toepfe.map(t=>({farbe:t.farbe, punkte:Math.round(num(t.punkte))})), aktiverTopf:A.aktiverTopf, stationFarbe:A.stationFarbe, tank:Math.round(num(A.tank)), wohlstandSeitReset:Math.round(ausmalW()), freigeschaltetBis:A.freigeschaltetBis, fertig:A.fertig.slice() }; }
+function ausmalKorrektur(o){
+  const A=ausmalState();
+  if(o.kulisse!=null) A.kulisse=Math.max(1, Math.min(10, num(o.kulisse,1)));
+  if(Array.isArray(o.gefaerbt)) A.gefaerbt=o.gefaerbt.map(Number).filter(Number.isFinite);
+  if(Array.isArray(o.toepfe)) A.toepfe=o.toepfe.slice(0,5).map(t=>({ farbe:(t && t.farbe!=null)?num(t.farbe):null, punkte:Math.max(0, num(t&&t.punkte)) })); while(A.toepfe.length<5) A.toepfe.push({farbe:null, punkte:0});
+  if(o.aktiverTopf!=null) A.aktiverTopf=Math.max(0, Math.min(4, num(o.aktiverTopf)));
+  if(o.stationFarbe!==undefined) A.stationFarbe=o.stationFarbe==null?null:num(o.stationFarbe);
+  if(o.tank!=null) A.tank=Math.max(0, num(o.tank));
+  if(o.freigeschaltetBis!=null) A.freigeschaltetBis=Math.max(1, Math.min(10, num(o.freigeschaltetBis,1)));
+  if(Array.isArray(o.fertig)) A.fertig=o.fertig.map(Number).filter(Number.isFinite);
+  if(o.verteilt!=null) A.verteilt=Math.max(0, num(o.verteilt));
+  _ausmalKompositKey=''; saveMeta();
+}
+/* §9.4 (v3.5.0): der einmalige Reset — mit Sicherung in der Datenbank (reset35_bak) */
+function reset35Durchfuehren(){
+  const ts=jetztIso();
+  try{ DB.set('reset35_bak', { ts, meta:{ muenzenGesamt:num(S.meta.muenzenGesamt), muenzenResetOffset:num(S.meta.muenzenResetOffset), ausgegebenGesamt:num(S.meta.ausgegebenGesamt), ausgabenResetOffset:num(S.meta.ausgabenResetOffset),
+    wohlstand:num(S.meta.wohlstand), kulisseErreicht:S.meta.kulisseErreicht||null, ausmalen:S.meta.ausmalen||null }, belohnung:JSON.parse(JSON.stringify(S.belohnung||{})) }); }catch(e){}
+  S.meta.muenzenResetOffset=num(S.meta.muenzenGesamt);
+  S.meta.ausgabenResetOffset=num(S.meta.ausgegebenGesamt);
+  belohnungInit(); KAT_KEYS.forEach(k=>{ S.belohnung.stufen[k]=0; });
+  S.meta.ausmalen={ kulisse:1, gefaerbt:[], toepfe:[0,1,2,3,4].map(()=>({farbe:null, punkte:0})), aktiverTopf:0, stationFarbe:null, tank:0, wohlstandSeitReset:0, freigeschaltetBis:1, fertig:[], verteilt:0 };
+  S.meta.kulisseErreicht={ 1:heuteApp() };
+  S.meta.reset35={ ts, tagId:aktuelleTagId(), liveOffset:(tagOffen() ? Math.max(0, tagesPunkteLive()) : 0) };
+  saveMeta(); saveBelohnung();
 }
 function kulissenWert(n){ n=Math.max(1, Math.min(10, num(n,1))); return n<10 ? bgSchwelle(n+1)-bgSchwelle(n) : bgSchwelle(10)-bgSchwelle(9); }
 /* Kulissendaten (Felder, Farben, Bilder) — asynchron geladen, synchron aus dem Cache gelesen */
