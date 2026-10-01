@@ -68,19 +68,19 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #topbar .mid{flex:1;min-width:0}
 #topbar .title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:800}
 #topbar .title.idle{color:var(--mut2);font-weight:600}
-#topbar .sub{display:inline-flex;gap:10px;font-size:12px;color:var(--mut);font-family:ui-monospace,monospace;border:1px solid #2a2d33;border-radius:8px;padding:2px 8px;margin-top:3px}   /* §3.1: Kasten mit Uhr und Punkten */
+#topbar .sub{display:inline-flex;gap:10px;font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums;border:1px solid #2a2d33;border-radius:8px;padding:2px 8px;margin-top:3px}   /* §3.1: Kasten mit Uhr und Punkten */
 #topbar .sub[hidden]{display:none}
 #topbar .sub .timer{color:#e8e9ec;font-weight:700}   /* §3.4 (v3.5.0): Uhr WEISS */
 #topbar .sub .ppm{color:#3b82f6}
 #topbar .tb-search{flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:16px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)}  /* v1.6.0 Touch 44px */
 #topbar .tb-search:active{background:var(--card2)}
-#topbar .right{flex:none;text-align:left;font-family:ui-monospace,monospace;min-width:52px}
+#topbar .right{flex:none;text-align:left;font-variant-numeric:tabular-nums;min-width:52px}
 #topbar .right .pt{font-size:16px;font-weight:800;color:#e8e9ec;line-height:1;display:flex;align-items:center;gap:3px}
 #topbar .right .lbl{font-size:9px;color:#9a9ca2;margin-top:2px}
 /* Statusleiste (v1.1, v0.38-Port): Energie-Batterie · Tages-Fortschritt · Pace-Pfeil · Streak */
 /* §1 (v1.10.0): Statusleiste zweizeilig — Zeile 1 Tagesbalken volle Breite
    (kräftiger), Zeile 2 fünf gleich breite Zellen. EIN Tap-Ziel (Sheet §2). */
-#statusbar{display:contents;font-family:ui-monospace,monospace;cursor:pointer;-webkit-tap-highlight-color:transparent}   /* §3.1 (v3.5.0): Kinder liegen im Raster */
+#statusbar{display:contents;font-variant-numeric:tabular-nums;cursor:pointer;-webkit-tap-highlight-color:transparent}   /* §3.1 (v3.5.0): Kinder liegen im Raster */
 #statusbar[hidden]{display:none}
 #statusbar .sb-r1{grid-column:1;grid-row:2;display:flex;align-items:center;gap:6px;min-width:0}
 #statusbar .sb-bar{position:relative;flex:1;min-width:0;height:12px;border-radius:6px;background:#0a0f1a;overflow:hidden}
@@ -186,7 +186,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .su-aktiv{color:var(--blue);opacity:1}
 .su-tagebuch{display:block;width:calc(100% - 24px);margin:0 12px 8px;min-height:44px;border:1px solid var(--line);
   border-radius:12px;background:var(--card2);color:var(--txt);font-size:13px;font-weight:600}
-.st-mx .fb-mx{max-width:420px;margin:0 auto}
+.st-mx .fb-mx{margin:0}
 .su-mxzurueck{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;color:var(--blue);font-size:13px;font-weight:600}
 /* §4 (v2.3.0): der Werkzeug-Vorschlag steht als Zeile ueber der Liste */
 .su-vorschlag{margin:0 12px 6px;padding:8px 10px;border:1px solid var(--ok);border-radius:10px;
@@ -315,7 +315,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .stapelkopf .st-name{font-weight:800;font-size:15px;flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stapelkopf .st-groesse{font-size:11px;color:var(--mut2);font-weight:700;background:var(--bg);border-radius:10px;padding:1px 7px;flex:none}
 .stapelkopf .sp{flex:1}
-.stapelkopf .st-kpi{display:flex;gap:9px;font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace;flex:none;text-align:right}
+.stapelkopf .st-kpi{display:flex;gap:9px;font-size:10.5px;color:var(--mut);font-variant-numeric:tabular-nums;flex:none;text-align:right}
 .stapelkopf .st-kpi b{color:var(--txt);font-weight:700}
 .stapelkopf .st-kpi .p{color:var(--ok)}
 .stapelkopf .caret{font-size:11px;color:var(--mut2);transition:transform .2s;flex:none;width:12px;text-align:center}
@@ -369,7 +369,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .krow .kmain{display:block;min-width:8rem;padding:9px 12px 7px;cursor:pointer}
 .krow .ktitle{font-size:14px;font-weight:700;overflow-wrap:break-word;line-height:1.25}  /* A2 voller Titel · v1.7.2: break-word statt anywhere */
 .krow.erledigt .ktitle{text-decoration:line-through;color:var(--mut)}
-.krow .kmeta{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:10.5px;color:var(--mut);margin-top:3px;font-family:ui-monospace,monospace}
+.krow .kmeta{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:10.5px;color:var(--mut);margin-top:3px;font-variant-numeric:tabular-nums}
 .krow .kmeta .b{color:var(--txt)}
 .krow .kmeta .tag{color:var(--blue)}
 .krow .kmeta .pri-muss{color:var(--bad)}
@@ -404,7 +404,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .stsh-legende i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .stsh-karte{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px;flex-wrap:wrap}
 .stsh-karte .t{flex:1 1 100%;font-size:13.5px;font-weight:700}
-.stsh-karte .m{flex:1;min-width:0;font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace}
+.stsh-karte .m{flex:1;min-width:0;font-size:10.5px;color:var(--mut);font-variant-numeric:tabular-nums}
 .stsh-karte .kstart{flex:none;width:44px;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--blue);font-size:16px}
 /* ══ §8 (v1.11.0) · Sheet-Tagescockpit ══ */
 /* §2/§3 (v1.11.1): Der Ring ist ein conic-gradient-RAHMEN um die Figur —
@@ -425,10 +425,10 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .stsh-teil .av-bar{display:block;height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:5px}
 .stsh-teil .av-bar i{display:block;height:100%;border-radius:4px;background:var(--blue)}
 .stsh-kx .av-bar{margin-top:3px}
-.stsh-karte .pos{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:6px;background:var(--card);border:1px solid var(--line);font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace;vertical-align:1px}
+.stsh-karte .pos{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:6px;background:var(--card);border:1px solid var(--line);font-size:10.5px;color:var(--mut);font-variant-numeric:tabular-nums;vertical-align:1px}
 /* §5 (v1.11.1): Kettenzeile = normale Kartenzeile + Kettennummer davor */
 .stsh-kettenzeile{display:flex;gap:6px;align-items:flex-start;margin-bottom:6px}
-.stsh-kettenzeile .pos{flex:none;display:flex;align-items:center;justify-content:center;min-width:20px;height:44px;border-radius:8px;background:var(--card2);border:1px solid var(--line);font-size:11px;color:var(--mut);font-family:ui-monospace,monospace}
+.stsh-kettenzeile .pos{flex:none;display:flex;align-items:center;justify-content:center;min-width:20px;height:44px;border-radius:8px;background:var(--card2);border:1px solid var(--line);font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums}
 .stsh-kettenzeile .kz{flex:1;min-width:0}
 .stsh-kettenzeile .kz .krow{margin-bottom:0}
 .stsh-sum{font-size:12px;color:var(--mut);background:var(--card2);border:1px dashed var(--line);border-radius:10px;padding:7px 10px;margin-top:2px}
@@ -453,7 +453,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .albitem.rang.zu img{filter:brightness(.16) saturate(.3);opacity:1}
 .albitem .albn{font-size:10.5px;font-weight:700;color:var(--txt);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .albitem.zu .albn{color:var(--mut2)}
-.albitem .albs{font-size:9.5px;color:var(--mut2);font-family:ui-monospace,monospace}
+.albitem .albs{font-size:9.5px;color:var(--mut2);font-variant-numeric:tabular-nums}
 .albdetail{position:fixed;inset:0;z-index:300;background:rgba(6,10,18,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:12px}
 .albdetail img{max-width:92vw;max-height:70vh;border-radius:14px;border:1px solid var(--line)}
 .albdetail .nm{font-size:15px;font-weight:800;color:var(--txt)}
@@ -472,7 +472,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
   justify-content:center;padding:24px;animation:momvoll .35s ease}
 .mom-voll.still{animation:none}
 @keyframes momvoll{from{opacity:0}to{opacity:1}}
-.mv-kern{text-align:center;max-width:340px}
+.mv-kern{text-align:center;width:100%;padding:0 8px;box-sizing:border-box}
 .mv-titel{font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:14px}
 .mv-bilder{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px}
 .mv-bilder img{width:120px;max-width:36vw;border-radius:14px;border:1px solid var(--line)}
@@ -480,7 +480,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .mv-bilder img.neu{box-shadow:0 0 40px rgba(242,184,75,.35);animation:mvneu .6s ease}
 @keyframes mvneu{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
 .mv-pfeil{font-size:22px;color:var(--warn);font-weight:800}
-.mv-kulisse img{width:100%;max-width:320px;border-radius:14px;border:1px solid var(--line);animation:mvneu .6s ease}
+.mv-kulisse img{width:100%;border-radius:14px;border:1px solid var(--line);animation:mvneu .6s ease}
 .mv-name{font-size:18px;font-weight:800;color:var(--txt);margin-bottom:6px}
 .mv-flamme{font-size:56px;margin-bottom:10px;animation:mvneu .6s ease}
 .mv-sub{font-size:11px;color:var(--mut2)}
@@ -560,11 +560,11 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 #fokusAktiv .fk-titel{flex:1;min-width:0;font-size:18px;font-weight:900;line-height:1.25}
 #fokusAktiv .fk-check{flex:none;width:34px;height:34px;border-radius:9px;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-size:19px;color:transparent}
 #fokusAktiv.erledigt .fk-check{background:var(--ok);border-color:var(--ok);color:#0a0f1a}
-#fokusAktiv .fk-meta{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--mut);margin-top:8px;font-family:ui-monospace,monospace}
+#fokusAktiv .fk-meta{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--mut);margin-top:8px;font-variant-numeric:tabular-nums}
 #fokusAktiv .fk-meta b{color:var(--txt)}
 #fokusAktiv .fk-meta .pt{color:var(--ok);font-weight:800}
 /* Fokus-KPIs + Fortschrittsbalken (v1.1, v0.38-Port) */
-#fokusAktiv .fk-kpi{display:flex;gap:16px;margin-top:12px;font-family:ui-monospace,monospace}
+#fokusAktiv .fk-kpi{display:flex;gap:16px;margin-top:12px;font-variant-numeric:tabular-nums}
 #fokusAktiv .fk-kpi>div{display:flex;flex-direction:column;line-height:1.15}
 #fokusAktiv .fk-kpi .v{font-size:17px;font-weight:800}
 #fokusAktiv .fk-kpi .v#fkSess{color:var(--cyan)}
@@ -584,7 +584,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 #fokusAktiv{touch-action:pan-y;will-change:transform}
 #fokusAktiv.imverlauf{border-left-color:var(--purple) !important;box-shadow:0 0 0 1px var(--purple) inset}
 #fokusAktiv .fk-swipe{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;
-  padding-top:8px;border-top:1px dashed var(--line);font-size:10px;font-family:ui-monospace,monospace;color:var(--mut2)}
+  padding-top:8px;border-top:1px dashed var(--line);font-size:10px;font-variant-numeric:tabular-nums;color:var(--mut2)}
 #fokusAktiv .fk-swipe .sw{white-space:nowrap}
 /* §9.2 (v1.11.0): die Richtungs-Beschriftungen sind echte Buttons (≥44px) */
 #fokusAktiv .fk-swipe button.sw{background:transparent;border:none;color:var(--blue);font:inherit;font-weight:700;min-height:44px;padding:0 6px}
@@ -612,7 +612,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .tk-chip.on{background:rgba(255,255,255,.08)}
 .tk-reihe{font-size:12px;color:#9a9ca2;margin-top:8px;line-height:1.45}
 .dt-kacheln{grid-template-columns:1fr 1fr;gap:8px}
-.dt-w{font-family:ui-monospace,monospace;font-size:20px;font-weight:600;line-height:1.15;display:flex;align-items:center;gap:4px}
+.dt-w{font-variant-numeric:tabular-nums;font-size:20px;font-weight:600;line-height:1.15;display:flex;align-items:center;gap:4px}
 .dt-w small{font-size:12px;color:#9a9ca2;font-weight:500}
 .dt-s{font-size:10.5px;color:#9a9ca2;margin:2px 0 4px}
 .dt-bonus{font-size:11px;color:#9a9ca2;margin-top:8px}
@@ -620,13 +620,13 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .mx-heute{display:block;width:100%;margin-top:4px}
 .mx-leiste{display:flex;height:8px;border-radius:4px;overflow:hidden;background:#1c1f25;margin-top:8px}
 .mx-leiste i{display:block;height:100%}
-.fl-z{display:flex;justify-content:space-between;font-family:ui-monospace,monospace;font-size:13px;padding:2px 0}
+.fl-z{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;font-size:13px;padding:2px 0}
 .acwr-bullet{position:relative;height:10px;border-radius:5px;overflow:hidden;background:#1c1f25;margin-top:6px}
 .acwr-bullet i{position:absolute;top:0;bottom:0;opacity:.3}
 .acwr-bullet b{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff}
 .tickknopf{position:relative;width:40px;height:40px;flex:none;border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#e8e9ec}
 .tickknopf span{width:30px;height:30px;border-radius:50%;background:rgba(232,233,236,.18);display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1}
-.tickknopf b{position:absolute;top:-2px;font-family:ui-monospace,monospace;font-size:14px;font-weight:700;line-height:1;text-shadow:0 0 4px #000}
+.tickknopf b{position:absolute;top:-2px;font-variant-numeric:tabular-nums;font-size:14px;font-weight:700;line-height:1;text-shadow:0 0 4px #000}
 .uzzeile{align-items:center}
 .uzzeile .uatitel{flex:1}
 .uzlimit{font-size:10.5px;color:#9a9ca2}
@@ -637,7 +637,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .kl-play{width:34px;height:34px;border-radius:9px;border:1px solid #2a2d33;background:#1a1d22;color:#e8e9ec;font-size:14px;display:flex;align-items:center;justify-content:center}
 .kl-t{min-width:0;min-height:44px;display:flex;flex-direction:column;justify-content:center}
 .kl-titel{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kl-meta{font-size:10.5px;color:#9a9ca2;font-family:ui-monospace,monospace}
+.kl-meta{font-size:10.5px;color:#9a9ca2;font-variant-numeric:tabular-nums}
 .kl-check{width:34px;height:34px;border-radius:50%;border:2px solid #2a2d33;background:none;color:#2a2d33;font-size:15px;display:flex;align-items:center;justify-content:center;padding:0}
 .kl-check.ok{background:#3ecf8e;border-color:#3ecf8e;color:#0a0f1a}
 /* §5 (v3.5.0): Statistik — Gruppen, Module mit Kopf/Haupt/KPIs/Detail */
@@ -650,7 +650,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .stm-haupt{cursor:pointer}
 .stm-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
 .stm-kpi{background:#1a1d22;border-radius:10px;padding:8px}
-.stm-kpi .v{font-family:ui-monospace,monospace;font-size:13px;font-weight:500;color:#e8e9ec;display:flex;align-items:center;gap:4px}
+.stm-kpi .v{font-variant-numeric:tabular-nums;font-size:13px;font-weight:500;color:#e8e9ec;display:flex;align-items:center;gap:4px}
 .stm-kpi .l{font-size:10px;color:#9a9ca2;margin-top:2px}
 .stm-detail{border-top:1px dashed #2a2d33;margin-top:12px;padding-top:10px}
 .stm-dh{font-size:11px;color:#9a9ca2;margin:12px 0 6px;letter-spacing:.02em}
@@ -658,7 +658,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .hm{display:flex;flex-direction:column;gap:5px;font-size:11px;color:#9a9ca2}
 .hm-r{display:grid;grid-template-columns:44px repeat(7,1fr);gap:5px;align-items:center}
 .hm-kopf span{text-align:center}
-.hm-kw{font-family:ui-monospace,monospace;font-size:10px}
+.hm-kw{font-variant-numeric:tabular-nums;font-size:10px}
 .hm-c{display:block;height:22px;border-radius:6px;box-sizing:border-box}
 .hm-c.heute{outline:2px solid #fff;outline-offset:-2px}
 .hm-leg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:10px;color:#9a9ca2;margin-top:8px}
@@ -671,12 +671,12 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 /* §8 (v3.5.0): Matrixfaktor */
 .mf-z{display:grid;grid-template-columns:96px 1fr 40px;gap:8px;align-items:center;font-size:12px;margin:5px 0}
 .mf-z .nm{color:#9a9ca2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mf-z b{font-family:ui-monospace,monospace;text-align:right}
+.mf-z b{font-variant-numeric:tabular-nums;text-align:right}
 .mf-bahn{position:relative;height:10px;border-radius:5px;background:#1c1f25;overflow:hidden}
 .mf-bahn i{position:absolute;left:0;top:0;bottom:0;border-radius:5px}
 .mf-bahn i.ohne{background:#9a9ca2;opacity:.35}
 .mf-k{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;padding:6px 0;border-bottom:1px solid #1c1f25;font-size:12px}
-.mf-k .t{grid-column:1}.mf-k .mf-m{grid-column:1;font-size:10.5px;color:#9a9ca2;font-family:ui-monospace,monospace}
+.mf-k .t{grid-column:1}.mf-k .mf-m{grid-column:1;font-size:10.5px;color:#9a9ca2;font-variant-numeric:tabular-nums}
 .mf-k button{grid-column:2;grid-row:1/3}
 .mf-wahl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 /* §6 (v3.5.0): Shop-Uebersicht, Malmodus, Banner */
@@ -689,12 +689,12 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .mal-oeffnen{display:block;width:100%;margin:10px 0;padding:12px;border-radius:12px;background:#e8e9ec;color:#0f1115;font-weight:600;font-size:15px;border:0}
 .row{display:flex;align-items:center;gap:8px}.row.sp{justify-content:space-between}
 .mal-farben{display:flex;justify-content:space-between;gap:4px;margin:10px 0 12px}
-.mal-farbe{background:none;border:0;padding:0;width:30px;display:flex;flex-direction:column;align-items:center;gap:3px;color:#9a9ca2;font-family:ui-monospace,monospace;font-size:10px}
+.mal-farbe{background:none;border:0;padding:0;width:30px;display:flex;flex-direction:column;align-items:center;gap:3px;color:#9a9ca2;font-variant-numeric:tabular-nums;font-size:10px}
 .mal-farbe i{display:block;width:26px;height:26px;border-radius:50%}
 .mal-farbe.on i{box-shadow:0 0 0 2px #fff}
 .mal-farbe.aus i{opacity:.25}
 .mal-toepfe{display:flex;justify-content:space-between;align-items:flex-end;gap:4px}
-.mal-topf{display:flex;flex-direction:column;align-items:center;gap:2px;font-family:ui-monospace,monospace;font-size:10px;color:#9a9ca2;cursor:pointer}
+.mal-topf{display:flex;flex-direction:column;align-items:center;gap:2px;font-variant-numeric:tabular-nums;font-size:10px;color:#9a9ca2;cursor:pointer}
 .mal-topf.wahl span{color:#e8e9ec}
 .mal-tank{width:22px;height:44px;border:1.5px solid #3a3e46;border-radius:6px;position:relative;overflow:hidden}
 .mal-tank i{position:absolute;left:0;right:0;bottom:0;background:#9a9ca2}
@@ -712,7 +712,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 /* §7 (v3.5.0): Belohnungsansicht — Vollbild, dunkel, Schritt fuer Schritt */
 .bel-ansicht{position:fixed;inset:0;z-index:950;background:#000;color:#e8e9ec;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:var(--sat)}
 .bel-ansicht .w{max-width:430px;margin:0 auto;padding:12px 12px calc(var(--sab) + 12px)}
-.bel-ansicht .m{font-family:ui-monospace,Menlo,Consolas,monospace}
+.bel-ansicht .m{font-variant-numeric:tabular-nums}
 .bel-ansicht .k{background:#121418;border-radius:16px;padding:12px;margin-bottom:10px}
 .bel-ansicht .h{font-size:11px;color:#9a9ca2;letter-spacing:.03em}
 .bel-ansicht .bt{font-size:18px;font-weight:600;margin-top:2px}
@@ -748,7 +748,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .bel-ansicht .skip{position:sticky;bottom:calc(var(--sab) + 8px);display:block;width:100%;padding:16px;border:0;border-radius:14px;background:#e8e9ec;color:#0f1115;font-size:16px;font-weight:600;margin-top:6px}
 .bel-ansicht .hint{text-align:center;color:#9a9ca2;font-size:11px;margin:6px 0 4px}
 /* §7.4: Kurzform */
-.tk-plus{position:fixed;z-index:940;transform:translate(-50%,-100%);font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:#e8e9ec;pointer-events:none;animation:tkPlus 1s ease-out forwards}
+.tk-plus{position:fixed;z-index:940;transform:translate(-50%,-100%);font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;color:#e8e9ec;pointer-events:none;animation:tkPlus 1s ease-out forwards}
 @keyframes tkPlus{0%{opacity:0;transform:translate(-50%,-60%)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-220%)}}
 .tk-tropfen{position:fixed;z-index:940;width:10px;height:10px;border-radius:50% 50% 50% 0;transform:translate(-50%,-50%) rotate(-45deg);pointer-events:none;transition:left .9s cubic-bezier(.2,.8,.2,1),top .9s cubic-bezier(.2,.8,.2,1),opacity .9s}
 .tk-muenze{position:fixed;z-index:940;font-size:14px;transform:translate(-50%,-50%);pointer-events:none;transition:left .9s cubic-bezier(.2,.8,.2,1),top .9s cubic-bezier(.2,.8,.2,1),opacity .9s}
@@ -765,7 +765,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .tkopfpuls{animation:tpuls 1.4s ease-in-out infinite}
 @keyframes tpuls{0%,100%{opacity:.85}50%{opacity:.15}}
 .tinfos{flex:1;min-width:0}
-.trest{font-family:ui-monospace,SFMono-Regular,monospace;font-size:26px;font-weight:800;line-height:1.1}
+.trest{font-variant-numeric:tabular-nums;font-size:26px;font-weight:800;line-height:1.1}
 .trest.gruen{color:var(--ok)} .trest.gelb{color:var(--warn)} .trest.rot{color:var(--bad)}
 .trestsub{font-size:10.5px;color:var(--mut);margin-bottom:8px}
 .tuabox{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
@@ -790,7 +790,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .tpb-g{background:#3b82f6;transition:width .5s} .tpb-y{background:#3b82f6;opacity:.25;transition:width .5s} .tpb-r{background:#FF2D95;transition:width .5s}   /* §1.5 (v3.5.0): erhalten = Familie, offen = Familie 25 %, ueber Plan = UEBER */
 .tpb-marks{position:absolute;inset:0;pointer-events:none}
 .tpb-mark{position:absolute;top:0;bottom:0;width:1.5px;background:#d4af37}   /* §1.5 (v3.5.0): Kauf-Marke GOLD */
-.tpb-info{font-size:9px;color:var(--mut2);margin-top:4px;font-family:ui-monospace,monospace;text-align:center}
+.tpb-info{font-size:9px;color:var(--mut2);margin-top:4px;font-variant-numeric:tabular-nums;text-align:center}
 /* Hotfix2: Aufgabentitel ganz oben in der Fokus-Karte (voll, mehrzeilig, A2) */
 #fokusAktiv .fk-haupttitel{font-size:19px;font-weight:900;line-height:1.25;overflow-wrap:break-word;margin-bottom:12px}
 /* §1 (v1.10.1, F1): Block mit zwei Zeilen — Meta volle Breite, darunter die
@@ -835,7 +835,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
   background:linear-gradient(90deg,var(--bad) 0%,#5a3a3a 42%,var(--card2) 50%,#31513f 58%,var(--ok) 100%)}
 .akkuslider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--txt);border:2px solid var(--bg)}
 .uareihe.tickzeile{background:rgba(242,184,75,.07);border:1px solid rgba(242,184,75,.3);border-radius:9px;padding:4px 8px;margin-bottom:6px}
-.uareihe.tickzeile .tickstand{margin-left:auto;font-family:ui-monospace,monospace;font-size:12px;color:var(--warn);font-weight:700;white-space:nowrap}
+.uareihe.tickzeile .tickstand{margin-left:auto;font-variant-numeric:tabular-nums;font-size:12px;color:var(--warn);font-weight:700;white-space:nowrap}
 .uaneu{display:flex;gap:var(--s1);margin-top:6px}
 .uaneu .uaminneu{flex:none;width:72px;text-align:center}   /* §4: Soll-Minuten (Pflicht) */
 .uaneu input{flex:1;font-size:13px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt)}
@@ -848,7 +848,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .fk-carousel{display:flex;align-items:center;gap:8px}
 .fk-carousel .arw{flex:none;width:44px;height:40px;border:1px solid var(--line);border-radius:10px;color:var(--txt);display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--bg)}
 .fk-carousel .arw:active{background:var(--card2)}
-.fk-carousel .pos{flex:1;text-align:center;font-size:12px;color:var(--mut);font-family:ui-monospace,monospace;font-weight:700}
+.fk-carousel .pos{flex:1;text-align:center;font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums;font-weight:700}
 
 /* Farbstreifen: nächste 10 des aktiven Stapels als Farbrechtecke ohne Titel */
 .streifsec{margin-top:var(--s2)}
@@ -861,7 +861,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .fk-cards .fcard .fc-col{height:52px;flex:none}
 .fk-cards .fcard .fc-body{flex:1;padding:8px 9px;display:flex;flex-direction:column;gap:4px}
 .fk-cards .fcard .fc-titel{font-size:13px;font-weight:800;line-height:1.2;overflow-wrap:anywhere}
-.fk-cards .fcard .fc-meta{font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:auto}
+.fk-cards .fcard .fc-meta{font-size:10.5px;color:var(--mut);font-variant-numeric:tabular-nums;margin-top:auto}
 .fk-cards .fcard.check .fc-titel{color:var(--mut2);text-decoration:line-through}
 
 /* ── Tag-Banner (D2) + Tagesabschluss (D5) ───────────────────────── */
@@ -869,7 +869,7 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .tagbanner.offen{border-color:var(--blue)}
 .tagbanner .tb-info{flex:1;min-width:0}
 .tagbanner .tb-h{font-size:13px;font-weight:800}
-.tagbanner .tb-sub{font-size:11px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:2px}
+.tagbanner .tb-sub{font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums;margin-top:2px}
 .tagbanner .tb-sub b{color:var(--ok)}
 .tagbanner .tb-btn{flex:none;font-size:13px;font-weight:800;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:8px 14px}
 .tagbanner .tb-btn.prim{color:#0a0f1a;background:var(--blue);border-color:var(--blue)}
@@ -878,7 +878,7 @@ input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radi
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--blue);border:2px solid var(--bg)}
 .abcard{background:var(--card2);border:1px solid var(--line);border-left:4px solid var(--mut2);border-radius:11px;padding:10px 12px;margin-bottom:8px}
 .abcard .abtitel{font-size:14px;font-weight:800}
-.abcard .abmeta{font-size:11px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:2px}
+.abcard .abmeta{font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums;margin-top:2px}
 .abbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
 .abbtn{font-size:12px;font-weight:700;color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 10px;background:var(--bg)}
 .abbtn.ok{color:var(--ok);border-color:var(--ok)}
@@ -887,7 +887,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .schiebe .row2{display:flex;gap:8px;margin-bottom:8px}
 .abzugsel{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--mut);margin-bottom:8px}
 .abcard.tap{display:flex;align-items:center;gap:12px;cursor:pointer}
-.abcard.tap .tapnum{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--mut2);font-family:ui-monospace,monospace}
+.abcard.tap .tapnum{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--mut2);font-variant-numeric:tabular-nums}
 .abcard.tap.num{border-left-color:var(--blue)}
 .abcard.tap.num .tapnum{border-color:var(--blue);background:var(--blue);color:#0a0f1a}
 
@@ -982,7 +982,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .katcard{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
 .katcard .kzeile{display:flex;align-items:baseline;gap:8px}
 .katcard .kname{flex:1;font-size:13px;font-weight:800}
-.katcard .kstufe{font-size:11px;color:var(--mut);font-family:ui-monospace,monospace}
+.katcard .kstufe{font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums}
 .katcard .kaktuell{font-size:12px;color:var(--cyan);margin-top:2px}
 .katcard .rankbar{height:7px;border-radius:4px;background:var(--bg);margin-top:8px;overflow:hidden}
 .katcard .rankbar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan))}
@@ -997,10 +997,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .statring-dom svg{flex:none}
 .srd-lab{font-size:12.5px;font-weight:800}
 .srd-lab .gut{color:var(--ok)} .srd-lab .schlecht{color:var(--bad)}
-.srd-sub{font-size:10px;color:var(--mut2);font-family:ui-monospace,monospace}
+.srd-sub{font-size:10px;color:var(--mut2);font-variant-numeric:tabular-nums}
 .statpace .pl{font-size:18px;font-weight:900}
 .statpace .pl.gut{color:var(--ok)} .statpace .pl.schlecht{color:var(--warn)}
-.statpace .ps{font-size:12px;color:var(--mut);font-family:ui-monospace,monospace}
+.statpace .ps{font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums}
 .segmini{font-weight:400;font-size:11px;margin-left:8px}
 /* §2 (v1.10.1, F2): 44px-Tap-Norm gilt auch für die Zeitraum-Segmente in der h3-Zeile */
 .segmini button{border:1px solid var(--line);border-radius:8px;padding:2px 9px;color:var(--mut);font-weight:700;margin-left:4px;min-width:44px;min-height:44px;vertical-align:middle}
@@ -1011,7 +1011,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .barchart .bwrap i{width:70%;max-width:16px;border-radius:3px 3px 0 0;background:var(--ok);transition:height .3s}
 .barchart .bwrap i.live{background:var(--blue)}
 .barchart .bwrap i.luecke{background:var(--line)}
-.barchart .bcol span{font-size:8px;color:var(--mut2);font-family:ui-monospace,monospace}
+.barchart .bcol span{font-size:8px;color:var(--mut2);font-variant-numeric:tabular-nums}
 .stathint{font-size:11px;color:var(--mut2);text-align:center;margin-top:4px}
 .split{display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:5px}
 .split .dfm{color:var(--warn)} .split .priv{color:var(--ok)}
@@ -1021,13 +1021,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .projrow>span:first-child{flex:none;width:32%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut)}
 .projrow .bwrap2{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
 .projrow .bwrap2 i{display:block;height:100%;background:var(--cyan)}
-.projrow b{flex:none;font-family:ui-monospace,monospace;font-size:11px}
+.projrow b{flex:none;font-variant-numeric:tabular-nums;font-size:11px}
 /* Diagramme (Punkt 2, v0.38-Port) */
 .akkukarte{margin:8px 0 4px}
-.akkukarte .lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-bottom:2px;font-family:ui-monospace,monospace}
+.akkukarte .lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-bottom:2px;font-variant-numeric:tabular-nums}
 .akkukarte .leer{color:var(--mut2);font-size:12px;text-align:center;padding:24px 0}
 .statfilter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 6px}
-.statfilter input[type=date]{background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:12px;padding:3px 8px;font-family:ui-monospace,monospace}
+.statfilter input[type=date]{background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:12px;padding:3px 8px;font-variant-numeric:tabular-nums}
 /* F1 (v1.3.3): Tagesauswahl ‹ › + „heute" — Touch-Ziele ≥44px */
 .statfilter .segmini button{min-width:44px;min-height:44px}
 .dpick{display:flex;align-items:center;gap:4px}
@@ -1037,14 +1037,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .dpick input[type=date]{min-height:44px}
 .kennz{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
 .kennz>div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 4px;text-align:center}
-.kennz b{display:block;font-size:16px;font-weight:800;font-family:ui-monospace,monospace}
+.kennz b{display:block;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
 .kennz span{font-size:9px;color:var(--mut2);letter-spacing:.3px}
 .auflh{font-size:12px;color:var(--mut);margin:10px 0 4px;font-weight:700}
 .aufl .arow{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:5px}
 .aufl .arow>span:first-child{flex:none;width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut)}
 .aufl .arow .bwrap2{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
 .aufl .arow .bwrap2 i{display:block;height:100%;background:var(--purple)}
-.aufl .arow b{flex:none;font-family:ui-monospace,monospace;font-size:11px}
+.aufl .arow b{flex:none;font-variant-numeric:tabular-nums;font-size:11px}
 /* Gruppen-Bulk-Zuordnung (Punkt 5g) */
 .gzlist{max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px;padding:4px 8px;margin-top:6px}
 .gzrow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:14px}
@@ -1067,7 +1067,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .such-row{display:flex;align-items:stretch;gap:4px;background:var(--card2);border:1px solid var(--line);border-radius:11px;margin-bottom:7px;overflow:hidden}
 .such-main{flex:1;min-width:0;padding:9px 6px 9px 11px;cursor:pointer}
 .such-t{font-size:14px;font-weight:700;overflow-wrap:anywhere;line-height:1.25}
-.such-m{font-size:11px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:3px}
+.such-m{font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums;margin-top:3px}
 .such-b{flex:none;width:44px;display:flex;align-items:center;justify-content:center;border-left:1px solid var(--line);font-size:16px;color:var(--blue);background:transparent}
 .such-b:active{background:var(--bg)}
 
@@ -1083,8 +1083,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .an-frow .seg.on{background:var(--blue);color:#0a0f1a;border-color:var(--blue)}
 .an-frow .seg.dom.on{background:var(--purple);border-color:var(--purple)}
 .an-frow .seg.art.on{background:var(--cyan);border-color:var(--cyan)}   /* §2 (1.7.0): Kartenart-Zeile */
-.an-frow input[type=date]{background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:12px;padding:4px 8px;font-family:ui-monospace,monospace}
-.an-frow .an-lbl{font-size:11px;color:var(--mut2);font-family:ui-monospace,monospace}
+.an-frow input[type=date]{background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:12px;padding:4px 8px;font-variant-numeric:tabular-nums}
+.an-frow .an-lbl{font-size:11px;color:var(--mut2);font-variant-numeric:tabular-nums}
 .an-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;padding-bottom:40px}
 .anmod{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:13px}
 .anmod-h{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
@@ -1093,13 +1093,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .anmod-sub{font-size:11px;color:var(--mut2);margin-bottom:10px;line-height:1.35}
 .anmod-kpis{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:10px}
 .ankpi{min-width:70px}
-.ankpi .v{font-size:18px;font-weight:800;line-height:1.05;font-family:ui-monospace,monospace}
+.ankpi .v{font-size:18px;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums}
 .ankpi .l{font-size:9.5px;color:var(--mut2);text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
-.ankpi .d{font-size:10px;font-weight:700;font-family:ui-monospace,monospace}
+.ankpi .d{font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}
 .ankpi .d.up{color:var(--ok)} .ankpi .d.down{color:var(--bad)} .ankpi .d.flat{color:var(--mut2)}
 .an-svg{width:100%;height:auto;display:block;margin-top:4px;overflow:visible}
 .an-leer{color:var(--mut);font-size:12.5px;text-align:center;padding:16px;border:1px dashed var(--line);border-radius:10px;background:var(--card2)}
-.an-legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:10px;color:var(--mut);font-family:ui-monospace,monospace;margin-top:8px}
+.an-legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:10px;color:var(--mut);font-variant-numeric:tabular-nums;margin-top:8px}
 /* §2–§3 (v3.3.0): quadratische Kacheln, Ring, Mini-Leisten */
 .fbk.dia-quad{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;text-align:center}
 .dia-quad .fbk-h{align-self:stretch;text-align:left}
@@ -1163,12 +1163,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
    dieselbe 13px-Rasterhöhe, damit jeder Punkt exakt auf seiner Tageszeile sitzt. */
 .an-hmwrap{display:flex;gap:5px;align-items:flex-start}
 .an-hmlab{display:flex;flex-direction:column;gap:3px;flex:none;padding-top:0}
-.an-hmlab span{height:13px;line-height:13px;font-size:8px;color:var(--mut2);font-family:ui-monospace,monospace}
+.an-hmlab span{height:13px;line-height:13px;font-size:8px;color:var(--mut2);font-variant-numeric:tabular-nums}
 .an-hm{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px;flex:1;min-width:0}
 .an-hm .wk{display:flex;flex-direction:column;gap:3px;flex:none}
 .an-hm .cell{width:13px;height:13px;border-radius:3px;background:var(--card2);flex:none}
 .an-bars{display:flex;flex-direction:column;gap:7px;margin-top:6px}
-.an-bar{display:flex;align-items:center;gap:8px;font-size:11px;font-family:ui-monospace,monospace}
+.an-bar{display:flex;align-items:center;gap:8px;font-size:11px;font-variant-numeric:tabular-nums}
 .an-bar .nm{flex:none;width:52px;color:var(--mut)}
 .an-bar .track{flex:1;height:12px;border-radius:6px;background:var(--card2);overflow:hidden}
 .an-bar .track i{display:block;height:100%;border-radius:6px}
@@ -1306,30 +1306,30 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .belkpi-col{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--card2)}
 .belkpi-col .bk-h{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
 .belkpi-col.dfm .bk-h{color:var(--warn)} .belkpi-col.priv .bk-h{color:var(--ok)}
-.belkpi-col .bk-row{font-size:11.5px;color:var(--mut);font-family:ui-monospace,monospace}
+.belkpi-col .bk-row{font-size:11.5px;color:var(--mut);font-variant-numeric:tabular-nums}
 .belkpi-col .bk-row b{color:var(--txt)}
 .belkpi-r2{display:flex;gap:8px}
 .belkpi-v{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 6px;text-align:center}
-.belkpi-v b{display:block;font-size:19px;font-weight:800;line-height:1.05;font-family:ui-monospace,monospace}
+.belkpi-v b{display:block;font-size:19px;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums}
 .belkpi-v span{font-size:9px;color:var(--mut2);text-transform:uppercase;letter-spacing:.3px}
 .aufl-g{border-top:1px solid var(--line)}
 .aufl-g:first-of-type{border-top:none}
 .aufl-gh{display:flex;align-items:center;gap:7px;padding:9px 2px;cursor:pointer;min-height:44px;box-sizing:border-box}
 .aufl-gh .caret{color:var(--mut2);font-size:11px;flex:none}
 .aufl-gh .nm{font-weight:700;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.aufl-gh .v{font-size:10.5px;color:var(--mut);font-family:ui-monospace,monospace;flex:none}
+.aufl-gh .v{font-size:10.5px;color:var(--mut);font-variant-numeric:tabular-nums;flex:none}
 .aufl-cardbar{height:12px !important;margin:0 0 8px}
 .aufl-body{padding:0 2px 8px 20px}
 .aufl-k{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;padding:4px 0;border-top:1px dashed var(--line)}
 .aufl-k .nm{color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.aufl-k .v{flex:none;color:var(--txt);font-family:ui-monospace,monospace}
-.stbar-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:10px;color:var(--mut);margin-bottom:10px;font-family:ui-monospace,monospace}
+.aufl-k .v{flex:none;color:var(--txt);font-variant-numeric:tabular-nums}
+.stbar-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:10px;color:var(--mut);margin-bottom:10px;font-variant-numeric:tabular-nums}
 .stbar-leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:middle}
 .stbar-row{margin-bottom:9px}
 .stbar-nm{font-size:12px;font-weight:700;margin-bottom:3px;display:flex;gap:6px}
-.stbar-nm span{color:var(--mut2);font-weight:600;font-family:ui-monospace,monospace}
+.stbar-nm span{color:var(--mut2);font-weight:600;font-variant-numeric:tabular-nums}
 .stbar{display:flex;height:18px;border-radius:6px;overflow:hidden;background:var(--card2)}
-.stbar i{display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:800;color:#0a0f1a;min-width:0;font-family:ui-monospace,monospace}
+.stbar i{display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:800;color:#0a0f1a;min-width:0;font-variant-numeric:tabular-nums}
 
 /* ── V3 Debug-Overlay: Tap-Flächen sichtbar (Mehr → Info) ─────────────
    Rein visuell; outline verändert kein Layout, offenbart aber die exakten
@@ -1385,9 +1385,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
    Quadratisch über aspect-ratio (nicht über feste px), damit es bei 375 px
    und 430 px gleich funktioniert. Die Quadranten sind reine Beschriftung;
    getroffen wird die Fläche, nicht die Kachel. */
-.mxpad{position:relative;width:100%;aspect-ratio:1/1;max-width:320px;margin:4px auto 6px;
+.mxpad{position:relative;width:100%;aspect-ratio:1/1;margin:4px auto 6px;
   border-radius:14px;background:var(--bg2);border:1px solid var(--li);overflow:hidden;touch-action:none;cursor:crosshair}
-.mxpad-feld{max-width:280px;aspect-ratio:1.15/1}
+.mxpad-feld{aspect-ratio:1.15/1}
 .mxpad-feld .mxq{padding:6px}
 .mxpad-feld .mxq.on{background:rgba(79,142,247,.18);box-shadow:inset 0 0 0 1.5px var(--blue)}
 .mxq{position:absolute;width:50%;height:50%;display:flex;flex-direction:column;justify-content:center;
@@ -1529,7 +1529,7 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 .routzeile{display:flex;align-items:center;gap:10px;padding:7px 10px;border-top:1px solid var(--line);touch-action:pan-y}
 .routzeile .rz-main{flex:1;min-width:0;min-height:44px;display:flex;flex-direction:column;justify-content:center}  /* §2 (v1.10.1, F3): Tap-Norm */
 .routzeile .rz-titel{font-size:14px;font-weight:700;overflow-wrap:break-word}  /* v1.7.2: wie .ktitle — bricht nur echte Überlängen, nicht mitten im Wort */
-.routzeile .rz-sub{font-size:11px;color:var(--mut2);font-family:ui-monospace,monospace}
+.routzeile .rz-sub{font-size:11px;color:var(--mut2);font-variant-numeric:tabular-nums}
 .routzeile .rz-fb{color:var(--ok);font-weight:800;margin-left:6px}
 .routzeile .rz-play,.routzeile .rz-plus{flex:none;width:44px;height:44px;border-radius:11px;border:1px solid var(--line);
   background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px}
@@ -1547,7 +1547,7 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 .rgruppe-kopf{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:11px;font-weight:800;
   text-transform:uppercase;letter-spacing:.5px;color:var(--mut)}
 .rgruppe-kopf .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.rgruppe-kopf .z{color:var(--txt);font-family:ui-monospace,monospace}
+.rgruppe-kopf .z{color:var(--txt);font-variant-numeric:tabular-nums}
 .rgruppe-kopf .b{color:var(--purple)}
 .rgruppe.voll .rgruppe-kopf .b{color:var(--ok)}
 .rgruppe .routzeile:first-of-type{border-top:none}
@@ -1726,7 +1726,7 @@ body{background:var(--bg)}
 .pf-z{display:flex;align-items:center;gap:8px;min-height:44px;border-top:1px solid var(--line)}
 .pf-lab{flex:0 0 86px;font-size:12.5px}
 .pf-pm{flex:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font-size:20px;font-weight:700;padding:0}
-.pf-wert{flex:0 0 52px;text-align:center;font:800 15px/1 ui-monospace,monospace}
+.pf-wert{flex:0 0 52px;text-align:center;font-weight:800;font-size:15px;line-height:1;font-variant-numeric:tabular-nums}
 .pf-einheit{flex:1;min-width:0;font-size:10.5px;color:var(--mut2);line-height:1.25}
 .pf-an{color:var(--mut2);font-weight:400}
 .pf-vs{margin-top:8px;padding:8px 10px;border:1px dashed #a3a6ab;border-radius:12px;font-size:12px;line-height:1.4}
@@ -1792,7 +1792,7 @@ body{background:var(--bg)}
 .korr-tuer ul{margin:4px 0 0 16px}
 .abv3-prog{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;font-size:13px;line-height:1.5}
 .al-z.kvis-spaeter:not(.fertig){opacity:1}   /* in der Leiste ist „ohne Datum" normal — nicht gedimmt */
-.al-stand{font-family:ui-monospace,monospace;opacity:.8!important}
+.al-stand{font-variant-numeric:tabular-nums;opacity:.8!important}
 .zs-play{width:40px;height:40px}
 .detail-vomgeraet{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
 .wdh-box{margin:-4px 0 12px;padding:10px;border:1px dashed var(--line);border-radius:12px}
@@ -1828,7 +1828,7 @@ body{background:var(--bg)}
 .tl{position:relative;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:8px 12px 9px}
 .tl-h{font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
 .tl-reihe{position:relative;height:17px}
-.tl-l{position:absolute;top:1px;font:800 12px/15px ui-monospace,monospace;white-space:nowrap}
+.tl-l{position:absolute;top:1px;font-weight:750;font-size:12px;line-height:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tl-l.ich{color:var(--af)}.tl-l.ziel{color:#f2f2f3}.tl-l.kprog{color:var(--fc2,#b1f5c8)}.tl-l.klive{color:var(--fc,#4ade80)}
 .tl-bahn{position:relative;height:12px;border-radius:6px;background:#1a1c20;margin:2px 0}
 .tl-bahn .tl-ich{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,var(--af2),var(--af));box-shadow:0 0 10px color-mix(in srgb,var(--af) 45%,transparent)}
@@ -1865,6 +1865,43 @@ body{background:var(--bg)}
 /* §1.2 (v2.5.0): ACWR-Kennzahlen in der Zonenfarbe */
 .anmod-kpis.acwr .ankpi:first-child .v,.anmod-kpis.acwr .ankpi:nth-child(2) .v{color:var(--af)}
 .fb-modul .anmod-sub{font-size:11px}
+
+/* ══ HOTFIX 3.5.1 §1 · AUSGESTALTUNG — Systemschrift, Verlaeufe, enge Abstaende ══════════
+   Das Farbsystem (Rollen) aus 3.5.0 bleibt; geaendert ist nur die Ausgestaltung. */
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+main{padding-left:8px;padding-right:8px}                       /* §1.3: Seitenrand 8 px */
+#statistikBody{padding:0 0 20px}
+#fokusLayer{padding-left:8px;padding-right:8px}
+.blk{background:#121418;border-radius:14px;padding:12px 10px;margin-bottom:8px;min-width:0}   /* Blockabstand 8, innen 12/10 */
+.blk-h{display:flex;align-items:center;font-size:13px;font-weight:700;margin-bottom:8px;gap:6px}
+.blk-h .r{margin-left:auto;font-size:11px;color:#9a9ca2;font-weight:500}
+.blk svg{max-width:100%}
+.kach{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kch{background:#1a1d22;border-radius:12px;padding:10px;min-height:118px;display:flex;flex-direction:column;min-width:0}
+.kch .h{font-size:11.5px;color:#9a9ca2;font-weight:600}
+.kch .w{font-size:22px;font-weight:750;margin-top:3px;line-height:1.1;display:flex;align-items:center;gap:5px}
+.kch .w small{font-size:13px;color:#9a9ca2;font-weight:600}
+.kch .s{font-size:11px;color:#9a9ca2;margin-top:2px}
+.kch .unten{margin-top:auto}
+.kch svg{display:block;width:100%}
+.kch.flach{min-height:96px}
+.lbar{position:relative;height:8px;border-radius:4px;background:#1c1f25;overflow:hidden;margin-top:8px}
+.lbar i{position:absolute;top:0;bottom:0;border-radius:4px}
+.skala{display:flex;justify-content:space-between;font-size:10px;color:#9a9ca2;margin-top:3px}
+.kpi3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.kpi3>div{background:#1a1d22;border-radius:10px;padding:7px 8px;min-width:0}
+.kpi3 b{display:flex;align-items:center;gap:4px;font-size:16px;font-weight:750}
+.kpi3 span{font-size:10.5px;color:#9a9ca2}
+.legende{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:#c9cbd0;margin-top:8px}
+.legende span{display:inline-flex;align-items:center;gap:5px}
+.legende i{display:inline-block;width:16px;height:9px;border-radius:2px;flex:none}
+.dh{font-size:12px;color:#9a9ca2;font-weight:600;margin:10px 0 6px}
+/* §1.5: Abhak-Effekt — Haken waechst ein (200 ms), Leuchthof in Familienfarbe, „+n" steigt auf (600 ms) */
+.hak-neu{animation:hakEin .2s ease-out both;box-shadow:0 0 0 6px color-mix(in srgb,var(--hakf,#3b82f6) 25%,transparent),0 0 16px color-mix(in srgb,var(--hakf,#3b82f6) 60%,transparent)}
+@keyframes hakEin{from{transform:scale(.3)}to{transform:scale(1)}}
+.hak-flug{display:inline-block;margin-left:6px;font-size:12px;font-weight:800;color:var(--hakh,#93c5fd);animation:hakFlug .6s ease-out forwards;pointer-events:none}
+@keyframes hakFlug{0%{opacity:0;transform:translateY(4px)}25%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
+@media (prefers-reduced-motion: reduce){ .hak-neu{animation:none} .hak-flug{animation:none;opacity:1} }
 </style>
 </head>
 <body>
@@ -5372,6 +5409,21 @@ function bewertungStetig(a){
 }
 /* Hex mit Deckkraft (0…1) als 8-stelliges Hex */
 function farbeAlpha(hex, a){ return hex+Math.round(Math.max(0,Math.min(1,a))*255).toString(16).padStart(2,'0'); }
+/* §1.2 (v3.5.1): Verlaeufe zurueck — Fuellungen laufen von der hellen zur vollen Variante derselben Rolle:
+   DFM BLAU_HELL → BLAU · Privat LILA_HELL → LILA · Gold #f3dc8a → GOLD · Ampel-/sonstige Farben 55 % → 100 % */
+function verlaufHell(c){ const k=String(c||'').toLowerCase();
+  return k===FARBE.BLAU.toLowerCase() ? FARBE.BLAU_HELL : k===FARBE.LILA.toLowerCase() ? FARBE.LILA_HELL : k===FARBE.GOLD.toLowerCase() ? '#f3dc8a' : (/^#[0-9a-f]{6}$/i.test(String(c)) ? farbeAlpha(c, .55) : c); }
+function verlauf(c, grad){ return 'linear-gradient('+(grad==null?90:grad)+'deg,'+verlaufHell(c)+','+c+')'; }
+/* SVG-Verlauf senkrecht (oben voll, unten 55 %) fuer Saeulen */
+function verlaufDefSvg(id, c){ return '<linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c+'"/><stop offset="1" stop-color="'+c+'" stop-opacity=".55"/></linearGradient>'; }
+function famFarbe(k){ return (k && k.domain==='privat') ? FARBE.LILA : FARBE.BLAU; }
+function famHell(k){ return (k && k.domain==='privat') ? FARBE.LILA_HELL : FARBE.BLAU_HELL; }
+/* §1.5 (v3.5.1): Abhak-Effekt — gemerkt, welcher Haken eben gesetzt wurde (der Neuaufbau zeichnet ihn mit Effekt) */
+let _hakNeu=null;
+function hakMerken(id, punkte, k){ _hakNeu={ id, punkte:Math.round(num(punkte)), ts:Date.now(), fam:famFarbe(k), hell:famHell(k) }; }
+function hakAktiv(id){ return !!(_hakNeu && _hakNeu.id===id && Date.now()-_hakNeu.ts<900); }
+function hakStil(){ return _hakNeu ? '--hakf:'+_hakNeu.fam+';--hakh:'+_hakNeu.hell : ''; }
+function hakFlugHtml(id){ return (hakAktiv(id) && _hakNeu.punkte>0) ? '<span class="hak-flug" style="'+hakStil()+'">+'+fmtP(_hakNeu.punkte)+'</span>' : ''; }
 /* §2.3: Tempopfeil — r = Tempo(letzte 60 Min) ÷ Tempo(60 Min davor), 5 Stufen, aeussere doppelt */
 function tempopfeilStufe(r){
   if(r==null || !Number.isFinite(r)) return null;
@@ -6076,7 +6128,8 @@ function fbRing(frac, farbe, opt){
 function fbBalken(frac, marke, label, gut, farbe){
   const f=Math.max(0, Math.min(1, num(frac)));
   // §5 (v2.8.0): farbe = [hell, kraeftig] → Verlauf mit leichtem Leuchten
-  const fs=Array.isArray(farbe) ? ';background:linear-gradient(90deg,'+farbe[0]+','+farbe[1]+');box-shadow:0 0 8px color-mix(in srgb,'+farbe[1]+' 45%,transparent)' : '';
+  const fs=Array.isArray(farbe) ? ';background:linear-gradient(90deg,'+farbe[0]+','+farbe[1]+');box-shadow:0 0 8px color-mix(in srgb,'+farbe[1]+' 45%,transparent)'
+         : (typeof farbe==='string' && farbe ? ';background:'+verlauf(farbe) : '');   // §1.2 (v3.5.1)
   let h='<div class="fbk-bar'+(marke!=null?' mitmarke':'')+'"><i'+(gut?' class="gut"':'')+' style="width:'+(f*100).toFixed(1)+'%'+fs+'"></i>';
   if(marke!=null){
     const m=Math.max(0, Math.min(1, num(marke)))*100;
@@ -6699,8 +6752,8 @@ function fokusSubsHtml(k){
   const subs=untermenge(k.id).filter(u=>!istUnterZaehler(u));   // §1.2 (v3.2.0): Unter-Zaehler stehen in der Zaehler-Zeile, nicht als Haken-Unteraufgabe
   const zu=!!S.ui.fokusSubsZu, fertig=subs.filter(u=>u.done).length;
   const rows=subs.map(u=>'<div class="uareihe'+(u.done?' fertig':'')+'" data-uaid="'+u.id+'">'+
-    '<button class="uacheck" data-uatoggle="'+u.id+'"><span class="box">'+(u.done?'✓':'')+'</span></button>'+
-    '<div class="uatitel"><span class="uat">'+esc(u.titel||'Teilschritt')+'</span></div>'+
+    '<button class="uacheck" data-uatoggle="'+u.id+'"><span class="box'+(hakAktiv(u.id)?' hak-neu" style="'+hakStil():'')+'">'+(u.done?'✓':'')+'</span></button>'+
+    '<div class="uatitel"><span class="uat">'+esc(u.titel||'Teilschritt')+'</span>'+hakFlugHtml(u.id)+'</div>'+
     '<input class="uamin" type="number" inputmode="numeric" data-uamin="'+u.id+'" placeholder="0" value="'+(num(u.sollMin)>0?num(u.sollMin):'')+'" title="Minuten (zählen zur Kartenzeit)">'+
     (u.done
       ? '<span class="uapunkte">+'+fmtP(u.bonusPunkte)+'</span>'
@@ -8592,7 +8645,7 @@ function renderAbschlussV3(){
   } else {
     const md=abschlussMarkdown();
     h+='<p class="d">Der Tagesabschluss als Datei: erste Zeile Datum und Uhrzeit, darunter die Zusammenfassung, am Ende der vollständige Export als JSON-Block. Claude bucht daraus.</p>'+
-      '<textarea id="abv3Md" readonly style="min-height:200px;font-family:ui-monospace,monospace;font-size:11px;width:100%">'+esc(md)+'</textarea>'+
+      '<textarea id="abv3Md" readonly style="min-height:200px;font-size:11px;width:100%">'+esc(md)+'</textarea>'+
       '<div class="btnrow"><button class="btn" style="min-height:44px" data-abv3dl="1">⬇︎ Herunterladen</button><button class="btn" style="min-height:44px" data-abv3copy="1">📋 Text kopieren</button></div>'+
       '<div class="hint">'+(abschlussExportOk() ? '„Schließen" schließt den Tag ab.' : '„Schließen" wird aktiv, sobald der Export kopiert oder heruntergeladen ist — lange drücken überspringt ihn bewusst.')+
         ' Routinen und Counter bleiben danach bis „Schlafen" buchbar.</div>';
@@ -8616,7 +8669,7 @@ function tuerEditorHtml(){
     else if(f.t==='bool') inp='<select data-tuer="'+id+'"><option'+(v?' selected':'')+'>true</option><option'+(!v?' selected':'')+'>false</option></select>';
     else if(f.t==='zahl' || f.t==='zahlNull' || f.spezial==='geldNenner') inp='<input type="number" inputmode="decimal" step="any" data-tuer="'+id+'" value="'+(v==null?'':v)+'">';
     else if(f.t==='uhrzeit') inp='<input data-tuer="'+id+'" value="'+esc(v)+'">';
-    else inp='<textarea data-tuer="'+id+'" style="min-height:44px;font-family:ui-monospace,monospace;font-size:11px">'+esc(JSON.stringify(v))+'</textarea>';
+    else inp='<textarea data-tuer="'+id+'" style="min-height:44px;font-size:11px">'+esc(JSON.stringify(v))+'</textarea>';
     return '<div class="slider tuer-feld"><label>'+esc(b+'.'+n)+'</label>'+inp+'</div>';
   };
   const teil=(art,schema,titel)=>'<h4 class="abt-h">'+titel+'</h4>'+Object.keys(schema).map(b=>Object.keys(schema[b]).map(n=>zeile(art,b,n,schema[b][n])).join('')).join('');
@@ -9083,7 +9136,7 @@ function oeffneTagAbschlussPaket(paket){
   const h=seq+'<p class="d">Tag abgeschlossen. Kopiere das Paket in den Claude-Chat — '+
     'der Download bleibt als Zusatzoption, wird auf dem iPhone aber oft unterdrückt.</p>'+
     '<div class="field"><label>Tagesabschluss-Paket</label>'+
-    '<textarea id="tagEx" readonly style="min-height:150px;font-family:ui-monospace,monospace;font-size:11px">'+esc(txt)+'</textarea>'+
+    '<textarea id="tagEx" readonly style="min-height:150px;font-size:11px">'+esc(txt)+'</textarea>'+
     '<div class="btnrow"><button class="btn sm" data-tagcopy="1">📋 Kopieren</button>'+
     '<button class="btn sm" data-tagdownload="1">⬇︎ Datei</button></div></div>';
   openSheet('Tagesabschluss — Paket', h, '<button class="btn prim" data-close="1">Fertig</button>');
@@ -10876,7 +10929,7 @@ function oeffneNachtragExport(n){
   _nachtragMd=nachtragMarkdown(n);
   openSheet('🌙 Nachtrag zum Abschluss',
     '<p class="d">Seit dem Tagesabschluss: <b>'+n.anzahl+'</b> Buchungen · <b>'+(n.punkte>=0?'+':'−')+fmtP(Math.abs(n.punkte))+' P</b>. Der Tag ist jetzt zu — der Nachtrag geht als Delta an Claude.</p>'+
-    '<textarea id="ntMd" readonly style="min-height:180px;font-family:ui-monospace,monospace;font-size:11px;width:100%">'+esc(_nachtragMd)+'</textarea>'+
+    '<textarea id="ntMd" readonly style="min-height:180px;font-size:11px;width:100%">'+esc(_nachtragMd)+'</textarea>'+
     '<div class="btnrow"><button class="btn" style="min-height:44px" data-ntdl="1">⬇︎ Herunterladen</button><button class="btn" style="min-height:44px" data-ntcopy="1">📋 Kopieren</button></div>',
     '<button class="btn prim" data-close="1">Schließen</button>');
 }
@@ -12996,13 +13049,13 @@ function renderSyncSheet(){
        (seit?(' Letzter bestätigter Sync: '+esc(String(seit).slice(0,16).replace('T',' '))+'.')
             :' Noch kein bestätigter Sync — dieses Paket trägt deshalb alles.')+'</p>';
   }
-  h+='<div class="field"><label>Export</label><textarea id="syncEx" readonly style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px">'+ex+'</textarea>'+
+  h+='<div class="field"><label>Export</label><textarea id="syncEx" readonly style="min-height:120px;font-size:11px">'+ex+'</textarea>'+
      '<div class="btnrow"><button class="btn sm" data-synccopy="1">📋 Kopieren</button><button class="btn sm" data-syncdownload="1">⬇︎ Datei</button></div></div>';
   h+='<div class="field"><label>Angekommen?</label>'+
      '<p class="d" style="margin-top:0">Erst die Bestätigung schreibt den Zeitstempel fort und räumt erledigte Karten ab. '+
      'Vorher bleibt alles stehen — ein verlorener Sync darf nichts verschlucken.</p>'+
      '<div class="btnrow"><button class="btn sm" data-syncbestaetigt="1">✓ Ist im Chat angekommen</button></div></div>';
-  h+='<div class="field"><label>Import (Paket aus dem Chat)</label><textarea id="syncIn" placeholder="{ &quot;appVersion&quot;: &quot;'+APP_VERSION+'&quot;, &quot;karten&quot;: [ … ] }" style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px"></textarea></div>';
+  h+='<div class="field"><label>Import (Paket aus dem Chat)</label><textarea id="syncIn" placeholder="{ &quot;appVersion&quot;: &quot;'+APP_VERSION+'&quot;, &quot;karten&quot;: [ … ] }" style="min-height:120px;font-size:11px"></textarea></div>';
   h+='<div id="syncErgebnis"></div>';
   const foot='<button class="btn ghost sm" data-close="1">Schließen</button><button class="btn prim" data-syncimport="1">Importieren</button>';
   openSheet('Sync · '+UI_VERSION+' · Vertrag '+DATENVERTRAG.slice(0,3), h, foot);
@@ -13115,7 +13168,7 @@ function renderEinst(){
   // importieren, fertig. Export, Delta, Vollexport bleiben hinter „Sync".
   h+='<div class="card einst-import"><h3>Import</h3>'+
      '<textarea id="einstImport" placeholder="Paket aus dem Chat hier einfügen …" '+
-       'style="min-height:96px;width:100%;font-family:ui-monospace,monospace;font-size:11px"></textarea>'+
+       'style="min-height:96px;width:100%;font-size:11px"></textarea>'+
      '<div class="btnrow"><button class="btn prim" id="btnEinstImport" style="flex:1;min-height:44px">Importieren</button></div>'+
      '<div id="einstImportErg"></div></div>';
   h+='<div class="card"><h3>Daten &amp; Sync</h3><p class="d">Sync mit dem Claude-Chat (nur DFM, Copy-Paste) und lokales Backup.</p>'+
@@ -16398,7 +16451,8 @@ function saeulenSvg(cfg){
   (cfg.linien||[]).forEach(l=>{ if(l.y==null) return; const y=Y(l.y).toFixed(1); g+='<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="'+l.farbe+'" stroke-opacity=".7" stroke-dasharray="'+(l.dash||'2 3')+'"/>'+(l.label?'<text x="'+(W-pR+3)+'" y="'+(Y(l.y)+3).toFixed(1)+'" font-size="8" fill="'+l.farbe+'">'+l.label+'</text>':''); });
   cfg.saeulen.forEach((col,i)=>{ let up=0, dn=0; col.forEach(seg=>{ if(!seg.v) return; const v=seg.v, a=v>=0?up:dn, b=a+v; if(v>=0) up=b; else dn=b;
     const y1=Y(Math.max(a,b)), y2=Y(Math.min(a,b));
-    g+='<rect x="'+(X(i)-bw/2).toFixed(1)+'" y="'+y1.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(0.5, y2-y1).toFixed(1)+'" rx="2" fill="'+seg.farbe+'"'+(seg.alpha!=null?' fill-opacity="'+seg.alpha+'"':'')+'/>'; });
+    const gid=svgId('sv');   // §1.2 (v3.5.1): Saeulen im Verlauf (voll → 55 %)
+    g+='<defs>'+verlaufDefSvg(gid, seg.farbe)+'</defs><rect x="'+(X(i)-bw/2).toFixed(1)+'" y="'+y1.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(0.5, y2-y1).toFixed(1)+'" rx="3" fill="url(#'+gid+')"'+(seg.alpha!=null?' fill-opacity="'+seg.alpha+'"':'')+'/>'; });
     if(labels[i]===heute && cfg.wert){ g+='<text x="'+X(i).toFixed(1)+'" y="'+(Y(Math.max(up,0))-3).toFixed(1)+'" text-anchor="middle" font-size="9" fill="#fff">'+cfg.wert(i)+'</text>'; } });
   if(cfg.linie){ const pts=[]; cfg.linie.forEach((v,i)=>{ if(v!=null) pts.push({x:X(i), y:Y(v)}); });
     if(pts.length>1) g+='<path d="'+glattPfad(pts)+'" fill="none" stroke="'+FARBE.WEISS+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'; }
@@ -17098,10 +17152,10 @@ el('fokusView').addEventListener('click', e=>{
   const tbm=t.closest('svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; }
   const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
   if(karteRowClick(t, e)) return;   // U1: Fokus-Liste = gleiche Karten-Zeilen-Aktionen wie der Stapel
-  const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); buchungAbgleich(S.karten.find(x=>x.id===u.parentId), 'unteraufgabe'); renderFokus(); } return; }
+  const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); { const _pk=S.karten.find(x=>x.id===u.parentId), _d=buchungAbgleich(_pk, 'unteraufgabe'); if(u.done) hakMerken(u.id, Math.max(num(_d), num(u.bonusPunkte)), _pk); } renderFokus(); } return; }
   // Unteraufgaben-Block (v0.38-Look)
   if(t.closest('[data-tacctoggle]')){ const acc=t.closest('.tacc'); const zu=acc.classList.toggle('zu'); S.ui.fokusSubsZu=zu; saveUi(); return; }
-  const ut=t.closest('[data-uatoggle]'); if(ut){ const u=S.unteraufgaben.find(x=>x.id===ut.dataset.uatoggle); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); buchungAbgleich(S.karten.find(x=>x.id===u.parentId), 'unteraufgabe'); renderFokus(); } return; }
+  const ut=t.closest('[data-uatoggle]'); if(ut){ const u=S.unteraufgaben.find(x=>x.id===ut.dataset.uatoggle); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); { const _pk=S.karten.find(x=>x.id===u.parentId), _d=buchungAbgleich(_pk, 'unteraufgabe'); if(u.done) hakMerken(u.id, Math.max(num(_d), num(u.bonusPunkte)), _pk); } renderFokus(); } return; }
   const ux=t.closest('[data-uadel]'); if(ux){ S.unteraufgaben=S.unteraufgaben.filter(x=>x.id!==ux.dataset.uadel); DB.set('unteraufgaben', S.unteraufgaben); renderFokus(); return; }
   const ua=t.closest('[data-uaadd]'); if(ua){ fokusSubAnlegen(ua.dataset.uaadd); return; }   // §4
   // §9.4 (v1.8.0) / §2.3 (v1.13.0): Tick aus der Fokus-Zeile — eine Eingabe im
@@ -19385,7 +19439,7 @@ function zeigeV200Gate(){
     '</div>'+
     '<p class="d" style="margin-top:8px">Die Einordnung ist ein <b>Vorschlag</b> — jede Karte bleibt im Detail änderbar.</p>'+
     '<div class="field"><label>Vollexport nach Vertrag 1.6 (aus der Sicherung)</label>'+
-    '<textarea id="v200Ex" readonly style="min-height:120px;font-family:ui-monospace,monospace;font-size:11px">'+
+    '<textarea id="v200Ex" readonly style="min-height:120px;font-size:11px">'+
       esc(JSON.stringify(vollexport16AusSicherung(), null, 2))+'</textarea>'+
     '<div class="btnrow"><button class="btn sm" data-v200copy="1">📋 Kopieren</button>'+
     '<button class="btn sm" data-v200dl="1">⬇︎ Datei</button></div></div>'+
