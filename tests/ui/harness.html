@@ -107,7 +107,7 @@ function bestandSchreiben(){
     { sel:'.st-edit, .st-groesse, .caret, .segmini button, .seg', min:24 },
     { sel:'.minibtn, .kg-edit, .albtab, .albitem', min:24 },
     { sel:'.tb-btn, .btn.sm, .btn.ghost.sm', min:30 },
-    { sel:'#fkPP', min:38 },      // Play/Pause der Fokus-Leiste: bewusst kompakt (Bestand)
+    { sel:'#fkPP', min:34 },      // v3.5.0 §3.1: Play/Pause 34×34 (Spezifikation)
     { sel:'#sheetX, .x', min:34 } // Schliessen-X der Sheets: bewusst kompakt (Bestand)
   ];
   var TAP_MIN=44;
@@ -146,7 +146,7 @@ function bestandSchreiben(){
       var r=elm.getBoundingClientRect();
       geprueft++;
       /* 2) kein Element ragt über den Viewport */
-      if(r.right>W+2 && r.left<W)
+      if(r.right>W+2 && r.left<W && !(elm.closest && elm.closest('.dia-tv-scroll')))   // v3.5.0 §2.1: wischbare Tagesdiagramme ragen gewollt ueber den Rand
         fatal('Ragt über den Viewport: '+beschreibe(elm)+' (right '+Math.round(r.right)+' > '+W+')');
       /* 3) Tap-Ziele */
       var istTap = elm.tagName==='BUTTON' ||
