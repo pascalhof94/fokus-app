@@ -2107,6 +2107,56 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .kulbar .inh span{font-size:11.5px;color:#e6e6e6}
 .kulbar .lbar{background:rgba(0,0,0,.55);height:10px;border-radius:5px;margin-top:6px}
 .kulbar .lbar i{border-radius:5px}
+/* ══ HOTFIX 3.5.1 §5 · SHOP UND MALMODUS (Draft) ══ */
+.badge{font-size:11.5px;font-weight:650;padding:3px 8px;background:rgba(0,0,0,.6)}
+.mini-toepfe{display:flex;gap:5px;align-items:flex-end;margin-top:8px}
+.mini-toepfe svg{flex:none;width:auto}
+.kch .mt-text{color:#e8e9ec;font-size:12.5px;font-weight:650;margin-top:4px}
+.kch .w.klein{font-size:17px}
+.blk .bw-kat.objkat{background:none;border:0;border-top:1px solid #1d2026;border-radius:0;padding:8px 0;margin:0}
+.blk .bw-kat.objkat:first-of-type{border-top:0}
+.obj{display:grid;grid-template-columns:40% 1fr;gap:10px;align-items:center}
+.objbild{position:relative;aspect-ratio:1/1;border-radius:12px;background:radial-gradient(circle at 50% 40%,#2a3448,#15181e);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:30px}
+.objbild img{width:92%;height:92%;object-fit:contain}
+.objbild.leer{background:#1a1d22}
+.objbild .objemoji{font-size:30px}
+.objbild .stufe{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.65);border-radius:7px;padding:2px 7px;font-size:10.5px;font-weight:650;color:#e8e9ec}
+.objinfo{min-width:0}
+.objinfo>b{display:block;font-size:16px}
+.objinfo>span{display:block;font-size:12px;color:#9a9ca2}
+.objinfo>span.objakt{font-size:11px;line-height:1.3;overflow-wrap:anywhere}
+.stufen{display:flex;gap:3px;margin-top:8px}
+.stufen i{width:10px;height:10px;border-radius:50%;background:#262a32;box-sizing:border-box}
+.stufen i.gk{background:#d4af37}
+.stufen i.n{background:none;border:1.5px solid #d4af37}
+.kulbar{height:150px}
+.stm .kulbar{height:120px}
+.erk{margin-bottom:12px}
+.erk .et{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:#9a9ca2;margin-bottom:5px}
+.erk .et b{color:#e8e9ec;font-size:16px}
+.erk .et b small{font-size:11px;color:#9a9ca2;font-weight:500}
+.seg.dicht{gap:2px;margin-top:0}
+.seg.dicht i{border-radius:2px}
+.seg i.ok{background:linear-gradient(180deg,#6be3ab,#3ecf8e)}
+.seg i.akt{box-shadow:0 0 0 1.5px #fff inset}
+.seg6{display:grid;gap:5px}
+.seg6 div{display:flex;gap:1px}
+.seg6 i{flex:1;height:10px;border-radius:1px;background:#262a32}
+.seg6 i.ok{background:#d4af37}
+.mal-farben{margin:0 0 12px}
+.mal-farbe{width:32px;gap:4px;color:#e8e9ec;font-size:11.5px;font-weight:650}
+.mal-farbe i{width:22px;height:22px;border:1.5px solid #c9ccd2;box-sizing:border-box}
+.mal-farbe.on i{box-shadow:0 0 0 3px #000,0 0 0 5px #fff}
+.mal-farbe.aus{opacity:.35}
+.mal-farbe.aus i{opacity:1}
+.mal-topf{gap:3px;font-size:11px;font-weight:650;color:#e8e9ec}
+.mal-volle{justify-content:flex-start;gap:22px}
+.blk .mal-zoom{margin:0;border-radius:12px}
+.mal-inner{position:relative}
+.mal-puls{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;animation:malPuls 1.2s ease-in-out infinite}
+@keyframes malPuls{0%,100%{filter:drop-shadow(0 0 0 #fff);opacity:1}50%{filter:drop-shadow(0 0 6px #fff);opacity:.5}}
+@media (prefers-reduced-motion: reduce){ .mal-puls{animation:none} }
+.badge.zb{left:auto;top:auto;right:8px;bottom:8px;font-size:11px;font-weight:500}
 </style>
 </head>
 <body>
@@ -15534,12 +15584,22 @@ function belShopHtml(){
       });
       liste+='</div>';
     }
-    return '<div class="bw-kat">'+
-      '<div class="bw-katkopf"><span class="bw-katbild" aria-hidden="true">'+(offen>=1?bildFuer(offen):kat.icon)+'</span>'+
-        '<span class="nm"><b>'+kat.icon+' '+esc(kat.name)+'</b><span class="bar" aria-hidden="true">'+fbBalken(offen/max, null, null, offen>=max)+'</span></span>'+
-        '<b class="n">'+offen+'/'+max+'</b></div>'+
-      '<div class="bw-akt">'+(offen>=1?('Aktuell: '+esc(kat.stufen[offen-1][0])):'Noch nichts gekauft')+'</div>'+
-      naechste+
+    // §5 Nr. 2 (v3.5.1): links (40 %, quadratisch, Radius 12) das gerenderte Bild der AKTUELLEN Stufe mit Stufen-Pille, ohne
+    // Bild das Emoji klein als Rueckfall; rechts Name, naechste Stufe, Preis, Fuellbalken GOLD, Ankunft, Stufenpunkte 1–12
+    const hatBild=offen>=1 && !!zone;
+    const objbild='<div class="objbild'+(hatBild?'':' leer')+'" aria-hidden="true">'+(hatBild ? bildFuer(offen) : '<span class="objemoji">'+kat.icon+'</span>')+'<span class="stufe">'+(offen>=1 ? 'Stufe '+offen : 'noch kein Bild')+'</span></div>';
+    let info='<b>'+esc(kat.name)+'</b>'+(offen>=1 ? '<span class="objakt">Aktuell: '+esc(kat.stufen[offen-1][0])+'</span>' : '');
+    if(sperre==='komplett') info+='<span>🏁 Alle zwölf Stufen gekauft</span>';
+    else { const s=offen+1;
+      info+='<span>Stufe '+s+' · '+fmtP(preis)+' Münzen</span><span class="objakt">'+esc(kat.stufen[s-1][0])+'</span>';
+      if(sperre) info+='<span class="bw-sperre">🔒 '+esc(sperre)+'</span>';
+      else { let an=''; try{ an=shopAnkunftText({kat:kk, preis, stufe:s}).replace(/ · fehlen.*$/, ''); }catch(e){ an=''; }
+        info+='<div class="lbar" style="height:10px;border-radius:5px"><i style="left:0;width:'+Math.max(0, Math.min(100, k/Math.max(1,preis)*100)).toFixed(1)+'%;background:'+verlauf(FARBE.GOLD)+'"></i></div>'+
+          '<div class="skala"><span>'+(k>=preis ? 'kaufbar' : 'fehlen '+fmtP(preis-k))+'</span><span>'+esc(an)+'</span></div>'+
+          (k>=preis ? '<button class="kaufbtn bw-kauf" data-kauf="'+kk+'">Kaufen · '+fmtP(preis)+' 🪙</button>' : ''); }
+    }
+    let punkte='<div class="stufen" aria-label="'+offen+' von '+max+' Stufen">'; for(let i=1;i<=max;i++) punkte+='<i class="'+(i<=offen?'gk':(i===offen+1?'n':''))+'"></i>'; punkte+='</div>';
+    return '<div class="bw-kat objkat"><div class="obj">'+objbild+'<div class="objinfo">'+info+punkte+'</div></div>'+
       '<button class="bw-alle" data-belkat="'+kk+'" aria-expanded="'+(auf[kk]?'true':'false')+'">'+(auf[kk]?'Stufen einklappen ▴':'Alle zwölf Stufen ▾')+'</button>'+
       liste+'</div>';
   }).join('');
@@ -15750,23 +15810,36 @@ function ausmalKomposit(opt){
   if(!B.px){ B.px={ farbig:ausmalPixel(B.farbig).data, kanten:ausmalPixel(B.kanten).data, feld:ausmalPixel(B.feld).data }; }
   const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d'); x.drawImage(B.bg,0,0);
   const out=x.getImageData(0,0,W,H), o=out.data, fa=B.px.farbig, ka=B.px.kanten, fe=B.px.feld;
-  const gef=new Uint8Array(256); A.gefaerbt.forEach(f=>{ gef[f]=1; }); const hv=new Uint8Array(256); hl.forEach(f=>{ hv[f]=1; });
+  const gef=new Uint8Array(256); A.gefaerbt.forEach(f=>{ gef[f]=1; }); const hv=new Uint8Array(256); hl.forEach(f=>{ hv[f]=1; }); const dunkel=hl.length>0;
   for(let i=0;i<o.length;i+=4){ const f=fe[i];
     if(gef[f]){ o[i]=fa[i]; o[i+1]=fa[i+1]; o[i+2]=fa[i+2]; }
-    else if(hv[f]){ o[i]=o[i]+(255-o[i])*0.4; o[i+1]=o[i+1]+(255-o[i+1])*0.4; o[i+2]=o[i+2]+(255-o[i+2])*0.4; }
-    if(ka[i]>127 && !gef[f]){ o[i]=0x14; o[i+1]=0x14; o[i+2]=0x18; } }
+    if(ka[i]>127 && !gef[f]){ o[i]=0x14; o[i+1]=0x14; o[i+2]=0x18; }
+    // §5 Nr. 6 (v3.5.1): bei gewaehlter Farbe alles ausser ihren offenen Feldern 45 % abdunkeln
+    if(dunkel && !hv[f]){ o[i]*=0.55; o[i+1]*=0.55; o[i+2]*=0.55; } }
   x.putImageData(out,0,0);
+  // weisser Umriss der hervorgehobenen Felder (≈ 2 px in der Anzeige) als eigene Ebene — sie pulst per CSS
+  c._umriss=null;
+  if(dunkel){ const um=document.createElement('canvas'); um.width=W; um.height=H; const ux=um.getContext('2d'), ud=ux.createImageData(W,H), u=ud.data, R=3, RW=R*W*4, R4=R*4;
+    for(let y=0;y<H;y++){ const z0=y*W*4; for(let xx=0;xx<W;xx++){ const i=z0+xx*4, f=fe[i], h1=hv[f]; let g, rand=false;
+        if(xx>=R){ g=fe[i-R4]; if(h1 ? g!==f : hv[g]) rand=true; }
+        if(!rand && xx<W-R){ g=fe[i+R4]; if(h1 ? g!==f : hv[g]) rand=true; }
+        if(!rand && y>=R){ g=fe[i-RW]; if(h1 ? g!==f : hv[g]) rand=true; }
+        if(!rand && y<H-R){ g=fe[i+RW]; if(h1 ? g!==f : hv[g]) rand=true; }
+        if(rand){ u[i]=255; u[i+1]=255; u[i+2]=255; u[i+3]=255; } } }
+    ux.putImageData(ud,0,0); c._umriss=um; }
   _ausmalKomposit=c; _ausmalKompositKey=key; return c;
 }
 function ausmalKompositNeu(){ _ausmalKompositKey=''; try{ ausmalCanvasZeichnen(); }catch(e){} }
 /* zeichnet alle sichtbaren Kulissen-Canvas (Szene, Malmodus) */
 function ausmalCanvasZeichnen(){
   if(typeof document==='undefined' || !document.querySelectorAll) return;
-  document.querySelectorAll('canvas[data-kulisse]').forEach(cv=>{
+  document.querySelectorAll('canvas[data-kulisse]').forEach(cv=>{   // (die Puls-Ebene canvas.mal-puls traegt kein data-kulisse)
     const hl=cv.dataset.hl ? cv.dataset.hl.split(',').filter(Boolean).map(Number) : [];
     const k=ausmalKomposit({hervorheben:hl}); if(!k) return;
     if(cv.width!==k.width){ cv.width=k.width; cv.height=k.height; }
     const x=cv.getContext('2d'); x.drawImage(k,0,0);
+    const pu=cv.parentNode && cv.parentNode.querySelector ? cv.parentNode.querySelector('canvas.mal-puls') : null;
+    if(pu){ if(pu.width!==k.width){ pu.width=k.width; pu.height=k.height; } const px=pu.getContext('2d'); px.clearRect(0,0,pu.width,pu.height); if(k._umriss) px.drawImage(k._umriss,0,0); }
     if(_malFade && Date.now()-_malFade.t0<400){ const a=1-(Date.now()-_malFade.t0)/400, B=ausmalBilder(ausmalState().kulisse);
       if(B && B.px){ const bb=feldBbox(_malFade.feld); if(bb){ x.globalAlpha=a; x.drawImage(B.bg, bb[0],bb[1],bb[2]-bb[0],bb[3]-bb[1], bb[0],bb[1],bb[2]-bb[0],bb[3]-bb[1]); x.globalAlpha=1; } }
       requestAnimationFrame(ausmalCanvasZeichnen); } });
@@ -15775,15 +15848,28 @@ function feldBbox(f){ const D=ausmalDaten(ausmalState().kulisse); if(!D) return 
 /* Hit-Test: Feldnummer am Bildpunkt */
 function feldAn(px, py){ const B=ausmalBilder(ausmalState().kulisse); if(!B || !B.px) return 0; const W=B.bg.naturalWidth, H=B.bg.naturalHeight; const x=Math.floor(px), y=Math.floor(py); if(x<0||y<0||x>=W||y>=H) return 0; return B.px.feld[(y*W+x)*4]; }
 /* ── Topf als SVG (Trapez mit Fuellstand) ── */
+/* §5 Nr. 5 (v3.5.1): Glas mit hellem Innenhintergrund #3a3f4a und heller Kante #c9ccd2 1,5 px (aktiver Topf WEISS 2 px),
+   Lichtreflex links als weisser Streifen 18 %, Deckel hell — die Farbe fuellt darin von unten, dunkle Farben stehen
+   so immer vor hellem Grund. Gilt in Uebersicht, Station und „Töpfe mit Farbe". */
 function topfSvg(t, groesse, opt){
   opt=opt||{}; const S_=groesse||34, H=S_*1.27, T=topfFassung()||1, D=ausmalDaten(ausmalState().kulisse);
-  const hex=(t && t.farbe!=null && D) ? D.hex[t.farbe] : '#2a2d33', f=t ? Math.max(0, Math.min(1, t.punkte/T)) : 0;
+  const hex=(t && t.farbe!=null && D) ? D.hex[t.farbe] : null, f=(t && hex) ? Math.max(0, Math.min(1, t.punkte/T)) : 0;
   const x1=S_*0.15, x2=S_*0.85, x3=S_*0.78, x4=S_*0.22, yT=H*0.17, yB=H*0.94, id=svgId('tp');
-  const yF=yB-(yB-yT)*f;
-  return '<svg width="'+S_+'" height="'+H.toFixed(1)+'" viewBox="0 0 '+S_+' '+H.toFixed(1)+'" aria-hidden="true"><defs><clipPath id="'+id+'"><path d="M'+x1+' '+yT+' L'+x2+' '+yT+' L'+x3+' '+yB+' L'+x4+' '+yB+'Z"/></clipPath></defs>'+
-    '<rect x="0" y="'+yF.toFixed(1)+'" width="'+S_+'" height="'+(yB-yF).toFixed(1)+'" fill="'+hex+'" clip-path="url(#'+id+')"/>'+
-    '<path d="M'+x1+' '+yT+' L'+x2+' '+yT+' L'+x3+' '+yB+' L'+x4+' '+yB+'Z" fill="none" stroke="'+(opt.weiss?'#e8e9ec':'#3a3e46')+'" stroke-width="'+(opt.weiss?2:1.5)+'"/>'+
-    '<rect x="'+(S_*0.08)+'" y="'+(H*0.075)+'" width="'+(S_*0.84)+'" height="'+(H*0.095)+'" rx="2" fill="#2a2d33"/></svg>';
+  const yF=yB-(yB-yT)*f, glas='M'+x1.toFixed(1)+' '+yT.toFixed(1)+' L'+x2.toFixed(1)+' '+yT.toFixed(1)+' L'+x3.toFixed(1)+' '+yB.toFixed(1)+' L'+x4.toFixed(1)+' '+yB.toFixed(1)+'Z';
+  return '<svg width="'+S_+'" height="'+H.toFixed(1)+'" viewBox="0 0 '+S_+' '+H.toFixed(1)+'" aria-hidden="true"><defs><clipPath id="'+id+'"><path d="'+glas+'"/></clipPath></defs>'+
+    '<path d="'+glas+'" fill="#3a3f4a"/>'+
+    (f>0 ? '<rect x="0" y="'+yF.toFixed(1)+'" width="'+S_+'" height="'+(yB-yF).toFixed(1)+'" fill="'+hex+'" clip-path="url(#'+id+')"/>' : '')+
+    '<rect x="'+(S_*0.24).toFixed(1)+'" y="'+(yT+2).toFixed(1)+'" width="'+(S_*0.07).toFixed(1)+'" height="'+((yB-yT)*0.7).toFixed(1)+'" fill="#fff" opacity=".18" clip-path="url(#'+id+')"/>'+
+    '<path d="'+glas+'" fill="none" stroke="'+(opt.weiss?'#fff':'#c9ccd2')+'" stroke-width="'+(opt.weiss?2:1.5)+'"/>'+
+    '<rect x="'+(S_*0.08).toFixed(1)+'" y="'+(H*0.075).toFixed(1)+'" width="'+(S_*0.84).toFixed(1)+'" height="'+(H*0.095).toFixed(1)+'" rx="2" fill="#c9ccd2"/></svg>';
+}
+/* Tank als schmaler Zylinder im Topf-Stil */
+function tankSvg(anteil, w, h){
+  const f=Math.max(0, Math.min(1, num(anteil))), id=svgId('tk'), ih=h-2;
+  return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" aria-hidden="true"><defs><clipPath id="'+id+'"><rect x="1" y="1" width="'+(w-2)+'" height="'+ih+'" rx="'+Math.min(6, (w-2)/2)+'"/></clipPath></defs>'+
+    '<rect x="1" y="1" width="'+(w-2)+'" height="'+ih+'" rx="'+Math.min(6, (w-2)/2)+'" fill="#3a3f4a"/>'+
+    (f>0 ? '<rect x="0" y="'+(1+ih*(1-f)).toFixed(1)+'" width="'+w+'" height="'+(ih*f).toFixed(1)+'" fill="#9a9ca2" clip-path="url(#'+id+')"/>' : '')+
+    '<rect x="1" y="1" width="'+(w-2)+'" height="'+ih+'" rx="'+Math.min(6, (w-2)/2)+'" fill="none" stroke="#c9ccd2" stroke-width="1.5"/></svg>';
 }
 /* ══ §6.6 · SHOP-UEBERSICHT ══ */
 function belUebersichtHtml(){
@@ -15794,27 +15880,38 @@ function belUebersichtHtml(){
   const of=outfitFortschritt(), vs=vitalStufe();
   let h='<div class="mal-scene'+(vs?' '+vs:'')+'"><canvas data-kulisse="'+A.kulisse+'" width="1200" height="669"></canvas>'+
     '<img class="mal-av" src="'+AVATAR_BILDER[outfit-1]+'" alt="" onerror="this.style.display=\'none\'">'+
-    '<div class="badge">Outfit '+outfit+'/20</div><div class="badge r" style="color:'+FARBE.GOLD+'">'+Math.round(k)+' 🪙</div></div>'+
+    '<div class="badge">Outfit '+outfit+'/20</div><div class="badge r" style="color:'+FARBE.GOLD+'">'+fmtP(k)+' Münzen</div></div>'+
     '<div class="dia-zeile" style="margin:4px 2px 8px">'+VITAL_LABEL[vs||'voll']+(rangMass().rang!=null?' · Rang '+rangAnzeigeText(rangMass()):'')+'</div>';
-  h+='<div class="fb-kacheln dt-kacheln">'+
-    '<div class="fbk"><div class="dt-w" style="color:'+aktHex+'">'+voll+' voll · '+fuellt+' füllt</div><div class="dt-s">Töpfe'+(num(A.tank)>0?' · Tank '+fmtKurzP(A.tank):'')+'</div></div>'+
-    '<div class="fbk"><div class="dt-w">'+Math.round(st.anteil*100)+' %</div><div class="dt-s">Kulisse '+A.kulisse+'/10</div></div>'+
-    '<div class="fbk"><div class="dt-w" style="color:'+FARBE.GOLD+'">'+Math.round(k)+' 🪙</div><div class="dt-s">Konto</div></div>'+
-    '<div class="fbk"><div class="dt-w">'+(nk ? esc(shopAnkunftText(nk).replace('nicht mehr heute · ','')) : '—')+'</div><div class="dt-s">nächster Kauf</div></div></div>'+
+  // §5 Nr. 1 (v3.5.1): Topf-Kachel — fuenf Mini-Toepfe im neuen Topf-Stil (+ Tank als sechster, schmaler Zylinder, wenn > 0),
+  // der Text immer WEISS, nie in der Topffarbe
+  const fuelltN=A.toepfe.filter(t=>!topfVoll(t) && (num(t.punkte)>0 || (t===akt && t.farbe!=null))).length, leerN=Math.max(0, A.toepfe.length-voll-fuelltN);
+  const nkText=nk ? esc(shopAnkunftText(nk).replace('nicht mehr heute · ','')) : '—';
+  h+='<div class="kach">'+
+    '<div class="kch flach"><div class="h">Farbtöpfe</div><div class="mini-toepfe">'+A.toepfe.map((t,i)=>topfSvg(t, 24, {weiss:i===A.aktiverTopf})).join('')+(num(A.tank)>0 ? tankSvg(T ? num(A.tank)/T : 0, 12, 30) : '')+'</div>'+
+      '<div class="mt-text">'+voll+' voll · '+fuelltN+' füllt · '+leerN+' leer'+(num(A.tank)>0?' · Tank '+fmtKurzP(A.tank):'')+'</div></div>'+
+    '<div class="kch flach"><div class="h">Kulisse '+A.kulisse+'/10</div><div class="w">'+Math.round(st.anteil*100)+' %</div><div class="s">ausgemalt</div></div>'+
+    '<div class="kch flach"><div class="h">Konto</div><div class="w" style="color:'+FARBE.GOLD+'">'+fmtP(k)+'</div><div class="s">Münzen</div></div>'+
+    '<div class="kch flach"><div class="h">Nächster Kauf</div><div class="w klein">'+nkText+'</div><div class="s">'+(nk ? esc((BELOHNUNG[nk.kat]||{}).name||'')+' · Stufe '+nk.stufe : '')+'</div></div></div>'+
     '<button class="btn mal-oeffnen" data-malmodus="1">🖌 Malmodus öffnen</button>';
-  h+='<div class="bw"><div class="fb-h">Was heute noch geht</div><div class="fb-kacheln dt-kacheln">'+
-    '<div class="fbk"><div class="dt-w" style="color:'+diaAmpel(g.prognoseHeute, g.zielHeute)+'">'+(fehltZiel>0?fmtKurzP(fehltZiel):'erreicht')+'</div><div class="dt-s">bis Tagesziel</div></div>'+
-    '<div class="fbk"><div class="dt-w" style="color:'+FARBE.GOLD+'">+'+fmtKurzP(muenzenAbend)+' 🪙</div><div class="dt-s">Münzen bis Abend</div></div>'+
-    '<div class="fbk"><div class="dt-w">'+(nk ? esc(shopAnkunftText(nk).replace('nicht mehr heute · ','')) : '—')+'</div><div class="dt-s">nächster Kauf</div></div>'+
-    '<div class="fbk"><div class="dt-w" style="color:'+FARBE.GRUEN+'">'+(of.of>=20?'—':fbOutfitSchwelleF(of.naechste).toFixed(2).replace('.',','))+'</div><div class="dt-s">Outfit '+(of.of>=20?20:of.naechste)+' bei F</div></div></div></div>';
-  h+='<div class="bw"><div class="fb-h" id="belShop">Shop</div>'+belShopHtml()+'<div class="fb-rechnung">Gekauftes und die nächste Stufe sind sichtbar, alles danach bleibt „???". Den Shop zurücksetzen: ⚙︎ Einstellungen.</div></div>';
-  h+='<div class="bw">'+kulisseKachelHtml()+'</div>';
-  const rm=rangMass(), stufenGes=KAT_KEYS.reduce((a,kk)=>a+Math.max(0,num(S.belohnung.stufen[kk])),0), outfitsErreicht=(function(){ try{ const z={}; (S.historie||[]).filter(x=>!x.luecke && x.datum).forEach(x=>{ const sn=tagSnapshot(x.datum); if(sn) z[outfitVon(Math.max(0,num(sn.punkteBilanz))/Math.max(1,zielTagGesamt(x.datum)))]=1; }); z[outfit]=1; return Object.keys(z).length; }catch(e){ return 1; } })();
-  h+='<div class="bw"><div class="fb-h">Was ich schon erklommen habe</div><div class="fb-kacheln dt-kacheln">'+
-    '<div class="fbk"><div class="dt-w">'+(rm.rang!=null?'R'+rm.rang:'—')+'</div><div class="dt-s">Rang · Bestwert '+(rm.best?'R'+rm.best:'—')+'</div></div>'+
-    '<div class="fbk"><div class="dt-w">'+A.fertig.length+'/10</div><div class="dt-s">Kulissen fertig</div></div>'+
-    '<div class="fbk"><div class="dt-w" style="color:'+FARBE.GOLD+'">'+stufenGes+'/'+(KAT_KEYS.length*12)+'</div><div class="dt-s">Shop-Stufen gesamt</div></div>'+
-    '<div class="fbk"><div class="dt-w">'+outfitsErreicht+'/20</div><div class="dt-s">Outfits erreicht</div></div></div>'+
+  h+='<div class="blk"><div class="blk-h">Was heute noch geht</div><div class="kach">'+
+    '<div class="kch flach"><div class="h">Bis Tagesziel</div><div class="w klein" style="color:'+diaAmpel(g.prognoseHeute, g.zielHeute)+'">'+(fehltZiel>0?fmtKurzP(fehltZiel):'erreicht')+'</div></div>'+
+    '<div class="kch flach"><div class="h">Münzen bis Abend</div><div class="w klein" style="color:'+FARBE.GOLD+'">+'+fmtKurzP(muenzenAbend)+'</div></div>'+
+    '<div class="kch flach"><div class="h">Nächster Kauf</div><div class="w klein">'+nkText+'</div></div>'+
+    '<div class="kch flach"><div class="h">Outfit '+(of.of>=20?20:of.naechste)+' bei Tagesform</div><div class="w klein" style="color:'+FARBE.GRUEN+'">'+(of.of>=20?'—':fbOutfitSchwelleF(of.naechste).toFixed(2).replace('.',','))+'</div></div></div></div>';
+  h+='<div class="blk"><div class="blk-h" id="belShop">Shop</div>'+belShopHtml()+'<div class="fb-rechnung">Gekauftes und die nächste Stufe sind sichtbar, alles danach bleibt „???". Den Shop zurücksetzen: ⚙︎ Einstellungen.</div></div>';
+  h+='<div class="blk"><div class="blk-h">Kulisse</div>'+kulisseKachelHtml()+'</div>';
+  // §5 Nr. 4 (v3.5.1): „Was ich schon erklommen habe" — je Zeile Name links, Wert rechts, darunter eine Segmentleiste mit allen
+  // Stufen: erreicht gefuellt (Rang/Kulisse/Outfit GRUEN-Verlauf, Shop GOLD), Bestwert/aktuell mit weissem Rand, Rest LEER
+  const rm=rangMass(), stufenGes=KAT_KEYS.reduce((a,kk)=>a+Math.max(0,num(S.belohnung.stufen[kk])),0), stufenMax=KAT_KEYS.reduce((a,kk)=>a+BELOHNUNG[kk].stufen.length,0);
+  const erreicht={}; try{ (S.historie||[]).filter(x=>!x.luecke && x.datum).forEach(x=>{ const sn=tagSnapshot(x.datum); if(sn) erreicht[outfitVon(Math.max(0,num(sn.punkteBilanz))/Math.max(1,zielTagGesamt(x.datum)))]=1; }); }catch(e){}
+  erreicht[outfit]=1; const outfitsErreicht=Object.keys(erreicht).length;
+  const segs=(n, ok, aktNr)=>{ let q='<div class="seg dicht">'; for(let i=1;i<=n;i++) q+='<i class="'+(ok(i)?'ok':'')+(i===aktNr?' akt':'')+'"></i>'; return q+'</div>'; };
+  const erk=(name, wert, leiste)=>'<div class="erk"><div class="et"><span>'+name+'</span><b>'+wert+'</b></div>'+leiste+'</div>';
+  h+='<div class="blk"><div class="blk-h">Was ich schon erklommen habe</div>'+
+    erk('Rang', (rm.rang!=null?'R'+rm.rang:'—')+' <small>· Bestwert '+(rm.best?'R'+rm.best:'—')+'</small>', segs(RANG_MAX, i=>rm.rang!=null && i<=rm.rang, rm.best||null))+
+    erk('Kulissen fertig', A.fertig.length+' / 10', segs(10, i=>i<=A.fertig.length, A.kulisse))+
+    erk('Shop-Stufen', '<span style="color:'+FARBE.GOLD+'">'+stufenGes+' / '+stufenMax+'</span>', '<div class="seg6" style="grid-template-columns:repeat('+KAT_KEYS.length+',1fr)">'+KAT_KEYS.map(kk=>{ const n=Math.max(0,num(S.belohnung.stufen[kk])), m=BELOHNUNG[kk].stufen.length; let q='<div>'; for(let i=1;i<=m;i++) q+='<i'+(i<=n?' class="ok"':'')+'></i>'; return q+'</div>'; }).join('')+'</div>')+
+    erk('Outfits erreicht', outfitsErreicht+' / 20', segs(20, i=>!!erreicht[i], outfit))+
     '<div class="bw-fuss"><button class="btn ghost sm" data-album="1">🖼 Album</button><button class="btn ghost sm" data-analyse="1">📊 Statistik</button></div></div>';
   return h;
 }
@@ -15825,22 +15922,26 @@ function belMalmodusHtml(){
   if(!D) return '<div class="an-leer">Kulisse wird geladen …</div><button class="btn mal-oeffnen" data-malmodus="0">✕ Malmodus schließen</button>';
   const akt=A.toepfe[A.aktiverTopf], wahlIdx=(S.ui.malTopf!=null && A.toepfe[S.ui.malTopf]) ? S.ui.malTopf : A.aktiverTopf, wahl=A.toepfe[wahlIdx];
   const stName=A.stationFarbe!=null ? D.namen[A.stationFarbe] : '—';
-  let h='<div class="bw mal-station"><div class="row sp"><span class="fb-h" style="margin:0">AUSWAHLSTATION · Topf unter '+esc(stName)+'</span><span class="dt-s" style="margin:0">Zahl = offene Felder</span></div>'+
+  // §5 Nr. 5 (v3.5.1): Farbwahl-Knoepfe — Farbpunkt 22 px mit heller Kante 1,5 px, Zahl darunter WEISS; Toepfe im neuen Stil,
+  // Fuellstand als Zahl darunter („64 %", „voll", „leer"), WEISS
+  let h='<div class="blk mal-station"><div class="blk-h">Auswahlstation · Topf unter '+esc(stName)+'<span class="r">Zahl = offene Felder</span></div>'+
     '<div class="mal-farben">'+D.hex.map((hex,i)=>{ const n=st.offenJeFarbe[i]||0;
       return '<button class="mal-farbe'+(A.stationFarbe===i?' on':'')+(n?'':' aus')+'" data-malfarbe="'+i+'" '+(n?'':'disabled')+'><i style="background:'+hex+'"></i><span>'+(n?n:'✓')+'</span></button>'; }).join('')+'</div>'+
-    '<div class="mal-toepfe">'+A.toepfe.map((t,i)=>{ const istAkt=i===A.aktiverTopf, lab=istAkt ? 'aktiv '+Math.round(t.punkte/T*100)+' %' : (topfVoll(t)?'voll':(t.farbe!=null&&t.punkte>0?Math.round(t.punkte/T*100)+' %':'leer'));
-      return '<div class="mal-topf'+(istAkt?' akt':'')+'" data-maltopf="'+i+'">'+topfSvg(t, istAkt?56:34, {weiss:istAkt})+'<span>'+lab+'</span></div>'; }).join('')+
-      '<div class="mal-topf"><div class="mal-tank"><i style="height:'+(T?Math.min(100, num(A.tank)/T*100):0).toFixed(0)+'%"></i></div><span>Tank '+fmtKurzP(Math.round(num(A.tank)))+'</span></div></div>'+
+    '<div class="mal-toepfe">'+A.toepfe.map((t,i)=>{ const istAkt=i===A.aktiverTopf, stand=topfVoll(t) ? 'voll' : ((t.farbe!=null && t.punkte>0) ? Math.round(t.punkte/T*100)+' %' : 'leer');
+      return '<div class="mal-topf'+(istAkt?' akt':'')+'" data-maltopf="'+i+'">'+topfSvg(t, istAkt?56:38, {weiss:istAkt})+'<span>'+(istAkt?'aktiv ':'')+stand+'</span></div>'; }).join('')+
+      '<div class="mal-topf">'+tankSvg(T ? num(A.tank)/T : 0, 22, 48)+'<span>Tank '+fmtKurzP(Math.round(num(A.tank)))+'</span></div></div>'+
     '<div class="row" style="gap:8px;margin-top:12px"><button class="btn" style="flex:2" data-maltopfwechsel="1">Topf wechseln</button><button class="btn" style="flex:1" data-malauskippen="'+A.aktiverTopf+'">Auskippen</button></div></div>';
-  // Kulisse gezoomt — hervorgehoben: offene, bezahlbare Felder in der Farbe des gewaehlten Topfs
-  const hl=(wahl && wahl.farbe!=null) ? (D.json.felder||[]).filter(f=>f.farbe===wahl.farbe && A.gefaerbt.indexOf(f.feld)<0 && (D.punkte[f.feld]||1)<=wahl.punkte).map(f=>f.feld) : [];
+  // §5 Nr. 6 (v3.5.1): Feldkarte — bei gewaehlter Farbe alle anderen Flaechen 45 % abgedunkelt, die OFFENEN Felder dieser Farbe
+  // mit weissem Umriss und Puls (eigene Ebene ueber der Kulisse)
+  const hl=(wahl && wahl.farbe!=null) ? (D.json.felder||[]).filter(f=>f.farbe===wahl.farbe && A.gefaerbt.indexOf(f.feld)<0).map(f=>f.feld) : [];
   const offenW=(wahl && wahl.farbe!=null) ? (st.offenJeFarbe[wahl.farbe]||0) : 0;
-  h+='<div class="mal-zoom" id="malZoom"><div class="mal-inner" style="transform:translate('+_malZoom.x+'px,'+_malZoom.y+'px) scale('+_malZoom.z+')"><canvas data-kulisse="'+A.kulisse+'" data-hl="'+hl.join(',')+'" width="1200" height="669"></canvas></div>'+
-    '<div class="badge">Zoom '+String(Math.round(_malZoom.z*10)/10).replace('.',',')+'× · '+(wahl && wahl.farbe!=null ? esc(D.namen[wahl.farbe])+': '+offenW+' Feld'+(offenW===1?'':'er')+' offen' : 'kein Topf gewählt')+'</div></div>';
-  // Toepfe mit Farbe
+  h+='<div class="blk"><div class="blk-h">Kulisse · '+(wahl && wahl.farbe!=null ? esc(D.namen[wahl.farbe])+' gewählt<span class="r">'+offenW+' Feld'+(offenW===1?'':'er')+' offen</span>' : 'kein Topf gewählt')+'</div>'+
+    '<div class="mal-zoom" id="malZoom"><div class="mal-inner" style="transform:translate('+_malZoom.x+'px,'+_malZoom.y+'px) scale('+_malZoom.z+')"><canvas data-kulisse="'+A.kulisse+'" data-hl="'+hl.join(',')+'" width="1200" height="669"></canvas><canvas class="mal-puls" width="1200" height="669" aria-hidden="true"></canvas></div>'+
+    '<div class="badge zb">Zoom '+_malZoom.z.toFixed(1).replace('.',',')+'× · zwei Finger</div></div></div>';
+  // §5 Nr. 7: Toepfe mit Farbe — gleiche Topf-Darstellung, der gewaehlte groesser mit weissem Rand
   const mit=A.toepfe.map((t,i)=>({t,i})).filter(q=>q.t.punkte>0);
   const guenstig=(wahl && wahl.farbe!=null) ? (D.json.felder||[]).filter(f=>f.farbe===wahl.farbe && A.gefaerbt.indexOf(f.feld)<0).map(f=>D.punkte[f.feld]).sort((a,b)=>a-b)[0] : null;
-  h+='<div class="bw"><div class="fb-h">TÖPFE MIT FARBE · antippen = wählen</div>'+(mit.length ? '<div class="mal-volle">'+mit.map(q=>'<div class="mal-topf'+(q.i===wahlIdx?' wahl':'')+'" data-malwahl="'+q.i+'">'+topfSvg(q.t, q.i===wahlIdx?48:40, {weiss:q.i===wahlIdx})+'<span>'+esc(D.namen[q.t.farbe])+' '+fmtKurzP(Math.round(q.t.punkte))+'</span></div>').join('')+'</div>' : '<div class="an-leer">Noch kein Topf mit Farbe — die Station füllt den aktiven Topf.</div>')+
+  h+='<div class="blk"><div class="blk-h">Töpfe mit Farbe<span class="r">antippen = wählen</span></div>'+(mit.length ? '<div class="mal-volle">'+mit.map(q=>'<div class="mal-topf'+(q.i===wahlIdx?' wahl':'')+'" data-malwahl="'+q.i+'">'+topfSvg(q.t, q.i===wahlIdx?52:40, {weiss:q.i===wahlIdx})+'<span>'+esc(D.namen[q.t.farbe])+' '+fmtKurzP(Math.round(q.t.punkte))+'</span></div>').join('')+'</div>' : '<div class="an-leer">Noch kein Topf mit Farbe — die Station füllt den aktiven Topf.</div>')+
     (guenstig!=null && wahl ? '<div class="dia-zeile">Feld kostet '+fmtP(guenstig)+' P · danach bleiben '+fmtP(Math.max(0, Math.round(wahl.punkte-guenstig)))+' P im Topf</div>' : '')+'</div>';
   h+='<button class="btn mal-oeffnen" data-malmodus="0">✕ Malmodus schließen</button>';
   return h;
@@ -15852,7 +15953,7 @@ function malZoomBinden(){
   const inner=z.querySelector('.mal-inner'), cv=z.querySelector('canvas');
   const setz=()=>{ const r=z.getBoundingClientRect(); const maxX=0, minX=-(r.width*(_malZoom.z-1)), maxY=0, minY=-(r.height*(_malZoom.z-1));
     _malZoom.x=Math.max(minX, Math.min(maxX, _malZoom.x)); _malZoom.y=Math.max(minY, Math.min(maxY, _malZoom.y));
-    inner.style.transform='translate('+_malZoom.x+'px,'+_malZoom.y+'px) scale('+_malZoom.z+')'; const b=z.querySelector('.badge'); if(b) b.textContent=b.textContent.replace(/^Zoom [\d,]+×/, 'Zoom '+String(Math.round(_malZoom.z*10)/10).replace('.',',')+'×'); };
+    inner.style.transform='translate('+_malZoom.x+'px,'+_malZoom.y+'px) scale('+_malZoom.z+')'; const b=z.querySelector('.badge'); if(b) b.textContent=b.textContent.replace(/^Zoom [\d,]+×/, 'Zoom '+_malZoom.z.toFixed(1).replace('.',',')+'×'); };
   const zoomAuf=(zNeu, cx, cy)=>{ const r=z.getBoundingClientRect(), px=cx-r.left, py=cy-r.top, alt=_malZoom.z; zNeu=Math.max(1, Math.min(4, zNeu));
     _malZoom.x=px-(px-_malZoom.x)*(zNeu/alt); _malZoom.y=py-(py-_malZoom.y)*(zNeu/alt); _malZoom.z=zNeu; setz(); };
   let dist0=null, z0=1, pan0=null;
@@ -15865,10 +15966,8 @@ function malZoomBinden(){
     else if(ids.length===1 && pan0){ if(Math.hypot(e.clientX-pan0.sx, e.clientY-pan0.sy)>8) pan0.bewegt=true; if(pan0.bewegt && _malZoom.z>1){ _malZoom.x=e.clientX-pan0.x; _malZoom.y=e.clientY-pan0.y; setz(); } } });
   const ende=e=>{ const p=_malPtr[e.pointerId]; delete _malPtr[e.pointerId]; dist0=null;
     if(p && pan0 && !pan0.bewegt && Object.keys(_malPtr).length===0 && Date.now()-p.t<350){
-      const jetzt=Date.now(), dbl=_malTapPos && jetzt-_malTapTs<300 && Math.hypot(e.clientX-_malTapPos.x, e.clientY-_malTapPos.y)<24;
-      _malTapTs=jetzt; _malTapPos={x:e.clientX, y:e.clientY};
-      if(dbl){ _malTapTs=0; zoomAuf(_malZoom.z>1.05 ? 1 : ausmalEinst().zoomDoppeltipp, e.clientX, e.clientY); return; }
-      // Tipp → Feld
+      // §5 Nr. 6 (v3.5.1): Zoom NUR mit zwei Fingern (Pinch) — der Doppeltipp-Zoom ist entfallen; die Einstellung
+      // ausmalen.zoomDoppeltipp bleibt im Vertrag stehen, ohne Wirkung. Ein Tipp malt.
       const r=cv.getBoundingClientRect(), fx=(e.clientX-r.left)/r.width*cv.width, fy=(e.clientY-r.top)/r.height*cv.height;
       const f=feldAn(fx, fy); if(f>0){ if(feldAusmalen(f)) renderBelohnung(); }
     }
