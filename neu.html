@@ -2704,7 +2704,6 @@ const DEFAULT_SETTINGS = {
   zielWePrivat: 1600,          // Wochenend-Kontingent Privat (Sa+So), war 10000 → 6000 → 1600
   tageszielPunkteProStd: 100,  // ALT (M3-Pace) — durch tagesZielDfm/Privat ersetzt, intern belassen
   pfeilZone1: 5, pfeilZone2: 15, pfeilZone3: 40,  // v1.1: Pace-Pfeil-Zonen (% Abw. vom Soll) — v0.38-Port
-  preisFaktor: 15,             // Shop-Preis-Faktor (§7 D7) — Neukalibrierung 30.07. (1,0→15)
   levelSchwellen: [0,6000,18000,37500,67500,105000,150000,210000,285000,375000,480000,600000],  // ALT (vor U4) — Level kommt jetzt aus punkteProLevel
   punkteProLevel: 2000,        // v1.5.1: Punkte je Avatar-Level (einstellbar in Punkte-Balance, min 100)
   akkuProStd: -8,              // Akku-%/Std im Fokus — M3
@@ -2754,7 +2753,7 @@ const EINST_SCHEMA={
     geldDeckel:{p:'geldDeckel', t:'zahlNull'}, standardWertDfm:Z('standardWertDfm'), standardWertPrivat:Z('standardWertPrivat'),
     subBonusDfm:Z('subBonusDfm',{min:0}), subBonusPrivat:Z('subBonusPrivat',{min:0}), tickMinuten:Z('tickMinutenStandard',{min:0, max:240}),
     bewegungsBonus:Z('bewegungsBonus',{min:0}), privatSockel:Z('tagesZielPrivatSockel',{min:0}) },
-  belohnung:{ preisFaktor:Z('preisFaktor',{min:0}), punkteProLevel:Z('punkteProLevel',{min:100}) },
+  belohnung:{ punkteProLevel:Z('punkteProLevel',{min:100}) },   // §1 (v3.6.1): preisFaktor entfallen (ein Paket mit dem Feld wird angenommen, der Wert ignoriert)
   ausmalen:{ topfAufschlag:Z('ausmalen.topfAufschlag',{min:1}), zoomDoppeltipp:Z('ausmalen.zoomDoppeltipp',{min:1}), bannerSek:Z('ausmalen.bannerSek',{min:1}) },   // §9.2 (v3.5.0)
   tagesform:{ werktag:{p:'sollFormWerktag', t:'fenster'} }
 };
@@ -2836,7 +2835,7 @@ function schemaPruefen(f, roh){
 }
 /* Vorschau eines Paketbereichs — aendert nichts */
 function bereichVorschau(art, teil, schema){
-  const out={ art, aenderungen:[], unbekannt:[], fehler:[], gruende:{} };
+  const out={ art, aenderungen:[], unbekannt:[], fehler:[], gruende:{}, ohneWirkung:[] };
   if(!teil || typeof teil!=='object' || Array.isArray(teil)){ if(teil!==undefined) out.fehler.push({was:art, grund:'Objekt erwartet'}); return out; }
   const topGrund=teil.grund!=null ? String(teil.grund) : '';
   // statistik: zeitfenster darf als Zahl direkt kommen
@@ -2848,6 +2847,8 @@ function bereichVorschau(art, teil, schema){
     out.gruende[b]=(bt.grund!=null ? String(bt.grund) : topGrund) || '';
     Object.keys(bt).forEach(n=>{
       if(n==='grund') return;
+      // §1 (v3.6.1): einstellungen.belohnung.preisFaktor wird nicht abgewiesen — angenommen, ignoriert und im Protokoll vermerkt
+      if(art==='einstellungen' && b==='belohnung' && n==='preisFaktor'){ out.ohneWirkung.push({ was:art+'.'+b+'.'+n, bereich:b, feld:n, wert:bt[n], grund:out.gruende[b] }); return; }
       const f=sb[n]; if(!f){ out.unbekannt.push(art+'.'+b+'.'+n); return; }
       if(bt[n]===undefined) return;
       const pr=schemaPruefen(f, bt[n]);
@@ -2870,9 +2871,14 @@ function syncTuerVorschau(paket){
            karten:Array.isArray(paket.karten) ? paket.karten.length : 0 };
 }
 /* Anwenden (nach „Übernehmen"): Sicherung, Werte, Protokoll */
+const OHNE_WIRKUNG_TEXT='ohne Wirkung seit 3.6.1';
 function syncTuerAnwenden(vs){
+  // §1 (v3.6.1): Felder ohne Wirkung stehen im Protokoll, auch wenn das Paket sonst nichts aendert
+  let vermerkt=false;
+  [vs.einstellungen, vs.statistik].forEach(t=>{ if(!t || !(t.ohneWirkung||[]).length) return;
+    t.ohneWirkung.forEach(o=>{ protokollEintrag(t.art, (o.grund||'(ohne Grund)'), [o.bereich+'.'+o.feld+': '+kurz(o.wert)+' — '+OHNE_WIRKUNG_TEXT], { bereich:o.bereich, ohneWirkung:true }); vermerkt=true; }); });
   const teile=[vs.einstellungen, vs.statistik].filter(x=>x && x.aenderungen.length);
-  if(!teile.length) return 0;
+  if(!teile.length){ if(vermerkt) saveMeta(); return 0; }
   DB.set('settings_bakimport', { ts:jetztIso(), settings:JSON.parse(JSON.stringify(S.settings)) });
   let n=0;
   teile.forEach(t=>{
@@ -3114,7 +3120,7 @@ function settingsMerge(gespeichert){
   if(Array.isArray(s.levelSchwellen) && s.levelSchwellen[11]===40000) s.levelSchwellen = DEFAULT_SETTINGS.levelSchwellen.slice();
   if(s.basisProStd===12)  s.basisProStd = 120;   // A8: Basis 12→120
   if(s.zeitGewicht===1)   s.zeitGewicht = 1.15;  // A8: Zeit-Gewicht 1→1,15
-  if(s.preisFaktor===1)   s.preisFaktor = 15;    // Shop-Preis-Faktor 1,0→15 (bestehende 15 unberührt)
+  delete s.preisFaktor;   // §1 (v3.6.1): der Shop-Preis-Faktor ist entfallen — die Preise kommen allein aus der Formel 3.6.0
   return s;
 }
 function ladeAlles(){
@@ -13640,6 +13646,7 @@ function syncImport(text, opt){
     tuer={ geaendert:n, einstellungen:tuerVs.einstellungen?tuerVs.einstellungen.aenderungen.length:0, statistik:tuerVs.statistik?tuerVs.statistik.aenderungen.length:0 };
     [tuerVs.einstellungen, tuerVs.statistik].forEach(t=>{ if(!t) return;
       t.unbekannt.forEach(u=>uebersprungen.push({was:u, grund:'unbekanntes Feld — ignoriert'}));
+      (t.ohneWirkung||[]).forEach(o=>uebersprungen.push({was:o.was, grund:OHNE_WIRKUNG_TEXT}));   // §1 (v3.6.1)
       t.fehler.forEach(f=>uebersprungen.push({was:f.was, grund:f.grund})); });
     saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   }
@@ -13685,6 +13692,7 @@ function oeffneSyncFreigabe(text, vs, quelle){
     h+= t.aenderungen.length ? t.aenderungen.map(a=>'<div class="kv tuer-z"><span>'+esc(a.bereich+'.'+a.feld)+(a.grund?'<small>'+esc(a.grund)+'</small>':'')+'</span><b>'+esc(kurz(a.vorher))+' → '+esc(kurz(a.nachher))+'</b></div>').join('')
       : '<p class="d" style="color:var(--mut2)">Keine Änderung gegenüber dem Ist-Stand.</p>';
     if(t.unbekannt.length) h+='<p class="d" style="color:var(--warn)">Unbekannt, wird ignoriert: '+t.unbekannt.map(esc).join(' · ')+'</p>';
+    if((t.ohneWirkung||[]).length) h+='<p class="d" style="color:var(--mut2)">Wird angenommen, '+OHNE_WIRKUNG_TEXT+': '+t.ohneWirkung.map(o=>esc(o.was)).join(' · ')+'</p>';
     if(t.fehler.length) h+='<p class="d" style="color:var(--bad)">Nicht übernehmbar: '+t.fehler.map(f=>esc(f.was)+' — '+esc(f.grund)).join(' · ')+'</p>';
     return h; };
   const h='<p class="d">Das Paket ändert Einstellungen'+(vs.statistik?' bzw. die Statistik':'')+'. Erst prüfen, dann übernehmen. '+
@@ -13989,8 +13997,7 @@ function renderEinst(){
     ['zeitGewicht','Zeit-Gewicht','',0.05],
     ['tickGewicht','Tick-Gewicht','',0.1],
     ['geldGewicht','Geld-Gewicht','nur DFM',0.1],
-    ['geldScoreRef','Geld-Score-Referenz','norm = Score / Ref',10],
-    ['preisFaktor','Shop-Preis-Faktor','Belohnung §7',0.1]
+    ['geldScoreRef','Geld-Score-Referenz','norm = Score / Ref',10]
   ];
   regler.forEach(([k,lab,sub,step])=>{
     h+='<div class="slider"><label>'+lab+(sub?'<small>'+sub+'</small>':'')+'</label>'+
@@ -14174,7 +14181,7 @@ function renderEinst(){
   // §1 (v1.13.3): Shop zurücksetzen — das GEGENTEIL des Wohlstand-Resets,
   // bewusst als eigene Karte klar davon getrennt.
   h+='<div class="card"><h3>🛍 Shop zurücksetzen (nur Besitz)</h3>'+
-    '<p class="d">Setzt ausschließlich die gekauften Objektstufen auf 0 — der Shop ist neu spielbar. Konto, Münzen, Ausgegebenes (und damit die Kulisse), Rang, Bestwert, Serie, Punkte und Statistik bleiben unangetastet. Danach folgt die Preiskalibrierung.</p>'+
+    '<p class="d">Setzt ausschließlich die gekauften Objektstufen auf 0 — der Shop ist neu spielbar. Konto, Münzen, Ausgegebenes (und damit die Kulisse), Rang, Bestwert, Serie, Punkte und Statistik bleiben unangetastet.</p>'+
     '<div class="btnrow"><button class="btn sm" data-shopreset="1">🛍 Shop zurücksetzen …</button></div>'+
     (S.meta.shopReset1133Log?'<div class="kv" style="margin-top:6px"><span>Zuletzt zurückgesetzt</span><b>'+esc(String(S.meta.shopReset1133Log.ts||'').slice(0,10))+' · Sicherung besitz_bak1133</b></div>':'')+
   '</div>';
@@ -14233,7 +14240,7 @@ function panoramaResetUndo(){
    Resets: NUR der Besitz (Objektstufen) geht auf 0, damit der Shop neu
    spielbar ist. Konto, muenzenGesamt, ausgegebenGesamt (und damit die
    Kulisse), Rang, Bestwert, Serie, Punkte, Statistik und Schätzfaktoren
-   bleiben unangetastet. Danach: Preiskalibrierung. ══ */
+   bleiben unangetastet. §1 (v3.6.1): die Preiskalibrierung danach ist entfallen. ══ */
 function oeffneShopReset(){
   belohnungInit();
   const gekauft=KAT_KEYS.reduce((a,k)=>a+Math.max(0,num(S.belohnung.stufen[k],0)),0);
@@ -14243,7 +14250,7 @@ function oeffneShopReset(){
     '<div class="kv"><span>Bleibt</span><b>Konto '+fmtKurzP(konto())+' · Münzen · Ausgegebenes '+fmtKurzP(ausgabenAnzeige())+'</b></div>'+
     '<div class="kv"><span>Bleibt</span><b>Kulisse '+bgStufeAus(ausgabenAnzeige())+'/10 · Rang · Bestwert · Serie 🔥'+routinenSerieBeste().tage+'</b></div>'+
     '<div class="kv"><span>Bleibt</span><b>alle Punkte, Statistik, Schätzfaktoren, Upgrade-Faktor</b></div></div>'+
-    '<p class="d" style="margin-top:8px">Sicherung vorher unter <code>besitz_bak1133</code>. Danach folgt die Preiskalibrierung (§2) — wenn alles gekauft war, waren die Preise zu niedrig.</p>';
+    '<p class="d" style="margin-top:8px">Sicherung vorher unter <code>besitz_bak1133</code>. Die Preise bleiben, wie die Preisformel sie ergibt.</p>';
   openSheet('🛍 Shop zurücksetzen', h,
     '<button class="btn ghost sm" data-close="1">Abbrechen</button>'+
     '<button class="btn warn" data-shopresetgo="1">Besitz auf 0 zurücksetzen</button>');
@@ -14255,39 +14262,6 @@ function shopResetJetzt(){
   KAT_KEYS.forEach(k=>{ S.belohnung.stufen[k]=0; });
   S.meta.shopReset1133Log={ ts:jetztIso(), vorher };
   saveBelohnung(); saveMeta();
-}
-/* §2 · Preiskalibrierung: Preis = 4 × Ø-P/Std (7 Tage) × preisFaktor ×
-   Kategoriefaktor. Vorschlag so, dass die TEUERSTE Kategorie (fahrzeuge,
-   Faktor 1,3, 12 Stufen) bei aktuellem Ø-Zufluss rund 60 Tage braucht —
-   „nicht in wenigen Tagen erreichbar". Feld überschreibbar. */
-function shopKalibrierungVorschlag(){
-  const rate=oePStd7();
-  const f=num(S.settings.preisFaktor,15);
-  const nTeuer=(BELOHNUNG.fahrzeuge&&BELOHNUNG.fahrzeuge.stufen.length)||12;
-  const zufluss=rangTempo()!=null ? rangTempo() : zielTagGesamt()*streakFaktor();   // Ø Münzen/Tag; Fallback: Zieltag
-  const ZIEL_TAGE=60;
-  const roh=ZIEL_TAGE*zufluss/(nTeuer*4*rate*(KAT_PREISFAKTOR.fahrzeuge||1.3));
-  const vorschlag=Math.max(f, Math.round(roh/5)*5);
-  return { rate, f, nTeuer, zufluss, zielTage:ZIEL_TAGE, vorschlag };
-}
-function renderShopKalibrierung(){
-  const v=shopKalibrierungVorschlag();
-  const preisJetzt=preisFuer('fahrzeuge');
-  const preisNeu=Math.max(20, Math.round(4*v.rate*v.vorschlag*(KAT_PREISFAKTOR.fahrzeuge||1.3)/5)*5);
-  const tageJetzt=v.zufluss>0?Math.round(v.nTeuer*preisJetzt/v.zufluss):null;
-  const tageNeu=v.zufluss>0?Math.round(v.nTeuer*preisNeu/v.zufluss):null;
-  const h='<p class="d"><b>Besitz zurückgesetzt.</b> Jetzt die Preise kalibrieren — wenn alles gekauft war, waren sie für deine aktuelle Leistung zu niedrig.</p>'+
-    '<div class="kvblock">'+
-    '<div class="kv"><span>Ø-Rate (letzte 7 aktive Tage)</span><b>'+Math.round(v.rate)+' P/Std</b></div>'+
-    '<div class="kv"><span>Ein Fahrzeuge-Kauf heute (Faktor '+String(v.f).replace('.',',')+')</span><b>'+fmtKurzP(preisJetzt)+'</b></div>'+
-    '<div class="kv"><span>Teuerste Kategorie komplett ('+v.nTeuer+' Stufen)</span><b>'+fmtKurzP(v.nTeuer*preisJetzt)+(tageJetzt!=null?' ≈ '+tageJetzt+' Tage':'')+'</b></div>'+
-    '<div class="kv"><span>Ø-Zufluss</span><b>'+fmtKurzP(v.zufluss)+' 🪙/Tag'+(rangTempo()==null?' (Zieltag-Schätzung)':'')+'</b></div></div>'+
-    '<div class="field" style="margin-top:8px"><label>Preisfaktor (Vorschlag: '+v.vorschlag+')</label>'+
-    '<input type="number" inputmode="decimal" step="0.5" id="shopPf" value="'+v.vorschlag+'">'+
-    '<div class="hint">Vorschlag so gewählt, dass die teuerste Kategorie ≈ '+v.zielTage+' Tage braucht (dann ≈ '+fmtKurzP(preisNeu)+' je Kauf'+(tageNeu!=null?', komplett ≈ '+tageNeu+' Tage':'')+'). Überschreibbar — Kategoriefaktoren bleiben (1,3 · 1,2 · 1,1 · 1,0 · 0,9 · 0,8).</div></div>';
-  openSheet('§2 · Preise kalibrieren', h,
-    '<button class="btn ghost sm" data-close="1">Faktor so lassen ('+String(v.f).replace('.',',')+')</button>'+
-    '<button class="btn prim" data-shoppfgo="1">Faktor übernehmen</button>');
 }
 /* V3: Debug-Overlay für Tap-Flächen (Mehr → Info). Rein visuell, app-only. */
 function setDebugTap(on){ S.ui.debugTap=!!on; saveUi(); document.body.classList.toggle('debugtap', !!on); if(on) toast('🐞 Tap-Debug an'); }
@@ -18781,19 +18755,11 @@ el('sheet').addEventListener('click', e=>{
     const cb=el('v200Ok');
     if(!cb || !cb.checked){ toast('⚠︎ Erst den Vollexport bestätigen'); return; }
     v200LeerungAusfuehren(); return; }
-  // §1/§2 (v1.13.3): Shop-Reset bestätigen → Reset + Kalibrierungs-Dialog;
-  // Faktor übernehmen (beide Knöpfe liegen im Sheet-FUSS → dieser Handler)
+  // §1 (v1.13.3): Shop-Reset bestätigen (der Knopf liegt im Sheet-FUSS → dieser Handler); §1 (v3.6.1): ohne Kalibrierungs-Dialog
   if(t.closest('[data-shopresetgo]')){
     shopResetJetzt();
-    toast('🛍 Besitz auf 0 — Konto, Kulisse, Rang und Serie unverändert');
-    renderShopKalibrierung();
-    return; }
-  if(t.closest('[data-shoppfgo]')){
-    const inp=el('shopPf');
-    const v=Math.max(0.1, num(inp?inp.value:S.settings.preisFaktor, num(S.settings.preisFaktor,15)));
-    S.settings.preisFaktor=v; saveSettings();
     closeSheet(); renderEinst(); if(S.ui.tab==='belohnung') renderBelohnung();
-    toast('Preisfaktor auf '+String(v).replace('.',',')+' gesetzt');
+    toast('🛍 Besitz auf 0 — Konto, Kulisse, Rang und Serie unverändert');
     return; }
   // §6.4 (v1.13.0): Blockade-Vorschlag — Übernahme nur per Freigabe-Knopf
   const blh=null; if(blh){
