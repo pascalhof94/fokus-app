@@ -276,9 +276,6 @@ body.fokusOffen #suchFab{z-index:201}
 .mom-zu{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:2;
   background:rgba(255,255,255,.14);border:0;border-radius:50%;color:#fff;font-size:17px;
   min-width:44px;min-height:44px;line-height:1}
-.fk-zu{display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--li);
-  border-radius:999px;color:var(--fg);font:inherit;font-size:12px;padding:0 13px;min-height:44px;
-  margin:0 0 8px;opacity:.8}
 /* Die Leiste ist ein Tap-Ziel, sobald eine Karte gewaehlt ist */
 #topbar .mid{cursor:pointer}
 /* ── Views / Content ─────────────────────────────────────────────── */
@@ -2224,6 +2221,11 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 #statusbar .sb-bar .sollmark.okL.okR{background:#3ecf8e}
 #statusbar .sb-bar .rot{position:absolute;top:0;bottom:0;display:none;z-index:2}
 #statusbar .sb-bar .zahl.s b.rp{border:0;background:none;padding:0;text-shadow:0 0 3px #000,0 1px 1px #000}
+/* ══ 3.5.4 §2 · Fokus: Navigation oben · Der Tag: Ringe DFM / Privat (Draft Nr. 2) ══ */
+#fokusAktiv .knav.fk-swipe.fk-oben{margin:0 0 10px}
+.ringe{display:grid;grid-template-columns:1fr 1fr;gap:8px;justify-items:center}
+.rg-svg{display:block;width:120px;height:120px}
+.dt-zeilen .dk-ringe{padding:0 0 12px}
 </style>
 </head>
 <body>
@@ -5605,8 +5607,7 @@ function renderFokus(){
       '<div class="kkpi"><div class="w" id="tKpiPunkte" style="color:'+FARBE.GOLD+'">–</div><div class="s">Punkte heute · Münzen und Wohlstand</div></div>'+
       '<div class="kkpi"><div class="w" id="tKpiSchritte">–</div><div class="s">Schritte abgehakt</div><div class="kschritte" id="tKpiSeg"></div></div>'+
     '</div></div>';
-  const zurueck='<button class="fk-zu" data-fokuszu="1" aria-label="Zur Suche">▾ Zur Suche</button>';
-  const titel=zurueck+'<div class="ktitel fk-haupttitel" data-detail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</div>'+
+  const titel='<div class="ktitel fk-haupttitel" data-detail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</div>'+
     '<div class="kmeta"><b style="color:'+famH+'">'+(k.domain==='dfm'?'DFM':'Privat')+'</b> · '+MX_FELD_NAME[matrixFeldVon(k)]+' · <span id="tGesamtP">'+fmtP(kartePunkteGeplant(k))+'</span> P gesamt</div>';
   // §7 (v1.12.0): ERLEDIGTE Karte im Verlauf — gebuchte Zeit und Punkte, zwei Aktionen: Punkte anpassen · Wiederholen.
   const aufgabeErledigt='<div class="taufgabe"><div class="tsub">✓ erledigt'+(k.tagId?' am '+esc(String(k.tagId).slice(0,10)):'')+
@@ -5636,14 +5637,15 @@ function renderFokus(){
   else if(kand.length && pos>=0){ const n=kand.length, fen=Math.min(n, 9), ab=Math.max(0, Math.min(n-fen, pos-Math.floor(fen/2)));
     for(let i=ab;i<ab+fen;i++) punkte+='<i class="'+(i===pos?'j':(pos>=0 && i<pos?'v':''))+'"></i>'; }
   const navMitte = imVerlauf ? '<b>'+nav.hist+' / '+vlLen+'</b> im Verlauf' : (pos>=0 ? '<b>'+(pos+1)+' / '+kand.length+'</b> in der Kette' : (kand.length ? 'nicht in der Kette · '+kand.length+' Karten' : 'keine Kette'));
-  const swipeLeiste='<div class="knav fk-swipe">'+
-    '<button class="sw l'+(verlaufGeht?'':' aus')+'" data-fkswipe="1">◀ Verlauf</button>'+
-    '<div class="m sw">'+navMitte+'<div class="punkte5">'+punkte+'</div></div>'+
-    '<button class="sw r'+(naechsteGeht?'':' aus')+'" data-fkswipe="-1">nächste ▶</button></div>';
+  const navKnopf=r=>'<button class="sw '+(r>0 ? 'l'+(verlaufGeht?'':' aus') : 'r'+(naechsteGeht?'':' aus'))+'" data-fkswipe="'+r+'">'+(r>0 ? '◀ Verlauf' : 'nächste ▶')+'</button>';
+  const swipeLeiste='<div class="knav fk-swipe">'+navKnopf(1)+
+    '<div class="m sw">'+navMitte+'<div class="punkte5">'+punkte+'</div></div>'+navKnopf(-1)+'</div>';
+  // §2 (v3.5.4): dieselben beiden Knoepfe oben in der Fokusansicht (ersetzen „Zur Suche") — gleiche Regeln, ein Schritt je Tipp
+  const navOben='<div class="knav fk-swipe fk-oben">'+navKnopf(1)+'<span></span>'+navKnopf(-1)+'</div>';
   const einflug=_fokusEinflug ? ' von-'+_fokusEinflug : ''; _fokusEinflug=null;
   host.innerHTML =
     '<div id="fokusAktiv" class="blk kern tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+(imVerlauf?'imverlauf ':'')+einflug+'" style="--famk:'+famK+';--famh:'+famH+'">'+
-      titel+kopf+'<div id="tTempo" class="tl-wrap"></div>'+(k.status==='erledigt' && !uhrFrei(k)?aufgabeErledigt:aufgabe)+swipeLeiste+'</div>'+
+      navOben+titel+kopf+'<div id="tTempo" class="tl-wrap"></div>'+(k.status==='erledigt' && !uhrFrei(k)?aufgabeErledigt:aufgabe)+swipeLeiste+'</div>'+
     fokusSubsHtml(k)+
     // §3 (v3.5.1): Der Tag · Tempo und Bloecke · Matrix heute · Flow und Belastung · Karten
     fokusBloecke350(k);
@@ -6309,7 +6311,8 @@ function diagrammeLive(){
     const sc=el.querySelector('.dia-tv-scroll'); if(sc) _tvScroll[tvOrt(sc)]={ left:sc.scrollLeft, ts:Date.now() };
     const dopt=el.dataset.diaopt ? JSON.parse(el.dataset.diaopt) : {};
     let h=''; try{ h=el.dataset.dialive==='tt' ? heuteGegenTypischHtml(dopt) : belTagesDiagramm(dopt); }catch(e){ return; }
-    if(h) el.outerHTML=h; }); }catch(e){}
+    if(h) el.outerHTML=h; });
+    document.querySelectorAll('[data-ringlive]').forEach(el=>{ if(el.offsetParent) el.outerHTML=tagesRingeHtml(); }); }catch(e){}   // §2 (v3.5.4): Ring-Zeit laeuft mit
 }
 /* ══ v3.4.7 §3 · „Tagesverlauf" scrollbar ═══════════════════════════════
    Zeichenflaeche Tagesstart → max(Tagesende, jetzt + 3 Std, Ende der Vergleichskurven);
@@ -8403,7 +8406,8 @@ let _fokusExakt=false;
    · 7 Karten meistgenutzt letzte 7 Tage */
 function fokusBloecke350(k){
   _fokusExakt=true;
-  try{ return tempoBlockHtml('ttf')+derTagHtml(k)+matrixHeuteBlockHtml()+flowBelastungHtml()+kartenBlockHtml(k); }   // §3 (v3.5.3): „Der Tag" direkt unter „Tempo und Blöcke"
+  let ringe=''; try{ ringe='<div class="blk dt-ringe">'+tagesRingeHtml()+'</div>'; }catch(e){ ringe=''; }   // §2 (v3.5.4): Ringe direkt ueber „Tempo und Blöcke"
+  try{ return ringe+tempoBlockHtml('ttf')+derTagHtml(k)+matrixHeuteBlockHtml()+flowBelastungHtml()+kartenBlockHtml(k); }   // §3 (v3.5.3): „Der Tag" direkt unter „Tempo und Blöcke"
   finally{ _fokusExakt=false; }
 }
 /* §4.1.3 · Tagesketten — benannte Sichten (S.tagesketten), Mehrfach-Zugehoerigkeit.
@@ -8495,6 +8499,41 @@ function tagesformSvg(st){
     g+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H+11)+'" fill="'+(k===st.akt ? '#fff' : FARBE.GRAU)+'" font-size="9" text-anchor="middle">'+k+'</text>'; }
   return '<svg class="tf-svg" viewBox="0 0 '+W+' '+(H+14)+'" aria-hidden="true">'+g+'</svg>';
 }
+/* ══ §2 (v3.5.4) · DER TAG — ZWEI RINGE DFM / PRIVAT ════════════════════════════════════
+   Erste Zeile von „Der Tag": im Fokus direkt ueber „Tempo und Blöcke", in der Statistik oben in „Der Tag" (dieselbe Funktion).
+   Max = Tagesziel der Familie, Fuellung = Punkte der Familie, Start oben im Uhrzeigersinn. Ueber Ziel: Ring voll, darueber
+   ab 12 Uhr ein ROT-Bogen der Laenge Ueberschuss ÷ Ziel (hoechstens ein voller Kreis). Mitte: Zeit heute in den Karten der
+   Familie. Bewusste Ausnahme von „Ringe nur fuer Outfit und Karten-Zeit". */
+function ringTeile(punkte, ziel){
+  const p=Math.max(0, num(punkte)), z=Math.max(0, num(ziel));
+  if(!(z>0)) return { q:p>0 ? 1 : 0, ue:0 };
+  return { q:Math.min(1, p/z), ue:Math.max(0, Math.min(1, (p-z)/z)) };
+}
+/* heute gebuchte Minuten je Familie: Uhren (laufende Uhr live) + Belegzeit der Ticks (tickMinuten), auch der Unter-Zaehler */
+function familienZeitHeute(){
+  const o={ dfm:0, privat:0 };
+  (S.karten||[]).forEach(k=>{ if(!k) return; let m=heuteInvestiertMin(k)+tickMinHeute(k);
+    unterZaehler(k).forEach(u=>{ m+=tickMinHeute(u); });
+    if(m>0) o[k.domain==='dfm' ? 'dfm' : 'privat']+=m; });
+  return o;
+}
+function familienRingSvg(name, farbe, hell, punkte, ziel, min){
+  const r=52, u=2*Math.PI*r, T=ringTeile(punkte, ziel), gid=svgId('rg'), kreis='cx="60" cy="60" r="'+r+'" fill="none"', dreh=' transform="rotate(-90 60 60)"';
+  return '<svg class="rg-svg" viewBox="0 0 120 120" role="img" aria-label="'+name+' '+fmtP(punkte)+' von '+fmtP(ziel)+'">'+
+    '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+hell+'"/><stop offset="1" stop-color="'+farbe+'"/></linearGradient></defs>'+
+    '<circle '+kreis+' stroke="'+FARBE.LEER+'" stroke-width="12"/>'+
+    (T.q>0 ? '<circle class="rg-ist" '+kreis+' stroke="url(#'+gid+')" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+(T.q*u).toFixed(1)+' '+u.toFixed(1)+'"'+dreh+'/>' : '')+
+    (T.ue>0 ? '<circle class="rg-rand" '+kreis+' stroke="#0b0b0c" stroke-width="16" stroke-dasharray="'+(T.ue*u).toFixed(1)+' '+u.toFixed(1)+'"'+dreh+'/>'+
+              '<circle class="rg-ueber" '+kreis+' stroke="'+FARBE.ROT+'" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+(T.ue*u).toFixed(1)+' '+u.toFixed(1)+'"'+dreh+'/>' : '')+
+    '<text x="60" y="44" fill="'+hell+'" font-size="11" font-weight="700" text-anchor="middle">'+name+'</text>'+
+    '<text x="60" y="68" fill="#fff" font-size="22" font-weight="750" text-anchor="middle">'+hMin(min)+'</text>'+
+    '<text x="60" y="84" fill="'+FARBE.GRAU+'" font-size="11" text-anchor="middle">'+fmtP(punkte)+' / '+fmtP(ziel)+'</text></svg>';
+}
+function tagesRingeHtml(){
+  const g=diaGroessen(), z=familienZeitHeute();
+  return '<div class="ringe" data-ringlive="1"><div class="rg">'+familienRingSvg('DFM', FARBE.BLAU, FARBE.BLAU_HELL, g.dfm, g.zielDfm, z.dfm)+'</div>'+
+    '<div class="rg">'+familienRingSvg('Privat', FARBE.LILA, FARBE.LILA_HELL, g.privat, g.zielPrivat, z.privat)+'</div></div>';
+}
 function derTagHtml(k, opt){
   opt=opt||{};
   const t=tagesprognoseHeute(), dz=dfmZeitHeute();
@@ -8502,7 +8541,8 @@ function derTagHtml(k, opt){
   let pfeil=''; try{ pfeil=tempopfeilSvg(tempoVerhaeltnis(), 14); }catch(e){}
   const kante=(c, dash)=>'<i style="border:2px '+(dash?'dashed':'solid')+' '+c+';background:none;box-sizing:border-box"></i>';
   const zeile=(cls, name, rechts, inhalt)=>'<div class="dk '+cls+'"><div class="dkh"><b>'+name+'</b><span>'+rechts+'</span></div>'+inhalt+'</div>';
-  let h=zeile('dk-prog', 'Tagesprognose', fmtP(t.prognose)+' von Ziel '+fmtP(t.ziel)+' · DFM '+hMin(dz.ist)+' / '+hMin(dz.plan), tagesprognoseBalkenHtml(t))+
+  let ringe=''; if(opt.ringe){ try{ ringe='<div class="dk dk-ringe">'+tagesRingeHtml()+'</div>'; }catch(e){ ringe=''; } }
+  let h=ringe+zeile('dk-prog', 'Tagesprognose', fmtP(t.prognose)+' von Ziel '+fmtP(t.ziel)+' · DFM '+hMin(dz.ist)+' / '+hMin(dz.plan), tagesprognoseBalkenHtml(t))+
     zeile('dk-form', 'Tagesform <span class="tf-w" style="color:'+cF+'">'+(F!=null ? F.toFixed(2).replace('.',',') : '—')+pfeil+'</span>',
       (F==null ? '' : (dF===0 ? 'wie normal' : Math.abs(dF)+' % '+(dF>0?'über':'unter')+' normal')+' · ')+'Outfit '+st.akt,
       tagesformSvg(st)+'<div class="legende">'+'<span>'+kante(FARBE.GRUEN)+'aktuell</span><span>'+kante('#fff')+'Prognose</span><span>'+kante('#fff', true)+'nötig fürs Ziel</span>'+
@@ -17212,7 +17252,7 @@ function stmTag(F,dom){
   // §3 (v3.5.3): dieselben drei Zeilen wie in der Fokusansicht (derTagHtml) — hier mit Familien-Filter und Tagesauswahl am
   // Tagesverlauf; aufgeklappt „Tempo und Blöcke" und die Verhaltens-Kennzahlen
   const k=aktiveFokusKarte();
-  let haupt=''; try{ haupt=derTagHtml(k, {roh:true, bedienung:true}); }catch(e){ haupt='<div class="an-leer">nicht verfügbar</div>'; }
+  let haupt=''; try{ haupt=derTagHtml(k, {roh:true, bedienung:true, ringe:true}); }catch(e){ haupt='<div class="an-leer">nicht verfügbar</div>'; }
   return statModul('tag','Der Tag', haupt, null, ()=>tempoBlockHtml('tts', true)+anModVerhalten(F,dom,{nurKpis:true}), {tipp:false});
 }
 /* §4 Nr. 2 (v3.5.1): Phasen des Tages in der Matrix — dieselbe Zerlegung wie matrixZeitFelder: jede Messung gilt bis zur
@@ -17948,7 +17988,6 @@ el('statusbar').addEventListener('click', e=>{
 // Fokus-View: Toggle / Häkchen / Karussell / Farbstreifen / Unteraufgaben / Stapelwahl
 // Bug 2: Karussell-Pfeile im Topbar (außerhalb von #fokusView)
 el('fokusView').addEventListener('click', e=>{
-  if(e.target.closest('[data-fokuszu]')){ fokusAnsichtSchliessen(); haptik(8); return; }
   const t=e.target;
   // §2.5 (v1.6.0): die drei Navigationsebenen — je ein Tap, Zustand in S.ui (reload-fest)
   // §9.1 (v1.12.0): Ebene 4 — Kette der aktiven Domäne (persistiert)
