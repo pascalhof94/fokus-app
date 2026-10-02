@@ -556,8 +556,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.5.1' && UI_VERSION==='v3.5.1' &&
-   APP_BUILD==='2026-10-01-2');
+ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.5.2' && UI_VERSION==='v3.5.2' &&
+   APP_BUILD==='2026-10-02-1');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -1492,19 +1492,22 @@ kopf('v2.5.0 · Nebenbefund: die Migration darf Unteraufgaben nicht leeren');
 function isoPlus(t){ return anVorTage(H(), -t); }
 kopf('v2.6.0 §1 · Statusleiste Zeile 2: Akku · Tempo · Konto · Matrix-Verlauf');
 (function(){
-  var r2=(src.match(/<div class="sl-z3">([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>\s*<div id="fkNav"/)||[])[1]||'';   // v3.5.1 §2: Zeile 3 der Statusleiste
+  var r2=(src.match(/<div class="sl-z3">([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>\s*<div id="fkNav"/)||[])[1]||'';   // v3.5.2 §1: Zeile 3 der Statusleiste
   var ids=(r2.match(/id="sZ\w+"/g)||[]).map(function(x){ return x.slice(4,-1); });
-  ok('§1 (v3.5.1 §2) Zellen in dieser Reihenfolge: '+ids.join(' · ')+' (Punkte-Block dazwischen)', ids.join(',')==='sZAkku,sZKonto,sZTempo,sZMatrix' && r2.indexOf('id="btnKurve"')>r2.indexOf('sZKonto') && r2.indexOf('id="btnKurve"')<r2.indexOf('sZTempo'));
+  ok('§1 (v3.5.2 §1) Zeile 3: Konto-Spalte (Akku · Wohlstand · Münzen · Töpfe) | Mini-Kurve + Pace-Leiste | Matrix — '+ids.join(' · '), ids.join(',')==='sZKonto,sZAkku,sZTempo,sZMatrix' &&
+     r2.indexOf('id="sKW"')>r2.indexOf('id="sZAkku"') && r2.indexOf('id="sKM"')>r2.indexOf('id="sKW"') && r2.indexOf('id="sKF"')>r2.indexOf('id="sKM"') &&
+     r2.indexOf('id="btnKurve"')>r2.indexOf('id="sKF"') && r2.indexOf('id="btnKurve"')<r2.indexOf('sZTempo') && r2.indexOf('sZTempo')<r2.indexOf('sZMatrix'));
   ok('§1 Serie und Rang sind aus der Leiste heraus', r2.indexOf('sZSerie')<0 && r2.indexOf('sZRang')<0 && !/#sZRang|sZSerie/.test(src));
-  ok('§1 (v3.5.1 §2) Zeile 3 als Grid 44px 64px 1fr 8px 72px, Höhe 72, Matrix 72×72; kein Play/Pause-Knopf mehr', /#statusbar \.sl-z3\{[^}]*44px 64px 1fr 8px 72px[^}]*height:72px/.test(src) && /#statusbar #sZMatrix\{[^}]*width:72px;height:72px/.test(src) && !/id="fkPP"/.test(src));
+  ok('§1 (v3.5.2 §1) Zeile 3 als Grid 64px 1fr 72px, Höhe 72, Matrix 72×72; die senkrechte Tempoleiste ist entfallen; kein Play/Pause-Knopf', /#statusbar \.sl-z3\{grid-template-columns:64px 1fr 72px;column-gap:8px;height:72px\}/.test(src) && /#statusbar #sZMatrix\{[^}]*width:72px;height:72px/.test(src) &&
+     !/function tempoSkalaHtml\(/.test(src) && !/id="fkPP"/.test(src));
   ok('§1 Tipp auf die Mini-Tageskurve öffnet die Statistik OBEN', /el\('btnKurve'\)\.addEventListener\('click', \(\)=>\{[\s\S]{0,260}setTab\('statistik'\);\s*const m=document\.querySelector\('main'\); if\(m\) m\.scrollTop=0;/.test(src));
   frisch();
   S.karten=[ neueKarte({id:'sb1', domain:'dfm', titel:'Läuft', sollMin:60, matrixFeld:'werkzeug', faelligkeit:H()}) ];
   S.tag.matrixSpur=[{ts:new Date(Date.now()-3*3600000).toISOString(), x:-0.6, y:0},{ts:new Date(Date.now()-3600000).toISOString(), x:0.4, y:0.2, kid:'sb1'}];
   fokusStarten('sb1');
   renderStatusbar();
-  var tz=el('sZTempo').querySelector('.z').innerHTML;
-  ok('§2.2 Tempo-Zelle = die schmale Leiste mit Ich, Zieltempo und der laufenden Karte', /class="tl klein/.test(tz) || true);
+  var tz=el('sZTempo').innerHTML;
+  ok('§2.2 (v3.5.2 §1) Pace-Leiste waagerecht: Füllung bis Ø heute, weiße Marke = nötig', /class="pbahn"><i style="width:[\d.]+%;background:linear-gradient/.test(tz) && /<u style="left:[\d.]+%"><\/u>/.test(tz) && /class="ppf"/.test(tz));
   ok('§3.1 Matrix-Zelle trägt die kleine Linie (v3.5.1 §2: 72×72)', el('sMv').innerHTML.indexOf('viewBox="0 0 72 72"')>=0 && el('sMv').innerHTML.indexOf('<path d="M')>=0);
 })();
 
@@ -1915,7 +1918,8 @@ ok('§1.2 Counter bleibt an seinem Platz und zeigt den Zählstand im Zähler-Fel
 ok('§1.2 der +1-Handler: Tick ohne Dialog, Abschluss nur beim Tageslimit (v3.1)', /const p=altTick\(k\); saveKarten\(\)/.test(src) && /if\(istTickKarte\(k\)\)\{ karteTick\(k\.id, true\)/.test(src));
 S.ui.fokusZeigt=null; fokusKarteAnsehen('aK'); renderFokus();
 var fvA=el('fokusView').innerHTML;
-ok('§1.2 (v3.5.1 §3 Nr. 9) Kartenliste „Meistgenutzt · letzte 7 Tage" ganz unten in der Fokusansicht', fvA.indexOf('Meistgenutzt · letzte 7 Tage')>fvA.indexOf('Matrix heute') && fvA.indexOf('Matrix heute')>0);
+ok('§1.2 (v3.5.2 §3) Kartenlisten ganz unten in der Fokusansicht: fünf Gruppen in fester Reihenfolge', fvA.indexOf('data-klgruppe="kette"')>fvA.indexOf('Matrix heute') && fvA.indexOf('Matrix heute')>0 &&
+   ['kette','verlauf','routinen','meist','erledigt'].every(function(g,i,a){ return fvA.indexOf('data-klgruppe="'+g+'"')>=0 && (i===0 || fvA.indexOf('data-klgruppe="'+g+'"')>fvA.indexOf('data-klgruppe="'+a[i-1]+'"')); }));
 var zs=zeitstrahlHtml();
 // v3.0.0 (Entscheidung Pascal): Routinen stehen AUCH wieder im Tagesablauf
 ok('§1.2 Routinen stehen auch im Tagesablauf (v3.0), Aufgaben sowieso', zs.indexOf('Zähne')>=0 && zs.indexOf('Kalkulation Welle')>=0);

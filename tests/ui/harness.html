@@ -337,6 +337,15 @@ function bestandSchreiben(){
     echtFokus28:function(fw){ v28Vorbereiten(fw); fw.fokusStarten('a-3', null); fw.closeSheet();
       var sh=fw.document.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(110%)'; }
       fw.fokusKarteAnsehen('a-3'); fw.renderStatusbar(); },
+    /* ══ v3.5.2 · Ansichten des Hotfix: Statusleiste mit laufender Karte (Live-Segment), Kartenlisten mit offenen Gruppen ══ */
+    status352:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.eval('S.fokus.startMs-=22*60000;'); fw.fokusLayerPflegen(); fw.renderFokusleiste(); fw.renderStatusbar(); fw.renderFokus(); },
+    karten352:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.eval('(function(){ var ids=S.karten.filter(function(k){ return k.status==="offen" && istAufgabeKarte(k) && k.id!=="k-lang"; }).slice(0,2).map(function(k){ return k.id; });'+
+        ' [ids[0], "k-lang", ids[1], "k-lang"].forEach(function(id){ if(id){ fokusKarteAnsehen(id); renderFokus(); } });'+
+        ' S.ui.klGruppen={kette:true, verlauf:true, routinen:true, meist:false, erledigt:true}; S.fokus.startMs-=22*60000; })()');
+      fw.fokusLayerPflegen(); fw.renderFokusleiste(); fw.renderStatusbar(); fw.renderFokus();
+      var lay=fw.document.getElementById('fokusLayer'), b=fw.document.querySelector('#fokusView .kl-blk'); if(lay && b) lay.scrollTop=Math.max(0, b.offsetTop-12); },
     /* ══ v3.5.1 · Ansichten des Hotfix (Basis-Fixture): Statistik zu/auf, Shop, Malmodus ══ */
     stat351:function(fw){ fw.eval('S.ui.statOffen={tag:true,matrixHeute:true,leistung:true,konsistenz:true,readiness:true,acwr:true,spielShop:true}; S.ui.analyseZeitraum="14";'); fw.setTab('statistik'); },
     stat351Zu:function(fw){ fw.eval('S.ui.statOffen={}; S.ui.analyseZeitraum="14";'); fw.setTab('statistik'); },
@@ -1729,26 +1738,26 @@ function bestandSchreiben(){
           fw.fokusStarten('a-3', null); fw.closeSheet(); fw.fokusAnsichtSchliessen && fw.fokusAnsichtSchliessen();
           freiMachen(); fw.renderStatusbar();
           /* §1 · Zeile 2 */
-          /* v3.5.1 §2: Zeile 3 = Akku · Konto · Punkte-Block · Tempoleiste senkrecht · Matrix 72×72 */
-          var zellen=['sZAkku','sZKonto','btnKurve','sZMatrix'].map(function(id){ return d.getElementById(id); });
+          /* v3.5.2 §1: Zeile 3 = Konto-Spalte (Akku · Wohlstand · Münzen · Töpfe) · Mini-Kurve + Pace-Leiste · Matrix 72×72 */
+          var zellen=['sZKonto','btnKurve','sZMatrix'].map(function(id){ return d.getElementById(id); });
           var r2=d.querySelector('#statusbar .sl-z3');
           var ids=[].slice.call(r2.children).map(function(c){ return c.id; });
           finding('echt · v2.6 §1 Statusleiste Zeile 2: '+ids.join(' · ')+' · Höhen '+zellen.map(function(c){ return c?Math.round(c.getBoundingClientRect().height):0; }).join('/')+' px · Breiten '+
                   zellen.map(function(c){ return c?Math.round(c.getBoundingClientRect().width):0; }).join('/')+' px');
-          pruef(ids.join(',')==='sZAkku,sZKonto,btnKurve,sZTempo,sZMatrix', 'v3.5.1 §2: Reihenfolge der Zellen ('+ids.join(',')+')');
+          pruef(ids.join(',')==='sZKonto,,sZMatrix' && !!r2.children[1].querySelector('#btnKurve') && !!r2.children[1].querySelector('#sZTempo') && !!r2.children[0].querySelector('#sZAkku'), 'v3.5.2 §1: Aufbau der Zeile 3 ('+ids.join(',')+')');
+          (function(){ var k=d.getElementById('btnKurve').getBoundingClientRect(); pruef(Math.round(k.height)===34, 'v3.5.2 §1: Mini-Kurve nicht 34 px hoch ('+Math.round(k.height)+')'); })();
           pruef(Math.round(r2.getBoundingClientRect().height)===72, 'v3.5.1 §2: Zeile 3 nicht 72 px hoch');
           (function(){ var mx=d.getElementById('sZMatrix').getBoundingClientRect(); pruef(Math.round(mx.width)===72 && Math.round(mx.height)===72, 'v3.5.1 §2: Matrix nicht 72×72 ('+Math.round(mx.width)+'×'+Math.round(mx.height)+')'); })();
           pruef(!d.getElementById('fkPP'), 'v3.5.1 §2: Play/Pause-Knopf steht noch in der Statusleiste');
           zellen.forEach(function(c){ if(!c) return;
-            pruef(c.getBoundingClientRect().height>=44, 'v2.6 §1: '+c.id+' niedriger als 44 px');
+            if(c.id!=='btnKurve') pruef(c.getBoundingClientRect().height>=44, 'v2.6 §1: '+c.id+' niedriger als 44 px');
             var w=c.querySelector('.w'); if(w) pruef(w.scrollWidth<=w.clientWidth+1, 'v2.6 §1: '+c.id+' Wert abgeschnitten ('+w.textContent+')');
             trifft(c, c.id); });
           // v3.3.0 §1.1: die Tempo-Zelle ist eine Skala mit drei Punkten — ROT Ziel · GELB Schnitt · GRUEN laufende Karte
-          var tzb=d.querySelector('#sZTempo .ts-skala');
-          var tps=tzb ? [].slice.call(tzb.querySelectorAll('.ts-ziel, .ts-jetzt, .ts-karte')) : [];
-          finding('echt · v3.5.1 §2 Tempoleiste senkrecht: „'+d.getElementById('sTempo').textContent+'" · Marken '+tps.length+' · Leiste '+
-                  (tzb?Math.round(tzb.getBoundingClientRect().width)+'×'+Math.round(tzb.getBoundingClientRect().height):'–')+' px · Füllung '+(tzb&&tzb.querySelector('.ts-bar')?Math.round(tzb.querySelector('.ts-bar').getBoundingClientRect().height):0)+' px hoch');
-          pruef(!!tzb && tps.length===3 && Math.round(tzb.getBoundingClientRect().width)===8, 'v3.5.1 §2: Tempoleiste nicht 8 px breit oder Marken (nötig · jetzt · Karte) unvollständig');
+          var tzb=d.querySelector('#sZTempo .pbahn');
+          finding('echt · v3.5.2 §1 Pace-Leiste: „'+d.getElementById('sTempo').textContent+'" · Leiste '+
+                  (tzb?Math.round(tzb.getBoundingClientRect().width)+'×'+Math.round(tzb.getBoundingClientRect().height):'–')+' px · Füllung '+(tzb&&tzb.querySelector('i')?Math.round(tzb.querySelector('i').getBoundingClientRect().width):0)+' px · Marke '+(tzb&&tzb.querySelector('u')?'ja':'nein'));
+          pruef(!!tzb && Math.round(tzb.getBoundingClientRect().height)===12 && !d.querySelector('#statusbar .ts-skala'), 'v3.5.2 §1: Pace-Leiste nicht 12 px hoch oder die senkrechte Tempoleiste steht noch da');
           var mvp=d.querySelector('#sMv svg path');
           pruef(!!mvp, 'v2.6 §3.1: Matrix-Verlauf in der Leiste fehlt');
           /* Tipp auf die Matrix-Zelle → Matrix-Spur */

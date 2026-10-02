@@ -47,9 +47,9 @@ ok('2 tempoSchnitt 650 (r 0,94) → GELB-nah (zwischen GELB und GRUEN, näher an
 ok('2 tempoSchnitt 700 → GRUEN', a3===DIA_FARBE.gruen);
 ok('0.3 r = 0,90 → genau GELB; soll 0 → GRUEN', diaAmpel(90,100)===DIA_FARBE.gelb && diaAmpel(5,0)===DIA_FARBE.gruen);
 frisch(); tagMit(6, 9); punkte(1000, 500);
-var sk=tempoSkalaHtml(diaGroessen());
-ok('1.1 Skala (v3.5.0 §3.3): Balken 0 … tempoSchnitt in der Ampel, Ziel-Marke WEISS gepunktet, Jetzt-Punkt; ohne laufende Karte kein Karten-Punkt', /ts-bar/.test(sk) &&
-   /ts-ziel/.test(sk) && /ts-jetzt/.test(sk) && sk.indexOf('ts-karte')<0);
+var sk=paceLeisteHtml(diaGroessen());
+ok('1.1 Pace-Leiste (v3.5.2 §1): waagerecht, Füllung 0 … Ø heute im Verlauf der Pace-Farbe, „nötig" als weiße Marke', /class="pbahn"><i style="width:[\d.]+%;background:linear-gradient\(90deg,#[0-9a-f]{8},#[0-9a-f]{6}\)"/i.test(sk) &&
+   /<u style="left:[\d.]+%"><\/u>/.test(sk) && /class="ppf"/.test(sk));
 
 /* ══ 3 · Tagesprognose ═══════════════════════════════════════════════ */
 kopf('3 · Tagesprognose (§2.2)');
@@ -81,9 +81,9 @@ ok('5 fünf Tage: fünf Punkte, eine Linie', (r5b.match(/<circle/g)||[]).length=
 kopf('6 · Keine laufende Karte');
 frisch(); tagMit(6, 9); punkte(1000, 0);
 S.karten=[neueKarte({id:'k6', domain:'dfm', titel:'Karte', matrixFeld:'ziel', sollMin:30})];
-ok('6 kein grüner Tempo-Punkt, Tagesprognose „Diese Karte: 0 %"', tempoSkalaHtml(diaGroessen()).indexOf(DIA_FARBE.gruen)<0 && fbWasDieseKarte(S.karten[0]).indexOf('Diese Karte: 0 %')>=0);
+ok('6 ohne laufende Karte: kein Live-Segment in der Punkteleiste, Tagesprognose „Diese Karte: 0 %"', (function(){ var l=statusLivePunkte(); return l.dfm===0 && l.privat===0; })() && fbWasDieseKarte(S.karten[0]).indexOf('Diese Karte: 0 %')>=0);
 S.fokus={ karteId:'k6', laeuft:true, startMs:Date.now()-600000, sessionSek:0 };
-ok('6 mit laufender Karte (v3.5.0 §3.3): Karten-Punkt in der Familienfarbe', /ts-karte[^>]*background:#3b82f6/.test(tempoSkalaHtml(diaGroessen())));
+ok('6 mit laufender Karte (v3.5.2 §1): die Pace-Leiste trägt keinen Karten-Punkt mehr (Live-Punkte stehen in der Punkteleiste — Zahlenbeleg in v352-abnahme)', paceLeisteHtml(diaGroessen()).indexOf('ts-karte')<0 && typeof statusLivePunkte==='function');
 S.fokus=null;
 
 /* ══ 7 · Dieselbe Kachel überall ═════════════════════════════════════ */
@@ -93,7 +93,7 @@ var fok=fbWoIchStehe(), bel=belHeuteNoch();
 ok('7 Outfit-Kachel: Fokus und Shop zeigen dieselbe (outfitKachelHtml)', fok.indexOf(outfitKachelHtml())>=0 && bel.indexOf(outfitKachelHtml())>=0);
 ok('7 „Tempo und Blöcke" (v3.5.0): Fokus („Der Tag") und Statistik nutzen dieselbe Render-Funktion (heuteGegenTypischHtml)', derTagHtml(null).indexOf('data-dialive="tt"')>=0 &&
    anModVerhalten(analyseFenster(),'alle').indexOf('data-dialive="tt"')>=0);
-ok('7 je Kachel genau eine Render-Funktion (Quelltext)', ['outfitKachelHtml','faktorKachelHtml','muenzenKachelHtml','rangDiagrammHtml','kulisseKachelHtml','heuteGegenTypischHtml','tempoSkalaHtml']
+ok('7 je Kachel genau eine Render-Funktion (Quelltext)', ['outfitKachelHtml','faktorKachelHtml','muenzenKachelHtml','rangDiagrammHtml','kulisseKachelHtml','heuteGegenTypischHtml','paceLeisteHtml']
    .every(function(f){ return (src.match(new RegExp('function '+f+'\\(','g'))||[]).length===1; }));
 
 /* ══ Je Kachel ══════════════════════════════════════════════════════ */
@@ -110,8 +110,8 @@ ok('2.4 Outfit: quadratisch, Ring 6 px (GRUEN, Rest GRAU 30 %), Bild in der Mitt
    ok4.indexOf('stroke="'+DIA_FARBE.grau+'" stroke-opacity=".3"')>=0 && /<img class="dia-ringbild"/.test(ok4) && /class="dia-name">Outfit \d+</.test(ok4) && ok4.indexOf('fbk-h')<0);
 ok('2.5 Faktor: quadratisch neben dem Outfit, der große Wert', /dia-quad amp/.test(fok) && fok.indexOf(outfitKachelHtml()+faktorKachelHtml(ampelStil(ampelStufe(normalZurUhrzeit('alle').r))))>=0);
 var tg=heuteGegenTypischHtml();
-ok('2.6 (v3.5.1 §3 Nr. 6) „Tempo und Blöcke": Legende Ist · Plan · DFM · Privat, wischbar mit festem y-Rand, Hinweis Tagesstart/Tagesende', />Ist<\/span>/.test(tg) && />Plan<\/span>/.test(tg) && />DFM<\/span>/.test(tg) && />Privat<\/span>/.test(tg) &&
-   /class="dia-tv-y"/.test(tg) && /class="dia-tv-scroll"/.test(tg) && tg.indexOf('◂ Tagesstart')>=0 && tg.indexOf('bis Tagesende ▸')>=0 && tg.indexOf('gestern')<0);
+ok('2.6 (v3.5.2 §2) „Tempo und Blöcke": Legende heute · (gestern) · (Ø Wochentag) · Plan, wischbar mit festem y-Rand, Hinweis Tagesstart/Tagesende', />heute<\/span>/.test(tg) && />Plan<\/span>/.test(tg) && !/>DFM<\/span>/.test(tg) &&
+   /class="dia-tv-y"/.test(tg) && /class="dia-tv-scroll"/.test(tg) && tg.indexOf('◂ Tagesstart')>=0 && tg.indexOf('bis Tagesende ▸')>=0);
 S.karten=[neueKarte({id:'k7', domain:'privat', titel:'Karte', matrixFeld:'werkzeug', sollMin:30})];
 S.tag.matrixSpur=[{ts:jetztIso(), x:0.2, y:0.1}];
 var fb7=fbWasIchBewege(S.karten[0]);
@@ -129,7 +129,7 @@ ok('0.1 UEBER #FF2D95 war vorher nirgends benutzt', (src.match(/#FF2D95/gi)||[])
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION aktuell (3.4.0), Build 2026-10-01-2', APP_VERSION==='3.5.1' && UI_VERSION==='v3.5.1' && APP_BUILD==='2026-10-01-2');
+ok('APP_VERSION aktuell (3.4.0), Build 2026-10-02-1', APP_VERSION==='3.5.2' && UI_VERSION==='v3.5.2' && APP_BUILD==='2026-10-02-1');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));
