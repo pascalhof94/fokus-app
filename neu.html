@@ -14333,11 +14333,27 @@ function oePStd7(){
   if(min>=60) return Math.max(5, p/(min/60));
   return num(S.settings.basisProStdPrivat,120)*1.5;   // Startwert, bis Historie da ist
 }
-/* Preis ≈ 4 Std Fokuszeit × 7-Tage-Ø × Settings-Faktor × Kategorie-Faktor. */
-function preisFuer(kat){
-  const basis = 4 * oePStd7() * (S.settings.preisFaktor||1) * (KAT_PREISFAKTOR[kat]||1);
-  return Math.max(20, Math.round(basis/5)*5);
+/* ══ §3 (v3.6.0) · PREISE ══════════════════════════════════════════════════════════════════
+   P1(kat) = Tagesziel werktags gesamt (DFM + Privat aus den Einstellungen) × KAT_PREISFAKTOR[kat] ÷ Summe aller
+   KAT_PREISFAKTOR — alle sechs Stufen 1 zusammen kosten genau ein Werktags-Tagesziel.
+   Stufenfaktor: Vergangenheitsstufe s → 1 + 0,15 × (s − 1) · erste Zukunftsstufe → 3,0, jede weitere × 1,35.
+   Tempo: × (Ø P/h der letzten 7 aktiven Tage ÷ Ø P/h beim ersten Start von 3.6.0 = S.belohnung.tempoBasis), mindestens 1,0 —
+   die Preise steigen mit dem Tempo, fallen aber nie unter das Startniveau. Gerundet auf 5. */
+function zielWerktagGesamt(){ return Math.max(0, num(tagesZielDomain('dfm')))+Math.max(0, num(tagesZielDomain('privat'))); }
+function preisStufe1(kat){
+  const summe=KAT_KEYS.reduce((a,k)=>a+num(KAT_PREISFAKTOR[k],1), 0);
+  return zielWerktagGesamt()*num(KAT_PREISFAKTOR[kat],1)/Math.max(1e-9, summe);
 }
+function stufenFaktor(kat, n){
+  const st=stufeVon(kat, n); if(!st) return 1;
+  if(st.status!=='zukunft') return 1+0.15*(n-1);
+  let davor=0; for(let i=1;i<n;i++) if(stufeZukunft(kat, i)) davor++;
+  return 3.0*Math.pow(1.35, davor);
+}
+function tempoFaktor(){ const b=num(S.belohnung && S.belohnung.tempoBasis); return b>0 ? Math.max(1, oePStd7()/b) : 1; }
+function preisVon(kat, n){ return Math.max(5, Math.round(preisStufe1(kat)*stufenFaktor(kat, n)*tempoFaktor()/5)*5); }
+/* Preis der NÄCHSTEN Stufe dieser Kategorie */
+function preisFuer(kat){ return preisVon(kat, stufenGekauft(kat)+1); }
 /* Cross-Kategorie-Voraussetzung: null = frei, sonst Hinweistext. */
 function kaufSperre(kat){
   const naechste = stufeVon(kat, stufenGekauft(kat)+1);
