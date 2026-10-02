@@ -15897,8 +15897,9 @@ function topfAuskippen(idx){
 function feldAusmalen(f){
   const A=ausmalState(), D=ausmalDaten(A.kulisse); if(!D || A.gefaerbt.indexOf(f)>=0) return false;
   const idx=(S.ui.malTopf!=null && A.toepfe[S.ui.malTopf]) ? S.ui.malTopf : A.aktiverTopf, t=A.toepfe[idx], p=feldPunkte(f), fc=D.farbeVon[f];
-  if(t.farbe==null || t.farbe!==fc){ toast('Passt nicht: Feld ist '+D.namen[fc]); return false; }
-  if(t.punkte<p){ toast('Zu wenig Farbe: '+fmtP(Math.round(t.punkte))+' von '+fmtP(p)+' P'); return false; }
+  // §4 (v3.5.2): kurzer Hinweis, wenn das gewaehlte Feld nicht passt
+  if(t.farbe==null || t.farbe!==fc){ toast('Feld braucht '+D.namen[fc]); return false; }
+  if(t.punkte<p){ toast('Topf reicht noch nicht (fehlen '+fmtP(Math.ceil(p-t.punkte))+')'); return false; }
   t.punkte-=p; if(t.punkte<=0.5){ t.punkte=0; t.farbe=null; t.bannerGezeigt=false; }
   A.gefaerbt.push(f); _malFade={ feld:f, t0:Date.now() };
   haptik(12); saveMeta();
@@ -15991,7 +15992,27 @@ function ausmalCanvasZeichnen(){
 }
 function feldBbox(f){ const D=ausmalDaten(ausmalState().kulisse); if(!D) return null; const q=(D.json.felder||[]).find(x=>x.feld===f); return q ? q.bbox : null; }
 /* Hit-Test: Feldnummer am Bildpunkt */
-function feldAn(px, py){ const B=ausmalBilder(ausmalState().kulisse); if(!B || !B.px) return 0; const W=B.bg.naturalWidth, H=B.bg.naturalHeight; const x=Math.floor(px), y=Math.floor(py); if(x<0||y<0||x>=W||y>=H) return 0; return B.px.feld[(y*W+x)*4]; }
+/* §4 (v3.5.2): Tippen trifft das Feld — statt eines einzelnen Pixels zaehlen alle Feld-IDs in einem Kreis um den Finger
+   (12 CSS-px, in Bildpixel umgerechnet; der Zoom steckt im Massstab des Canvas). Auswahl: (1) gibt es im Kreis ein offenes
+   Feld in der Farbe des malenden Topfes, gilt das mit den meisten Pixeln im Kreis; (2) sonst das Feld mit den meisten Pixeln
+   im Kreis. Kanten-Pixel und bereits gefaerbte Felder zaehlen nicht mit. Rueckgabe: Feldnummer oder 0. */
+function feldWahlImKreis(feld, kanten, W, H, cx, cy, r, gefaerbt, farbeVon, topfFarbe){
+  const n={}, gef={}; (gefaerbt||[]).forEach(f=>{ gef[f]=1; });
+  const x0=Math.max(0, Math.floor(cx-r)), x1=Math.min(W-1, Math.ceil(cx+r)), y0=Math.max(0, Math.floor(cy-r)), y1=Math.min(H-1, Math.ceil(cy+r)), r2=r*r;
+  for(let y=y0;y<=y1;y++){ for(let x=x0;x<=x1;x++){ const dx=x+0.5-cx, dy=y+0.5-cy; if(dx*dx+dy*dy>r2) continue;
+      const i=(y*W+x)*4; if(kanten && kanten[i]>127) continue;
+      const f=feld[i]; if(!f || gef[f]) continue; n[f]=(n[f]||0)+1; } }
+  let best=0, bestN=0, topf=0, topfN=0;
+  Object.keys(n).forEach(q=>{ const f=Number(q), c=n[q];
+    if(c>bestN || (c===bestN && f<best)){ best=f; bestN=c; }
+    if(topfFarbe!=null && farbeVon && farbeVon[f]===topfFarbe && (c>topfN || (c===topfN && f<topf))){ topf=f; topfN=c; } });
+  return topf || best;
+}
+function feldImUmkreis(px, py, rBild, topfFarbe){
+  const A=ausmalState(), B=ausmalBilder(A.kulisse), D=ausmalDaten(A.kulisse); if(!B || !B.px) return 0;
+  return feldWahlImKreis(B.px.feld, B.px.kanten, B.bg.naturalWidth, B.bg.naturalHeight, px, py, Math.max(1, num(rBild)), A.gefaerbt, D ? D.farbeVon : null, topfFarbe);
+}
+const MAL_TIPP_RADIUS=12;   // CSS-px um den Finger
 /* ── Topf als SVG (Trapez mit Fuellstand) ── */
 /* §5 Nr. 5 (v3.5.1): Glas mit hellem Innenhintergrund #3a3f4a und heller Kante #c9ccd2 1,5 px (aktiver Topf WEISS 2 px),
    Lichtreflex links als weisser Streifen 18 %, Deckel hell — die Farbe fuellt darin von unten, dunkle Farben stehen
@@ -16113,8 +16134,10 @@ function malZoomBinden(){
     if(p && pan0 && !pan0.bewegt && Object.keys(_malPtr).length===0 && Date.now()-p.t<350){
       // §5 Nr. 6 (v3.5.1): Zoom NUR mit zwei Fingern (Pinch) — der Doppeltipp-Zoom ist entfallen; die Einstellung
       // ausmalen.zoomDoppeltipp bleibt im Vertrag stehen, ohne Wirkung. Ein Tipp malt.
-      const r=cv.getBoundingClientRect(), fx=(e.clientX-r.left)/r.width*cv.width, fy=(e.clientY-r.top)/r.height*cv.height;
-      const f=feldAn(fx, fy); if(f>0){ if(feldAusmalen(f)) renderBelohnung(); }
+      const r=cv.getBoundingClientRect(), k=cv.width/Math.max(1, r.width), fx=(e.clientX-r.left)*k, fy=(e.clientY-r.top)/r.height*cv.height;
+      // §4 (v3.5.2): Treffer im Umkreis von 12 CSS-px, Vorrang fuer ein offenes Feld in der Farbe des malenden Topfes
+      const A=ausmalState(), ti=(S.ui.malTopf!=null && A.toepfe[S.ui.malTopf]) ? S.ui.malTopf : A.aktiverTopf, tf=A.toepfe[ti] ? A.toepfe[ti].farbe : null;
+      const f=feldImUmkreis(fx, fy, MAL_TIPP_RADIUS*k, tf); if(f>0){ if(feldAusmalen(f)) renderBelohnung(); }
     }
     pan0=null; };
   z.addEventListener('pointerup', ende); z.addEventListener('pointercancel', ende);
