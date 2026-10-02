@@ -2195,6 +2195,13 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .kl-zwh:first-child{margin-top:0}
 .kl-z.erl{opacity:.6}
 .kl-grinh .kl-z:last-child{margin-bottom:0}
+/* ══ 3.5.3 §1 · STATUSLEISTE (Draft Nr. 1) ══ */
+#statusbar .sl-pace .pbahn.zonen{background:none;overflow:visible}
+#statusbar .sl-pace .pbahn.zonen i{opacity:.45;border-radius:0}
+#statusbar .sl-pace .pbahn.zonen i:first-child{border-radius:6px 0 0 6px}
+#statusbar .sl-pace .pbahn.zonen i:nth-child(5){border-radius:0 6px 6px 0}
+#statusbar .sl-pace .pbahn .raute{position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;transform:rotate(45deg);border:1.5px solid #000;box-sizing:border-box;z-index:3}
+#statusbar .sl-pace .pbahn u{z-index:2}
 </style>
 </head>
 <body>
@@ -5729,37 +5736,42 @@ function tempopfeilStufe(r){
        : r>0.75 ? {sym:'↘', c:FARBE.ORANGE, d:'down'} : {sym:'⇊', c:FARBE.ROT, d:'down2'};
 }
 function tempopfeilSvg(r, px){ return pfeilSvg(tempopfeilStufe(r), px); }
-/* ══ §1 (v3.5.2) · PACE DER STATUSLEISTE ════════════════════════════════════
+/* ══ §1 (v3.5.3) · PACE DER STATUSLEISTE ════════════════════════════════════
    Ø heute = Punkte heute ÷ gemessene Stunden heute (seit Tagesstart) · nötig = restliche Punkte bis zum Tagesziel ÷
-   verbleibende Plan-Stunden bis Tagesende (beides aus diaGroessen). Farbe = diskrete Ampel nach r = Ø ÷ nötig
-   (≥ 1,00 GRUEN · ≥ 0,90 GELBGRUEN · ≥ 0,80 GELB · ≥ 0,75 ORANGE · darunter ROT); Tagesziel erreicht → UEBER. */
-function paceFarbe(schnitt, noetig, erreicht){
-  if(erreicht) return FARBE.UEBER;
-  return num(noetig)>0 ? bewertungDiskret(num(schnitt)/num(noetig)) : FARBE.GRUEN;
+   verbleibende Plan-Stunden bis Tagesende (beides aus diaGroessen).
+   Die Leiste (12 px) traegt als Hintergrund fuenf Ampelzonen nach r = Wert ÷ nötig
+   (< 0,75 ROT · 0,75–0,80 ORANGE · 0,80–0,90 GELB · 0,90–1,00 GELBGRUEN · ≥ 1,00 GRUEN), je 45 % Deckkraft,
+   Skala 0 … max(Ø, Karte, nötig) × 1,15 — die Zonengrenze bei 1,00 = nötig ist dadurch sichtbar.
+   Weisser Strich = Ø heute · Raute in Familienfarbe = live P/h der laufenden Karte · Pfeil rechts = Karte gegen
+   Tagesschnitt (r = Karte ÷ Ø heute, Schwellen 1,25 / 1,05 / 0,95 / 0,75 = tempopfeilStufe). Ohne laufende Karte
+   weder Raute noch Pfeil. Der Trendpfeil des Tagesschnitts aus 3.5.2 ist entfallen. */
+const PACE_ZONEN=[[0, 'ROT'], [0.75, 'ORANGE'], [0.8, 'GELB'], [0.9, 'GELBGRUEN'], [1, 'GRUEN']];
+/* Farbe der Zone, in der ein Wert liegt (= diskrete Ampel nach Wert ÷ nötig); ohne „nötig" (Tagesziel erreicht) GRUEN */
+function paceFarbe(wert, noetig){
+  return num(noetig)>0 ? bewertungDiskret(num(wert)/num(noetig)) : FARBE.GRUEN;
 }
-/* Trendpfeil: Richtung des Ø heute — r = Ø jetzt ÷ Ø vor 30 Min */
-function paceTrendStufe(r){
-  if(r==null || !Number.isFinite(r)) return null;
-  return r>=1.05 ? {sym:'⇈', c:FARBE.GRUEN, d:'up2'} : r>=1.01 ? {sym:'↗', c:FARBE.GELBGRUEN, d:'up'} : r>0.99 ? {sym:'→', c:FARBE.GELB, d:'flat'}
-       : r>0.95 ? {sym:'↘', c:FARBE.ORANGE, d:'down'} : {sym:'⇊', c:FARBE.ROT, d:'down2'};
+/* Geometrie der Leiste: Skalenende, Zonen (von/bis in %), Lage von Ø und Karte, r des Pfeils */
+function paceLeisteTeile(schnitt, noetig, karte){
+  schnitt=Math.max(0, num(schnitt)); noetig=Math.max(0, num(noetig)); const hat=karte!=null && Number.isFinite(num(karte, NaN)); if(hat) karte=Math.max(0, num(karte));
+  const max=Math.max(1e-9, Math.max(schnitt, hat ? karte : 0, noetig)*1.15), P=v=>Math.max(0, Math.min(100, v/max*100));
+  const zonen=PACE_ZONEN.map((z,i)=>{ const bis=i+1<PACE_ZONEN.length ? PACE_ZONEN[i+1][0]*noetig : Infinity;
+    return { farbe:FARBE[z[1]], name:z[1], von:P(z[0]*noetig), bis:P(bis) }; });
+  return { max, zonen, schnitt:P(schnitt), karte:hat ? P(karte) : null,
+    r: hat ? (schnitt>0 ? karte/schnitt : (karte>0 ? 99 : null)) : null };
 }
-/* r des Trendpfeils; unter 30 Min Messzeit heute gibt es keinen Pfeil (null). Die Stunden tragen denselben Boden (0,25 h)
-   wie der Ø in diaGroessen. */
-function paceTrend(){
-  if(!tagOffen() || !(S.tag && S.tag.startTs)) return null;
-  const h=(Date.now()-Date.parse(S.tag.startTs))/3600000; if(!(h>=0.5)) return null;
-  const now=belX(jetztIso()), K=diaTagKurve(belFensterDatum(jetztIso()), 'alle');
-  const jetzt=Math.max(0, K.wert(now))/Math.max(0.25, h), vor=Math.max(0, K.wert(now-0.5))/Math.max(0.25, h-0.5);
-  if(vor>0) return jetzt/vor;
-  return jetzt>0 ? 99 : null;
+/* live P/h der laufenden Karte (wie die Tempo-Leiste der Fokusansicht: live ab 1 Min Ist, davor die Prognose-Rate) */
+function paceKarte(){
+  const lk=(S.fokus && S.fokus.laeuft && S.fokus.karteId) ? S.karten.find(x=>x.id===S.fokus.karteId) : null; if(!lk) return null;
+  let kt=null; try{ kt=tempoWerte(lk).karte; }catch(e){ kt=null; }
+  const v=kt ? (kt.live!=null ? kt.live : kt.prognose) : null;
+  return v!=null ? { wert:v, karte:lk } : null;
 }
-/* Pace-Leiste waagerecht (12 px): Skala 0 … max(Ø, nötig) × 1,1 · Fuellung bis Ø in der Pace-Farbe (Verlauf 55 % → 100 %) ·
-   „nötig" = weisse Marke 2 px, ueber die Leiste hinausragend · rechts daneben der Trendpfeil */
-function paceLeisteHtml(g){
-  const erreicht=g.punkteHeute>=g.zielHeute, c=paceFarbe(g.tempoSchnitt, g.tempoZiel, erreicht);
-  const max=Math.max(1e-9, Math.max(num(g.tempoSchnitt), erreicht ? 0 : num(g.tempoZiel))*1.1), pos=v=>Math.max(0, Math.min(100, num(v)/max*100)).toFixed(1);
-  let st=null; try{ st=paceTrendStufe(paceTrend()); }catch(e){ st=null; }
-  return '<span class="pbahn"><i style="width:'+pos(g.tempoSchnitt)+'%;background:'+verlauf(c)+'"></i>'+(erreicht ? '' : '<u style="left:'+pos(g.tempoZiel)+'%"></u>')+'</span>'+
+function paceLeisteHtml(g, pk){
+  if(pk===undefined) pk=paceKarte();
+  const T=paceLeisteTeile(g.tempoSchnitt, g.tempoZiel, pk ? pk.wert : null), st=pk ? tempopfeilStufe(T.r) : null;
+  return '<span class="pbahn zonen">'+T.zonen.map(z=>'<i style="left:'+z.von.toFixed(1)+'%;width:'+Math.max(0, z.bis-z.von).toFixed(1)+'%;background:'+z.farbe+'"></i>').join('')+
+    '<u style="left:'+T.schnitt.toFixed(1)+'%"></u>'+
+    (T.karte!=null ? '<b class="raute" style="left:'+T.karte.toFixed(1)+'%;background:'+famFarbe(pk.karte)+'"></b>' : '')+'</span>'+
     '<span class="ppf">'+(st ? pfeilSvg(st, 16) : '')+'</span>';
 }
 function pfeilSvg(st, px){
@@ -6321,8 +6333,10 @@ function akkuVerlaufDef(id, yNull, yVoll){
 /* Matrix-Richtung: waagerecht rot („weg von") → gelb → gruen („hin zu") */
 function richtungVerlaufDef(id, xL, xR){
   return '<defs><linearGradient id="'+id+'" gradientUnits="userSpaceOnUse" x1="'+xL+'" y1="0" x2="'+xR+'" y2="0">'+
-    '<stop offset="0" stop-color="'+AMPEL_FARBE.rot[0]+'"/><stop offset=".5" stop-color="'+AMPEL_FARBE.gelb[0]+'"/><stop offset="1" stop-color="'+AMPEL_FARBE.gruen[0]+'"/></linearGradient></defs>';
+    '<stop offset="0" stop-color="'+FARBE.ROT+'"/><stop offset=".5" stop-color="'+FARBE.GELB+'"/><stop offset="1" stop-color="'+FARBE.GRUEN+'"/></linearGradient></defs>';
 }
+/* Farbe der Richtungslinie an der Stelle x (−1 weg von … +1 hin zu): ROT → GELB → GRUEN wie der Verlauf */
+function richtungVerlaufFarbe(x){ const v=Math.max(-1, Math.min(1, num(x))); return v<0 ? diaMisch(FARBE.ROT, FARBE.GELB, v+1) : diaMisch(FARBE.GELB, FARBE.GRUEN, v); }
 function richtungFarbe(x){ const v=num(x); return v<-0.33?AMPEL_FARBE.rot[0]:(v<0?AMPEL_FARBE.orange[0]:(v<0.33?AMPEL_FARBE.gelb[0]:AMPEL_FARBE.gruen[0])); }
 /* Balken, der EINE Karte zeigt: Matrixfeld = Grundfarbe (v2.4.1). */
 function karteBalken(k){ const c=MX_FARBE[matrixFeldVon(k)]||MX_FARBE.ziel; return 'background:linear-gradient(90deg,'+c[1]+','+c[0]+')'; }
@@ -7811,7 +7825,7 @@ function ampelKurveSvg(a){
   const maxY=Math.max(10, a.ist, g.prognoseHeute, g.zielHeute)*1.05;
   const X=x=>((Math.max(a.von,Math.min(bis,x))-a.von)/span)*W, Y=p=>H-P-(Math.max(0,p)/maxY)*(H-2*P);
   const heuteP=a.kHeute.filter(q=>q.x<=a.nowX+0.001), letzt=heuteP[heuteP.length-1];
-  const af=paceFarbe(g.tempoSchnitt, g.tempoZiel, g.punkteHeute>=g.zielHeute);   // §1 (v3.5.2): Farbe der Pace-Leiste
+  const af=paceFarbe(g.tempoSchnitt, g.tempoZiel);   // §1 (v3.5.3): Farbe der Zone, in der der weisse Strich (Ø heute) liegt
   // Soll-Kurve: die Plankurve des Tages (Rahmen bzw. Profil), sonst linear bis zum Tagesziel
   let soll=[]; try{ const plan=planKurveInfo(heute); for(let i=0;i<=12;i++){ const x=a.von+span*i/12; soll.push({x, p:plan.wert(x)}); } if(!(soll[soll.length-1].p>0)) soll=[]; }catch(e){ soll=[]; }
   if(!soll.length) soll=[{x:a.von,p:0},{x:bis,p:g.zielHeute}];
@@ -7837,17 +7851,6 @@ function renderAmpelKurve(){
 }
 /* Akku-Ampel (§2 v3.5.1): 41 % → GELB, 78 % → GRUEN, 22 % → ORANGE */
 function akkuFarbe(a){ a=num(a); return a>=70 ? FARBE.GRUEN : a>=55 ? FARBE.GELBGRUEN : a>=35 ? FARBE.GELB : a>=20 ? FARBE.ORANGE : FARBE.ROT; }
-/* Matrix der Statusleiste: 72×72, sehr dunkle Feldtoene, Spur der letzten 5 Std als Punktewolke, Linie WEISS 35 %, Endpunkt mit Hof */
-function matrixMiniSvg(spur){
-  const pts=(spur||[]).filter(e=>e && !e.uebersprungen && e.x!=null && e.y!=null).map(e=>[36+Math.max(-1,Math.min(1,num(e.x)))*31, 36-Math.max(-1,Math.min(1,num(e.y)))*31]);
-  let g='<rect x="0" y="0" width="36" height="36" fill="rgba(246,109,109,.07)"/><rect x="36" y="0" width="36" height="36" fill="rgba(62,207,142,.07)"/>'+
-    '<rect x="0" y="36" width="36" height="36" fill="rgba(246,109,109,.04)"/><rect x="36" y="36" width="36" height="36" fill="rgba(62,207,142,.04)"/>'+
-    '<line x1="36" y1="0" x2="36" y2="72" stroke="rgba(255,255,255,.08)"/><line x1="0" y1="36" x2="72" y2="36" stroke="rgba(255,255,255,.08)"/>';
-  pts.forEach(q=>{ g+='<circle cx="'+q[0].toFixed(1)+'" cy="'+q[1].toFixed(1)+'" r="1.5" fill="'+FARBE.GRAU+'" opacity=".45"/>'; });
-  if(pts.length>1) g+='<path d="'+pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ')+'" fill="none" stroke="rgba(232,233,236,.35)" stroke-width="1.2"/>';
-  if(pts.length){ const e=pts[pts.length-1]; g+='<circle cx="'+e[0].toFixed(1)+'" cy="'+e[1].toFixed(1)+'" r="6" fill="rgba(255,255,255,.2)"/><circle cx="'+e[0].toFixed(1)+'" cy="'+e[1].toFixed(1)+'" r="3" fill="#fff"/>'; }
-  return '<svg viewBox="0 0 72 72" aria-hidden="true">'+g+'</svg>';
-}
 /* §1 (v3.5.2): Live-Punkte der laufenden Karte je Familie = Tagesstand mit laufender Uhr − Tagesstand ohne sie */
 function statusLivePunkte(g){
   const o={ dfm:0, privat:0 };
@@ -7918,11 +7921,11 @@ function renderStatusbar(){
   // Spalte 2 oben: im Diagramm links oben die Gesamtpunkte, rechts unten die P/h-Zahl (= Ø heute) in der Farbe der Pace-Leiste
   { const t=el('sTempo'); if(t){
       if(urlaubHeute()){ t.textContent='🏖'; t.style.color=FARBE.WEISS; }
-      else { t.style.color=paceFarbe(g.tempoSchnitt, g.tempoZiel, g.punkteHeute>=g.zielHeute); t.textContent=fmtP(Math.round(g.tempoSchnitt))+' P/h'; } } }
-  // Spalte 2 unten: Pace-Leiste waagerecht mit Trendpfeil (die senkrechte Tempoleiste ist entfallen)
+      else { t.style.color=paceFarbe(g.tempoSchnitt, g.tempoZiel); t.textContent=fmtP(Math.round(g.tempoSchnitt))+' P/h'; } } }
+  // Spalte 2 unten: Pace-Leiste — Ampelzonen relativ zu „nötig", Strich = Ø heute, Raute = laufende Karte, Pfeil = Karte gegen Ø
   if(el('sZTempo')) el('sZTempo').innerHTML=urlaubHeute() ? '' : paceLeisteHtml(g);
   // Matrix 72×72 — Spur der letzten 5 Stunden
-  if(el('sMv')) el('sMv').innerHTML=matrixMiniSvg(matrixSpur().filter(p=>p && p.ts && Date.parse(p.ts)>=Date.now()-5*3600000));
+  if(el('sMv')) el('sMv').innerHTML=matrixVerlaufSvg(matrixSpur().filter(p=>p && p.ts && Date.parse(p.ts)>=Date.now()-5*3600000), {klein:true});   // §1 (v3.5.3): Matrixverlauf wie 3.4.8
   momentRangCheck();   // §6 (1.9.0): Rang/Stern/Meilenstein/Joker zentral erkennen
   try{ ausmalVerteilen(); }catch(e){}   // §6.4 (v3.5.0): Wohlstand-Zufluss in den aktiven Topf
   }catch(e){ /* Statusleiste bleibt sichtbar, auch wenn ein Wert scheitert */ }
@@ -17456,27 +17459,29 @@ function matrixVerlaufSvg(spur, opt){
   opt=opt||{};
   const pts=spurPunkte(spur);
   const gross=!opt.klein;
-  const W=gross?320:148, L=gross?42:3, R=gross?10:3, T=gross?22:3;   // §3.1 (v3.5.0): klein = 148 px breit
+  const W=gross?320:72, L=gross?42:2, R=gross?10:2, T=gross?22:2;   // §1 (v3.5.3): klein = 72×72 (Statusleiste)
   const t0=pts.length?Date.parse(pts[0].ts):Date.now();
   const tl=pts.length?Date.parse(pts[pts.length-1].ts):t0;
   let a=t0, b=Math.max(tl, t0+30*60000);
-  let H, B=gross?14:3;
+  let H, B=gross?14:2;
   if(gross){
     a=Math.floor(t0/3600000)*3600000; b=Math.max(Math.ceil(tl/3600000)*3600000, a+3600000);
     const std=(b-a)/3600000; H=T+B+Math.max(170, Math.min(620, std*46));
-  } else H=76;
-  const X=x=>L+((Math.max(-1,Math.min(1,num(x)))+1)/2)*(W-L-R);
-  const Y=ts=>T+((Date.parse(ts)-a)/Math.max(1,b-a))*(H-T-B);
+  } else H=72;
+  // klein: Linie und Endpunkt bleiben 2 px vom Rand der Flaeche weg
+  const iX=gross?0:2, iY=gross?0:2;
+  const X=x=>L+iX+((Math.max(-1,Math.min(1,num(x)))+1)/2)*(W-L-R-2*iX);
+  const Y=ts=>T+iY+((Date.parse(ts)-a)/Math.max(1,b-a))*(H-T-B-2*iY);
   const gid=svgId('mv');
   let g='<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="0">'+
-    '<stop offset="0" stop-color="'+AMPEL_FARBE.rot[0]+'" stop-opacity="'+(gross?'.34':'.42')+'"/>'+
+    '<stop offset="0" stop-color="'+FARBE.ROT+'" stop-opacity="'+(gross?'.34':'.42')+'"/>'+
     '<stop offset=".5" stop-color="#2a2c30" stop-opacity=".15"/>'+
-    '<stop offset="1" stop-color="'+AMPEL_FARBE.gruen[0]+'" stop-opacity="'+(gross?'.34':'.42')+'"/></linearGradient></defs>'+
+    '<stop offset="1" stop-color="'+FARBE.GRUEN+'" stop-opacity="'+(gross?'.34':'.42')+'"/></linearGradient></defs>'+
     '<rect x="'+L+'" y="'+T+'" width="'+(W-L-R)+'" height="'+(H-T-B)+'" rx="'+(gross?10:5)+'" fill="url(#'+gid+')"/>'+
     '<line x1="'+X(0).toFixed(1)+'" y1="'+T+'" x2="'+X(0).toFixed(1)+'" y2="'+(H-B)+'" stroke="#f2f2f3" stroke-opacity=".22" stroke-dasharray="3 3"/>';
   if(gross){
-    g+='<text x="'+L+'" y="13" font-size="9" fill="'+AMPEL_FARBE.rot[0]+'">← weg von</text>'+
-       '<text x="'+(W-R)+'" y="13" font-size="9" text-anchor="end" fill="'+AMPEL_FARBE.gruen[0]+'">hin zu →</text>';
+    g+='<text x="'+L+'" y="13" font-size="9" fill="'+FARBE.ROT+'">← weg von</text>'+
+       '<text x="'+(W-R)+'" y="13" font-size="9" text-anchor="end" fill="'+FARBE.GRUEN+'">hin zu →</text>';
     const std=(b-a)/3600000, schritt=std>9?2:1;
     for(let h=0; h<=std+0.001; h+=schritt){
       const ts=a+h*3600000, y=T+((ts-a)/Math.max(1,b-a))*(H-T-B), d=new Date(ts);
@@ -17491,8 +17496,8 @@ function matrixVerlaufSvg(spur, opt){
   const rid=svgId('mvr');
   if(pfad) g+=richtungVerlaufDef(rid, L, W-R)+'<path d="'+pfad+'" fill="none" stroke="url(#'+rid+')" stroke-width="'+(gross?2.6:2)+'" stroke-linejoin="round" stroke-linecap="round" style="'+leuchten('rgba(255,255,255,.25)',3)+'"/>';
   if(!gross){
-    const l=pp[pp.length-1];   // §3.1 (v3.5.0): Endpunkt weiss
-    g+='<circle cx="'+l.x.toFixed(1)+'" cy="'+l.y.toFixed(1)+'" r="5" fill="#fff" fill-opacity=".2"/><circle cx="'+l.x.toFixed(1)+'" cy="'+l.y.toFixed(1)+'" r="2.8" fill="#fff"/>';
+    const l=pp[pp.length-1], lf=richtungVerlaufFarbe(pts[pts.length-1].x);   // §1 (v3.5.3): Endpunkt leuchtend in der Richtungsfarbe
+    g+='<circle cx="'+l.x.toFixed(1)+'" cy="'+l.y.toFixed(1)+'" r="3" fill="'+lf+'" style="'+leuchten(lf,3)+'"/>';
     return '<svg viewBox="0 0 '+W+' '+H+'" class="mv-svg" aria-hidden="true">'+g+'</svg>';
   }
   const byId={}; S.karten.forEach(k=>byId[k.id]=k);
