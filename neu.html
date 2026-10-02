@@ -6119,7 +6119,7 @@ function heuteWochentagsKurven(){
   const key=iv.length+'|'+(iv.length?iv[iv.length-1].ts:'')+'|'+Math.floor(Date.now()/60000)+'|'+heute+'|'+lf;
   if(_typMemo && _typMemoKey===key) return _typMemo;
   const tage={}; intradayStatistik().forEach(e=>{ if(e && e.ts && num(e.punkte)!==0) tage[belFensterDatum(e.ts)]=true; });
-  const gleiche=wochentagsTage(heute), letzte2=gleiche.slice(-2);
+  const gleiche=wochentagsTage(heute);
   const gd=anVorTage(heute, 1), gestern=(tage[gd] && !tagIstUrlaub(gd)) ? gd : null;
   const bl=tagesBloecke()||[], blBis=bl.length ? Math.max.apply(null, bl.map(b=>num(b.bis)<5?num(b.bis)+24:num(b.bis))) : 0;
   const von=belTagFenster(heute).von, bis=Math.max(von+1, diaTagesEndeX(), jetztX+3, blBis);
@@ -6127,12 +6127,11 @@ function heuteWochentagsKurven(){
   if(xs.indexOf(jetztX)<0){ xs.push(jetztX); xs.sort((a,b)=>a-b); }
   const tempo=(d, x)=>{ const a=diaTagKurve(d,'dfm'), b=diaTagKurve(d,'privat'); return a.wert(x)-a.wert(x-1)+b.wert(x)-b.wert(x-1); };
   const roh=xs.map(x=>x<=jetztX+1e-9 ? tempo(heute, x) : null);
-  const zweiRoh=letzte2.length ? xs.map(x=>letzte2.reduce((q,d)=>q+tempo(d, x),0)/letzte2.length) : null;
   // §2 (v3.5.2): „Ø dieser Wochentag" = Mittel ALLER passenden Tage (nicht nur der letzten zwei), gleiche Glaettung wie heute
   const alleRoh=gleiche.length ? xs.map(x=>gleiche.reduce((q,d)=>q+tempo(d, x),0)/gleiche.length) : null;
   _typMemo={ wt, von, bis, xs, jetztX, roh, heute:diaGlaetten(roh), dauer:Math.max(1, jetztX+3-von),
     wtAlle:alleRoh ? diaGlaetten(alleRoh) : null, wtTage:gleiche.length,
-    gestern:gestern ? diaGlaetten(xs.map(x=>tempo(gestern, x))) : null, zwei:zweiRoh ? diaGlaetten(zweiRoh) : null };
+    gestern:gestern ? diaGlaetten(xs.map(x=>tempo(gestern, x))) : null };
   _typMemoKey=key;
   return _typMemo;
 }
@@ -6150,6 +6149,19 @@ function tagesBloeckeStrahl(){
    Linie 2,5 px) · Plan = gestrichelter Umriss WEISS mit Schraffur 14 %, nie gefuellt · Bloecke in EINER Reihe:
    Plan = Umriss + Schraffur, Ist-Sitzungen gefuellt in Familienfarbe · wischbar bis Tagesende, y-Skala fest (fixe Spalte),
    Uhrzeiten 4 px unter den Bloecken. Plan-Tempo = Zuwachs der Plankurve (planKurveInfo) je Stunde ab jetzt. */
+/* §2 (v3.5.3): die Vergleichslinien der Tagestempo-Diagramme — EINE Funktion fuer Fokus („Tempo und Blöcke") und Statistik
+   („Heute gegen typische Tage"): Ø dieser Wochentag = BLAU durchgezogen, gestern = ROT 55 % gestrichelt 4 3, je 1,5 px.
+   Bewusste Ausnahme von der Rollenregel „Vergleich = GRAU", nur in Tagestempo-Diagrammen. */
+function tempoVergleichSvg(T, punkte){
+  const l=(a, attr)=>{ const q=punkte(a); return q.length>1 ? '<path class="tb-vgl" d="'+glattPfad(q)+'" fill="none" '+attr+' stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>' : ''; };
+  return l(T.wtAlle, 'stroke="'+FARBE.BLAU+'"')+l(T.gestern, 'stroke="'+FARBE.ROT+'" stroke-opacity=".55" stroke-dasharray="4 3"');
+}
+/* Legenden-Eintraege dazu; ohne Vergleichstag entfaellt der Eintrag (wie die Linie). wert(a) → optionale Zahl hinter dem Namen */
+function tempoVergleichLegende(T, wert){
+  const z=a=>wert ? wert(a) : '';
+  return (T.gestern ? '<span><i style="border-top:2px dashed '+farbeAlpha(FARBE.ROT,.55)+';height:0;border-radius:0"></i>gestern'+z(T.gestern)+'</span>' : '')+
+    (T.wtAlle ? '<span><i style="background:'+FARBE.BLAU+';height:2px"></i>Ø '+AN_WT_LANG[T.wt]+' ('+T.wtTage+' Tag'+(T.wtTage===1?'':'e')+')'+z(T.wtAlle)+'</span>' : '');
+}
 function tempoPlanKurve(T){
   let P=null; try{ P=planKurveInfo(); }catch(e){ P=null; }
   const iJ=T.xs.indexOf(T.jetztX);
@@ -6162,8 +6174,7 @@ function tempoBloeckeHtml(T, id){
   const iJ=T.xs.indexOf(T.jetztX), cJ=diaAmpel((T.heute && T.heute[iJ]!=null) ? T.heute[iJ] : 0, zielT);
   // §2 (v3.5.2): Legende heute · gestern · Ø Wochentag (n Tage) · Plan — ohne Vergleichstag entfaellt Linie samt Eintrag
   const legende='<div class="legende"><span><i style="background:'+verlauf(cJ)+'"></i>heute</span>'+
-    (T.gestern ? '<span><i style="background:'+farbeAlpha(FARBE.GRAU,.8)+';height:2px"></i>gestern</span>' : '')+
-    (T.wtAlle ? '<span><i style="background:'+farbeAlpha(FARBE.GRAU,.45)+';height:2px"></i>Ø '+AN_WT_LANG[T.wt]+' ('+T.wtTage+' Tag'+(T.wtTage===1?'':'e')+')</span>' : '')+
+    tempoVergleichLegende(T)+
     '<span><i style="border:1.5px dashed '+FARBE.WEISS+';background:repeating-linear-gradient(135deg,rgba(255,255,255,.14) 0 2px,transparent 2px 5px)"></i>Plan</span></div>';
   return '<div data-dialive="tt" data-diaopt=\''+JSON.stringify({bloecke:true, id})+'\'>'+diaScrollRahmenHtml(id, H, T.bis-T.von, T.dauer, 'P/h')+
     '<div class="scrollhint"><span>◂ Tagesstart</span><span>bis Tagesende ▸</span></div>'+legende+'</div>';
@@ -6191,9 +6202,8 @@ function tempoBloeckeZeichnen(sc, D){
   const zu=q=>' L'+q[q.length-1].x.toFixed(1)+' '+y0+' L'+q[0].x.toFixed(1)+' '+y0+' Z';
   if(pP.length>1){ const d=glattPfad(pP);
     g+='<path d="'+d+zu(pP)+'" fill="url(#'+sid+')" stroke="none"/><path d="'+d+'" fill="none" stroke="'+FARBE.WEISS+'" stroke-opacity=".8" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round"/>'; }
-  // §2 (v3.5.2): Vergleichslinien ueber den ganzen Tag (auch rechts von jetzt): Ø dieser Wochentag GRAU 45 %, gestern GRAU 80 %, je 1,5 px
-  const vgl=(a, o)=>{ const q=punkte(a); return q.length>1 ? '<path class="tb-vgl" d="'+glattPfad(q)+'" fill="none" stroke="'+FARBE.GRAU+'" stroke-opacity="'+o+'" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>' : ''; };
-  g+=vgl(T.wtAlle, '.45')+vgl(T.gestern, '.8');
+  // Vergleichslinien ueber den ganzen Tag (auch rechts von jetzt) — §2 (v3.5.3): Ø dieser Wochentag BLAU, gestern ROT 55 % gestrichelt
+  g+=tempoVergleichSvg(T, punkte);
   g+=diaWolkeSvg(punkte(T.roh));
   if(pH.length>1){ const gid=svgId('tt'), d=glattPfad(pH);
     g+=diaAmpelVerlaufDef(gid, pH, q=>diaAmpel(T.heute[q.i], D.zielT))+
@@ -6222,24 +6232,20 @@ function heuteGegenTypischHtml(opt){
   opt=opt||{}; const T=heuteWochentagsKurven(), mitBl=opt.bloecke!==false;
   if(mitBl) return tempoBloeckeHtml(T, opt.id||'tt');
   const H=mitBl ? 196 : 150, id=opt.id||'tt';
-  const iJ=T.xs.indexOf(T.jetztX), wtK=['So','Mo','Di','Mi','Do','Fr','Sa'][T.wt];
+  const iJ=T.xs.indexOf(T.jetztX);
   const wert=a=>(a && a[iJ]!=null) ? a[iJ] : null;
-  const cJetzt=diaAmpel(wert(T.heute)||0, T.zwei ? (wert(T.zwei)||0) : 0);
+  const cJetzt=diaAmpel(wert(T.heute)||0, T.wtAlle ? (wert(T.wtAlle)||0) : 0);   // §2 (v3.5.3): gegen das Mittel ALLER Tage dieses Wochentags
   diaRegistrieren(id, { T, H, mitBl, bl:mitBl ? tagesBloeckeStrahl() : null, zeichnen:ttZeichnen });
   const zahl=(a, c, fett)=>' <span class="dia-tt-zahl" style="color:'+c+(fett?';font-weight:700':'')+'">'+(wert(a)!=null ? fmtP(Math.round(wert(a))) : '–')+'</span>';
-  const legende = mitBl
-    ? '<div class="an-legend dia-legende"><span><i class="gestr" style="border-color:'+FARBE.GRAU+'"></i>Plan gestrichelt</span><span>· <i style="background:'+FARBE.GRAU+'"></i>Ist gefüllt</span>'+
-      '<span>· <i style="background:'+cJetzt+'"></i>heute'+zahl(T.heute, cJetzt, true)+' P/h</span><span>· gestern'+zahl(T.gestern, FARBE.GRAU)+'</span><span>· Ø '+wtK+zahl(T.zwei, FARBE.GRAU)+'</span></div>'
-    : '<div class="an-legend dia-legende"><span><i style="background:'+cJetzt+'"></i>heute'+zahl(T.heute, cJetzt, true)+'</span>'+
-      '<span>· <i class="linie" style="border-color:'+FARBE.GRAU+'"></i>gestern'+zahl(T.gestern, FARBE.GRAU)+'</span>'+
-      '<span>· <i class="linie" style="border-color:'+FARBE.GRAU+';opacity:.45"></i>Ø letzte 2 '+wtK+zahl(T.zwei, FARBE.GRAU)+' P/h</span></div>';
+  const legende='<div class="legende"><span><i style="background:'+verlauf(cJetzt)+'"></i>heute'+zahl(T.heute, cJetzt, true)+' P/h</span>'+
+    tempoVergleichLegende(T, a=>zahl(a, FARBE.WEISS))+'</div>';
   return '<div data-dialive="tt" data-diaopt=\''+JSON.stringify({bloecke:mitBl, id})+'\'>'+diaScrollRahmenHtml(id, H, T.bis-T.von, T.dauer, 'P/h')+legende+'</div>';
 }
 function ttZeichnen(sc, D){
   const T=D.T, fl=sc.firstElementChild, svg=fl && fl.querySelector('svg'); if(!svg) return;
   const Wpx=Math.max(1, fl.offsetWidth), span=Math.max(1e-9, T.bis-T.von), H=D.H, pT=10, yC=D.mitBl ? 124 : H-18;   // Kurvenbereich pT…yC
   const x0=T.von+sc.scrollLeft/Wpx*span, x1=x0+sc.clientWidth/Wpx*span;
-  let mn=0, mx=0; [T.heute, T.gestern, T.zwei].forEach(a=>(a||[]).forEach((v,i)=>{ const x=T.xs[i]; if(v!=null && x>=x0-1e-9 && x<=x1+1e-9){ if(v<mn) mn=v; if(v>mx) mx=v; } }));
+  let mn=0, mx=0; [T.heute, T.gestern, T.wtAlle].forEach(a=>(a||[]).forEach((v,i)=>{ const x=T.xs[i]; if(v!=null && x>=x0-1e-9 && x<=x1+1e-9){ if(v<mn) mn=v; if(v>mx) mx=v; } }));
   const lo=mn, hi=Math.max(50, Math.ceil(mx*1.1/50)*50);
   const X=x=>(x-T.von)/span*Wpx, Y=v=>pT+(1-(v-lo)/Math.max(1e-9, hi-lo))*(yC-pT);
   let g='';
@@ -6250,14 +6256,14 @@ function ttZeichnen(sc, D){
        (Math.abs(X(hh)-X(T.jetztX))<16 ? '' : '<text x="'+x+'" y="'+(H-4)+'" text-anchor="middle" font-size="8" fill="'+FARBE.GRAU+'">'+String(hh%24).padStart(2,'0')+'</text>'); }   // §2.5: „jetzt" verdraengt die Stunde daneben
   const punkte=a=>{ const p=[]; (a||[]).forEach((v,i)=>{ if(v!=null) p.push({x:X(T.xs[i]), y:Y(Math.max(lo, Math.min(hi, v))), i}); }); return p; };
   const linie=(p, c, o, w)=>p.length<2 ? '' : '<path d="'+glattPfad(p)+'" fill="none" stroke="'+c+'" stroke-opacity="'+o+'" stroke-width="'+w+'" stroke-linejoin="round" stroke-linecap="round"/>';
-  const pH=punkte(T.heute), farbe=q=>diaAmpel(T.heute[q.i], T.zwei ? T.zwei[q.i] : 0);
+  const pH=punkte(T.heute), farbe=q=>diaAmpel(T.heute[q.i], T.wtAlle ? T.wtAlle[q.i] : 0);
   let hLinie='', hFlaeche='';
   if(pH.length>1){ const gid=svgId('tt'); g+=diaAmpelVerlaufDef(gid, pH, farbe);
     const y0=Y(Math.max(lo, 0)).toFixed(1);
     hFlaeche='<path d="'+glattPfad(pH)+' L'+pH[pH.length-1].x.toFixed(1)+' '+y0+' L'+pH[0].x.toFixed(1)+' '+y0+' Z" fill="url(#'+gid+')" fill-opacity=".22" stroke="none"/>';
     hLinie='<path d="'+glattPfad(pH)+'" fill="none" stroke="url(#'+gid+')" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'; }
   const e=pH.length ? pH[pH.length-1] : null;
-  g+=hFlaeche+linie(punkte(T.zwei), FARBE.GRAU, .45, 1.5)+linie(punkte(T.gestern), FARBE.GRAU, .8, 1.5)+diaWolkeSvg(punkte(T.roh))+hLinie;
+  g+=hFlaeche+tempoVergleichSvg(T, punkte)+diaWolkeSvg(punkte(T.roh))+hLinie;
   // Tagesbloecke auf derselben x-Achse: Namen 9 px, Plan gestrichelt, Ist gefuellt
   if(D.mitBl && D.bl){ const yN=140, yP=146, hP=16, yI=168, hI=12, fam=t=>t==='privat' ? FARBE.LILA : t==='dfm' ? FARBE.BLAU : FARBE.GRAU;
     D.bl.plan.forEach(b=>{ const xa=X(b.von), w=Math.max(2, X(b.bis)-xa);
