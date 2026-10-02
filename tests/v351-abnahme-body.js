@@ -15,7 +15,7 @@ function tagDonnerstag(){ frisch(); uhr('2026-10-01T09:00:00+02:00'); tagStarten
 function aufgabe(id, dom, soll){ return neueKarte({ id:id, domain:dom, titel:'Karte '+id, sollMin:soll||30, faelligkeit:DO, erstelltTs:'2026-09-30T08:00:00+02:00', flowBaseline:true }); }
 
 kopf('Version');
-ok('APP_VERSION aktuell (3.5.2) · Datenvertrag bleibt 2.1.0', APP_VERSION==='3.6.0' && UI_VERSION==='v3.6.0' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-5');
+ok('APP_VERSION aktuell (3.5.2) · Datenvertrag bleibt 2.1.0', APP_VERSION==='3.6.1' && UI_VERSION==='v3.6.1' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-6');
 
 /* ══ (a) Schieben ohne Abzug erhöht „geschoben" nicht ══════════════════ */
 kopf('(a) Geschoben zählt nur mit Punktabzug oder beim Tagesabschluss');

@@ -22,7 +22,7 @@ function muenzen(v){ S.meta.muenzenGesamt=num(S.meta.muenzenGesamt)+v-konto(); }
 var KATS=['fahrzeuge','wohnen','reisen','mobilitaet','beziehung','soziales'];
 
 kopf('Version und Stufendaten');
-ok('APP_VERSION 3.6.0 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.6.0' && UI_VERSION==='v3.6.0' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-5');
+ok('APP_VERSION 3.6.0 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.6.1' && UI_VERSION==='v3.6.1' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-6');
 ok('§2 sechs Kategorien in der Reihenfolge Fahrzeuge · Wohnen · Reisen · Mobilität · Beziehung · Soziales, je 12 Stufen', KAT_KEYS.join(',')===KATS.join(',') &&
    KAT_KEYS.map(function(k){ return BELOHNUNG[k].name; }).join(' · ')==='Fahrzeuge · Wohnen · Reisen · Mobilität · Beziehung · Soziales' && KAT_KEYS.every(function(k){ return BELOHNUNG[k].stufen.length===12; }));
 ok('§2 jede Stufe: Name, Status vergangen/zukunft (erst Rückblick, dann Ziele); Farbton je Kategorie (0 · 25 · 180 · 205 · 340 · 36)', KAT_KEYS.every(function(k){ return BELOHNUNG[k].stufen.every(function(s){ return s.name && (s.status==='vergangen' || s.status==='zukunft'); }) &&
@@ -242,8 +242,8 @@ einstAbschnittOffen=_auf;
 var mit=Object.keys(seiten).filter(function(k){ return /Wohlstand/.test(seiten[k]); });
 print('   geprüfte Ansichten: '+Object.keys(seiten).map(function(k){ return k+' ('+String(seiten[k]).length+')'; }).join(' · '));
 ok('(i) keine gezeichnete Ansicht enthält „Wohlstand" (Statusleiste, Fokus, Statistik, Shop, Malmodus, Album, Einstellungen, Belohnung)'+(mit.length?' — noch in: '+mit.join(', '):''), mit.length===0 && Object.keys(seiten).every(function(k){ return String(seiten[k]).length>100; }));
-ok('(i) stattdessen „Farbe": Fokus-Kern „Münzen und Farbe", Kulisse „frei bei … Farbe", Kachel „Farbe", Einstellungen „Farbe (live)" / „Farbe zurücksetzen"', seiten.Fokus.indexOf('Münzen und Farbe')>=0 && /nächste frei bei [\d.]+ Farbe/.test(seiten.Shop) &&
-   seiten['Was heute noch geht'].indexOf('<div class="h">Farbe</div>')>=0 && seiten.Einstellungen.indexOf('<span>Farbe (live)</span>')>=0 && seiten.Einstellungen.indexOf('Farbe zurücksetzen')>=0);
+ok('(i) stattdessen „Farbe": Fokus-Kern „Münzen und Farbe", Kulisse „frei bei … Farbe", Kachel „Farbe", Einstellungen „Farbe (live)" (v3.6.1: der Reset heißt „Spielstand zurücksetzen")', seiten.Fokus.indexOf('Münzen und Farbe')>=0 && /nächste frei bei [\d.]+ Farbe/.test(seiten.Shop) &&
+   seiten['Was heute noch geht'].indexOf('<div class="h">Farbe</div>')>=0 && seiten.Einstellungen.indexOf('<span>Farbe (live)</span>')>=0 && seiten.Einstellungen.indexOf('Farbe zurücksetzen')<0 && seiten.Einstellungen.indexOf('Spielstand zurücksetzen')>=0);
 ok('(i) Statusleiste: das Zeichen ◆ bleibt, der Wert heißt „Farbe"', /<div class="kw" title="Farbe" aria-label="Farbe"><i><\/i><span id="sKW">/.test(src) && /\.kw i\{[^}]*rotate\(45deg\)/.test(src));
 var ohneKommentar=src.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 ok('(i) im Quelltext steht „Wohlstand" nur noch in Kommentaren und als Teil interner Namen (ausWohlstand) — kein Text der Oberfläche trägt das Wort', !/(?:^|[^a-zA-Z_$])Wohlstand/.test(ohneKommentar) && /Wohlstand/.test(src));

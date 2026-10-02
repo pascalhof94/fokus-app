@@ -20,7 +20,7 @@ function lauf(id, min){ fokusStarten(id, null); minuten(min); fokusBeenden(); } 
 function rumpf(name){ var a=src.indexOf('function '+name+'('), b=src.indexOf('\nfunction ', a+10); return a<0 ? '' : src.slice(a, b<0 ? src.length : b); }
 
 kopf('Version');
-ok('APP_VERSION 3.5.3 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.6.0' && UI_VERSION==='v3.6.0' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-5');
+ok('APP_VERSION 3.5.3 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.6.1' && UI_VERSION==='v3.6.1' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-6');
 
 /* ══ (a) Pfeil: laufende Karte ÷ Ø heute ══════════════════════════════ */
 kopf('(a) Pfeil der Statusleiste: live P/h der laufenden Karte ÷ Ø heute');

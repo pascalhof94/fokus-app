@@ -198,14 +198,10 @@ ok('v1.13.3 §1: Sicherung besitz_bak1133 mit Vorher-Stand',
     return b && b.stufen && b.stufen.fahrzeuge===12 && b.kaeufe.length===1; })());
 ok('v1.13.3 §1: Protokoll in meta', S.meta.shopReset1133Log && S.meta.shopReset1133Log.vorher.wohnen===12);
 ok('v1.13.3 §5: Wohlstand-Reset existiert weiterhin getrennt', typeof panoramaResetJetzt==='function' && typeof oeffneShopReset==='function');
-/* §2: Kalibrierung — Vorschlag >= aktueller Faktor, Dialog traegt Rate + Feld */
-S.settings.preisFaktor=15;
-var kal=shopKalibrierungVorschlag();
-ok('v1.13.3 §2: Vorschlag ist Zahl >= aktueller Faktor', isFinite(kal.vorschlag) && kal.vorschlag>=15);
-smokeTest2('Shop-Kalibrierungs-Dialog', function(){ renderShopKalibrierung(); });
-var kalHtml=_els['sheetBody']?_els['sheetBody'].innerHTML:'';
-ok('v1.13.3 §2: Dialog zeigt Oe-Rate und ueberschreibbares Faktor-Feld',
-  kalHtml.indexOf('P/Std')>=0 && kalHtml.indexOf('id="shopPf"')>=0 && kalHtml.indexOf('Vorschlag')>=0);
+/* §2 (v3.6.1 §1): Preisfaktor und Kalibrierungs-Dialog sind entfallen — die Preise kommen allein aus der Formel 3.6.0 */
+ok('v3.6.1 §1: Kalibrierung entfernt (keine Funktion, kein Dialogfeld, kein Handler)', typeof shopKalibrierungVorschlag==='undefined' && typeof renderShopKalibrierung==='undefined' &&
+  !/id="shopPf"/.test(src) && !/data-shoppfgo/.test(src) && !/renderShopKalibrierung\(/.test(src));
+ok('v3.6.1 §1: nach „Shop zurücksetzen" schließt der Dialog ohne Kalibrierung', /shopResetJetzt\(\);\s*closeSheet\(\); renderEinst\(\);/.test(src));
 /* §3: Stufentexte ersetzt, Struktur/Reqs unangetastet */
 ok('v1.13.3 §3: 12 Stufen je Kategorie erhalten',
   Object.keys(BELOHNUNG).every(function(k){ return BELOHNUNG[k].stufen.length===12; }));

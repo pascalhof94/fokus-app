@@ -239,7 +239,7 @@ ok('1.2 der lange Druck wirkt nur noch auf „Schließen" im Tagesabschluss', /c
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION 3.4.0, Build 2026-10-02-5', APP_VERSION==='3.6.0' && UI_VERSION==='v3.6.0' && APP_BUILD==='2026-10-02-5');
+ok('APP_VERSION 3.4.0, Build 2026-10-02-6', APP_VERSION==='3.6.1' && UI_VERSION==='v3.6.1' && APP_BUILD==='2026-10-02-6');
 
 print('');
 if(fails){ print(fails+' von '+n+' FEHLGESCHLAGEN'); throw new Error('Abnahme rot'); }

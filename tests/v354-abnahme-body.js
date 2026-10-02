@@ -22,7 +22,7 @@ function punkte(dfm, privat){ belIstDfm=function(){ return dfm; }; tagesPunkteDo
 function punkteEcht(){ belIstDfm=_belIstDfm; tagesPunkteDomain=_tagesPunkteDomain; }
 
 kopf('Version');
-ok('APP_VERSION 3.5.4 · Datenvertrag bleibt 2.1.0 · Build 2026-10-02-5', APP_VERSION==='3.6.0' && UI_VERSION==='v3.6.0' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-5');
+ok('APP_VERSION 3.5.4 · Datenvertrag bleibt 2.1.0 · Build 2026-10-02-6', APP_VERSION==='3.6.1' && UI_VERSION==='v3.6.1' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-6');
 
 /* ══ (a) Restzeit ═════════════════════════════════════════════════════ */
 kopf('(a) Uhr der Statusleiste: Restzeit mit Vorzeichen und Ampelfarbe');
