@@ -2238,6 +2238,14 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .kauf-hinweis{font-size:13px;font-weight:700;margin:0 0 8px}
 .kch .w.kauf-w{font-size:14px;line-height:1.25;font-weight:700}
 .albgrid .kauf-hinweis{grid-column:1/-1;margin:0}
+/* ══ 3.5.4 §6 · Einstellungen: klappbare Abschnitte (Kopfzeile 44 px · Anzahl · Chevron wie Statistik) ══ */
+.es-k{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer}
+.es-k b{flex:1;min-width:0;font-size:14px;font-weight:700;color:#e8e9ec;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.es-k .anz{flex:none;font-size:12px;color:#9a9ca2;font-weight:650;background:#23262d;border-radius:9px;padding:1px 8px}
+.card.es{padding:8px 14px}
+.grpcard.es{padding:4px 10px}
+.es-inh{padding:8px 0 6px}
+.card.es.einst-kalib .anmod{margin:0}
 </style>
 </head>
 <body>
@@ -13812,6 +13820,44 @@ function resetKarten(){
 /* ══════════════════════════════════════════════════════════════════════
    14 · D6 Einstellungen (Regler · Migration · Sync · Backup)
    ══════════════════════════════════════════════════════════════════════ */
+/* ══ §6 (v3.5.4) · EINSTELLUNGEN — jede Gruppe ein einzeln klappbarer Abschnitt ═══════════════════════
+   Kopfzeile 44 px mit Titel, Anzahl Eintraege und Chevron (wie in der Statistik); Standard: alle zu; der Klappzustand je
+   Abschnitt lebt in S.ui.einstOffen (UI-Zustand, kein Export). renderEinst baut die Karten wie bisher; einstAbschnitte()
+   zerlegt das Ergebnis in die Karten der obersten Ebene und setzt jeder den Kopf davor. Die Routinen-Gruppen („Ketten")
+   sind darin eigene Abschnitte. */
+function einstAbschnittOffen(id){ const z=S.ui.einstOffen; return !!(z && z[id]); }
+let _esGedreht=null;
+function einstAbschnittUmschalten(id){ S.ui.einstOffen=Object.assign({}, S.ui.einstOffen); S.ui.einstOffen[id]=!einstAbschnittOffen(id); _esGedreht=id; saveUi(); }
+function einstKopfHtml(id, titelHtml, anzahl, auf){
+  const dreh=_esGedreht===id;
+  return '<div class="es-k" data-einstab="'+esc(id)+'" role="button" aria-expanded="'+(auf?'true':'false')+'"><b>'+titelHtml+'</b>'+
+    (anzahl!=null ? '<span class="anz">'+anzahl+'</span>' : '')+'<span class="stm-tog'+(auf?' auf':'')+(dreh?' dreh':'')+'" aria-hidden="true">'+STM_CHEVRON+'</span></div>';
+}
+/* Karten der obersten Ebene (alles zwischen ihnen bleibt unveraendert stehen) */
+function einstStuecke(h){
+  const out=[], re=/<div\b|<\/div>/g; let tiefe=0, start=0, ende=0, m;
+  while((m=re.exec(h))){
+    if(m[0]==='</div>'){ tiefe--; if(tiefe===0){ out.push({ html:h.slice(start, m.index+6) }); ende=m.index+6; } }
+    else { if(tiefe===0){ if(m.index>ende) out.push({ roh:h.slice(ende, m.index) }); start=m.index; } tiefe++; }
+  }
+  if(ende<h.length) out.push({ roh:h.slice(ende) });
+  return out;
+}
+function einstAbschnitte(h){
+  return einstStuecke(h).map(q=>{
+    if(q.roh!=null) return q.roh;
+    const auf1=q.html.indexOf('>')+1, kopfTag=q.html.slice(0, auf1), innen=q.html.slice(auf1, q.html.length-6);
+    const h3=innen.match(/<h3>([\s\S]*?)<\/h3>/), kalib=/class="einst-kalib"/.test(kopfTag);
+    if(!h3 && !kalib) return q.html;   // z. B. die Versionszeile am Ende
+    const titel=h3 ? h3[1] : 'Kalibrierung', klar=titel.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&');
+    const id=klar.replace(/ · \d+$/,'').toLowerCase().replace(/[^a-z0-9äöüß]+/g,'-').replace(/^-|-$/g,'')||'abschnitt';
+    const grp=(innen.match(/class="grpcard[ "]/g)||[]).length, zeilen=(innen.match(/class="(?:kv|slider)[ "]/g)||[]).length;
+    const imTitel=klar.match(/ · (\d+)$/);   // traegt der Titel schon eine Anzahl („Pflicht-Karten · 2"), wandert sie in die Pille
+    const anzahl=imTitel ? num(imTitel[1]) : (grp ? grp : (zeilen ? zeilen : null)), auf=einstAbschnittOffen(id);
+    return (kalib ? '<div class="card einst-kalib">' : kopfTag).replace(/class="/, 'data-einstabschnitt="'+esc(id)+'" class="es ')+einstKopfHtml(id, titel.replace(/ · \d+$/,''), anzahl, auf)+
+      (auf ? '<div class="es-inh">'+(h3 ? innen.replace(h3[0], '') : innen)+'</div>' : '')+'</div>';
+  }).join('');
+}
 function renderEinst(){
   const s=S.settings;
   let h='';
@@ -13836,7 +13882,8 @@ function renderEinst(){
     const st=gruppeStand(g);
     const kand=S.karten.filter(k=>k.domain===(g.domain||'privat') && k.status!=='archiviert'
       && (kartenArt(k)==='Routine'||kartenArt(k)==='Counter'));
-    h+='<div class="grpcard">'+
+    const gid='grp-'+g.id, gauf=einstAbschnittOffen(gid);   // §6 (v3.5.4): jede Gruppe („Kette") ein eigener Abschnitt
+    h+='<div class="grpcard es" data-einstabschnitt="'+esc(gid)+'">'+einstKopfHtml(gid, esc(g.name||'Gruppe'), (g.mitglieder||[]).length, gauf)+(!gauf ? '' : '<div class="es-inh">'+
       '<div class="gz"><input type="text" data-grpname="'+g.id+'" value="'+esc(g.name||'')+'">'+
         '<input type="number" inputmode="numeric" step="10" data-grpbonus="'+g.id+'" value="'+num(g.komplettBonus,KOMPLETT_BONUS_DEFAULT)+'" style="width:88px">'+
         '<button class="minibtn" data-grpdel="'+g.id+'">✕</button></div>'+
@@ -13849,7 +13896,7 @@ function renderEinst(){
         }).join('') : '<span class="hint">Keine Routinen in dieser Domäne.</span>')+'</div>'+
       ((g.mitglieder||[]).filter(id=>!S.karten.some(k=>k.id===id)).length
         ? '<div class="hint" style="color:var(--warn)">Enthält '+(g.mitglieder||[]).filter(id=>!S.karten.some(k=>k.id===id)).length+' noch nicht vorhandene Karte(n) — sie greifen, sobald die Karten existieren.</div>'
-        : '')+
+        : '')+'</div>')+
     '</div>';
   });
   h+='<button class="minibtn" data-grpneu="1">＋ Gruppe</button></div>';
@@ -14123,7 +14170,8 @@ function renderEinst(){
     '<div class="kv" style="margin-top:8px"><span>Aktueller Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
   '</div>';
   h+='<div style="text-align:center;color:var(--mut2);font-size:11px;margin-top:6px" id="einstVersion">Fokus App '+UI_VERSION+' · Build '+APP_BUILD+'</div>';
-  el('einstBody').innerHTML=h;
+  el('einstBody').innerHTML=einstAbschnitte(h);   // §6 (v3.5.4): klappbare Abschnitte
+  _esGedreht=null;
 }
 /* §4 (v1.8.1): Wohlstand-Reset per Button — exakt die Offset-Mechanik der
    151er-Migration, jetzt wiederholbar und mit Rückgängig (solange ein Backup
@@ -18890,6 +18938,8 @@ el('statistikBody').addEventListener('change', statAenderung);
 
 // Einstellungen (Sync / Migration / Backup / Regler)
 el('einstBody').addEventListener('click', e=>{
+  // §6 (v3.5.4): Abschnitt auf-/zuklappen
+  const esk=e.target.closest('[data-einstab]'); if(esk){ haptik(6); einstAbschnittUmschalten(esk.dataset.einstab); renderEinst(); return; }
   // §5 (v2.9.0): Pflicht-Karte oeffnen, beim Abschnitt Punkte
   const pfo=e.target.closest('[data-pflichtoeffnen]'); if(pfo){ oeffneDetail(pfo.dataset.pflichtoeffnen);
     const sb=el('sheetBody'), b=el('pflichtBlock'); if(sb && b && b.getBoundingClientRect) sb.scrollTop += b.getBoundingClientRect().top - sb.getBoundingClientRect().top - 12; return; }
