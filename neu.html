@@ -3793,6 +3793,7 @@ function ladeAlles(){
   // §9.4 (v3.5.0): einmaliger Reset beim ersten Start — Muenzen/Konto, Ausgaben, Shop-Stufen, Kulisse und Ausmal-Stand auf null;
   // Rang, rangBest, Outfit-Historie, Historie, Punkte, Karten und Statistik bleiben
   if(!S.meta.reset35){ try{ reset35Durchfuehren(); }catch(e){ S.meta.reset35={ ts:jetztIso(), fehler:String(e&&e.message||e) }; saveMeta(); } }
+  try{ feldkarten353Start(); }catch(e){}   // §5 (v3.5.3): Ausmal-Stand auf neue Feldkarten uebernehmen (ruht, solange FELDKARTEN_353 = false)
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
              if(!S.tag.istMinutenStart) S.tag.istMinutenStart={};
@@ -15853,6 +15854,43 @@ function reset35Durchfuehren(){
   S.meta.kulisseErreicht={ 1:heuteApp() };
   S.meta.reset35={ ts, tagId:aktuelleTagId(), liveOffset:(tagOffen() ? Math.max(0, tagesPunkteLive()) : 0) };
   saveMeta(); saveBelohnung();
+}
+/* ══ §5 (v3.5.3) · UEBERNAHME DES AUSMAL-STANDS AUF NEU ERZEUGTE FELDKARTEN ═══════════════════════════════
+   tools/feldkarten_353.py legt je Kulisse neben die neue Feldkarte eine bgNN_uebernahme353.json: die Ueberdeckung der neuen
+   mit den alten Feldern in Bildpunkten ({ bildPx, neuFlaeche:{neu:px}, ueberdeckung:{neu:{alt:px}} }).
+   Regeln: nur die aktuelle Kulisse · ein neues Feld gilt als gefaerbt, wenn >= 50 % seiner Bildpunkte im alten Stand gefaerbt
+   waren · der Wert bezahlter, nicht uebernommener Flaeche (alt gefaerbt, neu offen) geht in den Tank · umgekehrt kein Abzug ·
+   Toepfe, Stationsfarbe und Tank bleiben. Spiel-Ebene, nie Grundlage einer Buchung.
+   FELDKARTEN_353 = false: die neu erzeugten Karten haben die Abnahme (Grenze ohne Farbkante <= 5 %, keine Fremdfarbe) nicht
+   erreicht und sind NICHT ausgeliefert — die Uebernahme ruht, bis die Karten getauscht werden. */
+const FELDKARTEN_353=false;
+function feldkartenUebernahme(U, gefaerbtAlt, wert){
+  const alt={}; (gefaerbtAlt||[]).forEach(f=>{ alt[Number(f)]=true; });
+  const gef=[]; let verlorenPx=0, uebernommenPx=0;
+  Object.keys((U && U.neuFlaeche)||{}).forEach(f=>{ const ov=(U.ueberdeckung||{})[f]||{}; let px=0;
+    Object.keys(ov).forEach(a=>{ if(alt[Number(a)]) px+=num(ov[a]); });
+    if(px>0 && px>=0.5*num(U.neuFlaeche[f])){ gef.push(Number(f)); uebernommenPx+=px; } else verlorenPx+=px; });
+  gef.sort((a,b)=>a-b);
+  return { gefaerbt:gef, uebernommenPx, verlorenPx, tankPlus:Math.round(verlorenPx/Math.max(1, num(U && U.bildPx))*num(wert)) };
+}
+/* einmalig beim ersten Start: Sicherung feldkarten353_bak, dann der neue Stand; das Merkmal S.meta.feldkarten353 haelt das Ergebnis */
+function feldkarten353Anwenden(U){
+  const A=ausmalState(), ts=jetztIso();
+  try{ DB.set('feldkarten353_bak', { ts, ausmalen:JSON.parse(JSON.stringify(A)) }); }catch(e){}
+  const E=feldkartenUebernahme(U, A.gefaerbt, kulissenWert(A.kulisse)), vorher=A.gefaerbt.length;
+  A.gefaerbt=E.gefaerbt; A.tank=Math.max(0, num(A.tank))+E.tankPlus;
+  S.meta.feldkarten353={ ts, kulisse:A.kulisse, vorher, uebernommen:E.gefaerbt.length, tankPlus:E.tankPlus };
+  _ausmalKompositKey=''; saveMeta();
+  return E;
+}
+function feldkarten353Start(){
+  if(!FELDKARTEN_353 || !S.meta || S.meta.feldkarten353 || typeof fetch!=='function') return;
+  const A=ausmalState();
+  if(!A.gefaerbt.length){ S.meta.feldkarten353={ ts:jetztIso(), kulisse:A.kulisse, vorher:0, uebernommen:0, tankPlus:0 }; saveMeta(); return; }
+  fetch('img/kulissen/bg'+String(A.kulisse).padStart(2,'0')+'_uebernahme353.json').then(r=>r.ok ? r.json() : null).then(U=>{
+    if(!U || S.meta.feldkarten353) return;
+    feldkarten353Anwenden(U); try{ if(S.ui.tab==='belohnung') renderBelohnung(); }catch(e){}
+  }).catch(()=>{});   // offline: beim naechsten Start
 }
 function kulissenWert(n){ n=Math.max(1, Math.min(10, num(n,1))); return n<10 ? bgSchwelle(n+1)-bgSchwelle(n) : bgSchwelle(10)-bgSchwelle(9); }
 /* Kulissendaten (Felder, Farben, Bilder) — asynchron geladen, synchron aus dem Cache gelesen */
