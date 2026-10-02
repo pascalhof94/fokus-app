@@ -14354,13 +14354,39 @@ function tempoFaktor(){ const b=num(S.belohnung && S.belohnung.tempoBasis); retu
 function preisVon(kat, n){ return Math.max(5, Math.round(preisStufe1(kat)*stufenFaktor(kat, n)*tempoFaktor()/5)*5); }
 /* Preis der NÄCHSTEN Stufe dieser Kategorie */
 function preisFuer(kat){ return preisVon(kat, stufenGekauft(kat)+1); }
-/* Cross-Kategorie-Voraussetzung: null = frei, sonst Hinweistext. */
+/* ══ §4 (v3.6.0) · KOPPLUNGEN ═════════════════════════════════════════════════════════════
+   Voraussetzungen: Feld „braucht" = Liste [Kategorie, Stufe]; ALLE muessen erfuellt sein („braucht Wohnen Stufe 9").
+   Gleichgewicht (nur Zukunftsstufen): Zukunftsfortschritt je Kategorie = gekaufte Zukunftsstufen ÷ Zukunftsstufen der
+   Kategorie. Der Kauf einer Zukunftsstufe ist gesperrt, wenn danach der Fortschritt dieser Kategorie mehr als 0,5 ueber dem
+   niedrigsten Zukunftsfortschritt aller Kategorien laege („erst {Kategorie} nachziehen"). Vergangenheitsstufen sind
+   ausgenommen. Innerhalb einer Kategorie bleibt die Reihenfolge streng (Stufe n + 1 erst nach n). */
+const GLEICHGEWICHT_VORSPRUNG=0.5;
+function zukunftStufen(kat){ return BELOHNUNG[kat].stufen.filter(st=>st.status==='zukunft').length; }
+function zukunftGekauft(kat, stufen){
+  const n=Math.max(0, num((stufen||(S.belohnung && S.belohnung.stufen)||{})[kat]));
+  return BELOHNUNG[kat].stufen.slice(0, n).filter(st=>st.status==='zukunft').length;
+}
+function zukunftFortschritt(kat, stufen){ const z=zukunftStufen(kat); return z>0 ? zukunftGekauft(kat, stufen)/z : 1; }
+/* die Kategorie mit dem niedrigsten Zukunftsfortschritt (bei Gleichstand die erste in der Reihenfolge) */
+function gleichgewichtSchwaechste(stufen){
+  let best=null; KAT_KEYS.forEach(k=>{ const f=zukunftFortschritt(k, stufen); if(best==null || f<best.f-1e-9) best={ kat:k, f }; });
+  return best;
+}
+/* null = im Gleichgewicht, sonst die Kategorie, die zuerst nachzuziehen ist */
+function gleichgewichtSperre(kat, stufen){
+  stufen=stufen||(S.belohnung && S.belohnung.stufen)||{};
+  const n=Math.max(0, num(stufen[kat]))+1; if(!stufeZukunft(kat, n)) return null;
+  const danach=(zukunftGekauft(kat, stufen)+1)/Math.max(1, zukunftStufen(kat)), tief=gleichgewichtSchwaechste(stufen);
+  return (tief && tief.kat!==kat && danach>tief.f+GLEICHGEWICHT_VORSPRUNG+1e-9) ? tief.kat : null;
+}
+/* null = kaufbar · 'komplett' · sonst der Hinweistext (Voraussetzung vor Gleichgewicht) */
 function kaufSperre(kat){
   const naechste = stufeVon(kat, stufenGekauft(kat)+1);
   if(!naechste) return 'komplett';
-  // §4 (v3.6.0): Voraussetzungen = Liste [Kategorie, Stufe]; alle muessen erfuellt sein
   const fehlt=(naechste.braucht||[]).filter(r=>BELOHNUNG[r[0]] && stufenGekauft(r[0])<num(r[1]));
   if(fehlt.length) return 'braucht '+fehlt.map(r=>BELOHNUNG[r[0]].name+' Stufe '+r[1]).join(' und ');
+  const gl=gleichgewichtSperre(kat);
+  if(gl) return 'erst '+BELOHNUNG[gl].name+' nachziehen';
   return null;
 }
 function kaufen(kat){
