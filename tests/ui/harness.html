@@ -337,6 +337,17 @@ function bestandSchreiben(){
     echtFokus28:function(fw){ v28Vorbereiten(fw); fw.fokusStarten('a-3', null); fw.closeSheet();
       var sh=fw.document.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(110%)'; }
       fw.fokusKarteAnsehen('a-3'); fw.renderStatusbar(); },
+    /* ══ v3.5.3 · Ansichten: Fokus ab „Tempo und Blöcke" (darunter „Der Tag"), „Aktuelle Kette" mit Tagesketten-Chips, Statistik „Der Tag" ══ */
+    fokus353:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.eval('S.fokus.startMs-=22*60000;'); fw.fokusLayerPflegen(); fw.renderFokusleiste(); fw.renderStatusbar(); fw.renderFokus();
+      var lay=fw.document.getElementById('fokusLayer'), b=fw.document.querySelector('#fokusView .dt-zeilen'); if(lay && b && b.previousElementSibling) lay.scrollTop=Math.max(0, b.previousElementSibling.offsetTop-8); },
+    kette353:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.eval('(function(){ var of=S.karten.filter(function(k){ return k.status==="offen" && istAufgabeKarte(k) && k.id!=="k-lang"; }).map(function(k){ return k.id; });'+
+        ' S.tagesketten=[{id:"tk1", name:"DFM-Fokus 1", karten:of.slice(0,3)}, {id:"tk2", name:"Senke", karten:of.slice(2,4)}, {id:"tk3", name:"Abend", karten:of.slice(3,6)}, {id:"tk4", name:"Wochenabschluss", karten:of.slice(0,1)}];'+
+        ' S.ui.tkWahl='+(/[?&]tk=1/.test(location.search) ? '"tk1"' : 'null')+'; S.ui.klGruppen={kette:true}; S.fokus.startMs-=22*60000; })()');
+      fw.fokusLayerPflegen(); fw.renderFokusleiste(); fw.renderStatusbar(); fw.renderFokus();
+      var lay=fw.document.getElementById('fokusLayer'), b=fw.document.querySelector('#fokusView .kl-blk'); if(lay && b) lay.scrollTop=Math.max(0, b.offsetTop-12); },
+    stat353:function(fw){ fw.eval('S.ui.statOffen={tag:true}; S.ui.analyseZeitraum="14";'); fw.setTab('statistik'); },
     /* ══ v3.5.2 · Ansichten des Hotfix: Statusleiste mit laufender Karte (Live-Segment), Kartenlisten mit offenen Gruppen ══ */
     status352:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.eval('S.fokus.startMs-=22*60000;'); fw.fokusLayerPflegen(); fw.renderFokusleiste(); fw.renderStatusbar(); fw.renderFokus(); },
@@ -1755,9 +1766,11 @@ function bestandSchreiben(){
             trifft(c, c.id); });
           // v3.3.0 §1.1: die Tempo-Zelle ist eine Skala mit drei Punkten — ROT Ziel · GELB Schnitt · GRUEN laufende Karte
           var tzb=d.querySelector('#sZTempo .pbahn');
-          finding('echt · v3.5.2 §1 Pace-Leiste: „'+d.getElementById('sTempo').textContent+'" · Leiste '+
-                  (tzb?Math.round(tzb.getBoundingClientRect().width)+'×'+Math.round(tzb.getBoundingClientRect().height):'–')+' px · Füllung '+(tzb&&tzb.querySelector('i')?Math.round(tzb.querySelector('i').getBoundingClientRect().width):0)+' px · Marke '+(tzb&&tzb.querySelector('u')?'ja':'nein'));
-          pruef(!!tzb && Math.round(tzb.getBoundingClientRect().height)===12 && !d.querySelector('#statusbar .ts-skala'), 'v3.5.2 §1: Pace-Leiste nicht 12 px hoch oder die senkrechte Tempoleiste steht noch da');
+          finding('echt · v3.5.3 §1 Pace-Leiste: „'+d.getElementById('sTempo').textContent+'" · Leiste '+
+                  (tzb?Math.round(tzb.getBoundingClientRect().width)+'×'+Math.round(tzb.getBoundingClientRect().height):'–')+' px · Zonen '+(tzb?tzb.querySelectorAll('i').length:0)+' · Strich Ø '+(tzb&&tzb.querySelector('u')?'ja':'nein')+' · Raute '+(tzb&&tzb.querySelector('.raute')?'ja':'nein'));
+          pruef(!!tzb && Math.round(tzb.getBoundingClientRect().height)===12 && !d.querySelector('#statusbar .ts-skala'), 'v3.5.3 §1: Pace-Leiste nicht 12 px hoch oder die senkrechte Tempoleiste steht noch da');
+          pruef(!!tzb && tzb.querySelectorAll('i').length===5 && !!tzb.querySelector('u'), 'v3.5.3 §1: Pace-Leiste ohne fünf Ampelzonen oder ohne den Strich für Ø heute');
+          (function(){ var mv=d.querySelector('#sMv svg'); pruef(!!mv && mv.getAttribute('viewBox')==='0 0 72 72', 'v3.5.3 §1: Matrix-Zelle zeigt nicht den Matrixverlauf 72×72'); })();
           var mvp=d.querySelector('#sMv svg path');
           pruef(!!mvp, 'v2.6 §3.1: Matrix-Verlauf in der Leiste fehlt');
           /* Tipp auf die Matrix-Zelle → Matrix-Spur */

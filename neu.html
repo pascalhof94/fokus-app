@@ -2214,10 +2214,11 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .dt-tv .statfilter{margin:0 0 4px}
 .dt-tempo{margin-bottom:12px}
 /* ══ 3.5.3 §4 · Tagesketten-Auswahl als Chip-Reihe in der Gruppe „Aktuelle Kette" (Draft Nr. 4) ══ */
-.kl-chips{display:flex;gap:6px;overflow-x:auto;margin:0 0 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.kl-chips{display:flex;gap:6px;overflow-x:auto;margin:-6px 0 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .kl-chips::-webkit-scrollbar{display:none}
-.kl-chip{flex:none;height:32px;line-height:30px;padding:0 12px;border-radius:16px;background:#23262d;border:1px solid #2a2d33;color:#e8e9ec;font:inherit;font-size:12.5px;font-weight:650;white-space:nowrap;cursor:pointer}
-.kl-chip.on{border-color:#fff}
+.kl-chip{flex:none;height:44px;padding:0;border:0;background:none;display:flex;align-items:center;font:inherit;cursor:pointer}
+.kl-chip span{display:block;height:32px;line-height:30px;padding:0 12px;border-radius:16px;background:#23262d;border:1px solid #2a2d33;color:#e8e9ec;font-size:12.5px;font-weight:650;white-space:nowrap;box-sizing:border-box}
+.kl-chip.on span{border-color:#fff}
 </style>
 </head>
 <body>
@@ -2357,11 +2358,11 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
    sie — ueber die beiden Alias-Namen, die der Code seit v1.x benutzt.
    Der DATENVERTRAG ist etwas anderes: die aelteste Paket-Version, die der
    Import annimmt (Gate) — er bleibt 2.0, additiv erweitert. */
-const APP_VERSION = '3.5.2';
+const APP_VERSION = '3.5.3';
 const VERSION = APP_VERSION;                  // Alias: appVersion im Export
 const UI_VERSION = 'v'+APP_VERSION;           // Alias: Anzeige
 const DATENVERTRAG = '2.1.0';                 // Import-Gate: Pakete ab dieser appVersion (§9 v3.5.0: Datenvertrag 2.1)
-const APP_BUILD = '2026-10-02-1';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
+const APP_BUILD = '2026-10-02-2';           // Deploy-Kennung — bei JEDEM Deploy hochzählen (Auto-Update-Check)
 try{ document.title='Fokus '+UI_VERSION; }catch(e){}
 const PREFIX  = 'fokus2_';                 // NEU (Unterstrich) — alte App nutzt 'fokus2.' (Punkt)
 
@@ -8381,7 +8382,7 @@ function tagesketten(){ return Array.isArray(S.tagesketten) ? S.tagesketten : []
 function tageskettenWahl(){ const w=S.ui.tkWahl; return (w && tagesketten().some(c=>c.id===w)) ? w : null; }
 function tageskettenChipsHtml(){
   const tk=tagesketten(); if(!tk.length) return '';
-  const wahl=tageskettenWahl(), chip=(id, name, an)=>'<button type="button" class="kl-chip'+(an?' on':'')+'" data-tkwahl="'+esc(id)+'">'+esc(name)+'</button>';
+  const wahl=tageskettenWahl(), chip=(id, name, an)=>'<button type="button" class="kl-chip'+(an?' on':'')+'" data-tkwahl="'+esc(id)+'"><span>'+esc(name)+'</span></button>';   // Tippflaeche 44 px, sichtbarer Chip 32 px
   return '<div class="kl-chips">'+chip('', 'Ganzer Tag', !wahl)+tk.map(c=>chip(c.id, c.name||'Kette', c.id===wahl)).join('')+'</div>';
 }
 /* ══ §3 (v3.5.3) · DER TAG — drei Zeilen volle Breite: Tagesprognose · Tagesform · Tagesverlauf ══════════

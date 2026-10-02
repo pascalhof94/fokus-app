@@ -48,8 +48,7 @@ ok('2 tempoSchnitt 700 → GRUEN', a3===DIA_FARBE.gruen);
 ok('0.3 r = 0,90 → genau GELB; soll 0 → GRUEN', diaAmpel(90,100)===DIA_FARBE.gelb && diaAmpel(5,0)===DIA_FARBE.gruen);
 frisch(); tagMit(6, 9); punkte(1000, 500);
 var sk=paceLeisteHtml(diaGroessen());
-ok('1.1 Pace-Leiste (v3.5.2 §1): waagerecht, Füllung 0 … Ø heute im Verlauf der Pace-Farbe, „nötig" als weiße Marke', /class="pbahn"><i style="width:[\d.]+%;background:linear-gradient\(90deg,#[0-9a-f]{8},#[0-9a-f]{6}\)"/i.test(sk) &&
-   /<u style="left:[\d.]+%"><\/u>/.test(sk) && /class="ppf"/.test(sk));
+ok('1.1 Pace-Leiste (v3.5.3 §1): waagerecht, fünf Ampelzonen relativ zu „nötig", weißer Strich = Ø heute', /class="pbahn zonen">(<i style="left:[\d.]+%;width:[\d.]+%;background:#[0-9a-f]{6}"><\/i>){5}<u style="left:[\d.]+%"><\/u>/i.test(sk) && /class="ppf"/.test(sk));
 
 /* ══ 3 · Tagesprognose ═══════════════════════════════════════════════ */
 kopf('3 · Tagesprognose (§2.2)');
@@ -65,8 +64,8 @@ ok('3 Schnitt 167 P/h, Prognose ≈ 2.500, „fehlen 6.000", Farbe ORANGE', Math
 kopf('4 · Matrix (§1.3)');
 frisch(); tagMit(12, 3); punkte(0, 0);
 S.tag.matrixSpur=[{ts:new Date(Date.now()-6*3600000).toISOString(), x:-0.5, y:0.2},{ts:new Date(Date.now()-4*3600000).toISOString(), x:0.3, y:0.1},{ts:new Date(Date.now()-600000).toISOString(), x:0.6, y:-0.1}];
-var gesehen=null, mvOrig=matrixMiniSvg; matrixMiniSvg=function(sp){ gesehen=sp; return mvOrig(sp); };   // v3.5.1 §2: die Statusleiste zeichnet ueber matrixMiniSvg
-renderStatusbar(); matrixMiniSvg=mvOrig;
+var gesehen=null, mvOrig=matrixVerlaufSvg; matrixVerlaufSvg=function(sp, o){ if(o && o.klein) gesehen=sp; return mvOrig(sp, o); };   // v3.5.3 §1: die Statusleiste zeichnet wieder ueber matrixVerlaufSvg (klein)
+renderStatusbar(); matrixVerlaufSvg=mvOrig;
 ok('4 die Statusleiste zeichnet keine Position, die älter als 5 Stunden ist (2 von 3)', gesehen && gesehen.length===2 && gesehen.every(function(p){ return Date.parse(p.ts)>=Date.now()-5*3600000; }));
 
 /* ══ 5 · Rang mit einem Tag Historie ═════════════════════════════════ */
@@ -83,7 +82,7 @@ frisch(); tagMit(6, 9); punkte(1000, 0);
 S.karten=[neueKarte({id:'k6', domain:'dfm', titel:'Karte', matrixFeld:'ziel', sollMin:30})];
 ok('6 ohne laufende Karte: kein Live-Segment in der Punkteleiste, Tagesprognose „Diese Karte: 0 %"', (function(){ var l=statusLivePunkte(); return l.dfm===0 && l.privat===0; })() && fbWasDieseKarte(S.karten[0]).indexOf('Diese Karte: 0 %')>=0);
 S.fokus={ karteId:'k6', laeuft:true, startMs:Date.now()-600000, sessionSek:0 };
-ok('6 mit laufender Karte (v3.5.2 §1): die Pace-Leiste trägt keinen Karten-Punkt mehr (Live-Punkte stehen in der Punkteleiste — Zahlenbeleg in v352-abnahme)', paceLeisteHtml(diaGroessen()).indexOf('ts-karte')<0 && typeof statusLivePunkte==='function');
+ok('6 mit laufender Karte (v3.5.3 §1): die Pace-Leiste trägt die Raute der laufenden Karte (Live-Punkte stehen in der Punkteleiste — Zahlenbelege in v352-/v353-abnahme)', paceLeisteHtml(diaGroessen()).indexOf('class="raute"')>=0 && paceLeisteHtml(diaGroessen()).indexOf('ts-karte')<0 && typeof statusLivePunkte==='function');
 S.fokus=null;
 
 /* ══ 7 · Dieselbe Kachel überall ═════════════════════════════════════ */
@@ -91,7 +90,7 @@ kopf('7 · Dieselbe Render-Funktion in Fokus, Shop und Statistik');
 frisch(); tagMit(6, 9); punkte(1000, 500); S.belohnung=null; belohnungInit();
 var fok=fbWoIchStehe(), bel=belHeuteNoch();
 ok('7 Outfit-Kachel: Fokus und Shop zeigen dieselbe (outfitKachelHtml)', fok.indexOf(outfitKachelHtml())>=0 && bel.indexOf(outfitKachelHtml())>=0);
-ok('7 „Tempo und Blöcke" (v3.5.0): Fokus („Der Tag") und Statistik nutzen dieselbe Render-Funktion (heuteGegenTypischHtml)', derTagHtml(null).indexOf('data-dialive="tt"')>=0 &&
+ok('7 „Tempo und Blöcke" (v3.5.3 §3: eigener Block über „Der Tag"): Fokus und Statistik nutzen dieselbe Render-Funktion (heuteGegenTypischHtml)', tempoBlockHtml('ttf').indexOf('data-dialive="tt"')>=0 && derTagHtml(null).indexOf('data-dialive="tt"')<0 &&
    anModVerhalten(analyseFenster(),'alle').indexOf('data-dialive="tt"')>=0);
 ok('7 je Kachel genau eine Render-Funktion (Quelltext)', ['outfitKachelHtml','faktorKachelHtml','muenzenKachelHtml','rangDiagrammHtml','kulisseKachelHtml','heuteGegenTypischHtml','paceLeisteHtml']
    .every(function(f){ return (src.match(new RegExp('function '+f+'\\(','g'))||[]).length===1; }));
@@ -129,7 +128,7 @@ ok('0.1 UEBER #FF2D95 war vorher nirgends benutzt', (src.match(/#FF2D95/gi)||[])
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION aktuell (3.4.0), Build 2026-10-02-1', APP_VERSION==='3.5.2' && UI_VERSION==='v3.5.2' && APP_BUILD==='2026-10-02-1');
+ok('APP_VERSION aktuell (3.4.0), Build 2026-10-02-2', APP_VERSION==='3.5.3' && UI_VERSION==='v3.5.3' && APP_BUILD==='2026-10-02-2');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

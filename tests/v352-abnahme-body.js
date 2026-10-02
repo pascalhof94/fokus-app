@@ -1,4 +1,5 @@
-/* Abnahme Hotfix v3.5.2 — die fuenf neuen Tests des Auftrags (§5) und die Regeln dahinter.
+/* Abnahme Hotfix v3.5.2 — die fuenf neuen Tests des Auftrags (§5) und die Regeln dahinter (auf den Stand 3.5.3 nachgezogen:
+   Pace-Leiste mit Ampelzonen, Trendpfeil entfallen, Vergleichslinien ROT/BLAU).
    Die Uhr ist verstellbar (uhr/minuten aus tests/v352-abnahme.js). */
 var fails=0, n=0;
 function ok(t,c){ n++; print((c?'OK   ':'FAIL ')+t); if(!c) fails++; }
@@ -16,37 +17,21 @@ function aufgabe(id, dom, soll){ return neueKarte({ id:id, domain:dom, titel:'Ka
 function buchung(ts, punkte, dom){ S.intraday.push({ ts:ts, kartenId:'x', domaene:dom||'dfm', punkte:punkte, minuten:0, typ:'abhaken' }); }
 
 kopf('Version');
-ok('APP_VERSION 3.5.2 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.5.2' && UI_VERSION==='v3.5.2' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-1');
+ok('APP_VERSION 3.5.2 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.5.3' && UI_VERSION==='v3.5.3' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-2');
 
 /* ══ (a) Pace-Farbe ═══════════════════════════════════════════════════ */
 kopf('(a) Pace-Leiste: diskrete Ampel nach Ø ÷ nötig');
 ok('(a) Ø ÷ nötig = 0,92 → GELBGRUEN', paceFarbe(460, 500, false)===FARBE.GELBGRUEN && paceFarbe(92, 100, false)==='#a3d977');
 ok('(a) Schwellen: ≥ 1,00 GRUEN · ≥ 0,90 GELBGRUEN · ≥ 0,80 GELB · ≥ 0,75 ORANGE · darunter ROT', paceFarbe(100,100)===FARBE.GRUEN && paceFarbe(130,100)===FARBE.GRUEN && paceFarbe(90,100)===FARBE.GELBGRUEN &&
    paceFarbe(89.9,100)===FARBE.GELB && paceFarbe(80,100)===FARBE.GELB && paceFarbe(79.9,100)===FARBE.ORANGE && paceFarbe(75,100)===FARBE.ORANGE && paceFarbe(74.9,100)===FARBE.ROT);
-ok('(a) Tagesziel erreicht → UEBER', paceFarbe(300, 0, true)===FARBE.UEBER);
+ok('(a) v3.5.3 §1: Tagesziel erreicht (nötig = 0) → GRUEN (die Zone „erreicht"/UEBER ist entfallen)', paceFarbe(300, 0)===FARBE.GRUEN);
 tagDonnerstag();
-var pl=paceLeisteHtml({ tempoSchnitt:460, tempoZiel:500, punkteHeute:1000, zielHeute:5000 });
-ok('(a) Leiste: Skala 0 … max(Ø, nötig) × 1,1 — Füllung 83,6 % im Verlauf 55 % → 100 %, weiße Marke bei 90,9 %', pl.indexOf('<i style="width:83.6%;background:linear-gradient(90deg,#a3d9778c,#a3d977)"></i>')>=0 && pl.indexOf('<u style="left:90.9%"></u>')>=0);
-var pu=paceLeisteHtml({ tempoSchnitt:610, tempoZiel:0, punkteHeute:6000, zielHeute:5000 });
-ok('(a) Tagesziel erreicht: Füllung UEBER, keine Marke', pu.indexOf('#FF2D95')>=0 && pu.indexOf('<u ')<0);
-ok('(a) Ø über nötig: die Füllung reicht über die Marke hinaus (Ø 610, nötig 470 → Marke bei 70,0 %, Füllung 90,9 %)', (function(){ var h=paceLeisteHtml({ tempoSchnitt:610, tempoZiel:470, punkteHeute:1000, zielHeute:5000 });
-  return h.indexOf('width:90.9%')>=0 && h.indexOf('left:70.0%')>=0 && h.indexOf('#3ecf8e')>=0; })());
+var pl=paceLeisteHtml({ tempoSchnitt:460, tempoZiel:500 }, null);
+ok('(a) v3.5.3 §1: die Leiste trägt fünf Ampelzonen und den weißen Strich für Ø heute (460 von Skala 575 → 80,0 %; Zonengrenzen in v353-abnahme)', (pl.match(/<i style="left:/g)||[]).length===5 && pl.indexOf('<u style="left:80.0%"></u>')>=0);
 
-/* ══ (b) Trendpfeil ═══════════════════════════════════════════════════ */
-kopf('(b) Trendpfeil: Ø jetzt ÷ Ø vor 30 Min');
-ok('(b) r = 1,02 → ↗ (GELBGRUEN)', paceTrendStufe(1.02).sym==='↗' && paceTrendStufe(1.02).c===FARBE.GELBGRUEN);
-ok('(b) Schwellen: ≥ 1,05 ⇈ · ≥ 1,01 ↗ · > 0,99 → · > 0,95 ↘ · ≤ 0,95 ⇊', paceTrendStufe(1.05).sym==='⇈' && paceTrendStufe(1.049).sym==='↗' && paceTrendStufe(1.01).sym==='↗' && paceTrendStufe(1.009).sym==='→' &&
-   paceTrendStufe(1).sym==='→' && paceTrendStufe(0.99).sym==='↘' && paceTrendStufe(0.951).sym==='↘' && paceTrendStufe(0.95).sym==='⇊' && paceTrendStufe(null)===null);
-ok('(b) Farben: ⇈ GRUEN · → GELB · ↘ ORANGE · ⇊ ROT', paceTrendStufe(1.2).c===FARBE.GRUEN && paceTrendStufe(1).c===FARBE.GELB && paceTrendStufe(0.97).c===FARBE.ORANGE && paceTrendStufe(0.5).c===FARBE.ROT);
-tagDonnerstag(); buchung('2026-10-01T09:10:00+02:00', 300);
-uhr('2026-10-01T09:20:00+02:00');
-ok('(b) unter 30 Min Messzeit heute: kein Pfeil', paceTrend()===null && paceLeisteHtml(diaGroessen()).indexOf('<svg')<0);
-uhr('2026-10-01T11:00:00+02:00');
-var rFall=paceTrend();
-ok('(b) 300 P in der ersten Stunde, seit 30 Min nichts: Ø 150 gegen Ø 200 vor 30 Min → r = 0,75 → ⇊ ('+(rFall!=null?rFall.toFixed(3):'null')+')', Math.abs(rFall-0.75)<0.001 && paceTrendStufe(rFall).sym==='⇊');
-buchung('2026-10-01T10:50:00+02:00', 300);
-var rSteig=paceTrend();
-ok('(b) dazu 300 P in den letzten 30 Min: Ø 300 gegen Ø 200 → r = 1,5 → ⇈ ('+(rSteig!=null?rSteig.toFixed(3):'null')+')', Math.abs(rSteig-1.5)<0.001 && paceTrendStufe(rSteig).sym==='⇈' && /class="ppf"><svg/.test(paceLeisteHtml(diaGroessen())));
+/* ══ (b) Trendpfeil — in v3.5.3 §1 entfallen ═══════════════════════════ */
+kopf('(b) Trendpfeil (Ø jetzt ÷ Ø vor 30 Min) — in v3.5.3 §1 entfallen');
+ok('(b) paceTrend/paceTrendStufe gibt es nicht mehr; der Pfeil der Statusleiste vergleicht die laufende Karte mit Ø heute (Tests in v353-abnahme)', typeof paceTrend==='undefined' && typeof paceTrendStufe==='undefined' && !/function paceTrend/.test(src));
 
 /* ══ (c) Wochentags-Mittel ════════════════════════════════════════════ */
 kopf('(c) „Ø dieser Wochentag": alle getrackten Tage dieses Wochentags, ohne Urlaub und ohne heute');
@@ -62,12 +47,14 @@ ok('(c) passende Tage: drei Donnerstage — der Urlaubs-Donnerstag, der Mittwoch
 _typMemo=null; var T=heuteWochentagsKurven(), i10=T.xs.indexOf(10);
 var roh=function(tage){ return tage.reduce(function(a,d){ var x=diaTagKurve(d,'dfm'), y=diaTagKurve(d,'privat'); return a+x.wert(10)-x.wert(9)+y.wert(10)-y.wert(9); },0)/tage.length; };
 ok('(c) Mittel über ALLE drei Tage (300 · 600 · 900 → 600 P/h um 10 Uhr), nicht über die letzten zwei (750)', T.wtTage===3 && Math.round(roh(wt))===600 && Math.round(roh(wt.slice(-2)))===750 &&
-   T.wtAlle[i10]!=null && T.zwei[i10]!=null && Math.abs(T.wtAlle[i10]/T.zwei[i10]-0.8)<0.001);
+   T.wtAlle[i10]!=null && T.zwei===undefined);   // v3.5.3 §2: die Reihe „letzte zwei" gibt es nicht mehr
 ok('(c) gestern (Mittwoch) als eigene Linie, über den ganzen Tag — auch rechts von jetzt', T.gestern && T.gestern.length===T.xs.length && T.gestern[T.xs.length-1]!=null && T.wtAlle[T.xs.length-1]!=null && T.xs[T.xs.length-1]>T.jetztX);
 var tb=tempoBloeckeHtml(T, 'ttx');
 ok('(c) Legende: heute · gestern · Ø Donnerstag (3 Tage) · Plan', tb.indexOf('>heute</span>')>=0 && tb.indexOf('>gestern</span>')>=0 && tb.indexOf('Ø Donnerstag (3 Tage)</span>')>=0 && tb.indexOf('>Plan</span>')>=0 &&
    tb.indexOf('>heute</span>')<tb.indexOf('>gestern</span>') && tb.indexOf('>gestern</span>')<tb.indexOf('Ø Donnerstag') && tb.indexOf('Ø Donnerstag')<tb.indexOf('>Plan</span>'));
-ok('(c) Linien im Diagramm: Ø Wochentag GRAU 45 %, gestern GRAU 80 %, je 1,5 px', /stroke-opacity="'\+o\+'" stroke-width="1\.5"/.test(src) && /vgl\(T\.wtAlle, '\.45'\)\+vgl\(T\.gestern, '\.8'\)/.test(src));
+var vs=tempoVergleichSvg(T, function(a){ return a.map(function(v,i){ return {x:i*10, y:num(v)}; }); });
+ok('(c) v3.5.3 §2 Linien im Diagramm: Ø Wochentag BLAU durchgezogen, gestern ROT 55 % gestrichelt 4 3, je 1,5 px', vs.indexOf('stroke="'+FARBE.BLAU+'" stroke-width="1.5"')>=0 &&
+   vs.indexOf('stroke="'+FARBE.ROT+'" stroke-opacity=".55" stroke-dasharray="4 3" stroke-width="1.5"')>=0 && (vs.match(/<path/g)||[]).length===2);
 S.intraday=S.intraday.filter(function(e){ return e.ts>='2026-10-01'; }); _typMemo=null; _dkMemoKey='';
 var T0=heuteWochentagsKurven(), tb0=tempoBloeckeHtml(T0, 'tty');
 ok('(c) ohne Vergleichstag entfallen Linie und Legenden-Eintrag', T0.wtAlle===null && T0.wtTage===0 && T0.gestern===null && tb0.indexOf('Ø Donnerstag')<0 && tb0.indexOf('>gestern</span>')<0 && tb0.indexOf('>heute</span>')>=0);

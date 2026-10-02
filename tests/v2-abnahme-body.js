@@ -556,8 +556,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.5.2' && UI_VERSION==='v3.5.2' &&
-   APP_BUILD==='2026-10-02-1');
+ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.5.3' && UI_VERSION==='v3.5.3' &&
+   APP_BUILD==='2026-10-02-2');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -1345,8 +1345,8 @@ frisch();
 S.karten=[ neueKarte({id:'f1', domain:'dfm', titel:'Fokus-Karte', matrixFeld:'ziel', sollMin:30, faelligkeit:H()}) ];
 var fb5=fbWoIchStehe();
 ok('§1.1 Belastungssteuerung (Original) in der Fokusansicht', fb5.indexOf('Belastungssteuerung')>=0 && fb5.indexOf(anModACWR(analyseFenster(),'alle'))>=0);
-ok('§1.1 (v3.5.0 §4.1.4) „Tempo und Blöcke" im Fokus-Block „Der Tag" = dieselbe Render-Funktion wie „Verhalten"', derTagHtml(null).indexOf('Tempo und Blöcke')>=0 &&
-   anModVerhalten(analyseFenster(),'alle').indexOf('data-dialive="tt"')>=0 && derTagHtml(null).indexOf('data-dialive="tt"')>=0);
+ok('§1.1 (v3.5.3 §3) „Tempo und Blöcke" als eigener Fokus-Block über „Der Tag" = dieselbe Render-Funktion wie „Verhalten"', tempoBlockHtml('ttf').indexOf('Tempo und Blöcke')>=0 &&
+   anModVerhalten(analyseFenster(),'alle').indexOf('data-dialive="tt"')>=0 && tempoBlockHtml('ttf').indexOf('data-dialive="tt"')>=0);
 ok('§1.1 die Neubauten sind weg (Tagesverlauf-Kachel, Matrix-Belastung)', fb5.indexOf('Tagesverlauf · Soll')<0 && fb5.indexOf('Sportformel')<0);
 ok('§1.2 Outfit und Faktor F tragen die Ampelfarbe', (fb5.match(/class="fbk amp" style="--af:/g)||[]).length>=2 ||
    (fb5.match(/fbk[^"]* amp" style="--af:/g)||[]).length>=2);
@@ -1507,7 +1507,7 @@ kopf('v2.6.0 §1 · Statusleiste Zeile 2: Akku · Tempo · Konto · Matrix-Verla
   fokusStarten('sb1');
   renderStatusbar();
   var tz=el('sZTempo').innerHTML;
-  ok('§2.2 (v3.5.2 §1) Pace-Leiste waagerecht: Füllung bis Ø heute, weiße Marke = nötig', /class="pbahn"><i style="width:[\d.]+%;background:linear-gradient/.test(tz) && /<u style="left:[\d.]+%"><\/u>/.test(tz) && /class="ppf"/.test(tz));
+  ok('§2.2 (v3.5.3 §1) Pace-Leiste waagerecht: fünf Ampelzonen, weißer Strich = Ø heute, Raute = laufende Karte', (tz.match(/<i style="left:[\d.]+%;width:[\d.]+%;background:#/g)||[]).length===5 && /<u style="left:[\d.]+%"><\/u>/.test(tz) && /class="raute"/.test(tz) && /class="ppf"/.test(tz));
   ok('§3.1 Matrix-Zelle trägt die kleine Linie (v3.5.1 §2: 72×72)', el('sMv').innerHTML.indexOf('viewBox="0 0 72 72"')>=0 && el('sMv').innerHTML.indexOf('<path d="M')>=0);
 })();
 

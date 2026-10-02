@@ -15,7 +15,7 @@ function tagDonnerstag(){ frisch(); uhr('2026-10-01T09:00:00+02:00'); tagStarten
 function aufgabe(id, dom, soll){ return neueKarte({ id:id, domain:dom, titel:'Karte '+id, sollMin:soll||30, faelligkeit:DO, erstelltTs:'2026-09-30T08:00:00+02:00', flowBaseline:true }); }
 
 kopf('Version');
-ok('APP_VERSION aktuell (3.5.2) · Datenvertrag bleibt 2.1.0', APP_VERSION==='3.5.2' && UI_VERSION==='v3.5.2' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-1');
+ok('APP_VERSION aktuell (3.5.2) · Datenvertrag bleibt 2.1.0', APP_VERSION==='3.5.3' && UI_VERSION==='v3.5.3' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-2');
 
 /* ══ (a) Schieben ohne Abzug erhöht „geschoben" nicht ══════════════════ */
 kopf('(a) Geschoben zählt nur mit Punktabzug oder beim Tagesabschluss');
@@ -82,7 +82,7 @@ var z3=dfmZeitHeute();
 ok('(c) laufende PRIVAT-Karte ändert die DFM-Zeit nicht', z3.laufend===0 && Math.round(z3.ist)===40 && Math.round(z3.plan)===130);
 fokusBeenden();
 var dt=derTagHtml(kid('d2'));
-ok('(c) Kachel „DFM-Zeit heute" zeigt 0:40 / 2:10, „Faktor F" heißt „Tagesform"', dt.indexOf('DFM-Zeit heute')>=0 && /0:40<small> \/ 2:10<\/small>/.test(dt) && dt.indexOf('Tagesform')>=0 && dt.indexOf('Faktor F')<0 && dt.indexOf('deinem normalen Tag')>=0);
+ok('(c) v3.5.3 §3: die DFM-Zeit steht als Kennzahl im Kopf der Tagesprognose („DFM 0:40 / 2:10"), „Faktor F" heißt „Tagesform"', dt.indexOf('DFM 0:40 / 2:10')>=0 && dt.indexOf('DFM-Zeit heute')<0 && dt.indexOf('Tagesform')>=0 && dt.indexOf('Faktor F')<0 && /% (über|unter) normal|wie normal/.test(dt));
 
 /* ══ (d) „Tage ≥ 80 % Ziel" zählt korrekt ═════════════════════════════ */
 kopf('(d) Konsistenz-KPI „Tage ≥ 80 % Ziel"');
