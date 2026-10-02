@@ -5634,7 +5634,7 @@ function renderFokus(){
   const kopf='<div class="kreihe">'+ring+'<div class="kkpis">'+
       '<div class="kkpi zeit"><div class="w trest" id="tRest">–</div><div class="s" id="tRestSub"></div></div>'+
       '<div class="kkpi"><div class="w" id="tKpiTempo">–</div><div class="s">diese Karte</div></div>'+
-      '<div class="kkpi"><div class="w" id="tKpiPunkte" style="color:'+FARBE.GOLD+'">–</div><div class="s">Punkte heute · Münzen und Wohlstand</div></div>'+
+      '<div class="kkpi"><div class="w" id="tKpiPunkte" style="color:'+FARBE.GOLD+'">–</div><div class="s">Punkte heute · Münzen und Farbe</div></div>'+
       '<div class="kkpi"><div class="w" id="tKpiSchritte">–</div><div class="s">Schritte abgehakt</div><div class="kschritte" id="tKpiSeg"></div></div>'+
     '</div></div>';
   const titel='<div class="ktitel fk-haupttitel" data-detail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</div>'+
@@ -6059,7 +6059,7 @@ function outfitSammlungHtml(){
 function kulisseKachelHtml(){
   // §4 Nr. 9 / §5 Nr. 3 (v3.5.1): Hintergrund = farbige Fassung der aktuellen Kulisse, Schleier, Balken im GOLD-Verlauf
   const st=ausmalStand(), nn=String(st.kulisse).padStart(2,'0');
-  const naechste = st.kulisse>=10 ? ' · letzte Kulisse' : (st.freigeschaltetBis>st.kulisse ? ' · nächste schon frei' : (st.naechsteFrei!=null ? ' · nächste frei bei '+fmtP(st.naechsteFrei)+' Wohlstand' : ''));
+  const naechste = st.kulisse>=10 ? ' · letzte Kulisse' : (st.freigeschaltetBis>st.kulisse ? ' · nächste schon frei' : (st.naechsteFrei!=null ? ' · nächste frei bei '+fmtP(st.naechsteFrei)+' Farbe' : ''));
   return '<div class="kulbar" style="background-image:url(img/kulissen/bg'+nn+'_farbig.jpg)"><div class="schleier"></div><div class="inh"><b>Kulisse '+st.kulisse+'</b> <span>· '+Math.round(st.anteil*100)+' % ausgemalt'+naechste+'</span>'+
     '<div class="lbar"><i style="left:0;width:'+(st.anteil*100).toFixed(1)+'%;background:'+verlauf(FARBE.GOLD)+'"></i></div></div></div>';
 }
@@ -9537,14 +9537,14 @@ function tagBannerHtml(){
     const vortag = S.tag.datum<heuteIso();
     return '<div class="tagbanner offen"'+(vortag?' style="border-color:var(--bad)"':'')+'>'+
       '<div class="tb-info"><div class="tb-h">'+(vortag?'⚠️ Tag vom '+S.tag.datum.slice(8)+'.'+S.tag.datum.slice(5,7)+'. noch offen':'Tag läuft · '+esc(S.tag.tagId))+'</div>'+
-        '<div class="tb-sub">🔋 Akku '+akku+' · Bilanz <b>'+Math.round(tagesPunkteLive())+'</b> P · Wohlstand '+Math.round(wohlstandLive())+'</div></div>'+
+        '<div class="tb-sub">🔋 Akku '+akku+' · Bilanz <b>'+Math.round(tagesPunkteLive())+'</b> P · Farbe '+Math.round(wohlstandLive())+'</div></div>'+
       '<button class="tb-btn" data-tagclose="1">Abschließen</button></div>';
   }
   // §5 (v3.0.0): der Tag beginnt mit „Aufstehen"
   const zs=schlafZustand();
   return '<div class="tagbanner">'+
     '<div class="tb-info"><div class="tb-h">'+(S.tag && S.tag.endeTs ? 'Tag abgeschlossen'+(zs.laeuft?' · 🌙 Schlafen läuft':'') : 'Kein Tag gestartet')+'</div>'+
-      '<div class="tb-sub">Wohlstand '+Math.round(wohlstandLive())+' P</div></div>'+
+      '<div class="tb-sub">Farbe '+Math.round(wohlstandLive())+' P</div></div>'+
     '<button class="tb-btn prim" data-tagstart="1">☀️ Aufstehen</button></div>';
 }
 
@@ -13795,7 +13795,7 @@ function gruppeZuordnenAnwenden(){
    der „behalten"-Liste.) */
 function resetKarten(){
   const n=S.karten.length;
-  if(!confirm('Alle Karten & Unteraufgaben löschen?\n\nVorher wird automatisch ein Voll-Backup heruntergeladen. Einstellungen, Wohlstand, Historie, Stapel, Vorlagen und Gruppen bleiben erhalten.')) return;
+  if(!confirm('Alle Karten & Unteraufgaben löschen?\n\nVorher wird automatisch ein Voll-Backup heruntergeladen. Einstellungen, Farbe, Historie, Stapel, Vorlagen und Gruppen bleiben erhalten.')) return;
   if(!confirm('Wirklich '+n+' Karten endgültig löschen?\n\nRückgängig nur über das heruntergeladene Backup.')) return;
   backupHtml();                          // Voll-Backup als Download (bestehende Mechanik)
   S.fokus=null; saveFokus();             // laufenden Timer auf gelöschter Karte beenden
@@ -13859,7 +13859,7 @@ function renderEinst(){
     '<div class="btnrow"><button class="btn sm prim" id="btnSync">⇄ Sync (DFM)</button></div>'+
     '<div class="btnrow"><button class="btn sm" id="btnBackup">⬇︎ Backup</button></div>'+
     '<div class="btnrow"><button class="btn warn sm" id="btnReset">🗑 Alle Karten löschen</button></div>'+
-    '<div class="hint">Nullstand vor dem Seed. Lädt vorher ein Voll-Backup herunter. Behält Einstellungen, Wohlstand, Historie, Stapel, Vorlagen, Gruppen.</div></div>';
+    '<div class="hint">Nullstand vor dem Seed. Lädt vorher ein Voll-Backup herunter. Behält Einstellungen, Farbe, Historie, Stapel, Vorlagen, Gruppen.</div></div>';
 
   // U6-C: Punkte-Balance (je Domäne) — Basis-Rate, Abhakbonus, Sub-Bonus
   // §3 (v1.6.1): Routinen-Gruppen — Name, Domäne, Mitglieder, Bonushöhe
@@ -13987,7 +13987,7 @@ function renderEinst(){
     '<div class="kv"><span>Datenvertrag (Import ab)</span><b>'+DATENVERTRAG+'</b></div>'+
     '<div class="kv"><span>Karten</span><b>'+S.karten.length+'</b></div>'+
     '<div class="kv"><span>Stapel</span><b>'+S.stapel.length+'</b></div>'+
-    '<div class="kv"><span>Wohlstand (live)</span><b>'+Math.round(wohlstandLive())+'</b></div>'+
+    '<div class="kv"><span>Farbe (live)</span><b>'+Math.round(wohlstandLive())+'</b></div>'+
     // U4 (v1.4.0): Level-Basis nachvollziehbar machen (Migrationswert + Herleitung)
     '<div class="kv"><span>Lifetime-Punkte (Level-Basis)</span><b>'+Math.round(lifetimePunkte())+'</b></div>'+
     // v1.5.1: Offset transparent machen — Rohwert bleibt erhalten, nur die Anzeige startet neu
@@ -14152,7 +14152,7 @@ function renderEinst(){
   // §4 (v1.8.1): Eingriffe mit Tragweite — optisch abgesetzt, GANZ unten
   h+='<div class="card" style="border-color:var(--bad);margin-top:18px"><h3 style="color:var(--bad)">⚠️ Eingriffe mit Tragweite</h3>'+
     '<p class="d">Zurücksetzen betrifft Konto, Kulissen und die Spiel-Ebene (Lebenswerk-Anzeige) — über die Offset-Mechanik. <b>Gelöscht wird nichts:</b> Historie, Intraday-Log, Streaks und Statistiken bleiben unangetastet. Der Leistungs-Rang und sein Bestwert sind eine Messung und bleiben vom Reset unberührt (v1.11.0). Für „nur den Besitz leeren" gibt es die eigene Karte 🛍 oben.</p>'+
-    '<div class="btnrow"><button class="btn warn sm" data-panoreset="1">🔄 Wohlstand zurücksetzen</button>'+
+    '<div class="btnrow"><button class="btn warn sm" data-panoreset="1">🔄 Farbe zurücksetzen</button>'+
     (S.meta.panoramaResetBackup?'<button class="btn sm" data-panoundo="1">↩︎ Letzten Reset rückgängig</button>':'')+'</div>'+
     '<div class="kv" style="margin-top:8px"><span>Aktueller Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
   '</div>';
@@ -14164,7 +14164,7 @@ function renderEinst(){
    151er-Migration, jetzt wiederholbar und mit Rückgängig (solange ein Backup
    vorliegt). Es wird ausschließlich Anzeige-Zustand verschoben. */
 function panoramaResetJetzt(){
-  if(!confirm('Wohlstand zurücksetzen?\n\nKonto, Kulisse und Lebenswerk-Anzeige starten wieder bei null (Startkulisse, Konto 0), die sechs Zonen-Stufen gehen auf 0.\n\nNICHT angefasst werden: Historie, Intraday-Log, Streaks (auch die Tages-Serie), Statistiken, die gekauften Objekte im Album — und der Leistungs-Rang samt Bestwert (er ist eine Messung, v1.11.0). Der Schritt ist über „Rückgängig" umkehrbar, solange kein neuer Reset folgt.')) return;
+  if(!confirm('Farbe zurücksetzen?\n\nKonto, Kulisse und Lebenswerk-Anzeige starten wieder bei null (Startkulisse, Konto 0), die sechs Zonen-Stufen gehen auf 0.\n\nNICHT angefasst werden: Historie, Intraday-Log, Streaks (auch die Tages-Serie), Statistiken, die gekauften Objekte im Album — und der Leistungs-Rang samt Bestwert (er ist eine Messung, v1.11.0). Der Schritt ist über „Rückgängig" umkehrbar, solange kein neuer Reset folgt.')) return;
   if(!S.belohnung){ S.belohnung={ stufen:{}, ausgegeben:0, kaeufe:[] }; }
   S.belohnung.stufen=S.belohnung.stufen||{};
   const altStufen={}; KAT_KEYS.forEach(k=>{ altStufen[k]=num(S.belohnung.stufen[k],0); });
@@ -14190,7 +14190,7 @@ function panoramaResetJetzt(){
 function panoramaResetUndo(){
   const b=S.meta.panoramaResetBackup;
   if(!b){ toast('Kein Reset-Backup vorhanden'); return; }
-  if(!confirm('Letzten Wohlstand-Reset rückgängig machen?\n\nOffset und Zonen-Stufen gehen auf den Stand von '+String(b.ts||'?').slice(0,10)+' zurück.')) return;
+  if(!confirm('Letzten Farbe-Reset rückgängig machen?\n\nOffset und Zonen-Stufen gehen auf den Stand von '+String(b.ts||'?').slice(0,10)+' zurück.')) return;
   S.meta.panoramaResetOffset = (b.offset>0 ? b.offset : null);
   // §7.2 (v1.9.0): alle drei Spiel-Offsets zurück auf den Stand vor dem Reset
   S.meta.rangResetOffset    = num(b.rangResetOffset);
@@ -14757,7 +14757,7 @@ function renderAlbum(){
     {  // §6.2/§6.9 (v3.5.0): Freischaltung ueber Wohlstand seit Reset; fertig ausgemalte Kulissen farbig
       const st=ausmalStand();
       if(st.freigeschaltetBis<10){
-        h+=albumLeiterHtml('Nächste Kulisse '+(st.freigeschaltetBis+1)+' frei ab Wohlstand '+fmtKurzP(st.naechsteFrei),
+        h+=albumLeiterHtml('Nächste Kulisse '+(st.freigeschaltetBis+1)+' frei ab Farbe '+fmtKurzP(st.naechsteFrei),
           'noch '+fmtKurzP(Math.max(0,st.naechsteFrei-st.W))+' (aktuell '+fmtKurzP(st.W)+')',
           Math.max(0, Math.min(1, (st.W-st.aktFrei)/Math.max(1, st.naechsteFrei-st.aktFrei))), Math.max(0,st.naechsteFrei-st.W), null);
       } else h+=albumLeiterHtml('Reise komplett — Kulisse 10/10','',1,0,null);
@@ -14768,7 +14768,7 @@ function renderAlbum(){
       h+='<div class="albitem breit'+(frei?'':' zu')+'"'+(frei?' data-albbild="'+bild+'" data-albname="Kulisse '+n+' von 10'+(fertig?' · ausgemalt':'')+'"':'')+'>'+
         '<img src="'+bild+'" alt="" loading="lazy">'+
         '<div class="albn">Kulisse '+n+(fertig?' · ausgemalt ✓':(n===A.kulisse?' · aktuell':''))+'</div>'+
-        '<div class="albs">'+(frei?(datum?fmtDatum(datum):(n===1?'Start':'freigeschaltet')):('frei ab Wohlstand '+fmtKurzP(bgSchwelle(n)-bgSchwelle(1))))+'</div></div>';
+        '<div class="albs">'+(frei?(datum?fmtDatum(datum):(n===1?'Start':'freigeschaltet')):('frei ab Farbe '+fmtKurzP(bgSchwelle(n)-bgSchwelle(1))))+'</div></div>';
     }
   } else {
     // §4.2 (v1.13.0): Fortschritt + Prognose zum nächsten (günstigsten) Kauf
@@ -14878,8 +14878,8 @@ function belohnungAnsichtZeigen(d, danach){
   let g3='';
   if(d.farbe && d.farbe.w>0){ const t5=slot();
     g3+='<div class="k st" style="animation-delay:'+t5+'s;text-align:center;position:relative" data-tropfen="'+(t5+0.2)+'" data-hex="'+d.farbe.hex+'"><div class="h">FARBE · '+esc(String(d.farbe.name).toUpperCase())+'</div>'+
-      (d.farbe.tank ? '<div class="pot tank"><div class="fl" style="height:70%;background:'+FARBE.GRAU+'"></div><div class="rim"></div></div><div class="m" style="font-size:13px">+'+fmtP(d.farbe.w)+' Wohlstand</div><div class="h">Tank '+fmtP(Math.round(d.farbe.tankVor))+' → '+fmtP(Math.round(d.farbe.tankNach))+'</div>'
-                   : '<div class="pot"><div class="fl" style="--a:'+d.farbe.vor+'%;--b:'+d.farbe.nach+'%;background:'+d.farbe.hex+';animation-delay:'+(t5+0.4)+'s"></div><div class="rim"></div></div><div class="m" style="font-size:13px">+'+fmtP(d.farbe.w)+' Wohlstand</div><div class="h">Topf '+d.farbe.vor+' → '+d.farbe.nach+' %</div>')+'</div>'; }
+      (d.farbe.tank ? '<div class="pot tank"><div class="fl" style="height:70%;background:'+FARBE.GRAU+'"></div><div class="rim"></div></div><div class="m" style="font-size:13px">+'+fmtP(d.farbe.w)+' Farbe</div><div class="h">Tank '+fmtP(Math.round(d.farbe.tankVor))+' → '+fmtP(Math.round(d.farbe.tankNach))+'</div>'
+                   : '<div class="pot"><div class="fl" style="--a:'+d.farbe.vor+'%;--b:'+d.farbe.nach+'%;background:'+d.farbe.hex+';animation-delay:'+(t5+0.4)+'s"></div><div class="rim"></div></div><div class="m" style="font-size:13px">+'+fmtP(d.farbe.w)+' Farbe</div><div class="h">Topf '+d.farbe.vor+' → '+d.farbe.nach+' %</div>')+'</div>'; }
   { const t6=slot(); g3+='<div class="k st" style="animation-delay:'+t6+'s;text-align:center;position:relative" data-muenzen="'+(t6+0.2)+'"><div class="h">MÜNZEN</div><div class="m" style="font-size:22px;color:'+FARBE.GOLD+';margin:14px 0 6px" data-zaehl="'+Math.round(d.kontoNach)+'" data-von="'+Math.round(d.kontoVor)+'" data-start="'+(t6+0.3)+'">'+Math.round(d.kontoVor)+'</div><div class="h">+'+d.muenzen+' 🪙</div>'+(d.kaufbar?'<div class="h" style="color:'+FARBE.GOLD+';margin-top:4px">'+esc(BELOHNUNG[d.kaufbar.kat].name)+' jetzt kaufbar</div>':'')+'</div>'; }
   h+='<div class="g2">'+g3+'</div>';
   // 7 Outfit
@@ -15885,7 +15885,7 @@ function belErklommen(){
   });
   h+='<div class="fbk voll"><div class="fbk-h">Shop-Stand je Kategorie</div>'+rows+'</div>';
   // Wohlstand, Konto, Kulisse
-  h+=fbKachel('Wohlstand · 28 Tage', belKurve(vd.wohlstand, null, null, AMPEL_FARBE.gruen[0]),
+  h+=fbKachel('Farbe · 28 Tage', belKurve(vd.wohlstand, null, null, AMPEL_FARBE.gruen[0]),
      fbWert(fmtKurzP(wohlstandLive()).replace(/ P$/,''), 'Punkte gesamt'), {breit:true});
   const ausg=ausgabenAnzeige(), k=konto(), ges=Math.max(1, k+ausg);
   h+=fbKachel('Konto', '<div style="width:100%">'+belDoppelBalken(k/ges, 1, null, null)+'</div>',
@@ -16147,7 +16147,7 @@ function feldAusmalen(f){
   A.gefaerbt.push(f); _malFade={ feld:f, t0:Date.now() };
   haptik(12); saveMeta();
   const st=ausmalStand();
-  if(st.fertig){ if(A.freigeschaltetBis>A.kulisse) ausmalKulisseWechsel(); else toast('Kulisse '+A.kulisse+' fertig — die nächste ist frei ab Wohlstand '+fmtKurzP(st.naechsteFrei)); }
+  if(st.fertig){ if(A.freigeschaltetBis>A.kulisse) ausmalKulisseWechsel(); else toast('Kulisse '+A.kulisse+' fertig — die nächste ist frei ab Farbe '+fmtKurzP(st.naechsteFrei)); }
   return true;
 }
 function ausmalKulisseWechsel(){
@@ -17674,7 +17674,7 @@ function meilensteinHtml(){
     ms.push({ t, titel:'Outfit '+of.naechste, sub:'bei F '+fbOutfitSchwelleF(of.naechste).toFixed(2).replace('.',','), art:'outfit' }); } }catch(e){}
   try{ const rm=rangMass(), pr=rangPrognose(rm); if(pr && rm.rang<RANG_MAX) ms.push({ t:pr.N, titel:'Rang R'+(rm.rang+1), sub:'Prognose', art:'rang' }); }catch(e){}
   try{ if(typeof ausmalStand==='function'){ const st=ausmalStand(); if(st.naechsteFrei!=null){ const t=tage(st.naechsteFrei-st.W, restHeute, oePkt);
-    ms.push({ t, titel:'Kulisse '+(st.freigeschaltetBis+1), sub:'frei bei Wohlstand', art:'kulisse' }); } } }catch(e){}
+    ms.push({ t, titel:'Kulisse '+(st.freigeschaltetBis+1), sub:'frei bei Farbe', art:'kulisse' }); } } }catch(e){}
   if(!ms.length) return ksH+anLeer('keine Meilensteine');
   const maxT=Math.max(3, Math.max.apply(null, ms.map(m=>m.t==null?0:m.t))), W=320, H=96, pL=16, pR=16, yA=50;
   const X=t=>pL+(t==null ? 1 : Math.min(1, t/maxT))*(W-pL-pR);
@@ -20506,7 +20506,7 @@ function zeigeMigration160(){
            ['alte Stapel entfernt',L.stapelEntfernt],
            ['Tageskette „Heute" vorbefüllt (Karten)',L.ketteStart]];
   const h='<p class="d">Die App ist auf das neue Navigationsmodell umgestellt. '+
-    '<b>Es wurde nichts gelöscht</b> — keine Karte, kein Punktestand, kein Wohlstand. '+
+    '<b>Es wurde nichts gelöscht</b> — keine Karte, kein Punktestand, keine Farbe. '+
     'Der Vorzustand liegt gesichert unter <code>karten_bak160</code>, <code>meta_bak160</code> und <code>stapel_bak160</code>.</p>'+
     '<div class="kvblock">'+z.map(([t,n])=>'<div class="kv"><span>'+t+'</span><b>'+num(n)+'</b></div>').join('')+'</div>'+
     '<p class="d" style="margin-top:8px">Die 11 alten Stapel sind durch die drei Filterebenen auf der Fokusseite ersetzt. '+
@@ -20525,7 +20525,7 @@ function zeigeMigration161(){
   const fehlt=(L.gruppeFehlend||[]).length
     ? '<p class="d" style="color:var(--warn);margin-top:8px">Für die „Aufräumrunde" fehlen noch diese Karten (nichts erfunden — die Gruppe greift, sobald du sie anlegst): '+
       esc(L.gruppeFehlend.join(' · '))+'</p>' : '';
-  const h='<p class="d"><b>Es wurde nichts gelöscht</b> — keine Karte, kein Punktestand, kein Wohlstand. '+
+  const h='<p class="d"><b>Es wurde nichts gelöscht</b> — keine Karte, kein Punktestand, keine Farbe. '+
     'Der Vorzustand liegt gesichert unter <code>karten_bak161</code> und <code>meta_bak161</code>.</p>'+
     '<div class="kvblock">'+z.map(([t,n])=>'<div class="kv"><span>'+t+'</span><b>'+num(n)+'</b></div>').join('')+'</div>'+
     fehlt+
@@ -20563,7 +20563,7 @@ function zeigeMigration190(){
     '<div class="kv"><span>→ Kulisse</span><b>Station '+L.kulisse+'/10</b></div>'+
     '<div class="kv"><span>Tages-Serie rekonstruiert</span><b>'+L.streak+' Tg ('+esc(L.streakQuelle)+')</b></div>'+
     '</div>'+
-    '<p class="d" style="margin-top:8px">Der Wohlstand-Reset in den Einstellungen setzt ab jetzt Rang, Kulisse und Konto gemeinsam zurück — und ist weiterhin umkehrbar.</p>';
+    '<p class="d" style="margin-top:8px">Der Farbe-Reset in den Einstellungen setzt ab jetzt Rang, Kulisse und Konto gemeinsam zurück — und ist weiterhin umkehrbar.</p>';
   openSheet('Update v1.9.0 — Rang, Reise, Serie', h, '<button class="btn prim" data-close="1">Los</button>');
   S.meta.gamify190Gezeigt=true; saveMeta();
 }
