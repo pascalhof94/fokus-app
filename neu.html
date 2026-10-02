@@ -2184,6 +2184,17 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 #statusbar .sl-pace .pbahn u{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:#fff;border-radius:1px}
 #statusbar .sl-pace .ppf{flex:none;width:16px;height:16px;display:flex;align-items:center;justify-content:center}
 #statusbar .sl-pace .ppf svg{display:block;width:16px;height:16px}
+/* ══ HOTFIX 3.5.2 §3 · KARTENLISTEN (Draft Nr. 3) ══ */
+.kl-grp{border-top:1px solid #23262d}
+.kl-grp:first-of-type{border-top:0}
+.kl-grk{display:flex;align-items:center;gap:8px;min-height:44px;padding:3px 0;cursor:pointer}
+.kl-grk b{font-size:14px;font-weight:700}
+.kl-grk .anz{margin-left:auto;font-size:12px;color:#9a9ca2;font-weight:650;background:#23262d;border-radius:9px;padding:1px 8px}
+.kl-grinh{padding-bottom:6px}
+.kl-zwh{font-size:11px;color:#9a9ca2;font-weight:650;margin:8px 2px 5px;text-transform:uppercase;letter-spacing:.4px}
+.kl-zwh:first-child{margin-top:0}
+.kl-z.erl{opacity:.6}
+.kl-grinh .kl-z:last-child{margin-bottom:0}
 </style>
 </head>
 <body>
@@ -8507,26 +8518,77 @@ function prioFarbe(k){
   let n=0.5; try{ n=num(karteNorm(k), 0.5); }catch(e){}
   return n>=0.8 ? FARBE.ROT : n>=0.6 ? FARBE.ORANGE : n>=0.4 ? FARBE.GELB : n>=0.2 ? FARBE.GELBGRUEN : FARBE.GRUEN;
 }
-function kartenZeileHtml(k){
+function kartenZeileHtml(k, opt){
+  opt=opt||{};
   const fam=famFarbe(k), laeuft=uhrLaeuftAuf(k), fertig=kartenStatusHeute(k)==='erledigt';
   const ticks=Math.max(tickAnzahlHeute(k), num(k.ticksHeute)), limit=num(k.tageslimit), art=kartenArt(k);
   const unter=(k.domain==='privat'?'Privat':'DFM')+' · '+(istPflicht(k) ? 'Pflicht' : art!=='Aufgabe' ? art : (num(k.sollMin)>0 ? Math.round(num(k.sollMin))+' Min' : MX_FELD_NAME[matrixFeldVon(k)]));
-  return '<div class="kl-z'+(laeuft?' laeuft':'')+(fertig?' fertig':'')+'" style="--fam:'+fam+';--prio:'+prioFarbe(k)+'" data-klkarte="'+k.id+'">'+
+  return '<div class="kl-z'+(laeuft?' laeuft':'')+(fertig?' fertig':'')+(opt.erl?' erl':'')+'" style="--fam:'+fam+';--prio:'+prioFarbe(k)+'" data-klkarte="'+k.id+'">'+
     '<button class="kl-play" data-klplay="'+k.id+'" aria-label="'+(laeuft?'Pause':'Start')+'"'+(laeuft?' style="background:'+verlauf(fam, 180)+';color:#08111f"':'')+'>'+(laeuft?'⏸':'▶')+'</button>'+
-    '<div class="kl-t" data-detail="'+k.id+'"><b class="kl-titel">'+esc(String(k.titel||'?'))+'</b><span class="kl-meta">'+unter+'</span></div>'+
+    '<div class="kl-t" data-detail="'+k.id+'"><b class="kl-titel">'+esc(String(k.titel||'?'))+'</b><span class="kl-meta">'+unter+(opt.zusatz ? ' · '+opt.zusatz : '')+'</span></div>'+
     '<button class="kl-plus" data-kltick="'+k.id+'" aria-label="Tick +1"><b'+(limit>0 && ticks>limit?' style="color:'+FARBE.UEBER+'"':'')+'>'+ticks+'</b><em>+</em></button>'+
     (fertig ? '<span class="kl-check ok'+(hakAktiv('kl-'+k.id)?' hak-neu" style="'+hakStil():'')+'" aria-label="erledigt">✓</span>'+hakFlugHtml('kl-'+k.id)
             : '<button class="kl-check" data-klcheck="'+k.id+'" aria-label="Erledigt">✓</button>')+'</div>';
+}
+/* ══ §3 (v3.5.2) · KARTENLISTEN — fuenf Gruppen in fester Reihenfolge, jede einzeln auf-/zuklappbar ══
+   Aktuelle Kette · Verlauf · Routinen (nach Tagesblock) · Meistgenutzt · 7 Tage · Erledigt heute.
+   Standard: nur „Aktuelle Kette" offen; der Klappzustand je Gruppe lebt in S.ui.klGruppen (UI-Zustand, kein Export).
+   Leere Gruppen zeigen nur die Kopfzeile mit „0". Eine Karte darf in mehreren Gruppen stehen. */
+const KL_GRUPPEN=[['kette','Aktuelle Kette'],['verlauf','Verlauf'],['routinen','Routinen'],['meist','Meistgenutzt · 7 Tage'],['erledigt','Erledigt heute']];
+function klGruppeOffen(id){ const z=S.ui.klGruppen; return (z && z[id]!=null) ? !!z[id] : id==='kette'; }
+let _klGedreht=null;
+function klGruppeUmschalten(id){
+  S.ui.klGruppen=Object.assign({}, S.ui.klGruppen); S.ui.klGruppen[id]=!klGruppeOffen(id); _klGedreht=id; saveUi();
+}
+/* Verlauf: heute geoeffnete Karten, neueste oben; Mehrfach-Oeffnungen stehen einmal mit ihrer Anzahl */
+function klVerlauf(){
+  const l=fokusOeffnungen(), n={}, folge=[], by={}; S.karten.forEach(k=>by[k.id]=k);
+  for(let i=l.length-1;i>=0;i--){ const id=l[i]; if(n[id]==null){ n[id]=0; folge.push(id); } n[id]++; }
+  return folge.map(id=>({k:by[id], n:n[id]})).filter(q=>q.k && q.k.status!=='archiviert');
+}
+/* Tagesblock (erste Ebene) einer Routine: die Blockzuordnung der Karte (heute) → sonst der Block, in dem ihre Uhrzeit liegt →
+   sonst nach Rolle (Aufstehen = erster Block, Tagesabschluss/Schlafen = letzter Block) → sonst null („Ohne Block") */
+function klRoutineBlock(k, bl){
+  bl=bl||tagesBloecke()||[]; const by={}; bl.forEach(b=>by[b.id]=b);
+  const oben=id=>{ let b=by[id], g=0; while(b && b.parent && by[b.parent] && g++<12) b=by[b.parent]; return b||null; };
+  const eins=bl.filter(b=>!b.parent).slice().sort((a,b)=>a.von-b.von);
+  const zu=karteBlockId(k, bl); if(zu!=null) return oben(zu);
+  if(!eins.length) return null;
+  if(k.uhrzeit && /^\d{1,2}:\d{2}/.test(String(k.uhrzeit))){ const t=String(k.uhrzeit).split(':'), h=num(t[0])+num(t[1])/60;
+    const b=eins.find(x=>(x.von<=h && h<x.bis) || (x.von<=h+24 && h+24<x.bis)); if(b) return b; }
+  if(k.rolle==='aufstehen') return eins[0];
+  if(k.rolle==='tagesabschluss' || k.rolle==='schlafen') return eins[eins.length-1];
+  return null;
+}
+/* Routinen und Counter in der Reihenfolge des Tagesablaufs (abhakLeisteKarten), unterteilt nach Tagesblock; ohne Zuordnung am Ende */
+function klRoutinenGruppen(){
+  const bl=tagesBloecke()||[], eins=bl.filter(b=>!b.parent).slice().sort((a,b)=>a.von-b.von), je={}, ohne=[];
+  abhakLeisteKarten().forEach(k=>{ const b=klRoutineBlock(k, bl); if(b) (je[b.id]=je[b.id]||[]).push(k); else ohne.push(k); });
+  const out=eins.filter(b=>je[b.id]).map(b=>({ name:b.name||BLOCK_TYP_NAME[b.typ]||'Block', karten:je[b.id] }));
+  if(ohne.length) out.push({ name:'Ohne Block', karten:ohne });
+  return out;
+}
+function klErledigtHeute(){
+  const tid=aktuelleTagId();
+  return S.karten.filter(k=>k && k.status!=='archiviert' && (istAufgabeKarte(k) ? (k.status==='erledigt' && k.tagId===tid) : kartenStatusHeute(k)==='erledigt'))
+    .sort((a,b)=>String(b.letzteBearbeitung||'')<String(a.letzteBearbeitung||'') ? -1 : String(b.letzteBearbeitung||'')>String(a.letzteBearbeitung||'') ? 1 : 0);
 }
 function kartenBlockHtml(k){
   const offen=x=>x.status==='offen';
   let kette=ketteKarten(navDomain()).filter(offen); if(!kette.length) kette=ketteKarten().filter(offen);
   if(k) kette=kette.filter(x=>x.id!==k.id);
-  const meist=kartenMeistgenutzt();
-  if(!kette.length && !meist.length) return '';
-  return '<div class="blk"><div class="blk-h">Karten</div>'+
-    (kette.length ? '<div class="lh">Aktuelle Kette</div><div class="kl">'+kette.map(kartenZeileHtml).join('')+'</div>'+(meist.length?'<div class="kl-trenner"></div>':'') : '')+
-    (meist.length ? '<div class="lh">Meistgenutzt · letzte 7 Tage</div><div class="kl">'+meist.map(q=>kartenZeileHtml(q.k)).join('')+'</div>' : '')+'</div>';
+  const verlauf=klVerlauf(), rout=klRoutinenGruppen(), meist=kartenMeistgenutzt(), erl=klErledigtHeute();
+  const inhalt={
+    kette:   { n:kette.length,   html:()=>kette.map(x=>kartenZeileHtml(x)).join('') },
+    verlauf: { n:verlauf.length, html:()=>verlauf.map(q=>kartenZeileHtml(q.k, q.n>1 ? {zusatz:q.n+'×'} : null)).join('') },
+    routinen:{ n:rout.reduce((a,g)=>a+g.karten.length,0), html:()=>rout.map(g=>'<div class="kl-zwh">'+esc(g.name)+'</div>'+g.karten.map(x=>kartenZeileHtml(x)).join('')).join('') },
+    meist:   { n:meist.length,   html:()=>meist.map(q=>kartenZeileHtml(q.k)).join('') },
+    erledigt:{ n:erl.length,     html:()=>erl.map(x=>kartenZeileHtml(x, {erl:true})).join('') } };
+  const dreh=_klGedreht; _klGedreht=null;
+  return '<div class="blk kl-blk"><div class="blk-h">Karten</div>'+KL_GRUPPEN.map(q=>{ const id=q[0], g=inhalt[id], auf=klGruppeOffen(id);
+    return '<div class="kl-grp" data-klgrp="'+id+'"><div class="kl-grk" data-klgruppe="'+id+'" role="button" aria-expanded="'+(auf?'true':'false')+'"><b>'+q[1]+'</b><span class="anz">'+g.n+'</span>'+
+      '<span class="stm-tog'+(auf?' auf':'')+(dreh===id?' dreh':'')+'" aria-hidden="true">'+STM_CHEVRON+'</span></div>'+
+      (auf && g.n ? '<div class="kl kl-grinh">'+g.html()+'</div>' : '')+'</div>'; }).join('')+'</div>';
 }
 function kartenMeistgenutztHtml(){ return kartenBlockHtml(null); }
 /* Tick aus der Kartenliste (F1/F2): Aufgaben nach den Regeln des Modus zeit, Routinen/Counter wie ihre Zaehler-Zeile;
@@ -8552,6 +8614,8 @@ function fokusKlick350(e){
   const tw=t.closest('[data-tkwahl]'); if(tw){ e.stopPropagation(); S.ui.tkWahl=tw.dataset.tkwahl; saveUi(); renderFokus(); return; }
   const uz=t.closest('[data-uztick]'); if(uz){ e.stopPropagation(); haptik(10); unterZaehlerTick(uz.dataset.uztick); return; }
   const kt=t.closest('[data-kltick]'); if(kt){ e.stopPropagation(); haptik(10); kartenListeTick(kt.dataset.kltick); return; }
+  const kg=t.closest('[data-klgruppe]'); if(kg){ e.stopPropagation(); haptik(6); klGruppeUmschalten(kg.dataset.klgruppe);
+    const blk=kg.closest('.kl-blk'); try{ if(blk){ _fokusExakt=true; blk.outerHTML=kartenBlockHtml(aktiveFokusKarte()); } else renderFokus(); }catch(err){ renderFokus(); } finally{ _fokusExakt=false; } return; }
   const kc=t.closest('[data-klcheck]'); if(kc){ e.stopPropagation(); haptik(12); kartenListeCheck(kc.dataset.klcheck); return; }
   const kp=t.closest('[data-klplay]'); if(kp){ e.stopPropagation(); haptik(10); leistePlay(kp.dataset.klplay); return; }
 }
