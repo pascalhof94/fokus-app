@@ -27,7 +27,7 @@ function bestandAufbauen(){
     hotfix131:true, hotfix133:true, seeded:true,
     migration160Log:{gross:'x'}, speicherAufraeumLog:{gross:'y'},   // sollen WEGbleiben
     letzteInteraktionTs:jetztIso(), jokerHinweis:5 };                // sollen WEGbleiben
-  S.belohnung={ stufen:{fahrzeuge:3,wohnen:2,reisen:2,mobilitaet:1,begleiter:1,soziales:1},
+  S.belohnung={ stufen:{fahrzeuge:3,wohnen:2,reisen:2,mobilitaet:1,beziehung:1,soziales:1},
                 ausgegeben:24500, kaeufe:[{kat:'fahrzeuge',stufe:2,name:'X',datum:H,preis:9000}] };
   S.tag=neuerTag(H,1); S.tag.akku=72;
 

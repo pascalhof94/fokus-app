@@ -176,7 +176,7 @@ ok('v1.10: Umrechnungszeile mit Gesamtdelta-Hinweis', dlg.indexOf('Gesamtdelta, 
 function smokeTest2(name, fn){ try{ fn(); ok('Smoke: '+name, true); }catch(e){ ok('Smoke: '+name+' — '+e, false); } }
 
 /* ══ v1.13.3 §1 ZAHLENBELEG: Shop-Reset setzt NUR den Besitz zurueck ══ */
-S.belohnung={ stufen:{fahrzeuge:12,wohnen:12,reisen:12,mobilitaet:12,begleiter:12,soziales:12},
+S.belohnung={ stufen:{fahrzeuge:12,wohnen:12,reisen:12,mobilitaet:12,beziehung:12,soziales:12},
   ausgegeben:24500, kaeufe:[{kat:'fahrzeuge',stufe:2,name:'x',datum:'2026-08-01',preis:9000}] };
 S.meta.muenzenGesamt=30000; S.meta.ausgegebenGesamt=24500;
 S.meta.rangResetOffset=0; S.meta.muenzenResetOffset=0; S.meta.ausgabenResetOffset=0;
@@ -185,7 +185,7 @@ S.tag=null; S.intraday=[];
 var kontoVor=konto(), kulisseVor=bgStufeAus(ausgabenAnzeige()), ausgVor=ausgabenAnzeige();
 shopResetJetzt();
 ok('v1.13.3 §1: alle Objektstufen auf 0',
-  ['fahrzeuge','wohnen','reisen','mobilitaet','begleiter','soziales'].every(function(k){ return S.belohnung.stufen[k]===0; }));
+  ['fahrzeuge','wohnen','reisen','mobilitaet','beziehung','soziales'].every(function(k){ return S.belohnung.stufen[k]===0; }));
 ok('v1.13.3 §1 BELEG: Konto unveraendert ('+kontoVor+')', konto()===kontoVor);
 ok('v1.13.3 §1 BELEG: muenzenGesamt 30000 · ausgegebenGesamt 24500 unveraendert',
   S.meta.muenzenGesamt===30000 && S.meta.ausgegebenGesamt===24500 && ausgabenAnzeige()===ausgVor);
@@ -209,13 +209,13 @@ ok('v1.13.3 §2: Dialog zeigt Oe-Rate und ueberschreibbares Faktor-Feld',
 /* §3: Stufentexte ersetzt, Struktur/Reqs unangetastet */
 ok('v1.13.3 §3: 12 Stufen je Kategorie erhalten',
   Object.keys(BELOHNUNG).every(function(k){ return BELOHNUNG[k].stufen.length===12; }));
-ok('v1.13.3 §3: Cross-Voraussetzungen unveraendert',
-  JSON.stringify(BELOHNUNG.fahrzeuge.stufen[6][2])==='["wohnen",4]' &&
-  JSON.stringify(BELOHNUNG.wohnen.stufen[3][2])==='["fahrzeuge",3]' &&
-  JSON.stringify(BELOHNUNG.reisen.stufen[7][2])==='["mobilitaet",6]');
-ok('v1.13.3 §3: unterste und oberste Stufe tragen die neuen Texte',
-  BELOHNUNG.mobilitaet.stufen[0][0]==='BVG-Monatskarte' &&
-  BELOHNUNG.mobilitaet.stufen[11][0]==='Erde, Wasser, Luft an einem Tag');
+// v3.6.0 §2: neue Stufenliste — Stufen sind Objekte { name, status, braucht? }; Inhalte prueft die Suite bewusst nicht wortweise
+ok('v3.6.0 §2: Voraussetzungen als Liste [Kategorie, Stufe] (Fahrzeuge 11 braucht Wohnen 9, Mobilität 8 braucht Fahrzeuge 10)',
+  JSON.stringify(BELOHNUNG.fahrzeuge.stufen[10].braucht)==='[["wohnen",9]]' &&
+  JSON.stringify(BELOHNUNG.mobilitaet.stufen[7].braucht)==='[["fahrzeuge",10]]');
+ok('v3.6.0 §2: jede Stufe traegt Namen und Status; erst Vergangenheit, dann Zukunft',
+  Object.keys(BELOHNUNG).every(function(k){ var st=BELOHNUNG[k].stufen, z=st.map(function(x){ return x.status; }).join(',');
+    return st.every(function(x){ return typeof x.name==='string' && x.name.length>0 && (x.status==='vergangen' || x.status==='zukunft'); }) && /^(vergangen,)+(zukunft,?)+$/.test(z); }));
 
 /* ══ v1.13.4: Speicher-Diagnose, Bak-Aufraeumen, Quota-Schutz ══ */
 _store={};   // sauberer Speicher fuer die Messung

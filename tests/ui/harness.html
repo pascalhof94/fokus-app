@@ -349,6 +349,21 @@ function bestandSchreiben(){
     /* „▴ Einklappen" getippt: Modul zu, Kopf am oberen Rand unter der Statusleiste */
     stat354Zu:function(fw){ fw.eval('S.ui.statOffen={matrixfaktor:true}; S.ui.analyseZeitraum="14";'); fw.setTab('statistik');
       var d=fw.document, m=d.querySelector('main'), b=d.querySelector('[data-stmzu="matrixfaktor"]'); if(m && b){ m.scrollTop+=b.getBoundingClientRect().top-500; b.click(); } },
+    /* ══ v3.6.0 · Shop neu: Übersicht (vor dem ersten Kauf), Einfärbung Stufe 1/6/12 je Kategorie ══ */
+    shop360:function(fw){ fw.eval('S.ui.malmodus=false;'); var b=fw.document.getElementById('btnFigur'); if(b) b.click(); fw.closeSheet(); namenWeg(fw); },
+    /* nach dem ersten Kauf (Soziales Stufe 1): Shop-Feld mit zuletzt gekaufter Stufe · die Kauf-Belohnung */
+    shop360Nach:function(fw){ kauf360(fw, true); fw.eval('S.ui.malmodus=false;'); var b=fw.document.getElementById('btnFigur'); if(b) b.click(); fw.closeSheet(); namenWeg(fw);
+      var m=fw.document.querySelector('main'), z=fw.document.querySelector('[data-belkat="soziales"]'); z=z && z.closest('.bw-kat'); if(m && z) m.scrollTop+=z.getBoundingClientRect().top-330; },
+    kauf360:function(fw){ kauf360(fw, false); namenWeg(fw); },
+    /* Statistik „Was heute noch geht": zu und offen */
+    stat360Zu:function(fw){ fw.eval('S.ui.statOffen={}; S.ui.analyseZeitraum="14";'); fw.setTab('statistik'); namenWeg(fw);
+      var m=fw.document.querySelector('main'), z=fw.document.querySelector('[data-stmodul="heuteGeht"]'); if(m && z) m.scrollTop+=z.getBoundingClientRect().top-330; },
+    stat360Auf:function(fw){ fw.eval('S.ui.statOffen={heuteGeht:true}; S.ui.analyseZeitraum="14";'); fw.setTab('statistik'); namenWeg(fw);
+      var m=fw.document.querySelector('main'), z=fw.document.querySelector('[data-stmodul="heuteGeht"]'); if(m && z) m.scrollTop+=z.getBoundingClientRect().top-330; },
+    farbe360:function(fw){ fw.setTab('statistik');
+      fw.eval('(function(){ var h="<div class=\\"blk\\"><div class=\\"blk-h\\">Einfärbung · Stufe 1 · 6 · 12</div>"; KAT_KEYS.forEach(function(k){ h+="<div class=\\"tr360\\"><b>"+BELOHNUNG[k].name+"</b>"+[1,6,12].map(function(n){ return "<span class=\\"tc360\\">"+objBildHtml(k,n)+"<i>Stufe "+n+"</i></span>"; }).join("")+"</div>"; });'+
+        ' var st="<style>.tr360{display:grid;grid-template-columns:78px repeat(3,1fr);gap:6px;align-items:center;padding:6px 0;border-top:1px solid #1d2026;font-size:12px}.tc360{background:radial-gradient(circle at 50% 40%,#2a3448,#15181e);border-radius:8px;aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}.tc360 img{width:82%;max-height:72%;object-fit:contain}.tc360 i{font-style:normal;font-size:9px;color:#9a9ca2;margin-top:2px}</style>";'+
+        ' el("statistikBody").innerHTML=st+h+"</div>"; objBilderLaden(); })();'); },
     /* Kaufhinweis: das Konto reicht genau für den günstigsten Kauf — Shop (Stufen-Namen unkenntlich) und Statistik „Meilensteine" */
     shop354:function(fw){ kauf354(fw); fw.eval('S.ui.malmodus=false;'); var b=fw.document.getElementById('btnFigur'); if(b) b.click(); fw.closeSheet();
       fw.document.querySelectorAll('#belohnungBody .objakt, #belohnungBody .bw-st .tx').forEach(function(e){ e.textContent='· · ·'; }); },
@@ -2447,6 +2462,14 @@ function bestandSchreiben(){
       for(var i=0;i<zu.length;i++){ var k=d.querySelector('#einstBody [data-einstab="'+zu[i].getAttribute('data-einstab')+'"][aria-expanded="false"]'); if(k) k.click(); } } }
   function topf354(fw){ fw.eval('(function(){ var A=ausmalState(); A.kulisse=1; A.stationFarbe=1; A.aktiverTopf=0; A.tank=0; A.verteilt=Math.floor(ausmalW());'+
       ' A.toepfe=[{farbe:1, punkte:9},{farbe:4, punkte:470},{farbe:null, punkte:0},{farbe:null, punkte:0},{farbe:null, punkte:0}]; saveMeta(); })();'); }
+  /* v3.6.0: ein Kauf im Shop — das Konto bekommt genug Münzen für Soziales Stufe 1, davor eine Stunde zwölf gebuchte Fokuszeit */
+  function kauf360(fw, schliessen){ fw.eval('belohnungInit(); (function(){ var p=preisFuer("soziales"); S.meta.muenzenGesamt=Number(S.meta.muenzenGesamt||0)+p+420-konto();'+
+      ' if(S.meta.shop360) S.meta.shop360.ts=new Date(Date.now()-3*3600000).toISOString(); S.intraday.push({ ts:new Date(Date.now()-60000).toISOString(), kartenId:"k-lang", domaene:"dfm", punkte:0, minuten:72, typ:"timer" }); kaufen("soziales"); })();');
+    var d=fw.document; var kf=d.getElementById('konfetti'); if(kf) kf.style.display='none';
+    var st=d.createElement('style'); st.textContent='.bel-ansicht .st{animation:none !important;opacity:1 !important;transform:none !important}.bel-ansicht .glow{animation:none !important}'; d.head.appendChild(st);
+    if(schliessen){ var o=d.getElementById('belAnsicht'); if(o) o.remove(); } }
+  /* Stufen-Namen in Bildern für den Bericht unkenntlich (die Inhalte bleiben Überraschung) */
+  function namenWeg(fw){ fw.document.querySelectorAll('#belohnungBody .objakt, #belohnungBody .bw-st .tx, .stufen-name').forEach(function(e){ e.textContent='· · ·'; }); }
   function kauf354(fw){ fw.eval('belohnungInit(); (function(){ var p=preisFuer("soziales"); S.meta.muenzenGesamt=Number(S.meta.muenzenGesamt||0)+Math.round(p*1.03)-konto(); })();'); }
   function status354(fw, min, dfm, privat){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
     fw.eval('(function(){ var k=S.karten.find(function(x){ return x.id==="k-lang"; }); S.fokus.startMs=Date.now()-Math.max(0, '+Math.round(min*60)+'-Number(k.istSek||0))*1000; })();'+(dfm!=null ? ' belIstDfm=function(){ return '+dfm+'; }; tagesPunkteDomain=function(d){ return d==="dfm" ? '+dfm+' : '+privat+'; };' : ''));

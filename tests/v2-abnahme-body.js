@@ -559,8 +559,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.5.4' && UI_VERSION==='v3.5.4' &&
-   APP_BUILD==='2026-10-02-4');
+ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.6.0' && UI_VERSION==='v3.6.0' &&
+   APP_BUILD==='2026-10-02-5');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -975,7 +975,7 @@ S.meta.muenzenGesamt=100000; S.meta.ausgegebenGesamt=0;
 renderBelohnung();
 var bh=el('belohnungBody').innerHTML;
 ok('§4 (v3.5.0 §6.6) Bereiche: Was heute noch geht · Shop · Was ich schon erklommen habe', bh.indexOf('Was heute noch geht')>=0 && bh.indexOf('Was ich schon erklommen habe')>=0 && bh.indexOf('>Shop<')>=0);
-var kach=bh.split(/<div class="kch( flach)?"/).filter(function(x,i){ return i>0 && x!==undefined && x!==' flach'; });   // v3.5.1 §5: Kacheln .kch
+var kach=bh.split(/<div class="kch[^"]*"/).slice(1);   // v3.5.1 §5: Kacheln .kch (v3.6.0: auch „kch flach hg")
 var ohneGrafik=kach.filter(function(k){ return !/<svg|class="w|lbar/.test(k); });   // KPI-Kacheln tragen den grossen Wert oder die Mini-Toepfe
 ok('§4 (v3.5.1 §5) jede Kachel trägt Wert oder Grafik ('+kach.length+' Kacheln, ohne: '+ohneGrafik.length+')', kach.length>=8 && ohneGrafik.length===0);
 ok('§4 (v3.5.0 §6.6) Szene mit Avatar und Album-Knopf statt Outfit-Leiste', /mal-av/.test(bh) && /data-album="1"/.test(bh));
@@ -994,17 +994,17 @@ ok('§4/7 Kauf: Konto sinkt, Stufe steigt', gekauft && konto()<kontoVor && num(S
 S.ui.belKatAuf={soziales:true}; renderBelohnung(); bh=el('belohnungBody').innerHTML;
 ok('§4 aufgeklappt: zwölf Stufen, gekaufte mit Text',
    (bh.match(/class="bw-st (gekauft|naechste|gesperrt)"/g)||[]).length>=12 &&
-   bh.indexOf('Die Runde geht auf dich')>=0);
+   bh.indexOf(esc(stufeName('soziales', 1)))>=0);
 /* Nachtrag v2.2.0: gekaufte + GENAU die nächste Stufe zeigen Text, alle danach „???" */
 function sichtbareTexte(h){ var r=[]; KAT_KEYS.forEach(function(k){ var n=num(S.belohnung.stufen[k]);
-  BELOHNUNG[k].stufen.forEach(function(st,i){ if(i+1>n && h.indexOf(esc(st[0]))>=0 &&
+  BELOHNUNG[k].stufen.forEach(function(st,i){ if(i+1>n && h.indexOf(esc(st.name))>=0 &&
     // Texte, die auch in einer GEKAUFTEN Stufe stehen, zählen nicht
-    !BELOHNUNG[k].stufen.slice(0,n).some(function(x){ return x[0]===st[0]; })) r.push(k+':'+(i+1)); }); }); return r; }
+    !BELOHNUNG[k].stufen.slice(0,n).some(function(x){ return x.name===st.name; })) r.push(k+':'+(i+1)); }); }); return r; }
 S.ui.belKatAuf={}; KAT_KEYS.forEach(function(k){ S.ui.belKatAuf[k]=true; }); renderBelohnung(); bh=el('belohnungBody').innerHTML;
 var sicht=sichtbareTexte(bh), erwartet=KAT_KEYS.map(function(k){ return k+':'+(num(S.belohnung.stufen[k])+1); });
 ok('Nachtrag: je Kategorie genau EINE ungekaufte Stufe mit Text — die nächste ('+sicht.join(', ')+')',
    JSON.stringify(sicht.slice().sort())===JSON.stringify(erwartet.slice().sort()));
-var sz=BELOHNUNG.soziales.stufen.map(function(st){ return esc(st[0]); });   // v3.5.0 §9.4: Startstufe 0 → nach einem Kauf ist Stufe 2 die naechste
+var sz=BELOHNUNG.soziales.stufen.map(function(st){ return esc(st.name); });   // v3.5.0 §9.4: Startstufe 0 → nach einem Kauf ist Stufe 2 die naechste
 ok('Nachtrag (v3.5.0 Startstufe 0): soziales Stufe 2 sichtbar, Stufe 3 „???"', bh.indexOf(sz[1])>=0 && bh.indexOf(sz[2])<0);
 ok('Nachtrag: nächste Stufe hat Preis/Kaufen-Knopf', bh.indexOf('data-kauf="soziales"')>=0);
 kaufen('soziales'); renderBelohnung(); bh=el('belohnungBody').innerHTML;
@@ -1015,25 +1015,18 @@ ok('Nachtrag: Kauf deckt die darauffolgende Stufe auf (soziales 4 sichtbar, 5 �
 ok('§1 Figur führt auf die Seite (Code-Pfad; Rang-Zelle seit v2.6 entfallen)', typeof zurBelohnung==='function' &&
    !/#sZRang/.test(src) && /el\('btnFigur'\)\.addEventListener\('click', zurBelohnung\)/.test(src));
 
-kopf('v2.2.0 §5 · Zwölf Stufentexte je Kategorie');
-var PREISE={fahrzeuge:[0,800,2200,4500,7500,11000,16000,22000,29000,37000,46000,56000],
-  wohnen:[0,900,2400,4800,7800,11500,16500,23000,30000,39000,48000,58000],
-  reisen:[0,1000,2800,5200,8200,12000,17000,23500,30500,39500,49000,59000],
-  mobilitaet:[0,700,2000,3800,6500,10000,14500,20000,26500,34000,43000,53000],
-  begleiter:[0,600,1800,3600,6000,9500,14000,19500,26000,33500,42000,52000],
-  soziales:[0,500,1600,3200,5500,8800,13000,18000,24500,32000,41000,51000]};
+kopf('v2.2.0 §5 · Zwölf Stufentexte je Kategorie (v3.6.0: neue Stufenliste)');
 KAT_KEYS.forEach(function(k){
-  var st=BELOHNUNG[k].stufen, texte=st.map(function(x){ return x[0]; });
+  var st=BELOHNUNG[k].stufen, texte=st.map(function(x){ return x.name; });
   ok('§5 '+k+': 12 Stufen, 12 verschiedene Texte', st.length===12 && texte.filter(function(t,i){ return texte.indexOf(t)===i; }).length===12);
-  ok('§5 '+k+': Schwellen byte-gleich', JSON.stringify(st.map(function(x){ return x[1]; }))===JSON.stringify(PREISE[k]));
+  ok('§5 '+k+': Preise steigen von Stufe zu Stufe (Stufenfaktor)', st.every(function(x,i){ return i===0 || preisVon(k, i+1)>preisVon(k, i); }));
 });
-ok('§5 drei Quer-Voraussetzungen unverändert',
-   JSON.stringify(BELOHNUNG.fahrzeuge.stufen[6][2])==='["wohnen",4]' &&
-   JSON.stringify(BELOHNUNG.wohnen.stufen[3][2])==='["fahrzeuge",3]' &&
-   JSON.stringify(BELOHNUNG.reisen.stufen[7][2])==='["mobilitaet",6]' &&
-   KAT_KEYS.reduce(function(a,k){ return a+BELOHNUNG[k].stufen.filter(function(x){ return x[2]; }).length; },0)===3);
-ok('§5 Stichproben', BELOHNUNG.wohnen.stufen[11][0]==='Berge im Rücken, Dschungel links, Meer voraus' &&
-   BELOHNUNG.mobilitaet.stufen[4][0]==='Schnuppertauchen' && BELOHNUNG.begleiter.stufen[11][0]==='Und niemand muss draußen bleiben');
+ok('§5 (v3.6.0) Reihenfolge der Kategorien und Zukunftsstufen je Kategorie (4 · 6 · 4 · 8 · 4 · 4)', KAT_KEYS.join(',')==='fahrzeuge,wohnen,reisen,mobilitaet,beziehung,soziales' &&
+   KAT_KEYS.map(function(k){ return zukunftStufen(k); }).join(',')==='4,6,4,8,4,4');
+ok('§5 (v3.6.0) zehn Voraussetzungen als Listen', KAT_KEYS.reduce(function(a,k){ return a+BELOHNUNG[k].stufen.reduce(function(b,x){ return b+(x.braucht||[]).length; },0); },0)===10 &&
+   JSON.stringify(BELOHNUNG.fahrzeuge.stufen[10].braucht)==='[["wohnen",9]]' && JSON.stringify(BELOHNUNG.soziales.stufen[10].braucht)==='[["mobilitaet",6]]');
+ok('§5 (v3.6.0) Stufennamen wortgleich zur Stufen-Datei (Prüfsumme über alle 72 Namen, ohne die Inhalte im Test zu nennen)', (function(){ var t=KAT_KEYS.map(function(k){ return BELOHNUNG[k].stufen.map(function(x){ return x.name; }).join('|'); }).join('|'), h=5381;
+  for(var i=0;i<t.length;i++) h=(((h*33)>>>0)^t.charCodeAt(i))>>>0; return h===1235523411 && t.length===1609; })());
 
 kopf('v2.3.0 §1–§3 · Suche: kompakt, nur Fälliges, Ungeplantes ans Ende');
 frisch();
