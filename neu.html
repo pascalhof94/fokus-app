@@ -3831,6 +3831,8 @@ function ladeAlles(){
   // §9.4 (v3.5.0): einmaliger Reset beim ersten Start — Muenzen/Konto, Ausgaben, Shop-Stufen, Kulisse und Ausmal-Stand auf null;
   // Rang, rangBest, Outfit-Historie, Historie, Punkte, Karten und Statistik bleiben
   if(!S.meta.reset35){ try{ reset35Durchfuehren(); }catch(e){ S.meta.reset35={ ts:jetztIso(), fehler:String(e&&e.message||e) }; saveMeta(); } }
+  // §2 (v3.6.0): Shop neu — einmalige Übernahme (Stufen 0, Münzen-Gutschrift, Sicherung shop360_bak)
+  if(!S.meta.shop360){ try{ shop360Durchfuehren(); }catch(e){ S.meta.shop360={ ts:jetztIso(), fehler:String(e&&e.message||e) }; saveMeta(); } }
   try{ feldkarten353Start(); }catch(e){}   // §5 (v3.5.3): Ausmal-Stand auf neue Feldkarten uebernehmen (ruht, solange FELDKARTEN_353 = false)
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
@@ -13577,7 +13579,7 @@ function syncImport(text, opt){
     setz('settings', wh.settings ? settingsMerge(wh.settings) : undefined);
     setz('stapel', wh.stapel); setz('ordner', wh.ordner);
     setz('gruppen', wh.kartenGruppen); setz('vorlagen', wh.vorlagen);
-    setz('belohnung', wh.belohnung); setz('historie', wh.historie);
+    setz('belohnung', belohnungAlias(wh.belohnung)); setz('historie', wh.historie);   // §7 (v3.6.0): „begleiter" als Alias fuer „beziehung"
     setz('intraday', wh.intraday); setz('routinenGruppen', wh.routinenGruppen);
     if(wh.tag!==undefined){ S.tag=wh.tag; whLog.tag=wh.tag?1:0; }
     if(wh.unteraufgaben!==undefined && Array.isArray(wh.unteraufgaben)){
@@ -14272,22 +14274,49 @@ function backupHtml(){
 /* ══════════════════════════════════════════════════════════════════════
    14b · D7 Belohnung — Statistiken-Basisset (§9) + Avatar-Small-Fix (§7 D7)
    ══════════════════════════════════════════════════════════════════════ */
-/* ── Belohnung/Shop (§7 D7) — voller Port aus v0.38. Kategorien + Stufen
-   sind base64-kodiert; der Inhalt der nächsten Stufe bleibt „???" bis zum
-   Freischalten (Überraschung erst live in der App). ── */
-const BELOHNUNG_B64 = 'eyJmYWhyemV1Z2UiOnsiaWNvbiI6IvCfmpciLCJuYW1lIjoiRmFocnpldWdlIiwic3R1ZmVuIjpbWyJGYWhycmFkLCBmcmlzY2ggZ2XDtmx0IiwwXSxbIlJlbm5yYWQsIGRhcyBkaXIgZ2Vow7ZydCIsODAwXSxbIkVpbiBBdXRvLCBkYXMgaW1tZXIgYW5zcHJpbmd0IiwyMjAwXSxbIkVpbiBBdXRvLCBpbiBkYXMgbWFuIGdlcm4gZWluc3RlaWd0Iiw0NTAwXSxbIkRhcyBlcnN0ZSBDb3Vww6kiLDc1MDBdLFsiQk1XIE00IiwxMTAwMF0sWyJNNCBpbiBkZXIgRmFyYmUsIGRpZSBkdSB3aWxsc3QiLDE2MDAwLFsid29obmVuIiw0XV0sWyJDTEEgZGFuZWJlbiwgZsO8ciBkaWUgYW5kZXJlbiBUYWdlIiwyMjAwMF0sWyJFaWdlbmUgR2FyYWdlIiwyOTAwMF0sWyJDb3Vww6ktR2FyYWdlIG1pdCBIZWJlYsO8aG5lIiwzNzAwMF0sWyJLw7xzdGVuc3RyYcOfZSwgZGVpbiBXYWdlbiwgZWluIFdvY2hlbmVuZGUiLDQ2MDAwXSxbIkRpZSBlaW5lIEvDvHN0ZW5zdHJhw59lLCBrZWluIFRlcm1pbiwga2VpbiBSw7xja3dlZyIsNTYwMDBdXX0sIndvaG5lbiI6eyJpY29uIjoi8J+Pme+4jyIsIm5hbWUiOiJEYWNodGVycmFzc2UgLyBXb2huZW4iLCJzdHVmZW4iOltbIkJhbGtvbnN0dWhsIG1pdCBCbGljayBhdWYgZGllIFN0cmHDn2UiLDBdLFsiQmFsa29uLCBhdWYgZGVtIHp3ZWkgTGV1dGUgc2l0emVuIGvDtm5uZW4iLDkwMF0sWyJEYWNodGVycmFzc2UgbWl0IEJsaWNrIMO8YmVyIGRpZSBEw6RjaGVyIiwyNDAwXSxbIkRhY2h0ZXJyYXNzZSBtaXQgTW9yZ2Vuc29ubmUiLDQ4MDAsWyJmYWhyemV1Z2UiLDNdXSxbIkRhY2h0ZXJyYXNzZSBhbSBXYXNzZXIiLDc4MDBdLFsiV2Fzc2VyYmxpY2ssIGRlciBzaWNoIGFiZW5kcyBmw6RyYnQiLDExNTAwXSxbIkRhY2h0ZXJyYXNzZSBtaXQgV2hpcmxwb29sIiwxNjUwMF0sWyJXaGlybHBvb2wsIGF1cyBkZW0gbWFuIGRpZSBTa3lsaW5lIHNpZWh0IiwyMzAwMF0sWyJQZW50aG91c2Ugw7xiZXIgZWluZW0gRmx1c3MiLDMwMDAwXSxbIlBlbnRob3VzZSwgV2hpcmxwb29sIGF1ZiBkZXIgS2FudGUiLDM5MDAwXSxbIkhhdXMgYW0gSGFuZyBtaXQgTWVlcmJsaWNrIiw0ODAwMF0sWyJCZXJnZSBpbSBSw7xja2VuLCBEc2NodW5nZWwgbGlua3MsIE1lZXIgdm9yYXVzIiw1ODAwMF1dfSwicmVpc2VuIjp7Imljb24iOiLwn4yNIiwibmFtZSI6IkxhbmRzY2hhZnRlbiAvIFJlaXNlbiIsInN0dWZlbiI6W1siV29jaGVuZW5kZSBpbiBFdXJvcGEiLDBdLFsiVmVybMOkbmdlcnRlcyBXb2NoZW5lbmRlLCBzcG9udGFuIGdlYnVjaHQiLDEwMDBdLFsiWndlaSBXb2NoZW4gTWl0dGVsbWVlciIsMjgwMF0sWyJNaXR0ZWxtZWVyLCBhYmVyIGRpZSBJbnNlbCBvaG5lIEZsdWdoYWZlbiIsNTIwMF0sWyJUcm9wZW4genVtIGVyc3RlbiBNYWwiLDgyMDBdLFsiVHJvcGVuLCB3byBCZXJnZSBpbnMgTWVlciBmYWxsZW4iLDEyMDAwXSxbIkVpbiBMYW5kIHBybyBRdWFydGFsIiwxNzAwMF0sWyJFaW4gTGFuZCBwcm8gUXVhcnRhbCwga2VpbnMgendlaW1hbCIsMjM1MDAsWyJtb2JpbGl0YWV0Iiw2XV0sWyJTZWdlbHTDtnJuIGVudGxhbmcgZGVyIEvDvHN0ZSIsMzA1MDBdLFsiU2VnZWx0w7ZybiwgS8O8c3RlIGltIFLDvGNrZW4iLDM5NTAwXSxbIkRyZWkgTW9uYXRlIHVudGVyd2VncyIsNDkwMDBdLFsiU2VjaHMgTW9uYXRlIHVudGVyd2VncywgUsO8Y2tmbHVnIG9mZmVuIiw1OTAwMF1dfSwibW9iaWxpdGFldCI6eyJpY29uIjoi4pyI77iPIiwibmFtZSI6Ik1vYmlsaXTDpHQgKGFuZGVyZSBGb3JtZW4pIiwic3R1ZmVuIjpbWyJCVkctTW9uYXRza2FydGUiLDBdLFsiRmFocnJhZCwgZGFzIGplZGUgU3RyZWNrZSBzY2hhZmZ0Iiw3MDBdLFsiSmV0c2tpIGbDvHIgZWluZW4gVGFnIiwyMDAwXSxbIkpldHNraSwgd2FubiBkdSB3aWxsc3QiLDM4MDBdLFsiU2NobnVwcGVydGF1Y2hlbiIsNjUwMF0sWyJUYXVjaHNjaGVpbiIsMTAwMDBdLFsiRXJzdGUgRmx1Z3N0dW5kZSIsMTQ1MDBdLFsiRmx1Z3N0dW5kZW4sIGJpcyBlcyBzaXR6dCIsMjAwMDBdLFsiSHVic2NocmF1YmVycnVuZGZsdWciLDI2NTAwXSxbIkh1YnNjaHJhdWJlciDDvGJlciBkZXIgS8O8c3RlIiwzNDAwMF0sWyJad2VpIEVsZW1lbnRlIGFuIGVpbmVtIFRhZyIsNDMwMDBdLFsiRXJkZSwgV2Fzc2VyLCBMdWZ0IGFuIGVpbmVtIFRhZyIsNTMwMDBdXX0sImJlZ2xlaXRlciI6eyJpY29uIjoi8J+QviIsIm5hbWUiOiJCZWdsZWl0ZXIiLCJzdHVmZW4iOltbIk5ldWVyIEtyYXR6YmF1bSIsMF0sWyJEYXMgZ3V0ZSBGdXR0ZXIsIGRhdWVyaGFmdCIsNjAwXSxbIkZlbnN0ZXJwbGF0eiBpbiBkZXIgU29ubmUiLDE4MDBdLFsiS2F0emVuIG1pdCBHYXJ0ZW4iLDM2MDBdLFsiS2F0emVua2xhcHBlIG5hY2ggZHJhdcOfZW4iLDYwMDBdLFsiSHVuZCBkYXp1Iiw5NTAwXSxbIkh1bmQsIGRlciBtaXRmw6RocnQiLDE0MDAwXSxbIldvaG51bmcsIGluIGRlciBkcmVpIFRpZXJlIFBsYXR6IGhhYmVuIiwxOTUwMF0sWyJBbGxlIHp1c2FtbWVuIGF1ZiBkZXIgRGFjaHRlcnJhc3NlIiwyNjAwMF0sWyJUaWVyYXJ6dCwgb2huZSBhdWZzIEdlbGQgenUgc2NoYXVlbiIsMzM1MDBdLFsiRWluIEhhdXMsIGRhcyBuYWNoIFJ1ZGVsIGtsaW5ndCIsNDIwMDBdLFsiVW5kIG5pZW1hbmQgbXVzcyBkcmF1w59lbiBibGVpYmVuIiw1MjAwMF1dfSwic296aWFsZXMiOnsiaWNvbiI6IvCfkaUiLCJuYW1lIjoiRnJldW5kZSAvIFNvemlhbGVzIiwic3R1ZmVuIjpbWyJGcmV1bmRlIGF1ZiBlaW5lbiBLYWZmZWUiLDBdLFsiRGllIFJ1bmRlIGdlaHQgYXVmIGRpY2giLDUwMF0sWyJHcmlsbGFiZW5kIGJlaSBkaXIiLDE2MDBdLFsiR3JpbGxhYmVuZCwgZGVyIGJpcyBuYWNodHMgZ2VodCIsMzIwMF0sWyJSb2FkdHJpcCBtaXQgdmllciBMZXV0ZW4iLDU1MDBdLFsiUm9hZHRyaXAgb2huZSBSw7xja2ZhaHJ0ZGF0dW0iLDg4MDBdLFsiQWxsZSBlaW5sYWRlbiwgZHUgemFobHN0IiwxMzAwMF0sWyJBbGxlIGVpbmxhZGVuLCBrZWluZXIgZnJhZ3QgbmFjaCIsMTgwMDBdLFsiV29jaGVuZW5kaGF1cyBmw7xyIGRpZSBHcnVwcGUiLDI0NTAwXSxbIkVpbiBIYXVzIHZvbGxlciBGcmV1bmRlLCBlaW4gV29jaGVuZW5kZSBsYW5nIiwzMjAwMF0sWyJEZXIgT3J0LCBhbiBkZW4gYWxsZSBrb21tZW4iLDQxMDAwXSxbIkRlciBPcnQsIGFuIGRlbSBhbGxlIHdpZWRlciB6dXNhbW1lbmtvbW1lbiIsNTEwMDBdXX19';
+/* ── Belohnung/Shop (§7 D7) — Kategorien + Stufen sind base64-kodiert (Überraschung erst live in der App).
+   §2 (v3.6.0): sechs Kategorien · Fahrzeuge · Wohnen · Reisen · Mobilität · Beziehung · Soziales · je 12 Stufen aus der
+   Stufen-Datei 3.6.0 (einzige Quelle, wortgleich): { name, icon, farbton, stufen:[{ name, status:'vergangen'|'zukunft',
+   braucht?:[[kategorie, stufe], …] }] }. „vergangen" = im echten Leben schon erreicht (Rückblick), „zukunft" = Ziel.
+   S.belohnung.stufen[kat] = Anzahl der GEKAUFTEN Stufen (0 … 12); die nächste Stufe ist gekauft + 1. ── */
+const BELOHNUNG_B64 = 'eyJmYWhyemV1Z2UiOnsibmFtZSI6IkZhaHJ6ZXVnZSIsImljb24iOiLwn5qXIiwiZmFyYnRvbiI6MCwic3R1ZmVuIjpbeyJuYW1lIjoiNTAtY2NtLVJvbGxlciIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IlJvbGxlciBnZXR1bnQiLCJzdGF0dXMiOiJ2ZXJnYW5nZW4ifSx7Im5hbWUiOiJGw7xocmVyc2NoZWluIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiRmlhdCBQdW50bywgZGFzIGVyc3RlIGVpZ2VuZSBBdXRvIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiRS1CaWtlIGbDvHIgZGllIFN0YWR0Iiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiUm9hZHRyaXAgaW0gTWlldHdhZ2VuIGltIEF1c2xhbmQiLCJzdGF0dXMiOiJ2ZXJnYW5nZW4ifSx7Im5hbWUiOiJSb2xsZXIgYXVmIGRlciBGZXJucmVpc2UiLCJzdGF0dXMiOiJ2ZXJnYW5nZW4ifSx7Im5hbWUiOiJNWC01IGdlbWlldGV0LCBvZmZlbiBhbiBkZXIgS8O8c3RlIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiR2VicmF1Y2h0ZXIgM2VyIFRvdXJpbmciLCJzdGF0dXMiOiJ6dWt1bmZ0In0seyJuYW1lIjoiQ291cMOpOiA0ZXIgb2RlciBDLUtsYXNzZSIsInN0YXR1cyI6Inp1a3VuZnQifSx7Im5hbWUiOiJTcG9ydC1Db3Vww6k6IE00IG9kZXIgQzYzIiwic3RhdHVzIjoienVrdW5mdCIsImJyYXVjaHQiOltbIndvaG5lbiIsOV1dfSx7Im5hbWUiOiJTcGHDn3dhZ2VuIGFscyBDYWJyaW86IFo0LCBQb3JzY2hlLCBXaWVzbWFubiBvZGVyIEFscGluYSIsInN0YXR1cyI6Inp1a3VuZnQiLCJicmF1Y2h0IjpbWyJ3b2huZW4iLDExXV19XX0sIndvaG5lbiI6eyJuYW1lIjoiV29obmVuIiwiaWNvbiI6IvCfj6AiLCJmYXJidG9uIjoyNSwic3R1ZmVuIjpbeyJuYW1lIjoiRWx0ZXJuaGF1cyIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IldHIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiS2xlaW5lIEVpbnplbHdvaG51bmciLCJzdGF0dXMiOiJ2ZXJnYW5nZW4ifSx7Im5hbWUiOiJXb2hudW5nIHp1IHp3ZWl0Iiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiS2xlaW5lIGdlbWVpbnNhbWUgV29obnVuZyIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IkxvdHRpIHVuZCBLYWxsZSB6aWVoZW4gZWluIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiQmFsa29uIiwic3RhdHVzIjoienVrdW5mdCJ9LHsibmFtZSI6IkJhbGtvbiBtaXQgV2Fzc2VyYmxpY2siLCJzdGF0dXMiOiJ6dWt1bmZ0In0seyJuYW1lIjoiRGFjaHRlcnJhc3NlIiwic3RhdHVzIjoienVrdW5mdCJ9LHsibmFtZSI6Ikdyw7bDn2VyZSBXb2hudW5nIGbDvHJzIGVyc3RlIEtpbmQiLCJzdGF0dXMiOiJ6dWt1bmZ0IiwiYnJhdWNodCI6W1siYmV6aWVodW5nIiw5XV19LHsibmFtZSI6IkltIEdyw7xuZW4gbWl0IEdhcnRlbiIsInN0YXR1cyI6Inp1a3VuZnQiLCJicmF1Y2h0IjpbWyJiZXppZWh1bmciLDEwXV19LHsibmFtZSI6IkRhY2h0ZXJyYXNzZSBtaXQgV2hpcmxwb29sIHVuZCBXYXNzZXJibGljayIsInN0YXR1cyI6Inp1a3VuZnQifV19LCJyZWlzZW4iOnsibmFtZSI6IlJlaXNlbiIsImljb24iOiLwn4yNIiwiZmFyYnRvbiI6MTgwLCJzdHVmZW4iOlt7Im5hbWUiOiJLdXJ6dHJpcHMgaW5zIEdyw7xuZSIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IldvY2hlbmVuZGUgaW4gRXVyb3BhIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiTWl0dGVsbWVlciIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IkVyc3RlIEZlcm5yZWlzZSIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IlRyb3BlbiIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IlJ1bmRyZWlzZSB1bmQgSW5zZWxob3BwaW5nIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiU2VnZWx0w7ZybiIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6Ik1vbmF0ZSB1bnRlcndlZ3MiLCJzdGF0dXMiOiJ2ZXJnYW5nZW4ifSx7Im5hbWUiOiJCdXNpbmVzcyBDbGFzcyB1bmQgVmlsbGEgbWl0IFBvb2wiLCJzdGF0dXMiOiJ6dWt1bmZ0In0seyJuYW1lIjoiRXJzdGUgRmVybnJlaXNlIG1pdCBLaW5kIiwic3RhdHVzIjoienVrdW5mdCIsImJyYXVjaHQiOltbImJlemllaHVuZyIsMTBdXX0seyJuYW1lIjoiRXhwZWRpdGlvbiwgenVtIEJlaXNwaWVsIEFudGFya3RpcyIsInN0YXR1cyI6Inp1a3VuZnQifSx7Im5hbWUiOiJGZXJpZW5oYXVzIGFtIE1lZXIsIHZvbiBkb3J0IG1vbmF0ZWxhbmcgYXJiZWl0ZW4iLCJzdGF0dXMiOiJ6dWt1bmZ0IiwiYnJhdWNodCI6W1sid29obmVuIiwxMV1dfV19LCJtb2JpbGl0YWV0Ijp7Im5hbWUiOiJNb2JpbGl0w6R0IiwiaWNvbiI6IuKbtSIsImZhcmJ0b24iOjIwNSwic3R1ZmVuIjpbeyJuYW1lIjoiQm9vdHNmw7xocmVyc2NoZWluIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiRXJzdGVzIEJvb3QgZ2VjaGFydGVydCIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IkNoYXJ0ZXIgYXVmIGRlciBGZXJucmVpc2UiLCJzdGF0dXMiOiJ2ZXJnYW5nZW4ifSx7Im5hbWUiOiJFcnN0ZSBGbHVnc3R1bmRlIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiR3Jvw59lcyBTcG9ydGJvb3QgY2hhcnRlcm4iLCJzdGF0dXMiOiJ6dWt1bmZ0In0seyJuYW1lIjoiWWFjaHQgw7xiZXIgMTIgbSBjaGFydGVybiIsInN0YXR1cyI6Inp1a3VuZnQifSx7Im5hbWUiOiJIdWJzY2hyYXViZXIgw7xiZXIgZGVyIEvDvHN0ZSIsInN0YXR1cyI6Inp1a3VuZnQifSx7Im5hbWUiOiJFaWdlbmVzIGdlYnJhdWNodGVzIEJvb3QiLCJzdGF0dXMiOiJ6dWt1bmZ0IiwiYnJhdWNodCI6W1siZmFocnpldWdlIiwxMF1dfSx7Im5hbWUiOiJFaWdlbmVyIExpZWdlcGxhdHoiLCJzdGF0dXMiOiJ6dWt1bmZ0In0seyJuYW1lIjoiR3LDtsOfZXJlcyBlaWdlbmVzIEJvb3QiLCJzdGF0dXMiOiJ6dWt1bmZ0In0seyJuYW1lIjoiQm9vdCBhbSBGZXJpZW5oYXVzIiwic3RhdHVzIjoienVrdW5mdCIsImJyYXVjaHQiOltbInJlaXNlbiIsMTJdXX0seyJuYW1lIjoiRXJkZSwgV2Fzc2VyIHVuZCBMdWZ0IGFuIGVpbmVtIFRhZyIsInN0YXR1cyI6Inp1a3VuZnQifV19LCJiZXppZWh1bmciOnsibmFtZSI6IkJlemllaHVuZyIsImljb24iOiLwn5KeIiwiZmFyYnRvbiI6MzQwLCJzdHVmZW4iOlt7Im5hbWUiOiJLZW5uZW5sZXJuZW4iLCJzdGF0dXMiOiJ2ZXJnYW5nZW4ifSx7Im5hbWUiOiJFcnN0ZXMgRGF0ZSIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6Ilp1c2FtbWVuIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiRXJzdGVyIGdlbWVpbnNhbWVyIFVybGF1YiIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6Ilp1c2FtbWVuZ2V6b2dlbiIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IkxvdHRpIHVuZCBLYWxsZSIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IlZlcmxvYnVuZyIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IkhvY2h6ZWl0Iiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiU2Nod2FuZ2Vyc2NoYWZ0Iiwic3RhdHVzIjoienVrdW5mdCJ9LHsibmFtZSI6IkVyc3RlcyBLaW5kIiwic3RhdHVzIjoienVrdW5mdCJ9LHsibmFtZSI6IkVyc3RlciBGYW1pbGllbnVybGF1YiIsInN0YXR1cyI6Inp1a3VuZnQifSx7Im5hbWUiOiJad2VpdGVzIEtpbmQsIHVuZCBkZXIgSHVuZCB6aWVodCBlaW4iLCJzdGF0dXMiOiJ6dWt1bmZ0IiwiYnJhdWNodCI6W1sid29obmVuIiwxMV1dfV19LCJzb3ppYWxlcyI6eyJuYW1lIjoiU296aWFsZXMiLCJpY29uIjoi8J+lgiIsImZhcmJ0b24iOjM2LCJzdHVmZW4iOlt7Im5hbWUiOiJGcmV1bmRlIGF1ZiBlaW5lbiBLYWZmZWUiLCJzdGF0dXMiOiJ2ZXJnYW5nZW4ifSx7Im5hbWUiOiJEYXRlIE5pZ2h0Iiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiR3JpbGxhYmVuZCBiZWkgdW5zIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiUm9hZHRyaXAgenUgdmllcnQiLCJzdGF0dXMiOiJ2ZXJnYW5nZW4ifSx7Im5hbWUiOiJKYWhyZXN0YWcgbWl0IMOcYmVycmFzY2h1bmciLCJzdGF0dXMiOiJ2ZXJnYW5nZW4ifSx7Im5hbWUiOiJVcmxhdWIgbWl0IEZyZXVuZGVuIiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiVW5zZXIgUml0dWFsIHp1IHp3ZWl0Iiwic3RhdHVzIjoidmVyZ2FuZ2VuIn0seyJuYW1lIjoiRmVpZXIsIGRpZSB3aXIgYXVzcmljaHRlbiIsInN0YXR1cyI6InZlcmdhbmdlbiJ9LHsibmFtZSI6IkVpbiBEYXRlLCBhbiBkYXMgaWhyIGV1Y2ggZXdpZyBlcmlubmVydCIsInN0YXR1cyI6Inp1a3VuZnQifSx7Im5hbWUiOiJGcmV1bmRlLVRyaXAgaW4gZGVyIFZpbGxhIiwic3RhdHVzIjoienVrdW5mdCJ9LHsibmFtZSI6IkJvb3RzdHJpcCBtaXQgRnJldW5kZW4iLCJzdGF0dXMiOiJ6dWt1bmZ0IiwiYnJhdWNodCI6W1sibW9iaWxpdGFldCIsNl1dfSx7Im5hbWUiOiJJY2ggbGFkZSBhbGxlIGVpbiwga2VpbmVyIG11c3MgZnJhZ2VuIiwic3RhdHVzIjoienVrdW5mdCJ9XX19';
 const BELOHNUNG = JSON.parse(decodeURIComponent(escape(atob(BELOHNUNG_B64))));
 const KAT_KEYS = Object.keys(BELOHNUNG);
-const KAT_PREISFAKTOR = { fahrzeuge:1.3, wohnen:1.2, reisen:1.1, mobilitaet:1.0, begleiter:0.9, soziales:0.8 };
+const KAT_PREISFAKTOR = { fahrzeuge:1.3, wohnen:1.2, reisen:1.1, mobilitaet:1.0, beziehung:0.9, soziales:0.8 };
+function stufeVon(kat, n){ const k=BELOHNUNG[kat]; return (k && k.stufen[n-1]) || null; }                 // n = 1 … 12
+function stufeName(kat, n){ const st=stufeVon(kat, n); return st ? st.name : ''; }
+function stufeZukunft(kat, n){ const st=stufeVon(kat, n); return !!(st && st.status==='zukunft'); }
+function stufenGekauft(kat){ return Math.max(0, Math.min(12, num(S.belohnung && S.belohnung.stufen && S.belohnung.stufen[kat]))); }
+/* §7 (v3.6.0): „Begleiter" heisst „Beziehung" — Import und Altbestand nehmen den alten Schlüssel als Alias an */
+function belohnungAlias(b){
+  if(!b || typeof b!=='object') return b;
+  if(b.stufen && b.stufen.begleiter!=null){ if(b.stufen.beziehung==null) b.stufen.beziehung=b.stufen.begleiter; delete b.stufen.begleiter; }
+  if(Array.isArray(b.kaeufe)) b.kaeufe.forEach(x=>{ if(x && x.kat==='begleiter') x.kat='beziehung'; });
+  return b;
+}
+/* §2 (v3.6.0) · Übernahme beim ersten Start: alle Kategorien starten bei 0 gekauften Stufen (neue Stufenliste), die bisher
+   ausgegebenen Münzen werden vollständig gutgeschrieben (der Ausgaben-Zähler der Anzeige geht auf 0), die alte Kaufliste bleibt
+   nur in der Sicherung shop360_bak. Rang, Outfit und Farbe/Kulissen bleiben unberührt. Dazu die Tempo-Basis der Preise (§3). */
+function shop360Durchfuehren(){
+  const ts=jetztIso();
+  if(!S.belohnung) S.belohnung={ stufen:{}, ausgegeben:0, kaeufe:[] };
+  const alt=JSON.parse(JSON.stringify(S.belohnung)), gutschrift=ausgabenAnzeige();
+  try{ DB.set('shop360_bak', { ts, belohnung:alt, meta:{ ausgegebenGesamt:num(S.meta.ausgegebenGesamt), ausgabenResetOffset:num(S.meta.ausgabenResetOffset) } }); }catch(e){}
+  S.belohnung.stufen={}; KAT_KEYS.forEach(k=>{ S.belohnung.stufen[k]=0; });
+  S.belohnung.kaeufe=[]; S.belohnung.ausgegeben=0;
+  S.meta.ausgabenResetOffset=num(S.meta.ausgegebenGesamt);   // Ausgaben-Zähler um die bisherigen Käufe senken → Münzen gutgeschrieben
+  S.belohnung.tempoBasis=oePStd7();
+  S.meta.shop360={ ts, gutschrift:Math.round(gutschrift), kaeufeAlt:(alt.kaeufe||[]).length };
+  saveBelohnung(); saveMeta();
+}
 function belohnungInit(){
   if(!S.belohnung){ S.belohnung={ stufen:{}, ausgegeben:0, kaeufe:[] }; }
+  belohnungAlias(S.belohnung);
   if(S.belohnung.ausgegeben==null) S.belohnung.ausgegeben=0;
   if(!S.belohnung.kaeufe) S.belohnung.kaeufe=[];
   S.belohnung.stufen = S.belohnung.stufen || {};
-  // Stufe 1 (Schwelle 0) ist bei einer frischen Kategorie offen. v1.5.1: NUR noch
-  // bei fehlendem Wert setzen — nach dem Panorama-Reset steht hier bewusst 0, und
-  // ein `!0`-Test hätte das sofort wieder auf 1 hochgezogen (Punkt 3 der Vorgabe).
-  KAT_KEYS.forEach(k=>{ if(S.belohnung.stufen[k]==null) S.belohnung.stufen[k]=1; });
+  // §2 (v3.6.0): jede Kategorie beginnt bei 0 gekauften Stufen (NUR bei fehlendem Wert setzen)
+  KAT_KEYS.forEach(k=>{ if(S.belohnung.stufen[k]==null) S.belohnung.stufen[k]=0; });
   saveBelohnung();
 }
 /* Punkte-Konto = Wohlstand live − bereits im Shop ausgegebene Punkte. */
@@ -14311,21 +14340,22 @@ function preisFuer(kat){
 }
 /* Cross-Kategorie-Voraussetzung: null = frei, sonst Hinweistext. */
 function kaufSperre(kat){
-  const naechste = BELOHNUNG[kat].stufen[S.belohnung.stufen[kat]];
+  const naechste = stufeVon(kat, stufenGekauft(kat)+1);
   if(!naechste) return 'komplett';
-  const req=naechste[2];
-  if(req && (S.belohnung.stufen[req[0]]||0) < req[1]) return 'braucht '+BELOHNUNG[req[0]].icon+' '+BELOHNUNG[req[0]].name+' Stufe '+req[1];
+  // §4 (v3.6.0): Voraussetzungen = Liste [Kategorie, Stufe]; alle muessen erfuellt sein
+  const fehlt=(naechste.braucht||[]).filter(r=>BELOHNUNG[r[0]] && stufenGekauft(r[0])<num(r[1]));
+  if(fehlt.length) return 'braucht '+fehlt.map(r=>BELOHNUNG[r[0]].name+' Stufe '+r[1]).join(' und ');
   return null;
 }
 function kaufen(kat){
-  const idx=S.belohnung.stufen[kat];
-  const stufe=BELOHNUNG[kat].stufen[idx];
+  const idx=stufenGekauft(kat);
+  const stufe=stufeVon(kat, idx+1);
   if(!stufe || kaufSperre(kat)) return false;
   const preis=preisFuer(kat);
   if(konto()<preis){ toast('Noch '+Math.round(preis-konto())+' P bis zum Freischalten'); return false; }
   S.belohnung.stufen[kat]=idx+1;
   S.belohnung.ausgegeben=(S.belohnung.ausgegeben||0)+preis;   // Altfeld läuft mit (Backup/Kompatibilität)
-  S.belohnung.kaeufe.push({ kat, stufe:idx+1, name:stufe[0], datum:heuteApp(), preis });
+  S.belohnung.kaeufe.push({ kat, stufe:idx+1, name:stufe.name, datum:heuteApp(), preis, ts:jetztIso() });   // §7 (v3.6.0): ts additiv
   // §2.2 (v1.9.0): Kauf kostet Konto, nicht Biografie — er ERHÖHT sie.
   S.meta.ausgegebenGesamt=num(S.meta.ausgegebenGesamt)+preis;
   // §4.3 (v1.13.0): Ein Kauf hebt den UPGRADE-FAKTOR (+2 %) — die Belohnung
@@ -14338,7 +14368,7 @@ function kaufen(kat){
 
   saveMeta();
   saveBelohnung(); konfetti(); haptik(25);
-  toast('🎉 Freigeschaltet: '+BELOHNUNG[kat].icon+' '+stufe[0]);
+  toast('🎉 Freigeschaltet: '+BELOHNUNG[kat].icon+' '+stufe.name);
   // §6.1 (v3.5.0): die Kulisse haengt nicht mehr an ausgegebenen Muenzen (Wohlstand → Farbe und Kulisse)
   renderBelohnung();
   momentRangCheck();
@@ -14367,7 +14397,7 @@ const VITAL_LABEL = { voll:'Vital', 'vital-plus':'Übervoll ⚡', 'vital-1':'Wac
 /* §4 (v1.9.0): bgFuerLevel() ist durch bgFuerAusgaben() ersetzt — die Reise
    hängt jetzt an den ausgegebenen Münzen, nicht am Level. */
 /* B/Layer 1: Wohlstands-Leitern → Bildzonen des Dioramas. */
-const KAT_ZONE = { wohnen:'home', fahrzeuge:'car', reisen:'boat', mobilitaet:'air', begleiter:'pet', soziales:'friends' };
+const KAT_ZONE = { fahrzeuge:'car', wohnen:'home', reisen:'air', mobilitaet:'boat', beziehung:'pet', soziales:'friends' };   // §5 (v3.6.0): Rückfall-Bilder, solange obj-{kat}-{n}.png fehlt
 /* Bildstufe 1–5 einer Kategorie; 0 = nichts freigeschaltet → Objekt entfällt.
    S.belohnung.stufen[kat] zählt die offenen Stufen und startet bei 1
    („Stufe 1 = Schwelle 0" ist immer offen) — erst ab 2 ist wirklich etwas
@@ -14388,28 +14418,6 @@ function objBildStufe(kat){
 function avatarBild(lvl, vital){
   return avatarAssets(lvl).bild;
 }
-/* Shop-Karten: aktuelle (freigeschaltete) Stufe sichtbar, nächste „???".
-   UI-C (v1.5.2): je Kategorie das aktuelle Wohlstands-Objektbild daneben
-   (obj-<zone><bildStufe>.png, Mapping/objBildStufe aus v1.5.0 unverändert);
-   Stufe 0 → kein Bild. Ersetzt die Objekte in der großen Panorama-Szene. */
-function shopHtml(){
-  const k=konto();
-  return KAT_KEYS.map(kk=>{
-    const kat=BELOHNUNG[kk], offen=S.belohnung.stufen[kk]||1, aktuell=kat.stufen[offen-1];
-    const sperre=kaufSperre(kk), preis=preisFuer(kk); let unten;
-    if(sperre==='komplett'){ unten='<div class="knext">🏁 Alles freigeschaltet!</div>'; }
-    else if(sperre){ unten='<div class="knext">🔒 ??? · '+esc(sperre)+'</div><div class="rankbar"><i style="width:0"></i></div>'; }
-    else if(k>=preis){ unten='<button class="kaufbtn" data-kauf="'+kk+'">🎁 ??? für '+Math.round(preis)+' P freischalten</button>'; }
-    else { unten='<div class="knext">??? · noch '+Math.round(preis-k)+' P (Preis '+Math.round(preis)+' P)</div><div class="rankbar"><i style="width:'+Math.min(100,k/preis*100).toFixed(0)+'%"></i></div>'; }
-    // UI-C: aktuelles Objektbild der Kategorie (wechselt mit der Bildstufe)
-    const zone=KAT_ZONE[kk], bs=objBildStufe(kk);
-    const bild=(zone&&bs) ? '<img class="kobj" src="img/obj-'+zone+bs+'.png" alt="" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">' : '';
-    return '<div class="katcard'+(bild?' mitbild':'')+'">'+bild+'<div class="katinfo">'+
-      '<div class="kzeile"><span>'+kat.icon+'</span><span class="kname">'+esc(kat.name)+'</span><span class="kstufe">Stufe '+offen+'/'+kat.stufen.length+'</span></div>'+
-      '<div class="kaktuell">'+esc(aktuell[0])+'</div>'+unten+'</div></div>';
-  }).join('');
-}
-
 function fmtMin(sek){ const m=Math.round(sek/60); return m>=60 ? (Math.floor(m/60)+'h'+String(m%60).padStart(2,'0')) : m+'′'; }
 /* ══════════════════════════════════════════════════════════════════════
    U4 (v1.4.0) · Avatar-Level-System — 100 Level à 10.000 Lifetime-Punkte.
@@ -15913,7 +15921,7 @@ function belShopHtml(){
       if(sperre) rechts='<span class="bw-sperre">🔒 '+esc(sperre)+'</span>';
       else if(k>=preis) rechts='<button class="kaufbtn bw-kauf" data-kauf="'+kk+'">Kaufen · '+Math.round(preis)+' 🪙</button>';
       else rechts='<span class="bw-fehlt"><span class="bar" aria-hidden="true">'+fbBalken(k/preis, null, null)+'</span>noch '+Math.round(preis-k)+' von '+Math.round(preis)+' 🪙</span>';
-      naechste='<div class="bw-st naechste"><span class="sym">'+bildFuer(s)+'</span><span class="tx"><b>Stufe '+s+'</b> · '+esc(kat.stufen[s-1][0])+'</span></div>'+rechts;
+      naechste='<div class="bw-st naechste"><span class="sym">'+bildFuer(s)+'</span><span class="tx"><b>Stufe '+s+'</b> · '+esc(kat.stufen[s-1].name)+'</span></div>'+rechts;
     }
     let liste='';
     if(auf[kk]){
@@ -15922,7 +15930,7 @@ function belShopHtml(){
         const s=i+1, gekauft=s<=offen, istNaechste=s===offen+1;
         liste+='<div class="bw-st '+(gekauft?'gekauft':(istNaechste?'naechste':'gesperrt'))+'">'+
           '<span class="sym">'+(gekauft||istNaechste?bildFuer(s):'🔒')+'</span>'+
-          '<span class="tx"><b>'+s+'</b> · '+(gekauft||istNaechste?esc(st[0]):'???')+'</span>'+
+          '<span class="tx"><b>'+s+'</b> · '+(gekauft||istNaechste?esc(st.name):'???')+'</span>'+
           '<span class="zu">'+(gekauft?'✓':(istNaechste?(sperre&&sperre!=='komplett'?'gesperrt':Math.round(preis)+' 🪙'):''))+'</span></div>';
       });
       liste+='</div>';
@@ -15931,10 +15939,10 @@ function belShopHtml(){
     // Bild das Emoji klein als Rueckfall; rechts Name, naechste Stufe, Preis, Fuellbalken GOLD, Ankunft, Stufenpunkte 1–12
     const hatBild=offen>=1 && !!zone;
     const objbild='<div class="objbild'+(hatBild?'':' leer')+'" aria-hidden="true">'+(hatBild ? bildFuer(offen) : '<span class="objemoji">'+kat.icon+'</span>')+'<span class="stufe">'+(offen>=1 ? 'Stufe '+offen : 'noch kein Bild')+'</span></div>';
-    let info='<b>'+esc(kat.name)+'</b>'+(offen>=1 ? '<span class="objakt">Aktuell: '+esc(kat.stufen[offen-1][0])+'</span>' : '');
+    let info='<b>'+esc(kat.name)+'</b>'+(offen>=1 ? '<span class="objakt">Aktuell: '+esc(kat.stufen[offen-1].name)+'</span>' : '');
     if(sperre==='komplett') info+='<span>🏁 Alle zwölf Stufen gekauft</span>';
     else { const s=offen+1;
-      info+='<span>Stufe '+s+' · '+fmtP(preis)+' Münzen</span><span class="objakt">'+esc(kat.stufen[s-1][0])+'</span>';
+      info+='<span>Stufe '+s+' · '+fmtP(preis)+' Münzen</span><span class="objakt">'+esc(kat.stufen[s-1].name)+'</span>';
       if(sperre) info+='<span class="bw-sperre">🔒 '+esc(sperre)+'</span>';
       else { let an=''; try{ an=shopAnkunftText({kat:kk, preis, stufe:s}).replace(/ · fehlen.*$/, ''); }catch(e){ an=''; }
         info+='<div class="lbar" style="height:10px;border-radius:5px"><i style="left:0;width:'+Math.max(0, Math.min(100, k/Math.max(1,preis)*100)).toFixed(1)+'%;background:'+verlauf(FARBE.GOLD)+'"></i></div>'+
