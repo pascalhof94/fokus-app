@@ -2234,6 +2234,10 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .voll-ansicht[hidden]{display:none}
 .voll-ansicht .mf-k{font-size:13px;padding:8px 0}
 .voll-ansicht .mf-k button{min-width:44px;min-height:44px}
+/* ══ 3.5.4 §4 · Kaufhinweis in GOLD ══ */
+.kauf-hinweis{font-size:13px;font-weight:700;margin:0 0 8px}
+.kch .w.kauf-w{font-size:14px;line-height:1.25;font-weight:700}
+.albgrid .kauf-hinweis{grid-column:1/-1;margin:0}
 </style>
 </head>
 <body>
@@ -7481,15 +7485,6 @@ function renderFokusleiste(){
 function renderFkNav(){
   // U1: Karussell entfernt — Kartenwahl läuft über die Fokus-Liste. Nav bleibt aus.
   const nav=el('fkNav'); if(nav && !nav.hidden){ nav.hidden=true; nav.innerHTML=''; }
-}
-/* Nächster möglicher/naher Kauf (nur Kategorie-Icon + Restpunkte — verrät
-   KEINE Stufen-Inhalte): günstigste nicht gesperrte Kategorie. */
-function naechsterKaufHint(){
-  if(!S.belohnung) return null;
-  let best=null;
-  KAT_KEYS.forEach(kk=>{ if(kaufSperre(kk)) return; const pr=preisFuer(kk);
-    if(pr!=null && (best==null || pr<best.preis)) best={ kat:kk, preis:pr }; });
-  return best;
 }
 /* Statusleiste (v1.3.2, S1–S3): 3-teilige Energie-Batterie · Tagesziel-
    Fortschrittsbalken (Ist DFM blau + Privat gelb gestapelt / Soll-Layer 8:30–22:00
@@ -14743,10 +14738,11 @@ function renderAlbum(){
   } else {
     // §4.2 (v1.13.0): Fortschritt + Prognose zum nächsten (günstigsten) Kauf
     {
-      const best=naechsterKaufHint();
+      const ks=kaufStand(), best=ks ? ks.ziel : null;   // §4 (v3.5.4)
+      if(ks && ks.hinweis) h+=kaufHinweisHtml(ks);
       if(best){
         const rest=Math.max(0, best.preis-konto());
-        h+=albumLeiterHtml('Nächster Kauf: '+BELOHNUNG[best.kat].icon+' '+esc(BELOHNUNG[best.kat].name)+' für '+fmtKurzP(best.preis),
+        h+=albumLeiterHtml(ks.hinweis ? esc(ks.text) : 'Nächster Kauf: '+BELOHNUNG[best.kat].icon+' '+esc(BELOHNUNG[best.kat].name)+' für '+fmtKurzP(best.preis),
           rest>0?'noch '+fmtKurzP(rest)+' (Konto '+fmtKurzP(konto())+')':'Konto reicht — freischaltbar 🎁',
           konto()/Math.max(1,best.preis), rest, null);
       }
@@ -15778,6 +15774,27 @@ function belNaechsterKauf(){
   });
   return best;
 }
+/* ══ §4 (v3.5.4) · KAUFHINWEIS ════════════════════════════════════════════════════════════
+   Ist mindestens ein Kauf jetzt moeglich (Muenzen >= Preis der naechsten Stufe irgendeines Objekts), steht an jeder Stelle
+   mit Kaufbezug „Kauf möglich: {Objekt} Stufe {n}" in GOLD (bei mehreren „Kauf möglich: 2 Objekte"). Fortschrittsgrafiken
+   zaehlen dann bis zum naechsten NOCH NICHT bezahlbaren Kauf (in der Preisfolge nach dem guenstigsten jetzt moeglichen):
+   „bis {Objekt} Stufe {n}: fehlen {x}". Ohne moeglichen Kauf bleibt das Ziel der guenstigste Kauf (wie bisher).
+   Nur Objekt-Name und Stufen-Nummer — nie der Inhalt einer Stufe. */
+function kaufKandidaten(){
+  if(!(S.belohnung && S.belohnung.stufen)) return [];
+  return KAT_KEYS.filter(kk=>!kaufSperre(kk)).map(kk=>({ kat:kk, name:(BELOHNUNG[kk] && BELOHNUNG[kk].name) || kk, preis:preisFuer(kk), stufe:num(S.belohnung.stufen[kk])+1 }))
+    .sort((a,b)=>a.preis-b.preis);
+}
+function kaufStandVon(muenzen, kand){
+  const k=Math.max(0, num(muenzen)), l=(kand||[]).slice().sort((a,b)=>a.preis-b.preis);
+  const moeglich=l.filter(x=>k>=x.preis), offen=l.filter(x=>k<x.preis), ziel=moeglich.length ? (offen[0]||null) : (l[0]||null);
+  const fehlt=ziel ? Math.max(0, ziel.preis-k) : 0;
+  return { konto:k, moeglich, ziel, fehlt, anteil: ziel ? Math.max(0, Math.min(1, k/Math.max(1, ziel.preis))) : (moeglich.length ? 1 : 0),
+    hinweis: moeglich.length===1 ? 'Kauf möglich: '+moeglich[0].name+' Stufe '+moeglich[0].stufe : (moeglich.length>1 ? 'Kauf möglich: '+moeglich.length+' Objekte' : ''),
+    text: (moeglich.length && ziel) ? 'bis '+ziel.name+' Stufe '+ziel.stufe+': fehlen '+fmtP(Math.round(fehlt)) : '' };
+}
+function kaufStand(){ return (S.belohnung && S.belohnung.stufen) ? kaufStandVon(konto(), kaufKandidaten()) : null; }
+function kaufHinweisHtml(ks){ if(ks===undefined) ks=kaufStand(); return (ks && ks.hinweis) ? '<div class="kauf-hinweis" style="color:'+FARBE.GOLD+'">'+esc(ks.hinweis)+'</div>' : ''; }
 /* 1 · Was heute noch geht */
 function belHeuteNoch(){
   const zi=zielUndIstHeute(), fehltZiel=Math.max(0, zi.ziel-zi.ist);
@@ -16235,19 +16252,24 @@ function belUebersichtHtml(){
   // der Text immer WEISS, nie in der Topffarbe
   const fuelltN=A.toepfe.filter(t=>!topfVoll(t) && (num(t.punkte)>0 || (t===akt && t.farbe!=null))).length, leerN=Math.max(0, A.toepfe.length-voll-fuelltN);
   const nkText=nk ? esc(shopAnkunftText(nk).replace('nicht mehr heute · ','')) : '—';
+  // §4 (v3.5.4): Kauf jetzt moeglich → Hinweis in GOLD, darunter die Zaehlung bis zum naechsten noch nicht bezahlbaren Kauf
+  const ks=kaufStand(), kMgl=!!(ks && ks.hinweis);
+  const nkKachel=mitName=>'<div class="kch flach"><div class="h">Nächster Kauf</div>'+
+    (kMgl ? '<div class="w klein kauf-w" style="color:'+FARBE.GOLD+'">'+esc(ks.hinweis)+'</div>'+(ks.text ? '<div class="s">'+esc(ks.text)+'</div>' : '')
+          : '<div class="w klein">'+nkText+'</div>'+(mitName ? '<div class="s">'+(nk ? esc((BELOHNUNG[nk.kat]||{}).name||'')+' · Stufe '+nk.stufe : '')+'</div>' : ''))+'</div>';
   h+='<div class="kach">'+
     '<div class="kch flach"><div class="h">Farbtöpfe</div><div class="mini-toepfe">'+A.toepfe.map((t,i)=>topfSvg(t, 24, {weiss:i===A.aktiverTopf})).join('')+(num(A.tank)>0 ? tankSvg(T ? num(A.tank)/T : 0, 12, 30) : '')+'</div>'+
       '<div class="mt-text">'+voll+' voll · '+fuelltN+' füllt · '+leerN+' leer'+(num(A.tank)>0?' · Tank '+fmtKurzP(A.tank):'')+'</div></div>'+
     '<div class="kch flach"><div class="h">Kulisse '+A.kulisse+'/10</div><div class="w">'+Math.round(st.anteil*100)+' %</div><div class="s">ausgemalt</div></div>'+
     '<div class="kch flach"><div class="h">Konto</div><div class="w" style="color:'+FARBE.GOLD+'">'+fmtP(k)+'</div><div class="s">Münzen</div></div>'+
-    '<div class="kch flach"><div class="h">Nächster Kauf</div><div class="w klein">'+nkText+'</div><div class="s">'+(nk ? esc((BELOHNUNG[nk.kat]||{}).name||'')+' · Stufe '+nk.stufe : '')+'</div></div></div>'+
+    nkKachel(true)+'</div>'+
     '<button class="btn mal-oeffnen" data-malmodus="1">🖌 Malmodus öffnen</button>';
   h+='<div class="blk"><div class="blk-h">Was heute noch geht</div><div class="kach">'+
     '<div class="kch flach"><div class="h">Bis Tagesziel</div><div class="w klein" style="color:'+diaAmpel(g.prognoseHeute, g.zielHeute)+'">'+(fehltZiel>0?fmtKurzP(fehltZiel):'erreicht')+'</div></div>'+
     '<div class="kch flach"><div class="h">Münzen bis Abend</div><div class="w klein" style="color:'+FARBE.GOLD+'">+'+fmtKurzP(muenzenAbend)+'</div></div>'+
-    '<div class="kch flach"><div class="h">Nächster Kauf</div><div class="w klein">'+nkText+'</div></div>'+
+    nkKachel(false)+
     '<div class="kch flach"><div class="h">Outfit '+(of.of>=20?20:of.naechste)+' bei Tagesform</div><div class="w klein" style="color:'+FARBE.GRUEN+'">'+(of.of>=20?'—':fbOutfitSchwelleF(of.naechste).toFixed(2).replace('.',','))+'</div></div></div></div>';
-  h+='<div class="blk"><div class="blk-h" id="belShop">Shop</div>'+belShopHtml()+'<div class="fb-rechnung">Gekauftes und die nächste Stufe sind sichtbar, alles danach bleibt „???". Den Shop zurücksetzen: ⚙︎ Einstellungen.</div></div>';
+  h+='<div class="blk"><div class="blk-h" id="belShop">Shop</div>'+kaufHinweisHtml(ks)+belShopHtml()+'<div class="fb-rechnung">Gekauftes und die nächste Stufe sind sichtbar, alles danach bleibt „???". Den Shop zurücksetzen: ⚙︎ Einstellungen.</div></div>';
   h+='<div class="blk"><div class="blk-h">Kulisse</div>'+kulisseKachelHtml()+'</div>';
   // §5 Nr. 4 (v3.5.1): „Was ich schon erklommen habe" — je Zeile Name links, Wert rechts, darunter eine Segmentleiste mit allen
   // Stufen: erreicht gefuellt (Rang/Kulisse/Outfit GRUEN-Verlauf, Shop GOLD), Bestwert/aktuell mit weissem Rand, Rest LEER
@@ -17500,16 +17522,18 @@ function rangTrendSeitMontag(rm){
   return ' · '+(rm.rang>vor.rang ? '↗' : rm.rang<vor.rang ? '↘' : '→')+' seit Montag';
 }
 function stmSpielShop(F,dom){
-  const rm=rangMass(), k=konto(), nk=(S.belohnung && S.belohnung.stufen) ? belNaechsterKauf() : null;
+  const rm=rangMass(), k=konto(), ks=kaufStand(), kMgl=!!(ks && ks.hinweis), nk=ks ? ks.ziel : null;   // §4 (v3.5.4): Ziel der Kauf-Grafiken = naechster noch nicht bezahlbarer Kauf
   // §4 Nr. 9 (v3.5.1): der Meilenstein-Zeitstrahl bleibt; darunter Konto und Rang als Kacheln mit Segmentleiste und
   // „Bis zum nächsten Kauf" als sich fuellender Balken im GOLD-Verlauf
   let haupt=meilensteinHtml();
   haupt+='<div class="kach" style="margin-top:8px">'+
     '<div class="kch flach"><div class="h">Konto</div><div class="w" style="color:'+FARBE.GOLD+'">'+fmtP(k)+'</div><div class="s">Münzen</div><div class="unten">'+segLeisteHtml(nk && nk.preis>0 ? k/nk.preis : 0, 5, FARBE.GOLD, FARBE.GOLD_DUNKEL)+'</div></div>'+
     '<div class="kch flach"><div class="h">Rang</div><div class="w">'+(rm.rang!=null ? rm.rang : '–')+'</div><div class="s">von '+RANG_MAX+rangTrendSeitMontag(rm)+'</div><div class="unten">'+segLeisteHtml(rm.rang!=null ? rm.rang/RANG_MAX : 0, 5, FARBE.GRUEN, FARBE.GELBGRUEN)+'</div></div></div>';
+  if(kMgl && !nk) haupt+='<div class="kch" style="margin-top:8px;min-height:0"><div class="h">Bis zum nächsten Kauf</div><div class="w klein kauf-w" style="color:'+FARBE.GOLD+'">'+esc(ks.hinweis)+'</div></div>';
   if(nk){ const fehlt=Math.max(0, nk.preis-k), name=(BELOHNUNG[nk.kat] && BELOHNUNG[nk.kat].name) || '';
-    haupt+='<div class="kch" style="margin-top:8px;min-height:0"><div class="h">Bis zum nächsten Kauf</div><div class="w" style="color:'+FARBE.GOLD+'">'+(fehlt>0 ? 'fehlen '+fmtP(fehlt) : 'jetzt möglich')+'</div>'+
-      '<div class="s">'+esc(name)+' · Stufe '+nk.stufe+' für '+fmtP(nk.preis)+' Münzen</div>'+
+    haupt+='<div class="kch" style="margin-top:8px;min-height:0"><div class="h">Bis zum nächsten Kauf</div>'+
+      (kMgl ? '<div class="w klein kauf-w" style="color:'+FARBE.GOLD+'">'+esc(ks.hinweis)+'</div><div class="s">'+esc(ks.text)+'</div>'
+            : '<div class="w" style="color:'+FARBE.GOLD+'">'+(fehlt>0 ? 'fehlen '+fmtP(fehlt) : 'jetzt möglich')+'</div><div class="s">'+esc(name)+' · Stufe '+nk.stufe+' für '+fmtP(nk.preis)+' Münzen</div>')+
       '<div class="lbar" style="height:12px;border-radius:6px"><i style="left:0;width:'+Math.max(0, Math.min(100, k/Math.max(1,nk.preis)*100)).toFixed(1)+'%;background:'+verlauf(FARBE.GOLD)+'"></i></div>'+
       '<div class="skala"><span>'+fmtP(k)+'</span><span>'+fmtP(nk.preis)+'</span></div></div>'; }
   return statModul('spielShop','Meilensteine · ab jetzt', haupt, null, ()=>{
@@ -17598,14 +17622,17 @@ function meilensteinHtml(){
   const oeMz=anMean(aktiv.map(d=>{ const sn=tagSnapshot(d); return sn?Math.max(0,num(sn.spielZufluss)):null; }))||oePkt;
   const restHeute=Math.max(0, g.prognoseHeute-g.punkteHeute);
   const tage=(fehlt, heuteRest, proTag)=> fehlt<=0 ? 0 : (fehlt<=heuteRest ? 0 : (proTag>0 ? Math.ceil((fehlt-heuteRest)/proTag) : null));
-  try{ const nk=(S.belohnung && S.belohnung.stufen) ? belNaechsterKauf() : null; if(nk){ const k=konto(), fehlt=nk.preis-k, t=tage(fehlt, restHeute, oeMz);
-    ms.push({ t, titel:'Kauf', sub: t===0 ? shopAnkunftText(nk).replace('nicht mehr heute · ','') : (t!=null?'+'+t+' T':'—'), art:'kauf' }); } }catch(e){}
+  // §4 (v3.5.4): der Kauf-Meilenstein zaehlt bis zum naechsten noch nicht bezahlbaren Kauf; ist jetzt einer moeglich, steht der Hinweis in GOLD darueber
+  let ksH=''; try{ const ks=kaufStand(), nk=ks ? ks.ziel : null; ksH=kaufHinweisHtml(ks);
+    if(nk){ const k=konto(), fehlt=nk.preis-k, t=tage(fehlt, restHeute, oeMz);
+      ms.push({ t, titel:'Kauf', sub: t===0 ? shopAnkunftText(nk).replace('nicht mehr heute · ','') : (t!=null?'+'+t+' T':'—'), art:'kauf' }); }
+    else if(ks && ks.hinweis) ms.push({ t:0, titel:'Kauf', sub:'jetzt', art:'kauf' }); }catch(e){}
   try{ const of=outfitFortschritt(); if(of.of<20){ const fehlt=outfitFehltBis(of.naechste), t=tage(fehlt, restHeute, oePkt);
     ms.push({ t, titel:'Outfit '+of.naechste, sub:'bei F '+fbOutfitSchwelleF(of.naechste).toFixed(2).replace('.',','), art:'outfit' }); } }catch(e){}
   try{ const rm=rangMass(), pr=rangPrognose(rm); if(pr && rm.rang<RANG_MAX) ms.push({ t:pr.N, titel:'Rang R'+(rm.rang+1), sub:'Prognose', art:'rang' }); }catch(e){}
   try{ if(typeof ausmalStand==='function'){ const st=ausmalStand(); if(st.naechsteFrei!=null){ const t=tage(st.naechsteFrei-st.W, restHeute, oePkt);
     ms.push({ t, titel:'Kulisse '+(st.freigeschaltetBis+1), sub:'frei bei Wohlstand', art:'kulisse' }); } } }catch(e){}
-  if(!ms.length) return anLeer('keine Meilensteine');
+  if(!ms.length) return ksH+anLeer('keine Meilensteine');
   const maxT=Math.max(3, Math.max.apply(null, ms.map(m=>m.t==null?0:m.t))), W=320, H=96, pL=16, pR=16, yA=50;
   const X=t=>pL+(t==null ? 1 : Math.min(1, t/maxT))*(W-pL-pR);
   let gsvg='<line x1="'+pL+'" y1="'+yA+'" x2="'+(W-pR)+'" y2="'+yA+'" stroke="'+FARBE.GRAU+'" stroke-opacity=".5"/>'+
@@ -17619,7 +17646,7 @@ function meilensteinHtml(){
     gsvg+='<text x="'+tx+'" y="'+(oben?yT:yT+6)+'" text-anchor="'+anker+'" font-size="10" fill="'+FARBE.WEISS+'">'+esc(m.titel)+'</text>'+
       '<text x="'+tx+'" y="'+(oben?yS:yS+6)+'" text-anchor="'+anker+'" font-size="9" fill="'+FARBE.GRAU+'">'+esc(m.sub)+'</text>'+
       (m.t>0 ? '<text x="'+x.toFixed(1)+'" y="'+(yA+16)+'" text-anchor="middle" font-size="9" fill="'+FARBE.GRAU+'">+'+m.t+' T</text>' : (m.t===0 ? '<text x="'+x.toFixed(1)+'" y="'+(yA+16)+'" text-anchor="middle" font-size="9" fill="'+FARBE.GRAU+'">heute</text>' : '')); });
-  return '<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+gsvg+'</svg>';
+  return ksH+'<svg class="an-svg" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">'+gsvg+'</svg>';
 }
 
 /* 1 · Tagesverlauf — Plan, Ist, Normaltag. Übernommen, läuft. */
