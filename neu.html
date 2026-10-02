@@ -14025,9 +14025,7 @@ function renderEinst(){
     '<div class="kv"><span>Stapel</span><b>'+S.stapel.length+'</b></div>'+
     '<div class="kv"><span>Farbe (live)</span><b>'+fmtP(farbeGesamt())+'</b></div>'+
     // U4 (v1.4.0): Level-Basis nachvollziehbar machen (Migrationswert + Herleitung)
-    '<div class="kv"><span>Lifetime-Punkte (Level-Basis)</span><b>'+Math.round(lifetimePunkte())+'</b></div>'+
     // v1.5.1: Offset transparent machen — Rohwert bleibt erhalten, nur die Anzeige startet neu
-    '<div class="kv"><span>Panorama-Reset-Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
     // FIX1 (v1.5.2): gefundene Sync-Spike-Tage nachvollziehbar machen
     '<div class="kv"><span>Flow-Fix Spike-Tage</span><b>'+(!Array.isArray(S.meta.flowfix152Log)||!S.meta.flowfix152Log.length?'keine':S.meta.flowfix152Log.map(s=>s.datum+' ('+s.anzahl+')').join(', '))+'</b></div>'+
     '<div class="kv"><span>Rang (v1.11, P/Std-Median)</span><b>'+(function(){ const rm=rangMass();
@@ -14187,10 +14185,9 @@ function renderEinst(){
   '</div>';
   // §4 (v1.8.1): Eingriffe mit Tragweite — optisch abgesetzt, GANZ unten
   h+='<div class="card" style="border-color:var(--bad);margin-top:18px"><h3 style="color:var(--bad)">⚠️ Eingriffe mit Tragweite</h3>'+
-    '<p class="d">„Spielstand zurücksetzen" stellt das Konto (Münzen) auf 0 und die Stufen aller Gegenstände auf 0 — über die Offset-Mechanik. Farbe, Töpfe und Kulissen, Rang und Outfit bleiben. <b>Gelöscht wird nichts:</b> Historie, Intraday-Log, Streaks und Statistiken bleiben unangetastet. Für „nur den Besitz leeren" gibt es die eigene Karte 🛍 oben.</p>'+
+    '<p class="d">„Spielstand zurücksetzen" stellt das Konto (Münzen) auf 0 und die Stufen aller Gegenstände auf 0 — über die Offset-Mechanik; die Münzen des laufenden Tages zählen weiter. Farbe, Töpfe und Kulissen, Rang und Outfit bleiben. <b>Gelöscht wird nichts:</b> Historie, Intraday-Log, Streaks und Statistiken bleiben unangetastet. Für „nur den Besitz leeren" gibt es die eigene Karte 🛍 oben.</p>'+
     '<div class="btnrow"><button class="btn warn sm" data-panoreset="1">🔄 Spielstand zurücksetzen</button>'+
     (S.meta.panoramaResetBackup?'<button class="btn sm" data-panoundo="1">↩︎ Letzten Reset rückgängig</button>':'')+'</div>'+
-    '<div class="kv" style="margin-top:8px"><span>Aktueller Offset</span><b>'+(S.meta.panoramaResetOffset==null?'—':Math.round(S.meta.panoramaResetOffset)+' P (roh '+Math.round(lifetimePunkteRoh())+')')+'</b></div>'+
   '</div>';
   h+='<div style="text-align:center;color:var(--mut2);font-size:11px;margin-top:6px" id="einstVersion">Fokus App '+UI_VERSION+' · Build '+APP_BUILD+'</div>';
   el('einstBody').innerHTML=einstAbschnitte(h);   // §6 (v3.5.4): klappbare Abschnitte
@@ -14199,7 +14196,7 @@ function renderEinst(){
 /* §4 (v1.8.1): Wohlstand-Reset per Button — exakt die Offset-Mechanik der
    151er-Migration, jetzt wiederholbar und mit Rückgängig (solange ein Backup
    vorliegt). Es wird ausschließlich Anzeige-Zustand verschoben. */
-const SPIELSTAND_RESET_TEXT='Spielstand zurücksetzen?\n\nAuf 0 gehen: das Konto (Münzen) und die Stufen aller Gegenstände im Shop.\n\nEs bleiben: Farbe, Töpfe und Kulissen, Rang (samt Bestwert) und Outfit — außerdem Historie, Intraday-Log, Streaks und Statistiken.\n\nDer Schritt ist über „Rückgängig" umkehrbar, solange kein neuer Reset folgt.';
+const SPIELSTAND_RESET_TEXT='Spielstand zurücksetzen?\n\nAuf 0 gehen: das Konto (Münzen) und die Stufen aller Gegenstände im Shop. Die Münzen des laufenden Tages zählen weiter.\n\nEs bleiben: Farbe, Töpfe und Kulissen, Rang (samt Bestwert) und Outfit — außerdem Historie, Intraday-Log, Streaks und Statistiken.\n\nDer Schritt ist über „Rückgängig" umkehrbar, solange kein neuer Reset folgt.';
 function panoramaResetJetzt(){
   // §2 (v3.6.1): der Knopf heisst „Spielstand zurücksetzen"; die Rückfrage nennt den TATSÄCHLICHEN Umfang (Funktion unverändert):
   // Konto und Gegenstands-Stufen gehen auf 0 — Farbe/Töpfe/Kulissen (seit 3.5.0 eigener Stand), Rang und Outfit bleiben
