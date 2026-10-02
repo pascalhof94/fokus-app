@@ -2226,6 +2226,14 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .ringe{display:grid;grid-template-columns:1fr 1fr;gap:8px;justify-items:center}
 .rg-svg{display:block;width:120px;height:120px}
 .dt-zeilen .dk-ringe{padding:0 0 12px}
+/* ══ 3.5.4 §3 · Statistik: „▴ Einklappen" am Modulende · Vollbild-Ansicht „Karten mit Faktor" ══ */
+.stm-zu{display:flex;align-items:center;justify-content:center;width:100%;height:44px;margin-top:12px;border-radius:12px;background:#1a1d22;border:1px solid #2a2d33;color:#e8e9ec;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.stm-zu.mf-auf{margin-top:0;justify-content:space-between;padding:0 14px}
+.stm[data-stmodul]{scroll-margin-top:calc(var(--tbH,160px) + 8px)}
+.voll-ansicht{position:fixed;inset:0;z-index:199;background:var(--bg);display:flex;flex-direction:column}
+.voll-ansicht[hidden]{display:none}
+.voll-ansicht .mf-k{font-size:13px;padding:8px 0}
+.voll-ansicht .mf-k button{min-width:44px;min-height:44px}
 </style>
 </head>
 <body>
@@ -2337,6 +2345,16 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
   </div>
   <div id="suchFilter" class="su-filter such-filter"></div>
   <div id="suchList" class="such-list"></div>
+</div>
+
+<!-- §3 (v3.5.4): Karten mit Faktor (Vollbild-Ansicht, liegt unter Sheet und Backdrop) -->
+<div id="mfOverlay" class="voll-ansicht" hidden>
+  <div class="an-kopf">
+    <button id="mfBack" class="an-back" aria-label="Zurück">‹ zurück</button>
+    <h3>Karten mit Faktor</h3>
+    <span class="sp"></span>
+  </div>
+  <div class="an-body" id="mfBody"></div>
 </div>
 
 <!-- B1: Detailanalyse (Vollbild-View) -->
@@ -17129,7 +17147,13 @@ function statModul(id, titel, haupt, kpis, detailFn, opt){
   return '<div class="stm'+(offen?' offen':'')+'" data-stmodul="'+id+'"><div class="stm-k"'+(detailFn?' data-stmtoggle="'+id+'"':'')+'><span class="t">'+titel+'</span>'+knopf+'</div>'+
     '<div class="stm-haupt"'+(opt.tipp===false || !detailFn?'':' data-stmtoggle="'+id+'"')+'>'+haupt+'</div>'+
     (kpis && kpis.length ? '<div class="stm-kpis">'+kpis.join('')+'</div>' : '')+
-    (offen ? '<div class="stm-detail">'+detail+'</div>' : '')+'</div>';
+    (offen ? '<div class="stm-detail">'+detail+'</div>' : '')+
+    (offen && detailFn ? '<button type="button" class="stm-zu" data-stmzu="'+id+'">▴ Einklappen</button>' : '')+'</div>';   // §3 (v3.5.4): Einklappen auch am unteren Ende
+}
+/* §3 (v3.5.4): „▴ Einklappen" klappt das Modul zu und holt dessen Kopf sanft an den oberen Rand (unter die Statusleiste) */
+function statModulEinklappen(id){
+  S.ui.statOffen=Object.assign({}, S.ui.statOffen); S.ui.statOffen[id]=false; _stmGedreht=id; saveUi(); renderStatistik();
+  const z=document.querySelector('#statistikBody [data-stmodul="'+id+'"]'); if(z && z.scrollIntoView) z.scrollIntoView({behavior:'smooth', block:'start'});
 }
 /* ── §2.5 · Beschriftung der Zeitachse: Wochentag-Kuerzel bis 14 Tage, darueber TT.MM. am Wochenanfang; heute WEISS */
 function stXLabels(labels, X, y, heute){
@@ -17523,11 +17547,22 @@ function anModMatrixfaktor(F, dom){
     '<div class="an-legend"><span><i style="background:'+FARBE.GRAU+';opacity:.35"></i>Punkte ohne Faktor</span><span><i style="background:'+FARBE.WEISS+'"></i>mit Faktor (Feldfarbe nur hier)</span></div>';
   const eff=D.ohneGes>0 ? D.mitGes/D.ohneGes : null;
   const kpis=[ stKpi(eff!=null?'×'+(Math.round(eff*100)/100).toFixed(2).replace('.',','):'—','effektiver Ø-Faktor'), stKpi('−'+anFmt(Math.max(0, D.ohneGes-D.mitGes)),'Punkte abgezogen'), stKpi(D.minGes>0?Math.round(D.minKlein/D.minGes*100)+' %':'—','Zeit auf Faktor < 1') ];
-  return statModul('matrixfaktor','Matrixfaktor · Punkte je Feld', haupt, kpis, ()=>{
-    const l=D.karten.filter(c=>Math.abs(c.faktor-1)>1e-9).sort((a,b)=>(b.ohne-b.mit)-(a.ohne-a.mit));
-    return '<div class="stm-dh">Karten mit Faktor ≠ 1,0 · '+l.length+'</div>'+(l.length ? l.map(c=>'<div class="mf-k"><span class="t">'+esc(String(c.k.titel||'?').slice(0,30))+'</span><span class="mf-m">'+MATRIX_META[c.feld].icon+' '+esc(MATRIX_META[c.feld].name)+' · ×'+String(Math.round(c.faktor*100)/100).replace('.',',')+' · '+Math.round(c.min)+' Min · −'+anFmt(Math.max(0,c.ohne-c.mit))+' P</span><button class="btn sm" data-mfedit="'+c.k.id+'">✎</button></div>').join('') : '<div class="an-leer">keine</div>')+
-      '<div class="dia-zeile" style="margin-top:8px"><a href="#" data-mfeinst="1">Faktoren je Feld → Einstellungen</a></div>'; });
+  // §3 (v3.5.4): die Kartenliste liegt in einer eigenen Vollbild-Ansicht (wie das Album ueber einen Knopf erreichbar); im Modul bleiben Balken und KPIs
+  const n=matrixfaktorKarten(D).length;
+  return statModul('matrixfaktor','Matrixfaktor · Punkte je Feld', haupt, kpis, ()=>
+    '<button type="button" class="stm-zu mf-auf" data-mfansicht="1">Karten mit Faktor ('+n+') ›</button>'+
+    '<div class="dia-zeile" style="margin-top:8px"><a href="#" data-mfeinst="1">Faktoren je Feld → Einstellungen</a></div>');
 }
+function matrixfaktorKarten(D){ return D.karten.filter(c=>Math.abs(c.faktor-1)>1e-9).sort((a,b)=>(b.ohne-b.mit)-(a.ohne-a.mit)); }
+/* Inhalt der Ansicht — dieselben Zeilen wie bisher im Modul, Bearbeiten (✎) unveraendert */
+function mfAnsichtHtml(){
+  const l=matrixfaktorKarten(matrixfaktorDaten(analyseFenster(), S.ui.analyseDomain||'alle'));
+  return '<div class="stm-dh">Karten mit Faktor ≠ 1,0 · '+l.length+'</div>'+(l.length ? l.map(c=>'<div class="mf-k"><span class="t">'+esc(String(c.k.titel||'?').slice(0,30))+'</span><span class="mf-m">'+MATRIX_META[c.feld].icon+' '+esc(MATRIX_META[c.feld].name)+' · ×'+String(Math.round(c.faktor*100)/100).replace('.',',')+' · '+Math.round(c.min)+' Min · −'+anFmt(Math.max(0,c.ohne-c.mit))+' P</span><button class="btn sm" data-mfedit="'+c.k.id+'">✎</button></div>').join('') : '<div class="an-leer">keine</div>');
+}
+function mfAnsichtOffen(){ const o=el('mfOverlay'); return !!(o && !o.hidden); }
+function renderMfAnsicht(){ if(mfAnsichtOffen()) el('mfBody').innerHTML=mfAnsichtHtml(); }
+function oeffneMfAnsicht(){ el('mfOverlay').hidden=false; renderMfAnsicht(); try{ el('mfBody').scrollTop=0; }catch(e){} }
+function schliesseMfAnsicht(){ el('mfOverlay').hidden=true; }
 /* §8.2 · Bearbeiten = Matrixfeld der Karte aendern (gilt ab jetzt, gebuchte Punkte bleiben), protokolliert in matrixfeldAenderungen */
 function matrixfeldSheet(kid){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
@@ -18761,6 +18796,8 @@ function statKlick(e){
   if(e.target.closest('#belohnungBody [data-maltopfwechsel]')){ topfWechselSheet(); return; }
   const ma=e.target.closest('#belohnungBody [data-malauskippen]'); if(ma){ topfAuskippen(num(ma.dataset.malauskippen)); return; }
   // §5.1 (v3.5.0): Tipp auf Kopf oder Hauptdiagramm klappt das Detail auf; Kacheln „heuteKurz" springen zum Modul
+  const szu=e.target.closest('#statistikBody [data-stmzu]'); if(szu){ haptik(6); statModulEinklappen(szu.dataset.stmzu); return; }
+  const mfa=e.target.closest('#statistikBody [data-mfansicht]'); if(mfa){ oeffneMfAnsicht(); return; }
   const smt=e.target.closest('#statistikBody [data-stmtoggle]');
   if(smt && !e.target.closest('.dia-tv-scroll,[data-tbmatrix],[data-statdom],[data-statstep],[data-statheute],input,button')){
     const id=smt.dataset.stmtoggle; S.ui.statOffen=Object.assign({}, S.ui.statOffen); S.ui.statOffen[id]=!S.ui.statOffen[id]; _stmGedreht=id; saveUi(); renderStatistik(); return; }
@@ -19070,7 +19107,7 @@ el('btnFigur').addEventListener('click', zurBelohnung);
 el('fokusView').addEventListener('click', fokusKlick350, true);   // §4 (v3.5.0): Tagesketten, Unter-Zaehler, Kartenliste
 document.addEventListener('click', e=>{ const t=e.target && e.target.closest ? e.target.closest('[data-uztick],[data-kltick],[data-alcheck],[data-ftick],[data-zzplus],[data-tickplus],[data-alsub],[data-zzsub]') : null; if(t) _letzterTickKnopf={ el:t, ts:Date.now() }; }, true);   // §7.4 (v3.5.0)
 el('sheetBody').addEventListener('click', e=>{ const t=e.target.closest('[data-maltopfunter]'); if(t){ e.stopPropagation(); topfUnterStation(num(t.dataset.maltopfunter)); closeSheet(); renderBelohnung(); return; }
-  const m=e.target.closest('[data-mfxset]'); if(m){ e.stopPropagation(); matrixfeldSetzen(m.dataset.kid, m.dataset.mfxset); closeSheet(); renderStatistik(); } }, true);   // §6.4/§8.2 (v3.5.0)
+  const m=e.target.closest('[data-mfxset]'); if(m){ e.stopPropagation(); matrixfeldSetzen(m.dataset.kid, m.dataset.mfxset); closeSheet(); renderStatistik(); renderMfAnsicht(); } }, true);   // §6.4/§8.2 (v3.5.0)
 el('btnKurve').addEventListener('click', ()=>{
   // §1 (v2.6.0): Tipp auf die Mini-Kurve oeffnet die Statistik, OBEN
   // (dort stehen jetzt Matrix und direkt darunter der Tagesverlauf).
@@ -20181,6 +20218,9 @@ function renderAnalyse(){ renderAnFilter(); renderAnalyseBody(); }
 function oeffneAnalyse(){ el('analyseOverlay').hidden=false; renderAnalyse(); }
 function schliesseAnalyse(){ el('analyseOverlay').hidden=true; }
 el('anBack').addEventListener('click', schliesseAnalyse);
+// §3 (v3.5.4): Vollbild-Ansicht „Karten mit Faktor" — Zurueck oben links, ✎ oeffnet das Matrixfeld-Sheet wie bisher
+el('mfBack').addEventListener('click', ()=>{ schliesseMfAnsicht(); haptik(6); });
+el('mfOverlay').addEventListener('click', e=>{ const mfe=e.target.closest('[data-mfedit]'); if(mfe) matrixfeldSheet(mfe.dataset.mfedit); });
 el('analyseOverlay').addEventListener('click', e=>{
   const zr=e.target.closest('[data-anzr]'); if(zr){ S.ui.analyseZeitraum=zr.dataset.anzr; saveUi(); renderAnalyse(); return; }
   const dm=e.target.closest('[data-andom]'); if(dm){ S.ui.analyseDomain=dm.dataset.andom; saveUi(); renderAnalyse(); return; }
