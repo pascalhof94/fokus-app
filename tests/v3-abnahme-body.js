@@ -1,3 +1,6 @@
+/* v3.5.4 §6: die Einstellungen sind klappbare Abschnitte (Standard: alle zu). Diese Suite prueft die INHALTE der Abschnitte
+   und liest sie deshalb aufgeklappt; das Klappen selbst prueft die v354-Suite. */
+einstAbschnittOffen=function(){ return true; };
 /* v3.2.0 §4: eine unbekannte Karte wird nur mit titel, domain und matrixFeld angelegt (sonst
    abgewiesen, nie eine Huelle). Die Pakete dieser Suite stammen aus der Zeit davor und tragen
    domain/matrixFeld nicht immer — der Shim ergaenzt sie NUR fuer unbekannte Karten MIT Titel,
@@ -343,7 +346,7 @@ ok('9 jede Ansicht beginnt oben: setTab, Sortierung, Filter, Fokus und Sheet ruf
 
 /* ══ 12 · Version ═════════════════════════════════════════════════════ */
 kopf('12 · Version');
-ok('12 APP_VERSION 3.4.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.5.3' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'x', titel:'x'}]})).fehler);
+ok('12 APP_VERSION 3.4.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.5.4' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'x', titel:'x'}]})).fehler);
 
 kopf('Nachtrag v3.0.1 · eine Versionskonstante');
 frisch(); S.tag=neuerTag(MO,1);

@@ -1,3 +1,6 @@
+/* v3.5.4 §6: die Einstellungen sind klappbare Abschnitte (Standard: alle zu). Diese Suite prueft die INHALTE der Abschnitte
+   und liest sie deshalb aufgeklappt; das Klappen selbst prueft die v354-Suite. */
+einstAbschnittOffen=function(){ return true; };
 /* v3.2.0 §4: eine unbekannte Karte wird nur mit titel, domain und matrixFeld angelegt (sonst
    abgewiesen, nie eine Huelle). Die Pakete dieser Suite stammen aus der Zeit davor und tragen
    domain/matrixFeld nicht immer — der Shim ergaenzt sie NUR fuer unbekannte Karten MIT Titel,
@@ -556,8 +559,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.5.3' && UI_VERSION==='v3.5.3' &&
-   APP_BUILD==='2026-10-02-2');
+ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.5.4' && UI_VERSION==='v3.5.4' &&
+   APP_BUILD==='2026-10-02-3');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -912,7 +915,8 @@ ok('v2.3 §8 Block 3 mit Position: grosse Matrix mit Tageslinie + „Diese Karte
 ok('§2 Grafiken fangen keine Klicks (pointer-events:none im CSS)',
    /\.fbk-g svg\{[^}]*pointer-events:none/.test(src) && /\.fbk-bar\{[^}]*pointer-events:none/.test(src));
 ok('§2 Farb-Aliase definiert (--li/--bg2/--fg/--gut/--ac)', /--li:var\(--line\); --bg2:var\(--card\); --fg:var\(--txt\); --gut:var\(--ok\); --ac:var\(--blue\)/.test(src));
-ok('§2 „Zur Suche" hat 44 px Tapflaeche', /\.fk-zu\{[^}]*min-height:44px/.test(src));
+ok('§2 (v3.5.4 §2) oben in der Fokusansicht „◀ Verlauf" und „nächste ▶" statt „Zur Suche", 44 px Tapflaeche', !/class="fk-zu"/.test(src) && !/data-fokuszu=/.test(src) && /class="knav fk-swipe fk-oben"/.test(src) &&
+   /#fokusAktiv \.knav\.fk-swipe button\.sw\{height:44px;min-height:44px/.test(src));
 
 kopf('v2.2.0 §2 · Suche: Domäne und Art');
 frisch();
@@ -2243,7 +2247,7 @@ ok('§4 „Verwerfen": Werte bleiben, Vorschlag weg, Export meldet „verworfen"
 kopf('v2.9.0 §5–§6 · Einstellungen, Import/Export, Wiederholung');
 renderEinst();
 var eh=el('einstBody').innerHTML;
-ok('§5 Liste „Pflicht-Karten" mit Mini-Kurve, vier Werten und Tipp zur Karte', /Pflicht-Karten · 1/.test(eh) && /pf-svg mini/.test(eh) && /data-pflichtoeffnen="vs1"/.test(eh) && /40 P · Deckel 15′ · −10 je 10′ · min -10/.test(eh));
+ok('§5 Liste „Pflicht-Karten" mit Mini-Kurve, vier Werten und Tipp zur Karte', /<b>Pflicht-Karten<\/b><span class="anz">1<\/span>/.test(eh) && /pf-svg mini/.test(eh) && /data-pflichtoeffnen="vs1"/.test(eh) && /40 P · Deckel 15′ · −10 je 10′ · min -10/.test(eh));
 syncImport(JSON.stringify({appVersion:'2.9.0', karten:[{id:'vs1', pflichtVorschlag:{wert:35, deckel:15, abzug:10, min:-10, grund:'dritter'}}]}));
 renderEinst();
 ok('§5 Karten mit offenem Vorschlag sind markiert', /Vorschlag offen/.test(el('einstBody').innerHTML));

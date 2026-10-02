@@ -28,11 +28,13 @@ function pz(v){ return Math.round(parseFloat(v)*10)/10; }
 kopf('1 · Punktebar (§1.4)');
 frisch(); tagMit(6, 9);
 print('   Ziele: DFM '+zielTag('dfm')+' · Privat '+zielTag('privat')+' · zielHeute '+diaGroessen().zielHeute+(WE?' (HEUTE IST WOCHENENDE — Werte weichen ab)':''));
-[[1000,500,5000,0,'a'],[6000,1000,6000,0,'b'],[6000,3000,6000,500,'c']].forEach(function(f){
+// v3.5.4 §1: die Grenze steht fest beim DFM-Ziel (5.000) — die Familie waechst darueber hinaus; ueber dem Gesamtziel
+// wird die Ueberlappungsstrecke [Gesamtziel − Privat … DFM] ROT (UEBER gibt es in der Punkteleiste nicht mehr)
+[[1000,500,0,'a'],[6000,1000,0,'b'],[6000,3000,500,'c']].forEach(function(f){
   punkte(f[0], f[1]); renderStatusbar();
-  var linie=pz(stil('sBarSollMark').left), soll=Math.round(f[2]/8500*1000)/10, ue=pz(stil('sBarUeber').width), ueSoll=Math.round(f[3]/8500*1000)/10;
-  print('   ('+f[4]+') dfm '+f[0]+' · privat '+f[1]+' → Linie '+linie+' % (soll '+soll+') · DFM '+stil('sBarIstD').width+' von links · Privat '+stil('sBarIstP').width+' von rechts · UEBER '+ue+' %');
-  ok('1'+f[4]+' Linie bei '+f[2]+'/8.500, UEBER '+f[3]+'/8.500', WE || (linie===soll && ue===ueSoll && stil('sBarIstP').right==='0' && stil('sBarIstP').left==='auto' &&
+  var linie=pz(stil('sBarSollMark').left), soll=Math.round(5000/8500*1000)/10, rot=stil('sBarRot'), ue=rot.display==='block' ? pz(rot.width) : 0, ueSoll=Math.round(f[2]/8500*1000)/10;
+  print('   ('+f[3]+') dfm '+f[0]+' · privat '+f[1]+' → Grenze '+linie+' % (soll '+soll+') · DFM '+stil('sBarIstD').width+' von links · Privat '+stil('sBarIstP').width+' von rechts · rote Strecke '+ue+' %'+(ue?' ab '+rot.left:''));
+  ok('1'+f[3]+' Grenze fest bei 5.000/8.500, rote Überschuss-Strecke '+f[2]+'/8.500', WE || (linie===soll && ue===ueSoll && (f[2]===0 || pz(rot.left)===Math.round((8500-f[1])/8500*1000)/10) && stil('sBarIstP').right==='0' && stil('sBarIstP').left==='auto' &&
      pz(stil('sBarIstD').width)===Math.round(Math.min(f[0],8500)/8500*1000)/10 && pz(stil('sBarIstP').width)===Math.round(Math.min(f[1],8500)/8500*1000)/10));
 });
 ok('1 die rote Rückstands-Fläche entfällt (Linie statt Fläche; v3.5.1 §2: Soll als gepunktete Marke + Pille)', !/id="sBarSoll"/.test(src) && stil('sBarSollMark').display==='block' && /id="sPhSoll"/.test(src));
@@ -128,7 +130,7 @@ ok('0.1 UEBER #FF2D95 war vorher nirgends benutzt', (src.match(/#FF2D95/gi)||[])
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION aktuell (3.4.0), Build 2026-10-02-2', APP_VERSION==='3.5.3' && UI_VERSION==='v3.5.3' && APP_BUILD==='2026-10-02-2');
+ok('APP_VERSION aktuell (3.4.0), Build 2026-10-02-3', APP_VERSION==='3.5.4' && UI_VERSION==='v3.5.4' && APP_BUILD==='2026-10-02-3');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

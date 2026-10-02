@@ -337,6 +337,30 @@ function bestandSchreiben(){
     echtFokus28:function(fw){ v28Vorbereiten(fw); fw.fokusStarten('a-3', null); fw.closeSheet();
       var sh=fw.document.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(110%)'; }
       fw.fokusKarteAnsehen('a-3'); fw.renderStatusbar(); },
+    /* ══ v3.5.4 · Statusleiste in drei Zuständen: A Restzeit offen · B 12 % überzogen, DFM-Ziel erreicht · C 35 % überzogen, Gesamtziel überschritten ══ */
+    status354A:function(fw){ status354(fw, 53, null, null); },
+    status354B:function(fw){ status354(fw, 90*1.12, 5300, 300); },
+    status354C:function(fw){ status354(fw, 90*1.35, 5500, 900); },
+    /* Statistik: Modul Matrixfaktor aufgeklappt (Knopf „Karten mit Faktor (n) ›", unten „▴ Einklappen") · die Vollbild-Ansicht */
+    stat354Mf:function(fw){ fw.eval('S.ui.statOffen={matrixfaktor:true}; S.ui.analyseZeitraum="14";'); fw.setTab('statistik');
+      var m=fw.document.querySelector('main'), z=fw.document.querySelector('[data-stmodul="matrixfaktor"]'); if(m && z) m.scrollTop+=z.getBoundingClientRect().top-340; },
+    mf354:function(fw){ fw.eval('S.ui.statOffen={matrixfaktor:true}; S.ui.analyseZeitraum="14"; (function(){ var ids={}, f=["werkzeug","zustand","ablenkung","werkzeug"], n=0; (S.intraday||[]).forEach(function(e){ if(e && e.kartenId && Number(e.minuten)>0) ids[e.kartenId]=1; });'+
+        ' Object.keys(ids).forEach(function(id){ var k=S.karten.find(function(x){ return x.id===id; }); if(k && n<4){ k.matrixFeld=f[n]; n++; } }); })();'); fw.setTab('statistik'); fw.oeffneMfAnsicht(); },
+    /* „▴ Einklappen" getippt: Modul zu, Kopf am oberen Rand unter der Statusleiste */
+    stat354Zu:function(fw){ fw.eval('S.ui.statOffen={matrixfaktor:true}; S.ui.analyseZeitraum="14";'); fw.setTab('statistik');
+      var d=fw.document, m=d.querySelector('main'), b=d.querySelector('[data-stmzu="matrixfaktor"]'); if(m && b){ m.scrollTop+=b.getBoundingClientRect().top-500; b.click(); } },
+    /* Kaufhinweis: das Konto reicht genau für den günstigsten Kauf — Shop (Stufen-Namen unkenntlich) und Statistik „Meilensteine" */
+    shop354:function(fw){ kauf354(fw); fw.eval('S.ui.malmodus=false;'); var b=fw.document.getElementById('btnFigur'); if(b) b.click(); fw.closeSheet();
+      fw.document.querySelectorAll('#belohnungBody .objakt, #belohnungBody .bw-st .tx').forEach(function(e){ e.textContent='· · ·'; }); },
+    stat354Shop:function(fw){ kauf354(fw); fw.eval('S.ui.statOffen={}; S.ui.analyseZeitraum="14";'); fw.setTab('statistik');
+      var m=fw.document.querySelector('main'), z=fw.document.querySelector('[data-stmodul="spielShop"]'); if(m && z) m.scrollTop+=z.getBoundingClientRect().top-340; },
+    /* Einstellungen: alle Abschnitte zu (Standard) · zwei Abschnitte und eine Routinen-Gruppe offen */
+    einst354:function(fw){ fw.eval('S.ui.einstOffen={};'); fw.setTab('einst'); },
+    einst354Auf:function(fw){ fw.eval('S.ui.einstOffen={"routinen-gruppen":true, "punkte-balance":true}; if(S.routinenGruppen && S.routinenGruppen[0]) S.ui.einstOffen["grp-"+S.routinenGruppen[0].id]=true;'); fw.setTab('einst'); },
+    /* Fokus oben (Navigation „◀ Verlauf · nächste ▶" statt „Zur Suche") · Der Tag ab den Ringen (DFM über Ziel) */
+    fokus354:function(fw){ status354(fw, 53, null, null); var lay=fw.document.getElementById('fokusLayer'); if(lay) lay.scrollTop=0; },
+    tag354:function(fw){ status354(fw, 53, 5600, 500);
+      var lay=fw.document.getElementById('fokusLayer'), b=fw.document.querySelector('#fokusView .dt-ringe'); if(lay && b) lay.scrollTop=Math.max(0, b.offsetTop-8); },
     /* ══ v3.5.3 · Ansichten: Fokus ab „Tempo und Blöcke" (darunter „Der Tag"), „Aktuelle Kette" mit Tagesketten-Chips, Statistik „Der Tag" ══ */
     fokus353:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.eval('S.fokus.startMs-=22*60000;'); fw.fokusLayerPflegen(); fw.renderFokusleiste(); fw.renderStatusbar(); fw.renderFokus();
@@ -2410,6 +2434,10 @@ function bestandSchreiben(){
   }
   function v30Vorbereiten(fw){ v28Vorbereiten(fw); fw.syncImport(JSON.stringify(v30Paket())); fw.setTab('suche'); fw.fokusKarteAnsehen('a-3'); }
   function v29Vorbereiten(fw){ v28Vorbereiten(fw); fw.syncImport(JSON.stringify(v29Paket(fw))); fw.setTab('suche'); }
+  function kauf354(fw){ fw.eval('belohnungInit(); (function(){ var p=preisFuer("soziales"); S.meta.muenzenGesamt=Number(S.meta.muenzenGesamt||0)+Math.round(p*1.03)-konto(); })();'); }
+  function status354(fw, min, dfm, privat){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+    fw.eval('(function(){ var k=S.karten.find(function(x){ return x.id==="k-lang"; }); S.fokus.startMs=Date.now()-Math.max(0, '+Math.round(min*60)+'-Number(k.istSek||0))*1000; })();'+(dfm!=null ? ' belIstDfm=function(){ return '+dfm+'; }; tagesPunkteDomain=function(d){ return d==="dfm" ? '+dfm+' : '+privat+'; };' : ''));
+    fw.fokusLayerPflegen(); fw.renderFokusleiste(); fw.renderStatusbar(); fw.renderFokus(); }
   function v28Vorbereiten(fw){ v27Vorbereiten(fw); fw.syncImport(JSON.stringify(v28Paket())); fw.setTab('suche'); }
   function v27Vorbereiten(fw){
     var d=fw.document;
