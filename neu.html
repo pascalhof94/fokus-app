@@ -2246,6 +2246,10 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .grpcard.es{padding:4px 10px}
 .es-inh{padding:8px 0 6px}
 .card.es.einst-kalib .anmod{margin:0}
+/* ══ 3.6.0 §5 · Objektbilder: eingefärbt je Stufe (Canvas), bis dahin unsichtbar ══ */
+img.objimg{transition:opacity .2s}
+img.objimg.laedt{opacity:0}
+.albitem img.objimg{background:radial-gradient(circle at 50% 40%,#2a3448,#15181e)}
 </style>
 </head>
 <body>
@@ -14440,15 +14444,84 @@ const VITAL_LABEL = { voll:'Vital', 'vital-plus':'Übervoll ⚡', 'vital-1':'Wac
    hängt jetzt an den ausgegebenen Münzen, nicht am Level. */
 /* B/Layer 1: Wohlstands-Leitern → Bildzonen des Dioramas. */
 const KAT_ZONE = { fahrzeuge:'car', wohnen:'home', reisen:'air', mobilitaet:'boat', beziehung:'pet', soziales:'friends' };   // §5 (v3.6.0): Rückfall-Bilder, solange obj-{kat}-{n}.png fehlt
-/* Bildstufe 1–5 einer Kategorie; 0 = nichts freigeschaltet → Objekt entfällt.
-   S.belohnung.stufen[kat] zählt die offenen Stufen und startet bei 1
-   („Stufe 1 = Schwelle 0" ist immer offen) — erst ab 2 ist wirklich etwas
-   erreicht, deshalb ist 1 hier gleichbedeutend mit „noch nichts". */
-function objBildStufe(kat){
-  const offen=num(S.belohnung && S.belohnung.stufen && S.belohnung.stufen[kat], 0);
-  if(offen<=1) return 0;
-  const max=Math.max(1, (BELOHNUNG[kat] && BELOHNUNG[kat].stufen ? BELOHNUNG[kat].stufen.length : 12));
-  return Math.max(1, Math.min(5, Math.ceil(offen/max*5)));
+/* ══ §5 (v3.6.0) · OBJEKTBILDER UND EINFÄRBUNG ══════════════════════════════════════════════
+   Bilddatei je Kategorie: img/obj-{kat}-{n}.png, n = ceil(Stufe ÷ 2) (ein Bild fuer zwei Stufen). Solange die neuen Bilder
+   fehlen, der Rückfall auf die alten Dateien (KAT_ZONE, Index = min(5, ceil(Stufe × 5 ÷ 12))): erst die neue Datei, bei
+   Fehler die alte. Jede Stufe wird per Canvas eingefärbt (das Original bleibt unverändert, das Ergebnis liegt je
+   Kategorie/Stufe im Speicher): t = (Stufe − 1) ÷ 11 · Farbton = farbton der Kategorie (Grad) · Sättigung = 0,06 + 0,90 × t^1,15 ·
+   Helligkeit je Pixel = lo + Luminanz × (hi − lo) ÷ max. Luminanz mit lo = 0,30 − 0,14 t, hi = 0,95 − 0,08 t · Mischung mit dem
+   Original 0,35 + 0,65 t · Alpha unverändert. Gilt überall, wo ein Objektbild erscheint (objBildHtml). */
+function objBildQuellen(kat, stufe){
+  stufe=Math.max(1, Math.min(12, Math.round(num(stufe,1))));
+  return ['img/obj-'+kat+'-'+Math.ceil(stufe/2)+'.png', 'img/obj-'+KAT_ZONE[kat]+Math.min(5, Math.ceil(stufe*5/12))+'.png'];
+}
+function objFarbParameter(stufe){
+  const t=(Math.max(1, Math.min(12, num(stufe,1)))-1)/11;
+  return { t, s:0.06+0.90*Math.pow(t, 1.15), lo:0.30-0.14*t, hi:0.95-0.08*t, misch:0.35+0.65*t };
+}
+function hslRgb(h, s, l){
+  h=((num(h)%360)+360)%360; s=Math.max(0, Math.min(1, s)); l=Math.max(0, Math.min(1, l));
+  const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2;
+  const q=h<60 ? [c,x,0] : h<120 ? [x,c,0] : h<180 ? [0,c,x] : h<240 ? [0,x,c] : h<300 ? [x,0,c] : [c,0,x];
+  return [(q[0]+m)*255, (q[1]+m)*255, (q[2]+m)*255];
+}
+function objLuminanz(r, g, b){ return (0.2126*r+0.7152*g+0.0722*b)/255; }
+/* ein Bildpunkt: Original (r, g, b) → eingefärbt; lumMax = hellster Punkt des Bildes */
+function objPixelFaerben(r, g, b, lumMax, P, farbton){
+  const L=P.lo+objLuminanz(r, g, b)*(P.hi-P.lo)/Math.max(1e-6, lumMax), c=hslRgb(farbton, P.s, L);
+  return [Math.round(r+(c[0]-r)*P.misch), Math.round(g+(c[1]-g)*P.misch), Math.round(b+(c[2]-b)*P.misch)];
+}
+const OBJ_LEER='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+const OBJ_KANTE=384;
+let _objBild={}, _objLaedt={}, _objFehlt={};
+function objBildSchluessel(kat, stufe){ return kat+'|'+Math.max(1, Math.min(12, Math.round(num(stufe,1)))); }
+/* <img> eines Objekts in der Farbe seiner Stufe; liegt das Ergebnis schon im Speicher, steht es sofort da */
+function objBildHtml(kat, stufe, klasse){
+  const key=objBildSchluessel(kat, stufe), u=_objBild[key];
+  return '<img class="objimg'+(klasse?' '+klasse:'')+(u?'':' laedt')+'" data-objbild="'+key+'" src="'+(u||OBJ_LEER)+'" alt="" draggable="false">';
+}
+/* Canvas-Einfärbung eines geladenen Bildes → fertiger Canvas */
+function objBildFaerben(bild, kat, stufe){
+  const bw=bild.naturalWidth||bild.width, bh=bild.naturalHeight||bild.height, k=Math.min(1, OBJ_KANTE/Math.max(1, bw, bh));
+  const cv=document.createElement('canvas'); cv.width=Math.max(1, Math.round(bw*k)); cv.height=Math.max(1, Math.round(bh*k));
+  const ctx=cv.getContext('2d'); ctx.drawImage(bild, 0, 0, cv.width, cv.height);
+  const id=ctx.getImageData(0, 0, cv.width, cv.height), d=id.data, P=objFarbParameter(stufe), farbton=num(BELOHNUNG[kat] && BELOHNUNG[kat].farbton);
+  let lumMax=0; for(let i=0;i<d.length;i+=4){ if(d[i+3]>8){ const l=objLuminanz(d[i], d[i+1], d[i+2]); if(l>lumMax) lumMax=l; } }
+  for(let i=0;i<d.length;i+=4){ if(!d[i+3]) continue; const c=objPixelFaerben(d[i], d[i+1], d[i+2], lumMax, P, farbton); d[i]=c[0]; d[i+1]=c[1]; d[i+2]=c[2]; }
+  ctx.putImageData(id, 0, 0);
+  return cv;
+}
+function objBilderSetzen(key){
+  try{ document.querySelectorAll('img[data-objbild="'+key+'"]').forEach(im=>{ if(_objBild[key] && im.getAttribute('src')!==_objBild[key]){ im.src=_objBild[key]; im.classList.remove('laedt'); } }); }catch(e){}
+}
+/* ein Objektbild laden: Quellen der Reihe nach versuchen, einfärben, im Speicher ablegen */
+function objBildLaden(key){
+  if(_objBild[key] || _objLaedt[key] || typeof Image==='undefined') return;
+  const teil=key.split('|'), kat=teil[0], stufe=num(teil[1]), q=objBildQuellen(kat, stufe).filter(u=>!_objFehlt[u]);
+  if(!q.length) return;
+  _objLaedt[key]=true; let i=0; const bild=new Image();
+  const fertig=url=>{ _objBild[key]=url; delete _objLaedt[key]; objBilderSetzen(key); };
+  bild.onload=()=>{
+    let cv=null; try{ cv=objBildFaerben(bild, kat, stufe); }catch(e){ cv=null; }
+    if(!cv){ fertig(q[i]); return; }                                   // ohne Canvas: das Original statt gar kein Bild
+    if(cv.toBlob && typeof URL!=='undefined' && URL.createObjectURL){ try{ cv.toBlob(b=>{ fertig(b ? URL.createObjectURL(b) : q[i]); }, 'image/png'); return; }catch(e){} }
+    try{ fertig(cv.toDataURL('image/png')); }catch(e){ fertig(q[i]); }
+  };
+  bild.onerror=()=>{ _objFehlt[q[i]]=true; i++; if(i<q.length) bild.src=q[i]; else delete _objLaedt[key]; };   // neue Datei fehlt → alte Datei
+  bild.src=q[0];
+}
+/* alle Objektbilder im Dokument versorgen (nach jedem Zeichnen; der Beobachter unten ruft es von selbst) */
+function objBilderLaden(){
+  if(typeof document==='undefined' || !document.querySelectorAll) return;
+  try{ document.querySelectorAll('img[data-objbild]').forEach(im=>{ const key=im.dataset.objbild; if(!key) return;
+    if(_objBild[key]){ if(im.getAttribute('src')!==_objBild[key]){ im.src=_objBild[key]; im.classList.remove('laedt'); } } else objBildLaden(key); }); }catch(e){}
+}
+let _objBeobachtet=false;
+function objBilderBeobachten(){
+  if(_objBeobachtet || typeof MutationObserver==='undefined' || !document.body) return; _objBeobachtet=true;
+  let wartet=false;
+  new MutationObserver(()=>{ if(wartet) return; wartet=true; requestAnimationFrame(()=>{ wartet=false; objBilderLaden(); }); }).observe(document.body, { childList:true, subtree:true });
+  objBilderLaden();
 }
 /* U4 (v1.4.0): Bild kommt aus dem Level-Slot-Mapping (avatarAssets → 20 Slots).
    v1.4.1: auch der müde Zustand nutzt das freigestellte PNG — das alte
@@ -14833,20 +14906,14 @@ function renderAlbum(){
       }
     }
     KAT_KEYS.forEach(kat=>{
-      const zone=KAT_ZONE[kat], bs=objBildStufe(kat);
-      for(let i=1;i<=5;i++){
-        const frei=bs>=i;
-        // Name/Datum nur für Freigeschaltetes — gesperrte Stufen bleiben ???
-        let name='???', datum=null;
-        if(frei){
-          const kauf=(S.belohnung.kaeufe||[]).filter(x=>x.kat===kat);
-          const k=kauf.length?kauf[Math.min(kauf.length-1, Math.ceil(i/5*kauf.length)-1)]:null;
-          name=BELOHNUNG[kat].icon+' '+BELOHNUNG[kat].name; datum=k?k.datum:null;
-        }
-        h+='<div class="albitem'+(frei?'':' zu')+'"'+(frei?' data-albbild="img/obj-'+zone+i+'.png" data-albname="'+esc(BELOHNUNG[kat].name)+' · Stufe '+i+'"':'')+'>'+
-          '<img src="img/obj-'+zone+i+'.png" alt="" loading="lazy">'+
-          '<div class="albn">'+(frei?esc(name):'???')+'</div>'+
-          '<div class="albs">'+(frei?(datum?fmtDatum(datum):'freigeschaltet'):'über den Shop')+'</div></div>';
+      const gek=stufenGekauft(kat), kaeufe=(S.belohnung.kaeufe||[]).filter(x=>x.kat===kat);
+      for(let n=1;n<=6;n++){
+        const erste=2*n-1, frei=gek>=erste, stufe=frei ? Math.min(gek, 2*n) : erste;
+        // Datum nur für Gekauftes — alles andere bleibt ???
+        const kauf=frei ? kaeufe.filter(x=>num(x.stufe)===stufe)[0] : null;
+        h+='<div class="albitem'+(frei?'':' zu')+'">'+objBildHtml(kat, stufe)+
+          '<div class="albn">'+(frei?esc(BELOHNUNG[kat].icon+' '+BELOHNUNG[kat].name)+' · Stufe '+stufe:'???')+'</div>'+
+          '<div class="albs">'+(frei?(kauf && kauf.datum?fmtDatum(kauf.datum):'gekauft'):'über den Shop')+'</div></div>';
       }
     });
   }
@@ -15954,7 +16021,7 @@ function belShopHtml(){
   return KAT_KEYS.map(kk=>{
     const kat=BELOHNUNG[kk], offen=Math.max(0,num(S.belohnung.stufen[kk])), max=kat.stufen.length;
     const sperre=kaufSperre(kk), preis=preisFuer(kk), zone=KAT_ZONE[kk];
-    const bildFuer=s=>zone ? '<img src="img/obj-'+zone+Math.max(1,Math.min(5,Math.ceil(s/max*5)))+'.png" alt="" loading="lazy" decoding="async" onerror="this.replaceWith(document.createTextNode(\''+kat.icon+'\'))">' : kat.icon;
+    const bildFuer=s=>objBildHtml(kk, s);   // §5 (v3.6.0): eingefärbt nach Stufe
     let naechste;
     if(sperre==='komplett') naechste='<div class="bw-st fertig"><span class="sym">🏁</span><span class="tx">Alle zwölf Stufen gekauft</span></div>';
     else {
@@ -16453,6 +16520,7 @@ function renderBelohnung(){
   try{ h=S.ui.malmodus ? belMalmodusHtml() : belUebersichtHtml(); }catch(e){ h='<div class="an-leer">Shop nicht verfügbar</div>'; }
   el('belohnungBody').innerHTML=h;
   try{ ausmalBilder(ausmalState().kulisse); ausmalCanvasZeichnen(); if(S.ui.malmodus) malZoomBinden(); }catch(e){}
+  objBilderLaden();   // §5 (v3.6.0)
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -20358,6 +20426,7 @@ el('analyseOverlay').addEventListener('change', e=>{
    ══════════════════════════════════════════════════════════════════════ */
 function init(){
   ladeAlles();
+  try{ objBilderBeobachten(); }catch(e){}   // §5 (v3.6.0): Objektbilder überall einfärben, wo sie erscheinen
   S.unteraufgaben = DB.get('unteraufgaben', []);
   baueSuchIndex();   // A10: In-Memory-Suchindex bei App-Start
   // §4 (v2.1.1): Die Suche beginnt LEER. Ein gespeicherter Begriff aus der
