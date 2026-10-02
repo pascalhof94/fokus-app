@@ -92,7 +92,6 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #statusbar .sb-bar .prog{position:absolute;top:0;bottom:0;opacity:.3}   /* §3.2 (v3.5.0): Prognose bis Tagesende je Familie */
 #statusbar .sb-bar .soll{position:absolute;top:0;bottom:0;background:rgba(246,109,109,.55)}
 #statusbar .sb-bar .sollmark{position:absolute;top:-1px;bottom:-1px;width:2px;background:repeating-linear-gradient(180deg,#e8e9ec 0 2px,transparent 2px 4px);z-index:3}   /* §1.5 (v3.5.0): WEISS gepunktet */
-#statusbar .sb-bar .ueber{position:absolute;top:0;bottom:0;right:0;width:0;background:#FF2D95;z-index:2}   /* §1.4 (v3.3.0): UEBER */
 #statusbar .sb-kleiste{display:block;height:6px;border-radius:3px;background:#1a1c20;margin:2px 3px 1px;overflow:hidden}   /* §1.2 (v3.3.0) */
 #statusbar .sb-kleiste i{display:block;height:100%;width:0}
 .ts-skala{display:block;position:relative;height:5px;border-radius:3px;background:#1a1c20;margin:4px 3px 1px}   /* §1.1 (v3.3.0) */
@@ -2219,6 +2218,12 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .kl-chip{flex:none;height:44px;padding:0;border:0;background:none;display:flex;align-items:center;font:inherit;cursor:pointer}
 .kl-chip span{display:block;height:32px;line-height:30px;padding:0 12px;border-radius:16px;background:#23262d;border:1px solid #2a2d33;color:#e8e9ec;font-size:12.5px;font-weight:650;white-space:nowrap;box-sizing:border-box}
 .kl-chip.on span{border-color:#fff}
+/* ══ 3.5.4 §1 · Statusleiste: Grenze GRUEN auf der erreichten Seite, rote Ueberschuss-Strecke (Draft Nr. 1) ══ */
+#statusbar .sb-bar .sollmark.okL{width:3px;margin-left:-.5px;background:linear-gradient(90deg,#3ecf8e 0 50%,transparent 50%)}
+#statusbar .sb-bar .sollmark.okR{width:3px;margin-left:-.5px;background:linear-gradient(90deg,transparent 50%,#3ecf8e 50%)}
+#statusbar .sb-bar .sollmark.okL.okR{background:#3ecf8e}
+#statusbar .sb-bar .rot{position:absolute;top:0;bottom:0;display:none;z-index:2}
+#statusbar .sb-bar .zahl.s b.rp{border:0;background:none;padding:0;text-shadow:0 0 3px #000,0 1px 1px #000}
 </style>
 </head>
 <body>
@@ -2231,7 +2236,7 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
     <div class="sl-kr" id="fkSub" hidden><div class="uhr timer" id="fkTimer">0:00</div><div class="kp ppm" id="fkPts"></div></div>
   </div>
   <div id="statusbar" hidden>
-    <div class="sb-bar" id="sBar"><span class="ist dfm prog" id="sBarProgD"></span><span class="ist privat prog" id="sBarProgP"></span><span class="ist dfm" id="sBarIstD"></span><span class="ist privat" id="sBarIstP"></span><span class="live dfm" id="sBarLiveD"></span><span class="live privat" id="sBarLiveP"></span><span class="ueber" id="sBarUeber"></span><span id="sBarMarks"></span><span class="sollmark" id="sBarSollMark"></span><span class="zahl d" id="sBarZD"></span><span class="zahl p" id="sBarZP"></span><span class="zahl s" id="sBarZS"><b id="sPhSoll"></b></span></div>
+    <div class="sb-bar" id="sBar"><span class="ist dfm prog" id="sBarProgD"></span><span class="ist privat prog" id="sBarProgP"></span><span class="ist dfm" id="sBarIstD"></span><span class="ist privat" id="sBarIstP"></span><span class="live dfm" id="sBarLiveD"></span><span class="live privat" id="sBarLiveP"></span><span class="rot" id="sBarRot"></span><span id="sBarMarks"></span><span class="sollmark" id="sBarSollMark"></span><span class="zahl d" id="sBarZD"></span><span class="zahl p" id="sBarZP"></span><span class="zahl s" id="sBarZS"><b id="sPhSoll"></b></span></div>
     <!-- §1 (v3.5.2): Zeile 3 — Akku · Wohlstand · Münzen · Töpfe untereinander | Mini-Kurve mit Gesamtpunkten und P/h, darunter Pace-Leiste + Trendpfeil | Matrix 72×72 -->
     <div class="sl-z3">
       <div class="sb-cell konto" id="sZKonto"><div class="ka" id="sZAkku"><i><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M6.2 0 L1.4 5.7 H4.5 L3.6 10 L8.6 4.1 H5.4 Z" fill="currentColor"/></svg></i><b class="w">– %</b></div><div class="kw"><i></i><span id="sKW">0</span></div><div class="km"><i></i><span id="sKM">0</span></div><div class="kf"><i></i><span id="sKF">0</span><small>/5</small></div></div>
@@ -7057,6 +7062,18 @@ function setzeKopf(dot, halo, frac, farbe){
   halo.setAttribute('cx',x); halo.setAttribute('cy',y); halo.setAttribute('opacity','.5'); halo.setAttribute('fill',farbe);
 }
 function uhrKurz(sek){ sek=Math.max(0, Math.round(sek)); return sek<3600 ? mmss(sek) : hms(sek); }
+/* ══ §1 (v3.5.4) · UHR DER STATUSLEISTE = RESTZEIT DER KARTE ══════════════
+   Soll − Ist, immer mit Vorzeichen: offen „−12:30" GRUEN · ueberzogen „+03:10" bis 20 % des Solls GELB, darueber ROT.
+   Karten ohne Soll (Routinen, Counter): abgelaufene Zeit ohne Vorzeichen in WEISS. */
+function uhrZwei(sek){ sek=Math.max(0, Math.round(sek)); const h=Math.floor(sek/3600), m=Math.floor(sek%3600/60);
+  return (h>0 ? h+':' : '')+String(m).padStart(2,'0')+':'+String(sek%60).padStart(2,'0'); }
+function restzeitAnzeige(sollMin, istSek){
+  const soll=Math.max(0, num(sollMin))*60, ist=Math.max(0, num(istSek));
+  if(!(soll>0)) return { art:'ohne', text:uhrKurz(ist), farbe:FARBE.WEISS };
+  const rest=Math.round(soll-ist);
+  if(rest>=0) return { art:'offen', text:'−'+uhrZwei(rest), farbe:FARBE.GRUEN };
+  return -rest<=0.2*soll ? { art:'ueber', text:'+'+uhrZwei(-rest), farbe:FARBE.GELB } : { art:'weitUeber', text:'+'+uhrZwei(-rest), farbe:FARBE.ROT };
+}
 function fokusTacho(k){
   // §6 (v2.0.0): Es gibt keinen Fokus-TAB mehr — die laufende Karte ist ein Layer ueber der Suche.
   const lay=el('fokusLayer'); if(lay && lay.hidden) return;
@@ -7416,7 +7433,7 @@ function renderFokusleiste(){
     el('fkTitle').textContent=k.titel||'(ohne Titel)';
     el('fkTitle').classList.remove('idle');
     el('fkSub').hidden=false;
-    el('fkTimer').textContent=mmss(istSekLive(k));
+    { const rz=restzeitAnzeige(k.sollMin, istSekLive(k)), t=el('fkTimer'); t.textContent=rz.text; t.style.color=rz.farbe; }   // §1 (v3.5.4): Restzeit mit Vorzeichen und Ampel
     el('fkPts').textContent='+'+fmtP(kartePunkte(k));
     el('fkPts').style.color=famHell(k);
   } else {
@@ -7887,6 +7904,18 @@ function statusLivePunkte(g){
     o.privat=Math.max(0, g.privat-ohneLaufendeUhr(()=>Math.max(0, tagesPunkteDomain('privat')))); }catch(e){}
   return o;
 }
+/* ══ §1 (v3.5.4) · PUNKTELEISTE: Familienziel, Wachsen ueber die Grenze, rote Ueberschuss-Strecke ══════════
+   Skala = Gesamtziel. DFM waechst von links, Privat von rechts; die Grenze steht fest beim DFM-Ziel.
+   Familienziel erreicht → Grenze auf dieser Seite GRUEN und „✓" vor der Zahl. Ueber dem Gesamtziel ueberlappen DFM und
+   Privat genau um den Ueberschuss: die Strecke [Gesamtziel − Privat … DFM] wird ROT, darauf mittig „+Ueberschuss";
+   die Soll-Pille entfaellt dann. UEBER gibt es in der Punkteleiste nicht mehr. (Alle Laengen in Punkten.) */
+function punkteleisteTeile(e){
+  const Z=Math.max(1, num(e.ziel)), d=Math.max(0, num(e.dfm)), p=Math.max(0, num(e.privat)), zD=Math.max(0, num(e.zielDfm)), zP=Math.max(0, num(e.zielPrivat));
+  const ueber=Math.max(0, d+p-Z), rotVon=Math.max(0, Z-p), rotBis=Math.min(Z, d);
+  return { ziel:Z, dfm:Math.min(d, Z), privat:Math.min(p, Z), grenze:Math.min(Z, zD), dOk:zD>0 && d>=zD, pOk:zP>0 && p>=zP,
+    ueber, rotVon:ueber>0 ? rotVon : null, rotBis:ueber>0 ? rotBis : null,
+    mitte: ueber>0 ? (rotVon+rotBis)/2 : (Math.min(d, Z)+(Z-Math.min(p, Z)))/2 };
+}
 function renderStatusbar(){
   renderAmpelKurve();
   const bar=el('statusbar'); if(!bar) return;
@@ -7897,7 +7926,7 @@ function renderStatusbar(){
   const istHeute=punkteHeuteAnzeige();
   const k=(S.belohnung?konto():0);
   // Punkteleiste: Breite = Tagesziel. DFM von links, Privat von rechts (Verlauf hell → voll), Prognose je Familie 28 %,
-  // Ziel-Grenze WEISS gepunktet, Viertel GRAU 40 %, Kauf-Schwellen GOLD 2 px, ueber Ziel UEBER.
+  // Ziel-Grenze WEISS gepunktet (erreichte Seite GRUEN), Viertel GRAU 40 %, Kauf-Schwellen GOLD 2 px, Ueberschuss-Strecke ROT.
   const g=diaGroessen();
   const istWe=istWochenendTag(heuteApp());
   const zielGes=g.zielHeute, pDfm=g.dfm, pPriv=g.privat;
@@ -7915,9 +7944,10 @@ function renderStatusbar(){
     const pd=el('sBarProgD'), pp=el('sBarProgP');
     if(pd){ pd.style.left=pctZ(pDfm); pd.style.width=pctZ(progD); }
     if(pp){ pp.style.left='auto'; pp.style.right=pctZ(pPriv); pp.style.width=pctZ(progP); } }
-  { const x=Math.max(0, Math.min(zielGes, g.zielDfm+Math.max(0, pDfm-g.zielDfm)-Math.max(0, pPriv-g.zielPrivat)));
-    const mk=el('sBarSollMark'); mk.style.left=pctZ(x); mk.style.display='block'; }
-  el('sBarUeber').style.width=pctZ(Math.max(0, pDfm+pPriv-zielGes));
+  const PL=punkteleisteTeile({ ziel:zielGes, dfm:pDfm, privat:pPriv, zielDfm:g.zielDfm, zielPrivat:g.zielPrivat });
+  { const mk=el('sBarSollMark'); mk.style.left=pctZ(PL.grenze); mk.style.display='block'; mk.className='sollmark'+(PL.dOk?' okL':'')+(PL.pOk?' okR':''); }
+  { const r=el('sBarRot'); if(r){ r.style.display=PL.ueber>0 ? 'block' : 'none'; r.style.background=FARBE.ROT;
+      if(PL.ueber>0){ r.style.left=pctZ(PL.rotVon); r.style.width=Math.max(0, pz(PL.rotBis)-pz(PL.rotVon)).toFixed(1)+'%'; } } }
   let marks='<span class="qmark" style="left:25%"></span><span class="qmark" style="left:50%"></span><span class="qmark" style="left:75%"></span>';
   if(S.belohnung){
     const bankOhneHeute=k-istHeute; let kum=0;
@@ -7928,10 +7958,11 @@ function renderStatusbar(){
   }
   el('sBarMarks').innerHTML=marks;
   // Zahlen IN der Leiste: DFM links, Privat rechts, Soll jetzt als Pille mittig auf der freien Strecke
-  { const sollTxt=urlaubHeute() ? '🏖' : (istWe ? 'WE' : fmtP(Math.round(sollStandGesamt()))), dTxt=fmtP(Math.round(pDfm)), pTxt=fmtP(Math.round(pPriv));
+  // §1 (v3.5.4): „✓" vor der Zahl der Familie, die ihr Ziel erreicht hat; ueber dem Gesamtziel steht statt der Soll-Pille „+Ueberschuss" auf der roten Strecke
+  { const sollTxt=PL.ueber>0 ? '+'+fmtP(Math.round(PL.ueber)) : (urlaubHeute() ? '🏖' : (istWe ? 'WE' : fmtP(Math.round(sollStandGesamt())))), dTxt=(PL.dOk?'✓ ':'')+fmtP(Math.round(pDfm)), pTxt=(PL.pOk?'✓ ':'')+fmtP(Math.round(pPriv));
     const zd=el('sBarZD'), zp=el('sBarZP'), zs=el('sBarZS');
-    el('sPhSoll').textContent=sollTxt; zd.textContent=dTxt; zp.textContent=pTxt;
-    const mitte=(pz(pDfm)+(100-pz(pPriv)))/2; zs.style.left=mitte.toFixed(1)+'%';
+    el('sPhSoll').textContent=sollTxt; el('sPhSoll').className=PL.ueber>0 ? 'rp' : ''; zd.textContent=dTxt; zp.textContent=pTxt;
+    const mitte=pz(PL.mitte); zs.style.left=mitte.toFixed(1)+'%';
     // Kollisionsregel: reicht der Platz nicht, entfaellt zuerst die Privatzahl, dann die DFM-Zahl — die Soll-Zahl bleibt immer
     const W=num(el('sBar') && el('sBar').offsetWidth), brt=t=>String(t).length*7+14;
     let zeigD=true, zeigP=true;
