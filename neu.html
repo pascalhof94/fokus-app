@@ -2250,6 +2250,30 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 img.objimg{transition:opacity .2s}
 img.objimg.laedt{opacity:0}
 .albitem img.objimg{background:radial-gradient(circle at 50% 40%,#2a3448,#15181e)}
+/* ══ 3.6.0 §6 · Shop-Feld · Was heute noch geht · Kauf-Belohnung (Mockup Nr. 1, 2, 4) ══ */
+.objbild.blass img{opacity:.45}
+.objinfo b.w{color:#e8e9ec;font-weight:650}
+.objinfo .nx{font-size:12.5px;font-weight:650;margin-top:8px;color:#e8e9ec;overflow-wrap:anywhere}
+.objinfo .skala .bw-sperre{color:#FF9F0A}
+.bw-st .sym img.objimg{width:28px;height:28px;object-fit:contain}
+.kch.hg .s{overflow-wrap:anywhere}
+.hg-satz{font-size:12.5px;color:#c9cbd0;margin-top:8px;line-height:1.45}
+.bel-ansicht.kauf{background:radial-gradient(circle at 50% 22%,#2a2410,#000 62%)}
+.bel-ansicht .kb{text-align:center}
+.bel-ansicht .kb-kopf{font-size:12px;color:#d4af37;font-weight:700;letter-spacing:.3px;margin-top:6px}
+.bel-ansicht .kb-bild{position:relative;width:200px;height:170px;margin:8px auto}
+.bel-ansicht .kb-bild img{position:relative;z-index:2;width:100%;height:100%;object-fit:contain}
+.bel-ansicht .kb-bild .glow{position:absolute;inset:10%;border-radius:50%;background:radial-gradient(circle,rgba(212,175,55,.45),transparent 70%);z-index:1;animation:kbGlow 2.4s ease-in-out infinite}
+@keyframes kbGlow{0%,100%{opacity:.6;transform:scale(.94)}50%{opacity:1;transform:scale(1.06)}}
+.bel-ansicht .kb-name{font-size:22px;font-weight:800;margin-bottom:10px;overflow-wrap:anywhere}
+.bel-ansicht .kb .g2{margin-bottom:8px;text-align:left}
+.bel-ansicht .kb .t b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.bel-ansicht .kb .t span{display:block;font-size:11px;line-height:1.35;color:#9a9ca2;margin-top:2px}
+.bel-ansicht .kb-gl{text-align:left;font-size:11.5px;color:#9a9ca2;margin-bottom:8px}
+.bel-ansicht .kb-gl .gl{display:flex;align-items:flex-end;gap:6px;height:44px;margin:6px 0}
+.bel-ansicht .kb-gl .gl i{flex:1;border-radius:3px 3px 0 0}
+.bel-ansicht .kb-gl .gls{color:#c9cbd0}
+.bel-ansicht .kb-weiter{background:linear-gradient(180deg,#f3dc8a,#d4af37);color:#2a1f00;font-weight:800}
 </style>
 </head>
 <body>
@@ -2265,7 +2289,7 @@ img.objimg.laedt{opacity:0}
     <div class="sb-bar" id="sBar"><span class="ist dfm prog" id="sBarProgD"></span><span class="ist privat prog" id="sBarProgP"></span><span class="ist dfm" id="sBarIstD"></span><span class="ist privat" id="sBarIstP"></span><span class="live dfm" id="sBarLiveD"></span><span class="live privat" id="sBarLiveP"></span><span class="rot" id="sBarRot"></span><span id="sBarMarks"></span><span class="sollmark" id="sBarSollMark"></span><span class="zahl d" id="sBarZD"></span><span class="zahl p" id="sBarZP"></span><span class="zahl s" id="sBarZS"><b id="sPhSoll"></b></span></div>
     <!-- §1 (v3.5.2): Zeile 3 — Akku · Wohlstand · Münzen · Töpfe untereinander | Mini-Kurve mit Gesamtpunkten und P/h, darunter Pace-Leiste + Trendpfeil | Matrix 72×72 -->
     <div class="sl-z3">
-      <div class="sb-cell konto" id="sZKonto"><div class="ka" id="sZAkku"><i><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M6.2 0 L1.4 5.7 H4.5 L3.6 10 L8.6 4.1 H5.4 Z" fill="currentColor"/></svg></i><b class="w">– %</b></div><div class="kw"><i></i><span id="sKW">0</span></div><div class="km"><i></i><span id="sKM">0</span></div><div class="kf"><i></i><span id="sKF">0</span><small>/5</small></div></div>
+      <div class="sb-cell konto" id="sZKonto"><div class="ka" id="sZAkku"><i><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M6.2 0 L1.4 5.7 H4.5 L3.6 10 L8.6 4.1 H5.4 Z" fill="currentColor"/></svg></i><b class="w">– %</b></div><div class="kw" title="Farbe" aria-label="Farbe"><i></i><span id="sKW">0</span></div><div class="km" title="Münzen" aria-label="Münzen"><i></i><span id="sKM">0</span></div><div class="kf" title="Volle Farbtöpfe" aria-label="Volle Farbtöpfe"><i></i><span id="sKF">0</span><small>/5</small></div></div>
       <div class="sl-mitte">
         <button class="sb-cell punkte tb-kurve grau" id="btnKurve" aria-label="Tagesverlauf — Punkte gegen Soll"><span class="sl-kurve" id="sKurve"></span><span class="gesamt" id="fkRight"></span><span class="tempo" id="sTempo"></span></button>
         <div class="sl-pace" id="sZTempo" aria-hidden="true"></div>
@@ -2641,7 +2665,7 @@ const DEFAULT_SETTINGS = {
   reflexionsFragen: ['Wie war der Tag in einem Wort?','Was hat Energie gegeben?','Was hat Energie gekostet?'],
   tagesStruktur: [],           // Standardbloecke [{name, minMin, maxMin, typ}] — Claude plant damit, die App zeigt sie
   statistik: {
-    reihenfolge: ['tag','matrixHeute','heuteKurz','leistung','konsistenz','matrixfaktor','readiness','flow','routinen','acwr','spielShop'],   // §5 (v3.5.0)
+    reihenfolge: ['tag','matrixHeute','heuteKurz','leistung','konsistenz','matrixfaktor','readiness','flow','routinen','acwr','heuteGeht','spielShop'],   // §5 (v3.5.0) · §6 (v3.6.0): „Was heute noch geht"
     ausgeblendet: [],
     zeitfenster: 7,            // Detailanalyse: 7 · 14 · 30 Tage
     typischerTag: { tage:28, ampelTage:14, methode:'mittel', weGetrennt:true },
@@ -2708,9 +2732,9 @@ const FELDER4=['werkzeug','ziel','zustand','ablenkung'];
 /* §5 (v3.5.0): 13 Module in fuenf Gruppen — Heute · Leistung & Rhythmus · Aufgaben & Routinen · Belastung · Spiel & Shop */
 const STAT_MODULE=[['tag','Der Tag'],['matrixHeute','Matrix heute'],['heuteKurz','Flow und Belastung heute'],
   ['leistung','Leistung'],['konsistenz','Konsistenz'],['matrixfaktor','Matrixfaktor'],['readiness','Readiness'],
-  ['flow','Aufgaben-Flow'],['routinen','Routinen-Flow'],['acwr','Belastungssteuerung'],['spielShop','Spiel & Shop']];
+  ['flow','Aufgaben-Flow'],['routinen','Routinen-Flow'],['acwr','Belastungssteuerung'],['heuteGeht','Was heute noch geht'],['spielShop','Spiel & Shop']];
 const STAT_DETAIL=[];   // §5.5: die Detailanalyse ist in den Modulen aufgegangen
-const STAT_GRUPPE={ tag:1, matrixHeute:1, heuteKurz:1, leistung:2, konsistenz:2, matrixfaktor:2, readiness:2, flow:3, routinen:3, acwr:4, spielShop:5 };
+const STAT_GRUPPE={ tag:1, matrixHeute:1, heuteKurz:1, leistung:2, konsistenz:2, matrixfaktor:2, readiness:2, flow:3, routinen:3, acwr:4, heuteGeht:5, spielShop:5 };
 const STAT_GRUPPE_NAME={ 1:'Heute', 2:'Leistung & Rhythmus', 3:'Aufgaben & Routinen', 4:'Belastung', 5:'Spiel & Shop' };
 const Z=(p,o)=>Object.assign({p, t:'zahl'}, o||{});
 const EINST_SCHEMA={
@@ -14393,6 +14417,19 @@ function kaufSperre(kat){
   if(gl) return 'erst '+BELOHNUNG[gl].name+' nachziehen';
   return null;
 }
+/* §6/§7 (v3.6.0): Fokuszeit zwischen zwei Zeitpunkten = Summe der gebuchten Minuten aller Karten (Uhr, Nachtrag und die
+   Belegzeit der Ticks); „seit dem letzten Kauf" zählt ab dessen Zeitstempel, beim ersten Kauf ab dem Start von 3.6.0 */
+function fokusMinSeit(tsVon, tsBis){
+  const a=tsVon ? Date.parse(tsVon) : -Infinity, b=tsBis ? Date.parse(tsBis) : Infinity; let m=0;
+  (S.intraday||[]).forEach(e=>{ if(!e || !e.ts) return; const t=Date.parse(e.ts); if(!(t>a && t<=b)) return;
+    m+=Math.max(0, num(e.minuten))+Math.max(0, num(e.tickMin)); });
+  return Math.round(m*10)/10;
+}
+function letzterKaufTs(){
+  const l=(S.belohnung && S.belohnung.kaeufe)||[];
+  for(let i=l.length-1;i>=0;i--) if(l[i] && l[i].ts) return l[i].ts;
+  return (S.meta && S.meta.shop360 && S.meta.shop360.ts) || null;
+}
 function kaufen(kat){
   const idx=stufenGekauft(kat);
   const stufe=stufeVon(kat, idx+1);
@@ -14401,7 +14438,8 @@ function kaufen(kat){
   if(konto()<preis){ toast('Noch '+Math.round(preis-konto())+' P bis zum Freischalten'); return false; }
   S.belohnung.stufen[kat]=idx+1;
   S.belohnung.ausgegeben=(S.belohnung.ausgegeben||0)+preis;   // Altfeld läuft mit (Backup/Kompatibilität)
-  S.belohnung.kaeufe.push({ kat, stufe:idx+1, name:stufe.name, datum:heuteApp(), preis, ts:jetztIso() });   // §7 (v3.6.0): ts additiv
+  const fokusMin=fokusMinSeit(letzterKaufTs(), null);
+  S.belohnung.kaeufe.push({ kat, stufe:idx+1, name:stufe.name, datum:heuteApp(), preis, ts:jetztIso(), fokusMin });   // §7 (v3.6.0): ts und fokusMin additiv
   // §2.2 (v1.9.0): Kauf kostet Konto, nicht Biografie — er ERHÖHT sie.
   S.meta.ausgegebenGesamt=num(S.meta.ausgegebenGesamt)+preis;
   // §4.3 (v1.13.0): Ein Kauf hebt den UPGRADE-FAKTOR (+2 %) — die Belohnung
@@ -14414,11 +14452,54 @@ function kaufen(kat){
 
   saveMeta();
   saveBelohnung(); konfetti(); haptik(25);
-  toast('🎉 Freigeschaltet: '+BELOHNUNG[kat].icon+' '+stufe.name);
   // §6.1 (v3.5.0): die Kulisse haengt nicht mehr an ausgegebenen Muenzen (Wohlstand → Farbe und Kulisse)
   renderBelohnung();
   momentRangCheck();
+  try{ kaufBelohnungZeigen(kaufBelohnungDaten(kat, idx+1, preis, fokusMin)); }catch(e){}   // §6 (v3.6.0): Belohnungsansicht nach jedem Kauf
   return true;
+}
+/* ══ §6 (v3.6.0) · KAUF-BELOHNUNG ═══════════════════════════════════════════════════════════
+   Nach jedem Kauf, Schritte animiert und überspringbar wie die Karten-Belohnung: eingefärbtes Objekt mit Leuchten · Name ·
+   Fokuszeit seit dem letzten Kauf · Münzen abgezogen und Rest · Stufenstand · was der Kauf freischaltet bzw. welche
+   Voraussetzung als Nächstes fehlt · Gleichgewicht der sechs Kategorien als Säulen · „Weiter". */
+function stdMinText(min){ min=Math.max(0, Math.round(num(min))); const h=Math.floor(min/60), m=min%60; return h>0 ? h+' Std '+m+' Min' : m+' Min'; }
+function kaufBelohnungDaten(kat, stufe, preis, fokusMin){
+  const frei=[];   // Stufen anderer Kategorien, die genau dieser Kauf freischaltet (ihre nächste Stufe, alle Voraussetzungen jetzt erfüllt)
+  KAT_KEYS.forEach(k2=>{ if(k2===kat) return; const nx=stufenGekauft(k2)+1, st=stufeVon(k2, nx);
+    if(st && (st.braucht||[]).some(r=>r[0]===kat && num(r[1])===stufe) && (st.braucht||[]).every(r=>stufenGekauft(r[0])>=num(r[1]))) frei.push({ kat:k2, stufe:nx }); });
+  const sperre=kaufSperre(kat), fs=KAT_KEYS.map(k=>({ kat:k, f:zukunftFortschritt(k), farbton:num(BELOHNUNG[k].farbton) }));
+  const tief=gleichgewichtSchwaechste(), hoch=Math.max.apply(null, fs.map(x=>x.f));
+  const hinter=(tief && hoch-tief.f>1e-9) ? Math.max(1, Math.round((hoch-tief.f)*zukunftStufen(tief.kat))) : 0;
+  return { kat, stufe, name:stufeName(kat, stufe), katName:BELOHNUNG[kat].name, preis, rest:konto(), fokusMin:num(fokusMin), offen:Math.max(0, BELOHNUNG[kat].stufen.length-stufe),
+    frei, sperre, saeulen:fs, schwach: hinter ? { kat:tief.kat, hinter } : null };
+}
+function kaufBelohnungHtml(d){
+  const slots=[0.15,0.5,1.1,1.7,2.3,2.9,3.6]; let si=0; const slot=()=>slots[Math.min(si++, slots.length-1)];
+  const st=cls=>'<div class="st '+cls+'" style="animation-delay:'+slot()+'s">';
+  let frei;
+  if(d.frei.length) frei={ w:'frei', c:FARBE.GELBGRUEN, s:'jetzt möglich: '+d.frei.map(x=>esc(BELOHNUNG[x.kat].name)+' Stufe '+x.stufe).join(' und ')+(d.sperre && d.sperre!=='komplett' ? ' · hier: '+esc(d.sperre) : '') };
+  else if(d.sperre==='komplett') frei={ w:'komplett', c:FARBE.GOLD, s:'alle zwölf Stufen in '+esc(d.katName)+' gekauft' };
+  else if(d.sperre) frei={ w:'gesperrt', c:FARBE.ORANGE, s:'als Nächstes fehlt: '+esc(d.sperre) };
+  else frei={ w:'frei', c:FARBE.GELBGRUEN, s:'die nächste Stufe hat keine offene Voraussetzung' };
+  return '<div class="w kb">'+
+    st('kb-kopf')+'Gekauft · '+esc(d.katName)+' Stufe '+d.stufe+'</div>'+
+    st('kb-bild')+'<div class="glow"></div>'+objBildHtml(d.kat, d.stufe)+'</div>'+
+    st('kb-name')+'<span class="stufen-name">'+esc(d.name)+'</span></div>'+
+    st('g2')+'<div class="t"><b>'+stdMinText(d.fokusMin)+'</b><span>Fokuszeit seit deinem letzten Kauf</span></div>'+
+      '<div class="t"><b style="color:'+FARBE.GOLD+'">−'+fmtP(d.preis)+'</b><span>Münzen · '+fmtP(Math.round(d.rest))+' bleiben</span></div></div>'+
+    st('g2')+'<div class="t"><b>'+d.stufe+' von 12</b><span>Stufen in '+esc(d.katName)+' · '+d.offen+' noch offen</span></div>'+
+      '<div class="t"><b style="color:'+frei.c+'">'+frei.w+'</b><span>'+frei.s+'</span></div></div>'+
+    st('t kb-gl')+'<span>Gleichgewicht</span><div class="gl">'+d.saeulen.map(x=>'<i title="'+esc(BELOHNUNG[x.kat].name)+'" style="height:'+Math.round(4+36*x.f)+'px;background:hsl('+x.farbton+',70%,58%)"></i>').join('')+'</div>'+
+      '<span class="gls">'+(d.schwach ? esc(BELOHNUNG[d.schwach.kat].name)+' liegt '+d.schwach.hinter+' hinter · zieh sie zuerst nach' : 'Alle sechs Kategorien liegen gleichauf')+'</span></div>'+
+    '<div class="hint">Doppeltipp überspringt</div><button class="skip kb-weiter" data-belweiter="1">Weiter</button></div>';
+}
+function kaufBelohnungZeigen(d, danach){
+  if(!d || typeof document==='undefined' || !document.body || !document.body.appendChild){ if(danach) danach(); return; }
+  const alt=el('belAnsicht'); if(alt && alt.remove) alt.remove();
+  const ov=document.createElement('div'); ov.id='belAnsicht'; ov.className='bel-ansicht kauf'; ov.innerHTML=kaufBelohnungHtml(d); document.body.appendChild(ov);
+  const zu=()=>{ if(!ov.parentNode) return; ov.remove(); if(danach){ try{ danach(); }catch(e){} } };
+  ov.addEventListener('dblclick', zu); const w=ov.querySelector('[data-belweiter]'); if(w) w.addEventListener('click', e=>{ e.stopPropagation(); zu(); });
+  objBilderLaden();
 }
 /* Vitalität (§6.2): getrieben vom Tages-Akku. */
 function vitalitaet(){ if(tagOffen()&&S.tag.akku!=null) return S.tag.akku>=50; return true; }
@@ -16016,53 +16097,115 @@ function belErklommen(){
    „???". Ein Kauf deckt damit genau die darauffolgende Stufe auf. Gilt in
    der Kategorie-Kachel und in der aufgeklappten Zwölfer-Ansicht. */
 function belShopHtml(){
+  // §6 (v3.6.0): das Shop-Feld zeigt die ZULETZT gekaufte Stufe (Bild eingefärbt, Name, „gekauft am · in x Std erarbeitet"),
+  // darunter „Als Nächstes: {Name} · {Preis}" mit Füllbalken, Voraussetzung oder Gleichgewichts-Sperre rechts unter dem Balken,
+  // Stufenpunkte 1–12. Noch nichts gekauft: Stufe-1-Bild blass mit „Noch nichts gekauft".
   const k=konto(); belohnungInit();
   const auf=(S.ui && S.ui.belKatAuf) || {};
   return KAT_KEYS.map(kk=>{
-    const kat=BELOHNUNG[kk], offen=Math.max(0,num(S.belohnung.stufen[kk])), max=kat.stufen.length;
-    const sperre=kaufSperre(kk), preis=preisFuer(kk), zone=KAT_ZONE[kk];
-    const bildFuer=s=>objBildHtml(kk, s);   // §5 (v3.6.0): eingefärbt nach Stufe
-    let naechste;
-    if(sperre==='komplett') naechste='<div class="bw-st fertig"><span class="sym">🏁</span><span class="tx">Alle zwölf Stufen gekauft</span></div>';
-    else {
-      const s=offen+1;
-      let rechts;
-      if(sperre) rechts='<span class="bw-sperre">🔒 '+esc(sperre)+'</span>';
-      else if(k>=preis) rechts='<button class="kaufbtn bw-kauf" data-kauf="'+kk+'">Kaufen · '+Math.round(preis)+' 🪙</button>';
-      else rechts='<span class="bw-fehlt"><span class="bar" aria-hidden="true">'+fbBalken(k/preis, null, null)+'</span>noch '+Math.round(preis-k)+' von '+Math.round(preis)+' 🪙</span>';
-      naechste='<div class="bw-st naechste"><span class="sym">'+bildFuer(s)+'</span><span class="tx"><b>Stufe '+s+'</b> · '+esc(kat.stufen[s-1].name)+'</span></div>'+rechts;
-    }
+    const kat=BELOHNUNG[kk], gek=stufenGekauft(kk), max=kat.stufen.length, sperre=kaufSperre(kk), preis=preisFuer(kk), s=gek+1;
     let liste='';
     if(auf[kk]){
       liste='<div class="bw-stufen">';
       kat.stufen.forEach((st,i)=>{
-        const s=i+1, gekauft=s<=offen, istNaechste=s===offen+1;
+        const n=i+1, gekauft=n<=gek, istNaechste=n===gek+1;
         liste+='<div class="bw-st '+(gekauft?'gekauft':(istNaechste?'naechste':'gesperrt'))+'">'+
-          '<span class="sym">'+(gekauft||istNaechste?bildFuer(s):'🔒')+'</span>'+
-          '<span class="tx"><b>'+s+'</b> · '+(gekauft||istNaechste?esc(st.name):'???')+'</span>'+
-          '<span class="zu">'+(gekauft?'✓':(istNaechste?(sperre&&sperre!=='komplett'?'gesperrt':Math.round(preis)+' 🪙'):''))+'</span></div>';
+          '<span class="sym">'+(gekauft||istNaechste?objBildHtml(kk, n):'🔒')+'</span>'+
+          '<span class="tx"><b>'+n+'</b> · '+(gekauft||istNaechste?esc(st.name):'???')+'</span>'+
+          '<span class="zu">'+(gekauft?'✓':(istNaechste?(sperre&&sperre!=='komplett'?'gesperrt':fmtP(preis)+' 🪙'):''))+'</span></div>';
       });
       liste+='</div>';
     }
-    // §5 Nr. 2 (v3.5.1): links (40 %, quadratisch, Radius 12) das gerenderte Bild der AKTUELLEN Stufe mit Stufen-Pille, ohne
-    // Bild das Emoji klein als Rueckfall; rechts Name, naechste Stufe, Preis, Fuellbalken GOLD, Ankunft, Stufenpunkte 1–12
-    const hatBild=offen>=1 && !!zone;
-    const objbild='<div class="objbild'+(hatBild?'':' leer')+'" aria-hidden="true">'+(hatBild ? bildFuer(offen) : '<span class="objemoji">'+kat.icon+'</span>')+'<span class="stufe">'+(offen>=1 ? 'Stufe '+offen : 'noch kein Bild')+'</span></div>';
-    let info='<b>'+esc(kat.name)+'</b>'+(offen>=1 ? '<span class="objakt">Aktuell: '+esc(kat.stufen[offen-1].name)+'</span>' : '');
-    if(sperre==='komplett') info+='<span>🏁 Alle zwölf Stufen gekauft</span>';
-    else { const s=offen+1;
-      info+='<span>Stufe '+s+' · '+fmtP(preis)+' Münzen</span><span class="objakt">'+esc(kat.stufen[s-1].name)+'</span>';
-      if(sperre) info+='<span class="bw-sperre">🔒 '+esc(sperre)+'</span>';
-      else { let an=''; try{ an=shopAnkunftText({kat:kk, preis, stufe:s}).replace(/ · fehlen.*$/, ''); }catch(e){ an=''; }
-        info+='<div class="lbar" style="height:10px;border-radius:5px"><i style="left:0;width:'+Math.max(0, Math.min(100, k/Math.max(1,preis)*100)).toFixed(1)+'%;background:'+verlauf(FARBE.GOLD)+'"></i></div>'+
-          '<div class="skala"><span>'+(k>=preis ? 'kaufbar' : 'fehlen '+fmtP(preis-k))+'</span><span>'+esc(an)+'</span></div>'+
-          (k>=preis ? '<button class="kaufbtn bw-kauf" data-kauf="'+kk+'">Kaufen · '+fmtP(preis)+' 🪙</button>' : ''); }
+    const objbild='<div class="objbild'+(gek>=1?'':' blass')+'" aria-hidden="true">'+objBildHtml(kk, Math.max(1, gek))+'<span class="stufe">'+(gek>=1 ? 'Stufe '+gek+' von '+max : 'Noch nichts gekauft')+'</span></div>';
+    let info='<b>'+esc(kat.name)+'</b>';
+    if(gek>=1){
+      const kauf=(S.belohnung.kaeufe||[]).filter(x=>x.kat===kk && num(x.stufe)===gek).slice(-1)[0];
+      const teile=[]; if(kauf && kauf.datum) teile.push('gekauft am '+String(kauf.datum).slice(8,10)+'.'+String(kauf.datum).slice(5,7)+'.');
+      if(kauf && kauf.fokusMin!=null) teile.push('in '+hMin(kauf.fokusMin)+' Std erarbeitet');
+      info+='<span>Zuletzt: <b class="w stufen-name">'+esc(stufeName(kk, gek))+'</b></span>'+(teile.length ? '<span>'+teile.join(' · ')+'</span>' : '');
     }
-    let punkte='<div class="stufen" aria-label="'+offen+' von '+max+' Stufen">'; for(let i=1;i<=max;i++) punkte+='<i class="'+(i<=offen?'gk':(i===offen+1?'n':''))+'"></i>'; punkte+='</div>';
+    if(sperre==='komplett') info+='<div class="nx">🏁 Alle zwölf Stufen gekauft</div>';
+    else {
+      let an=''; if(!sperre){ try{ an=shopAnkunftText({kat:kk, preis, stufe:s}).replace(/ · fehlen.*$/, ''); }catch(e){ an=''; } }
+      info+='<div class="nx">Als Nächstes: <span class="stufen-name">'+esc(stufeName(kk, s))+'</span> · '+fmtP(preis)+' Münzen</div>'+
+        '<div class="lbar" style="height:10px;border-radius:5px"><i style="left:0;width:'+Math.max(0, Math.min(100, k/Math.max(1,preis)*100)).toFixed(1)+'%;background:'+verlauf(FARBE.GOLD)+'"></i></div>'+
+        '<div class="skala"><span>'+(k>=preis ? 'kaufbar' : 'fehlen '+fmtP(preis-k))+'</span><span'+(sperre?' class="bw-sperre"':'')+'>'+esc(sperre ? sperre : an)+'</span></div>'+
+        (!sperre && k>=preis ? '<button class="kaufbtn bw-kauf" data-kauf="'+kk+'">Kaufen · '+fmtP(preis)+' 🪙</button>' : '');
+    }
+    let punkte='<div class="stufen" aria-label="'+gek+' von '+max+' Stufen">'; for(let i=1;i<=max;i++) punkte+='<i class="'+(i<=gek?'gk':(i===gek+1?'n':''))+'"></i>'; punkte+='</div>';
     return '<div class="bw-kat objkat"><div class="obj">'+objbild+'<div class="objinfo">'+info+punkte+'</div></div>'+
       '<button class="bw-alle" data-belkat="'+kk+'" aria-expanded="'+(auf[kk]?'true':'false')+'">'+(auf[kk]?'Stufen einklappen ▴':'Alle zwölf Stufen ▾')+'</button>'+
       liste+'</div>';
   }).join('');
+}
+/* ══ §6 (v3.6.0) · WAS HEUTE NOCH GEHT ══════════════════════════════════════════════════════
+   EINE Funktion für das Statistik-Modul (Gruppe Spiel & Shop) und die gleichnamige Kachelgruppe der Shop-Übersicht.
+   Vier Kacheln: Noch drin · Rest im Fenster · Nächster Kauf · Nächstes Outfit — aufgeklappt zusätzlich Farbe · Kulisse ·
+   Rang · Outfit 20, dazu der Akku-Satz und der Kauf-Satz. Logik der Kacheln wie in 3.4.8 („Was heute noch geht"):
+   Rest im Fenster aus der Soll-Treppe, Noch drin = Rest × Median-Tempo, Outfit 20 = der frühere „Frack". */
+function heuteGehtDaten(){
+  const rm=rangMass(), we=istWochenendTag(heuteApp()), zi=zielUndIstHeute(), restStd=restFensterStd(), tempo=rm.median, mess=Math.max(0, tagesPunkteLive());
+  const nochDrin=we ? Math.max(0, zielTagGesamt()-zi.ist) : (tempo!=null ? restStd*tempo : null);
+  const outfit=outfitHeute(), fNaechst=outfit<20 ? Math.round(outfitFehltBis(outfit+1)) : null, fFrack=outfit<20 ? Math.round(outfitFehltBis(20)) : 0;
+  let F=0; try{ F=num(outfitF()); }catch(e){ F=0; }
+  return { rm, we, zi, restStd, tempo, mess, nochDrin, outfit, fNaechst, fFrack, frackGeht: outfit>=20 || (nochDrin!=null && fFrack<=nochDrin),
+    fensterPct:Math.round(Math.max(0, Math.min(1, fensterAnteil()))*100), drinPct: nochDrin!=null ? Math.round(mess/Math.max(1, mess+nochDrin)*100) : 0,
+    stufePct:Math.round(outfitFortschritt().frac*100), frackPct:Math.round(Math.max(0, Math.min(1, F/1.35))*100) };
+}
+function heuteGehtKachel(h, w, wStil, s, pct, bg, opt){
+  opt=opt||{};
+  return '<div class="kch flach hg"><div class="h">'+h+'</div><div class="w'+(opt.klein?' klein kauf-w':'')+'"'+(wStil?' style="'+wStil+'"':'')+'>'+w+'</div><div class="s">'+s+'</div>'+
+    '<div class="unten"><div class="lbar"><i style="left:0;width:'+Math.max(0, Math.min(100, num(pct))).toFixed(0)+'%;background:'+bg+(opt.blass?';opacity:.5':'')+'"></i></div></div></div>';
+}
+/* die vier Hauptkacheln */
+function heuteGehtKacheln(){
+  const d=heuteGehtDaten(), ks=kaufStand();
+  let kauf;
+  if(ks && ks.hinweis) kauf=heuteGehtKachel('Nächster Kauf', esc(ks.hinweis), 'color:'+FARBE.GOLD, esc(ks.text), ks.anteil*100, verlauf(FARBE.GOLD), {klein:true});
+  else if(ks && ks.ziel){ let an=''; try{ an=shopAnkunftText(ks.ziel); }catch(e){ an=''; }
+    kauf=heuteGehtKachel('Nächster Kauf', 'fehlen '+fmtP(Math.round(ks.fehlt)), 'color:'+FARBE.GOLD, '<span class="stufen-name">'+esc(stufeName(ks.ziel.kat, ks.ziel.stufe))+'</span> · '+(/^(ca\.|jetzt)/.test(an) ? 'heute drin' : 'nicht mehr heute'), ks.anteil*100, verlauf(FARBE.GOLD)); }
+  else kauf=heuteGehtKachel('Nächster Kauf', '—', '', 'alles gekauft oder gesperrt', 0, verlauf(FARBE.GOLD));
+  return '<div class="kach">'+
+    heuteGehtKachel('Noch drin', d.nochDrin!=null ? '≈ '+fmtP(Math.round(d.nochDrin)) : '–', 'color:'+FARBE.GELBGRUEN, d.we ? 'Rest im Wochenend-Budget' : (d.tempo!=null ? 'bei deinem Tempo bis Tagesende' : 'sammelt noch Daten'), d.drinPct, verlauf(FARBE.BLAU))+
+    (d.we ? heuteGehtKachel('Wochenende', fmtP(Math.round(d.zi.ist)), '', 'von '+fmtP(zielTagGesamt())+' · Sa+So gemeinsam', d.zi.ist/Math.max(1, zielTagGesamt())*100, FARBE.GRAU)
+          : heuteGehtKachel('Rest im Fenster', hMin(d.restStd*60), '', tagesRahmen() ? 'aus dem Tagesrahmen' : 'aus der Tagesform', d.fensterPct, FARBE.GRAU))+
+    kauf+
+    heuteGehtKachel('Nächstes Outfit', d.fNaechst!=null ? fmtP(d.fNaechst) : '—', '', d.outfit<20 ? 'bis Outfit '+(d.outfit+1) : 'Outfit 20 erreicht', d.stufePct, verlauf(FARBE.GRUEN))+'</div>';
+}
+/* aufgeklappt zusätzlich: Farbe · Kulisse · Rang · Outfit 20 und die beiden Sätze */
+function heuteGehtMehrHtml(){
+  const d=heuteGehtDaten(), A=ausmalState(), st=ausmalStand(), D=ausmalDaten(A.kulisse), T=topfFassung(), t=A.toepfe[A.aktiverTopf];
+  const hatTopf=!!(t && t.farbe!=null && D && T), tName=hatTopf ? D.namen[t.farbe] : '';
+  const farbeSub=!hatTopf ? 'kein Topf unter der Station' : topfVoll(t) ? 'Topf '+esc(tName)+' voll' : topfLeer(t) ? 'Topf '+esc(tName)+' leer' : 'Topf '+esc(tName)+' '+Math.round(t.punkte/T*100)+' % · voll in '+fmtP(Math.round(T-t.punkte));
+  const kulSub=st.kulisse>=10 ? 'letzte Kulisse' : (st.freigeschaltetBis>st.kulisse ? 'nächste schon frei' : (st.naechsteFrei!=null ? 'nächste frei bei '+fmtP(st.naechsteFrei)+' Farbe' : ''));
+  // Rang: nötige P/h heute für die nächste Rang-Stufe = Schwelle der nächsten Stufe gegen die heutige Tagesrate
+  const rm=d.rm; let rang;
+  if(rm.rang==null) rang=heuteGehtKachel('Rang', '—', '', 'sammelt noch Daten ('+rm.n+'/3)', 0, FARBE.GELBGRUEN);
+  else if(rm.rang>=RANG_MAX) rang=heuteGehtKachel('Rang '+rm.rang, 'Spitze', 'color:'+FARBE.GRUEN, 'oberste Stufe der Leiter', 100, FARBE.GELBGRUEN);
+  else { let hr=null; try{ const r=tagesRate(belFensterDatum(jetztIso())); hr=r ? num(r.rate) : null; }catch(e){ hr=null; }
+    const noetig=leistungsSchwelle(rm.rang+1), ist=hr!=null ? hr : 0, diff=Math.round(noetig-ist);
+    rang=heuteGehtKachel('Rang '+rm.rang, diff>0 ? '+'+fmtP(diff)+' P/h' : 'erreicht', diff>0 ? '' : 'color:'+FARBE.GRUEN, 'heute nötig für Rang '+(rm.rang+1), ist/Math.max(1, noetig)*100, FARBE.GELBGRUEN); }
+  const o20=d.outfit>=20 ? heuteGehtKachel('Outfit 20', 'an', 'color:'+FARBE.GRUEN, 'Outfit 20 erreicht', 100, FARBE.LILA)
+    : d.frackGeht ? heuteGehtKachel('Outfit 20', fmtP(d.fFrack), '', 'bis Outfit 20', d.frackPct, FARBE.LILA)
+    : heuteGehtKachel('Outfit 20', 'morgen', 'color:'+FARBE.GRAU, 'heute rechnerisch nicht drin', d.frackPct, FARBE.LILA, {blass:true});
+  // Akku-Satz
+  let akku=''; try{ const rw=akkuReichweite(energieBatterie());
+    if(rw==='reicht' || rw==='–') akku='🔋 Der Akku reicht für den Rest des Tages.';
+    else { const lade=S.karten.filter(k=>k.status==='offen' && akkuRate(k)>0).sort((a,b)=>akkuRate(b)-akkuRate(a))[0];
+      akku='🔋 Der Akku reicht '+esc(String(rw).replace(/^bis /,'bis etwa '))+'.'+(lade ? ' Danach lädt dich „'+esc(lade.titel||'?')+'" am stärksten.' : ''); } }catch(e){ akku=''; }
+  // Kauf-Satz
+  let kaufS=''; try{ const ks=kaufStand();
+    if(ks && ks.hinweis){ const m=ks.moeglich[0];
+      kaufS='🪙 <b style="color:'+FARBE.GOLD+'">'+esc(ks.hinweis)+(ks.moeglich.length===1 ? ' · <span class="stufen-name">'+esc(stufeName(m.kat, m.stufe))+'</span>' : '')+'</b>.'+(ks.ziel ? ' Der Balken zählt bis '+esc(ks.ziel.name)+' Stufe '+ks.ziel.stufe+'.' : ''); }
+    else if(ks && ks.ziel) kaufS='🪙 Nächster Kauf: '+esc(ks.ziel.name)+' Stufe '+ks.ziel.stufe+' · fehlen '+fmtP(Math.round(ks.fehlt))+'.'; }catch(e){ kaufS=''; }
+  return '<div class="kach">'+
+    heuteGehtKachel('Farbe', fmtP(Math.round(st.W)), '', farbeSub, hatTopf ? t.punkte/T*100 : 0, hatTopf ? D.hex[t.farbe] : FARBE.GRAU)+
+    heuteGehtKachel('Kulisse '+A.kulisse, Math.round(st.anteil*100)+' %', '', kulSub, st.anteil*100, verlauf(FARBE.GOLD))+rang+o20+'</div>'+
+    (akku ? '<div class="hg-satz">'+akku+'</div>' : '')+(kaufS ? '<div class="hg-satz">'+kaufS+'</div>' : '');
+}
+function stmHeuteGeht(F, dom){
+  let haupt=''; try{ haupt=heuteGehtKacheln(); }catch(e){ haupt='<div class="an-leer">nicht verfügbar</div>'; }
+  return statModul('heuteGeht', 'Was heute noch geht', haupt, null, ()=>heuteGehtMehrHtml(), {tipp:false});
 }
 /* ══ §6 (v3.5.0) · AUSMALEN — Wohlstand wird Farbe ═════════════════════════
    Muenzen kaufen Shop-Objekte (unveraendert). Wohlstand W (Summe nicht-negativer Zufluesse seit
@@ -16424,11 +16567,7 @@ function belUebersichtHtml(){
     '<div class="kch flach"><div class="h">Konto</div><div class="w" style="color:'+FARBE.GOLD+'">'+fmtP(k)+'</div><div class="s">Münzen</div></div>'+
     nkKachel(true)+'</div>'+
     '<button class="btn mal-oeffnen" data-malmodus="1">🖌 Malmodus öffnen</button>';
-  h+='<div class="blk"><div class="blk-h">Was heute noch geht</div><div class="kach">'+
-    '<div class="kch flach"><div class="h">Bis Tagesziel</div><div class="w klein" style="color:'+diaAmpel(g.prognoseHeute, g.zielHeute)+'">'+(fehltZiel>0?fmtKurzP(fehltZiel):'erreicht')+'</div></div>'+
-    '<div class="kch flach"><div class="h">Münzen bis Abend</div><div class="w klein" style="color:'+FARBE.GOLD+'">+'+fmtKurzP(muenzenAbend)+'</div></div>'+
-    nkKachel(false)+
-    '<div class="kch flach"><div class="h">Outfit '+(of.of>=20?20:of.naechste)+' bei Tagesform</div><div class="w klein" style="color:'+FARBE.GRUEN+'">'+(of.of>=20?'—':fbOutfitSchwelleF(of.naechste).toFixed(2).replace('.',','))+'</div></div></div></div>';
+  h+='<div class="blk"><div class="blk-h">Was heute noch geht</div>'+heuteGehtKacheln()+'</div>';   // §6 (v3.6.0): dieselbe Funktion wie das Statistik-Modul
   h+='<div class="blk"><div class="blk-h" id="belShop">Shop</div>'+kaufHinweisHtml(ks)+belShopHtml()+'<div class="fb-rechnung">Gekauftes und die nächste Stufe sind sichtbar, alles danach bleibt „???". Den Shop zurücksetzen: ⚙︎ Einstellungen.</div></div>';
   h+='<div class="blk"><div class="blk-h">Kulisse</div>'+kulisseKachelHtml()+'</div>';
   // §5 Nr. 4 (v3.5.1): „Was ich schon erklommen habe" — je Zeile Name links, Wert rechts, darunter eine Segmentleiste mit allen
@@ -17303,7 +17442,7 @@ function renderStatistikBody(){
   const F=analyseFenster(), dom=S.ui.analyseDomain||'alle';
   const BAU={ tag:()=>stmTag(F,dom), matrixHeute:()=>stmMatrixHeute(F,dom), heuteKurz:()=>stmHeuteKurz(F,dom),
     leistung:()=>stmLeistung(F,dom), konsistenz:()=>stmKonsistenz(F,dom), matrixfaktor:()=>stmMatrixfaktor(F,dom), readiness:()=>stmReadiness(F,dom),
-    flow:()=>stmFlow(F,dom), routinen:()=>stmRoutinen(F,dom), acwr:()=>stmAcwr(F,dom), spielShop:()=>stmSpielShop(F,dom) };
+    flow:()=>stmFlow(F,dom), routinen:()=>stmRoutinen(F,dom), acwr:()=>stmAcwr(F,dom), heuteGeht:()=>stmHeuteGeht(F,dom), spielShop:()=>stmSpielShop(F,dom) };
   let h='';
   for(let g=1; g<=5; g++){
     const ids=folge.filter(id=>STAT_GRUPPE[id]===g && aus.indexOf(id)<0); if(!ids.length) continue;
