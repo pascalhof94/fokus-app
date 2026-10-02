@@ -130,7 +130,7 @@ ok('0.1 UEBER #FF2D95 war vorher nirgends benutzt', (src.match(/#FF2D95/gi)||[])
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION aktuell (3.4.0), Build 2026-10-02-3', APP_VERSION==='3.5.4' && UI_VERSION==='v3.5.4' && APP_BUILD==='2026-10-02-3');
+ok('APP_VERSION aktuell (3.4.0), Build 2026-10-02-4', APP_VERSION==='3.5.4' && UI_VERSION==='v3.5.4' && APP_BUILD==='2026-10-02-4');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

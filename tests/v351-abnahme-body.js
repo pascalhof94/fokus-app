@@ -15,7 +15,7 @@ function tagDonnerstag(){ frisch(); uhr('2026-10-01T09:00:00+02:00'); tagStarten
 function aufgabe(id, dom, soll){ return neueKarte({ id:id, domain:dom, titel:'Karte '+id, sollMin:soll||30, faelligkeit:DO, erstelltTs:'2026-09-30T08:00:00+02:00', flowBaseline:true }); }
 
 kopf('Version');
-ok('APP_VERSION aktuell (3.5.2) · Datenvertrag bleibt 2.1.0', APP_VERSION==='3.5.4' && UI_VERSION==='v3.5.4' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-3');
+ok('APP_VERSION aktuell (3.5.2) · Datenvertrag bleibt 2.1.0', APP_VERSION==='3.5.4' && UI_VERSION==='v3.5.4' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-4');
 
 /* ══ (a) Schieben ohne Abzug erhöht „geschoben" nicht ══════════════════ */
 kopf('(a) Geschoben zählt nur mit Punktabzug oder beim Tagesabschluss');
@@ -64,25 +64,25 @@ ok('(b) Mehrfach-Öffnungen stehen einzeln im Verlauf ('+fokusOeffnungen().join(
 ok('(b) Wisch-Robustheit im Code: Urteil bei 8 px mit Winkel 1,2 · Mindestweg 48 px · pointercancel schließt einen erkannten Wisch ab',
    /const SWIPE_START=8, SWIPE_MIN_DX=48, SWIPE_WINKEL=1\.2/.test(src) && /addEventListener\('pointercancel', e=>\{\s*const war=_swAktiv, dx=_swDx/.test(src) && /draggable="false"/.test(src));
 
-/* ══ (c) DFM-Zeit heute rechnet nur DFM ═══════════════════════════════ */
-kopf('(c) DFM-Zeit heute: nur DFM-Karten');
+/* ══ (c) Zeit heute je Familie (v3.5.4: im Ring statt im Kopf der Tagesprognose) ═══ */
+kopf('(c) Zeit heute je Familie: DFM und Privat getrennt');
 tagDonnerstag();
 S.karten=[aufgabe('d1','dfm',45), aufgabe('d2','dfm',60), aufgabe('d3','dfm',30), aufgabe('p1','privat',90), aufgabe('p2','privat',20)];
-var z0=dfmZeitHeute();
-ok('(c) Start: Ist 0, Plan = Soll der offenen DFM-Karten (45 + 60 + 30 = 135) — Privat (110) zählt nicht', z0.ist===0 && z0.plan===135 && z0.laufend===0);
+var z0=familienZeitHeute();
+ok('(c) Start: DFM 0, Privat 0', z0.dfm===0 && z0.privat===0);
 kid('d1').istSek=40*60; kid('d1').status='erledigt'; kid('d1').tagId=aktuelleTagId();
 kid('p1').istSek=70*60; kid('p1').status='erledigt'; kid('p1').tagId=aktuelleTagId();
-var z1=dfmZeitHeute();
-ok('(c) nach dem Abhaken: gefüllt = Ist der abgehakten DFM-Karte (40), Plan = 40 + 60 + 30 = 130 — neu gerechnet, Privat bleibt draußen', Math.round(z1.ist)===40 && Math.round(z1.plan)===130);
+var z1=familienZeitHeute();
+ok('(c) gebuchte Minuten zählen in ihrer Familie: DFM 40, Privat 70 — Privat bleibt aus der DFM-Zeit draußen', Math.round(z1.dfm)===40 && Math.round(z1.privat)===70);
 fokusStarten('d2', null); minuten(12);
-var z2=dfmZeitHeute();
-ok('(c) laufende DFM-Karte: schraffierter Anteil = ihre heutigen Minuten (12), Ist und Plan unverändert', Math.round(z2.laufend)===12 && Math.round(z2.ist)===40 && Math.round(z2.plan)===130);
+var z2=familienZeitHeute();
+ok('(c) laufende DFM-Karte zählt live mit (40 + 12 = 52), Privat unverändert', Math.round(z2.dfm)===52 && Math.round(z2.privat)===70);
 fokusBeenden(); fokusStarten('p2', null); minuten(9);
-var z3=dfmZeitHeute();
-ok('(c) laufende PRIVAT-Karte ändert die DFM-Zeit nicht', z3.laufend===0 && Math.round(z3.ist)===40 && Math.round(z3.plan)===130);
+var z3=familienZeitHeute();
+ok('(c) laufende PRIVAT-Karte ändert die DFM-Zeit nicht (DFM 52, Privat 79)', Math.round(z3.dfm)===52 && Math.round(z3.privat)===79);
 fokusBeenden();
 var dt=derTagHtml(kid('d2'));
-ok('(c) v3.5.3 §3: die DFM-Zeit steht als Kennzahl im Kopf der Tagesprognose („DFM 0:40 / 2:10"), „Faktor F" heißt „Tagesform"', dt.indexOf('DFM 0:40 / 2:10')>=0 && dt.indexOf('DFM-Zeit heute')<0 && dt.indexOf('Tagesform')>=0 && dt.indexOf('Faktor F')<0 && /% (über|unter) normal|wie normal/.test(dt));
+ok('(c) v3.5.4 (Entscheidung 4): im Kopf der Tagesprognose steht keine DFM-Zeit mehr; „Faktor F" heißt „Tagesform"', dt.indexOf('· DFM ')<0 && dt.indexOf('DFM-Zeit heute')<0 && typeof dfmZeitHeute==='undefined' && dt.indexOf('Tagesform')>=0 && dt.indexOf('Faktor F')<0 && /% (über|unter) normal|wie normal/.test(dt));
 
 /* ══ (d) „Tage ≥ 80 % Ziel" zählt korrekt ═════════════════════════════ */
 kopf('(d) Konsistenz-KPI „Tage ≥ 80 % Ziel"');
