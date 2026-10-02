@@ -8443,21 +8443,8 @@ function tageskettenChipsHtml(){
 }
 /* ══ §3 (v3.5.3) · DER TAG — drei Zeilen volle Breite: Tagesprognose · Tagesform · Tagesverlauf ══════════
    EINE Render-Funktion (derTagHtml) fuer die Fokusansicht (direkt unter „Tempo und Blöcke") und die Statistik (Gruppe 1
-   „Der Tag"). Die vier 2×2-Kacheln sind entfallen: „Diese Karte schiebt" steckt als weisses Segment im Prognose-Balken,
-   „DFM-Zeit heute" steht als Kennzahl in der Kopfzeile der Tagesprognose. */
-/* DFM-Zeit heute — NUR DFM-Karten: ist = heutige Ist-Minuten der heute abgehakten Karten · plan = ist + Soll-Minuten
-   der offenen DFM-Karten des Tages (rechnet bei jedem Abhaken neu) · laufend = heutige Minuten der laufenden, offenen Karte */
-function dfmZeitHeute(){
-  const tid=aktuelleTagId(); let ist=0, offen=0, laufend=0;
-  const fertigHeute=x=>istAufgabeKarte(x) ? (x.status==='erledigt' && x.tagId===tid) : kartenStatusHeute(x)==='erledigt';
-  S.karten.forEach(x=>{ if(!x || x.domain!=='dfm' || x.status==='archiviert') return;
-    if(fertigHeute(x)){ ist+=heuteInvestiertMin(x); return; }
-    if(!imTagesstrom(x)) return;
-    offen+=num(x.sollMin);
-    if(S.fokus && S.fokus.laeuft && S.fokus.karteId===x.id) laufend+=heuteInvestiertMin(x);
-  });
-  return { ist, plan:ist+offen, laufend };
-}
+   „Der Tag"). Die vier 2×2-Kacheln sind entfallen: „Diese Karte schiebt" steckt als weisses Segment im Prognose-Balken;
+   die DFM-Zeit steht seit v3.5.4 im DFM-Ring (kein zweiter Zeitwert im Kopf der Tagesprognose). */
 /* Die Tagesprognose in ihren Teilen (reine Rechnung): gesammelt DFM · gesammelt Privat · Prognose der laufenden Karte
    (Punkte bis Soll-Ende) · restlicher Prognoseteil je Familie. max = max(Tagesprognose, Tagesziel), diff = Prognose − Ziel.
    Der Rest verteilt sich nach dem bisherigen Anteil der Familien (ohne Punkte: nach dem Anteil der Tagesziele). */
@@ -8557,13 +8544,13 @@ function tagesRingeHtml(){
 }
 function derTagHtml(k, opt){
   opt=opt||{};
-  const t=tagesprognoseHeute(), dz=dfmZeitHeute();
+  const t=tagesprognoseHeute();
   const F=outfitF(), cF=F!=null ? bewertungDiskret(F) : FARBE.GRAU, dF=F!=null ? Math.round((F-1)*100) : 0, st=tagesformStufen();
   let pfeil=''; try{ pfeil=tempopfeilSvg(tempoVerhaeltnis(), 14); }catch(e){}
   const kante=(c, dash)=>'<i style="border:2px '+(dash?'dashed':'solid')+' '+c+';background:none;box-sizing:border-box"></i>';
   const zeile=(cls, name, rechts, inhalt)=>'<div class="dk '+cls+'"><div class="dkh"><b>'+name+'</b><span>'+rechts+'</span></div>'+inhalt+'</div>';
   let ringe=''; if(opt.ringe){ try{ ringe='<div class="dk dk-ringe">'+tagesRingeHtml()+'</div>'; }catch(e){ ringe=''; } }
-  let h=ringe+zeile('dk-prog', 'Tagesprognose', fmtP(t.prognose)+' von Ziel '+fmtP(t.ziel)+' · DFM '+hMin(dz.ist)+' / '+hMin(dz.plan), tagesprognoseBalkenHtml(t))+
+  let h=ringe+zeile('dk-prog', 'Tagesprognose', fmtP(t.prognose)+' von Ziel '+fmtP(t.ziel), tagesprognoseBalkenHtml(t))+   // v3.5.4 (Abschluss, Entscheidung 4): ohne DFM-Zeit — sie steht im DFM-Ring
     zeile('dk-form', 'Tagesform <span class="tf-w" style="color:'+cF+'">'+(F!=null ? F.toFixed(2).replace('.',',') : '—')+pfeil+'</span>',
       (F==null ? '' : (dF===0 ? 'wie normal' : Math.abs(dF)+' % '+(dF>0?'über':'unter')+' normal')+' · ')+'Outfit '+st.akt,
       tagesformSvg(st)+'<div class="legende">'+'<span>'+kante(FARBE.GRUEN)+'aktuell</span><span>'+kante('#fff')+'Prognose</span><span>'+kante('#fff', true)+'nötig fürs Ziel</span>'+
