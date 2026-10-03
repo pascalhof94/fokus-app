@@ -4632,7 +4632,7 @@ function positionKarte(anlegen){
   if(S.karten.some(x=>x.id===k.id)) k.id='k3-position-'+uuid().slice(0,8);
   S.karten.push(k); saveKarten(); return k;
 }
-function karteVerborgen(k){ return !!(k && (k.rolle==='tagebuch' || k.rolle==='position')); }   // §8 (v3.7.0): nie in Listen, Ketten oder der Leiste
+function karteVerborgen(k){ return !!(k && k.rolle==='position'); }   // §8 (v3.7.0): nie in Listen, Ketten oder der Leiste · §2 (v3.7.1): Tagebuch wieder sichtbar
 function positionPunkteBuchen(){
   if(!S.tag || !tagBuchbar()) return 0;
   const n=matrixSpur().filter(e=>e && e.ts && !e.uebersprungen).length, p=positionStaffel(n); if(!(p>0)) return 0;
@@ -6906,7 +6906,7 @@ function fbGrosseMatrix(opt){
 function fbWasIchBewege(k){
   const p=matrixPos();
   const mf=matrixFeldVon(k);
-  const gm=fbGrosseMatrix({klick:false});   // §8 (v3.7.0)
+  const gm=fbGrosseMatrix({klick:true});   // §2 (v3.7.1): Tipp in die Matrix = Tagebuch an dieser Stelle
   let h='<div class="fb"><div class="fb-h">Was ich gerade bewege</div><div class="fb-kacheln">';
   h+='<div class="fbk voll"><div class="fbk-h">Position im Tag'+(gm.n?' · '+gm.n+' Messungen':'')+'</div>'+
      '<div>'+gm.svg+'</div>'+
@@ -7102,6 +7102,7 @@ function altTick(k){
 /* +1 aus der Leiste — je nach Karte ein Tick, ein Haken oder ihre Rolle */
 function leisteTicken(kid){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  if(k.rolle==='tagebuch'){ oeffneTagebuch(); return; }   // §2 (v3.7.1)
   if(k.rolle==='aufstehen'){ oeffneAufstehen(); return; }
   if(k.rolle==='tagesabschluss'){ oeffneAbschlussV3(1); return; }
   if(k.rolle==='schlafen'){ schlafUmschalten(); return; }
@@ -8716,7 +8717,7 @@ function matrixHeuteHtml(opt){
   opt=opt||{};
   const W=300, M=W/2, P=12, z=matrixZeitFelder(), sp=matrixSpur().filter(e=>!e.uebersprungen && e.ts);
   const X=v=>P+((Math.max(-1,Math.min(1,num(v)))+1)/2)*(W-2*P), Y=v=>P+((1-Math.max(-1,Math.min(1,num(v))))/2)*(W-2*P);
-  let g='<svg class="fb-mx mx-heute'+(opt.klick===true?' klick':'')+'" data-tbmatrix="1" data-rand="'+P+'" viewBox="0 0 '+W+' '+W+'" width="100%" role="img" aria-label="Matrix heute">'+
+  let g='<svg class="fb-mx mx-heute'+(opt.klick===true?' klick':'')+'" data-tbmatrix="1" data-rand="'+P+'" viewBox="0 0 '+W+' '+W+'" width="100%" role="img" aria-label="Matrix heute — tippen für einen Tagebuch-Eintrag">'+
     '<rect x="0" y="0" width="'+M+'" height="'+M+'" fill="'+FARBE.ROT+'" fill-opacity=".10"/><rect x="'+M+'" y="0" width="'+M+'" height="'+M+'" fill="'+FARBE.GRUEN+'" fill-opacity=".10"/>'+
     '<rect x="0" y="'+M+'" width="'+M+'" height="'+M+'" fill="'+FARBE.ROT+'" fill-opacity=".05"/><rect x="'+M+'" y="'+M+'" width="'+M+'" height="'+M+'" fill="'+FARBE.GRUEN+'" fill-opacity=".05"/>'+
     '<line x1="'+M+'" y1="0" x2="'+M+'" y2="'+W+'" stroke="rgba(255,255,255,.12)"/><line x1="0" y1="'+M+'" x2="'+W+'" y2="'+M+'" stroke="rgba(255,255,255,.12)"/>';
@@ -9066,6 +9067,7 @@ function oeffnePlusListe(){
    ueber dem Limit zaehlt und bucht der Tick (0 P) */
 function kartenListeTick(kid){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
+  if(k.rolle==='tagebuch'){ oeffneTagebuch(); return; }   // §2 (v3.7.1): die Tagebuch-Karte tickt nur über den Dialog
   if(k.rolle==='aufstehen' || k.rolle==='tagesabschluss' || k.rolle==='schlafen'){ leisteTicken(kid); return; }
   if(!routineBuchbar(k)){ toast('Der Tag ist geschlossen'); return; }
   if(limitErreicht(k)){ tickUeberLimit(k, k); saveKarten(); saveTag(); toast('+1 · über dem Limit (0 P)'); renderAlles(); return; }
@@ -17392,8 +17394,99 @@ function oeffneKettePosition(kid){
     '<button class="btn prim" data-kstart="'+kid+'">▶ Starten</button>';
   openSheet('Position in der Kette', h, foot);
 }
-/* §8 (v3.7.0): die Tagebuch-Karte (rolle tagebuch) ist entfernt — Knopf, Eintragsdialog, Matrix-Tipp und ihr +1 entfallen.
-   Bestehende Einträge (quelle 'tagebuch') bleiben in Spur, Historie und Export. */
+/* ══ §2 (v3.7.1) · TAGEBUCH ÜBER DIE MATRIX (teilweise Rücknahme von 3.7.0 §8) ═══════════════════════════
+   Tipp auf die Matrix (Statusleiste, Fokus „Matrix heute") öffnet immer den Tagebuch-Dialog: Position, Akku, drei optionale
+   Antworten. Speichern: Position in der Matrixspur (quelle tagebuch) + Positionsstaffel + Tick der Karte „Tagebuch"
+   (k3-tagebuch, rolle tagebuch, Counter mit Tick-Wert 0 und 0 Tick-Minuten). Fehlt die Karte, legt die App sie an. */
+function tagebuchKarte(anlegen){
+  let k=S.karten.find(x=>x.rolle==='tagebuch' && x.status!=='archiviert'); if(k || !anlegen) return k||null;
+  k={ id:'k3-tagebuch', titel:'Tagebuch', domain:'privat', rolle:'tagebuch', matrixFeld:'werkzeug', status:'offen', ticksAktiv:true, tickWert:0, tickMinuten:0, immerSichtbar:true, erstellt:jetztIso(), letzteBearbeitung:jetztIso(), komplexitaet:1, energie:1, blockade:1 };
+  if(S.karten.some(x=>x.id===k.id)) k.id='k3-tagebuch-'+uuid().slice(0,8);
+  S.karten.push(k); saveKarten(); return k;
+}
+function oeffneTagebuch(x, y){
+  if(!tagOffen()){ toast('Kein Tag gestartet — das Tagebuch schreibt in den laufenden Tag.'); return; }
+  const p = (x!=null && y!=null) ? {x:num(x), y:num(y)} : matrixPosOderMitte();
+  const a=akkuLive();
+  closeSheet();
+  matrixTmp={ kid:null, anlass:'tagebuch', tagebuch:true,
+    x:Math.max(-1,Math.min(1,p.x)), y:Math.max(-1,Math.min(1,p.y)),
+    akku:(a==null?null:Math.round(a)), akkuStart:(a==null?null:Math.round(a)),
+    gedanke:'', wirkung:'', mittel:'', istGut:null };
+  renderTagebuch();
+}
+function tagebuchFelderLesen(){
+  const t=matrixTmp; if(!t) return;
+  const g=el('tbGedanke'), w=el('tbWirkung'), m=el('tbMittel');
+  if(g) t.gedanke=g.value; if(w) t.wirkung=w.value; if(m) t.mittel=m.value;
+}
+function renderTagebuch(){
+  const t=matrixTmp; if(!t || !t.tagebuch) return;
+  let h='<p class="d"><b>Wo stehst du gerade?</b> Nur der Punkt ist Pflicht — alles andere darf leer bleiben.</p>';
+  h+=matrixPadHtml(t.x, t.y);
+  h+='<div class="field"><label>Welcher Gedanke?</label><input id="tbGedanke" maxlength="160" value="'+esc(t.gedanke)+'" placeholder="optional"></div>';
+  h+='<div class="field"><label>Was macht das mit mir?</label><input id="tbWirkung" maxlength="160" value="'+esc(t.wirkung)+'" placeholder="optional"></div>';
+  h+='<div class="field"><label>Mittel dagegen — oder ist es gut so?</label><div class="chips">'+
+     '<button class="chip '+(t.istGut===true?'on':'')+'" data-tbgut="1">ist gut so</button>'+
+     '<button class="chip '+(t.istGut===false?'on':'')+'" data-tbgut="0">Mittel: …</button></div>'+
+     (t.istGut===false?'<input id="tbMittel" maxlength="120" value="'+esc(t.mittel)+'" placeholder="z. B. 10 Min raus, Wasser, Anruf verschieben" style="margin-top:6px">':'')+
+     '</div>';
+  if(t.akku!=null){
+    h+='<div class="field mx-akku"><label>🔋 Akku jetzt <b id="mxAkkuV">'+Math.round(t.akku)+'%</b></label>'+
+       '<input type="range" min="0" max="'+AKKU_MAX+'" step="5" id="mxAkku" value="'+Math.round(t.akku)+'"></div>';
+  }
+  openSheet('Tagebuch', h, '<button class="btn ghost sm" data-close="1">Abbrechen</button>'+
+    '<button class="btn prim" data-tbgo="1">Speichern</button>');
+}
+/* Akku aus einem Dialog buchen — derselbe Weg wie der Matrix-Dialog. */
+function akkuAusDialogBuchen(t, kommentar){
+  const inp=el('mxAkku');
+  if(!(inp && t.akku!=null && S.tag && S.tag.akku!=null)) return null;
+  if(String(inp.value).trim()==='') return Math.round(akkuLive());   // kein Wert = nicht angefasst
+  const vorher=akkuLive();
+  const neuA=Math.max(0, Math.min(AKKU_MAX, num(inp.value,vorher)));
+  if(Math.abs(neuA-vorher)<0.05) return Math.round(vorher);
+  const pending=vorher-num(S.tag.akku);
+  S.tag.akku=Math.max(0, Math.min(AKKU_MAX, neuA-pending));
+  akkuSampleSchreiben();
+  if(!Array.isArray(S.meta.akkuEintraege)) S.meta.akkuEintraege=[];
+  S.meta.akkuEintraege.push({ ts:jetztIso(), datum:heuteApp(), kid:null, titel:null,
+    vorher:Math.round(vorher), nachher:Math.round(neuA), delta:Math.round((neuA-vorher)*10)/10, kommentar:kommentar||'' });
+  if(S.meta.akkuEintraege.length>300) S.meta.akkuEintraege=S.meta.akkuEintraege.slice(-300);
+  saveMeta();
+  return Math.round(neuA);
+}
+function tagebuchSpeichern(){
+  const t=matrixTmp; if(!t || !t.tagebuch){ closeSheet(); return; }
+  tagebuchFelderLesen();
+  const akku=akkuAusDialogBuchen(t, (t.gedanke||'').slice(0,80));
+  const eintrag={ ts:jetztIso(), x:Math.round(t.x*100)/100, y:Math.round(t.y*100)/100,
+    kid:null, anlass:'tagebuch', quelle:'tagebuch',
+    gedanke:String(t.gedanke||'').trim(), wirkung:String(t.wirkung||'').trim(),
+    mittel: t.istGut===false ? String(t.mittel||'').trim() : '',
+    istGut: t.istGut===true, akku: akku!=null ? akku : (akkuLive()!=null?Math.round(akkuLive()):null) };
+  matrixSpur().push(eintrag);
+  if(matrixSpur().length>400) S.tag.matrixSpur=matrixSpur().slice(-400);
+  saveTag();
+  matrixTmp=null;
+  closeSheet();
+  // §2 (v3.7.1): (a) die Position zählt in der Positionsstaffel wie jede beantwortete Abfrage · (b) die Karte „Tagebuch" tickt um 1
+  // (eigene Punkte 0, Tick-Minuten 0 — die Punkte kommen allein über die Staffel)
+  let pp=0; try{ pp=positionPunkteBuchen(); }catch(e){}
+  const tbk=tagebuchKarte(true); if(tbk && routineBuchbar(tbk)) karteTick(tbk.id, true);
+  saveKarten(); saveTag(); renderAlles();
+  toast('📓 Tagebuch-Eintrag gespeichert'+(pp>0 ? ' · +'+fmtP(pp)+' P Position' : '')); haptik(12);
+}
+/* Tipp in eine Matrix-Grafik → Tagebuch an genau dieser Stelle. Die Grafik
+   ist ein SVG mit viewBox; der Rand P ist ausserhalb der Felder. */
+function tagebuchAusMatrixKlick(e, svg){
+  const r=svg.getBoundingClientRect(); if(!(r.width>0 && r.height>0)) return;
+  const vb=(svg.getAttribute('viewBox')||'0 0 300 240').split(/\s+/).map(Number), W=vb[2], H=vb[3];
+  const P=num(svg.dataset.rand,6);
+  const fx=(e.clientX-r.left)/r.width*W, fy=(e.clientY-r.top)/r.height*H;
+  const x=((fx-P)/(W-2*P))*2-1, y=1-((fy-P)/(H-2*P))*2;
+  oeffneTagebuch(Math.max(-1,Math.min(1,x)), Math.max(-1,Math.min(1,y)));
+}
 /* ══ §7 (v2.4.0) · STATISTIK — die Matrix ganz oben ══════════════════ */
 function stMatrixTag(){
   const gm=fbGrosseMatrix({klick:false});   // §8 (v3.7.0): kein Tagebuch-Einstieg mehr
@@ -18329,7 +18422,7 @@ function fokusImmerZeigen(){
 }
 { const z1=document.querySelector('#topbar .sl-z1'); (z1||el('fkMid')).addEventListener('click', e=>{ if(e.target.closest('#btnFigur')) return; fokusImmerZeigen(); }); }
 el('statusbar').addEventListener('click', e=>{
-  if(e.target.closest('#sZMatrix')){ zurMatrixSpur(); return; }
+  if(e.target.closest('#sZMatrix')){ oeffneTagebuch(); return; }   // §2 (v3.7.1): Tipp auf die Matrix = Tagebuch
   if(e.target.closest('#btnKurve')) return;   // §2 (v3.5.1): der Punkte-Block fuehrt zur Statistik (eigener Handler)
   fokusImmerZeigen();
 });
@@ -18377,6 +18470,7 @@ el('fokusView').addEventListener('click', e=>{
     fokusStarten(id); S.ui.fokusOffen=true; S.ui.fokusZeigt=null; saveUi(); renderAlles(); return; }
   const alk=t.closest('[data-alkarte]'); if(alk){ haptik(8); fokusKarteAnsehen(alk.dataset.alkarte); return; }
   const zsk=t.closest('[data-zskarte]'); if(zsk){ haptik(8); fokusKarteAnsehen(zsk.dataset.zskarte); return; }
+  { const tbm=t.closest('svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; } }   // §2 (v3.7.1): Fokus „Matrix heute" → Tagebuch
   const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
   if(karteRowClick(t, e)) return;   // U1: Fokus-Liste = gleiche Karten-Zeilen-Aktionen wie der Stapel
   const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); { const _pk=S.karten.find(x=>x.id===u.parentId), _d=buchungAbgleich(_pk, 'unteraufgabe'); if(u.done) hakMerken(u.id, Math.max(num(_d), num(u.bonusPunkte)), _pk); } renderFokus(); } return; }
@@ -18733,6 +18827,8 @@ el('sheet').addEventListener('click', e=>{
     if(entwurf){ detailLies(); entwurf.faelligkeit=abZiel.dataset.abziel; renderDetail(); } return; }
   // ══ §1.2 (v2.0.0) · Der EINE Dialog für Matrix und Akku ══
   if(t.closest('[data-mxgo]')){ matrixDialogSpeichern(); return; }
+  if(t.closest('[data-tbgo]')){ tagebuchSpeichern(); return; }   // §2 (v3.7.1)
+  { const tbg=t.closest('[data-tbgut]'); if(tbg && matrixTmp && matrixTmp.tagebuch){ tagebuchFelderLesen(); const v=tbg.dataset.tbgut==='1'; matrixTmp.istGut=(matrixTmp.istGut===v) ? null : v; renderTagebuch(); return; } }
   // ══ §6 (v2.0.0) · Kette aus der SUCHE heraus sortieren ══
   const kp=t.closest('[data-kpos]'); if(kp){
     if(ketteBewegen(kp.dataset.kpos, num(kp.dataset.n))){ haptik(10); toast('Position '+num(kp.dataset.n)); }
