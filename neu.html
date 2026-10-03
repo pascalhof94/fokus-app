@@ -9752,18 +9752,12 @@ function abschlussV3SchliessenUI(){
   if(ok){
     const sk=schlafKarte();
     if(sk){ S.ui.fokusZeigt=sk.id; S.ui.fokusOffen=true; saveUi(); }
-    renderAlles(); nachOben();
+    renderAlles();   // §10 (v3.7.0): kein Hochscrollen
     toast('🌙 Tag abgeschlossen · '+fmtP(num(S.tag.punkteBilanz))+' P — Routinen und Counter bis „Schlafen" buchbar');
   } else renderAlles();
 }
-/* ══ §9 (v3.0.0) · JEDE ANSICHT BEGINNT OBEN ════════════════════════════
-   Bei jedem Wechsel — Tabs, Sichten, Sortierungen, Oeffnen und Schliessen
-   von Detail und Fokus — steht die Ansicht auf Scrollposition 0. */
-function nachOben(){
-  try{ const m=document.querySelector('main'); if(m) m.scrollTop=0; }catch(e){}
-  try{ const f=el('fokusLayer'); if(f) f.scrollTop=0; const fv=el('fokusView'); if(fv) fv.scrollTop=0; }catch(e){}
-  try{ window.scrollTo(0,0); }catch(e){}
-}
+/* §10 (v3.7.0): nachOben() ist entfallen — kein automatisches Hochscrollen mehr; erlaubt bleiben nur „▴ Einklappen"
+   (Kopf an den Rand) und der Wechsel der Hauptansichten über die Leiste unten (setTab). */
 /* Tages-Streak (v0.38-Art, additiv): Anzahl unmittelbar zusammenhängender
    abgeschlossener Tage mit positiver Bilanz. inklHeute=true zählt den offenen
    Tag mit, wenn seine Live-Bilanz > 0 ist (für die Live-Anzeige). */
@@ -10197,9 +10191,10 @@ function openSheet(titel, bodyHtml, footHtml, saveFn){
   el('sheetBody').innerHTML=bodyHtml;
   el('sheetFoot').innerHTML=footHtml||'';
   sheetSaveFn=saveFn||null;
+  const neu=!sheetOffen();
   el('backdrop').classList.add('on');
   el('sheet').classList.add('on');
-  try{ el('sheetBody').scrollTop=0; }catch(e){}   // §9 (v3.0.0)
+  if(neu){ try{ el('sheetBody').scrollTop=0; }catch(e){} }   // §10 (v3.7.0): nur ein NEU geöffnetes Sheet beginnt oben — ein Neuzeichnen (Tagesabschluss nach jedem Tipp) behält die Lage
 }
 /* §6 (v3.0.0): Schliessen durch Pascal (✕, Hintergrund, Abbrechen) — in der
    Abschluss-Ansicht heisst das „Tag abgeschlossen"; nach einem Abhak-Dialog
@@ -10207,7 +10202,7 @@ function openSheet(titel, bodyHtml, footHtml, saveFn){
 function sheetSchliessenDurchNutzer(){
   if(abv3.aktiv){ abschlussV3SchliessenUI(); return; }
   if(abv3.zurueck){ abv3.zurueck=false; closeSheet(); oeffneAbschlussV3(3); return; }
-  closeSheet(); nachOben();
+  closeSheet();   // §10 (v3.7.0): kein Hochscrollen
 }
 function closeSheet(){
   ketteSheetOffen=false;   // §9.3 (v1.12.0)
@@ -17318,7 +17313,7 @@ function fokusAngezeigtId(){
 function fokusKarteAnsehen(kid){
   if(!S.karten.some(k=>k.id===kid)) return;
   S.ui.fokusZeigt = (S.fokus && S.fokus.karteId===kid) ? null : kid;
-  S.ui.fokusOffen=true; saveUi(); fokusLayerPflegen(); nachOben();   // §9 (v3.0.0)
+  S.ui.fokusOffen=true; saveUi(); fokusLayerPflegen();   // §10 (v3.7.0): kein Hochscrollen
 }
 function fokusAnsichtZeigen(){
   if(!fokusAngezeigtId()) return;            // ohne Karte gibt es nichts zu zeigen
@@ -17327,7 +17322,7 @@ function fokusAnsichtZeigen(){
 function fokusAnsichtSchliessen(){
   // §3 (v2.1.1): Eine nur ANGESEHENE, nie gestartete Karte zu schliessen
   // ist kein Verlassen — kein Dialog, keine Buchung. Nichts wird gerufen.
-  S.ui.fokusOffen=false; S.ui.fokusZeigt=null; saveUi(); fokusLayerPflegen(); nachOben();   // §9 (v3.0.0)
+  S.ui.fokusOffen=false; S.ui.fokusZeigt=null; saveUi(); fokusLayerPflegen();   // §10 (v3.7.0): kein Hochscrollen
   // Die Uhr bleibt unangetastet — bewusst KEIN fokusZeitEinbuchen hier.
   renderFokusleiste();
 }
@@ -19497,7 +19492,7 @@ function stapelLiesEditor(){
 function statNeuZeichnen(){ if(S.ui.tab==='statistik') renderStatistik(); else renderBelohnung(); }
 function statKlick(e){
   // §6.6/§6.7 (v3.5.0): Malmodus, Station, Toepfe
-  const mm=e.target.closest('#belohnungBody [data-malmodus]'); if(mm){ S.ui.malmodus=mm.dataset.malmodus==='1'; saveUi(); renderBelohnung(); if(S.ui.malmodus){ const m=document.querySelector('main'); if(m) m.scrollTop=0; } return; }
+  const mm=e.target.closest('#belohnungBody [data-malmodus]'); if(mm){ S.ui.malmodus=mm.dataset.malmodus==='1'; saveUi(); renderBelohnung(); return; }   // §10 (v3.7.0): kein Hochscrollen beim Malmodus
   const mf=e.target.closest('#belohnungBody [data-malfarbe]'); if(mf){ if(stationFarbeWaehlen(num(mf.dataset.malfarbe))) renderBelohnung(); return; }
   const mw=e.target.closest('#belohnungBody [data-malwahl]'); if(mw){ S.ui.malTopf=num(mw.dataset.malwahl); saveUi(); renderBelohnung(); return; }
   const mt=e.target.closest('#belohnungBody .mal-station [data-maltopf]'); if(mt){ topfUnterStation(num(mt.dataset.maltopf)); renderBelohnung(); return; }
@@ -19809,8 +19804,7 @@ function suchFokusStarten(kid){
    die Statistik. Dazu blieb die Scrollposition der letzten Seite stehen.
    Jetzt: die Seite IST Belohnung und Shop (§4), beide Wege landen oben. */
 function zurBelohnung(){
-  setTab('belohnung');
-  const m=document.querySelector('main'); if(m) m.scrollTop=0;
+  setTab('belohnung');   // §10 (v3.7.0): der Wechsel der Hauptansicht beginnt oben (setTab), sonst kein Hochscrollen
 }
 el('btnFigur').addEventListener('click', zurBelohnung);
 el('fokusView').addEventListener('click', fokusKlick350, true);
@@ -19823,15 +19817,13 @@ el('sheetBody').addEventListener('click', e=>{ const t=e.target.closest('[data-m
 el('btnKurve').addEventListener('click', ()=>{
   // §1 (v2.6.0): Tipp auf die Mini-Kurve oeffnet die Statistik, OBEN
   // (dort stehen jetzt Matrix und direkt darunter der Tagesverlauf).
-  setTab('statistik');
-  const m=document.querySelector('main'); if(m) m.scrollTop=0;
+  setTab('statistik');   // §10 (v3.7.0): oben durch setTab
 });
 function zurMatrixSpur(){
   // §2 (v3.5.1): die Matrix-Spur liegt im Detail von „Matrix heute" — aufklappen und dorthin
   S.ui.statOffen=Object.assign({}, S.ui.statOffen, {matrixHeute:true}); saveUi();
   setTab('statistik');
   const m=document.querySelector('main'), z=document.querySelector('#statistikBody [data-stmodul="matrixHeute"]'), tb=el('topbar');
-  if(m) m.scrollTop=0;
   if(m && z){ const oben=tb?tb.getBoundingClientRect().bottom:0; m.scrollTop += z.getBoundingClientRect().top - oben - 8; }
 }
 /* §6: Freitext — findet alles, was in der App liegt, auch Erledigtes. */
@@ -19856,8 +19848,8 @@ el('suFilter').addEventListener('click', e=>{
     renderSuche(); haptik(8);
     toast(erledigteZeigen()?'✓ Erledigte werden gezeigt':'Erledigte ausgeblendet'); return; }
   // §8 (v3.0.0): ein zweiter Tipp auf die aktive Wahl hebt sie auf; jede Aenderung beginnt oben (§9)
-  const d=e.target.closest('[data-sudom]'); if(d){ S.ui.suDom=(suDom()===d.dataset.sudom)?'alle':d.dataset.sudom; saveUi(); renderSuche(); nachOben(); haptik(8); return; }
-  const a=e.target.closest('[data-suart]'); if(a){ S.ui.suArt=(suArtW()===a.dataset.suart)?'alle':a.dataset.suart; saveUi(); renderSuche(); nachOben(); haptik(8); return; }
+  const d=e.target.closest('[data-sudom]'); if(d){ S.ui.suDom=(suDom()===d.dataset.sudom)?'alle':d.dataset.sudom; saveUi(); renderSuche(); haptik(8); return; }
+  const a=e.target.closest('[data-suart]'); if(a){ S.ui.suArt=(suArtW()===a.dataset.suart)?'alle':a.dataset.suart; saveUi(); renderSuche(); haptik(8); return; }
 });
 el('suSichten').addEventListener('click', e=>{
   // §3 (v2.1.0): Filter „Erledigte zeigen" — sitzt in der Sicht-Leiste.
@@ -19865,7 +19857,7 @@ el('suSichten').addEventListener('click', e=>{
     renderSuche(); haptik(8);
     toast(erledigteZeigen()?'✓ Erledigte werden gezeigt':'Erledigte ausgeblendet'); return; }
   const b=e.target.closest('[data-susicht]');
-  if(b){ S.ui.suSicht=b.dataset.susicht; S.ui.suMatrixFeld=null; saveUi(); renderSuche(); nachOben(); haptik(8);   // §9 (v3.0.0): oben
+  if(b){ S.ui.suSicht=b.dataset.susicht; S.ui.suMatrixFeld=null; saveUi(); renderSuche(); haptik(8);   // §10 (v3.7.0): kein Hochscrollen
     return; }
 });
 // §5 (v3.7.0): „+" öffnet die Kettenliste (ticken · starten · in die Fokusansicht), oben „+ Neue Karte" für das bisherige Anlegen
