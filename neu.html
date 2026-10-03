@@ -2160,13 +2160,14 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 #statusbar .konto .ka i{background:none;transform:none;border-radius:0}
 #statusbar .konto .ka i svg{display:block;width:9px;height:9px}
 #statusbar .konto .ka .w{font-size:12.5px;font-weight:700;white-space:nowrap}
-#statusbar .sl-mitte{display:flex;flex-direction:column;justify-content:space-between;min-width:0;min-height:0}
+#statusbar .sl-mitte{display:flex;flex-direction:column;justify-content:flex-start;gap:5px;min-width:0;min-height:0}
 #statusbar .punkte{position:relative;display:block;height:34px;padding:0;border-radius:6px;background:#121418;overflow:hidden;cursor:pointer}
 #statusbar .punkte .sl-kurve{position:absolute;inset:0;height:auto}
 #statusbar .punkte .sl-kurve svg{position:absolute;inset:0;width:100%;height:100%}
 #statusbar .punkte .gesamt{position:absolute;left:5px;top:2px;font-size:13px;font-weight:800;line-height:1.1;color:#e8e9ec;text-shadow:0 0 3px #000}
 #statusbar .punkte .tempo{position:absolute;right:5px;bottom:2px;display:block;font-size:13px;font-weight:800;line-height:1.1;white-space:nowrap;text-shadow:0 0 3px #000,0 0 2px #000}
-#statusbar .sl-pace{display:flex;align-items:center;gap:6px;height:26px;min-width:0}
+#statusbar .sl-pace{display:block;min-width:0}
+#statusbar .sl-pace .pzeile{display:flex;align-items:center;gap:6px;height:16px;min-width:0}
 #statusbar .sl-pace .pbahn{position:relative;flex:1;height:12px;border-radius:6px;background:#1c1f25}
 #statusbar .sl-pace .pbahn i{position:absolute;left:0;top:0;bottom:0;border-radius:6px}
 #statusbar .sl-pace .pbahn u{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:#fff;border-radius:1px}
@@ -2307,6 +2308,10 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
 #statusbar .sb-bar{order:1}
 #statusbar .sl-z3{order:3}
 #statusbar .konto .kf span{color:#e8e9ec;font-variant-numeric:tabular-nums}
+/* §4a · Pace-Leiste direkt unter dem Mini-Diagramm (5 px), darunter die Live-Beschriftungen 10 px tabular-nums */
+#statusbar .sl-pace .plbl{position:relative;display:block;height:12px;margin-top:1px;font-size:10px;line-height:12px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+#statusbar .sl-pace .plbl b{position:absolute;top:0;transform:translateX(-50%)}
+#statusbar .sl-pace .plbl b.pfeil{left:auto;right:0;transform:none}
 </style>
 </head>
 <body>
@@ -5925,13 +5930,36 @@ function paceKarte(){
   const v=kt ? (kt.live!=null ? kt.live : kt.prognose) : null;
   return v!=null ? { wert:v, karte:lk } : null;
 }
+/* §4a (v3.7.0): Vorzeichen-Zahl für die Live-Beschriftungen („+12" / „−48") */
+function vorzP(v){ v=Math.round(num(v)); return (v<0 ? '−' : '+')+fmtP(Math.abs(v)); }
+/* §4a (v3.7.0): die drei Live-Beschriftungen unter der Pace-Leiste — unter dem weißen Strich „Ø 512" (WEISS), unter der Raute
+   die Abweichung der Karte zum Schnitt (Farbe wie der Pfeil), unter dem Pfeil die Abweichung des Schnitts zu „nötig"
+   (GRUEN bei +, ROT bei −; ohne „nötig" keine). Lage in % der Bahn; der Pfeil steht rechts neben der Bahn. */
+function paceBeschriftungen(g, pk, T, st){
+  const L=[{ an:'schnitt', x:T.schnitt, text:'Ø '+fmtP(Math.round(Math.max(0, num(g.tempoSchnitt)))), farbe:FARBE.WEISS }];
+  if(pk && T.karte!=null) L.push({ an:'karte', x:T.karte, text:vorzP(num(pk.wert)-num(g.tempoSchnitt)), farbe:st ? st.c : FARBE.WEISS });
+  if(num(g.tempoZiel)>0){ const d=num(g.tempoSchnitt)-num(g.tempoZiel); L.push({ an:'pfeil', x:null, text:vorzP(d), farbe:d<0 ? FARBE.ROT : FARBE.GRUEN }); }
+  return L;
+}
 function paceLeisteHtml(g, pk){
   if(pk===undefined) pk=paceKarte();
   const T=paceLeisteTeile(g.tempoSchnitt, g.tempoZiel, pk ? pk.wert : null), st=pk ? tempopfeilStufe(T.r) : null;
-  return '<span class="pbahn zonen">'+T.zonen.map(z=>'<i style="left:'+z.von.toFixed(1)+'%;width:'+Math.max(0, z.bis-z.von).toFixed(1)+'%;background:'+z.farbe+'"></i>').join('')+
+  const B=paceBeschriftungen(g, pk, T, st);
+  return '<span class="pzeile"><span class="pbahn zonen">'+T.zonen.map(z=>'<i style="left:'+z.von.toFixed(1)+'%;width:'+Math.max(0, z.bis-z.von).toFixed(1)+'%;background:'+z.farbe+'"></i>').join('')+
     '<u style="left:'+T.schnitt.toFixed(1)+'%"></u>'+
     (T.karte!=null ? '<b class="raute" style="left:'+T.karte.toFixed(1)+'%;background:'+famFarbe(pk.karte)+'"></b>' : '')+'</span>'+
-    '<span class="ppf">'+(st ? pfeilSvg(st, 16) : '')+'</span>';
+    '<span class="ppf">'+(st ? pfeilSvg(st, 16) : '')+'</span></span>'+
+    '<span class="plbl">'+B.map(b=>'<b class="'+b.an+'" data-px="'+(b.x==null ? '' : b.x.toFixed(1))+'" style="color:'+b.farbe+(b.x==null ? '' : ';left:'+b.x.toFixed(1)+'%')+'">'+b.text+'</b>').join('')+'</span>';
+}
+/* §4a (v3.7.0): überlappende Beschriftungen seitlich verschieben, bis 4 px frei sind (Reihenfolge nach Lage, Ränder der Zeile halten) */
+function paceBeschriftungenEntzerren(wrap){
+  const z=wrap && wrap.querySelector('.plbl'); if(!z || !z.offsetWidth) return;
+  const W=z.offsetWidth, LUECKE=4, bahnW=Math.max(1, W-22);   // Bahn = Zeile minus Lücke 6 px und Pfeil 16 px
+  const L=Array.from(z.querySelectorAll('b')).map(b=>{ const w=b.offsetWidth, x=b.classList.contains('pfeil') ? W-8 : num(b.dataset.px)/100*bahnW;
+    return { b, w, l:Math.max(0, Math.min(W-w, x-w/2)) }; }).sort((a,c)=>a.l-c.l);
+  for(let i=1;i<L.length;i++){ const vor=L[i-1]; if(L[i].l<vor.l+vor.w+LUECKE) L[i].l=vor.l+vor.w+LUECKE; }
+  for(let i=L.length-1;i>=0;i--){ const max=(i+1<L.length ? L[i+1].l-LUECKE : W)-L[i].w; if(L[i].l>max) L[i].l=Math.max(0, max); }
+  L.forEach(o=>{ o.b.style.left=o.l.toFixed(1)+'px'; o.b.style.transform='none'; });
 }
 function pfeilSvg(st, px){
   if(!st) return '';
@@ -8111,7 +8139,7 @@ function renderStatusbar(){
       if(urlaubHeute()){ t.textContent='🏖'; t.style.color=FARBE.WEISS; }
       else { t.style.color=paceFarbe(g.tempoSchnitt, g.tempoZiel); t.textContent=fmtP(Math.round(g.tempoSchnitt))+' P/h'; } } }
   // Spalte 2 unten: Pace-Leiste — Ampelzonen relativ zu „nötig", Strich = Ø heute, Raute = laufende Karte, Pfeil = Karte gegen Ø
-  if(el('sZTempo')) el('sZTempo').innerHTML=urlaubHeute() ? '' : paceLeisteHtml(g);
+  if(el('sZTempo')){ el('sZTempo').innerHTML=urlaubHeute() ? '' : paceLeisteHtml(g); paceBeschriftungenEntzerren(el('sZTempo')); }
   // Matrix 72×72 — Spur der letzten 5 Stunden
   if(el('sMv')) el('sMv').innerHTML=matrixVerlaufSvg(matrixSpur().filter(p=>p && p.ts && Date.parse(p.ts)>=Date.now()-5*3600000), {klein:true});   // §1 (v3.5.3): Matrixverlauf wie 3.4.8
   momentRangCheck();   // §6 (1.9.0): Rang/Stern/Meilenstein/Joker zentral erkennen
