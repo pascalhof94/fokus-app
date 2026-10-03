@@ -2723,6 +2723,7 @@ const DEFAULT_SETTINGS = {
   serienfaktorSchritt: 0.2,    // +0,2 je Erledigung, die oefter kommt als der Rhythmus verlangt
   serienfaktorMax: 2.0,        // … bis hoechstens ×2,0 (Entscheidung Pascal)
   tagesZielPrivatSockel: 750,  // §10: privates Tagesziel = Maximum der faelligen Routinen + 750
+  tagesEckPunkte: 150,         // §9 (v3.7.0): Tagesstart und Tagesabschluss geben je so viel DFM UND Privat (Abhak-Punkte ohne Zeit)
   schlafBedarfStd: 7,          // §7: Bedarf je Nacht — was fehlt, wird Schlafschuld
   schlafLadungProStd: 12,      // §7: Akku-Prozent je Stunde Schlaf (Claude schaerft nach)
   schlafSchuldProzentJeStd: 5, // §7: je Stunde Schlafschuld braucht der Akku so viel % mehr
@@ -2820,7 +2821,7 @@ const EINST_SCHEMA={
     schuldMaxStd:Z('schlafSchuldMaxStd',{min:0, max:100}), schuldProzentJeStd:Z('schlafSchuldProzentJeStd',{min:0, max:50}), aufstehenUm:{p:'schlafAufstehenUm', t:'uhrzeit'} },
   erholung:{ zeitzielMin:Z('erholungZeitzielMin',{min:0, max:600}), akkuJe120Min:Z('erholungAkkuJe120Min',{min:0, max:100}) },
   serienfaktor:{ schritt:Z('serienfaktorSchritt',{min:0, max:1}), max:Z('serienfaktorMax',{min:1, max:5}) },
-  tagesabschluss:{ abzugStandard:Z('abschlussAbzugStandard',{min:0}), fragen:{p:'reflexionsFragen', t:'texte'} },
+  tagesabschluss:{ abzugStandard:Z('abschlussAbzugStandard',{min:0}), fragen:{p:'reflexionsFragen', t:'texte'}, eckPunkte:Z('tagesEckPunkte',{min:0}) },   // §9 (v3.7.0)
   tagesstruktur:{ bloecke:{p:'tagesStruktur', t:'bloecke'} },
   punkte:{ basisDfm:Z('basisProStdDfm',{min:0}), basisPrivat:Z('basisProStdPrivat',{min:0}), zeitGewicht:Z('zeitGewicht',{min:0, max:10}),
     tickGewicht:Z('tickGewicht',{min:0, max:10}), matrixFaktoren:{p:'matrixFaktor', t:'feldtab'}, geldNenner:{spezial:'geldNenner'},
@@ -4362,7 +4363,7 @@ function fokusStarten(kid, quelle, opt){
   if(zk && zk.rolle==='schlafen'){ schlafUmschalten(); return; }
   // §1.1 (v3.4.0): nach „Aufstehen" bzw. nach dem Abschluss misst ▶ an diesen Karten nur noch Zeit
   if(zk && zk.rolle==='aufstehen' && !(tagOffen() && S.tag.morgen && S.tag.morgen.aufstehTs)){ oeffneAufstehen(); return; }
-  if(zk && zk.rolle==='tagesabschluss' && tagOffen()){ oeffneAbschlussV3(1); return; }
+  if(zk && zk.rolle==='tagesabschluss' && tagOffen() && !opt.abschlussUhr){ oeffneAbschlussV3(1); return; }   // §9 (v3.7.0): die Ansicht startet die Uhr selbst
   const warSchonLauf=!!(S.fokus && S.fokus.karteId===kid && S.fokus.laeuft);   // §1 (v2.8.2): kein neuer Durchgang
   // §3.1 (v1.10.0): eine eingefrorene Karte wird beim Start sofort aktiv —
   // freeze fällt ohne Rückfrage (der alte „erst auftauen"-Toast entfällt).
@@ -4451,7 +4452,7 @@ try{ (function(){ let tm=null;
    Aufstehen/Tagesabschluss schon gebucht), bucht ▶ keinen Tick und keine
    Punkte: die Uhr misst nur Zeit (Ist-Minuten, Log-Quelle uhr, punkte 0,
    keine Dauerlauf-Strafe, kein Pflicht-Abzug). Aufgaben bleiben, wie sie sind. */
-function uhrFrei(k){ return !!(k && k.rhythmus && tagBuchbar()); }
+function uhrFrei(k){ return !!(k && (k.rhythmus || k.rolle==='erholung') && tagBuchbar()); }   // §9 (v3.7.0): Erholung auch nach dem Abschluss
 function nurZeitLauf(k){
   if(!uhrFrei(k)) return false;
   if(k.rolle==='aufstehen' || k.rolle==='tagesabschluss') return true;   // ihr Tick kommt aus „Aufstehen" bzw. dem Abschluss
@@ -8253,7 +8254,7 @@ function kartePunkteHeute(k){
 function tagesPunkteDomain(dom){
   let p=0;
   S.karten.forEach(k=>{ if(k.domain===dom) p+=kartePunkteHeute(k); });
-  if(S.tag && Array.isArray(S.tag.log)) S.tag.log.forEach(e=>{ if((e.art==='schub'||e.art==='korrektur'||e.art==='abzug') && e.domain===dom) p+=num(e.punkte); });   // §3 (v2.7.0): + Korrekturen · §2 (v3.0.0): + Routinen-Abzuege
+  if(S.tag && Array.isArray(S.tag.log)) S.tag.log.forEach(e=>{ if((e.art==='schub'||e.art==='korrektur'||e.art==='abzug'||e.art==='eck') && e.domain===dom) p+=num(e.punkte); });   // §3 (v2.7.0): + Korrekturen · §2 (v3.0.0): + Routinen-Abzuege · §9 (v3.7.0): + Eckpunkte
   // §3 (v2.9.1): Ist der Tag schon abgeschlossen, landet eine Korrektur der
   // Tageswerte im Snapshot — „heute" zeigt sie trotzdem (Stand 26.09.: 2.825
   // blieb stehen, obwohl das Protokoll 1.865 und das Konto −960 zeigte)
@@ -9573,6 +9574,8 @@ function oeffneAbschlussV3(schritt){
   if(!tagOffen()){ toast(S.tag && S.tag.endeTs ? 'Der Tag ist schon abgeschlossen' : 'Kein offener Tag'); return; }
   const a0=abschlussV3Stand();
   if(!a0.beginnTs){ a0.beginnTs=jetztIso(); saveTag(); }   // §2.2 (v3.2.0): bis hierher reichen die „aktiven Stunden"
+  // §9 (v3.7.0): die Uhr der Karte „Tagesabschluss" startet beim Öffnen der Ansicht und läuft weiter (Bugfix: ▶ öffnete nur die Ansicht)
+  try{ const tk=tagesabschlussKarte(); if(tk && tk.status==='offen' && !(S.fokus && S.fokus.laeuft && S.fokus.karteId===tk.id)) fokusStarten(tk.id, null, {abschlussUhr:true}); }catch(e){}
   if(schritt) abv3.schritt=schritt;
   abv3.zurueck=false;
   renderAbschlussV3();
@@ -9581,7 +9584,7 @@ function oeffneAbschlussV3(schritt){
 function abschlussMessungUebernehmen(){
   const a=abschlussV3Stand();
   let gestoppt=null;
-  if(S.fokus && S.fokus.laeuft){ const k=fokusKarte(); fokusZeitEinbuchen(); gestoppt=k ? (k.titel||'') : ''; }
+  if(S.fokus && S.fokus.laeuft){ const k=fokusKarte(); if(!(k && k.rolle==='tagesabschluss')){ fokusZeitEinbuchen(); gestoppt=k ? (k.titel||'') : ''; } }   // §9 (v3.7.0): die Abschluss-Uhr läuft weiter
   if(!a.messungTs) a.messungTs=jetztIso();
   saveKarten(); saveTag(); saveFokus();
   if(gestoppt!=null) toast('⏱ Uhr gestoppt: „'+String(gestoppt).slice(0,24)+'" — Ist-Zeit bis jetzt gebucht');
@@ -10760,6 +10763,7 @@ function karteAbhaken(kid, fromDetail){
     }
     abschlussSnapshot(k);                                // §6.1: Stand VOR dem Abschluss sichern
     k.status='erledigt'; k.tagId=aktuelleTagId();
+    if(k.rolle==='erholung' && nachAbschluss()){ try{ schlafenNachVorn(); }catch(e){} }   // §9 (v3.7.0): danach „Schlafen" an Position 1
     if(k.rhythmus) routineErledigtBuchen(k);              // Streak + zuletztRoutine
     if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
     logPunktSchreiben(k);                                 // v1.1: Punkt-Ereignis (Verlauf/Kennzahlen)
@@ -11791,8 +11795,39 @@ function aufstehenBestaetigen(akkuGefuehl, opt){
   schlafPunkteBuchen();   // eine Nacht ohne ihren Tag (Stand vor v3.4) geht wie bisher in den neuen Tag
   const k=aufstehenKarte();
   if(k && k.status==='offen' && !limitErreicht(k) && tickAnzahlHeute(k)===0) routineTick(k,{still:true});
+  tagesEckpunkteBuchen('aufstehen', k);   // §9 (v3.7.0): 150 DFM + 150 Privat
   saveTag(); saveKarten(); saveMeta();
   return S.tag.morgen;
+}
+/* ══ §9 (v3.7.0) · ECKPUNKTE: Tagesstart und Tagesabschluss geben je 150 DFM und 150 Privat ═══════════════
+   Abhak-Punkte ohne Zeit, je Familie ein Eintrag im Tages-Log (art 'eck') und im Stunden-Log (ohne Karte, mit Familie),
+   einmal je Tag und Anlass (S.tag.eckpunkte). Der Tick der Rollenkarte bleibt daneben bestehen. */
+function tagesEckpunkteBuchen(anlass, k){
+  if(!S.tag || !tagBuchbar()) return 0;
+  if(!S.tag.eckpunkte || typeof S.tag.eckpunkte!=='object') S.tag.eckpunkte={};
+  if(S.tag.eckpunkte[anlass]) return 0;
+  const P=Math.max(0, num(S.settings.tagesEckPunkte,150)); if(!(P>0)) return 0;
+  const titel=anlass==='aufstehen' ? 'Tagesstart' : 'Tagesabschluss';
+  ['dfm','privat'].forEach(dom=>{
+    (S.tag.log=S.tag.log||[]).push({ itemId:'eck-'+anlass, karte:k ? k.id : null, titel, domain:dom, art:'eck', punkte:P, ts:jetztIso() });
+    const e=logIntraday({ id:null, domain:dom }, { punkte:P, typ:'abhaken' }); e.eck=anlass; });
+  DB.set('intraday', S.intraday);
+  S.tag.eckpunkte[anlass]=jetztIso(); saveTag();
+  try{ momentBuchung(2*P); }catch(e){}
+  return 2*P;
+}
+/* §9 (v3.7.0): nach dem Tagesabschluss rückt „ADHS-Erholung" (rolle erholung) an Position 1 der Kette — Uhr startbar;
+   ist sie abgehakt, rückt „Schlafen" an Position 1 mit Soll = Schlafbedarf aus den Einstellungen */
+function erholungKarte(){ return S.karten.find(k=>k.rolle==='erholung' && k.status!=='archiviert') || null; }
+function erholungNachVorn(){
+  const k=erholungKarte(); if(!k) return false;
+  if(k.status==='erledigt' && k.tagId===aktuelleTagId()) return schlafenNachVorn();
+  ketteNachVorn(k.id); return true;
+}
+function schlafenNachVorn(){
+  const k=schlafKarte(); if(!k) return false;
+  k.sollMin=Math.round(num(S.settings.schlafBedarfStd,7)*60); saveKarten();
+  ketteNachVorn(k.id); return true;
 }
 /* ══ §6 (v3.0.0) · TAGESABSCHLUSS — Logik (die Ansicht steht bei der UI) ══ */
 function abschlussV3Stand(){
@@ -11965,11 +12000,14 @@ function abschlussV3Schliessen(){
   const k=tagesabschlussKarte();
   _abschlussBuchung=true;   // §2.2 (v3.2.0): alles, was jetzt gebucht wird, ist quelle „tagesabschluss"
   try{
-    if(S.fokus && S.fokus.laeuft) abschlussMessungUebernehmen();
+    // §9 (v3.7.0): die Uhr des Tagesabschlusses wird jetzt eingebucht, eine andere laufende Uhr wie bisher gestoppt
+    if(S.fokus && S.fokus.laeuft){ const lk=fokusKarte(); if(lk && lk.rolle==='tagesabschluss') fokusZeitEinbuchen(); else abschlussMessungUebernehmen(); }
     if(!a.messungTs) a.messungTs=jetztIso();
     if(k && k.status==='offen' && tickAnzahlHeute(k)===0) routineTick(k,{still:true});
+    tagesEckpunkteBuchen('abschluss', k);   // §9 (v3.7.0): 150 DFM + 150 Privat
     tagAbschlussFinalisieren();
   } finally{ _abschlussBuchung=false; }
+  try{ erholungNachVorn(); }catch(e){}   // §9 (v3.7.0): „ADHS-Erholung" an Position 1
   const z=schlafZustand(); z.abendAkku=(a.reflexion && a.reflexion.akku!=null) ? Math.round(num(a.reflexion.akku)) : (S.tag.akku!=null ? Math.round(num(S.tag.akku)) : null);
   saveMeta(); saveTag(); saveKarten();
   return true;
