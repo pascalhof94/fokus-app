@@ -307,7 +307,7 @@ ok('12 Kette und Routinen bleiben',
 kopf('§6/§7 Navigation und Kette (Abnahme 13-18)');
 frisch();
 /* v3.0.0 §8: vier Sortierungen statt fuenf Sichten; Erledigtes ist die Sortierung „Erledigte" */
-ok('13 Zwei Navigationsziele (v3.0: vier Sortierungen)', SU_SICHTEN.length===4);
+ok('13 Navigationsziele: die vier Sortierungen sind entfallen (§12 v3.7.0) — die Suche ist Suchfeld + Kettenliste (§5)', typeof SU_SICHTEN==='undefined' && typeof kettenListeHtml==='function');
 ok('13 FABs und Stapelseite sind aus dem Markup verschwunden',
    src.indexOf('id="fab"')<0 && src.indexOf('id="routFab"')<0 && src.indexOf('id="ketteFab"')<0 &&
    src.indexOf('id="v-stapel"')<0);
@@ -321,26 +321,13 @@ baueSuchIndex();
    §3 (v2.1.0) filtert erst in der Anzeige. */
 ok('14 Der Suchindex findet auch Erledigtes', 
    sucheTreffer('Erledigtes').some(function(o){ return o.k && o.k.id==='e'; }));
-ok('14 ... und die Suchseite packt die Karte richtig aus (kein [object Object])',
-   (function(){ S.ui.suFrage='Erledigtes'; S.ui.suSicht='erledigte';
-     var h=suFreitextHtml('Erledigtes');
-     S.ui.suSicht='heute';
-     return h.indexOf('Erledigtes Ding')>=0 && h.indexOf('[object')<0; })());
-/* ══ §3 (v2.1.0) · Erledigtes ist DRAUSSEN, der Filter holt es zurueck ══ */
-ok('§3 Freitext blendet Erledigtes standardmaessig AUS',
-   suFreitextHtml('Erledigtes').indexOf('Erledigtes Ding')<0);
-ok('§3 Die Sortierung „Erledigte" blendet es ein (v3.0 §8)', (function(){
-     S.ui.suSicht='erledigte'; var h=suFreitextHtml('Erledigtes');
-     S.ui.suSicht='heute'; return h.indexOf('Erledigtes Ding')>=0; })());
-ok('§3 Die Sichten filtern ueber DIESELBE Stelle (suSichtbar)', (function(){
-     var erl=neueKarte({id:'x-erl', status:'erledigt', titel:'Fertig'});
-     var off=neueKarte({id:'x-off', status:'offen', titel:'Offen'});
-     S.ui.suSicht='heute';
-     var a=suSichtbar([erl,off]).length;
-     S.ui.suSicht='erledigte';
-     var b=suSichtbar([erl,off]).length;
-     S.ui.suSicht='heute';
-     return a===1 && b===2; })());
+/* §12 (v3.7.0): Freitext-Sicht und Sortierungen sind entfallen — die Suche filtert die Kettenliste; Erledigtes steht nur in der
+   Gruppe „Erledigt heute" (heute erledigt), aeltere Erledigte sind draussen */
+ok('14 ... die Suchseite ist jetzt die Kettenliste (kein [object Object])',
+   (function(){ var h=kettenListeHtml({karte:null, filter:'Erledigtes', kontext:'suche'}); return typeof h==='string' && h.indexOf('[object')<0 && h.indexOf('data-klliste')>=0; })());
+ok('§3 Erledigtes von frueher steht in keiner Gruppe der Kettenliste (§12 v3.7.0)',
+   (function(){ var i=kettenListeInhalt({karte:null, filter:'Erledigtes'}); return Object.keys(i).every(function(g){ return i[g].teile.every(function(t){ return !t.karten.some(function(k){ return k.id==='e'; }); }); }); })());
+ok('§3 suSichtbar/suFreitextHtml sind entfallen (§12 v3.7.0)', typeof suFreitextHtml==='undefined' && typeof suSichtHtml==='undefined');
 /* §3 BELEG: in ALLEN fuenf Sichten und im Freitext, nicht nur irgendwo. */
 (function(){
   var keepK=S.karten, keepU=S.ui;
@@ -351,25 +338,20 @@ ok('§3 Die Sichten filtern ueber DIESELBE Stelle (suSichtbar)', (function(){
   S.meta.ketten=null; ketteSetzen(['o1','e1']);
   S.ui.suMatrixFeld='ziel'; baueSuchIndex();
   function zeilen(h){ return (h.match(/class="krow/g)||[]).length; }
-  // v3.0.0 §8: in Heute · Fällig · Neueste nie, in „Erledigte" genau sie
-  ['heute','faellig','neueste'].forEach(function(v){
-    S.ui.suSicht=v; var h=suSichtHtml(v);
-    ok('§3 Sortierung „'+v+'": die erledigte steht nicht darin', h.indexOf('data-kid="e1"')<0);
-  });
-  S.ui.suSicht='erledigte'; var hE=suSichtHtml('erledigte');
-  ok('§3 Sortierung „Erledigte": genau die erledigte', hE.indexOf('data-kid="e1"')>=0 && hE.indexOf('data-kid="o1"')<0);
-  S.ui.suSicht='heute';
-  ok('§3 Freitext ohne Filter findet die erledigte NICHT',
-     zeilen(suFreitextHtml('Fertig'))===0);
-  S.ui.suSicht='erledigte';
-  ok('§3 Freitext in „Erledigte" findet sie', zeilen(suFreitextHtml('Fertig'))===1);
+  // §12 (v3.7.0): Kettenliste — die heute erledigte steht in „Erledigt heute", nicht in der Kette
+  var inh=kettenListeInhalt({karte:null, filter:''});
+  function hat(g,id){ return inh[g].teile.some(function(t){ return t.karten.some(function(k){ return k.id===id; }); }); }
+  ok('§3 Kettenliste: die erledigte steht nicht in der Gruppe Kette', !hat('kette','e1') && hat('kette','o1'));
+  ok('§3 Kettenliste: „Erledigt heute" traegt genau die erledigte', hat('erledigt','e1') && !hat('erledigt','o1'));
+  var inhF=kettenListeInhalt({karte:null, filter:'Fertig'});
+  ok('§3 Suchfeld filtert alle Gruppen: „Fertig" findet nur die erledigte', inhF.kette.n===0 && inhF.erledigt.n===1);
   S.ui.suSicht='heute'; S.ui.suMatrixFeld=null;
   S.karten=keepK; S.ui=keepU;
 })();
 ok('§3 Eine HEUTE erledigte Routine gilt als erledigt', (function(){
      var r=neueKarte({id:'x-r', rhythmus:{typ:'taeglich'}, status:'erledigt', tagId:aktuelleTagId()});
      return istHeuteErledigt(r)===true; })());
-ok('15 Vier Sortierungen (v3.0), „Heute" ist Standard', SU_SICHTEN[0][0]==='heute' && suSicht()==='heute');
+ok('15 Sortierungen entfallen (§12 v3.7.0); die Kettenliste sortiert je Gruppe (Standard Kette = Kettenreihenfolge)', typeof suSicht==='undefined' && klSortWahl('kette')==='kette');
 frisch();
 S.karten=[]; for(var i=1;i<=5;i++) S.karten.push(neueKarte({id:'p'+i, domain:(i%2?'dfm':'privat'), titel:'P'+i, geplantFuer:H()}));
 ketteSetzen(['p1','p2','p3','p4','p5']);
@@ -532,9 +514,10 @@ ok('28 ACWR und die alte Belastungssteuerung sind aus der Statistik raus',
 
 /* ══ §13 · Shop ═══════════════════════════════════════════════════════ */
 kopf('§13 Shop (Abnahme 29)');
-ok('29 Der Shop haengt hinter der Figur, nicht in der Leiste',
+ok('29 Der Shop haengt hinter der Figur UND (§11 v3.7.0) im Tab „Shop" der Leiste: Shop · Statistik · Einstellungen',
    src.indexOf('id="btnFigur"')>=0 &&
-   (src.match(/<nav id="nav">[\s\S]*?<\/nav>/)||[''])[0].indexOf('belohnung')<0);
+   /<nav id="nav">[\s\S]*?data-tab="belohnung"[\s\S]*?Shop[\s\S]*?data-tab="statistik"[\s\S]*?data-tab="einst"[\s\S]*?<\/nav>/.test(src) &&
+   (src.match(/<nav id="nav">[\s\S]*?<\/nav>/)||[''])[0].indexOf('data-tab="suche"')<0);
 ok('29 Shop-Reset aus v1.13.3 ist erhalten', typeof shopResetJetzt==='function');
 ok('29 Sechs Kategorien, zwoelf Stufen', KAT_KEYS.length===6 &&
    KAT_KEYS.every(function(k){ return BELOHNUNG[k].stufen.length===12; }));
@@ -559,8 +542,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.4.0 · Build gesetzt', VERSION==='3.6.1' && UI_VERSION==='v3.6.1' &&
-   APP_BUILD==='2026-10-02-6');
+ok('31 APP_VERSION 3.7.0 · Build gesetzt', VERSION==='3.7.0' && UI_VERSION==='v3.7.0' &&
+   APP_BUILD==='2026-10-03-1');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -755,8 +738,8 @@ abv3.aktiv=false;
 ok('§1.7 Der Banner zeigt den alten Tag mit Knopf',
    tagBannerHtml().indexOf('data-tagclose')>=0 && tagBannerHtml().indexOf('noch offen')>=0);
 closeSheet();
-ok('§1.7 Und die Suche funktioniert daneben weiter', (function(){
-     S.ui.suSicht='heute'; var h2=suHeuteHtml(); return typeof h2==='string'; })());
+ok('§1.7 Und die Suche funktioniert daneben weiter (§5 v3.7.0: Kettenliste)', (function(){
+     var h2=kettenListeHtml({karte:null, filter:'', kontext:'suche'}); return typeof h2==='string'; })());
 
 /* ══ v2.1.0 · §2 DAS PLUS ÜBERALL ════════════════════════════════════ */
 kopf('v2.1.0 §2 · Das Plus');
@@ -930,44 +913,24 @@ S.karten.forEach(function(k){ k.letzteBearbeitung=jetztIso(); k.streak=1; });
 ketteSetzen(['dA','pA','dR','pR','pC']);
 suchIndex=[];
 function idsIn(h){ var r=[], re=/data-kid="([^"]+)"/g, m; while((m=re.exec(h))) if(r.indexOf(m[1])<0) r.push(m[1]); return r.sort().join(','); }
-var KOMBI=[['alle','alle','dA,dR,pA,pC,pR'],['privat','routinen','pC,pR'],['dfm','aufgaben','dA'],
-           ['privat','aufgaben','pA'],['dfm','routinen','dR'],['alle','routinen','dR,pC,pR'],['dfm','alle','dA,dR']];
-KOMBI.forEach(function(c){
-  S.ui.suDom=c[0]; S.ui.suArt=c[1];
-  ['heute','faellig','art','oft'].forEach(function(v){
-    var h=suSichtHtml(v);
-    ok('§2 '+c[0]+' + '+c[1]+' · Sicht '+v+' → '+c[2], idsIn(h)===c[2]);
-  });
-  S.ui.suMatrixFeld=null;
-  var hm='', fe=['ziel','werkzeug'];
-  fe.forEach(function(f){ S.ui.suMatrixFeld=f; hm+=suMatrixHtml(); });
-  S.ui.suMatrixFeld=null;
-  ok('§2/§5 '+c[0]+' + '+c[1]+' · Matrix (Feld geöffnet) → '+c[2], idsIn(hm)===c[2]);
-  ok('§2 '+c[0]+' + '+c[1]+' · Freitext „filter" → '+c[2], idsIn(suFreitextHtml('filter'))===c[2]);
-});
-S.ui.suDom='privat'; S.ui.suArt='routinen'; saveUi();
-var gespeichert=JSON.parse(_store[Object.keys(_store).filter(function(k){ return /ui$/.test(k); })[0]]||'{}');
-ok('§2 Filterwahl steht im Speicher (übersteht den Neustart)', gespeichert.suDom==='privat' && gespeichert.suArt==='routinen');
-ok('§2 aktive Filterung steht in der Kopfzeile', suHeuteHtml().indexOf('Privat · Routinen/Counter')>=0);
+/* §5/§12 (v3.7.0): Filter-Knoepfe (Domaene/Art), Sichten und Matrix-Sicht der Suche sind entfallen — die Suche ist Suchfeld +
+   Kettenliste, die Eingabe filtert alle Gruppen. Die fuenf Karten stehen in der Kette (Aufgaben + Routinen + Counter) und je nach
+   Art zusaetzlich in Routinen / Ticks. */
+function idsInGruppe(inh, g){ var r=[]; inh[g].teile.forEach(function(t){ t.karten.forEach(function(k){ if(r.indexOf(k.id)<0) r.push(k.id); }); }); return r.sort().join(','); }
+var inh0=kettenListeInhalt({karte:null, filter:''});
+ok('§2 (v3.7.0) Gruppe „Aktuelle Kette" folgt der aktiven Familie (DFM): dA, dR', navDomain()==='dfm' && idsInGruppe(inh0,'kette')==='dA,dR');
+ok('§2 (v3.7.0) Routinen-Gruppe: Routinen und Counter', idsInGruppe(inh0,'routinen')==='dR,pC,pR');
+ok('§2 (v3.7.0) Ticks Privat: der Counter', idsInGruppe(inh0,'ticksPrivat')==='pC');
+S.ui.navDomain='privat';
+var inhP=kettenListeInhalt({karte:null, filter:'Privat'});
+ok('§2 (v3.7.0) Familie Privat + Suchfeld „Privat": Kette pA, pC, pR · Routinen pC, pR', idsInGruppe(inhP,'kette')==='pA,pC,pR' && idsInGruppe(inhP,'routinen')==='pC,pR');
+S.ui.navDomain='dfm';
+var inhR=kettenListeInhalt({karte:null, filter:'dfm routine'});
+ok('§2 (v3.7.0) Suchfeld mit zwei Woertern: beide muessen passen', idsInGruppe(inhR,'kette')==='dR');
 renderSuche();
-var fl=el('suFilter').innerHTML, sl=el('suSichten').innerHTML;
-// v3.0.0 §8: zwei Filter mit je zwei Wahlen (ein zweiter Tipp hebt die Wahl auf) — kein „Alle"-Knopf mehr
-ok('§2 zwei Filter: Routinen/Counter oder Aufgaben · DFM oder privat', ['data-sudom="dfm"','data-sudom="privat"',
-   'data-suart="aufgaben"','data-suart="routinen"'].every(function(x){ return fl.indexOf(x)>=0; }) && fl.indexOf('="alle"')<0);
-ok('§2 aktive Segmente markiert', /class="on" data-sudom="privat"/.test(fl) && /class="on" data-suart="routinen"/.test(fl));
-ok('§2 „Erledigte" ist eine der Sortierungen (v3.0), kein Extra-Filter', fl.indexOf('data-suerl')<0 && sl.indexOf('data-susicht="erledigte"')>=0);
-ok('§2 Sortier-Leiste hat genau vier Einträge: Heute · Fällig · Neueste · Erledigte', (sl.match(/data-susicht=/g)||[]).length===4 &&
-   /data-susicht="heute"[\s\S]*data-susicht="faellig"[\s\S]*data-susicht="neueste"[\s\S]*data-susicht="erledigte"/.test(sl));
+ok('§2 (v3.7.0) Filterleiste und Sichten sind im Markup versteckt, Suche = tagBanner + Kettenliste', /id="suFilter"[^>]*hidden/.test(src) && /id="suSichten"[^>]*hidden/.test(src) &&
+   el('suBody').innerHTML.indexOf('data-klliste')>=0 && typeof suMatrixHtml==='undefined' && typeof suSichtHtml==='undefined');
 S.ui.suDom='alle'; S.ui.suArt='alle';
-
-kopf('v2.2.0 §3 · Matrix-Feld zeigt seine Karten');
-S.ui.suMatrixFeld='werkzeug';
-var mh=suMatrixHtml();
-ok('§3 gewähltes Feld: eigene Liste mit Zurück, ohne Raster davor', mh.indexOf('su-mxzurueck')>=0 && mh.indexOf('su-mxgrid')<0 && idsIn(mh)==='dR,pC,pR');
-S.ui.suMatrixFeld='ablenkung';
-ok('§3 leeres Feld sagt es ausdrücklich', suMatrixHtml().indexOf('Keine Karte in diesem Feld')>=0);
-S.ui.suMatrixFeld=null;
-ok('§3 ohne Wahl: Raster mit vier Feldern', (suMatrixHtml().match(/data-sumx=/g)||[]).length===4);
 
 kopf('v2.2.0 §4 · Belohnungsseite');
 frisch(); belohnungInit();
@@ -1043,30 +1006,23 @@ S.karten=[
 ketteSetzen(['h1','u1','z1','o1','rT','rN','cC']);
 suchIndex=[];
 function idsIn2(h){ var r=[], re=/data-kid="([^"]+)"/g, m; while((m=re.exec(h))) if(r.indexOf(m[1])<0) r.push(m[1]); return r; }
-var heute=idsIn2(suHeuteHtml());
-ok('§2 heute nicht fällige Routine (7-Tage) fehlt überall · Sicht Heute ['+heute.join(',')+']', heute.indexOf('rN')<0);
+/* §5/§12 (v3.7.0): Sichten Heute/Fällig/Art und der Freitext sind entfallen — die Kettenliste zeigt die Kette (navDomain) und
+   die Routinen des Tages (abhakLeisteKarten: faellige Routinen, Counter); eine nicht faellige 7-Tage-Routine steht nicht darin */
+S.ui.navDomain='privat';
+var inhH=kettenListeInhalt({karte:null, filter:''});
+function gIds(inh,g){ var r=[]; inh[g].teile.forEach(function(t){ t.karten.forEach(function(k){ if(r.indexOf(k.id)<0) r.push(k.id); }); }); return r; }
+var heute=gIds(inhH,'routinen');
+ok('§2 heute nicht fällige Routine (7-Tage) fehlt in der Routinen-Gruppe ['+heute.join(',')+']', heute.indexOf('rN')<0);
 ok('§2 tägliche Routine und Counter bleiben', heute.indexOf('rT')>=0 && heute.indexOf('cC')>=0);
-ok('§2 auch der Freitext zeigt die nicht fällige nicht', idsIn2(suFreitextHtml('routine')).indexOf('rN')<0);
-S.ui.suArt='routinen';
-// v2.8.0 §1.2: Abhak-Karten (Routinen ohne Soll-Minuten) stehen nicht mehr im KALENDER —
-// die Ausnahme gilt in der Suche weiter, hier in der Sicht „Art"
-var nurRout=idsIn2(suArtHtml());
-ok('§2 Ausnahme: Art-Filter „Routinen und Counter" zeigt auch die nicht fällige', nurRout.indexOf('rN')>=0);
-ok('§2 Ausnahme steht in der Kopfzeile', suHeuteHtml().indexOf('auch heute nicht fällige')>=0);
-ok('§2 Ausnahme wirkt auch im Freitext', idsIn2(suFreitextHtml('routine')).indexOf('rN')>=0);
-S.ui.suArt='alle';
-var reihe=idsIn2(suHeuteHtml());
-ok('§3 heute + überfällig vor dem nicht Eingeplanten ['+reihe.join(',')+']',
-   reihe.indexOf('h1')<reihe.indexOf('z1') && reihe.indexOf('u1')<reihe.indexOf('z1') &&
-   reihe.indexOf('u1')<reihe.indexOf('o1') && reihe[reihe.length-1]!=='h1');
+ok('§2 auch das Suchfeld zeigt die nicht fällige nicht', gIds(kettenListeInhalt({karte:null, filter:'routine'}),'routinen').indexOf('rN')<0);
+S.ui.navDomain='dfm';
+var reihe=gIds(kettenListeInhalt({karte:null, filter:''}),'kette');
+ok('§3 Kette (DFM) in Kettenreihenfolge: heute, überfällig, Zukunft ['+reihe.join(',')+']', reihe.join(',')==='h1,u1,z1');
 ok('§3 überfällige NICHT ausgegraut', kartenreiheHtml(S.karten.find(function(k){return k.id==='u1';}),'t').indexOf('eingefroren')<0);
 ok('§3 Zukunft und ohne Datum ausgegraut',
    kartenreiheHtml(S.karten.find(function(k){return k.id==='z1';}),'t').indexOf('eingefroren')>=0 &&
    kartenreiheHtml(S.karten.find(function(k){return k.id==='o1';}),'t').indexOf('eingefroren')>=0);
-var frei=suFreitextHtml('faellig'), sicht=suFaelligHtml();
-ok('§1 Freitext: Karten kompakt (zwei Zeilen, keine Knopfreihe)',
-   frei.indexOf('krow kompakt')>=0 && frei.indexOf('ktools')<0 && frei.indexOf('data-detail=')>=0);
-ok('§1 Sichten unverändert (Knopfreihe bleibt; „Heute" ist seit v2.4 der Kalender)', sicht.indexOf('ktools')>=0 && sicht.indexOf('krow kompakt')<0);
+ok('§1 Kartenzeile der Kettenliste (§6 v3.7.0): kompakt, Titel-Tipp, Haken, ohne Knopfreihe', (function(){ var z=kartenZeileHtml(S.karten[0]); return z.indexOf('kl-z')>=0 && z.indexOf('data-klfokus')>=0 && z.indexOf('data-klcheck')>=0 && z.indexOf('ktools')<0; })());
 
 kopf('v2.3.0 §4 · Der Vorschlag ist immer ein Werkzeug');
 frisch();
@@ -1079,22 +1035,18 @@ ok('§4 Reihenfolge: DFM-Werkzeug vor privatem', werkzeugReihenfolge().map(funct
 matrixPosSetzen(0.6,0.2,null,'test');          // rechts — frueher haette es die Kette vorgeschlagen
 zeigeVorschlag('zA');
 ok('§4 Vorschlag ist das DFM-Werkzeug', S.ui.suVorschlag && S.ui.suVorschlag.kid==='wD');
-// v3.0.0 §8: die Matrix-Sicht ist entfallen — der Sprung landet in „Heute"
-ok('§4 Sprung in die Suche (v3.0: Sortierung Heute), Feld Werkzeug gemerkt',
-   S.ui.tab==='suche' && S.ui.suSicht==='heute' && S.ui.suMatrixFeld==='werkzeug');
+// §12 (v3.7.0): die Matrix-Sicht der Suche ist weg — das Werkzeug wird direkt in der Fokusansicht gezeigt
+ok('§4 (v3.7.0) das Werkzeug steht direkt in der Fokusansicht (pausiert)', S.ui.fokusOffen===true && fokusAngezeigtId()==='wD' && !(S.fokus && S.fokus.laeuft));
 ok('§4 keine eigene Vorschlagsansicht mehr (kein Sheet)', !sheetOffen());
-var mh2=suMatrixHtml();
-ok('§4 Vorschlag steht OBEN in der Werkzeug-Liste, mit Grund',
-   mh2.indexOf('su-vorschlag')>=0 && mh2.indexOf('data-kid="wD"')<mh2.indexOf('data-kid="wP"'));
-ok('§4 Filter unberührt', suDom()==='alle' && suArtW()==='alle');
+ok('§4 (v3.7.0) kein Block-Vorschlag nach Uhrzeit mehr', typeof blockVorschlag==='undefined' && typeof suMatrixHtml==='undefined');
 S.karten=S.karten.filter(function(k){ return k.id!=='wD'; });
 S.tag.vorschlagGezeigt=[]; S.ui.suVorschlag=null;
 zeigeVorschlag('zA');
-ok('§4 ohne DFM-Werkzeug kommt das private', S.ui.suVorschlag && S.ui.suVorschlag.kid==='wP');
+ok('§4 ohne DFM-Werkzeug kommt das private', S.ui.suVorschlag && S.ui.suVorschlag.kid==='wP' && fokusAngezeigtId()==='wP');
 S.karten=S.karten.filter(function(k){ return k.id==='zA'; });
-S.tag.vorschlagGezeigt=[]; S.ui.suVorschlag=null; S.ui.suSicht='heute';
+S.tag.vorschlagGezeigt=[]; S.ui.suVorschlag=null; S.ui.fokusZeigt=null;
 zeigeVorschlag('zA');
-ok('§4 ganz ohne Werkzeug: kein Sprung, ehrliche Auskunft', !S.ui.suVorschlag && S.ui.suSicht==='heute');
+ok('§4 ganz ohne Werkzeug: kein Sprung, ehrliche Auskunft', !S.ui.suVorschlag && !fokusAngezeigtId());
 
 kopf('v2.3.0 §5/§6 · Matrix-Picker und neue Karte im Fokus');
 frisch();
@@ -1160,8 +1112,8 @@ ok('§10→v2.5 §1.1 identisch zur Detailanalyse (v3.3: heuteGegenTypischHtml i
    b9.indexOf('data-dialive="tt"')>=0 && /function anModVerhalten\(F,dom,opt\)/.test(src));   // v3.5.0: eigene Diagramm-ids je Ort
 
 kopf('v2.4.0 §1 · Drei Tabs, Import oben, Ampel');
-ok('§1.1 drei Tabs: Suche · Statistik · Einstellungen',
-   /data-tab="suche"[\s\S]*data-tab="statistik"[\s\S]*data-tab="einst"/.test((src.match(/<nav id="nav">[\s\S]*?<\/nav>/)||[''])[0]));
+ok('§1.1 drei Tabs: Shop · Statistik · Einstellungen (§11 v3.7.0: Suche → Shop)',
+   /data-tab="belohnung"[\s\S]*data-tab="statistik"[\s\S]*data-tab="einst"/.test((src.match(/<nav id="nav">[\s\S]*?<\/nav>/)||[''])[0]));
 ok('§1.3 das Zahnrad ist weg, die Mini-Kurve sitzt an seiner Stelle',
    src.indexOf('id="btnEinst"')<0 && src.indexOf('id="btnKurve"')>=0);
 frisch(); renderEinst();
@@ -1206,20 +1158,13 @@ S.karten=[
 ketteSetzen(['kA','kB','kT','kE']);
 S.intraday=[{ts:new Date(Date.now()-90*60000).toISOString(), kartenId:'kE', minuten:20, typ:'timer', punkte:50, domaene:'dfm'}];
 S.ui.suErledigt=true;
-var bl=kalenderBloecke(suSichtbar(tagesKette().map(function(id){ return S.karten.find(function(k){return k.id===id;}); })));
-function bFor(id){ return bl.filter(function(b){ return b.kid===id; })[0]; }
-ok('§2 Termin steht an seiner Uhrzeit', bFor('kT') && Math.abs(bFor('kT').von-terminH)<0.01 && bFor('kT').art==='termin');
-ok('§2 Kettenkarte A beginnt JETZT', bFor('kA') && Math.abs(bFor('kA').von-jetztH)<0.02 && bFor('kA').art==='plan');
-ok('§2 B folgt A mit dessen Soll-Minuten', bFor('kB') && Math.abs(bFor('kB').von-(bFor('kA').bis))<0.02 || (bFor('kB') && bFor('kB').von>=bFor('kT').bis-0.01));
-ok('§2 Hochrechnung überbucht keinen Termin', bl.filter(function(b){ return b.art==='plan'; }).every(function(b){ return b.bis<=bFor('kT').von+1e-6 || b.von>=bFor('kT').bis-1e-6; }));
-var bE=bFor('kE');
-ok('§2 Erledigtes zur echten Zeit aus der Sitzung (Ende 90 Min vor jetzt, 20 Min lang)',
-   bE && bE.art==='erledigt' && Math.abs(bE.bis-(jetztH-1.5))<0.05 && Math.abs((bE.bis-bE.von)*60-20)<1);
-var kh=suHeuteHtml();
-ok('§2 Kalender mit Jetzt-Linie und tappbaren Blöcken', kh.indexOf('kal-jetzt')>=0 && kh.indexOf('data-kalkarte="kA"')>=0);
+/* §12 (v3.7.0): der Kalender ist entfallen — keine Einordnung nach Uhrzeit mehr; Planung nur per Drag & Drop in Ketten.
+   Das Uhrzeit-Feld der Karte wird weiter angenommen (Import), aber nicht mehr fuer die Einordnung genutzt. */
+ok('§2 (v3.7.0) Kalender-Funktionen sind entfallen', typeof kalenderBloecke==='undefined' && typeof suKalenderHtml==='undefined' && typeof suBlockKalenderHtml==='undefined' && typeof kalZuJetzt==='undefined');
+ok('§2 (v3.7.0) kein Kalender-Markup und keine Kalender-Handler mehr', src.indexOf('data-kalkarte')<0 && src.indexOf('data-kalblock')<0 && src.indexOf('data-kalgruppe')<0);
+ok('§2 (v3.7.0) die Kette bleibt in ihrer Reihenfolge, ohne Uhrzeitbezug (Termin-Karte bleibt an ihrer Kettenposition)', tagesKette().join(',')==='kA,kB,kT,kE' && S.karten[0].uhrzeit===String(terminH).padStart(2,'0')+':00');
 fokusStarten('kA');
-kh=suHeuteHtml();
-ok('§2 laufende Karte hervorgehoben', /kal-b laeuft[^"]*" role="button" data-kalkarte="kA"/.test(kh));
+ok('§2 (v3.7.0) laufende Karte in der Kettenliste hervorgehoben (kl-z laeuft)', /class="kl-z[^"]*laeuft/.test(kartenZeileHtml(S.karten.find(function(k){ return k.id==='kA'; }))));
 S.ui.suErledigt=false;
 
 kopf('v2.4.0 §3 · Suchknopf und eigene Volltextsuche');
@@ -1254,12 +1199,15 @@ ketteSetzen(['cR','cN']);
 ok('§4 BELEG Ursache: routErledigtHeute zählt die Tick-Karte ab dem 1. Tick als erledigt',
    (function(){ karteTick('cR'); return routErledigtHeute(S.karten[0])===true; })());
 karteTick('cR'); karteTick('cR'); karteTick('cN'); karteTick('cN');
-var sichtbar=[suHeuteHtml(), suFaelligHtml(), suArtHtml(), suOftHtml()].join('');
-ok('§4 Counter-Routine nach 3× „+" weiter sichtbar', sichtbar.indexOf('data-kid="cR"')>=0);
-ok('§4 Counter ohne Rhythmus nach 2× „+" weiter sichtbar', sichtbar.indexOf('data-kid="cN"')>=0);
-ok('§4 … und im Freitext', suFreitextHtml('wasser').indexOf('data-kid="cR"')>=0);
+// §5 (v3.7.0): Sichtbarkeit = Gruppen der Kettenliste (Routinen / Ticks Privat)
+S.ui.navDomain='privat';
+function inGr(g,id){ var i=kettenListeInhalt({karte:null, filter:''}); return i[g].teile.some(function(t){ return t.karten.some(function(k){ return k.id===id; }); }); }
+ok('§4 Counter-Routine nach 3× „+" weiter sichtbar (Routinen + Ticks Privat)', inGr('routinen','cR') && inGr('ticksPrivat','cR'));
+ok('§4 Counter ohne Rhythmus nach 2× „+" weiter sichtbar', inGr('routinen','cN') && inGr('ticksPrivat','cN'));
+ok('§4 … und über das Suchfeld', (function(){ var i=kettenListeInhalt({karte:null, filter:'wasser'}); return i.routinen.n===1; })());
 S.karten[0].status='erledigt'; S.karten[0].tagId=aktuelleTagId();
-ok('§4 abgehakt ist er weg (bis „Erledigte zeigen")', suHeuteHtml().indexOf('data-kid="cR"')<0);
+ok('§4 abgehakt steht er in „Erledigt heute", nicht mehr in der Kette', inGr('erledigt','cR') && !inGr('kette','cR'));
+S.ui.navDomain='dfm';
 
 kopf('v2.4.0 §5 · Matrixfeld einer Routine übersteht den Tagesabschluss');
 frisch();
@@ -1279,34 +1227,18 @@ S.tag.startTs=new Date(Date.now()-180*60000).toISOString();
 S.tag.matrixSpur=[ { ts:new Date(Date.now()-150*60000).toISOString(), x:0.6, y:-0.5 },      // Ziel
                    { ts:new Date(Date.now()-90*60000).toISOString(), x:0.5, y:0.5 } ];     // Werkzeug (bis jetzt: unbekannt)
 var z0=matrixZeitFelder();
-oeffneTagebuch(-0.6,-0.6);
-ok('§6 Tagebuch-Dialog mit Pad, drei Fragen und Akku',
-   (function(){ var h=el('sheetBody').innerHTML; return h.indexOf('mxPad')>=0 && h.indexOf('tbGedanke')>=0 && h.indexOf('tbWirkung')>=0 &&
-     h.indexOf('data-tbgut="1"')>=0 && h.indexOf('data-tbgut="0"')>=0 && h.indexOf('mxAkku')>=0; })());
-ok('§6 Startpunkt ist die getippte Stelle', matrixTmp && matrixTmp.x===-0.6 && matrixTmp.y===-0.6);
-S.tag.matrixSpur.forEach(function(e,i){ });
-tagebuchSpeichern();
-var tbE=S.tag.matrixSpur[S.tag.matrixSpur.length-1];
-ok('§6 Eintrag NUR mit Position ist gültig, quelle „tagebuch", Felder leer', tbE.quelle==='tagebuch' && tbE.x===-0.6 &&
-   tbE.gedanke==='' && tbE.wirkung==='' && tbE.mittel==='' && tbE.istGut===false);
-/* Zahlenbeleg vorher/nachher: die letzten 90 Min waren „unbekannt" (nach der letzten Messung) —
-   ein Eintrag 0 Min vor jetzt macht die Werkzeug-Strecke messbar. */
+/* §8 (v3.7.0): das Tagebuch ist entfallen (Karte, Knopf, Dialog, Matrix-Tipp); bestehende Eintraege (quelle 'tagebuch')
+   bleiben in der Spur und zaehlen weiter in die Zeit je Feld. Jede beantwortete Positionsabfrage gibt jetzt Punkte (Staffel). */
+ok('§6 (v3.7.0) Tagebuch-Dialog, -Knopf und Matrix-Einstieg sind entfallen', typeof oeffneTagebuch==='undefined' && typeof tagebuchSpeichern==='undefined' &&
+   typeof renderTagebuch==='undefined' && src.indexOf('data-tagebuch=')<0 && src.indexOf('data-tbgo')<0 && stMatrixTag().indexOf('fb-mx klick')<0 && fbWasIchBewege(S.karten[0]).indexOf('fb-mx klick')<0);
+S.tag.matrixSpur.push({ ts:jetztIso(), x:-0.6, y:-0.6, kid:null, anlass:'tagebuch', quelle:'tagebuch', gedanke:'', wirkung:'', mittel:'', istGut:false, akku:70 });
 var z1=matrixZeitFelder();
-ok('§6 Eintrag verschiebt die Zeit je Feld: Werkzeug '+Math.round(z0.felder.werkzeug)+' → '+Math.round(z1.felder.werkzeug)+' Min · unbekannt '+
-   Math.round(z0.unbekannt)+' → '+Math.round(z1.unbekannt)+' Min',
+ok('§6 (v3.7.0) ein bestehender Tagebuch-Eintrag zaehlt weiter in die Zeit je Feld: Werkzeug '+Math.round(z0.felder.werkzeug)+' → '+Math.round(z1.felder.werkzeug)+' Min',
    Math.round(z0.felder.werkzeug)===0 && Math.round(z1.felder.werkzeug)===90 && Math.round(z1.unbekannt)===Math.round(z0.unbekannt)-90);
-ok('§6 kein Bewegungsbonus, kein Vorschlag durch den Eintrag', !num(S.karten[0].bewegungsBonus) && !S.ui.suVorschlag);
-oeffneTagebuch(); 
-ok('§6 Knopf-Einstieg startet an der letzten Position', matrixTmp && matrixTmp.x===-0.6 && matrixTmp.y===-0.6);
-el('tbGedanke').value='Mail vom Kunden'; el('tbWirkung').value='zieht runter';
-matrixTmp.istGut=false; renderTagebuch(); el('tbMittel').value='10 Min raus';
-el('tbGedanke').value='Mail vom Kunden'; el('tbWirkung').value='zieht runter';
-tagebuchSpeichern();
-var tbF=S.tag.matrixSpur[S.tag.matrixSpur.length-1];
-ok('§6 volle Einträge tragen alle Felder', tbF.gedanke==='Mail vom Kunden' && tbF.wirkung==='zieht runter' && tbF.mittel==='10 Min raus' && tbF.istGut===false);
-ok('§6 drei Einstiege: Statistik-Matrix, Fokus-Matrix, Knopf in der Matrix-Sicht',
-   stMatrixTag().indexOf('fb-mx klick')>=0 && fbWasIchBewege(S.karten[0]).indexOf('fb-mx klick')>=0 &&
-   (function(){ S.ui.suMatrixFeld=null; return suMatrixHtml().indexOf('data-tagebuch')>=0; })());
+ok('§6 (v3.7.0) Tagebuch-Punkte bleiben als Raute in der grossen Matrix', fbGrosseMatrix({klick:false}).svg.indexOf('tb-pt')>=0);
+ok('§6 (v3.7.0) Karten mit rolle tagebuch/position stehen in keiner Liste', (function(){ S.karten.push(neueKarte({id:'k3-tagebuch', domain:'privat', titel:'Tagebuch', rolle:'tagebuch', ticksAktiv:true, faelligkeit:H()}));
+   var i=kettenListeInhalt({karte:null, filter:''}); var drin=Object.keys(i).some(function(g){ return i[g].teile.some(function(t){ return t.karten.some(function(k){ return k.id==='k3-tagebuch'; }); }); });
+   var ab=abhakLeisteKarten().some(function(k){ return k.id==='k3-tagebuch'; }); S.karten.pop(); return !drin && !ab && karteVerborgen({rolle:'tagebuch'}) && karteVerborgen({rolle:'position'}); })());
 renderStatistik();
 var sb=el('statistikBody').innerHTML;
 ok('§7 (v3.5.0 §5.1) Statistik beginnt mit Gruppe 1 · Heute: Der Tag vor Matrix heute', sb.indexOf('1 · Heute')>=0 && sb.indexOf('data-stmodul="tag"')<sb.indexOf('data-stmodul="matrixHeute"'));
@@ -1322,18 +1254,18 @@ ok('Nebenbefund: Statistik-Umschalter haben jetzt einen Handler', /el\('statisti
 kopf('v2.4.0 §11 · Tagebuch-Felder im Export');
 var ex=syncExport('delta'), sp=ex.matrixSpur;
 var tbx=sp.filter(function(e){ return e.quelle==='tagebuch'; });
-ok('§11 Delta trägt die Tagebuch-Einträge ('+tbx.length+')', tbx.length===2);
+ok('§11 Delta trägt die bestehenden Tagebuch-Einträge weiter ('+tbx.length+'; §8 v3.7.0: Eintraege bleiben)', tbx.length===1);
 ok('§11 jeder Eintrag hat quelle/gedanke/wirkung/mittel/istGut/akku', sp.every(function(e){
   return typeof e.quelle==='string' && typeof e.gedanke==='string' && typeof e.wirkung==='string' &&
          typeof e.mittel==='string' && typeof e.istGut==='boolean' && ('akku' in e); }));
 ok('§11 leere optionale Felder als "", nicht weggelassen', sp[0].gedanke==='' && sp[0].mittel==='' && sp[0].quelle==='abfrage');
-print('   Beispiel: '+JSON.stringify(tbx[1]));
+print('   Beispiel: '+JSON.stringify(tbx[0]));
 /* nach Tageswechsel ohne Sync: der Eintrag von gestern geht im Delta mit */
 S.meta.letzterSyncBestaetigtTs=new Date(Date.now()-24*3600000).toISOString();
 tagAbschlussFinalisieren(); S.tag=null; tagStarten(70);
 var sp2=syncExport('delta').matrixSpur;
 ok('§11 nach Tageswechsel: unbestätigte Tagebuch-Einträge von gestern gehen im Delta mit',
-   sp2.filter(function(e){ return e.quelle==='tagebuch'; }).length===2);
+   sp2.filter(function(e){ return e.quelle==='tagebuch'; }).length===1);
 S.meta.letzterSyncBestaetigtTs=jetztIso();
 ok('§11 nach bestätigtem Sync nicht mehr', syncExport('delta').matrixSpur.filter(function(e){ return e.quelle==='tagebuch'; }).length===0);
 
@@ -1462,14 +1394,10 @@ S.karten=[ neueKarte({id:'g1', domain:'privat', titel:'Gesicht waschen', rhythmu
            neueKarte({id:'g3', domain:'privat', titel:'Küche aufräumen', rhythmus:{typ:'taeglich'}, sollMin:5, matrixFeld:'zustand', faelligkeit:H()}),
            neueKarte({id:'lang', domain:'dfm', titel:'Angebotskalkulation', sollMin:90, matrixFeld:'ziel', faelligkeit:H()}) ];
 ketteSetzen(['g1','g2','g3','lang']);
-_kalAuf={};
-var kg=suHeuteHtml();
-ok('§5 drei kurze Routinen hintereinander → eine Gruppe', (kg.match(/kal-b gruppe/g)||[]).length===1 && kg.indexOf('3 kurze')>=0);
-ok('§5 lange Karte bleibt ein eigener Block', /data-kalkarte="lang"/.test(kg));
-var key=(kg.match(/data-kalgruppe="([^"]+)"/)||[])[1];
-_kalAuf[key]=true; kg=suHeuteHtml();
-ok('§5 aufgeklappt: jede Karte mit vollem Titel und antippbar',
-   (kg.match(/class="kal-auf-z/g)||[]).length===3 && kg.indexOf('>Küche aufräumen<')>=0 && /data-kalkarte="g1"/.test(kg));
+// §12 (v3.7.0): die Kalender-Gruppierung kurzer Bloecke ist mit dem Kalender entfallen
+ok('§5 (v3.7.0) Kalender-Gruppen entfallen (kalGruppieren/kalSpalten/_kalAuf)', typeof kalGruppieren==='undefined' && typeof kalSpalten==='undefined' && typeof _kalAuf==='undefined');
+ok('§5 (v3.7.0) alle vier Karten stehen in der Kette (Privat: g1–g3, DFM: lang)', ketteKarten().map(function(k){ return k.id; }).join(',')==='g1,g2,g3,lang' &&
+   (function(){ S.ui.navDomain='privat'; var i=kettenListeInhalt({karte:null, filter:''}); S.ui.navDomain='dfm'; var ids=[]; i.kette.teile.forEach(function(t){ t.karten.forEach(function(k){ ids.push(k.id); }); }); return ids.join(',')==='g1,g2,g3'; })());
 
 kopf('v2.5.0 · Nebenbefund: die Migration darf Unteraufgaben nicht leeren');
 (function(){
@@ -1497,7 +1425,7 @@ kopf('v2.6.0 §1 · Statusleiste Zeile 2: Akku · Tempo · Konto · Matrix-Verla
   ok('§1 Serie und Rang sind aus der Leiste heraus', r2.indexOf('sZSerie')<0 && r2.indexOf('sZRang')<0 && !/#sZRang|sZSerie/.test(src));
   ok('§1 (v3.5.2 §1) Zeile 3 als Grid 64px 1fr 72px, Höhe 72, Matrix 72×72; die senkrechte Tempoleiste ist entfallen; kein Play/Pause-Knopf', /#statusbar \.sl-z3\{grid-template-columns:64px 1fr 72px;column-gap:8px;height:72px\}/.test(src) && /#statusbar #sZMatrix\{[^}]*width:72px;height:72px/.test(src) &&
      !/function tempoSkalaHtml\(/.test(src) && !/id="fkPP"/.test(src));
-  ok('§1 Tipp auf die Mini-Tageskurve öffnet die Statistik OBEN', /el\('btnKurve'\)\.addEventListener\('click', \(\)=>\{[\s\S]{0,260}setTab\('statistik'\);\s*const m=document\.querySelector\('main'\); if\(m\) m\.scrollTop=0;/.test(src));
+  ok('§1 Tipp auf die Mini-Tageskurve öffnet die Statistik (oben durch setTab — §10 v3.7.0: kein eigenes Hochscrollen mehr)', /el\('btnKurve'\)\.addEventListener\('click', \(\)=>\{[\s\S]{0,260}setTab\('statistik'\);/.test(src) && /S\.ui\.tab=tab; saveUi\(\);/.test(src) && !/function nachOben\(/.test(src));
   frisch();
   S.karten=[ neueKarte({id:'sb1', domain:'dfm', titel:'Läuft', sollMin:60, matrixFeld:'werkzeug', faelligkeit:H()}) ];
   S.tag.matrixSpur=[{ts:new Date(Date.now()-3*3600000).toISOString(), x:-0.6, y:0},{ts:new Date(Date.now()-3600000).toISOString(), x:0.4, y:0.2, kid:'sb1'}];
@@ -1706,7 +1634,7 @@ kopf('v2.6.0 §7 · Nicht getrackte Tage rückwirkend als Urlaub');
    v2.7.0 „Blöcke" — Abnahme 1–12 (Layout/Klick per Harness)
    ══════════════════════════════════════════════════════════════════════ */
 kopf('v2.7.0 §1 · Tagesblöcke');
-frisch(); _blockAuf={}; _blockKarten=null;
+frisch();
 var h0=jetztStunde();
 function uhr(x){ var m=Math.round(x*60); return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
 var BLOCKPAKET={ appVersion:'2.7.0',
@@ -1735,30 +1663,17 @@ var fl=tagesRahmen(), dfmStd=rahmenFenster(fl,'dfm').reduce(function(a,f){return
 ok('§1.1 Soll-Form = tiefster Block je Abschnitt: DFM 4 + 2 Std − 30 Min Kaffee = '+dfmStd+' Std (nichts doppelt)', Math.abs(dfmStd-5.5)<1e-9);
 ok('§1.2 Karten gehören für heute zu ihrem Block', karteBlockId(S.karten.filter(function(k){return k.id==='b1';})[0])==='f1a' &&
    S.karten.filter(function(k){return k.id==='b1';})[0].blockTag===heuteApp());
-var lb=laufenderBlock();
-ok('§1.4 laufender Block = der tiefste, der jetzt enthält ('+(lb&&lb.name)+')', lb && lb.id==='f1p');
-S.ui.suDom=null; S.ui.suArt=null;
-var kal=suKalenderHtml();
-var ebene1=(kal.match(/data-kalblock="(morgen|fokus1|senke|fokus2|erholung|abschluss)"/g)||[]).length;
-ok('§1.4 Ebene 1: sechs Balken mit Namen', ebene1===6 && kal.indexOf('DFM-Fokus 1')>=0 && kal.indexOf('Abschluss')>=0);
-ok('§1.4 Zahl der Karten je Block (offen/gesamt, Unterblöcke eingerechnet): DFM-Fokus 1 = 3/3', /DFM-Fokus 1<\/span><span class="kb-m">[^<]*<b>3<\/b>\/3 Karten/.test(kal));
-ok('§1.4 Farbe nach typ (DFM blau, privat lila) und der laufende Block hervorgehoben', /kal-block t-dfm laeuft/.test(kal) && /kal-block t-privat/.test(kal) && /\.kal-block\.t-dfm\{--kbc:59,130,246\}/.test(src));
-ok('§1.4 Jetzt-Linie bleibt', kal.indexOf('kal-jetzt')>=0);
-ok('§1.4 „Ohne Block" unter dem Kalender (Einkaufen)', /Ohne Block · 1/.test(kal) && kal.indexOf('Einkaufen')>kal.indexOf('Ohne Block'));
-_blockAuf.fokus1=true; kal=suKalenderHtml();
-ok('§1.4 Tipp klappt die Unterblöcke auf (Schiene + drei Unterblöcke)', /kal-block t-dfm[^"]*schiene/.test(kal) && /data-kalblock="f1a"/.test(kal) && /data-kalblock="f1p"/.test(kal) && /data-kalblock="f1c"/.test(kal));
-_blockKarten='f1a'; kal=suKalenderHtml();
-var panel=(kal.match(/<div class="kal-auf kb-auf"[\s\S]*?<\/div><div class="kal-jetzt|<div class="kal-auf kb-auf"[\s\S]*$/)||[''])[0];
-ok('§1.4 unterste Ebene zeigt NUR ihre Karten (Müller, Kaiser — nicht Welle)', panel.indexOf('Angebot Müller')>=0 && panel.indexOf('Angebot Kaiser')>=0 && panel.indexOf('Kalkulation Welle')<0);
-ok('§1.4 Tipp-Wege: data-kalblock im Such-Handler', /closest\('\[data-kalblock\]'\)/.test(src));
-_blockAuf={}; _blockKarten=null;
+/* §12 (v3.7.0): Kalender und Einordnung nach Uhrzeit sind entfallen — die Bloecke bleiben Datenmodell (Soll-Form, Routinen-Gruppen der
+   Kettenliste nach Tagesblock, „In Kette"); laufenderBlock wird nicht mehr fuer Vorschlag oder Neuanlage genutzt */
+ok('§1.4 (v3.7.0) kein Kalender mehr: suKalenderHtml/suBlockKalenderHtml/_blockAuf entfallen, kein data-kalblock-Handler', typeof suKalenderHtml==='undefined' && typeof suBlockKalenderHtml==='undefined' &&
+   typeof _blockAuf==='undefined' && !/closest\('\[data-kalblock\]'\)/.test(src));
+ok('§1.4 (v3.7.0) Routinen-Gruppe der Kettenliste gliedert nach Tagesblock (Ebene 1), nicht nach Uhrzeit', (function(){ var g=klGruppiert([S.karten.filter(function(k){return k.id==='b1';})[0]], 'routinen'); return g.length===1 && g[0].name==='DFM-Fokus 1'; })());
+ok('§1.4 (v3.7.0) „In Kette" bietet die Bloecke als Drop-Ziele (ikGruppen)', (function(){ var g=ikGruppen(S.karten.filter(function(k){return k.id==='b4';})[0]); var r=g.filter(function(x){ return x.id==='ikRoutinen'; })[0]; return !!r && r.teile.some(function(t){ return t.block==='fokus1'; }); })());
 /* §1.5 neue Karte */
 oeffneDetail(null);
-ok('§1.5 Anlege-Dialog: Block-Auswahl mit dem laufenden Block vorausgewählt', entwurf.block==='f1p' && /data-chip="block" data-val="f1p"/.test(el('sheetBody').innerHTML) &&
-   /chip kb-chip t-pause on" data-chip="block" data-val="f1p"/.test(el('sheetBody').innerHTML));
+ok('§1.5 (v3.7.0) Anlege-Dialog: KEINE Vorauswahl des laufenden Blocks nach Uhrzeit mehr, Block-Auswahl bleibt', !entwurf.block && /data-chip="block" data-val="f1p"/.test(el('sheetBody').innerHTML));
 entwurf.block='f1c'; entwurf.blockTag=heuteApp(); entwurf.titel='Neue Kalkulation'; var nid=entwurf.id; detailSpeichern();
-_blockAuf.fokus1=true; _blockKarten='f1c'; kal=suKalenderHtml(); _blockKarten=null; _blockAuf={};
-ok('§1.5 die neue Karte erscheint in ihrem Block', /Neue Kalkulation/.test(kal) && karteBlockId(S.karten.filter(function(k){return k.id===nid;})[0])==='f1c');
+ok('§1.5 die neue Karte gehört zu ihrem Block', karteBlockId(S.karten.filter(function(k){return k.id===nid;})[0])==='f1c');
 /* §1.6 Export */
 var exB=syncExport('delta');
 var eb1=exB.karten.filter(function(k){return k.id==='b1';})[0], eb4=exB.karten.filter(function(k){return k.id==='b4';})[0];
@@ -1876,7 +1791,7 @@ ok('§3 beim Abhaken werden nachgetragene Punkte verrechnet ('+fmtP(offenP)+' P)
    v2.8.0 „Abhak-Leiste" — Abnahme 1–10 (Layout/Klick per Harness)
    ══════════════════════════════════════════════════════════════════════ */
 kopf('v2.8.0 §1 · Abhak-Karten und Abhak-Leiste');
-frisch(); _blockAuf={}; _blockKarten=null;
+frisch();
 var hA=jetztStunde();
 syncImport(JSON.stringify({ appVersion:'2.8.0', tagesRahmen:[
     {id:'mo', name:'Morgen', von:hA-3, bis:hA-1, typ:'privat'},
@@ -1921,9 +1836,8 @@ var zs=zeitstrahlHtml();
 // v3.0.0 (Entscheidung Pascal): Routinen stehen AUCH wieder im Tagesablauf
 ok('§1.2 Routinen stehen auch im Tagesablauf (v3.0), Aufgaben sowieso', zs.indexOf('Zähne')>=0 && zs.indexOf('Kalkulation Welle')>=0);
 ok('§1.3 Tagesablauf: jede offene Kartenzeile hat Play (Tippfläche 44 px)', /data-zsplay="aK"/.test(zs) && /\.zs-k\{min-height:44px/.test(src) && /\.al-knopf\{[^}]*width:44px;height:44px/.test(src));
-var bk=kalenderBloecke(S.karten.filter(function(k){ return k.status==='offen'; }));
-ok('§1.2 Routinen haben wieder eigene Blöcke im Karten-Kalender (v3.0)', bk.some(function(b){ return b.kid==='rW'; }) && bk.some(function(b){ return b.kid==='aK'; }));
-ok('§1.2 in der Suche bleiben sie', idsIn2(suFreitextHtml('wasser')).indexOf('rW')>=0);
+ok('§1.2 (v3.7.0) Kalender entfallen — Routinen stehen in der Routinen-Gruppe der Kettenliste', typeof kalenderBloecke==='undefined' && abhakLeisteKarten().some(function(k){ return k.id==='rW'; }));
+ok('§1.2 in der Suche bleiben sie (Suchfeld „wasser")', (function(){ var i=kettenListeInhalt({karte:null, filter:'wasser'}); return i.routinen.teile.some(function(t){ return t.karten.some(function(k){ return k.id==='rW'; }); }); })());
 
 kopf('v2.8.0 §2 · Punkte: Routinen dämpfen, Aufgaben nicht');
 frisch();
@@ -1969,21 +1883,16 @@ syncImport(JSON.stringify({ appVersion:'2.8.0', tagesRahmen:[
            {id:'vR', domain:'dfm', titel:'Abhak im Block', rhythmus:{typ:'taeglich'}, block:'b1'},
            {id:'v3', domain:'dfm', titel:'Im nächsten Block', sollMin:30, block:'b2'} ],
   kette:['vR','v2','v1','v3'] }));
-var bv=blockVorschlag(null);
-ok('§3 nächste offene Karte im laufenden Block in Kettenreihenfolge, Abhak-Karte übersprungen ('+(bv&&bv.karte.titel)+')', bv && bv.karte.id==='v2');
-bv=blockVorschlag('v2');
-ok('§3 die verlassene Karte zählt nicht', bv && bv.karte.id==='v1');
-kid('v1').status='erledigt'; kid('v2').status='erledigt';
-bv=blockVorschlag(null);
-ok('§3 leerer Block → erste offene Karte des nächsten Blocks', bv && bv.karte.id==='v3' && bv.block.id==='b2' && !bv.imLaufenden);
+/* §12 (v3.7.0): der Block-Vorschlag nach aktueller Uhrzeit ist entfallen — nach dem Matrix-Tipp gilt nur noch die Werkzeug-Regel */
+ok('§3 (v3.7.0) blockVorschlag entfallen', typeof blockVorschlag==='undefined');
 S.fokus=null; S.tag.vorschlagGezeigt=[]; zeigeVorschlag('v2');
-ok('§3 der Vorschlag öffnet die Karte direkt, pausiert (kein Sprung in die Matrix-Sicht)', S.fokus && S.fokus.karteId==='v3' && S.fokus.laeuft===false && S.ui.fokusOffen===true && S.ui.suSicht!=='matrix');
+ok('§3 (v3.7.0) ohne Werkzeug: kein Vorschlag, keine Karte geoeffnet', !S.ui.suVorschlag && !(S.fokus && S.fokus.karteId));
 frisch();
 S.karten=[ neueKarte({id:'w1', domain:'privat', titel:'Werkzeug privat', matrixFeld:'werkzeug', sollMin:10, faelligkeit:H()}),
            neueKarte({id:'w2', domain:'dfm', titel:'Werkzeug DFM', matrixFeld:'werkzeug', sollMin:10, faelligkeit:H()}),
            neueKarte({id:'w3', domain:'dfm', titel:'Abhak-Werkzeug', matrixFeld:'werkzeug', rhythmus:{typ:'taeglich'}, faelligkeit:H()}) ];
 S.tag.vorschlagGezeigt=[]; zeigeVorschlag('x');
-ok('§3 ohne Blöcke die alte Regel: Werkzeug, DFM vor privat, Abhak-Karten nie', S.ui.suVorschlag && S.ui.suVorschlag.kid==='w2' && S.ui.suSicht==='heute');   // v3.0.0 §8: keine Matrix-Sicht mehr
+ok('§3 die Werkzeug-Regel: DFM vor privat, Abhak-Karten nie — das Werkzeug steht in der Fokusansicht (§12 v3.7.0)', S.ui.suVorschlag && S.ui.suVorschlag.kid==='w2' && fokusAngezeigtId()==='w2');
 
 kopf('v2.8.0 §4 · Vom Gerät nehmen');
 frisch();

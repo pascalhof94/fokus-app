@@ -4829,7 +4829,7 @@ function matrixAbfrageNach(kid, anlass, danach){
    ══════════════════════════════════════════════════════════════════════ */
 const VORSCHLAG_MIN_JE_WERKZEUG = 3;
 function werkzeugKarten(){
-  return S.karten.filter(k=>k.status==='offen' && !k.freeze && matrixFeldVon(k)==='werkzeug');
+  return S.karten.filter(k=>k.status==='offen' && !k.freeze && matrixFeldVon(k)==='werkzeug' && !karteVerborgen(k));   // §8 (v3.7.0): „Position gesetzt" ist kein Vorschlag
 }
 /* Median-dx je Werkzeug aus der Lernspur. */
 function werkzeugWirkung(kid){
@@ -4920,9 +4920,10 @@ function zeigeVorschlag(kid){
     return;
   }
   const v=ws[0];
-  S.ui.suVorschlag={ kid:v.id, grund:werkzeugVorschlagGrund(v), dom:v.domain };
-  S.ui.suSicht='heute'; S.ui.suMatrixFeld='werkzeug'; saveUi();   // §8 (v3.0.0): die Matrix-Sicht ist entfallen
-  setTab('suche');
+  S.ui.suVorschlag={ kid:v.id, grund:werkzeugVorschlagGrund(v), dom:v.domain }; saveUi();
+  // §12 (v3.7.0): die Matrix-Sicht der Suche ist weg — das Werkzeug wird direkt in der Fokusansicht gezeigt (pausiert, wie eine neue Karte)
+  fokusKarteAnsehen(v.id);
+  toast('Weiter: „'+String(v.titel||'').slice(0,28)+'" · '+werkzeugVorschlagGrund(v));
   haptik(10);
 }
 /* Die vorgeschlagene Karte, solange sie offen ist (sonst raeumt sie sich weg). */
@@ -11445,6 +11446,8 @@ function routineTick(k, opt){
   if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
   beruehre(k);
   { const e=logIntraday(k,{punkte:0, minuten:min, tickMin:min, typ:'tick'}); const d=buchungAbgleich(k, e); try{ momentBuchung(d); }catch(x){} }
+  // §7/§9 (v3.7.0): Aufstehen und Tagesabschluss sind Einmal-Karten des Tages — ihr Tick hakt sie weiter ab (kein „Ziel erreicht"-Zustand)
+  if((k.rolle==='aufstehen' || k.rolle==='tagesabschluss') && limitErreicht(k) && k.status==='offen') routineErledigen(k);
   return t;
 }
 /* Tageslimit erreicht → fuer heute erledigt (grau ans Ende ihres Blocks) */
@@ -18007,7 +18010,7 @@ function matrixVerlaufSvg(spur, opt){
     }
   });
   // Tap-Ziele (ca. 44 px) ueber allem — spaetere liegen oben
-  pts.forEach((e,i)=>{ const p=pp[i];
+  pts.forEach((e,i)=>{ const p=pp[i]; if(e.live) return;   // §3 (v3.7.0): der Live-Punkt ist keine Messung — kein Tipp-Ziel
     g+='<circle class="mv-hit" data-mspunkt="'+i+'" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="20" fill="transparent"/>'; });
   return '<svg viewBox="0 0 '+W+' '+H+'" class="mv-svg gross" width="100%">'+g+'</svg>';
 }

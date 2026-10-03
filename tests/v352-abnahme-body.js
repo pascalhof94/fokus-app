@@ -17,7 +17,7 @@ function aufgabe(id, dom, soll){ return neueKarte({ id:id, domain:dom, titel:'Ka
 function buchung(ts, punkte, dom){ S.intraday.push({ ts:ts, kartenId:'x', domaene:dom||'dfm', punkte:punkte, minuten:0, typ:'abhaken' }); }
 
 kopf('Version');
-ok('APP_VERSION 3.5.2 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.6.1' && UI_VERSION==='v3.6.1' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-6');
+ok('APP_VERSION 3.5.2 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.0' && UI_VERSION==='v3.7.0' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-03-1');
 
 /* ══ (a) Pace-Farbe ═══════════════════════════════════════════════════ */
 kopf('(a) Pace-Leiste: diskrete Ampel nach Ø ÷ nötig');
@@ -92,7 +92,7 @@ fokusKarteAnsehen('g1'); renderFokus(); fokusKarteAnsehen('g2'); renderFokus(); 
 var fv=function(){ return el('fokusView').innerHTML; };
 var grp=function(h, id){ var a=h.indexOf('data-klgrp="'+id+'"'), b=h.indexOf('data-klgrp="', a+12); return h.slice(a, b<0?h.length:b); };
 var auf=function(id){ return /aria-expanded="true"/.test(grp(fv(), id)); };
-ok('(e) fünf Gruppen in fester Reihenfolge: Aktuelle Kette · Verlauf · Routinen · Meistgenutzt · 7 Tage · Erledigt heute', (function(){ var h=fv(), p=['Aktuelle Kette','Verlauf','Routinen','Meistgenutzt · 7 Tage','Erledigt heute'].map(function(t){ return h.indexOf('<b>'+t+'</b><span class="anz">'); });
+ok('(e) Gruppen in fester Reihenfolge: Aktuelle Kette · Verlauf · Routinen · Ticks DFM · Ticks Privat · Meistgenutzt · 7 Tage · Erledigt heute (§5 v3.7.0: Sortier-Auswahl im offenen Kopf)', (function(){ var h=fv(), p=['Aktuelle Kette','Verlauf','Routinen','Ticks DFM','Ticks Privat','Meistgenutzt · 7 Tage','Erledigt heute'].map(function(t){ var m=new RegExp('<b>'+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'</b>(<select[\\s\\S]*?</select>)?<span class="anz">').exec(h); return m ? m.index : -1; });
   return p.every(function(v,i){ return v>=0 && (i===0 || v>p[i-1]); }); })());
 ok('(e) Standard: nur „Aktuelle Kette" offen', auf('kette') && !auf('verlauf') && !auf('routinen') && !auf('meist') && !auf('erledigt'));
 klGruppeUmschalten('routinen'); klGruppeUmschalten('verlauf'); klGruppeUmschalten('kette'); renderFokus();
@@ -103,10 +103,13 @@ ok('(e) … auch nach einem weiteren Render; der Zustand lebt in S.ui.klGruppen 
 ok('(e) der Klappzustand steht nicht im Export (Datenvertrag unverändert)', JSON.stringify(syncExport('delta')).indexOf('klGruppen')<0);
 var rg=klRoutinenGruppen();
 print('   Routinen: '+rg.map(function(g){ return g.name+' ['+g.karten.map(function(k){ return k.id; }).join(',')+']'; }).join(' · '));
-ok('(e) Routinen nach Tagesblock: Morgen (Aufstehen) · DFM-Fokus 1 (Unterblock „Angebote" zählt zum Oberblock) · Abschluss (Uhrzeit 20:00, Tagesabschluss) · Ohne Block am Ende',
+// §12 (v3.7.0): keine Einordnung nach Uhrzeit mehr — die Karte mit Uhrzeit 20:00 steht unter „Ohne Block"
+ok('(e) Routinen nach Tagesblock: Morgen (Aufstehen) · DFM-Fokus 1 (Unterblock „Angebote" zählt zum Oberblock) · Abschluss (Tagesabschluss) · Ohne Block am Ende (auch die Karte mit Uhrzeit, §12 v3.7.0)',
    rg.map(function(g){ return g.name; }).join('|')==='Morgen|DFM-Fokus 1|Abschluss|Ohne Block' && rg[0].karten[0].id==='rAuf' && rg[1].karten[0].id==='rMail' &&
-   rg[2].karten.map(function(k){ return k.id; }).sort().join(',')==='rAbs,rUhr' && rg[3].karten[0].id==='rFrei');
-ok('(e) Zwischenüberschriften je Block in der Gruppe Routinen, Anzahl rechts im Kopf', (function(){ var g=grp(fv(), 'routinen'); return g.indexOf('<span class="anz">5</span>')>=0 && ['Morgen','DFM-Fokus 1','Abschluss','Ohne Block'].every(function(t){ return g.indexOf('<div class="kl-zwh">'+t+'</div>')>=0; }); })());
+   rg[2].karten.map(function(k){ return k.id; }).join(',')==='rAbs' && rg[3].karten.map(function(k){ return k.id; }).sort().join(',')==='rFrei,rUhr');
+// §5 (v3.7.0): Standard der Routinen ist Ø Erledigungszeit — die Block-Zwischenueberschriften zeigt die Sortierung „Gruppiert"
+klSortSetzen('routinen','gruppiert'); renderFokus();
+ok('(e) Zwischenüberschriften je Block in der Gruppe Routinen (Sortierung „Gruppiert"), Anzahl rechts im Kopf', (function(){ var g=grp(fv(), 'routinen'); return g.indexOf('<span class="anz">5</span>')>=0 && ['Morgen','DFM-Fokus 1','Abschluss','Ohne Block'].every(function(t){ return g.indexOf('<div class="kl-zwh">'+t+'</div>')>=0; }); })());
 ok('(e) Verlauf: heute geöffnete Karten, neueste oben, Mehrfach-Öffnungen einmal mit „2×"', (function(){ var v=klVerlauf(), g=grp(fv(), 'verlauf'); return v.map(function(q){ return q.k.id+':'+q.n; }).join(',')==='g1:2,g2:1' && g.indexOf(' · 2×</span>')>=0 && g.indexOf('<span class="anz">2</span>')>=0; })());
 klGruppeUmschalten('erledigt'); klGruppeUmschalten('meist'); renderFokus();
 ok('(e) Erledigt heute: abgehakte Karte gedimmt (Klasse erl), ✓ gefüllt', (function(){ var g=grp(fv(), 'erledigt'); return g.indexOf('<span class="anz">1</span>')>=0 && /class="kl-z fertig erl"[^>]*data-klkarte="g4"/.test(g) && /class="kl-check ok/.test(g); })());

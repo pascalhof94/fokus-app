@@ -104,7 +104,7 @@ S.meta.muenzenGesamt=500; S.meta.ausgegebenGesamt=0;
 renderStatusbar();
 var nk=belNaechsterKauf();
 print('   Konto '+Math.round(konto())+' · nächster Artikel '+(nk?Math.round(nk.preis):'—')+' · Zelle '+el('sKW').textContent+' / '+el('sKM').textContent+' / '+el('sKF').textContent);
-ok('1.2 (v3.5.1 §2) Konto-Zelle: drei Zahlen — Wohlstand, Münzen (GOLD), volle Töpfe/5 — keine Leiste', String(el('sKM').textContent)===fmtP(Math.round(konto())) && /^\d$/.test(String(el('sKF').textContent)) &&
+ok('1.2 (v3.5.1 §2 · §4 v3.7.0) Konto-Zelle: Farbe, Münzen (GOLD), Topf-Countdown („−240" / „✓ malbar" / „—") — keine Leiste', String(el('sKM').textContent)===fmtP(Math.round(konto())) && /^(−[\d.]+|✓ malbar|—)$/.test(String(el('sKF').textContent)) &&
    /id="sKW"/.test(src) && /#statusbar \.konto \.km\{color:#d4af37\}/.test(src) && !/id="sKontoLeiste"/.test(src));
 var ok4=outfitKachelHtml();
 ok('2.4 Outfit: quadratisch, Ring 6 px (GRUEN, Rest GRAU 30 %), Bild in der Mitte, darunter nur der nächste Name', /dia-quad/.test(ok4) && /stroke-width="6"/.test(ok4) &&
@@ -130,7 +130,7 @@ ok('0.1 UEBER #FF2D95 war vorher nirgends benutzt', (src.match(/#FF2D95/gi)||[])
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION aktuell (3.4.0), Build 2026-10-02-6', APP_VERSION==='3.6.1' && UI_VERSION==='v3.6.1' && APP_BUILD==='2026-10-02-6');
+ok('APP_VERSION aktuell (3.4.0), Build 2026-10-02-6', APP_VERSION==='3.7.0' && UI_VERSION==='v3.7.0' && APP_BUILD==='2026-10-03-1');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

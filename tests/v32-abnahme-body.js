@@ -64,25 +64,27 @@ ok('1.2 ein zurückgeschickter Ticker ist kein Fehler und legt keine zweite Unte
 /* ══ §1.1 · Uhr und Tick getrennt ════════════════════════════════════ */
 kopf('§1.1 · Ist-Minuten und Tick-Minuten');
 var e4=kid('essen'); routineTick(e4);
-ok('1.1 ein Tick ohne Uhr bucht KEINE Ist-Zeit (tickMinuten = Belegzeit)', num(e4.istSek)===0 && tickMinHeute(e4)===30 && heuteInvestiertMin(e4)===0);
+// §7 (v3.7.0): ein Tick ohne Uhr bucht seine Tick-Minuten als Ist-Zeit auf die Karte (Belegzeit tickMin bleibt am Eintrag)
+ok('1.1 (§7 v3.7.0) ein Tick ohne Uhr bucht seine 30 Tick-Minuten als Ist-Zeit', num(e4.istSek)===1800 && tickMinHeute(e4)===30 && heuteInvestiertMin(e4)===30);
 var ev=S.intraday.filter(function(e){ return e.kartenId==='essen' && e.typ==='tick'; }).pop();
-ok('1.1 der Log-Eintrag trägt tickMin 30, minuten 0, quelle tick', ev.minuten===0 && ev.tickMin===30 && ev.quelle==='tick');
+ok('1.1 der Log-Eintrag trägt tickMin 30, minuten 30, quelle tick', ev.minuten===30 && ev.tickMin===30 && ev.quelle==='tick');
 var exE=syncExport('delta').karten.filter(function(k){ return k.id==='essen'; })[0];
 print('   Export „Essen": istMin '+exE.istMin+' · istMinHeute '+exE.istMinHeute+' · tickMin '+exE.tickMin+' · statusHeute '+exE.statusHeute);
-ok('1.1/§5 Export: istMin und tickMin getrennt, statusHeute', exE.istMin===0 && exE.istMinHeute===0 && exE.tickMin===30 && exE.statusHeute==='offen');
+ok('1.1/§5 Export: istMin traegt die Tick-Minuten, tickMin bleibt, statusHeute', exE.istMin===30 && exE.istMinHeute===30 && exE.tickMin===30 && exE.statusHeute==='offen');
 
 /* ══ Testfall 1 · Kleine private Aufgabe ═════════════════════════════ */
 kopf('Testfall 1 · Kleine private Aufgabe: 3 Ticks');
 frisch(); katalog(); tagStarten(70, MO);
 var kp=kid('r-klein-priv');
-S.ui.suFrage='Kleine'; var su0=suFreitextHtml('Kleine');
-ok('1 vor dem ersten Tick (0 Ticks) in der Suche sichtbar', su0.indexOf('data-kid="r-klein-priv"')>=0);
+// §5 (v3.7.0): die Suche ist die Kettenliste — Sichtbarkeit = Gruppe Routinen
+function inRout(id, q){ var i=kettenListeInhalt({karte:null, filter:q||''}); return i.routinen.teile.some(function(t){ return t.karten.some(function(k){ return k.id===id; }); }); }
+ok('1 vor dem ersten Tick (0 Ticks) in der Suche sichtbar', inRout('r-klein-priv','Kleine'));
 leisteTicken('r-klein-priv'); leisteTicken('r-klein-priv'); leisteTicken('r-klein-priv');
-var su3=suFreitextHtml('Kleine'), lh1=abhakLeisteHtml();
+var su3=kartenZeileHtml(kp), lh1=abhakLeisteHtml();
 print('   Status nach 3 Ticks: '+kp.status+' · kartenStatusHeute '+kartenStatusHeute(kp)+' · Zähler '+zaehlerText(kp)+' · '+kartePunkteHeute(kp)+' P');
 ok('1 nach 3 Ticks offen, nicht gestrichen (Karte, Leiste, Suche)', kp.status==='offen' && kartenStatusHeute(kp)==='offen' && !istHeuteErledigt(kp) &&
-   su3.indexOf('data-kid="r-klein-priv"')>=0 && !/class="zs-k al-z[^"]* fertig[^"]*"[^>]*data-alkarte="r-klein-priv"/.test(lh1));
-ok('1 die Suche zeigt ihre Zähler-Zeile mit +1 und „3×"', /data-zzplus="r-klein-priv"/.test(su3) && /<span class="zz-n">3×<\/span>/.test(su3));
+   inRout('r-klein-priv','Kleine') && !/class="zs-k al-z[^"]* fertig[^"]*"[^>]*data-alkarte="r-klein-priv"/.test(lh1));
+ok('1 die Kartenzeile (§6 v3.7.0) zeigt den Tick-Knopf mit „3"', /data-kltick="r-klein-priv"/.test(su3) && /<b>3<\/b>/.test(su3));
 S.ui.suFrage='';
 oeffneAbschlussV3(2);
 var ab1=el('sheetBody').innerHTML;
@@ -96,11 +98,13 @@ fokusStarten('rasieren');
 print('   nach ▶: Ticks '+tickAnzahlHeute(ra)+' · Status '+ra.status+' · Uhr läuft '+!!(S.fokus && S.fokus.laeuft));
 // v3.4.0 §1.2: kein Auto-Stopp mehr — die Uhr laeuft, bis pausiert wird (hier nach 70 s)
 S.fokus.startMs=Date.now()-70000; fokusZeitEinbuchen();
-var lh2=abhakLeisteHtml(), sr2=kartenreiheHtml(ra,'x'), kal2=kalenderBloecke([ra]).filter(function(b){ return b.kid==='rasieren'; });
-print('   Leiste ✓: '+/data-alkarte="rasieren"[\s\S]*?al-ok/.test(lh2)+' · Suche erledigt: '+istHeuteErledigt(ra)+' · Kalender: '+kal2.map(function(b){ return b.art; }).join(','));
-// v3.4.0 §1.4: erledigt bleibt der Status in jeder Ansicht (✓), aber nicht grau/gestrichen, solange die Uhr laufen kann
-ok('2 ein Tick → erledigt: Leiste (✓, nicht grau), Suche (erledigt, nicht gestrichen), Kalender (Block „erledigt"), Status', kartenStatusHeute(ra)==='erledigt' &&
-   /data-alkarte="rasieren"[\s\S]*?class="al-knopf al-ok"/.test(lh2) && !/class="zs-k al-z[^"]* fertig[^"]*"[^>]*data-alkarte="rasieren"/.test(lh2) && !/class="krow erledigt/.test(sr2) && kal2.length===1 && kal2[0].art==='erledigt' && istHeuteErledigt(ra));
+var lh2=abhakLeisteHtml(), sr2=kartenreiheHtml(ra,'x');
+print('   Status: '+kartenStatusHeute(ra)+' · Suche erledigt: '+istHeuteErledigt(ra));
+// §7 (v3.7.0): das Tageslimit schliesst nicht mehr — „Ziel erreicht", offen, nicht grau; ✓ schliesst
+ok('2 ein Tick → Tageslimit: Status „Ziel erreicht", Karte offen, nicht grau/gestrichen, kein Kalender mehr (§12)', kartenStatusHeute(ra)==='zielErreicht' && ra.status==='offen' &&
+   !/class="zs-k al-z[^"]* fertig[^"]*"[^>]*data-alkarte="rasieren"/.test(lh2) && !/class="krow erledigt/.test(sr2) && !istHeuteErledigt(ra) && typeof kalenderBloecke==='undefined');
+routineErledigen(ra); lh2=abhakLeisteHtml();
+ok('2 ✓ schliesst sie: Leiste (✓, nicht grau), Suche (erledigt), Status', kartenStatusHeute(ra)==='erledigt' && /data-alkarte="rasieren"[\s\S]*?class="al-knopf al-ok"/.test(lh2) && istHeuteErledigt(ra));
 ok('2 die Uhr lief bis zur Pause weiter (70 s Ist-Zeit, v3.4.0 §1.2)', !S.fokus.laeuft && Math.round(num(ra.istSek))===70);
 /* §1.4: dieselbe Antwort in jeder Ansicht — fuer den ganzen Katalog */
 var lh4=abhakLeisteHtml(), wid=0;
@@ -142,7 +146,7 @@ ok('4 Tagesbilanz = Summe des Logs', bilanzGleichLog());
 kopf('Testfall 5 · Elvanse ▶: Tick sofort, Uhr läuft bis zur Pause (v3.4.0)');
 var el5=kid('elvanse');
 fokusStarten('elvanse');
-ok('5 ▶ bucht den Tick sofort (Tageslimit 1 → erledigt), die Uhr läuft ohne Auto-Stopp', tickAnzahlHeute(el5)===1 && kartenStatusHeute(el5)==='erledigt' && S.fokus.laeuft && !S.fokus.autoStopMs);
+ok('5 ▶ bucht den Tick sofort (Tageslimit 1 → „Ziel erreicht", offen; §7 v3.7.0), die Uhr läuft ohne Auto-Stopp', tickAnzahlHeute(el5)===1 && kartenStatusHeute(el5)==='zielErreicht' && el5.status==='offen' && S.fokus.laeuft && !S.fokus.autoStopMs);
 S.fokus.startMs=Date.now()-55*60000; renderAlles();   // Befund-Lage von damals: 55 Min spaeter
 ok('5 55 Min später läuft sie noch; Pause bucht 55 Min Ist-Zeit', S.fokus.laeuft && (fokusZeitEinbuchen(), Math.round(num(el5.istSek)/60))===55);
 frisch(); katalog(); tagStarten(70, MO);   // wie bisher: frischer Tag fuer die folgenden Faelle
@@ -172,21 +176,16 @@ fokusStarten('adhs'); S.fokus.startMs=Date.now()-30*60000;
 oeffneAbschlussV3(1);
 var foot1=el('sheetFoot').innerHTML;
 ok('6/2.3 Schritt 1 hat kein „Schließen" (nur Weiter)', foot1.indexOf('data-abv3zu')<0 && /data-abv3schritt="2"/.test(foot1));
+// §9 (v3.7.0): das Oeffnen der Abschluss-Ansicht startet die Uhr der Karte „Tagesabschluss" — die ADHS-Uhr wird dabei wie bei
+// jedem Wechsel eingebucht (quelle uhr); Schritt 3 stoppt die Abschluss-Uhr nicht, „Schliessen" bucht sie (quelle tagesabschluss)
+var adhs=kid('adhs'), sit=S.intraday.filter(function(e){ return e.kartenId==='adhs' && e.typ==='timer'; }).pop();
+ok('6 (§9 v3.7.0) beim Oeffnen laeuft die Uhr des Tagesabschlusses; ADHS wurde mit 30 Min eingebucht (Wechsel)', S.fokus && S.fokus.laeuft && S.fokus.karteId==='ab' && Math.round(num(adhs.istSek)/60)===30 && sit && sit.quelle==='uhr' && num(sit.punkte)>0);
 abv3.schritt=2; renderAbschlussV3();
 var s2=el('sheetBody').innerHTML, f2=el('sheetFoot').innerHTML;
-ok('6 Schritt 2 zeigt die laufende Uhr (⏸ stoppen) und „Messung übernehmen"', /Uhr läuft: <b>ADHS-Erholung<\/b>/.test(s2) && /data-abv3play="adhs"/.test(s2) && /data-abv3messung="1"/.test(f2) && f2.indexOf('data-abv3zu')<0);
+ok('6 Schritt 2 zeigt die laufende Uhr (Tagesabschluss) und „Messung übernehmen"', /Uhr läuft: <b>Tagesabschluss<\/b>/.test(s2) && /data-abv3play="ab"/.test(s2) && /data-abv3messung="1"/.test(f2) && f2.indexOf('data-abv3zu')<0);
 abschlussMessungUebernehmen(); abv3.schritt=3;
-var adhs=kid('adhs'), sit=S.intraday.filter(function(e){ return e.kartenId==='adhs' && e.typ==='timer'; }).pop();
-print('   ADHS gestoppt: '+Math.round(num(adhs.istSek)/60)+' Min · Sitzung '+Math.round(sit.minuten)+' Min · '+logRund(sit.punkte)+' P · quelle '+sit.quelle);
-ok('6 Uhr gestoppt, Zeit gebucht (30 Min), die Buchung trägt quelle „tagesabschluss"', !S.fokus.laeuft && Math.round(num(adhs.istSek)/60)===30 && sit.quelle==='tagesabschluss' && num(sit.punkte)>0);
-var verteilt=intradayStatistik().filter(function(e){ return e.kartenId==='adhs' && e.verteilt; });
-var sumV=logRund(verteilt.reduce(function(a,e){ return a+num(e.punkte); },0)), sumL=logRund(S.intraday.filter(function(e){ return e.kartenId==='adhs' && e.quelle==='tagesabschluss'; }).reduce(function(a,e){ return a+num(e.punkte); },0));
-var stunden=verteilt.map(function(e){ return new Date(e.ts).getHours(); });
-print('   verteilt auf '+verteilt.length+' Stunden (Tagesstart bis Abschluss-Beginn): je '+fmtP(verteilt[0]?verteilt[0].punkte:0)+' P · Summe '+sumV+' = Log '+sumL);
-ok('6 in der Stunden-Statistik über die aktiven Stunden verteilt, Summe unverändert', verteilt.length===10 && Math.abs(sumV-sumL)<0.01 && verteilt.every(function(e){ return Date.parse(e.ts)<Date.parse(S.tag.abschluss.beginnTs); }));
-var kurve=belTagKurve(belFensterDatum(jetztIso()), 'alle', 0), sprung=0;
-for(var j=1;j<kurve.length;j++) sprung=Math.max(sprung, kurve[j].p-kurve[j-1].p);
-ok('6 Tageskurve ohne Punktesprung vor dem Schlafen (größter Schritt ≤ ein Zehntel der Abschluss-Punkte + Einzelbuchung)', sprung<=sumL/10+60);
+ok('6 (§9 v3.7.0) „Messung übernehmen" laesst die Abschluss-Uhr weiterlaufen', S.fokus && S.fokus.laeuft && S.fokus.karteId==='ab');
+S.fokus.startMs=Date.now()-20*60000;
 abv3.schritt=4; renderAbschlussV3();
 var f4=el('sheetFoot').innerHTML, s4=el('sheetBody').innerHTML;
 ok('6/2.3 Schritt 4 zeigt immer den Export (.md, Kopieren, Download); „Schließen" ist gesperrt', /id="abv3Md"/.test(s4) && /data-abv3dl="1"/.test(s4) && /data-abv3copy="1"/.test(s4) &&
@@ -195,6 +194,17 @@ abschlussV3Kopieren(); f4=el('sheetFoot').innerHTML;
 ok('6/2.3 nach „Kopieren" ist „Schließen" aktiv', abschlussExportOk() && /class="btn prim" data-abv3zu="1" aria-disabled="false"/.test(f4));
 abschlussV3SchliessenUI();
 ok('6 Tag abgeschlossen, Bilanz = Log', !!S.tag.endeTs && !S.tag.geschlossenTs && bilanzGleichLog());
+var sitAb=S.intraday.filter(function(e){ return e.kartenId==='ab' && e.typ==='timer'; }).pop();
+ok('6 (§9 v3.7.0) „Schliessen" bucht die Abschluss-Uhr (20 Min, quelle tagesabschluss) und stoppt sie', !(S.fokus && S.fokus.laeuft) && sitAb && Math.round(sitAb.minuten)===20 && sitAb.quelle==='tagesabschluss');
+var verteilt=intradayStatistik().filter(function(e){ return e.kartenId==='ab' && e.verteilt; });
+var sumV=logRund(verteilt.reduce(function(a,e){ return a+num(e.punkte); },0)), sumL=logRund(S.intraday.filter(function(e){ return e.kartenId==='ab' && e.quelle==='tagesabschluss' && e.typ!=='tick'; }).reduce(function(a,e){ return a+num(e.punkte); },0));
+print('   Abschluss-Sitzung verteilt auf '+verteilt.length+' Stunden · Summe '+sumV+' = Log '+sumL);
+ok('6 in der Stunden-Statistik über die aktiven Stunden verteilt, Summe unverändert', verteilt.length>=1 && Math.abs(sumV-sumL)<0.01);
+var kurve=belTagKurve(belFensterDatum(jetztIso()), 'alle', 0), sprung=0;
+for(var j=1;j<kurve.length;j++) sprung=Math.max(sprung, kurve[j].p-kurve[j-1].p);
+// §9 (v3.7.0): die Eckpunkte des Abschlusses (150 DFM + 150 Privat) sind EINE Buchung ohne Zeit — sie duerfen als Schritt stehen
+ok('6 Tageskurve ohne Punktesprung vor dem Schlafen (größter Schritt ≤ Zehntel der Abschluss-Punkte + Einzelbuchung + Eckpunkte 300)', sprung<=sumL/10+60+2*num(S.settings.tagesEckPunkte,150));
+ok('6 (§9 v3.7.0) der Abschluss gab 150 DFM und 150 Privat als Abhak-Punkte ohne Zeit', (S.tag.log||[]).filter(function(e){ return e.art==='eck' && e.itemId==='eck-abschluss'; }).length===2 && S.tag.eckpunkte && !!S.tag.eckpunkte.abschluss);
 
 /* ══ Testfall 7 · Nach dem Abschluss bis „Schlafen" ═════════════════ */
 kopf('Testfall 7 · Nach dem Abschluss Wecker ticken → Nachtrag bei „Schlafen"');
@@ -276,7 +286,7 @@ ok('§5 ein zurückgeschickter Delta-Export meldet keine unbekannten Felder', rt
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION aktuell (3.4.0), alle Anzeigen aus APP_VERSION, Build 2026-10-02-6', APP_VERSION==='3.6.1' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && APP_BUILD==='2026-10-02-6' && DATENVERTRAG==='2.1.0');
+ok('APP_VERSION aktuell (3.7.0), alle Anzeigen aus APP_VERSION, Build 2026-10-03-1', APP_VERSION==='3.7.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && APP_BUILD==='2026-10-03-1' && DATENVERTRAG==='2.1.0');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

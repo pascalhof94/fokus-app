@@ -43,7 +43,7 @@ var NAMES = ['num',
   // §4 (v1.13.1): Sitzungszeiten aus dem Intraday-Log
   'kartenSitzungenHeute',
   // Nachtrag v1.13.1 §5: Plankurve zieht NUR ueber die Ketten
-  'planKurveInfo','ketteKarten','tagesKette','tagesKetteDom','ketteState','ketteAutoIds',
+  'planKurveInfo','ketteKarten','karteVerborgen','tagesKette','tagesKetteDom','ketteState','ketteAutoIds',   // §8 (v3.7.0): ketteKarten blendet rolle tagebuch/position aus
   'ketteHistLog','kettenHistKappen','ketteSetzen','kartePunktePrognose','kartePunkteGeplant','kartePunkteBei','subBonusOffen'];
 /* §1 (v1.7.1): kartePunkte zieht die Pausentimer-Strafe live ab — die beiden
    Helfer werden mit extrahiert, die Konstante hier gespiegelt (Konstanten sind

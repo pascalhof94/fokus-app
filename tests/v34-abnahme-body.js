@@ -40,7 +40,7 @@ kopf('Testfall 1 · Rasieren (staffel, Tageslimit 1)');
 tagMontag();
 var ra=kid('r-rasieren');
 fokusStarten('r-rasieren');
-ok('1 ▶ bucht Tick 50 sofort, die Uhr läuft', tickAnzahlHeute(ra)===1 && staffelPunkteHeute(ra)===50 && S.fokus.laeuft && S.fokus.karteId==='r-rasieren' && kartenStatusHeute(ra)==='erledigt');
+ok('1 ▶ bucht Tick 50 sofort, die Uhr läuft; Tageslimit 1 → „Ziel erreicht", offen (§7 v3.7.0)', tickAnzahlHeute(ra)===1 && staffelPunkteHeute(ra)===50 && S.fokus.laeuft && S.fokus.karteId==='r-rasieren' && kartenStatusHeute(ra)==='zielErreicht' && ra.status==='offen');
 minuten(12); renderAlles();
 ok('1 … und läuft nach 12 Min noch (kein Auto-Stopp nach tickMinuten)', S.fokus.laeuft && !S.fokus.autoStopMs);
 fokusZeitEinbuchen();
@@ -50,14 +50,14 @@ var p1=tagesPunkteLive(), log1=(S.intraday||[]).length;
 leistePlay('r-rasieren');
 ok('1 erneut ▶ (Leiste): die Uhr läuft, kein Tick, keine Punkte', S.fokus.laeuft && S.fokus.nurZeit===true && tickAnzahlHeute(ra)===1 && kartePunkteHeute(ra)===50);
 var zl1=leisteZeile('r-rasieren'), zz1=zaehlerZeileHtml(ra);
-ok('1 während der Messung: nicht ausgegraut, nicht gestrichen; ✓ und „1/1" bleiben', zl1.indexOf(' fertig')<0 && zz1.indexOf('zz fertig')<0 && /al-ok/.test(zl1) && /data-alzahl="r-rasieren"[^>]*>1\/1</.test(zl1));
+ok('1 während der Messung: nicht ausgegraut, nicht gestrichen; „1/1" und „Ziel erreicht" bleiben (§7 v3.7.0: kein ✓ durch das Limit)', zl1.indexOf(' fertig')<0 && zz1.indexOf('zz fertig')<0 && /data-alzahl="r-rasieren"[^>]*>1\/1</.test(zl1) && /zz-ok">Ziel erreicht/.test(zz1));
 minuten(130); renderAlles();
 ok('1 nach 130 Min Messung: weiter 0 Punkte (keine Dauerlauf-Strafe)', kartePunkteHeute(ra)===50 && Math.round(tagesPunkteLive())===Math.round(p1));
 fokusZeitEinbuchen();
 var e1=S.intraday.slice(log1).filter(function(e){ return e.kartenId==='r-rasieren' && e.typ==='timer'; })[0];
 ok('1 Pause: istMinHeute 142, Log-Eintrag quelle „uhr" mit 0 Punkten', Math.round(heuteInvestiertMin(ra))===142 && !!e1 && logQuelle(e1)==='uhr' && num(e1.punkte)===0 && Math.round(e1.minuten)===130);
 var x1=syncExport('delta').karten.filter(function(k){ return k.id==='r-rasieren'; })[0];
-ok('1 Export: istMinHeute 142, statusHeute erledigt, Punkte 50', x1.istMinHeute===142 && x1.statusHeute==='erledigt' && Math.round(kartePunkteHeute(ra))===50);
+ok('1 Export: istMinHeute 142, statusHeute zielErreicht (§7 v3.7.0), Punkte 50', x1.istMinHeute===142 && x1.statusHeute==='zielErreicht' && Math.round(kartePunkteHeute(ra))===50);
 ok('1 Bilanz = Log', bilanzGleichLog());
 
 /* ══ Testfall 2 · Zähne putzen ═══════════════════════════════════════ */
@@ -65,7 +65,7 @@ kopf('Testfall 2 · Zähne putzen (Tageslimit 2)');
 var za=kid('r-zaehne');
 fokusStarten('r-zaehne'); minuten(3); fokusZeitEinbuchen(); minuten(10);
 fokusStarten('r-zaehne'); minuten(3); fokusZeitEinbuchen(); minuten(10);
-ok('2 zwei ▶ (je eigener Durchgang) → 50 + 100 P, Tageslimit erreicht', tickAnzahlHeute(za)===2 && kartePunkteHeute(za)===150 && kartenStatusHeute(za)==='erledigt');
+ok('2 zwei ▶ (je eigener Durchgang) → 50 + 100 P, Tageslimit erreicht („Ziel erreicht", §7 v3.7.0)', tickAnzahlHeute(za)===2 && kartePunkteHeute(za)===150 && kartenStatusHeute(za)==='zielErreicht');
 fokusStarten('r-zaehne');
 ok('2 drittes ▶: die Uhr läuft, kein Tick', S.fokus.laeuft && S.fokus.nurZeit && tickAnzahlHeute(za)===2);
 minuten(4); fokusZeitEinbuchen();
@@ -113,11 +113,10 @@ ok('10 Leiste: die Aufgabe steht nicht darin; Suche: sie bleibt gestrichen', abh
 /* ══ §1.7 · dieselbe Start-Logik in jeder Ansicht ═══════════════════ */
 kopf('§1.7 · jede Ansicht: ▶ bleibt, nichts grau');
 fokusKarteAnsehen('r-rasieren'); renderFokus(); var fv=el('fokusView').innerHTML;
-ok('1.7 Fokus: erledigte Routine zeigt ▶ und die Zähler-Zeile mit ✓, nicht den „erledigt"-Verlaufskasten', /data-fktoggle="r-rasieren"/.test(fv) && fv.indexOf('data-wiederholen="r-rasieren"')<0 && /zz-knopf[^>]*aria-label="erledigt"/.test(fv));
+ok('1.7 Fokus: Routine mit erreichtem Limit zeigt ▶ und die Zähler-Zeile „Ziel erreicht", nicht den „erledigt"-Verlaufskasten (§7 v3.7.0)', /data-fktoggle="r-rasieren"/.test(fv) && fv.indexOf('data-wiederholen="r-rasieren"')<0 && /zz-ok">Ziel erreicht/.test(fv));
 var sr=kartenreiheHtml(ra,'x');
 ok('1.7 Suche: nicht gestrichen, ▶ startet in den Fokus (nicht „Wieder öffnen")', !/class="krow[^"]*erledigt/.test(sr) && /aria-label="In den Fokus starten"/.test(sr));
-var kb=kalenderBloecke([ra]).filter(function(b){ return b.kid==='r-rasieren'; });
-ok('1.7 Kalender: Block „erledigt" (✓), aber nicht abgeblendet', kb.length>=1 && kb[0].art==='erledigt' && uhrFrei(ra));
+ok('1.7 (§12 v3.7.0) kein Kalender mehr; die Uhr bleibt frei', typeof kalenderBloecke==='undefined' && uhrFrei(ra));
 ok('1.7 Zeitstrahl: ▶ auch auf der erledigten Routine', /data-zsplay="r-rasieren"/.test(zeitstrahlHtml()) || tagesKette().indexOf('r-rasieren')<0);
 
 /* ══ Testfall 3 · Tagesabschluss nach dem Abschluss ═════════════════ */
@@ -239,7 +238,7 @@ ok('1.2 der lange Druck wirkt nur noch auf „Schließen" im Tagesabschluss', /c
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION 3.4.0, Build 2026-10-02-6', APP_VERSION==='3.6.1' && UI_VERSION==='v3.6.1' && APP_BUILD==='2026-10-02-6');
+ok('APP_VERSION 3.4.0, Build 2026-10-02-6', APP_VERSION==='3.7.0' && UI_VERSION==='v3.7.0' && APP_BUILD==='2026-10-03-1');
 
 print('');
 if(fails){ print(fails+' von '+n+' FEHLGESCHLAGEN'); throw new Error('Abnahme rot'); }

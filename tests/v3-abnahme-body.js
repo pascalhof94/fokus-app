@@ -61,14 +61,14 @@ print('   Kaffee 4 Ticks: '+JSON.stringify(punkte(tk))+' → '+kartePunkteHeute(
 ok('1 Kaffee: 50, 50, 0, −50 (Tag 50)', JSON.stringify(punkte(tk))==='[50,50,0,-50]' && kartePunkteHeute(kid('kaffee'))===50);
 var te=tick('essen',4);
 print('   Essen 4 Ticks: '+JSON.stringify(punkte(te))+' · Ist '+Math.round(heuteInvestiertMin(kid('essen')))+' Min · Tick-Belegzeit '+tickMinHeute(kid('essen'))+' Min · Ziel '+zielText(kid('essen')));
-// v3.2.0 §1.1: die 30 Min je Tick sind BELEGZEIT (tickMin), keine gemessene Ist-Zeit mehr
-ok('1 Essen: 3 Ticks à 100 erfüllen das Ziel, der 4. bringt weiter 100; jeder Tick belegt 30 Min (tickMin, keine Ist-Zeit)', JSON.stringify(punkte(te))==='[100,100,100,100]' &&
-   Math.round(heuteInvestiertMin(kid('essen')))===0 && tickMinHeute(kid('essen'))===120 && zielErreicht(kid('essen')) && zielText(kid('essen'))==='4/3');
+// §7 (v3.7.0): die 30 Min je Tick sind Belegzeit (tickMin) UND werden als Ist-Zeit auf die Karte gebucht
+ok('1 Essen: 3 Ticks à 100 erfüllen das Ziel, der 4. bringt weiter 100; jeder Tick belegt 30 Min und bucht sie als Ist-Zeit (§7 v3.7.0)', JSON.stringify(punkte(te))==='[100,100,100,100]' &&
+   Math.round(heuteInvestiertMin(kid('essen')))===120 && tickMinHeute(kid('essen'))===120 && zielErreicht(kid('essen')) && zielText(kid('essen'))==='4/3');
 var tg=tick('gesicht',4);
 ok('1 Gesicht waschen: 50, 100, 100, 50', JSON.stringify(punkte(tg))==='[50,100,100,50]');
 var tz=tick('zaehne',3);
 print('   Zähne 3 Ticks: '+JSON.stringify(punkte(tz))+' · Status '+kid('zaehne').status);
-ok('1 Zähne: 50, 100 — dann erledigt, ein dritter Tick wird nicht angenommen', JSON.stringify(punkte(tz))==='[50,100,null]' && kid('zaehne').status==='erledigt');
+ok('1 Zähne: 50, 100 — Tageslimit erreicht: ein dritter Tick wird nicht angenommen; die Karte bleibt OFFEN (Status „Ziel erreicht", §7 v3.7.0)', JSON.stringify(punkte(tz))==='[50,100,null]' && kid('zaehne').status==='offen' && kartenStatusHeute(kid('zaehne'))==='zielErreicht');
 var z1=unterTick('zahnseide'), z2=unterTick('zahnseide');
 ok('1 Zahnseide (Unter-Zähler, einmalig): +50, danach erledigt; zählt zur Karte', z1 && z1.punkte===50 && z2===null && sub('zahnseide').done===true &&
    kartePunkteHeute(kid('zaehne'))===200);
@@ -163,6 +163,8 @@ imp([{id:'wm', domain:'privat', titel:'Waschmaschine anstellen', modus:'staffel'
   folgekarte:{titel:'Wäsche ausräumen', wert:100, abzugJeTagUeberfaellig:-50}}]);
 tagAm(MO);
 routineTick(kid('wm'));
+ok('4 (§7 v3.7.0) das Tageslimit schliesst die Karte nicht mehr — die Folgekarte kommt erst mit ✓', kid('wm').status==='offen' && !S.karten.some(function(k){ return k.folgeVon==='wm'; }));
+routineErledigen(kid('wm'));   // ✓
 var fk=S.karten.filter(function(k){ return k.folgeVon==='wm'; })[0];
 print('   Folgekarte: '+JSON.stringify({titel:fk&&fk.titel, faelligkeit:fk&&fk.faelligkeit, staffel:fk&&fk.staffel, abzugJeTagUeberfaellig:fk&&fk.abzugJeTagUeberfaellig}));
 ok('4 Waschmaschine → „Wäsche ausräumen", Deadline morgen, 100, −50 je Tag danach', fk && fk.titel==='Wäsche ausräumen' && fk.faelligkeit===tagNach(MO,1) &&
@@ -176,7 +178,7 @@ tagAm(tagNach(MO,3)); tagEnde();
 var a3=(S.tag.routinenAuswertung.filter(function(x){ return x.id===fk.id; })[0]||{}).abzug;
 print('   Abzug am Fälligkeitstag / Tag danach / zwei Tage danach: '+a1+' / '+a2+' / '+a3);
 ok('4 am Fälligkeitstag kein Abzug, danach −50 je Tag', a1===0 && a2===50 && a3===50);
-tagAm(tagNach(MO,4)); routineTick(fk=kid(fk.id)); tagEnde();
+tagAm(tagNach(MO,4)); routineTick(fk=kid(fk.id)); routineErledigen(fk); tagEnde();   // §7 (v3.7.0): Tick + ✓
 ok('4 ausgeräumt: erledigt, kein Abzug mehr', fk.status==='erledigt' && (S.tag.routinenAuswertung.filter(function(x){ return x.id===fk.id; })[0]||{abzug:0}).abzug===0);
 
 /* ══ 10 · Privates Tagesziel ═════════════════════════════════════════ */
@@ -227,8 +229,10 @@ S.ui.alOffen={zaehne:true}; lh=abhakLeisteHtml();
 ok('5 der Zähler klappt die Unter-Zähler auf — eingerückt, eigener +1', /al-sub[\s\S]*Zahnseide[\s\S]*data-alsub="zahnseide"/.test(lh));
 routineTick(kid('zaehne')); routineTick(kid('zaehne'));
 lk=abhakLeisteKarten().map(function(k){ return k.id; });
-// v3.4.0 §1.4: erledigt → ✓ und ans Ende des Blocks, aber nicht grau, solange die Uhr laufen kann
-ok('5 erledigt (Tageslimit) → ✓ ans Ende seines Blocks, nicht grau (v3.4 §1.4)', !/al-z[^"]* fertig[^"]*" [^>]*data-alkarte="zaehne"/.test(abhakLeisteHtml()) && /data-alkarte="zaehne"[^>]*>(?:(?!data-alkarte=)[\s\S])*al-ok/.test(abhakLeisteHtml()) && lk.indexOf('zaehne')>lk.indexOf('mails'));
+// §7 (v3.7.0): das Tageslimit schliesst nicht mehr — „Ziel erreicht", offen; ✓ schliesst
+ok('5 (§7 v3.7.0) Tageslimit erreicht → Karte bleibt offen mit Status „Ziel erreicht"', kid('zaehne').status==='offen' && kartenStatusHeute(kid('zaehne'))==='zielErreicht');
+routineErledigen(kid('zaehne')); lk=abhakLeisteKarten().map(function(k){ return k.id; });
+ok('5 nach ✓: erledigt → ✓ ans Ende seines Blocks, nicht grau (v3.4 §1.4)', !/al-z[^"]* fertig[^"]*" [^>]*data-alkarte="zaehne"/.test(abhakLeisteHtml()) && /data-alkarte="zaehne"[^>]*>(?:(?!data-alkarte=)[\s\S])*al-ok/.test(abhakLeisteHtml()) && lk.indexOf('zaehne')>lk.indexOf('mails'));
 ok('5 Zähler zeigt „2/2" bei Tageslimit, Tagesziel „n/Ziel"', zielText(kid('zaehne'))==='2/2');
 
 /* ══ 6 · Tagesstart ═══════════════════════════════════════════════════ */
@@ -329,24 +333,26 @@ S.karten=[ neueKarte({id:'r1', domain:'privat', titel:'Katzen', rhythmus:{typ:'t
            neueKarte({id:'a1', domain:'dfm', titel:'Angebot', faelligkeit:MO, erstelltTs:'2026-09-25T08:00:00Z'}),
            neueKarte({id:'a2', domain:'privat', titel:'Steuer', faelligkeit:anVorTage(MO,-3), erstelltTs:'2026-09-27T08:00:00Z'}),
            neueKarte({id:'e1', domain:'dfm', titel:'Fertig', status:'erledigt', tagId:aktuelleTagId(), faelligkeit:MO}) ];
-S.ui.suSicht='heute'; S.ui.suDom='alle'; S.ui.suArt='alle'; renderSuche();
-var fl=el('suFilter').innerHTML, sl=el('suSichten').innerHTML;
-ok('9 zwei Filter: Routinen/Counter oder Aufgaben · DFM oder privat', /data-suart="routinen"[\s\S]*data-suart="aufgaben"/.test(fl) && /data-sudom="dfm"[\s\S]*data-sudom="privat"/.test(fl) && fl.indexOf('alle')<0);
-ok('9 vier Sortierungen: Heute · Fällig · Neueste · Erledigte', (sl.match(/data-susicht=/g)||[]).length===4 && /Heute[\s\S]*Fällig[\s\S]*Neueste[\s\S]*Erledigte/.test(sl));
-function ids(h){ return (h.match(/data-kid="([^"]+)"/g)||[]).map(function(x){ return x.slice(10,-1); }).filter(function(x,i,a){ return a.indexOf(x)===i; }).join(','); }
-ok('9 Neueste: zuletzt angelegt zuerst', ids(suSichtHtml('neueste'))==='a2,a1,r1');
-ok('9 Fällig: nach Deadline', ids(suSichtHtml('faellig')).indexOf('a1')<ids(suSichtHtml('faellig')).indexOf('a2'));
-S.ui.suSicht='erledigte';
-ok('9 Erledigte: nur Erledigtes', ids(suSichtHtml('erledigte'))==='e1');
-S.ui.suSicht='neueste'; S.ui.suArt='aufgaben'; S.ui.suDom='privat';
-ok('9 Filter wirken: Aufgaben + privat → nur „Steuer"', ids(suSichtHtml('neueste'))==='a2');
-S.ui.suArt='alle'; S.ui.suDom='alle';
-ok('9 jede Ansicht beginnt oben: setTab, Sortierung, Filter, Fokus und Sheet rufen nachOben bzw. setzen scrollTop 0',
-   /m\.scrollTop=0; \}   \/\/ §9/.test(src) && /renderSuche\(\); nachOben\(\); haptik\(8\);   \/\/ §9/.test(src) && /sheetBody'\)\.scrollTop=0/.test(src) && (src.match(/nachOben\(\);   \/\/ §9/g)||[]).length>=2);
+renderSuche();
+/* §5/§10/§12 (v3.7.0): Filter-Knoepfe und Sortierungen sind entfallen; die Suche ist Suchfeld + Kettenliste mit Sortierung je Gruppe;
+   kein automatisches Hochscrollen mehr */
+ok('9 (v3.7.0) Filter und Sichten sind versteckt, der Suchkoerper ist die Kettenliste', /id="suFilter"[^>]*hidden/.test(src) && /id="suSichten"[^>]*hidden/.test(src) && el('suBody').innerHTML.indexOf('data-klliste')>=0);
+ok('9 (v3.7.0) Sortierungen je Gruppe: Gruppiert · Termin · Ø Erledigungszeit · Priorität, Kette zusaetzlich Kettenreihenfolge', KL_SORT.map(function(x){ return x[0]; }).join(',')==='gruppiert,termin,erledigungszeit,prio' && klSortStandard('kette')==='kette' && klSortStandard('routinen')==='erledigungszeit' && klSortStandard('verlauf')==='prio');
+function gIds(g, wahl){ klSortSetzen(g, wahl); var i=kettenListeInhalt({karte:null, filter:''}); var r=[]; i[g].teile.forEach(function(t){ t.karten.forEach(function(k){ if(r.indexOf(k.id)<0) r.push(k.id); }); }); return r.join(','); }
+S.ui.navDomain='dfm';
+ok('9 Termin: nach Deadline (DFM-Kette: a1 heute)', gIds('kette','termin')==='a1');
+S.ui.navDomain='privat';
+ok('9 Termin (Privat): nur Katzen (heute faellig) — Steuer in 3 Tagen steht nicht in der Kette', gIds('kette','termin')==='r1');
+ok('9 Erledigt heute: nur Erledigtes', gIds('erledigt','prio')==='e1');
+var inhS=kettenListeInhalt({karte:null, filter:'katzen'});
+ok('9 Suchfeld wirkt auf alle Gruppen: „katzen" → r1 in Kette und Routinen, nichts in Erledigt', inhS.kette.n===1 && inhS.kette.teile[0].karten[0].id==='r1' && inhS.routinen.n===1 && inhS.erledigt.n===0);
+klSortSetzen('kette','kette'); S.ui.navDomain='dfm';
+ok('9 (§10 v3.7.0) kein automatisches Hochscrollen: nachOben entfallen, Sheet nur beim Oeffnen oben, Tab-Wechsel in setTab',
+   !/function nachOben\(/.test(src) && !/nachOben\(\);/.test(src) && /const neu=!sheetOffen\(\);/.test(src) && /if\(neu\)\{ try\{ el\('sheetBody'\)\.scrollTop=0; \}catch\(e\)\{\} \}/.test(src) && /m\.scrollTop=0; \}   \/\/ §9/.test(src));
 
 /* ══ 12 · Version ═════════════════════════════════════════════════════ */
 kopf('12 · Version');
-ok('12 APP_VERSION 3.4.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.6.1' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'x', titel:'x'}]})).fehler);
+ok('12 APP_VERSION 3.7.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.7.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'x', titel:'x'}]})).fehler);
 
 kopf('Nachtrag v3.0.1 · eine Versionskonstante');
 frisch(); S.tag=neuerTag(MO,1);
@@ -420,7 +426,7 @@ S.karten=[ neueKarte({id:'musik', domain:'privat', titel:'Musik anmachen', rhyth
 leisteTicken('musik'); leisteTicken('musik'); leisteTicken('musik1'); leisteTicken('zaehneAlt'); leisteTicken('musikV3');
 print('   Status: '+['musik','musik1','zaehneAlt','musikV3'].map(function(id){ return id+' '+kid(id).status+' ('+kid(id).ticksHeute+'×)'; }).join(' · '));
 ok('1.2 „Musik anmachen" (Rhythmus + Ticks, ohne Tageslimit): 2× +1 → offen (vorher: abgehakt)', kid('musik').status==='offen' && kid('musik').ticksHeute===2);
-ok('1.2 mit Tageslimit 1: +1 → erledigt', kid('musik1').status==='erledigt');
+ok('1.2 mit Tageslimit 1: +1 → Limit erreicht, Karte bleibt offen mit Status „Ziel erreicht" (§7 v3.7.0)', kid('musik1').status==='offen' && kartenStatusHeute(kid('musik1'))==='zielErreicht');
 ok('1.2 alte Routine ohne Ticks: +1 → offen, bucht den Abhakbonus, zählt als heute erledigt (Serie)', kid('zaehneAlt').status==='offen' && Math.round(kartePunkteHeute(kid('zaehneAlt')))===25 && routErledigtHeute(kid('zaehneAlt')) && kid('zaehneAlt').streak===1);
 ok('1.2 Staffel ohne Tageslimit: offen', kid('musikV3').status==='offen');
 

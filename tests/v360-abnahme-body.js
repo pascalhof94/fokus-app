@@ -22,7 +22,7 @@ function muenzen(v){ S.meta.muenzenGesamt=num(S.meta.muenzenGesamt)+v-konto(); }
 var KATS=['fahrzeuge','wohnen','reisen','mobilitaet','beziehung','soziales'];
 
 kopf('Version und Stufendaten');
-ok('APP_VERSION 3.6.0 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.6.1' && UI_VERSION==='v3.6.1' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-6');
+ok('APP_VERSION 3.6.0 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.0' && UI_VERSION==='v3.7.0' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-03-1');
 ok('§2 sechs Kategorien in der Reihenfolge Fahrzeuge · Wohnen · Reisen · Mobilität · Beziehung · Soziales, je 12 Stufen', KAT_KEYS.join(',')===KATS.join(',') &&
    KAT_KEYS.map(function(k){ return BELOHNUNG[k].name; }).join(' · ')==='Fahrzeuge · Wohnen · Reisen · Mobilität · Beziehung · Soziales' && KAT_KEYS.every(function(k){ return BELOHNUNG[k].stufen.length===12; }));
 ok('§2 jede Stufe: Name, Status vergangen/zukunft (erst Rückblick, dann Ziele); Farbton je Kategorie (0 · 25 · 180 · 205 · 340 · 36)', KAT_KEYS.every(function(k){ return BELOHNUNG[k].stufen.every(function(s){ return s.name && (s.status==='vergangen' || s.status==='zukunft'); }) &&
@@ -181,9 +181,9 @@ var kb=kaufBelohnungHtml(kaufBelohnungDaten('soziales', 2, k2.preis, k2.fokusMin
 ok('(h) Kauf-Belohnung: „3 Std 12 Min · Fokuszeit seit deinem letzten Kauf", Münzen abgezogen und Rest, Stufenstand „2 von 12 … 10 noch offen"', kb.indexOf('<b>3 Std 12 Min</b><span>Fokuszeit seit deinem letzten Kauf</span>')>=0 &&
    kb.indexOf('−'+fmtP(k2.preis)+'</b><span>Münzen · '+fmtP(Math.round(konto()))+' bleiben</span>')>=0 && kb.indexOf('<b>2 von 12</b><span>Stufen in Soziales · 10 noch offen</span>')>=0);
 ok('(h) … Kopf „Gekauft · Soziales Stufe 2", eingefärbtes Objekt mit Leuchten, Name, Gleichgewicht als sechs Säulen, „Weiter"', kb.indexOf('Gekauft · Soziales Stufe 2')>=0 && kb.indexOf('<div class="glow"></div><img class="objimg')>=0 && kb.indexOf('data-objbild="soziales|2"')>=0 &&
-   kb.indexOf('<span class="stufen-name">'+esc(stufeName('soziales', 2))+'</span>')>=0 && (kb.match(/background:hsl\(/g)||[]).length===6 && kb.indexOf('data-belweiter="1">Weiter</button>')>=0 && kb.indexOf('Doppeltipp überspringt')>=0);
-ok('(h) Schritte animiert und überspringbar wie die Karten-Belohnung (gestaffelte Verzögerung, Doppeltipp, „Weiter")', (kb.match(/class="st [^"]*" style="animation-delay:/g)||[]).length>=6 && /ov\.addEventListener\('dblclick', zu\)/.test(rumpf('kaufBelohnungZeigen')) &&
-   /kaufBelohnungZeigen\(kaufBelohnungDaten\(kat, idx\+1, preis, fokusMin\)\)/.test(rumpf('kaufen')));
+   kb.indexOf('<span class="stufen-name">'+esc(stufeName('soziales', 2))+'</span>')>=0 && (kb.match(/background:hsl\(/g)||[]).length===6 && kb.indexOf('data-belweiter="1">Weiter</button>')>=0 && kb.indexOf('Doppeltipp überspringt')<0);   // §4b (v3.7.0): nicht mehr ueberspringbar
+ok('(h) Schritte animiert (gestaffelte Verzögerung), „Weiter" — §4b (v3.7.0): KEIN Doppeltipp mehr, Schritt „Farbe wählen"', (kb.match(/class="st [^"]*" style="animation-delay:/g)||[]).length>=6 && !/dblclick/.test(rumpf('kaufBelohnungZeigen')) &&
+   /kaufBelohnungZeigen\(kaufBelohnungDaten\(kat, idx\+1, preis, fokusMin\)\)/.test(rumpf('kaufen')) && kb.indexOf('Farbe wählen')>=0);
 stand({ fahrzeuge:10, wohnen:8, reisen:8, mobilitaet:4, beziehung:8, soziales:8 });
 var dW=(S.belohnung.stufen.wohnen=9, kaufBelohnungDaten('wohnen', 9, 100, 10)), hW=kaufBelohnungHtml(dW);
 ok('(h) was der Kauf freischaltet: Wohnen Stufe 9 schaltet Fahrzeuge Stufe 11 frei („jetzt möglich: Fahrzeuge Stufe 11")', dW.frei.length===1 && dW.frei[0].kat==='fahrzeuge' && dW.frei[0].stufe===11 && hW.indexOf('jetzt möglich: Fahrzeuge Stufe 11')>=0);

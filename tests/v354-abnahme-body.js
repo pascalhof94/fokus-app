@@ -22,7 +22,7 @@ function punkte(dfm, privat){ belIstDfm=function(){ return dfm; }; tagesPunkteDo
 function punkteEcht(){ belIstDfm=_belIstDfm; tagesPunkteDomain=_tagesPunkteDomain; }
 
 kopf('Version');
-ok('APP_VERSION 3.5.4 · Datenvertrag bleibt 2.1.0 · Build 2026-10-02-6', APP_VERSION==='3.6.1' && UI_VERSION==='v3.6.1' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-02-6');
+ok('APP_VERSION 3.5.4 · Datenvertrag bleibt 2.1.0 · Build 2026-10-02-6', APP_VERSION==='3.7.0' && UI_VERSION==='v3.7.0' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-03-1');
 
 /* ══ (a) Restzeit ═════════════════════════════════════════════════════ */
 kopf('(a) Uhr der Statusleiste: Restzeit mit Vorzeichen und Ampelfarbe');
@@ -148,16 +148,16 @@ S.meta.ausmalen={ kulisse:1, gefaerbt:[], toepfe:[{farbe:0, punkte:500},{farbe:n
 var A=ausmalState(), t0=A.toepfe[0];
 ok('(e) Topf mit 500 P (42 %) ist nicht leer: Farbwechsel abgewiesen („erst leeren oder Topf wechseln")', !topfLeer(t0) && stationFarbeWaehlen(1)===false && t0.farbe===0 && t0.punkte===500 && A.stationFarbe===0);
 topfAuskippen(0);
-ok('(e) geleert: Topf 0 % ohne Farbe', t0.punkte===0 && t0.farbe===null && topfLeer(t0));
+ok('(e) geleert: Topf 0 % ohne Farbe — der Inhalt (500 P) geht in den Tank (§4c v3.7.0)', t0.punkte===0 && t0.farbe===null && topfLeer(t0) && A.tank===500);
 wTest=10; ausmalVerteilen();   // der Tick zwischen Leeren und Wechseln
 print('   nach dem Tick: Topf '+t0.punkte+' P = '+(t0.punkte/T*100).toFixed(1)+' % · Farbe '+t0.farbe+' · Tank '+A.tank);
-ok('(e) ein Tick dazwischen füllt den Topf minimal: 10 P = 0,8 % in der Stationsfarbe', t0.punkte===10 && t0.farbe===0 && nah(t0.punkte/T*100, 0.8, 0.05) && A.tank===0);
+ok('(e) ein Tick dazwischen füllt den Topf minimal: 10 P = 0,8 % in der Stationsfarbe', t0.punkte===10 && t0.farbe===0 && nah(t0.punkte/T*100, 0.8, 0.05) && A.tank===500);
 ok('(e) 0,8 % gilt als leer (unter 2 %)', topfLeer(t0) && !topfVoll(t0));
 var mm=belMalmodusHtml(), bu2=belUebersichtHtml();
 ok('(e) Anzeige „leer" statt Prozent; der Topf zählt nicht als „füllt" (0 voll · 0 füllt · 5 leer); nicht unter „Töpfe mit Farbe"', mm.indexOf('<span>aktiv leer</span>')>=0 && mm.indexOf('aktiv 1 %')<0 && mm.indexOf('data-malwahl=')<0 && bu2.indexOf('0 voll · 0 füllt · 5 leer')>=0);
 var gewechselt=stationFarbeWaehlen(1);
 ok('(e) Wechsel ohne Auskippen möglich: die Station nimmt Schwarz, der Topf übernimmt die neue Farbe', gewechselt===true && A.stationFarbe===1 && t0.farbe===1 && t0.punkte===0);
-ok('(e) die 0,8 % (10 P) landen im Tank — nichts geht verloren', A.tank===10);
+ok('(e) die 0,8 % (10 P) landen im Tank — nichts geht verloren (500 + 10)', A.tank===510);
 // Grenze: genau 2 % ist nicht mehr leer
 S.meta.ausmalen.toepfe[0]={farbe:0, punkte:24}; S.meta.ausmalen.stationFarbe=0; S.meta.ausmalen.tank=0; A=ausmalState(); t0=A.toepfe[0];
 ok('(e) genau 2 % (24 P) ist nicht leer: „aktiv 2 %", zählt als „füllt", Wechsel abgewiesen; 23 P (1,9 %) ist leer', !topfLeer(t0) && belMalmodusHtml().indexOf('<span>aktiv 2 %</span>')>=0 && belUebersichtHtml().indexOf('0 voll · 1 füllt · 4 leer')>=0 && stationFarbeWaehlen(1)===false &&
@@ -222,7 +222,7 @@ var mfM=mod('matrixfaktor', true), mfA=mfAnsichtHtml();
 ok('§3 Matrixfaktor: im Modul der Knopf „Karten mit Faktor (1) ›", die Liste selbst steht nicht mehr im Modul; Balken und KPIs bleiben', mfM.indexOf('data-mfansicht="1">Karten mit Faktor (1) ›</button>')>=0 && mfM.indexOf('class="mf-k"')<0 && mfM.indexOf('data-mfedit')<0 &&
    mfM.indexOf('class="mf-liste"')>=0 && mfM.indexOf('effektiver Ø-Faktor')>=0);
 ok('§3 Ansicht „Karten mit Faktor": dieselben Zeilen mit Bearbeiten (✎), Vollbild mit Zurück-Knopf oben links', mfA.indexOf('Karten mit Faktor ≠ 1,0 · 1')>=0 && mfA.indexOf('data-mfedit="m1">✎</button>')>=0 && mfA.indexOf('m2')<0 &&
-   /<div id="mfOverlay" class="voll-ansicht" hidden>\s*<div class="an-kopf">\s*<button id="mfBack" class="an-back"/.test(src) && /\.voll-ansicht\{position:fixed;inset:0;z-index:199;/.test(src));
+   /<div id="mfOverlay" class="voll-ansicht" hidden>\s*<div class="an-kopf">\s*<button id="mfBack" class="an-back"/.test(src) && /\.voll-ansicht\{position:fixed;inset:0;z-index:200;/.test(src));   // §2 (v3.7.0): 200, ueber dem Fokus-Layer
 
 kopf('§6 Einstellungen: klappbare Abschnitte');
 tagDonnerstag();
