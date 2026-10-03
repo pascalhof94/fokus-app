@@ -8932,7 +8932,8 @@ function kettenListeHtml(opt){
   const inhalt=kettenListeInhalt(opt), chips=tageskettenChipsHtml(), dreh=_klGedreht; _klGedreht=null;
   const gruppen=opt.gruppen ? KL_GRUPPEN.filter(g=>opt.gruppen.indexOf(g[0])>=0) : KL_GRUPPEN;
   return '<div class="kl-liste" data-klliste=\''+JSON.stringify({ karte:opt.karte ? opt.karte.id : null, filter:opt.filter||'', gruppen:opt.gruppen||null, kontext:opt.kontext||'' })+'\'>'+gruppen.map(q=>{
-    const id=q[0], g=inhalt[id], auf=klGruppeOffen(id), optionen=(id==='kette' ? [['kette','Kettenreihenfolge']] : []).concat(KL_SORT);
+    // §3 (v3.7.1): bei einer Sucheingabe sind Gruppen mit Treffern aufgeklappt, ohne Treffer eingeklappt — der gemerkte Zustand gilt bei leerem Suchfeld
+    const id=q[0], g=inhalt[id], auf=String(opt.filter||'').trim() ? g.n>0 : klGruppeOffen(id), optionen=(id==='kette' ? [['kette','Kettenreihenfolge']] : []).concat(KL_SORT);
     const sort='<select class="kl-sort" data-klsort="'+id+'" aria-label="Sortierung">'+optionen.map(o=>'<option value="'+o[0]+'"'+(o[0]===g.wahl?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>';
     const zeilen=g.teile.map(t=>(t.name ? '<div class="kl-zwh">'+esc(t.name)+'</div>' : '')+t.karten.map(x=>kartenZeileHtml(x, g.zusatz(x))).join('')).join('');
     return '<div class="kl-grp" data-klgrp="'+id+'"><div class="kl-grk" data-klgruppe="'+id+'" role="button" aria-expanded="'+(auf?'true':'false')+'"><b>'+q[1]+'</b>'+(auf ? sort : '')+'<span class="anz">'+g.n+'</span>'+
