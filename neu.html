@@ -2222,7 +2222,8 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 #statusbar .sb-bar .rot{position:absolute;top:0;bottom:0;display:none;z-index:2}
 #statusbar .sb-bar .zahl.s b.rp{border:0;background:none;padding:0;text-shadow:0 0 3px #000,0 1px 1px #000}
 /* ══ 3.5.4 §2 · Fokus: Navigation oben · Der Tag: Ringe DFM / Privat (Draft Nr. 2) ══ */
-#fokusAktiv .knav.fk-swipe.fk-oben{margin:0 0 10px}
+#fokusAktiv .knav.fk-swipe.fk-oben{margin:0 0 10px;grid-template-columns:auto 1fr auto}
+#fokusAktiv .knav.fk-swipe.fk-oben button.sw.vorn{justify-self:center;padding:0 10px}
 .ringe{display:grid;grid-template-columns:1fr 1fr;gap:8px;justify-items:center}
 .rg-svg{display:block;width:120px;height:120px}
 .dt-zeilen .dk-ringe{padding:0 0 12px}
@@ -5237,6 +5238,14 @@ function ketteSetzen(ids){
    ZAHLEN (1-basiert). Beides über dasselbe Vorzeichen zu fahren war
    mehrdeutig — „Position 1" und „eine Position runter" sahen identisch aus
    (von der v2.0-Abnahme gefunden). */
+/* §1 (v3.7.0): „⤒ Nach vorn" — die Karte an Position 1 der aktuellen Kette; steht sie nicht in der Kette, wird sie dort eingefügt */
+function ketteNachVorn(id){
+  const k=S.karten.find(x=>x.id===id); if(!k) return false;
+  const st=ketteState(); tagesKette();
+  const i=st.ids.indexOf(id); if(i>=0) st.ids.splice(i, 1);
+  st.ids.unshift(id); st.entfernt=(st.entfernt||[]).filter(x=>x!==id);
+  saveMeta(); ketteHistLog(); return true;
+}
 function ketteBewegen(id, ziel){
   const k=S.karten.find(x=>x.id===id); if(!k) return false;
   const st=ketteState(); tagesKette();
@@ -5706,7 +5715,8 @@ function renderFokus(){
   const swipeLeiste='<div class="knav fk-swipe">'+navKnopf(1)+
     '<div class="m sw">'+navMitte+'<div class="punkte5">'+punkte+'</div></div>'+navKnopf(-1)+'</div>';
   // §2 (v3.5.4): dieselben beiden Knoepfe oben in der Fokusansicht (ersetzen „Zur Suche") — gleiche Regeln, ein Schritt je Tipp
-  const navOben='<div class="knav fk-swipe fk-oben">'+navKnopf(1)+'<span></span>'+navKnopf(-1)+'</div>';
+  // §1 (v3.7.0): dazwischen „⤒ Nach vorn" — die Karte an Position 1 der aktuellen Kette
+  const navOben='<div class="knav fk-swipe fk-oben">'+navKnopf(1)+'<button class="sw vorn" data-fkvorn="'+k.id+'">⤒ Nach vorn</button>'+navKnopf(-1)+'</div>';
   const einflug=_fokusEinflug ? ' von-'+_fokusEinflug : ''; _fokusEinflug=null;
   host.innerHTML =
     '<div id="fokusAktiv" class="blk kern tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+(imVerlauf?'imverlauf ':'')+einflug+'" style="--famk:'+famK+';--famh:'+famH+'">'+
@@ -18343,6 +18353,7 @@ el('fokusView').addEventListener('click', e=>{
   const tpf=t.closest('[data-tickplus]'); if(tpf){ karteTick(tpf.dataset.tickplus, false); return; }   // A3
   const sch=t.closest('[data-fkschieben]'); if(sch){ oeffneSchieben(sch.dataset.fkschieben); return; }  // A4
   // §9.2 (v1.11.0): tappbare Swipe-Zeile — nicht mögliche Richtung reagiert nicht
+  const fkv=t.closest('[data-fkvorn]'); if(fkv){ if(ketteNachVorn(fkv.dataset.fkvorn)){ haptik(8); toast('An erster Stelle'); renderFokus(); } return; }   // §1 (v3.7.0)
   const fsw=t.closest('[data-fkswipe]'); if(fsw){ if(!fsw.classList.contains('aus')) fokusSwipeSchritt(parseInt(fsw.dataset.fkswipe,10)); return; }
   // §9.3 (v1.11.0): Tageskurve ein-/ausklappen (persistiert)
   const fku=t.closest('[data-fkurve]'); if(fku){ S.ui.fokusKurveZu=!S.ui.fokusKurveZu; saveUi(); renderFokus(); return; }
