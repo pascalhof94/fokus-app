@@ -2302,6 +2302,11 @@ img.objimg.laedt{opacity:0}
 .ik-leer{font-size:11.5px;color:#9a9ca2;border:1px dashed #2a2d33;border-radius:10px;padding:10px;text-align:center;margin-bottom:6px}
 .ik-fest{font-size:10.5px;color:#9a9ca2;margin-left:6px}
 body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden])) #suchFab{display:none}
+/* ══ 3.7.0 §4 · Statusleiste: Punkteleiste oben, darunter Ring · Titel · Restzeit · Kartenpunkte; Töpfe-Zeile = Countdown ══ */
+#topbar .sl-z1{order:2}
+#statusbar .sb-bar{order:1}
+#statusbar .sl-z3{order:3}
+#statusbar .konto .kf span{color:#e8e9ec;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -2317,7 +2322,7 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
     <div class="sb-bar" id="sBar"><span class="ist dfm prog" id="sBarProgD"></span><span class="ist privat prog" id="sBarProgP"></span><span class="ist dfm" id="sBarIstD"></span><span class="ist privat" id="sBarIstP"></span><span class="live dfm" id="sBarLiveD"></span><span class="live privat" id="sBarLiveP"></span><span class="rot" id="sBarRot"></span><span id="sBarMarks"></span><span class="sollmark" id="sBarSollMark"></span><span class="zahl d" id="sBarZD"></span><span class="zahl p" id="sBarZP"></span><span class="zahl s" id="sBarZS"><b id="sPhSoll"></b></span></div>
     <!-- §1 (v3.5.2): Zeile 3 — Akku · Wohlstand · Münzen · Töpfe untereinander | Mini-Kurve mit Gesamtpunkten und P/h, darunter Pace-Leiste + Trendpfeil | Matrix 72×72 -->
     <div class="sl-z3">
-      <div class="sb-cell konto" id="sZKonto"><div class="ka" id="sZAkku"><i><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M6.2 0 L1.4 5.7 H4.5 L3.6 10 L8.6 4.1 H5.4 Z" fill="currentColor"/></svg></i><b class="w">– %</b></div><div class="kw" title="Farbe" aria-label="Farbe"><i></i><span id="sKW">0</span></div><div class="km" title="Münzen" aria-label="Münzen"><i></i><span id="sKM">0</span></div><div class="kf" title="Volle Farbtöpfe" aria-label="Volle Farbtöpfe"><i></i><span id="sKF">0</span><small>/5</small></div></div>
+      <div class="sb-cell konto" id="sZKonto"><div class="ka" id="sZAkku"><i><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M6.2 0 L1.4 5.7 H4.5 L3.6 10 L8.6 4.1 H5.4 Z" fill="currentColor"/></svg></i><b class="w">– %</b></div><div class="kw" title="Farbe" aria-label="Farbe"><i></i><span id="sKW">0</span></div><div class="km" title="Münzen" aria-label="Münzen"><i></i><span id="sKM">0</span></div><div class="kf" title="Bis zum nächsten malbaren Feld" aria-label="Bis zum nächsten malbaren Feld"><i></i><span id="sKF">—</span></div></div>
       <div class="sl-mitte">
         <button class="sb-cell punkte tb-kurve grau" id="btnKurve" aria-label="Tagesverlauf — Punkte gegen Soll"><span class="sl-kurve" id="sKurve"></span><span class="gesamt" id="fkRight"></span><span class="tempo" id="sTempo"></span></button>
         <div class="sl-pace" id="sZTempo" aria-hidden="true"></div>
@@ -8097,8 +8102,10 @@ function renderStatusbar(){
   // Zeile 3 · Spalte 1: Akku (Blitz und Zahl in der Akku-Ampel) · Wohlstand · Muenzen · Toepfe
   { const c=el('sZAkku'); if(c){ const w=c.querySelector('.w'), f=eb.akku!=null ? akkuFarbe(eb.akku) : FARBE.GRAU; w.textContent=(eb.akku!=null ? Math.round(eb.akku)+' %' : '– %'); w.style.color=f; c.style.color=f; } }
   // Konto: ◆ Wohlstand WEISS · ● Muenzen GOLD · Farbkreis volle Toepfe/5
-  { let w=0, voll=0; try{ w=ausmalW(); voll=ausmalState().toepfe.filter(topfVoll).length; }catch(e){}
-    if(el('sKW')) el('sKW').textContent=fmtP(Math.round(w)); if(el('sKM')) el('sKM').textContent=fmtP(Math.round(k)); if(el('sKF')) el('sKF').textContent=String(voll); }
+  { let w=0; try{ w=ausmalW(); }catch(e){}
+    if(el('sKW')) el('sKW').textContent=fmtP(Math.round(w)); if(el('sKM')) el('sKM').textContent=fmtP(Math.round(k));
+    // §4 (v3.7.0): Countdown in Farbpunkten bis zum nächsten malbaren Feld des aktiven Topfes
+    if(el('sKF')){ const c=topfCountdown(); el('sKF').textContent=c.text; el('sKF').style.color=c.farbe; } }
   // Spalte 2 oben: im Diagramm links oben die Gesamtpunkte, rechts unten die P/h-Zahl (= Ø heute) in der Farbe der Pace-Leiste
   { const t=el('sTempo'); if(t){
       if(urlaubHeute()){ t.textContent='🏖'; t.style.color=FARBE.WEISS; }
@@ -16574,6 +16581,16 @@ function ausmalStand(){
     felder, gefaerbt:gef, anteil: felder ? gef/felder : 0, fertig: felder>0 && gef>=felder, offenJeFarbe, T:topfFassung() };
 }
 function topfVoll(t){ const T=topfFassung(); return !!(T && t && t.punkte>=T); }
+/* §4 (v3.7.0): Countdown bis zum nächsten malbaren Feld des aktiven Topfes — nächstes Feld = das günstigste offene Feld in der
+   Farbe des aktiven Topfes. Reicht der Topf: „✓ malbar" GRUEN. Kein aktiver Topf oder keine offenen Felder dieser Farbe: „—". */
+function topfCountdown(){
+  const A=ausmalState(), D=ausmalDaten(A.kulisse), t=A.toepfe[A.aktiverTopf];
+  if(!D || !t || t.farbe==null) return { text:'—', farbe:FARBE.WEISS, fehlt:null };
+  const offen=(D.json.felder||[]).filter(f=>f.farbe===t.farbe && A.gefaerbt.indexOf(f.feld)<0).map(f=>D.punkte[f.feld]||1);
+  if(!offen.length) return { text:'—', farbe:FARBE.WEISS, fehlt:null };
+  const fehlt=Math.min.apply(null, offen)-num(t.punkte);
+  return fehlt<=0 ? { text:'✓ malbar', farbe:FARBE.GRUEN, fehlt:0 } : { text:'−'+fmtP(Math.ceil(fehlt)), farbe:FARBE.WEISS, fehlt:Math.ceil(fehlt) };
+}
 /* §5 (v3.5.4): ein Topf mit weniger als 2 % seiner Fassung gilt als LEER — er zaehlt nicht als „füllt", zeigt „leer" statt
    Prozent und laesst sich ohne Auskippen wechseln; der Rest geht dabei in den Tank. Hintergrund: ein Tick zwischen Leeren
    und Wechseln fuellt den Topf minimal und erzwang sonst ein erneutes Auskippen. */
