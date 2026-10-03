@@ -2725,6 +2725,7 @@ const DEFAULT_SETTINGS = {
   serienfaktorMax: 2.0,        // … bis hoechstens ×2,0 (Entscheidung Pascal)
   tagesZielPrivatSockel: 750,  // §10: privates Tagesziel = Maximum der faelligen Routinen + 750
   tagesEckPunkte: 150,         // §9 (v3.7.0): Tagesstart und Tagesabschluss geben je so viel DFM UND Privat (Abhak-Punkte ohne Zeit)
+  syncPunkte: { dfm:25, privat:25 },   // §3a (v3.7.1): jeder Export/Import gibt so viel DFM und Privat (Abhak-Punkte ohne Zeit)
   schlafBedarfStd: 7,          // §7: Bedarf je Nacht — was fehlt, wird Schlafschuld
   schlafLadungProStd: 12,      // §7: Akku-Prozent je Stunde Schlaf (Claude schaerft nach)
   schlafSchuldProzentJeStd: 5, // §7: je Stunde Schlafschuld braucht der Akku so viel % mehr
@@ -2823,6 +2824,7 @@ const EINST_SCHEMA={
   erholung:{ zeitzielMin:Z('erholungZeitzielMin',{min:0, max:600}), akkuJe120Min:Z('erholungAkkuJe120Min',{min:0, max:100}) },
   serienfaktor:{ schritt:Z('serienfaktorSchritt',{min:0, max:1}), max:Z('serienfaktorMax',{min:1, max:5}) },
   tagesabschluss:{ abzugStandard:Z('abschlussAbzugStandard',{min:0}), fragen:{p:'reflexionsFragen', t:'texte'}, eckPunkte:Z('tagesEckPunkte',{min:0}) },   // §9 (v3.7.0)
+  sync:{ punkteDfm:Z('syncPunkte.dfm',{min:0}), punktePrivat:Z('syncPunkte.privat',{min:0}) },   // §3a (v3.7.1): syncPunkte {dfm, privat}
   tagesstruktur:{ bloecke:{p:'tagesStruktur', t:'bloecke'} },
   punkte:{ basisDfm:Z('basisProStdDfm',{min:0}), basisPrivat:Z('basisProStdPrivat',{min:0}), zeitGewicht:Z('zeitGewicht',{min:0, max:10}),
     tickGewicht:Z('tickGewicht',{min:0, max:10}), matrixFaktoren:{p:'matrixFaktor', t:'feldtab'}, geldNenner:{spezial:'geldNenner'},
@@ -8220,7 +8222,7 @@ function kartePunkteHeute(k){
 function tagesPunkteDomain(dom){
   let p=0;
   S.karten.forEach(k=>{ if(k.domain===dom) p+=kartePunkteHeute(k); });
-  if(S.tag && Array.isArray(S.tag.log)) S.tag.log.forEach(e=>{ if((e.art==='schub'||e.art==='korrektur'||e.art==='abzug'||e.art==='eck') && e.domain===dom) p+=num(e.punkte); });   // §3 (v2.7.0): + Korrekturen · §2 (v3.0.0): + Routinen-Abzuege · §9 (v3.7.0): + Eckpunkte
+  if(S.tag && Array.isArray(S.tag.log)) S.tag.log.forEach(e=>{ if((e.art==='schub'||e.art==='korrektur'||e.art==='abzug'||e.art==='eck'||e.art==='sync') && e.domain===dom) p+=num(e.punkte); });   // §3 (v2.7.0): + Korrekturen · §2 (v3.0.0): + Routinen-Abzuege · §9 (v3.7.0): + Eckpunkte · §3a (v3.7.1): + Sync-Punkte
   // §3 (v2.9.1): Ist der Tag schon abgeschlossen, landet eine Korrektur der
   // Tageswerte im Snapshot — „heute" zeigt sie trotzdem (Stand 26.09.: 2.825
   // blieb stehen, obwohl das Protokoll 1.865 und das Konto −960 zeigte)
@@ -9700,6 +9702,7 @@ function syncExportDateiname(modus){
 function syncExportDatei(modus){
   const name=syncExportDateiname(modus);
   exportAlsDatei(JSON.stringify(syncExport(modus==='voll' ? 'voll' : 'delta'), null, 2), name, 'application/json');
+  try{ syncPunkteBuchen(modus==='voll' ? 'vollexport' : 'delta'); }catch(e){}   // §3a (v3.7.1)
   return name;
 }
 function abschlussV3Download(){
@@ -9707,6 +9710,7 @@ function abschlussV3Download(){
   const name=String(d.getFullYear()).slice(2)+p2(d.getMonth()+1)+p2(d.getDate())+'_Tagesabschluss.md';
   exportAlsDatei(md, name, 'text/markdown');
   if(S.tag){ abschlussV3Stand().exportTs=jetztIso(); saveTag(); }
+  try{ syncPunkteBuchen('tagesabschluss'); }catch(e){}   // §3a (v3.7.1)
   if(abv3.aktiv) renderAbschlussV3();   // §2.3 (v3.2.0): „Schließen" wird aktiv
   return name;
 }
@@ -11796,6 +11800,36 @@ function tagesEckpunkteBuchen(anlass, k){
   try{ momentBuchung(2*P); }catch(e){}
   return 2*P;
 }
+/* ══ §3a (v3.7.1) · PUNKTE FÜR JEDEN EXPORT UND IMPORT ═══════════════════════════════════════
+   Feste Privat-Karte „Fokus App Import/Export" (k3-sync, rolle sync, Werkzeug, Counter mit Tick-Freigabe, Tick-Minuten 2,
+   eigene Staffel 0, kein Tageslimit) — fehlt sie, legt die App sie an; per Paket (rolle sync) ersetzbar. Jeder erfolgreiche
+   Export (Delta, Vollexport, .md des Tagesabschlusses) und jeder übernommene Import tickt sie um 1 (bucht 2 Min) und gibt
+   syncPunkte.dfm + syncPunkte.privat als Abhak-Punkte ohne Zeit (Tages-Log art 'sync', Stunden-Log ohne Karte, mit Familie). */
+function syncKarte(anlegen){
+  let k=S.karten.find(x=>x.rolle==='sync' && x.status!=='archiviert'); if(k || !anlegen) return k||null;
+  k={ id:'k3-sync', titel:'Fokus App Import/Export', domain:'privat', rolle:'sync', matrixFeld:'werkzeug', status:'offen', ticksAktiv:true, tickWert:0, tickMinuten:2, immerSichtbar:true, erstellt:jetztIso(), letzteBearbeitung:jetztIso(), komplexitaet:1, energie:1, blockade:1 };
+  if(S.karten.some(x=>x.id===k.id)) k.id='k3-sync-'+uuid().slice(0,8);
+  S.karten.push(k); saveKarten(); return k;
+}
+function syncPunkteBuchen(anlass){
+  if(!S.tag || !tagBuchbar()) return 0;
+  const k=syncKarte(true), min=Math.max(0, num(k.tickMinuten, 2));
+  // Tick der Karte (0 Punkte, 2 Min gebucht)
+  if(!Array.isArray(k.tickWerteHeute)) k.tickWerteHeute=[]; k.tickWerteHeute.push(0); k.ticksHeute=num(k.ticksHeute)+1;
+  if(min>0){ k.istSek=num(k.istSek)+min*60; akkuBuchen(k, min); }
+  if(S.tag) S.tag.letzteAktivitaetTs=jetztIso(); beruehre(k);
+  { const e=logIntraday(k,{punkte:0, minuten:min, tickMin:min, typ:'tick'}); buchungAbgleich(k, e); }
+  // Punkte je Familie
+  const sp=(S.settings && S.settings.syncPunkte)||{}, P={ dfm:Math.max(0, num(sp.dfm,25)), privat:Math.max(0, num(sp.privat,25)) };
+  const titel=anlass==='import' ? 'Import übernommen' : 'Export '+(anlass||'');
+  let sum=0;
+  ['dfm','privat'].forEach(dom=>{ if(!(P[dom]>0)) return; sum+=P[dom];
+    (S.tag.log=S.tag.log||[]).push({ itemId:'sync-'+anlass, karte:k.id, titel, domain:dom, art:'sync', punkte:P[dom], ts:jetztIso() });
+    const e=logIntraday({ id:null, domain:dom }, { punkte:P[dom], typ:'abhaken' }); e.sync=anlass; });
+  DB.set('intraday', S.intraday); saveKarten(); saveTag();
+  try{ momentBuchung(sum); }catch(e){}
+  return sum;
+}
 /* §9 (v3.7.0): nach dem Tagesabschluss rückt „ADHS-Erholung" (rolle erholung) an Position 1 der Kette — Uhr startbar;
    ist sie abgehakt, rückt „Schlafen" an Position 1 mit Soll = Schlafbedarf aus den Einstellungen */
 function erholungKarte(){ return S.karten.find(k=>k.rolle==='erholung' && k.status!=='archiviert') || null; }
@@ -12008,7 +12042,7 @@ function v3FelderUebernehmen(z, inc, unter){
     serienfaktor:bool, immerSichtbar:bool, vorlaufTage:zahl, gruppePflicht:text,
     folgekarte:v=>(v && typeof v==='object') ? JSON.parse(JSON.stringify(v)) : null,
     akkuLadung:zahl, eingabe:v=>leer(v) ? null : eingabeVon({eingabe:v}),
-    rolle:v=>(v==='aufstehen'||v==='tagesabschluss'||v==='schlafen'||v==='erholung'||v==='tagebuch'||v==='position') ? v : null };   // §8 (v3.7.0): position
+    rolle:v=>(v==='aufstehen'||v==='tagesabschluss'||v==='schlafen'||v==='erholung'||v==='tagebuch'||v==='position'||v==='sync') ? v : null };   // §8 (v3.7.0): position · §3a (v3.7.1): sync
   Object.keys(F).forEach(f=>{ if(inc[f]!==undefined) z[f]=F[f](inc[f]); });
 }
 /* ══ §4 (v3.1.0) · KARTENDETAILS VOLLSTAENDIG ══════════════════════════
@@ -14053,6 +14087,7 @@ function syncFreigabeAnwenden(){
   if(!_freigabe) return null;
   const f=_freigabe; _freigabe=null;
   const res=syncImport(f.text, {freigabe:true});
+  if(!res.fehler){ try{ syncPunkteBuchen('import'); }catch(e){} }   // §3a (v3.7.1): „Übernehmen"
   closeSheet(); renderAlles();
   if(!res.fehler){ toast('Übernommen · '+num(res.tuer&&res.tuer.geaendert)+' Einstellung(en)'+(res.upd||res.neu?' · '+(num(res.upd)+num(res.neu))+' Karte(n)':'')); haptik(15); }
   if(f.quelle==='einst'){ setTab('einst'); const box=el('einstImportErg'); if(box) box.innerHTML=importErgebnisHtml(res); }
@@ -18803,7 +18838,7 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-freigabego]')){ syncFreigabeAnwenden(); return; }
   if(t.closest('[data-syncimport]')){ const ta=el('syncIn'); const res=syncImport(ta?ta.value:''); const box=el('syncErgebnis');
     if(res.freigabeNoetig){ oeffneSyncFreigabe(ta.value, res.vorschau, 'sync'); return; }
-    if(!res.fehler){ renderAlles(); const exta=el('syncEx'); if(exta) exta.value=syncExportText('sync'); toast('Sync importiert'); haptik(15); }
+    if(!res.fehler){ try{ syncPunkteBuchen('import'); }catch(e){} renderAlles(); const exta=el('syncEx'); if(exta) exta.value=syncExportText('sync'); toast('Sync importiert'); haptik(15); }   // §3a (v3.7.1)
     if(box) box.innerHTML=importErgebnisHtml(res);
     return; }
 
@@ -19262,7 +19297,7 @@ el('einstBody').addEventListener('click', e=>{
   if(e.target.closest('#btnEinstImport')){
     const ta=el('einstImport'), res=syncImport(ta?ta.value:'');
     if(res.freigabeNoetig){ oeffneSyncFreigabe(ta.value, res.vorschau, 'einst'); return; }   // §6 (v3.1.0)
-    if(!res.fehler){ renderAlles(); toast('Import übernommen'); haptik(15); }
+    if(!res.fehler){ try{ syncPunkteBuchen('import'); }catch(e){} renderAlles(); toast('Import übernommen'); haptik(15); }   // §3a (v3.7.1)
     // renderAlles() zeichnet die Einstellungen neu — Ergebniskasten ERST DANACH holen
     const box=el('einstImportErg'); if(box) box.innerHTML=importErgebnisHtml(res);
     return; }
@@ -19669,7 +19704,7 @@ function analyseRohTage(){
     { const er=erhTag[d]||{dfm:0, privat:0}; e.erholungDfm=er.dfm; e.erholungPrivat=er.privat; e.erholung=er.dfm+er.privat; }   // §9a (v3.7.0)
     if(h.zeit){ e.minDfm+=num(h.zeit.dfm)/60; e.minPrivat+=num(h.zeit.privat)/60; }
     (h.log||[]).forEach(l=>{
-      if(l.art==='schub'){ /* §3 (v3.5.1): gezaehlt aus dem Stunden-Log, s. schubTag */ } else if(l.art!=='korrektur' && l.art!=='eck'){ e.erledigt++; }   // §3 (v2.7.0): Korrektur ist kein Abschluss · §9 (v3.7.0): Eckpunkte auch nicht
+      if(l.art==='schub'){ /* §3 (v3.5.1): gezaehlt aus dem Stunden-Log, s. schubTag */ } else if(l.art!=='korrektur' && l.art!=='eck' && l.art!=='sync'){ e.erledigt++; }   // §3 (v2.7.0): Korrektur ist kein Abschluss · §9 (v3.7.0): Eckpunkte auch nicht
       e[l.domain==='dfm'?'punkteDfm':'punktePrivat']+=num(l.punkte);
       const ak=(l.art||'?')+'|'+(l.domain==='dfm'?'dfm':'privat');
       e.artPkt[ak]=(e.artPkt[ak]||0)+num(l.punkte);                // §2: Punkt-Buchungen tragen ihre Art
