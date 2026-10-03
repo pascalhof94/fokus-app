@@ -4905,53 +4905,13 @@ function werkzeugVorschlagGrund(k){
   return a<50 ? ('Akku bei '+Math.round(a)+' % — das ladende Werkzeug')
               : ('Akku bei '+Math.round(a)+' % — das kurze reicht');
 }
-/* ══ §3 (v2.8.0) · DER VORSCHLAG FOLGT DEM BLOCK ═══════════════════════
-   Mit Tagesbloecken ist der Vorschlag die NAECHSTE OFFENE KARTE IM LAUFENDEN
-   BLOCK, in der Reihenfolge der Kette (Karten des Blocks, die nicht in der
-   Kette liegen, danach). Abhak-Karten werden uebersprungen. Ist der laufende
-   Block leer, die erste offene Karte des naechsten Blocks (Zeitfolge; ein
-   Oberblock vor seinen Unterbloecken). Gezeigt wird die Karte DIREKT, pausiert
-   — wie eine neue Karte; der Sprung in die Matrix-Sicht (v2.3) entfaellt.
-   Ohne Bloecke gilt die alte Regel (Werkzeug, DFM vor privat). */
-function blockVorschlag(ausser){
-  const bl=tagesBloecke(); if(!bl) return null;
-  const folge=bl.slice().sort((a,b)=>a.von-b.von || a.tiefe-b.tiefe);
-  const lauf=laufenderBlock(bl);
-  let start;
-  if(lauf) start=folge.findIndex(b=>b.id===lauf.id);
-  else { let j=jetztStunde(); if(j<Math.min.apply(null, bl.map(b=>b.von))-6) j+=24; start=folge.findIndex(b=>b.von>=j); }
-  if(start<0) return null;
-  const kIdx={}; tagesKette().forEach((id,i)=>kIdx[id]=i);
-  for(let i=start;i<folge.length;i++){
-    const b=folge[i];
-    const ks=S.karten.filter(k=>k.status==='offen' && !k.freeze && k.id!==ausser && !istAbhakKarte(k) && karteBlockId(k, bl)===b.id)
-      .sort((x,y)=>(kIdx[x.id]!=null?kIdx[x.id]:9999)-(kIdx[y.id]!=null?kIdx[y.id]:9999) || String(x.titel||'').localeCompare(String(y.titel||'')));
-    if(ks.length) return { karte:ks[0], block:b, imLaufenden: !!(lauf && b.id===lauf.id) };
-  }
-  return null;
-}
-/* Die vorgeschlagene Karte oeffnen — pausiert, wie eine neue Karte (§6 v2.3). */
-function vorschlagOeffnen(k){
-  if(S.fokus && S.fokus.laeuft && S.fokus.karteId!==k.id) fokusZeitEinbuchen();
-  S.fokus={ karteId:k.id, laeuft:false, startMs:0, sessionSek:0, quelle:null };
-  S.ui.fokusOffen=true; S.ui.fokusZeigt=null;
-  saveFokus(); saveUi();
-  setTab('suche',{fokusLassen:true});
-  renderAlles();
-}
+/* §12 (v3.7.0): der Block-Vorschlag nach aktueller Uhrzeit (blockVorschlag, v2.8.0) ist entfallen */
 function zeigeVorschlag(kid){
   if(!tagOffen() || !S.tag) return;
   if(!Array.isArray(S.tag.vorschlagGezeigt)) S.tag.vorschlagGezeigt=[];
   const marke=kid||'_frei';
   if(S.tag.vorschlagGezeigt.indexOf(marke)>=0) return;   // genau EINMAL je Karte
-  if(tagesBloecke()){
-    S.tag.vorschlagGezeigt.push(marke); saveTag();
-    const bv=blockVorschlag(kid);
-    if(!bv){ toast('Keine offene Karte mehr in den Blöcken des Tages.'); return; }
-    vorschlagOeffnen(bv.karte);
-    toast('Weiter: „'+String(bv.karte.titel||'').slice(0,28)+'" · '+(bv.imLaufenden?'':'nächster Block ')+bv.block.name);
-    haptik(10); return;
-  }
+  // §12 (v3.7.0): der Block-Vorschlag nach aktueller Uhrzeit (blockVorschlag) ist entfallen — es gilt die Werkzeug-Regel
   const ws=werkzeugReihenfolge().filter(k=>k.id!==kid && !istAbhakKarte(k));   // §1.2 (v2.8.0): Abhak-Karten nie
   S.tag.vorschlagGezeigt.push(marke); saveTag();
   if(!ws.length){
@@ -8791,7 +8751,7 @@ function acwrHeuteWert(){
 function acwrHeuteWerte(){
   try{ const F=analyseFenster(); if(!F.alle.length) return null;
     const bz=statParam('belastung')||{}, akT=Math.max(1,num(bz.akutTage,7)), chT=Math.max(akT,num(bz.chronischTage,28));
-    const reihe=anKalenderReihe(F.alle, F.alle[0].datum, F.bis), load=reihe.map(x=>x.e ? anLast(x.e,'alle') : 0), n=load.length;   // §9a (v3.7.0)
+    const reihe=anTagesReihe(F.alle, F.alle[0].datum, F.bis), load=reihe.map(x=>x.e ? anLast(x.e,'alle') : 0), n=load.length;   // §9a (v3.7.0)
     return { v:acwrHeuteWert(), akut:anSum(load.slice(Math.max(0,n-akT))), chron:num(anMean(load.slice(Math.max(0,n-chT))))*akT, akT, chT };
   }catch(e){ return null; }
 }
@@ -10227,7 +10187,7 @@ function oeffneDetail(kid){
   if(kid && S.fokus && S.fokus.karteId===kid && S.fokus.laeuft){ fokusZeitEinbuchen(); renderFokusleiste(); }
   const orig = kid ? S.karten.find(k=>k.id===kid) : neueKarte({faelligkeit:heuteApp()});
   // §1.5 (v2.7.0): eine NEUE Karte liegt vorausgewaehlt im gerade laufenden Block
-  if(!kid){ const lb=laufenderBlock(); if(lb){ orig.block=lb.id; orig.blockTag=heuteApp(); } }
+  // §12 (v3.7.0): keine Vorauswahl des laufenden Blocks nach Uhrzeit — Planung nur per Drag & Drop
   entwurfNeu = !kid;
   _vomGeraetFrage = false;
   wdhTmp = null;   // §1 (v2.8.1)
@@ -17170,13 +17130,6 @@ function renderBelohnung(){
    Heute (Kalender) · Fällig (nach Deadline) · Neueste (zuletzt angelegt) ·
    Erledigte. Die bisherigen Sichten (Matrix, Oft, Art) und die Filterleiste
    mit „Alle" und „Erledigte" entfallen. Der Freitext bleibt. */
-const SU_SICHTEN = [
-  ['heute',     'Heute',     '▤'],
-  ['faellig',   'Fällig',    '⏱'],
-  ['neueste',   'Neueste',   '✦'],
-  ['erledigte', 'Erledigte', '✓']
-];
-function suSicht(){ const v=S.ui.suSicht; return SU_SICHTEN.some(x=>x[0]===v)?v:'heute'; }
 /* ══ §3 (v2.1.0) · ERLEDIGTES IST AUS DER SUCHE DRAUSSEN ══════════════
    Das aendert die v2.0-Regel, nach der der Freitext bewusst auch Erledigtes
    fand. Die neue Regel gilt fuer ALLE fuenf Sichten UND den Freitext — ein
@@ -17184,7 +17137,7 @@ function suSicht(){ const v=S.ui.suSicht; return SU_SICHTEN.some(x=>x[0]===v)?v:
    „Erledigt" heisst hier zweierlei, und beides muss weg:
      · eine Aufgabe mit status 'erledigt'
      · eine ROUTINE, die HEUTE schon erledigt ist (sie ist morgen wieder da) */
-function erledigteZeigen(){ return !!(S.ui && S.ui.suSicht==='erledigte'); }   // §8 (v3.0.0): Erledigtes hat seine eigene Sortierung
+function erledigteZeigen(){ return false; }   // §12 (v3.7.0): die Sicht „Erledigte" ist entfallen (Erledigt heute = Gruppe der Kettenliste)   // §8 (v3.0.0): Erledigtes hat seine eigene Sortierung
 function istHeuteErledigt(k){
   if(!k) return false;
   return kartenStatusHeute(k)==='erledigt';   // §1.4 (v3.2.0): EINE Quelle — ein getickter Counter ist nie gestrichen (Befund r-klein-priv)
@@ -17351,27 +17304,6 @@ function renderSuche(){
   const cl=el('suClear'); if(cl) cl.hidden=!q;
 }
 /* Freitext über den gesamten Bestand — inklusive erledigter Karten. */
-function suFreitextHtml(q){
-  // sucheTreffer liefert {k,sc}-Paare, nicht die Karten selbst — die Karte
-  // muss ausgepackt werden, sonst rendert die Zeile ein leeres Objekt.
-  // §3 (v2.1.0): auch der Freitext filtert — das ist die Aenderung zu v2.0.
-  const tr0=sucheTreffer(q).filter(o=>suFilterPasst(o.k) && suRhythmusOk(o.k) && (erledigteZeigen() || !istHeuteErledigt(o.k)));
-  const tr=tr0.filter(o=>!istUngeplantOffen(o.k)).concat(tr0.filter(o=>istUngeplantOffen(o.k)));
-  if(!tr.length) return '<div class="leer">Nichts gefunden zu „'+esc(q)+'"'+suFilterText().replace(/<[^>]+>/g,'')+'.'+
-    (erledigteZeigen()?'':' (Erledigtes ist ausgeblendet.)')+'</div>';
-  return '<div class="su-kopfzeile">'+tr.length+' Treffer · Freitext'+suFilterText()+
-    (erledigteZeigen()?' · inkl. Erledigtes':'')+'</div>'+
-    tr.map(o=>kartenreiheHtml(o.k, 'su-frei', {kompakt:true})).join('');
-}
-function suSichtHtml(sv){
-  if(sv==='neueste')   return suNeuesteHtml();     // §8 (v3.0.0)
-  if(sv==='erledigte') return suErledigteHtml();   // §8 (v3.0.0)
-  if(sv==='matrix')  return suMatrixHtml();
-  if(sv==='oft')     return suOftHtml();
-  if(sv==='faellig') return suFaelligHtml();
-  if(sv==='art')     return suArtHtml();
-  return suHeuteHtml();
-}
 /* ══ §2 (v2.4.0) · SICHT „HEUTE" ALS KALENDER ═════════════════════════
    Eine Zeitachse statt der Liste:
    · Karten MIT Uhrzeit stehen an ihrer Zeit (Dauer = Soll, mind. 15 Min).
@@ -17382,79 +17314,8 @@ function suSichtHtml(sv){
    · Erledigtes und Bearbeitetes steht zur ECHTEN Zeit — aus den Sitzungen.
    · Die laufende Karte ist hervorgehoben; die Jetzt-Linie zeigt die Uhrzeit.
    Alles rein abgeleitet, nichts wird gespeichert. */
-const KAL_PX_STD = 72;          // Pixel je Stunde
-const KAL_MIN_H  = 26;          // Mindesthoehe eines Blocks (lesbar, tappbar)
 function kalStunde(iso){ const d=new Date(iso); return d.getHours()+d.getMinutes()/60+d.getSeconds()/3600; }
-function kalRestMin(k){ return Math.max(5, num(k.sollMin) - istSekLive(k)/60); }
 /* Die Bloecke des Tages. Rueckgabe: [{kid, von, bis, art, titel, k}] in Stunden. */
-function kalenderBloecke(ks){
-  ks=(ks||[]).filter(k=>k);   // §4 (v3.0.0): Routinen wieder mit eigenen Bloecken (Entscheidung Pascal)
-  const jetzt=jetztStunde();
-  const bl=[];
-  const laufId=(S.fokus && S.fokus.laeuft) ? S.fokus.karteId : null;
-  // 1 · Echte Zeit aus den Sitzungen (alle Karten, auch ausserhalb der Kette)
-  const sichtbar={}; ks.forEach(k=>sichtbar[k.id]=true);
-  S.karten.forEach(k=>{
-    if(!sichtbar[k.id] && k.status!=='erledigt') return;
-    if(!suFilterPasst(k)) return;
-    kartenSitzungenHeute(k.id).forEach(sz=>{
-      const von=kalStunde(sz.von), bis=sz.laufend ? jetzt : kalStunde(sz.bis);
-      if(!(bis>von)) return;
-      bl.push({ kid:k.id, k, von, bis, art: sz.laufend ? 'laeuft' : (kartenStatusHeute(k)==='erledigt'?'erledigt':'bearbeitet') });   // §1.4 (v3.2.0)
-    });
-  });
-  // 2 · Termine an ihrer Uhrzeit
-  const termine=[];
-  ks.forEach(k=>{
-    if(!k.uhrzeit || k.status!=='offen') return;
-    const [hh,mm]=String(k.uhrzeit).split(':').map(Number);
-    if(!Number.isFinite(hh)) return;
-    const von=hh+(num(mm)/60), bis=von+Math.max(15, num(k.sollMin))/60;
-    termine.push({von, bis});
-    bl.push({ kid:k.id, k, von, bis, art: k.id===laufId ? 'laeuft' : 'termin' });
-  });
-  termine.sort((a,b)=>a.von-b.von);
-  // 3 · Die Kette ab jetzt hochgerechnet
-  const rahmen=tagesRahmen();
-  let t=jetzt;
-  const lauf=laufId ? S.karten.find(k=>k.id===laufId) : null;
-  if(lauf && !lauf.uhrzeit){           // die laufende Karte belegt ihren Rest ab jetzt
-    const rest=kalRestMin(lauf)/60;
-    bl.push({ kid:lauf.id, k:lauf, von:t, bis:t+rest, art:'laeuft', plan:true });
-    t+=rest;
-  }
-  function freiAb(t0, dauer){
-    let x=t0, geschoben=true;
-    while(geschoben){ geschoben=false;
-      for(const tm of termine){ if(x<tm.bis && x+dauer>tm.von){ x=tm.bis; geschoben=true; } } }
-    return x;
-  }
-  // §11 (v3.0.0): eine Routine mit Tagesziel steht so oft im Kalender, wie noch Ticks fehlen
-  // (Essen: 3×) — gleichmaessig verteilt ueber den Rest des Tages, je tickMinuten lang
-  const ende=Math.max(jetzt+1, rahmen && rahmen.length ? Math.max.apply(null, rahmen.map(r=>r.bis)) : 22);
-  ks.forEach(k=>{
-    if(!istV3(k) || k.uhrzeit || k.status!=='offen' || k.id===laufId || leer(k.tagesziel) || num(k.tagesziel)<2 || !leer(k.zeitziel)) return;
-    const rest=num(k.tagesziel)-tickAnzahlHeute(k); if(rest<=0) return;
-    const dauer=tickMinutenVon(k)/60, schritt=(ende-jetzt)/rest;
-    for(let i=0;i<rest;i++){ const x=freiAb(jetzt+schritt*i+Math.max(0,(schritt-dauer)/2), dauer);
-      bl.push({ kid:k.id, k, von:x, bis:x+dauer, art:'plan', nr:tickAnzahlHeute(k)+i+1 }); }
-  });
-  ks.forEach(k=>{
-    if(k.uhrzeit || k.status!=='offen' || k.id===laufId) return;
-    if(istV3(k) && !leer(k.tagesziel) && num(k.tagesziel)>=2 && leer(k.zeitziel)) return;   // oben verteilt
-    const dauer=(istV3(k) && !(num(k.sollMin)>0)) ? tickMinutenVon(k)/60 : kalRestMin(k)/60;
-    let x=t;
-    if(rahmen){                       // wie der Zeitstrahl: Segment der eigenen Domaene
-      const segs=rahmenFenster(rahmen, k.domain==='dfm'?'dfm':'privat');
-      const seg=segs.find(f=>f[1]>x);
-      if(seg && x<seg[0]) x=seg[0];
-    }
-    x=freiAb(x, dauer);
-    bl.push({ kid:k.id, k, von:x, bis:x+dauer, art:'plan' });
-    t=x+dauer;
-  });
-  return bl;
-}
 /* ══ §5 (v2.5.0) · KURZE BLOECKE ALS AUFKLAPPBARE GRUPPE ═══════════════
    Befund (v2.4.1): mehrere 5-Minuten-Routinen hintereinander brauchen je die
    Mindesthoehe, ueberlappen dadurch in Pixeln und standen schmal
@@ -17466,51 +17327,6 @@ function kalenderBloecke(ks){
    klappt auf Tipp als Liste auf, in der jeder Titel ganz lesbar und
    antippbar ist. Kurz = unter 25 Minuten; aufeinanderfolgend = weniger als
    2 Minuten Luecke; ab zwei Bloecken gleicher Art (Plan bzw. Erledigtes). */
-const KAL_KURZ_MIN=25;
-let _kalAuf={};
-function kalGruppieren(bl){
-  const s=bl.slice().sort((a,b)=>a.von-b.von);
-  const out=[]; let lauf=[];
-  const art=b=> b.art==='plan' ? 'plan' : ((b.art==='erledigt'||b.art==='bearbeitet') ? 'ist' : null);
-  const kurz=b=> (b.bis-b.von)*60 < KAL_KURZ_MIN;
-  const flush=()=>{
-    if(lauf.length>=2){
-      const key=lauf[0].kid+'@'+Math.round(lauf[0].von*60);
-      out.push({ art:'gruppe', key, von:lauf[0].von, bis:lauf[lauf.length-1].bis, items:lauf.slice(), gart:art(lauf[0]) });
-    } else lauf.forEach(b=>out.push(b));
-    lauf=[];
-  };
-  s.forEach(b=>{
-    const passt = art(b) && kurz(b) && (!lauf.length || (art(lauf[0])===art(b) && (b.von-lauf[lauf.length-1].bis)*60 < 2));
-    if(passt){ lauf.push(b); return; }
-    flush();
-    if(art(b) && kurz(b)) lauf.push(b); else out.push(b);
-  });
-  flush();
-  return out;
-}
-/* Ueberlappende Bloecke nebeneinander (Spalten je Cluster). */
-function kalSpalten(bl){
-  const s=bl.slice().sort((a,b)=>a.von-b.von || a.bis-b.bis);
-  const pxH=b=>Math.max(KAL_MIN_H/KAL_PX_STD, b.bis-b.von);   // Mindesthoehe zaehlt mit
-  let cluster=[], ende=-1;
-  const fertig=()=>{ const lanes=[];
-    cluster.forEach(b=>{ let i=lanes.findIndex(e=>e<=b.von+1e-6); if(i<0){ i=lanes.length; lanes.push(0); }
-      lanes[i]=b.von+pxH(b); b.lane=i; });
-    cluster.forEach(b=>b.lanes=lanes.length); cluster=[]; };
-  s.forEach(b=>{ if(cluster.length && b.von>=ende-1e-6) fertig(); cluster.push(b); ende=Math.max(ende, b.von+pxH(b)); });
-  if(cluster.length) fertig();
-  return s;
-}
-/* Beim Oeffnen der Sicht steht die Jetzt-Linie im oberen Drittel — nicht der
-   Tagesbeginn. Nur auf ausdrueckliches Oeffnen, nie beim Live-Neuzeichnen. */
-function kalZuJetzt(){
-  const m=document.querySelector('main'), j=document.querySelector('#suBody .kal-jetzt'), tb=el('topbar');
-  if(!m || !j) return;
-  const oben=tb?tb.getBoundingClientRect().bottom:0;
-  const ziel=j.getBoundingClientRect().top - oben - Math.round(window.innerHeight*0.28);
-  if(ziel>0) m.scrollTop += ziel;
-}
 /* ══ §1.4 (v2.7.0) · DER KALENDER IN TAGESBLOECKEN ════════════════════
    Liegt fuer heute ein Tagesrahmen vor, zeigt „Heute" Bloecke statt
    einzelner Karten:
@@ -17526,239 +17342,6 @@ function kalZuJetzt(){
    · Der laufende Block ist hervorgehoben, die Jetzt-Linie bleibt.
    · Karten ohne Block stehen unter dem Kalender („Ohne Block").
    Ohne Tagesrahmen bleibt der Karten-Kalender aus v2.4/v2.5. */
-const BLOCK_SCHIENE=44;        // Breite der Schiene eines aufgeklappten Blocks (Tap-Norm)
-let _blockAuf={}, _blockKarten=null;
-function blockKartenAlle(bl){
-  const out={}; bl.forEach(b=>out[b.id]=[]);
-  S.karten.forEach(k=>{ if(k.status==='archiviert') return; const id=karteBlockId(k, bl); if(id && out[id]) out[id].push(k); });
-  return out;
-}
-function suBlockKalenderHtml(bl, ks){
-  const direkt=blockKartenAlle(bl);
-  const passt=k=>suFilterPasst(k);
-  const zaehl=id=>{ let o=0,g=0; blockNachfahren(bl,id).forEach(x=>(direkt[x]||[]).filter(passt).forEach(k=>{ g++; if(k.status==='offen') o++; })); return {o,g}; };
-  const lauf=laufenderBlock(bl);
-  let j=jetztStunde(); const minVon=Math.min.apply(null, bl.map(b=>b.von)); if(j<minVon-6) j+=24;
-  const von=Math.max(0, Math.floor(Math.min(minVon, j))), bis=Math.ceil(Math.max(j+0.5, ...bl.map(b=>b.bis)));
-  const Y=h=>(h-von)*KAL_PX_STD;
-  const ohne=ks.filter(k=>!karteBlockId(k, bl));
-  const offen=ks.filter(k=>k.status==='offen').length;
-  let h='<div class="su-kopfzeile">'+bl.filter(b=>!b.parent).length+' Blöcke · '+ks.length+' in der Kette · '+offen+' offen'+suFilterText()+'</div>';
-  h+='<div class="kal kal-bloecke" style="height:'+Math.round(Y(bis))+'px">';
-  for(let s=von;s<=bis;s++) h+='<div class="kal-std" style="top:'+Math.round(Y(s))+'px"><span>'+String(s%24).padStart(2,'0')+'</span></div>';
-  let panel='';
-  const zeichne=(b, links)=>{
-    const kinder=blockKinder(bl, b.id), auf=!!_blockAuf[b.id] && kinder.length>0;
-    const top=Y(b.von), hoehe=Math.max(44, Y(b.bis)-Y(b.von)-2), z=zaehl(b.id);
-    const istLauf=lauf && (lauf.id===b.id || (auf ? false : blockNachfahren(bl,b.id).indexOf(lauf.id)>=0));
-    const kl='kal-block t-'+b.typ+(istLauf?' laeuft':'')+(auf?' schiene':'')+(!kinder.length?' blatt':'')+(_blockKarten===b.id?' offen':'');
-    const uhr=belUhr(b.von)+'–'+belUhr(b.bis);
-    if(auf){
-      h+='<div class="'+kl+'" role="button" data-kalblock="'+esc(b.id)+'" aria-expanded="true" style="top:'+Math.round(top)+'px;height:'+Math.round(hoehe)+'px;left:'+links+'px;width:'+(BLOCK_SCHIENE-4)+'px">'+
-         '<span class="kb-senk">'+esc(b.name)+' · '+z.o+'/'+z.g+'</span></div>';
-      kinder.forEach(c=>zeichne(c, links+BLOCK_SCHIENE));
-      return;
-    }
-    h+='<div class="'+kl+'" role="button" data-kalblock="'+esc(b.id)+'"'+(kinder.length?' aria-expanded="false"':'')+
-       ' style="top:'+Math.round(top)+'px;height:'+Math.round(hoehe)+'px;left:'+links+'px;right:2px">'+
-       '<span class="kb-t">'+(kinder.length?'▸ ':'')+esc(b.name)+'</span>'+
-       '<span class="kb-m">'+uhr+' · <b>'+z.o+'</b>/'+z.g+' Karten'+(kinder.length?' · '+kinder.length+' Unterblöcke':'')+(istLauf?' · läuft':'')+'</span></div>';
-    if(!kinder.length && _blockKarten===b.id){
-      const karten=(direkt[b.id]||[]).filter(passt).slice().sort((a,c)=>(a.status==='offen'?0:1)-(c.status==='offen'?0:1));
-      panel+='<div class="kal-auf kb-auf" style="top:'+Math.round(top+hoehe+2)+'px;left:'+links+'px;right:2px">'+
-        '<div class="kb-auf-h">'+esc(b.name)+' · '+uhr+' · '+z.o+' offen / '+z.g+'</div>'+
-        (karten.length ? karten.map(k=>kartenreiheHtml(k,'su-kal',{kompakt:true})).join('') : '<div class="leer">Keine Karte in diesem Block.</div>')+'</div>';
-    }
-  };
-  bl.filter(b=>!b.parent).forEach(b=>zeichne(b, 40));
-  if(j>=von && j<=bis) h+='<div class="kal-jetzt" style="top:'+Math.round(Y(j))+'px"><span>'+belUhr(j)+'</span></div>';
-  h+=panel+'</div>';
-  // Karten, die einem Oberblock direkt zugeordnet sind, stehen unter dem Kalender
-  const direktOben=bl.filter(b=>blockKinder(bl,b.id).length && (direkt[b.id]||[]).filter(passt).length);
-  direktOben.forEach(b=>{ const kk=direkt[b.id].filter(passt);
-    h+='<div class="su-kopfzeile">Direkt in „'+esc(b.name)+'" · '+kk.length+'</div>'+kk.map(k=>kartenreiheHtml(k,'su-kal',{kompakt:true})).join(''); });
-  h+='<div class="su-kopfzeile kb-ohne">Ohne Block · '+ohne.length+'</div>'+
-    (ohne.length ? ohne.map(k=>kartenreiheHtml(k,'su-kal',{kompakt:true})).join('') : '<div class="leer">Jede Karte der Kette hat einen Block.</div>');
-  return h;
-}
-function suKalenderHtml(){
-  const ids=tagesKette(), by={}; S.karten.forEach(k=>by[k.id]=k);
-  { const bl=tagesBloecke(); if(bl) return suBlockKalenderHtml(bl, suSichtbar(ids.map(id=>by[id]).filter(Boolean))); }
-  const ks=suSichtbar(ids.map(id=>by[id]).filter(Boolean));
-  const offen=ks.filter(k=>k.status==='offen').length;
-  const bl=kalSpalten(kalGruppieren(kalenderBloecke(ks)));   // §5 (v2.5.0): kurze zu Gruppen
-  const jetzt=jetztStunde();
-  const fn=belTagFenster(belFensterDatum(jetztIso()));
-  let von=Math.floor(Math.min(fn.von>24?fn.von-24:fn.von, jetzt, ...bl.map(b=>b.von)));
-  let bis=Math.ceil(Math.max(jetzt+1, ...bl.map(b=>b.bis)));
-  von=Math.max(0, von); bis=Math.min(30, Math.max(bis, von+2));
-  const Y=h=>(h-von)*KAL_PX_STD;
-  let h='<div class="su-kopfzeile">'+ks.length+' in der Kette · '+offen+' offen'+suFilterText()+'</div>';
-  if(!bl.length && !(erledigteZeigen() && ks.some(k=>k.status==='erledigt'))){
-    return h+'<div class="leer">'+(erledigteZeigen()
-      ? 'Die Kette ist leer.'
-      : 'Nichts Offenes in der Kette'+suFilterText().replace(/<[^>]+>/g,'')+'. (Erledigtes ist ausgeblendet — Filter oben.)')+'</div>';
-  }
-  // Erledigtes OHNE Sitzung hat keine Uhrzeit — mit „Erledigte zeigen" steht es
-  // kompakt ueber dem Kalender, statt stillschweigend zu fehlen.
-  if(erledigteZeigen()){
-    const mitZeit={}; bl.forEach(b=>mitZeit[b.kid]=true);
-    const ohne=ks.filter(k=>k.status==='erledigt' && !mitZeit[k.id]);
-    if(ohne.length) h+='<div class="su-kopfzeile">Erledigt ohne Uhrzeit · '+ohne.length+'</div>'+
-      ohne.map(k=>kartenreiheHtml(k,'su-kal',{kompakt:true})).join('');
-  }
-  h+='<div class="kal" style="height:'+Math.round(Y(bis))+'px">';
-  for(let s=von;s<=bis;s++){
-    h+='<div class="kal-std" style="top:'+Math.round(Y(s))+'px"><span>'+String(s%24).padStart(2,'0')+'</span></div>';
-  }
-  const LBL={plan:'geplant', termin:'Termin', erledigt:'erledigt', bearbeitet:'bearbeitet', laeuft:'läuft'};
-  let auf='';
-  bl.forEach(b=>{
-    const top=Y(b.von), hoehe=Math.max(KAL_MIN_H, Y(b.bis)-Y(b.von)-2);
-    if(b.art==='gruppe'){
-      const breite=100/(b.lanes||1), links=(b.lane||0)*breite, offen=!!_kalAuf[b.key];
-      const min=Math.round((b.bis-b.von)*60);
-      h+='<div class="kal-b gruppe'+(offen?' offen':'')+(b.gart==='ist'?' ist':'')+'" role="button" data-kalgruppe="'+esc(b.key)+'" aria-expanded="'+offen+'"'+
-         ' style="top:'+Math.round(top)+'px;height:'+Math.round(hoehe)+'px;left:calc('+links.toFixed(2)+'% + 2px);width:calc('+breite.toFixed(2)+'% - 4px)">'+
-         '<span class="kal-t"><span class="kal-dots">'+b.items.map(x=>'<i data-kid="'+esc(x.kid)+'" style="background:'+(MX_FARBE[matrixFeldVon(x.k)]||MX_FARBE.ziel)[0]+'"></i>').join('')+'</span>'+
-         (offen?'▾ ':'▸ ')+b.items.length+' kurze · '+belUhr(b.von)+'–'+belUhr(b.bis)+'</span>'+
-         '<span class="kal-m">'+b.items.map(x=>esc(String(x.k.titel||'?'))).join(' · ')+'</span></div>';
-      if(offen){
-        auf+='<div class="kal-auf" style="top:'+Math.round(top+hoehe+2)+'px">'+b.items.map(x=>
-          '<div class="kal-auf-z '+karteVisKlasse(x.k)+'" style="'+karteVisStil(x.k)+'" role="button" data-kalkarte="'+esc(x.kid)+'" data-kid="'+esc(x.kid)+'">'+
-          '<span class="t">'+(x.art==='erledigt'?'✓ ':'')+esc(String(x.k.titel||'?'))+'</span>'+
-          '<span class="m">'+belUhr(x.von)+' · '+Math.round((x.bis-x.von)*60)+'′</span></div>').join('')+'</div>';
-      }
-      return;
-    }
-    const breite=100/(b.lanes||1), links=(b.lane||0)*breite;
-    const min=Math.round((b.bis-b.von)*60);
-    h+='<div class="kal-b '+b.art+(b.art==='erledigt' && uhrFrei(b.k)?' frei':'')+' '+karteVisKlasse(b.k)+'" role="button" data-kalkarte="'+esc(b.kid)+'" data-kid="'+esc(b.kid)+'"'+
-       ' style="'+karteVisStil(b.k)+';top:'+Math.round(top)+'px;height:'+Math.round(hoehe)+'px;left:calc('+links.toFixed(2)+'% + 2px);width:calc('+breite.toFixed(2)+'% - 4px)">'+
-       '<span class="kal-t">'+(b.art==='erledigt'?'✓ ':'')+esc(String(b.k.titel||'?'))+'</span>'+
-       '<span class="kal-m">'+belUhr(b.von)+' · '+min+'′ · '+LBL[b.art]+'</span></div>';
-  });
-  if(jetzt>=von && jetzt<=bis) h+='<div class="kal-jetzt" style="top:'+Math.round(Y(jetzt))+'px"><span>'+belUhr(jetzt)+'</span></div>';
-  return h+auf+'</div>';
-}
-/* 1 · Heute — seit v2.4.0 der Kalender (suKalenderHtml). Die Listenform
-   bleibt als suHeuteListeHtml fuer Stellen, die die Kette als Liste zeigen. */
-function suHeuteHtml(){
-  // §8 (v3.0.0): die Matrix-Sicht ist entfallen — der Werkzeug-Vorschlag (v2.3 §4) steht jetzt oben in „Heute"
-  const vk=suVorschlagKarte();
-  const kopf=vk ? '<div class="su-vorschlag">🔧 <b>Vorschlag:</b> '+esc(String(vk.titel||'?').slice(0,44))+
-    '<span>'+esc((S.ui.suVorschlag&&S.ui.suVorschlag.grund)||'')+' · '+(vk.domain==='dfm'?'DFM':'Privat')+'</span></div>'+kartenreiheHtml(vk,'su-vorschlag-k') : '';
-  return kopf+suKalenderHtml();
-}
-function suHeuteListeHtml(){
-  const ids=tagesKette(), by={}; S.karten.forEach(k=>by[k.id]=k);
-  const ks=suSichtbar(ids.map(id=>by[id]).filter(Boolean));
-  if(!ks.length) return '<div class="leer">'+(erledigteZeigen()
-    ? 'Die Kette ist leer.'
-    : 'Nichts Offenes in der Kette'+suFilterText().replace(/<[^>]+>/g,'')+'. (Erledigtes ist ausgeblendet — Filter oben.)')+'</div>';
-  const offen=ks.filter(k=>k.status==='offen').length;
-  let h='<div class="su-kopfzeile">'+ks.length+' in der Kette · '+offen+' offen'+suFilterText()+'</div>';
-  h+=ks.map((k,i)=>'<div class="kettenzeile"><span class="kn">'+(i+1)+'</span>'+kartenreiheHtml(k,'kette')+'</div>').join('');
-  return h;
-}
-/* 2 · Matrix — die vier Felder als Raster; Tap zeigt die Karten des Felds. */
-function suMatrixHtml(){
-  const off=suSichtbar(S.karten.filter(k=>k.status==='offen'||erledigteZeigen()));
-  const gewaehlt=S.ui.suMatrixFeld && MATRIX_FELDER.indexOf(S.ui.suMatrixFeld)>=0 ? S.ui.suMatrixFeld : null;
-  const p=matrixPos();
-  /* §3 (v2.2.0): Ein gewähltes Feld zeigt seine Karten als EIGENE Liste mit
-     Zurück. BEFUND, gemessen: der Tipp kam an (button.su-mxq, Feld wurde
-     gewählt), die Liste stand aber UNTER Raster und Hinweis bei y≈625 —
-     bei leeren Feldern nur „Kein Eintrag" knapp über der Leiste; bis v2.1.2
-     war zudem die Markierung .on unsichtbar (--ac fehlte). Es sah aus, als
-     passiere nichts. */
-  if(gewaehlt){
-    let ks=off.filter(k=>matrixFeldVon(k)===gewaehlt);
-    let h='<button class="su-mxzurueck" data-sumx="'+gewaehlt+'">‹ Alle vier Felder</button>';
-    // §4 (v2.3.0): Der Vorschlag steht OBEN in der Werkzeug-Liste, mit Grund.
-    const vk=(gewaehlt==='werkzeug') ? suVorschlagKarte() : null;
-    if(vk){
-      // Die Filter bleiben unberuehrt (Auftrag) — blenden sie den Vorschlag
-      // aus, steht er trotzdem da, mit dem Hinweis warum er unten fehlt.
-      const drin=ks.some(k=>k.id===vk.id);
-      if(drin) ks=[vk].concat(ks.filter(k=>k.id!==vk.id));
-      h+='<div class="su-vorschlag">🔧 <b>Vorschlag:</b> '+esc(String(vk.titel||'?').slice(0,44))+
-         '<span>'+esc((S.ui.suVorschlag&&S.ui.suVorschlag.grund)||'')+' · '+(vk.domain==='dfm'?'DFM':'Privat')+
-         (drin?'':' · vom Filter ausgeblendet')+'</span></div>';
-    }
-    h+='<div class="su-kopfzeile">'+MATRIX_META[gewaehlt].icon+' '+MATRIX_META[gewaehlt].nr+' · '+esc(MATRIX_META[gewaehlt].name)+' · '+ks.length+suFilterText()+'</div>';
-    h+= ks.length ? ks.map(k=>kartenreiheHtml(k,'su-mx')).join('')
-                  : '<div class="leer">Keine Karte in diesem Feld'+suFilterText().replace(/<[^>]+>/g,'')+'.</div>';
-    return h;
-  }
-  let h='<div class="su-mxgrid">';
-  [['ablenkung','q1'],['werkzeug','q3'],['zustand','q2'],['ziel','q4']].forEach(([f,q])=>{
-    const n=off.filter(k=>matrixFeldVon(k)===f).length;
-    h+='<button class="su-mxq '+q+(gewaehlt===f?' on':'')+'" data-sumx="'+f+'">'+
-      '<span class="ic">'+MATRIX_META[f].icon+'</span>'+
-      '<b>'+MATRIX_META[f].nr+' · '+esc(MATRIX_META[f].name)+'</b>'+
-      '<span class="sub">'+esc(MATRIX_META[f].achse)+' · '+esc(MATRIX_META[f].richtung)+'</span>'+
-      '<span class="n">'+n+'</span></button>';
-  });
-  if(p){
-    const px=((p.x+1)/2*100), py=((1-p.y)/2*100);
-    h+='<div class="su-mxdot" style="left:'+px.toFixed(1)+'%;top:'+py.toFixed(1)+'%" title="deine Position"></div>';
-  }
-  h+='</div>';
-  h+='<div class="hint" style="padding:0 12px 6px">'+(p
-      ? 'Dein Punkt liegt im Raster — '+esc(matrixLesart(p.x,p.y).replace(/<[^>]+>/g,''))
-      : 'Noch keine Position heute. Sie wird beim Verlassen einer Karte abgefragt.')+'</div>';
-  return h;
-}
-/* 3 · Zuletzt und oft genutzt. */
-function suOftHtml(){
-  const ks=suSichtbar(S.karten.filter(k=>k.status!=='archiviert'));
-  const zuletzt=ks.filter(k=>k.letzteBearbeitung).sort((a,b)=>String(b.letzteBearbeitung).localeCompare(String(a.letzteBearbeitung))).slice(0,12);
-  // „oft" = Häufigkeit im Abschluss-Stack plus Ticks — das ist das, was die
-  // App über tatsächliche Nutzung weiß, ohne einen neuen Zähler zu erfinden.
-  const oft=ks.slice().map(k=>({k, n:(Array.isArray(k.abschluesse)?k.abschluesse.length:0)+num(k.streak)}))
-    .filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,12);
-  let h='';
-  h+='<div class="su-kopfzeile">Zuletzt angefasst'+suFilterText()+'</div>';
-  h+= zuletzt.length ? zuletzt.map(k=>kartenreiheHtml(k,'su-oft')).join('') : '<div class="leer">Noch nichts angefasst.</div>';
-  if(oft.length){
-    h+='<div class="su-kopfzeile">Am häufigsten genutzt</div>';
-    h+=oft.map(x=>kartenreiheHtml(x.k,'su-oft2')).join('');
-  }
-  return h;
-}
-/* 4 · Fällig — nach Deadline, überfällige zuerst. */
-function suFaelligHtml(){
-  const h0=heuteApp();
-  const ks=suSichtbar(S.karten.filter(k=>(k.status==='offen'||erledigteZeigen()) && k.faelligkeit))
-    .sort((a,b)=>String(a.faelligkeit).localeCompare(String(b.faelligkeit))
-      || String(a.uhrzeit||'99:99').localeCompare(String(b.uhrzeit||'99:99')));
-  if(!ks.length) return '<div class="leer">Keine Karte mit Deadline'+suFilterText().replace(/<[^>]+>/g,'')+'.</div>';
-  const ueber=ks.filter(k=>k.faelligkeit<h0), rest=ks.filter(k=>k.faelligkeit>=h0);
-  let h='';
-  if(ueber.length){
-    h+='<div class="su-kopfzeile warn">Überfällig · '+ueber.length+suFilterText()+'</div>';
-    h+=ueber.map(k=>kartenreiheHtml(k,'su-ueber')).join('');
-  }
-  if(rest.length){
-    h+='<div class="su-kopfzeile">Kommt · '+rest.length+(ueber.length?'':suFilterText())+'</div>';
-    h+=rest.map(k=>kartenreiheHtml(k,'su-faellig')).join('');
-  }
-  return h;
-}
-/* §8 (v3.0.0) · Neueste — zuletzt angelegt zuerst (offene Karten) */
-function suNeuesteHtml(){
-  const ks=suSichtbar(S.karten.filter(k=>k.status==='offen')).sort((a,b)=>String(b.erstelltTs||'').localeCompare(String(a.erstelltTs||'')));
-  if(!ks.length) return '<div class="leer">Keine offene Karte'+suFilterText().replace(/<[^>]+>/g,'')+'.</div>';
-  return '<div class="su-kopfzeile">Neueste · '+ks.length+suFilterText()+'</div>'+ks.slice(0,80).map(k=>kartenreiheHtml(k,'su-neu')).join('');
-}
-/* §8 (v3.0.0) · Erledigte — heute erledigte Routinen und erledigte Aufgaben, juengste zuerst */
-function suErledigteHtml(){
-  const zeit=k=>{ const a=Array.isArray(k.abschluesse)&&k.abschluesse.length ? k.abschluesse[k.abschluesse.length-1].ts : ''; return a||k.letzteBearbeitung||''; };
-  const ks=S.karten.filter(k=>k.status!=='archiviert' && suFilterPasst(k) && istHeuteErledigt(k)).sort((a,b)=>String(zeit(b)).localeCompare(String(zeit(a))));
-  if(!ks.length) return '<div class="leer">Nichts erledigt'+suFilterText().replace(/<[^>]+>/g,'')+'.</div>';
-  return '<div class="su-kopfzeile">Erledigt · '+ks.length+suFilterText()+'</div>'+ks.slice(0,80).map(k=>kartenreiheHtml(k,'su-erl')).join('');
-}
 /* 5 · Art — Aufgaben, Routinen, Counter. */
 function suArtHtml(){
   const off=suSichtbar(S.karten.filter(k=>k.status==='offen'||erledigteZeigen()));
@@ -18162,7 +17745,7 @@ function stmAcwr(F,dom){
   if(F.alle.length<8){ haupt=anSammelt(F.alle.length,8); }
   else {
     const P=anAcwrReihe(F.alle, F.bis, 28, dom, 'punkte'), labels=P.labels;
-    const reihe=anKalenderReihe(F.alle, labels[0], F.bis), load=reihe.map(x=>x.e?anLast(x.e,dom):0), ch=anMean(load)||1;   // §9a (v3.7.0)
+    const reihe=anTagesReihe(F.alle, labels[0], F.bis), load=reihe.map(x=>x.e?anLast(x.e,dom):0), ch=anMean(load)||1;   // §9a (v3.7.0)
     const wolke=load.map(v=>Math.min(2, v/ch));
     haupt=tagesKurveSvg({ labels, roh:P.vals.map((v,i)=>v!=null?Math.min(2,v):null), glatt:false, einheit:'ACWR', yMin:0, yMax:2, linie:FARBE.WEISS, pR:30,
       baender:[{von:1.5,bis:2,farbe:FARBE.ROT},{von:1.3,bis:1.5,farbe:FARBE.GELB},{von:0.8,bis:1.3,farbe:FARBE.GRUEN},{von:0,bis:0.8,farbe:FARBE.ORANGE}],
@@ -18644,8 +18227,7 @@ function konfetti(){
    ══════════════════════════════════════════════════════════════════════ */
 // Nav
 el('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-tab]');
-  if(!b) return; setTab(b.dataset.tab);
-  if(b.dataset.tab==='suche' && suSicht()==='heute' && !suFrage()) kalZuJetzt(); });   // §2 (v2.4.0)
+  if(!b) return; setTab(b.dataset.tab); });   // §12 (v3.7.0): kein Kalender-Sprung mehr
 /* §6 (v2.0.0): Neuanlage sitzt jetzt im ＋ der Sicht-Leiste. */
 // §3 (v1.6.0): Routinen-Schublade öffnen (Farbe folgt der aktiven Domäne)
 
@@ -19858,10 +19440,7 @@ el('suSichten').addEventListener('click', e=>{
   if(e.target.closest('[data-suerl]')){ S.ui.suErledigt=!erledigteZeigen(); saveUi();
     renderSuche(); haptik(8);
     toast(erledigteZeigen()?'✓ Erledigte werden gezeigt':'Erledigte ausgeblendet'); return; }
-  const b=e.target.closest('[data-susicht]');
-  if(b){ S.ui.suSicht=b.dataset.susicht; S.ui.suMatrixFeld=null; saveUi(); renderSuche(); haptik(8);   // §10 (v3.7.0): kein Hochscrollen
-    return; }
-});
+});   // §12 (v3.7.0): die Sichten-Knöpfe sind entfallen
 // §5 (v3.7.0): „+" öffnet die Kettenliste (ticken · starten · in die Fokusansicht), oben „+ Neue Karte" für das bisherige Anlegen
 el('neuFab').addEventListener('click', ()=>oeffnePlusListe());
 ikDragBinden();   // §2 (v3.7.0)
@@ -19878,16 +19457,7 @@ const SU_BEDIENELEMENT = 'button,[data-check],[data-tickplus],[data-fokusstart],
   '[data-kette],[data-freeze],[data-archiv],[data-pqstart],[data-pqtick],[data-pqcheck],input,select,textarea,a';
 el('suBody').addEventListener('click', e=>{
   const t=e.target;
-  // §2 (v2.4.0): Tipp auf einen Kalenderblock oeffnet die Karte (Uhr steht).
-  // §5 (v2.5.0): Gruppe kurzer Bloecke auf-/zuklappen
-  // §1.4 (v2.7.0): Block antippen — Oberblock klappt auf/zu, unterste Ebene zeigt ihre Karten
-  const kbl=t.closest('[data-kalblock]'); if(kbl){ haptik(6); const id=kbl.dataset.kalblock, bl=tagesBloecke()||[];
-    if(blockKinder(bl,id).length){ _blockAuf[id]=!_blockAuf[id];
-      if(!_blockAuf[id]) blockNachfahren(bl,id).forEach(x=>{ if(x!==id) _blockAuf[x]=false; if(_blockKarten===x) _blockKarten=null; }); }
-    else _blockKarten = (_blockKarten===id ? null : id);
-    renderSuche(); return; }
-  const kg=t.closest('[data-kalgruppe]'); if(kg){ haptik(6); _kalAuf[kg.dataset.kalgruppe]=!_kalAuf[kg.dataset.kalgruppe]; renderSuche(); return; }
-  const kb=t.closest('[data-kalkarte]'); if(kb){ haptik(8); fokusKarteAnsehen(kb.dataset.kalkarte); return; }
+  // §12 (v3.7.0): Kalender (Blöcke, Gruppen, Kalenderkarten) entfallen
   const mx=t.closest('[data-sumx]');
   if(mx){ S.ui.suMatrixFeld=(S.ui.suMatrixFeld===mx.dataset.sumx)?null:mx.dataset.sumx; saveUi(); renderSuche(); return; }
   // §2: Ein Schnellknopf loest seine Aktion aus — und NICHTS sonst. Das
@@ -20116,8 +19686,9 @@ function analyseFenster(){
   const prev=alle.filter(e=>e.datum>=pVon && e.datum<=pBis && !e.urlaub);
   return { alle, cur, prev, von, bis, span, urlaubCur };
 }
-/* Lückenlose Kalender-Reihe (fehlende Tage = null) — für gleitende Mittel/ACWR. */
-function anKalenderReihe(alle, von, bis){
+/* Lückenlose Tagesreihe (fehlende Tage = null) — für gleitende Mittel/ACWR. §12 (v3.7.0): hieß anKalenderReihe; sie ist keine
+   Kalenderansicht, sondern die Datenreihe der Belastung und bleibt deshalb (umbenannt). */
+function anTagesReihe(alle, von, bis){
   const map={}; alle.forEach(e=>map[e.datum]=e);
   const out=[]; let d=von, guard=0;
   while(d<=bis && guard++<800){ out.push({datum:d, e:map[d]||null}); d=anVorTage(d,-1); }
@@ -20217,7 +19788,7 @@ function anModReadiness(F,dom){
 function anAcwrReihe(alle, bis, span, dom, metric){
   // ACWR je Tag = Ø(7 Tage) ÷ Ø(28 Tage), lückenlos (fehlende Tage = 0 Last).
   const startAll=alle.length?alle[0].datum:bis;
-  const reihe=anKalenderReihe(alle, startAll, bis);
+  const reihe=anTagesReihe(alle, startAll, bis);
   const load=reihe.map(x=> x.e ? (metric==='min'?anMin(x.e,dom):anLast(x.e,dom)) : 0);   // §9a (v3.7.0): Last statt Punkte
   const bz=statParam('belastung')||{}, akT=Math.max(1,num(bz.akutTage,7)), chT=Math.max(akT,num(bz.chronischTage,28));   // §3 (v3.1.0)
   const acwr=load.map((_,i)=>{ if(i<akT) return null; const ac=anMean(load.slice(i-akT+1,i+1)); const ch=anMean(load.slice(Math.max(0,i-chT+1),i+1)); return (ch&&ch>0)?ac/ch:null; });
