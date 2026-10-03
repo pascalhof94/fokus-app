@@ -6439,7 +6439,7 @@ function diagrammeLive(){
   try{ document.querySelectorAll('[data-dialive]').forEach(el=>{ if(!el.offsetParent) return;
     const sc=el.querySelector('.dia-tv-scroll'); if(sc) _tvScroll[tvOrt(sc)]={ left:sc.scrollLeft, ts:Date.now() };
     const dopt=el.dataset.diaopt ? JSON.parse(el.dataset.diaopt) : {};
-    let h=''; try{ h=el.dataset.dialive==='tt' ? heuteGegenTypischHtml(dopt) : belTagesDiagramm(dopt); }catch(e){ return; }
+    let h=''; try{ h=el.dataset.dialive==='tt' ? heuteGegenTypischHtml(dopt) : el.dataset.dialive==='mx' ? '<div class="mv-gross" data-dialive="mx">'+matrixVerlaufSvg(matrixSpur())+'</div>' : belTagesDiagramm(dopt); }catch(e){ return; }
     if(h) el.outerHTML=h; });
     document.querySelectorAll('[data-ringlive]').forEach(el=>{ if(el.offsetParent) el.outerHTML=tagesRingeHtml(); }); }catch(e){}   // §2 (v3.5.4): Ring-Zeit laeuft mit
 }
@@ -18186,9 +18186,13 @@ function vertikalPfad(pts){
   const d=glattPfad(pts.map(p=>({x:p.y, y:p.x})));
   return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, '$2 $1');
 }
+/* §3 (v3.7.0): der Verlauf ist LIVE — vom letzten Messpunkt bis „jetzt" läuft die Linie mit der zuletzt gemessenen Position
+   weiter (senkrecht nach unten in der Zeitachse), der Endpunkt steht immer bei „jetzt". Statusleiste und Statistik nutzen
+   dieselbe Funktion; der Live-Punkt ist keine Messung (kein Marker, kein Tipp-Ziel). */
 function matrixVerlaufSvg(spur, opt){
   opt=opt||{};
-  const pts=spurPunkte(spur);
+  let pts=spurPunkte(spur);
+  if(pts.length){ const l=pts[pts.length-1], jetzt=Date.now(); if(Date.parse(l.ts)<jetzt-1000) pts=pts.concat([{ x:l.x, y:l.y, ts:new Date(jetzt).toISOString(), kid:null, anlass:null, live:true }]); }
   const gross=!opt.klein;
   const W=gross?320:72, L=gross?42:2, R=gross?10:2, T=gross?22:2;   // §1 (v3.5.3): klein = 72×72 (Statusleiste)
   const t0=pts.length?Date.parse(pts[0].ts):Date.now();
@@ -18234,6 +18238,7 @@ function matrixVerlaufSvg(spur, opt){
   const byId={}; S.karten.forEach(k=>byId[k.id]=k);
   pts.forEach((e,i)=>{
     const p=pp[i], k=e.kid?byId[e.kid]:null, tb=e.quelle==='tagebuch';
+    if(e.live){ g+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="4" fill="'+richtungVerlaufFarbe(e.x)+'" style="'+leuchten(richtungVerlaufFarbe(e.x),4)+'"/>'; return; }   // §3 (v3.7.0): „jetzt"
     if(tb){
       g+='<path d="M'+p.x.toFixed(1)+' '+(p.y-6).toFixed(1)+' l6 6 l-6 6 l-6 -6 z" fill="#f2f2f3" stroke="#0b0b0c" stroke-width="1.2"/>';
     } else {
@@ -18281,7 +18286,7 @@ function stMatrixSpur(){
   const anker='<div id="stMatrixSpurAnker"></div>';
   if(!echt.length) return anker+anModul('🧭','Matrix-Spur','Bewegung über den Tag',
     '<div class="an-leer">Noch keine Position heute. Sie wird bei jedem Verlassen einer Karte abgefragt.</div>');
-  const g='<div class="mv-gross">'+matrixVerlaufSvg(matrixSpur())+'</div>'+
+  const g='<div class="mv-gross" data-dialive="mx">'+matrixVerlaufSvg(matrixSpur())+'</div>'+   // §3 (v3.7.0): live, jede Minute
     '<div class="ms-info" id="msInfo">Tippe auf einen Punkt — Zeit, Karte oder Tagebuch-Text und Akku.</div>'+
     '<div class="an-legend"><span><i style="background:#fff"></i>Karte (weiß, blasser = früher · Ring = Domäne)</span>'+
     '<span><i class="rhombus"></i>Tagebuch</span><span><i style="background:#8e9197"></i>ohne Karte</span></div>';
@@ -20778,7 +20783,8 @@ function init(){
   layoutTopbar();
   // Statusleiste driftet mit der Zeit (Pace/Akku/Kauf-Hinweis) — auch ohne
   // laufenden Timer alle 20 s auffrischen, solange ein Tag offen ist.
-  setInterval(()=>{ if(tagOffen() && !(S.fokus&&S.fokus.laeuft)) renderStatusbar(); }, 20000);
+  let _ruheTakt=0;
+  setInterval(()=>{ if(tagOffen() && !(S.fokus&&S.fokus.laeuft)){ renderStatusbar(); if(++_ruheTakt%3===0) diagrammeLive(); } }, 20000);   // §3 (v3.7.0): auch bei stehender Uhr jede Minute live (Matrixverlauf, Tagesdiagramme)
   window.addEventListener('resize', layoutTopbar);
   // §4 (v1.6.1): jede echte Interaktion stempeln — Taps, Ticks, Seitenwechsel
   // und Sichtbarkeitswechsel. Capture-Phase, damit nichts verlorengeht.
