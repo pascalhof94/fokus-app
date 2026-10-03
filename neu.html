@@ -2231,7 +2231,7 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .stm-zu{display:flex;align-items:center;justify-content:center;width:100%;height:44px;margin-top:12px;border-radius:12px;background:#1a1d22;border:1px solid #2a2d33;color:#e8e9ec;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .stm-zu.mf-auf{margin-top:0;justify-content:space-between;padding:0 14px}
 .stm[data-stmodul]{scroll-margin-top:calc(var(--tbH,160px) + 8px)}
-.voll-ansicht{position:fixed;inset:0;z-index:199;background:var(--bg);display:flex;flex-direction:column}
+.voll-ansicht{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column}
 .voll-ansicht[hidden]{display:none}
 .voll-ansicht .mf-k{font-size:13px;padding:8px 0}
 .voll-ansicht .mf-k button{min-width:44px;min-height:44px}
@@ -2287,6 +2287,21 @@ img.objimg.laedt{opacity:0}
 .su-liste{margin-top:8px}
 #plusOverlay .an-kopf .btn{margin-left:auto;min-height:36px}
 #plusOverlay .an-kopf .sp{display:none}
+/* ══ 3.7.0 §2 · „In Kette": Karte oben, Ketten darunter, Einfügelinie beim Ziehen ══ */
+#inKetteOverlay .an-kopf .btn{margin-left:auto;min-height:36px}
+#inKetteOverlay .an-kopf .sp{display:none}
+#inKetteOverlay.ik-aktiv{touch-action:none}
+#inKetteOverlay.ik-aktiv .an-body{overflow:hidden}
+.ik-karte{margin-bottom:6px}
+.ik-karte .kl-z{box-shadow:0 0 0 2px #e8e9ec inset}
+.ik-hint{margin:0 0 10px;text-align:left}
+.ik-zieht{opacity:.4}
+.ik-ghost{position:fixed;left:0;top:0;z-index:960;pointer-events:none;opacity:.92;box-shadow:0 12px 30px rgba(0,0,0,.6);transform-origin:0 0}
+.ik-linie{height:3px;border-radius:2px;background:#e8e9ec;margin:3px 0;box-shadow:0 0 8px rgba(232,233,236,.8)}
+.ik-teil{min-height:12px}
+.ik-leer{font-size:11.5px;color:#9a9ca2;border:1px dashed #2a2d33;border-radius:10px;padding:10px;text-align:center;margin-bottom:6px}
+.ik-fest{font-size:10.5px;color:#9a9ca2;margin-left:6px}
+body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden])) #suchFab{display:none}
 </style>
 </head>
 <body>
@@ -2399,6 +2414,16 @@ img.objimg.laedt{opacity:0}
   </div>
   <div id="suchFilter" class="su-filter such-filter"></div>
   <div id="suchList" class="such-list"></div>
+</div>
+
+<!-- §2 (v3.7.0): „In Kette" — die Karte oben, darunter alle Ketten als klappbare Gruppen; per langem Druck in eine Kette ziehen -->
+<div id="inKetteOverlay" class="voll-ansicht" hidden>
+  <div class="an-kopf">
+    <h3>In Kette</h3>
+    <span class="sp"></span>
+    <button class="btn prim sm" data-ikfertig="1">Fertig</button>
+  </div>
+  <div class="an-body" id="inKetteBody"></div>
 </div>
 
 <!-- §5 (v3.7.0): „+" — die Kettenliste als Vollbild-Ansicht mit „+ Neue Karte" oben -->
@@ -5724,6 +5749,7 @@ function renderFokus(){
     '<button class="kbtn pp tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause" style="background:linear-gradient(180deg,'+famH+','+famK+')">'+(uhrLaeuftAuf(k)?'⏸':'▶')+'</button>'+
     '<button class="kbtn tedit" data-detail="'+k.id+'" aria-label="Bearbeiten">✎</button>'+
     '<button class="kbtn tedit" data-fkschieben="'+k.id+'" aria-label="Schieben">⏭</button>'+
+    '<button class="kbtn breit" data-fkinkette="'+k.id+'">In Kette</button>'+   // §2 (v3.7.0)
     (istAufgabeKarte(k) ? '<button class="kbtn ok tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button>' : '')+
     '</div></div>';
   // §3 Nr. 3 (v3.5.1): links „◀ Verlauf" (zuletzt geoeffnete Karte), rechts „nächste ▶" (naechste Karte der Kette);
@@ -8892,7 +8918,103 @@ function kettenListeKlick(e){
   const kf=t.closest('[data-klfokus]'); if(kf){ e.stopPropagation(); haptik(6); kettenListeSchliessen(); fokusKarteAnsehen(kf.dataset.klfokus); renderFokus(); return true; }
   return false;
 }
-function kettenListeSchliessen(){ const o=el('plusOverlay'); if(o && !o.hidden) o.hidden=true; }
+function kettenListeSchliessen(){ ['plusOverlay','inKetteOverlay'].forEach(id=>{ const o=el(id); if(o && !o.hidden) o.hidden=true; }); }
+/* ══ §2 (v3.7.0) · „IN KETTE" ═══════════════════════════════════════════════════════════
+   Vollbild-Ansicht: oben die Karte (Kartenzeile), darunter alle Ketten als klappbare Gruppen (ohne Verlauf, Meistgenutzt,
+   Erledigt heute): die aktuelle Kette, jede Tageskette, die Routinen nach Tagesblock, dazu die festen Ketten Ticks DFM/Privat
+   (sie ergeben sich aus der Tick-Freigabe und sind kein Ziel). Per langem Druck (300 ms, damit Scrollen weitergeht) zieht
+   Pascal die Karte an eine beliebige Stelle; zwischen den Zeilen erscheint eine Einfügelinie, Loslassen fügt ein.
+   Eine Karte darf in mehreren Ketten stehen. „Fertig" oben rechts schließt. */
+let _ik=null;
+function ikGruppen(k){
+  const offen=x=>x.status==='offen', by={}; S.karten.forEach(x=>by[x.id]=x);
+  const g=[];
+  g.push({ id:'ikKette', name:'Aktuelle Kette', ziel:'kette', teile:[{ name:null, karten:ketteKarten().filter(offen) }] });
+  tagesketten().forEach(c=>{ g.push({ id:'ikTk:'+c.id, name:c.name||'Kette', ziel:'tk', tk:c.id, teile:[{ name:null, karten:(c.karten||[]).map(id=>by[id]).filter(x=>x && offen(x)) }] }); });
+  { const bl=tagesBloecke()||[], eins=bl.filter(b=>!b.parent).slice().sort((a,b)=>a.von-b.von), je={}, ohne=[];
+    abhakLeisteKarten().forEach(x=>{ const b=klRoutineBlock(x, bl); if(b) (je[b.id]=je[b.id]||[]).push(x); else ohne.push(x); });
+    const teile=eins.map(b=>({ name:b.name||BLOCK_TYP_NAME[b.typ]||'Block', block:b.id, karten:je[b.id]||[] }));
+    if(ohne.length || !eins.length) teile.push({ name:'Ohne Block', block:null, karten:ohne });
+    g.push({ id:'ikRoutinen', name:'Routinen nach Tagesblock', ziel:'block', teile }); }
+  g.push({ id:'ikTicksDfm', name:'Ticks DFM', ziel:null, teile:[{ name:null, karten:klTicks('dfm') }] });
+  g.push({ id:'ikTicksPrivat', name:'Ticks Privat', ziel:null, teile:[{ name:null, karten:klTicks('privat') }] });
+  return g;
+}
+function inKetteHtml(k){
+  const dreh=_klGedreht; _klGedreht=null;
+  return '<div class="ik-karte" data-ikdrag="'+k.id+'">'+kartenZeileHtml(k)+'</div>'+
+    '<div class="hint ik-hint">Lang drücken und in eine aufgeklappte Kette ziehen — an jede Stelle.</div>'+
+    '<div class="kl-liste ik-liste">'+ikGruppen(k).map(g=>{ const auf=klGruppeOffen(g.id), n=g.teile.reduce((a,t)=>a+t.karten.length, 0);
+      const zeilen=g.teile.map(t=>'<div class="ik-teil" data-ikziel="'+(g.ziel||'')+'" data-iktk="'+(g.tk||'')+'" data-ikblock="'+(t.block||'')+'"'+(g.ziel?'':' data-ikfest="1"')+'>'+
+        (t.name ? '<div class="kl-zwh">'+esc(t.name)+'</div>' : '')+t.karten.map(x=>kartenZeileHtml(x)).join('')+
+        (!t.karten.length && g.ziel ? '<div class="ik-leer">leer — hierher ziehen</div>' : '')+'</div>').join('');
+      return '<div class="kl-grp" data-klgrp="'+g.id+'"><div class="kl-grk" data-klgruppe="'+g.id+'" role="button" aria-expanded="'+(auf?'true':'false')+'"><b>'+esc(g.name)+'</b>'+(g.ziel?'':'<span class="ik-fest">feste Kette</span>')+'<span class="anz">'+n+'</span>'+
+        '<span class="stm-tog'+(auf?' auf':'')+(dreh===g.id?' dreh':'')+'" aria-hidden="true">'+STM_CHEVRON+'</span></div>'+
+        (auf ? '<div class="kl kl-grinh">'+zeilen+'</div>' : '')+'</div>'; }).join('')+'</div>';
+}
+function renderInKette(){ const k=_ik && S.karten.find(x=>x.id===_ik.kid); const b=el('inKetteBody'); if(!b) return; b.innerHTML=k ? inKetteHtml(k) : '<div class="an-leer">Karte nicht gefunden</div>'; }
+function oeffneInKette(kid){ if(!S.karten.some(x=>x.id===kid)) return; _ik={ kid }; renderInKette(); el('inKetteOverlay').hidden=false; try{ el('inKetteBody').scrollTop=0; }catch(e){} }
+function schliesseInKette(){ el('inKetteOverlay').hidden=true; _ik=null; renderFokus(); }
+/* Einfügen an Position index (vor der index-ten sichtbaren Karte des Ziels; index = Anzahl → ans Ende) */
+function ikEinfuegen(ziel, info, kid, index){
+  const k=S.karten.find(x=>x.id===kid); if(!k) return false;
+  const offen=x=>x.status==='offen';
+  if(ziel==='kette'){
+    const st=ketteState(); tagesKette();
+    const sicht=ketteKarten().filter(offen).filter(x=>x.id!==kid);
+    const i0=st.ids.indexOf(kid); if(i0>=0) st.ids.splice(i0, 1);
+    const nach=sicht[index], j=nach ? st.ids.indexOf(nach.id) : -1;
+    if(j>=0) st.ids.splice(j, 0, kid); else st.ids.push(kid);
+    st.entfernt=(st.entfernt||[]).filter(x=>x!==kid); saveMeta(); ketteHistLog(); return true;
+  }
+  if(ziel==='tk'){
+    const c=tagesketten().find(x=>x.id===info.tk); if(!c) return false;
+    const by={}; S.karten.forEach(x=>by[x.id]=x);
+    c.karten=(c.karten||[]).filter(x=>x!==kid);
+    const sicht=c.karten.map(id=>by[id]).filter(x=>x && offen(x)), nach=sicht[index], j=nach ? c.karten.indexOf(nach.id) : -1;
+    if(j>=0) c.karten.splice(j, 0, kid); else c.karten.push(kid);
+    DB.set('tagesketten', S.tagesketten); return true;
+  }
+  if(ziel==='block'){
+    k.block=info.block||null; k.blockTag=info.block ? heuteApp() : null; beruehre(k);
+    // Reihenfolge im Block = Reihenfolge der Kette: vor die Nachbarkarte stellen
+    const bl=tagesBloecke()||[], sicht=abhakLeisteKarten().filter(x=>x.id!==kid && (klRoutineBlock(x, bl) ? klRoutineBlock(x, bl).id : null)===(info.block||null));
+    const st=ketteState(); tagesKette(); const i0=st.ids.indexOf(kid); if(i0>=0) st.ids.splice(i0, 1);
+    const nach=sicht[index], j=nach ? st.ids.indexOf(nach.id) : -1;
+    if(j>=0) st.ids.splice(j, 0, kid); else st.ids.push(kid);
+    st.entfernt=(st.entfernt||[]).filter(x=>x!==kid); saveKarten(); saveMeta(); ketteHistLog(); return true;
+  }
+  return false;
+}
+/* Ziehen per langem Druck: Geist folgt dem Finger, Einfügelinie zwischen den Zeilen des Ziels */
+function ikDragBinden(){
+  const ov=el('inKetteOverlay'); if(!ov) return;
+  let press=null, drag=null;
+  const linie=()=>{ let l=ov.querySelector('.ik-linie'); if(!l){ l=document.createElement('div'); l.className='ik-linie'; } return l; };
+  const zielBei=(x, y)=>{ const g=linie(); g.style.display='none'; const e=document.elementFromPoint(x, y); g.style.display='';
+    const teil=e && e.closest ? e.closest('.ik-teil') : null; if(!teil || teil.dataset.ikfest) return null;
+    const rows=[].slice.call(teil.querySelectorAll('.kl-z')); let index=0; rows.forEach(r=>{ const rc=r.getBoundingClientRect(); if(y>rc.top+rc.height/2) index++; });
+    return { teil, rows, index }; };
+  const zeige=z=>{ const l=linie(); if(!z){ l.remove(); return; } const ref=z.rows[z.index]; if(ref) z.teil.insertBefore(l, ref); else z.teil.appendChild(l); };
+  const ende=(e, abbruch)=>{ if(!drag) return; const d=drag; drag=null; d.ghost.remove(); linie().remove(); d.row.classList.remove('ik-zieht'); ov.classList.remove('ik-aktiv');
+    if(abbruch) return; const z=zielBei(e.clientX, e.clientY); if(!z) return;
+    const ok=ikEinfuegen(z.teil.dataset.ikziel, { tk:z.teil.dataset.iktk, block:z.teil.dataset.ikblock }, d.kid, z.index);
+    if(ok){ haptik(12); toast('Eingefügt'); renderInKette(); } };
+  ov.addEventListener('pointerdown', e=>{ const d=e.target.closest('[data-ikdrag]'); if(!d || e.target.closest('button')) return;
+    const row=d.querySelector('.kl-z')||d; press={ x:e.clientX, y:e.clientY, t:setTimeout(()=>{ press=null; haptik(20);
+      const ghost=row.cloneNode(true); ghost.className+=' ik-ghost'; ghost.style.width=row.getBoundingClientRect().width+'px'; document.body.appendChild(ghost);
+      drag={ kid:d.dataset.ikdrag, row, ghost, dx:row.getBoundingClientRect().left-e.clientX, dy:row.getBoundingClientRect().top-e.clientY };
+      row.classList.add('ik-zieht'); ov.classList.add('ik-aktiv'); try{ ov.setPointerCapture(e.pointerId); }catch(x){}
+      ghost.style.transform='translate('+(e.clientX+drag.dx)+'px,'+(e.clientY+drag.dy)+'px)'; }, 300) }; });
+  ov.addEventListener('pointermove', e=>{
+    if(press && Math.hypot(e.clientX-press.x, e.clientY-press.y)>8){ clearTimeout(press.t); press=null; }
+    if(!drag) return; e.preventDefault();
+    drag.ghost.style.transform='translate('+(e.clientX+drag.dx)+'px,'+(e.clientY+drag.dy)+'px)'; zeige(zielBei(e.clientX, e.clientY)); }, { passive:false });
+  ov.addEventListener('pointerup', e=>{ if(press){ clearTimeout(press.t); press=null; } ende(e, false); });
+  ov.addEventListener('pointercancel', e=>{ if(press){ clearTimeout(press.t); press=null; } ende(e, true); });
+  ov.addEventListener('click', e=>{ if(e.target.closest('[data-ikfertig]')){ schliesseInKette(); return; }
+    const kg=e.target.closest('[data-klgruppe]'); if(kg && kg.closest('.ik-liste')){ e.stopPropagation(); haptik(6); klGruppeUmschalten(kg.dataset.klgruppe); renderInKette(); } }, true);
+}
 function oeffnePlusListe(){
   const o=el('plusOverlay'); if(!o) return;
   el('plusBody').innerHTML=kettenListeHtml({ karte:null, kontext:'plus' });
@@ -18453,6 +18575,7 @@ el('fokusView').addEventListener('click', e=>{
   const ck=t.closest('[data-fkcheck]'); if(ck){ karteAbhakenAuto(ck.dataset.fkcheck, false); return; }
   const tpf=t.closest('[data-tickplus]'); if(tpf){ karteTick(tpf.dataset.tickplus, false); return; }   // A3
   const sch=t.closest('[data-fkschieben]'); if(sch){ oeffneSchieben(sch.dataset.fkschieben); return; }  // A4
+  const ik=t.closest('[data-fkinkette]'); if(ik){ oeffneInKette(ik.dataset.fkinkette); return; }   // §2 (v3.7.0)
   // §9.2 (v1.11.0): tappbare Swipe-Zeile — nicht mögliche Richtung reagiert nicht
   const fkv=t.closest('[data-fkvorn]'); if(fkv){ if(ketteNachVorn(fkv.dataset.fkvorn)){ haptik(8); toast('An erster Stelle'); renderFokus(); } return; }   // §1 (v3.7.0)
   const fsw=t.closest('[data-fkswipe]'); if(fsw){ if(!fsw.classList.contains('aus')) fokusSwipeSchritt(parseInt(fsw.dataset.fkswipe,10)); return; }
@@ -19570,6 +19693,7 @@ el('suSichten').addEventListener('click', e=>{
 });
 // §5 (v3.7.0): „+" öffnet die Kettenliste (ticken · starten · in die Fokusansicht), oben „+ Neue Karte" für das bisherige Anlegen
 el('neuFab').addEventListener('click', ()=>oeffnePlusListe());
+ikDragBinden();   // §2 (v3.7.0)
 el('plusOverlay').addEventListener('click', e=>{ const t=e.target;
   if(t.closest('[data-plusneu]')){ el('plusOverlay').hidden=true; oeffneDetail(null); return; }
   if(t.closest('[data-pluszu]')){ el('plusOverlay').hidden=true; return; } });
