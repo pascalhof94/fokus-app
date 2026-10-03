@@ -2415,7 +2415,7 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
 <button id="suchFab" aria-label="Volltextsuche">🔍</button>
 
 <nav id="nav">
-  <button data-tab="suche" class="on"><span class="ic">🔍</span>Suche</button>
+  <button data-tab="belohnung"><span class="ic">🛍</span>Shop</button>
   <button data-tab="statistik"><span class="ic">📊</span>Statistik</button>
   <button data-tab="einst"><span class="ic">⚙︎</span>Einstellungen</button>
 </nav>
@@ -17264,7 +17264,7 @@ function suFrage(){ return String(S.ui.suFrage||'').trim(); }
    ausdruecklich {fokusLassen:true}. Die laufende Karte laeuft als Leiste
    weiter; die Uhr wird nicht beruehrt. */
 function setTab(tab, opt){
-  if(tab!=='suche' && tab!=='statistik' && tab!=='einst' && tab!=='belohnung') tab='suche';
+  if(tab!=='suche' && tab!=='statistik' && tab!=='einst' && tab!=='belohnung') tab='belohnung';   // §11 (v3.7.0): Leiste = Shop · Statistik · Einstellungen; die Suche über den 🔍-Knopf
   if(!(opt && opt.fokusLassen)){ S.ui.fokusOffen=false; S.ui.fokusZeigt=null; }
   // v2.2.0: <main> ist EIN Scroller fuer alle Seiten — ein Seitenwechsel
   // beginnt oben (sonst oeffnete die Suche nach dem Shop mitten in der Liste,
@@ -18722,17 +18722,19 @@ el('sheetBody').addEventListener('click', e=>{
 // §2 (v3.5.1): der Play/Pause-Knopf der Statusleiste ist entfallen (Bedienung in der Fokusansicht)
 /* §1 (v2.0.1): Tippen auf die Leiste holt die Fokusansicht zurueck.
    Laeuft keine Karte, ist die Leiste nur Anzeige. */
-el('fkMid').addEventListener('click', ()=>{
-  if(S.fokus && S.fokus.karteId) fokusAnsichtZeigen();
-});
+/* §11 (v3.7.0): ein Tipp auf die Statusleiste öffnet IMMER die Fokusansicht — die angezeigte bzw. laufende Karte, sonst die
+   erste Karte der Kette; Matrix-Verlauf (→ Matrix-Spur) und Punkte-Block (→ Statistik) behalten ihre eigenen Ziele */
+function fokusImmerZeigen(){
+  if(fokusAngezeigtId()){ fokusAnsichtZeigen(); return true; }
+  const k=fokusKandidaten()[0]; if(k){ fokusKarteAnsehen(k.id); return true; }
+  toast('Keine Karte in der Kette'); return false;
+}
+{ const z1=document.querySelector('#topbar .sl-z1'); (z1||el('fkMid')).addEventListener('click', e=>{ if(e.target.closest('#btnFigur')) return; fokusImmerZeigen(); }); }
 el('statusbar').addEventListener('click', e=>{
-  // §1 (v2.6.0): die Rang-Zelle ist entfallen (Belohnung ueber die Figur).
-  // Der Matrix-Verlauf fuehrt zur ausfuehrlichen Matrix-Spur der Statistik;
-  // der Rest der Leiste oeffnet wie bisher das Status-Sheet.
   if(e.target.closest('#sZMatrix')){ zurMatrixSpur(); return; }
   if(e.target.closest('#btnKurve')) return;   // §2 (v3.5.1): der Punkte-Block fuehrt zur Statistik (eigener Handler)
-  oeffneStatusSheet();
-});   // §2 (1.10.0): Sheet statt Live-Kurve
+  fokusImmerZeigen();
+});
 
 // Fokus-View: Toggle / Häkchen / Karussell / Farbstreifen / Unteraufgaben / Stapelwahl
 // Bug 2: Karussell-Pfeile im Topbar (außerhalb von #fokusView)
@@ -19914,7 +19916,8 @@ el('suchFilter').addEventListener('click', e=>{
   const b=e.target.closest('[data-sf]'); if(!b) return;
   suchF[b.dataset.sf]=b.dataset.v; haptik(6); renderSuchTreffer();
 });
-el('suchFab').addEventListener('click', ()=>{ haptik(8); oeffneSuche(); });
+// §11 (v3.7.0): der 🔍-Knopf öffnet die Suche (Suchfeld + Kettenliste, §5); liegt sie schon vor, bekommt das Suchfeld den Fokus
+el('suchFab').addEventListener('click', ()=>{ haptik(8); if(S.ui.tab!=='suche') setTab('suche'); const f=el('suFreitext'); if(f){ try{ f.focus(); }catch(e){} } });
 el('suchOverlay').addEventListener('click', e=>{ if(e.target.id==='suchOverlay') schliesseSuche(); });   // Tap-außen
 /* Pull-down bei scrollTop 0 (Fokus/Stapel) öffnet die Suche — ohne pan-y zu
    stören (kein preventDefault; am oberen Rand scrollt ohnehin nichts). */
