@@ -2265,6 +2265,14 @@ img.objimg.laedt{opacity:0}
 .bel-ansicht .kb-farbe .mal-farbe{width:34px;gap:4px;color:#e8e9ec;font-size:11.5px;font-weight:650}
 .bel-ansicht .kb-farbe .mal-farbe i{width:24px;height:24px;border:1.5px solid #c9ccd2;box-sizing:border-box}
 .bel-ansicht .kb-farbe .mal-farbe.on i{box-shadow:0 0 0 3px #000,0 0 0 5px #fff}
+/* §4c (v3.7.0): Kulissen-Belohnungsansicht — fertige Kulisse mit Avatar, Tipp blendet den Avatar ein/aus */
+.bel-ansicht.kulisse{background:radial-gradient(circle at 50% 22%,#102a1a,#000 62%)}
+.bel-ansicht .kul-bild{position:relative;margin:8px 0 10px;border-radius:14px;overflow:hidden;aspect-ratio:1200/669;background:#111;cursor:pointer}
+.bel-ansicht .kul-bild .bild{display:block;width:100%;height:100%;object-fit:cover}
+.bel-ansicht .kul-bild .av{position:absolute;left:50%;bottom:0;height:88%;width:auto;transform:translateX(-50%);filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));transition:opacity .25s}
+.bel-ansicht .kul-bild.ohne-av .av{opacity:0}
+.bel-ansicht .kul-bild .tip{position:absolute;left:8px;bottom:6px;font-size:10px;color:#e8e9ec;text-shadow:0 0 3px #000;opacity:.8}
+.bel-ansicht .kul-hinweis{text-align:center;font-size:15px;padding:12px}
 .bel-ansicht .kb{text-align:center}
 .bel-ansicht .kb-kopf{font-size:12px;color:#d4af37;font-weight:700;letter-spacing:.3px;margin-top:6px}
 .bel-ansicht .kb-bild{position:relative;width:200px;height:170px;margin:8px auto}
@@ -16499,6 +16507,11 @@ function ausmalState(){
   while(A.toepfe.length<5) A.toepfe.push({farbe:null, punkte:0});
   if(!Array.isArray(A.gefaerbt)) A.gefaerbt=[]; if(!Array.isArray(A.fertig)) A.fertig=[];
   A.kulisse=Math.max(1, Math.min(10, num(A.kulisse,1))); A.aktiverTopf=Math.max(0, Math.min(4, num(A.aktiverTopf)));
+  // §4c (v3.7.0): additiv — Start je Kulisse (ISO), abgeschlossene Kulissen mit Kennzahlen, Tage mit Ausmalen
+  if(!A.kulissenStart || typeof A.kulissenStart!=='object') A.kulissenStart={};
+  if(!Array.isArray(A.kulissenFertig)) A.kulissenFertig=[]; if(!Array.isArray(A.malTage)) A.malTage=[];
+  if(!A.kulissenStart[A.kulisse]){ const d=(S.meta.kulisseErreicht&&S.meta.kulisseErreicht[A.kulisse])||null, r=(S.meta.reset35&&S.meta.reset35.ts)||null;
+    A.kulissenStart[A.kulisse]=d ? d+'T00:00:00' : (r || jetztIso()); }
   return A;
 }
 function ausmalEinst(){ const e=(S.settings && S.settings.ausmalen)||{}; return { topfLeerAnteil:num(e.topfLeerAnteil,0.02)||0.02, topfAufschlag:num(e.topfAufschlag,1.2)||1.2, zoomDoppeltipp:num(e.zoomDoppeltipp,2.5)||2.5, bannerSek:num(e.bannerSek,8)||8 }; }
@@ -16512,7 +16525,8 @@ function ausmalW(){
 /* §2 (v3.6.1): die EINE Zahl für „Farbe" in der Oberfläche — gesamte Farbe seit dem Reset inkl. heute live (= wohlstandSeitReset
    des Exports); der alte Lebenswerk-Wert wird nirgends mehr angezeigt */
 function farbeGesamt(){ return Math.round(ausmalW()); }
-function ausmalExport(){ const A=ausmalState(); return { kulisse:A.kulisse, gefaerbt:A.gefaerbt.slice(), toepfe:A.toepfe.map(t=>({farbe:t.farbe, punkte:Math.round(num(t.punkte))})), aktiverTopf:A.aktiverTopf, stationFarbe:A.stationFarbe, tank:Math.round(num(A.tank)), wohlstandSeitReset:Math.round(ausmalW()), freigeschaltetBis:A.freigeschaltetBis, fertig:A.fertig.slice() }; }
+function ausmalExport(){ const A=ausmalState(); return { kulisse:A.kulisse, gefaerbt:A.gefaerbt.slice(), toepfe:A.toepfe.map(t=>({farbe:t.farbe, punkte:Math.round(num(t.punkte))})), aktiverTopf:A.aktiverTopf, stationFarbe:A.stationFarbe, tank:Math.round(num(A.tank)), wohlstandSeitReset:Math.round(ausmalW()), freigeschaltetBis:A.freigeschaltetBis, fertig:A.fertig.slice(),
+  kulissenStart:Object.assign({}, A.kulissenStart), kulissenFertig:A.kulissenFertig.map(e=>Object.assign({}, e)), malTage:A.malTage.slice() }; }   // §4c (v3.7.0): additiv
 function ausmalKorrektur(o){
   const A=ausmalState();
   if(o.kulisse!=null) A.kulisse=Math.max(1, Math.min(10, num(o.kulisse,1)));
@@ -16524,6 +16538,10 @@ function ausmalKorrektur(o){
   if(o.freigeschaltetBis!=null) A.freigeschaltetBis=Math.max(1, Math.min(10, num(o.freigeschaltetBis,1)));
   if(Array.isArray(o.fertig)) A.fertig=o.fertig.map(Number).filter(Number.isFinite);
   if(o.verteilt!=null) A.verteilt=Math.max(0, num(o.verteilt));
+  // §4c (v3.7.0): additive Felder
+  if(o.kulissenStart && typeof o.kulissenStart==='object') A.kulissenStart=Object.assign({}, o.kulissenStart);
+  if(Array.isArray(o.kulissenFertig)) A.kulissenFertig=o.kulissenFertig.filter(e=>e && typeof e==='object').map(e=>Object.assign({}, e));
+  if(Array.isArray(o.malTage)) A.malTage=o.malTage.map(String).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d));
   _ausmalKompositKey=''; saveMeta();
 }
 /* §9.4 (v3.5.0): der einmalige Reset — mit Sicherung in der Datenbank (reset35_bak) */
@@ -16592,6 +16610,7 @@ function ausmalDaten(n){
         const fl={}; (j.felder||[]).forEach(f=>{ fl[f.farbe]=(fl[f.farbe]||0)+num(f.flaechePx); });
         K.topFarben=Object.keys(fl).sort((x,y)=>fl[y]-fl[x]).slice(0,2).map(i=>K.hex[num(i)]||FARBE.GOLD);
         while(K.topFarben.length<2) K.topFarben.push(K.topFarben[0]||FARBE.GOLD);
+        try{ kulissenGeschenkNachholen(); }catch(e){}   // §4c (v3.7.0)
         try{ if(S.ui.tab==='belohnung') renderBelohnung(); }catch(e){}
       }).catch(()=>{ _kul[n].laedt=false; }); } }
   return null;
@@ -16672,14 +16691,20 @@ let _ausmalSaveTs=0;
 function ausmalVerteilen(){
   const A=ausmalState(), T=topfFassung(); if(!T) return;
   const W=Math.floor(ausmalW()); let delta=W-num(A.verteilt); if(delta<=0) return;
-  let geaendert=false, vollEreignis=false;
+  let geaendert=false, vollEreignis=false, autoFarbe=false;
+  // §4c (v3.7.0): ein Topf, dessen Farbe keine offenen Felder mehr hat, nimmt nichts auf — die Farbe geht in einen leeren Topf
+  // mit einer offenen Farbe (Stationsfarbe, wenn offen, sonst die erste offene in Stationsreihenfolge); keiner frei → Tank
+  const offenJe=ausmalStand().offenJeFarbe, farbeOffen=c=>c!=null && (offenJe[c]||0)>0, ersteOffene=()=>{ const f=offeneFarben(); return f.length ? f[0].i : null; };
   for(let guard=0; delta>0 && guard<12; guard++){
     const t=A.toepfe[A.aktiverTopf];
-    if(t.farbe==null && A.stationFarbe!=null && !topfVoll(t)) t.farbe=A.stationFarbe;
-    if(t.farbe==null || topfVoll(t)){
+    if(t.farbe==null && !topfVoll(t)){
+      if(A.stationFarbe==null && !autoFarbe){ A.tank=num(A.tank)+delta; delta=0; geaendert=true; break; }   // keine Farbe gewaehlt → Tank
+      t.farbe=farbeOffen(A.stationFarbe) ? A.stationFarbe : ersteOffene(); autoFarbe=false;
+      if(t.farbe==null){ A.tank=num(A.tank)+delta; delta=0; geaendert=true; break; }   // keine offene Farbe mehr → Tank
+    }
+    if(topfVoll(t) || !farbeOffen(t.farbe)){
       const leerIdx=A.toepfe.findIndex((x,i)=>i!==A.aktiverTopf && x.farbe==null && x.punkte<=0 && !topfVoll(x));
-      if(t.farbe==null && A.stationFarbe==null){ A.tank=num(A.tank)+delta; delta=0; geaendert=true; break; }   // keine Farbe gewaehlt → Tank
-      if(leerIdx>=0){ A.aktiverTopf=leerIdx; continue; }
+      if(leerIdx>=0){ A.aktiverTopf=leerIdx; autoFarbe=!farbeOffen(t.farbe); continue; }
       A.tank=num(A.tank)+delta; delta=0; geaendert=true; break;
     }
     const frei=T-t.punkte, add=Math.min(frei, delta); t.punkte+=add; delta-=add; geaendert=true;
@@ -16689,6 +16714,14 @@ function ausmalVerteilen(){
   }
   A.verteilt=W; A.wohlstandSeitReset=W;
   if(geaendert && (vollEreignis || Date.now()-_ausmalSaveTs>15000)){ _ausmalSaveTs=Date.now(); saveMeta(); }
+  kulissenWechselPruefen();
+}
+/* §4c (v3.7.0): eine fertige Kulisse wechselt, sobald die nächste frei ist (entkoppelt, nie mitten in einem Render) */
+let _kwTimer=null;
+function kulissenWechselPruefen(){
+  const A=ausmalState(); if(A.kulisse>=10 || A.fertig.indexOf(A.kulisse)<0 || !(A.freigeschaltetBis>A.kulisse) || _kwTimer) return;
+  if(typeof setTimeout!=='function'){ ausmalKulisseWechsel(); return; }
+  _kwTimer=setTimeout(()=>{ _kwTimer=null; try{ const B=ausmalState(); if(B.fertig.indexOf(B.kulisse)>=0 && B.freigeschaltetBis>B.kulisse) ausmalKulisseWechsel(); }catch(e){} }, 0);
 }
 /* Topf unter die Station stellen (Tank fliesst zuerst hinein) */
 function topfUnterStation(idx){
@@ -16709,8 +16742,8 @@ function stationFarbeWaehlen(c){
 }
 function topfAuskippen(idx){
   const A=ausmalState(), t=A.toepfe[idx]; if(!t) return;
-  if(t.punkte>0 && !confirm('Inhalt '+fmtP(Math.round(t.punkte))+' P verwerfen?')) return;
-  t.punkte=0; t.farbe=null; t.bannerGezeigt=false; saveMeta(); renderBelohnung();
+  if(t.punkte>0 && !confirm('Inhalt '+fmtP(Math.round(t.punkte))+' P in den Tank kippen?')) return;
+  topfRestInTank(A, t); saveMeta(); renderBelohnung();   // §4c (v3.7.0): beim Auskippen geht der Inhalt in den Tank
 }
 /* §6.7 · Ausmalen: Feld nur vollstaendig, nur passende Farbe, nur mit genug Punkten */
 function feldAusmalen(f){
@@ -16721,19 +16754,94 @@ function feldAusmalen(f){
   if(t.punkte<p){ toast('Topf reicht noch nicht (fehlen '+fmtP(Math.ceil(p-t.punkte))+')'); return false; }
   t.punkte-=p; if(t.punkte<=0.5){ t.punkte=0; t.farbe=null; t.bannerGezeigt=false; }
   A.gefaerbt.push(f); _malFade={ feld:f, t0:Date.now() };
+  { const d=heuteApp(); if(A.malTage.indexOf(d)<0) A.malTage.push(d); }   // §4c (v3.7.0): Tage mit Ausmalen
   haptik(12); saveMeta();
   const st=ausmalStand();
-  if(st.fertig){ if(A.freigeschaltetBis>A.kulisse) ausmalKulisseWechsel(); else toast('Kulisse '+A.kulisse+' fertig — die nächste ist frei ab Farbe '+fmtKurzP(st.naechsteFrei)); }
+  if(st.fertig) kulisseAbschliessen();   // §4c (v3.7.0): Kulissen-Belohnungsansicht, danach Wechsel (sobald frei)
   return true;
+}
+/* ══ §4c (v3.7.0) · KULISSEN-ABSCHLUSS ═══════════════════════════════════════════════════════
+   Kennzahlen vom Start der Kulisse bis jetzt; Eintrag in ausmalen.kulissenFertig[]; die Belohnungsansicht ist nicht
+   überspringbar („Weiter" schließt); ist die nächste Kulisse frei, folgt der Wechsel. */
+function farbeSeit(ab){
+  const r=(S.meta && S.meta.reset35 && S.meta.reset35.ts) ? String(S.meta.reset35.ts).slice(0,10) : '';
+  ab=String(ab||'').slice(0,10); if(r>ab) ab=r;
+  let w=0; (S.historie||[]).forEach(h=>{ if(h && !h.luecke && h.datum && h.datum>=ab) w+=Math.max(0, num(h.punkteBilanz)); });
+  if(tagOffen() && S.tag.datum>=ab){ const q=S.meta.reset35, lo=(q && q.tagId===aktuelleTagId()) ? num(q.liveOffset) : 0; w+=Math.max(0, Math.max(0, tagesPunkteLive())-lo); }
+  return w;
+}
+function punkteSeit(ab){
+  ab=String(ab||'').slice(0,10); let p=0;
+  (S.historie||[]).forEach(h=>{ if(!h || h.luecke || !h.datum || h.datum<ab) return;
+    p+=(h.punkteDfm!=null || h.punktePrivat!=null) ? Math.max(0, num(h.punkteDfm))+Math.max(0, num(h.punktePrivat)) : Math.max(0, num(h.punkteBilanz)); });
+  if(tagOffen() && S.tag.datum>=ab) p+=Math.max(0, tagesPunkteLive());
+  return Math.round(p);
+}
+function kulisseKennzahlen(n){
+  const A=ausmalState(), st=ausmalStand(), start=A.kulissenStart[n]||jetztIso(), ms=Math.max(0, Date.now()-Date.parse(start));
+  const tage=Math.floor(ms/86400000), std=Math.floor((ms-tage*86400000)/3600000), ab=String(start).slice(0,10);
+  return { kulisse:n, start, tage, std, farbe:Math.round(farbeSeit(start)), fokusMin:Math.round(fokusMinSeit(start, null)), felder:st.felder,
+    malTage:A.malTage.filter(d=>d>=ab).length, punkte:punkteSeit(start),
+    naechsteFrei: n>=10 ? null : (A.freigeschaltetBis>n ? 0 : st.naechsteFrei) };
+}
+function kulisseAbschliessen(){
+  const A=ausmalState(), n=A.kulisse;
+  if(A.kulissenFertig.some(e=>e && num(e.kulisse)===n)) return false;
+  const d=kulisseKennzahlen(n);
+  A.kulissenFertig.push({ kulisse:n, ts:jetztIso(), tage:d.tage, farbe:d.farbe, fokusMin:d.fokusMin, felder:d.felder });
+  if(A.fertig.indexOf(n)<0) A.fertig.push(n);
+  saveMeta();
+  kulisseBelohnungZeigen(d, ()=>{ kulissenWechselPruefen(); });
+  return true;
+}
+function kulisseBelohnungHtml(d){
+  const slots=[0.15,0.5,1.1,1.7,2.3,2.9]; let si=0; const slot=()=>slots[Math.min(si++, slots.length-1)];
+  const st=cls=>'<div class="st '+cls+'" style="animation-delay:'+slot()+'s">';
+  const nn=String(d.kulisse).padStart(2,'0'), outfit=(typeof outfitHeute==='function') ? outfitHeute() : 1;
+  const hinweis=d.kulisse>=10 ? 'Letzte Kulisse — Reise komplett' : (d.naechsteFrei===0 ? 'Kulisse '+(d.kulisse+1)+' frei' : 'Kulisse '+(d.kulisse+1)+' frei ab '+fmtP(d.naechsteFrei)+' Farbe');
+  return '<div class="w kb kul">'+
+    st('kb-kopf')+'Kulisse '+d.kulisse+' ausgemalt</div>'+
+    st('kul-bild')+'<img class="bild" src="img/kulissen/bg'+nn+'_farbig.jpg" alt="Kulisse '+d.kulisse+'" data-kulav="1">'+
+      '<img class="av" src="'+AVATAR_BILDER[Math.max(0, Math.min(AVATAR_BILDER.length-1, outfit-1))]+'" alt="" onerror="this.style.display=\'none\'"><span class="tip">Tippen blendet den Avatar ein und aus</span></div>'+
+    st('g2')+'<div class="t"><b>'+d.tage+' Tg '+d.std+' Std</b><span>vom Start dieser Kulisse bis jetzt</span></div>'+
+      '<div class="t"><b>'+fmtP(d.farbe)+'</b><span>Farbe gesammelt für diese Kulisse</span></div></div>'+
+    st('g2')+'<div class="t"><b>'+stdMinText(d.fokusMin)+'</b><span>Fokuszeit in diesem Zeitraum</span></div>'+
+      '<div class="t"><b>'+d.felder+'</b><span>Felder ausgemalt</span></div></div>'+
+    st('g2')+'<div class="t"><b>'+d.malTage+'</b><span>Tag'+(d.malTage===1?'':'e')+' mit Ausmalen</span></div>'+
+      '<div class="t"><b>'+fmtP(d.punkte)+'</b><span>Punkte gesamt im Zeitraum</span></div></div>'+
+    st('t kul-hinweis')+'<b style="color:'+(d.naechsteFrei===0 ? FARBE.GRUEN : FARBE.WEISS)+'">'+esc(hinweis)+'</b></div>'+
+    '<button class="skip kb-weiter" data-belweiter="1">Weiter</button></div>';
+}
+function kulisseBelohnungZeigen(d, danach){
+  if(!d || typeof document==='undefined' || !document.body || !document.body.appendChild){ if(danach) danach(); return; }
+  const alt=el('belAnsicht'); if(alt && alt.remove) alt.remove();
+  const ov=document.createElement('div'); ov.id='belAnsicht'; ov.className='bel-ansicht kauf kulisse'; ov.innerHTML=kulisseBelohnungHtml(d); document.body.appendChild(ov);
+  const bild=ov.querySelector('.kul-bild'); if(bild) bild.addEventListener('click', e=>{ e.stopPropagation(); bild.classList.toggle('ohne-av'); });
+  const zu=()=>{ if(!ov.parentNode) return; ov.remove(); if(danach){ try{ danach(); }catch(e){} } };   // nicht überspringbar: nur „Weiter"
+  const w=ov.querySelector('[data-belweiter]'); if(w) w.addEventListener('click', e=>{ e.stopPropagation(); zu(); });
 }
 function ausmalKulisseWechsel(){
   const A=ausmalState(), von=A.kulisse; if(von>=10) return;
   if(A.fertig.indexOf(von)<0) A.fertig.push(von);
   S.meta.kulisseErreicht=Object.assign({}, S.meta.kulisseErreicht); if(!S.meta.kulisseErreicht[von+1]) S.meta.kulisseErreicht[von+1]=heuteApp();
-  A.kulisse=von+1; A.gefaerbt=[]; A.toepfe=[0,1,2,3,4].map(()=>({farbe:null, punkte:0})); A.aktiverTopf=0; A.stationFarbe=null;   // Tank bleibt
+  A.toepfe.forEach(t=>{ topfRestInTank(A, t); });   // §4c (v3.7.0): vorheriger Topfinhalt geht in den Tank (Tank bleibt)
+  A.kulisse=von+1; A.gefaerbt=[]; A.toepfe=[0,1,2,3,4].map(()=>({farbe:null, punkte:0})); A.aktiverTopf=0; A.stationFarbe=null;
+  A.kulissenStart[von+1]=jetztIso(); A.geschenkOffen=von+1;   // §4c (v3.7.0): Start der neuen Kulisse; Geschenk folgt, sobald die Kulissendaten da sind
+  kulissenGeschenkNachholen();
   _malZoom={z:1, x:0, y:0}; saveMeta(); _ausmalKompositKey='';
   try{ const sc=document.querySelector('.mal-scene'); if(sc){ sc.classList.add('wechsel'); setTimeout(()=>{ renderBelohnung(); }, 600); } else renderBelohnung(); }catch(e){ renderBelohnung(); }
   try{ momentKulisse(von, von+1); }catch(e){}
+}
+/* §4c (v3.7.0): beim Wechsel werden die 5 Töpfe mit 5 verschiedenen Farben der neuen Kulisse voll befüllt (Fassung nach
+   Topf-Regel) — ein Geschenk der Spiel-Ebene, nicht von der Farbe abgezogen. Braucht die Kulissendaten; bis sie geladen sind,
+   merkt ausmalen.geschenkOffen die Kulisse. */
+function kulissenGeschenkNachholen(){
+  const A=ausmalState(); if(A.geschenkOffen==null || num(A.geschenkOffen)!==A.kulisse){ if(A.geschenkOffen!=null && num(A.geschenkOffen)!==A.kulisse){ delete A.geschenkOffen; saveMeta(); } return false; }
+  const D=ausmalDaten(A.kulisse), T=topfFassung(); if(!D || !T) return false;
+  const farben=offeneFarben().slice(0,5);
+  A.toepfe.forEach((t,i)=>{ if(t.punkte>0) topfRestInTank(A, t); const f=farben[i]; if(f){ t.farbe=f.i; t.punkte=T; t.bannerGezeigt=true; } });
+  A.aktiverTopf=0; A.stationFarbe=farben.length ? farben[0].i : null; delete A.geschenkOffen;
+  _ausmalKompositKey=''; saveMeta(); return true;
 }
 /* ── §6.5 · Banner „Topf voll" ── */
 function ausmalBanner(idx){

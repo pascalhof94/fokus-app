@@ -353,6 +353,10 @@ function bestandSchreiben(){
     inkette370:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.eval('S.tagesketten=[{id:"tk1", name:"DFM-Fokus 1", karten:[]}]; S.ui.klGruppen={ikKette:true, "ikTk:tk1":true, ikRoutinen:true};'); fw.oeffneInKette('k-lang'); },
     plus370:function(fw){ fw.setTab('suche'); fw.eval('S.ui.klGruppen={kette:true, routinen:true};'); fw.oeffnePlusListe(); },
+    /* §4c (v3.7.0): Kulissen-Belohnungsansicht — Kulisse 1 vor 3 Tagen begonnen, alle Felder gemalt */
+    kulisse370:function(fw){ fw.setTab('belohnung'); fw.eval('ausmalDaten(1); (function(){ var A=ausmalState(); A.kulissenStart[1]=new Date(Date.now()-(3*24+5)*3600000).toISOString(); A.malTage=["2026-09-29","2026-09-30","2026-10-01"]; })();');
+      var d=fw.document, st=d.createElement('style'); st.textContent='.bel-ansicht .st{animation:none !important;opacity:1 !important;transform:none !important}'; d.head.appendChild(st);
+      setTimeout(function(){ fw.eval('(function(){ var A=ausmalState(), D=ausmalDaten(1); if(D) A.gefaerbt=(D.json.felder||[]).map(function(f){ return f.feld; }); kulisseBelohnungZeigen(kulisseKennzahlen(1)); })();'); }, 500); },
     /* ══ v3.6.0 · Shop neu: Übersicht (vor dem ersten Kauf), Einfärbung Stufe 1/6/12 je Kategorie ══ */
     shop360:function(fw){ fw.eval('S.ui.malmodus=false;'); var b=fw.document.getElementById('btnFigur'); if(b) b.click(); fw.closeSheet(); namenWeg(fw); },
     /* nach dem ersten Kauf (Soziales Stufe 1): Shop-Feld mit zuletzt gekaufter Stufe · die Kauf-Belohnung */
