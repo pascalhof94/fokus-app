@@ -4609,7 +4609,34 @@ function matrixPosSetzen(x, y, kid, anlass){
   }
   S.tag.matrixAbfragen=num(S.tag.matrixAbfragen)+1;
   saveTag();
+  try{ positionPunkteBuchen(); }catch(e){}   // §8 (v3.7.0): jede beantwortete Abfrage gibt Punkte (Staffel) auf „Position gesetzt"
   return bonus;
+}
+/* ══ §8 (v3.7.0) · POSITIONSABFRAGE GIBT PUNKTE ═══════════════════════════════════════════
+   Jede beantwortete Abfrage zählt als Werkzeug, Familie Privat, in einer Tages-Staffel: Abfrage 1–5 je 100 P, 6–8 je 50 P,
+   ab 9 je 20 P (Settings positionStaffel). Übersprungene bringen nichts. Buchung als Abhak-Punkte ohne Zeit (startBonus,
+   wie ein +1 ohne Uhr) auf die feste Privat-Karte „Position gesetzt" (rolle position, Matrixfeld Werkzeug) — fehlt sie,
+   legt die App sie an (id k3-position), damit /Fokus Sync sie zuordnen kann. Die Karte steht in keiner Liste. */
+function positionStaffel(n){
+  const st=(S.settings && Array.isArray(S.settings.positionStaffel) && S.settings.positionStaffel.length===3) ? S.settings.positionStaffel : [100,50,20];
+  return n<=5 ? num(st[0],100) : (n<=8 ? num(st[1],50) : num(st[2],20));
+}
+function positionKarte(anlegen){
+  let k=S.karten.find(x=>x.rolle==='position' && x.status!=='archiviert'); if(k || !anlegen) return k||null;
+  k={ id:'k3-position', titel:'Position gesetzt', domain:'privat', rolle:'position', matrixFeld:'werkzeug', status:'offen', erstellt:jetztIso(), letzteBearbeitung:jetztIso(), komplexitaet:1, energie:1, blockade:1 };
+  if(S.karten.some(x=>x.id===k.id)) k.id='k3-position-'+uuid().slice(0,8);
+  S.karten.push(k); saveKarten(); return k;
+}
+function karteVerborgen(k){ return !!(k && (k.rolle==='tagebuch' || k.rolle==='position')); }   // §8 (v3.7.0): nie in Listen, Ketten oder der Leiste
+function positionPunkteBuchen(){
+  if(!S.tag || !tagBuchbar()) return 0;
+  const n=matrixSpur().filter(e=>e && e.ts && !e.uebersprungen).length, p=positionStaffel(n); if(!(p>0)) return 0;
+  const k=positionKarte(true), tid=aktuelleTagId();
+  const alt=(k.startBonus && k.startBonus.tag===tid) ? k.startBonus : { tag:tid, punkte:0, n:0 };
+  k.startBonus={ tag:tid, punkte:num(alt.punkte)+p, n:num(alt.n)+1 }; beruehre(k);
+  const e=logIntraday(k,{punkte:0, typ:'tick'}); buchungAbgleich(k, e); saveKarten();
+  try{ momentBuchung(p); }catch(x){}
+  return p;
 }
 /* §1.2: Überspringen bleibt möglich — aber die App zählt mit und zeigt es in
    der Statistik. Die alte Akku-Abfrage wurde faktisch immer übersprungen
@@ -4741,6 +4768,7 @@ function matrixDialogSpeichern(){
   const danach=t.danach; matrixTmp=null;
   closeSheet(); renderAlles();
   if(bonus>=1){ toast('↗︎ Bewegung nach rechts · +'+Math.round(bonus)+' P'); momentBuchung(bonus); }
+  else { const pk=positionKarte(false); if(pk && pk.startBonus && pk.startBonus.tag===aktuelleTagId()) toast('Position gesetzt · +'+fmtP(positionStaffel(matrixSpur().filter(x=>x && x.ts && !x.uebersprungen).length))+' P'); }   // §8 (v3.7.0)
   // §9: DIREKT nach dem Matrix-Tap kommt der Vorschlag — genau einmal je
   // KARTE (nicht einmal je Tag): die Karten-ID muss mit, sonst merkt sich die
   // App nur die Marke „_frei" und der Vorschlag erscheint den ganzen Tag
@@ -5283,7 +5311,7 @@ function tagesKetteDom(dom){
 }
 function ketteKarten(dom){
   const by={}; S.karten.forEach(k=>by[k.id]=k);
-  return (dom?tagesKetteDom(dom):tagesKette()).map(id=>by[id]).filter(Boolean);
+  return (dom?tagesKetteDom(dom):tagesKette()).map(id=>by[id]).filter(k=>k && !karteVerborgen(k));
 }
 function ketteHat(id){ return tagesKette().indexOf(id)>=0; }
 /* Manuelles Ergänzen/Entfernen. */
@@ -5609,7 +5637,7 @@ function fokusKandidaten(){
   if(eigene.length) return eigene;
   const beide=ketteKarten().filter(k=>k.status==='offen');
   if(beide.length) return beide;
-  return navSortiere(navFilter(S.karten.filter(k=>k.status==='offen')));
+  return navSortiere(navFilter(S.karten.filter(k=>k.status==='offen' && !karteVerborgen(k))));
 }
 /* U2 (v1.4.0): heute bearbeitete Karten, zuletzt bearbeitete zuerst —
    Datenbasis der Rückwärts-Navigation (stapelunabhängig). */
@@ -6865,7 +6893,7 @@ function fbGrosseMatrix(opt){
   const QF={ablenkung:['rgba(255,92,92,.10)',0,0], zustand:['rgba(255,154,60,.10)',0,1],
             werkzeug:['rgba(34,211,197,.10)',1,0], ziel:['rgba(74,222,128,.10)',1,1]};
   // §6/§7 (v2.4.0): klickbar → Tipp in ein Feld oeffnet das Tagebuch dort.
-  let g='<svg class="fb-mx'+(opt.klick?' klick':'')+'" data-tbmatrix="1" data-rand="'+P+'" viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Matrix mit der Linie durch den Tag'+(opt.klick?' — tippen für einen Tagebuch-Eintrag':'')+'">';
+  let g='<svg class="fb-mx'+(opt.klick?' klick':'')+'" data-tbmatrix="1" data-rand="'+P+'" viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Matrix mit der Linie durch den Tag">';
   Object.keys(QF).forEach(f=>{
     const q=QF[f], x=P+q[1]*(W-2*P)/2, y=P+q[2]*(H-2*P)/2;
     g+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+((W-2*P)/2).toFixed(1)+'" height="'+((H-2*P)/2).toFixed(1)+'" fill="'+q[0]+'"/>';
@@ -6912,7 +6940,7 @@ function fbGrosseMatrix(opt){
 function fbWasIchBewege(k){
   const p=matrixPos();
   const mf=matrixFeldVon(k);
-  const gm=fbGrosseMatrix({klick:true});
+  const gm=fbGrosseMatrix({klick:false});   // §8 (v3.7.0)
   let h='<div class="fb"><div class="fb-h">Was ich gerade bewege</div><div class="fb-kacheln">';
   h+='<div class="fbk voll"><div class="fbk-h">Position im Tag'+(gm.n?' · '+gm.n+' Messungen':'')+'</div>'+
      '<div>'+gm.svg+'</div>'+
@@ -7010,7 +7038,7 @@ function fbWoIchStehe(){
    Schlafen zuletzt. Nach dem Tagesabschluss ist alles grau ausser Schlafen
    (und Aufstehen fuer den naechsten Morgen). Der Tipp auf den Titel oeffnet
    die Karte — nie ein Haken (Karten-Kontrakt). */
-function istLeistenKarte(k){ return istRoutineOderCounter(k); }   // §1.3 (v3.2.0): Aufgaben (auch im Modus zeit) stehen nicht in der Leiste
+function istLeistenKarte(k){ return istRoutineOderCounter(k) && !karteVerborgen(k); }   // §8 (v3.7.0): Tagebuch/Position nie in der Leiste   // §1.3 (v3.2.0): Aufgaben (auch im Modus zeit) stehen nicht in der Leiste
 function abhakLeisteKarten(){
   const heute=heuteApp(), tid=aktuelleTagId(), bl=tagesBloecke()||[], ids=tagesKette();
   const bIdx={}; bl.slice().sort((a,b)=>a.von-b.von || a.tiefe-b.tiefe).forEach((b,i)=>bIdx[b.id]=i);
@@ -8722,7 +8750,7 @@ function matrixHeuteHtml(opt){
   opt=opt||{};
   const W=300, M=W/2, P=12, z=matrixZeitFelder(), sp=matrixSpur().filter(e=>!e.uebersprungen && e.ts);
   const X=v=>P+((Math.max(-1,Math.min(1,num(v)))+1)/2)*(W-2*P), Y=v=>P+((1-Math.max(-1,Math.min(1,num(v))))/2)*(W-2*P);
-  let g='<svg class="fb-mx mx-heute'+(opt.klick!==false?' klick':'')+'" data-tbmatrix="1" data-rand="'+P+'" viewBox="0 0 '+W+' '+W+'" width="100%" role="img" aria-label="Matrix heute — tippen für einen Tagebuch-Eintrag">'+
+  let g='<svg class="fb-mx mx-heute'+(opt.klick===true?' klick':'')+'" data-tbmatrix="1" data-rand="'+P+'" viewBox="0 0 '+W+' '+W+'" width="100%" role="img" aria-label="Matrix heute">'+
     '<rect x="0" y="0" width="'+M+'" height="'+M+'" fill="'+FARBE.ROT+'" fill-opacity=".10"/><rect x="'+M+'" y="0" width="'+M+'" height="'+M+'" fill="'+FARBE.GRUEN+'" fill-opacity=".10"/>'+
     '<rect x="0" y="'+M+'" width="'+M+'" height="'+M+'" fill="'+FARBE.ROT+'" fill-opacity=".05"/><rect x="'+M+'" y="'+M+'" width="'+M+'" height="'+M+'" fill="'+FARBE.GRUEN+'" fill-opacity=".05"/>'+
     '<line x1="'+M+'" y1="0" x2="'+M+'" y2="'+W+'" stroke="rgba(255,255,255,.12)"/><line x1="0" y1="'+M+'" x2="'+W+'" y2="'+M+'" stroke="rgba(255,255,255,.12)"/>';
@@ -8802,7 +8830,7 @@ function kartenMeistgenutzt(){
   const heute=belFensterDatum(jetztIso()), ab=anVorTage(heute, 6), tid=aktuelleTagId(), n={}, last={};
   (S.intraday||[]).forEach(e=>{ if(!e || !e.ts || !e.kartenId) return; if(['timer','autopause','nachtrag','tick','abhaken'].indexOf(e.typ)<0) return;
     const d=belFensterDatum(e.ts); if(d<ab || d>heute) return; n[e.kartenId]=(n[e.kartenId]||0)+1; if(!last[e.kartenId] || e.ts>last[e.kartenId]) last[e.kartenId]=e.ts; });
-  return S.karten.filter(k=>k.status!=='archiviert' && (k.status==='offen' || (k.status==='erledigt' && k.tagId===tid)))
+  return S.karten.filter(k=>k.status!=='archiviert' && !karteVerborgen(k) && (k.status==='offen' || (k.status==='erledigt' && k.tagId===tid)))
     .map(k=>({k, n:n[k.id]||0, last:last[k.id]||''})).sort((a,b)=>(b.n-a.n) || (b.last<a.last?-1:b.last>a.last?1:0));
 }
 /* Prioritaetsampel: Rang der Karte unter den offenen (karteNorm, 1 = dringend) auf den fuenf Bewertungsfarben */
@@ -8885,12 +8913,12 @@ function klGruppiert(karten, gruppe){
 function klVerlauf(){
   const l=fokusOeffnungen(), n={}, folge=[], by={}; S.karten.forEach(k=>by[k.id]=k);
   for(let i=l.length-1;i>=0;i--){ const id=l[i]; if(n[id]==null){ n[id]=0; folge.push(id); } n[id]++; }
-  return folge.map(id=>({k:by[id], n:n[id]})).filter(q=>q.k && q.k.status!=='archiviert');
+  return folge.map(id=>({k:by[id], n:n[id]})).filter(q=>q.k && q.k.status!=='archiviert' && !karteVerborgen(q.k));
 }
 /* §7 (v3.7.0): die festen Ketten „Ticks DFM" und „Ticks Privat" — alle tickbaren Karten der Familie (offen oder heute erledigt) */
 function klTicks(dom){
   const tid=aktuelleTagId();
-  return S.karten.filter(k=>k && k.status!=='archiviert' && !k.freeze && istTickbar(k) && !istSonderRolle(k) && (k.domain==='privat')===(dom==='privat') &&
+  return S.karten.filter(k=>k && k.status!=='archiviert' && !k.freeze && istTickbar(k) && !istSonderRolle(k) && !karteVerborgen(k) && (k.domain==='privat')===(dom==='privat') &&
     (k.status==='offen' || (k.status==='erledigt' && k.tagId===tid)));
 }
 /* Tagesblock (erste Ebene) einer Routine: die Blockzuordnung der Karte (heute) → sonst nach Rolle (Aufstehen = erster Block,
@@ -8909,7 +8937,7 @@ function klRoutineBlock(k, bl){
 function klRoutinenGruppen(){ return klGruppiert(abhakLeisteKarten(), 'routinen'); }
 function klErledigtHeute(){
   const tid=aktuelleTagId();
-  return S.karten.filter(k=>k && k.status!=='archiviert' && (istAufgabeKarte(k) ? (k.status==='erledigt' && k.tagId===tid) : kartenStatusHeute(k)==='erledigt'))
+  return S.karten.filter(k=>k && k.status!=='archiviert' && !karteVerborgen(k) && (istAufgabeKarte(k) ? (k.status==='erledigt' && k.tagId===tid) : kartenStatusHeute(k)==='erledigt'))
     .sort((a,b)=>String(b.letzteBearbeitung||'')<String(a.letzteBearbeitung||'') ? -1 : String(b.letzteBearbeitung||'')>String(a.letzteBearbeitung||'') ? 1 : 0);
 }
 function klFilterPasst(k, q){
@@ -11962,7 +11990,7 @@ function v3FelderUebernehmen(z, inc, unter){
     serienfaktor:bool, immerSichtbar:bool, vorlaufTage:zahl, gruppePflicht:text,
     folgekarte:v=>(v && typeof v==='object') ? JSON.parse(JSON.stringify(v)) : null,
     akkuLadung:zahl, eingabe:v=>leer(v) ? null : eingabeVon({eingabe:v}),
-    rolle:v=>(v==='aufstehen'||v==='tagesabschluss'||v==='schlafen'||v==='erholung'||v==='tagebuch') ? v : null };
+    rolle:v=>(v==='aufstehen'||v==='tagesabschluss'||v==='schlafen'||v==='erholung'||v==='tagebuch'||v==='position') ? v : null };   // §8 (v3.7.0): position
   Object.keys(F).forEach(f=>{ if(inc[f]!==undefined) z[f]=F[f](inc[f]); });
 }
 /* ══ §4 (v3.1.0) · KARTENDETAILS VOLLSTAENDIG ══════════════════════════
@@ -17635,7 +17663,6 @@ function suMatrixHtml(){
     h+='<div class="su-mxdot" style="left:'+px.toFixed(1)+'%;top:'+py.toFixed(1)+'%" title="deine Position"></div>';
   }
   h+='</div>';
-  h+='<button class="su-tagebuch" data-tagebuch="1">📓 Tagebuch — wo stehe ich gerade?</button>';
   h+='<div class="hint" style="padding:0 12px 6px">'+(p
       ? 'Dein Punkt liegt im Raster — '+esc(matrixLesart(p.x,p.y).replace(/<[^>]+>/g,''))
       : 'Noch keine Position heute. Sie wird beim Verlassen einer Karte abgefragt.')+'</div>';
@@ -17724,107 +17751,16 @@ function oeffneKettePosition(kid){
     '<button class="btn prim" data-kstart="'+kid+'">▶ Starten</button>';
   openSheet('Position in der Kette', h, foot);
 }
-/* ══ §6 (v2.4.0) · DAS TAGEBUCH ═══════════════════════════════════════
-   Die App erfasst Pascal bisher vor allem rechts in der Matrix, wenn er mit
-   einer Karte arbeitet. Die Zeit unten links, in der er haengt, blieb
-   „unbekannt". Ein Tagebuch-Eintrag ist eine POSITION mit optionalem Warum:
-   Gedanke · Wirkung · Mittel (oder „ist gut so") · Akku. Nur die Position
-   ist Pflicht — die Schwelle muss niedrig sein.
-   Der Eintrag landet in der Positions-Spur (quelle:'tagebuch') und zaehlt
-   in die Zeit je Matrix-Feld (v2.3 §8): er gilt bis zur naechsten Messung.
-   Er bucht KEINEN Bewegungsbonus und loest keinen Vorschlag aus — er ist
-   eine Beobachtung, kein Verlassen einer Karte. Der Buchungsdialog beim
-   Erledigen und Schieben bleibt, wie er ist. */
-function oeffneTagebuch(x, y){
-  if(!tagOffen()){ toast('Kein Tag gestartet — das Tagebuch schreibt in den laufenden Tag.'); return; }
-  const p = (x!=null && y!=null) ? {x:num(x), y:num(y)} : matrixPosOderMitte();
-  const a=akkuLive();
-  closeSheet();
-  matrixTmp={ kid:null, anlass:'tagebuch', tagebuch:true,
-    x:Math.max(-1,Math.min(1,p.x)), y:Math.max(-1,Math.min(1,p.y)),
-    akku:(a==null?null:Math.round(a)), akkuStart:(a==null?null:Math.round(a)),
-    gedanke:'', wirkung:'', mittel:'', istGut:null };
-  renderTagebuch();
-}
-function tagebuchFelderLesen(){
-  const t=matrixTmp; if(!t) return;
-  const g=el('tbGedanke'), w=el('tbWirkung'), m=el('tbMittel');
-  if(g) t.gedanke=g.value; if(w) t.wirkung=w.value; if(m) t.mittel=m.value;
-}
-function renderTagebuch(){
-  const t=matrixTmp; if(!t || !t.tagebuch) return;
-  let h='<p class="d"><b>Wo stehst du gerade?</b> Nur der Punkt ist Pflicht — alles andere darf leer bleiben.</p>';
-  h+=matrixPadHtml(t.x, t.y);
-  h+='<div class="field"><label>Welcher Gedanke?</label><input id="tbGedanke" maxlength="160" value="'+esc(t.gedanke)+'" placeholder="optional"></div>';
-  h+='<div class="field"><label>Was macht das mit mir?</label><input id="tbWirkung" maxlength="160" value="'+esc(t.wirkung)+'" placeholder="optional"></div>';
-  h+='<div class="field"><label>Mittel dagegen — oder ist es gut so?</label><div class="chips">'+
-     '<button class="chip '+(t.istGut===true?'on':'')+'" data-tbgut="1">ist gut so</button>'+
-     '<button class="chip '+(t.istGut===false?'on':'')+'" data-tbgut="0">Mittel: …</button></div>'+
-     (t.istGut===false?'<input id="tbMittel" maxlength="120" value="'+esc(t.mittel)+'" placeholder="z. B. 10 Min raus, Wasser, Anruf verschieben" style="margin-top:6px">':'')+
-     '</div>';
-  if(t.akku!=null){
-    h+='<div class="field mx-akku"><label>🔋 Akku jetzt <b id="mxAkkuV">'+Math.round(t.akku)+'%</b></label>'+
-       '<input type="range" min="0" max="'+AKKU_MAX+'" step="5" id="mxAkku" value="'+Math.round(t.akku)+'"></div>';
-  }
-  openSheet('Tagebuch', h, '<button class="btn ghost sm" data-close="1">Abbrechen</button>'+
-    '<button class="btn prim" data-tbgo="1">Speichern</button>');
-}
-/* Akku aus einem Dialog buchen — derselbe Weg wie der Matrix-Dialog. */
-function akkuAusDialogBuchen(t, kommentar){
-  const inp=el('mxAkku');
-  if(!(inp && t.akku!=null && S.tag && S.tag.akku!=null)) return null;
-  if(String(inp.value).trim()==='') return Math.round(akkuLive());   // kein Wert = nicht angefasst
-  const vorher=akkuLive();
-  const neuA=Math.max(0, Math.min(AKKU_MAX, num(inp.value,vorher)));
-  if(Math.abs(neuA-vorher)<0.05) return Math.round(vorher);
-  const pending=vorher-num(S.tag.akku);
-  S.tag.akku=Math.max(0, Math.min(AKKU_MAX, neuA-pending));
-  akkuSampleSchreiben();
-  if(!Array.isArray(S.meta.akkuEintraege)) S.meta.akkuEintraege=[];
-  S.meta.akkuEintraege.push({ ts:jetztIso(), datum:heuteApp(), kid:null, titel:null,
-    vorher:Math.round(vorher), nachher:Math.round(neuA), delta:Math.round((neuA-vorher)*10)/10, kommentar:kommentar||'' });
-  if(S.meta.akkuEintraege.length>300) S.meta.akkuEintraege=S.meta.akkuEintraege.slice(-300);
-  saveMeta();
-  return Math.round(neuA);
-}
-function tagebuchSpeichern(){
-  const t=matrixTmp; if(!t || !t.tagebuch){ closeSheet(); return; }
-  tagebuchFelderLesen();
-  const akku=akkuAusDialogBuchen(t, (t.gedanke||'').slice(0,80));
-  const eintrag={ ts:jetztIso(), x:Math.round(t.x*100)/100, y:Math.round(t.y*100)/100,
-    kid:null, anlass:'tagebuch', quelle:'tagebuch',
-    gedanke:String(t.gedanke||'').trim(), wirkung:String(t.wirkung||'').trim(),
-    mittel: t.istGut===false ? String(t.mittel||'').trim() : '',
-    istGut: t.istGut===true, akku: akku!=null ? akku : (akkuLive()!=null?Math.round(akkuLive()):null) };
-  matrixSpur().push(eintrag);
-  if(matrixSpur().length>400) S.tag.matrixSpur=matrixSpur().slice(-400);
-  saveTag();
-  matrixTmp=null;
-  closeSheet();
-  // v3.4.1 §B: der Tagebuch-Eintrag tickt die Karte mit rolle „tagebuch" — derselbe Weg wie ihr „+1" (fehlt sie: nichts)
-  const tbk=S.karten.find(k=>k.rolle==='tagebuch' && k.status!=='archiviert');
-  if(tbk) leisteTicken(tbk.id); else renderAlles();
-  toast('📓 Tagebuch-Eintrag gespeichert'); haptik(12);
-}
-/* Tipp in eine Matrix-Grafik → Tagebuch an genau dieser Stelle. Die Grafik
-   ist ein SVG mit viewBox; der Rand P ist ausserhalb der Felder. */
-function tagebuchAusMatrixKlick(e, svg){
-  const r=svg.getBoundingClientRect(); if(!(r.width>0 && r.height>0)) return;
-  const vb=(svg.getAttribute('viewBox')||'0 0 300 240').split(/\s+/).map(Number), W=vb[2], H=vb[3];
-  const P=num(svg.dataset.rand,6);
-  const fx=(e.clientX-r.left)/r.width*W, fy=(e.clientY-r.top)/r.height*H;
-  const x=((fx-P)/(W-2*P))*2-1, y=1-((fy-P)/(H-2*P))*2;
-  oeffneTagebuch(Math.max(-1,Math.min(1,x)), Math.max(-1,Math.min(1,y)));
-}
+/* §8 (v3.7.0): die Tagebuch-Karte (rolle tagebuch) ist entfernt — Knopf, Eintragsdialog, Matrix-Tipp und ihr +1 entfallen.
+   Bestehende Einträge (quelle 'tagebuch') bleiben in Spur, Historie und Export. */
 /* ══ §7 (v2.4.0) · STATISTIK — die Matrix ganz oben ══════════════════ */
 function stMatrixTag(){
-  const gm=fbGrosseMatrix({klick:true});
+  const gm=fbGrosseMatrix({klick:false});   // §8 (v3.7.0): kein Tagebuch-Einstieg mehr
   const z=gm.zeit, tb=matrixSpur().filter(e=>e.quelle==='tagebuch').length;
   const inner='<div class="st-mx">'+gm.svg+'</div>'+
     '<div class="an-legend"><span><i style="background:var(--txt)"></i>Position</span>'+
     '<span><i class="rhombus"></i>Tagebuch ('+tb+')</span></div>'+
-    '<div class="hint">Unbekannt: <b>'+Math.round(z.unbekannt)+' Min</b> — vor der ersten, nach der letzten Messung und übersprungene Abfragen. '+
-    'Tipp in ein Feld: Tagebuch-Eintrag genau dort.</div>';
+    '<div class="hint">Unbekannt: <b>'+Math.round(z.unbekannt)+' Min</b> — vor der ersten, nach der letzten Messung und übersprungene Abfragen.</div>';
   return anModul('🧭','Der Tag in der Matrix', gm.n+' Messungen · '+Math.round(z.mess)+' Min Messzeit', inner);
 }
 function renderStatistik(){ renderStatistikBody(); }
@@ -18799,8 +18735,6 @@ el('fokusView').addEventListener('click', e=>{
     fokusStarten(id); S.ui.fokusOffen=true; S.ui.fokusZeigt=null; saveUi(); renderAlles(); return; }
   const alk=t.closest('[data-alkarte]'); if(alk){ haptik(8); fokusKarteAnsehen(alk.dataset.alkarte); return; }
   const zsk=t.closest('[data-zskarte]'); if(zsk){ haptik(8); fokusKarteAnsehen(zsk.dataset.zskarte); return; }
-  // §6 (v2.4.0): Tipp in die grosse Matrix → Tagebuch an dieser Stelle
-  const tbm=t.closest('svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; }
   const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
   if(karteRowClick(t, e)) return;   // U1: Fokus-Liste = gleiche Karten-Zeilen-Aktionen wie der Stapel
   const su=t.closest('[data-fksub]'); if(su){ const u=S.unteraufgaben.find(x=>x.id===su.dataset.fksub); if(u){ u.done=!u.done; DB.set('unteraufgaben', S.unteraufgaben); { const _pk=S.karten.find(x=>x.id===u.parentId), _d=buchungAbgleich(_pk, 'unteraufgabe'); if(u.done) hakMerken(u.id, Math.max(num(_d), num(u.bonusPunkte)), _pk); } renderFokus(); } return; }
@@ -19160,10 +19094,6 @@ el('sheet').addEventListener('click', e=>{
     if(entwurf){ detailLies(); entwurf.faelligkeit=abZiel.dataset.abziel; renderDetail(); } return; }
   // ══ §1.2 (v2.0.0) · Der EINE Dialog für Matrix und Akku ══
   if(t.closest('[data-mxgo]')){ matrixDialogSpeichern(); return; }
-  if(t.closest('[data-tbgo]')){ tagebuchSpeichern(); return; }
-  const tbg=t.closest('[data-tbgut]'); if(tbg && matrixTmp && matrixTmp.tagebuch){
-    tagebuchFelderLesen(); const v=tbg.dataset.tbgut==='1';
-    matrixTmp.istGut = (matrixTmp.istGut===v) ? null : v; renderTagebuch(); return; }
   // ══ §6 (v2.0.0) · Kette aus der SUCHE heraus sortieren ══
   const kp=t.closest('[data-kpos]'); if(kp){
     if(ketteBewegen(kp.dataset.kpos, num(kp.dataset.n))){ haptik(10); toast('Position '+num(kp.dataset.n)); }
@@ -19544,7 +19474,6 @@ function statKlick(e){
     document.querySelectorAll('#statistikBody .mv-hit.sel').forEach(c=>c.classList.remove('sel'));
     msp.classList.add('sel');
     if(box){ box.innerHTML=matrixPunktInfoHtml(num(msp.dataset.mspunkt)); box.classList.add('on'); } haptik(6); return; }
-  const tbm=e.target.closest('svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; }   // §6/§7 (v2.4.0)
   if(e.target.closest('[data-album]')){ oeffneAlbum(); return; }   // §8 (1.9.0)
   // §4 (v2.2.0): Sprung zum Shop-Bereich der Seite
   // (main scrollt unter der fixen Kopfleiste — deshalb um deren Höhe versetzt)
@@ -19917,7 +19846,6 @@ el('suBody').addEventListener('click', e=>{
     renderSuche(); return; }
   const kg=t.closest('[data-kalgruppe]'); if(kg){ haptik(6); _kalAuf[kg.dataset.kalgruppe]=!_kalAuf[kg.dataset.kalgruppe]; renderSuche(); return; }
   const kb=t.closest('[data-kalkarte]'); if(kb){ haptik(8); fokusKarteAnsehen(kb.dataset.kalkarte); return; }
-  if(t.closest('[data-tagebuch]')){ haptik(8); oeffneTagebuch(); return; }   // §6 (v2.4.0)
   const mx=t.closest('[data-sumx]');
   if(mx){ S.ui.suMatrixFeld=(S.ui.suMatrixFeld===mx.dataset.sumx)?null:mx.dataset.sumx; saveUi(); renderSuche(); return; }
   // §2: Ein Schnellknopf loest seine Aktion aus — und NICHTS sonst. Das
