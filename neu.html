@@ -15403,20 +15403,24 @@ function belohnungNachZiel(k, vor, hatteZiel){ if(!k || k.rolle || hatteZiel) re
 function belohnungDaten(k, vor, anlass){
   try{ ausmalVerteilen(); }catch(e){}
   const A=ausmalState(), g=diaGroessen(), nach=belohnungSnapshot(k);
-  const punkte=Math.max(0, nach.log-vor.log), bonus=(anlass==='abhaken' && istAufgabeKarte(k)) ? Math.max(0, num(abhakbonusDefault(k))) : 0;
+  const delta=Math.max(0, nach.log-vor.log), bonus=(anlass==='abhaken' && istAufgabeKarte(k)) ? Math.max(0, num(abhakbonusDefault(k))) : 0;
   let min=vor.sek!=null ? vor.sek/60 : 0;
   if(anlass!=='pause'){ const heute=belFensterDatum(jetztIso()); let letzte=null; (S.intraday||[]).forEach(e=>{ if(e && e.kartenId===k.id && e.typ==='timer' && num(e.minuten)>=1 && belFensterDatum(e.ts)===heute) letzte=e; }); min=letzte ? num(letzte.minuten) : heuteInvestiertMin(k); }
+  // §3b (v3.7.1): nach dem Abhaken zeigt die Ansicht ALLE Punkte der Karte für heute — Zeit (Sitzungen und Ticks, ohne Bonus) +
+  // Abhakbonus = gesamt; Tempo = Zeitpunkte ÷ heutige Minuten. Münzen und Farbe weiter nur aus dem, was neu dazukommt (delta).
+  let punkte=delta, zeitPunkte=null, gesamt=null;
+  if(anlass==='abhaken'){ gesamt=Math.max(0, kartenLogHeute(k.id)); zeitPunkte=Math.max(0, gesamt-bonus); punkte=gesamt; min=heuteInvestiertMin(k); }
   let planMin=0; S.karten.forEach(x=>{ if(imTagesstrom(x)) planMin+=num(x.sollMin); });
   const tVor=A.toepfe[vor.topfIdx], T=topfFassung();
   const topfNach=tVor ? num(tVor.punkte) : 0, tankAktiv=vor.alleVoll;
   const kaufbar=(nach.nk && nach.konto>=nach.nk.preis && !(vor.nk && vor.konto>=vor.nk.preis)) ? nach.nk : null;
   return { k, anlass, titel:k.titel||'(ohne Titel)', dom:k.domain==='privat'?'PRIVAT':'DFM', feld:matrixName(matrixFeldVon(k)), fam:k.domain==='privat'?FARBE.LILA:FARBE.BLAU, famHell:k.domain==='privat'?FARBE.LILA_HELL:FARBE.BLAU_HELL,
-    punkte, bonus, tagVor:vor.tag, tagNach:nach.tag, ziel:g.zielHeute, soll:(function(){ try{ return sollStandGesamt(); }catch(e){ return null; } })(),
+    punkte, bonus, zeitPunkte, gesamt, tagVor:vor.tag, tagNach:nach.tag, ziel:g.zielHeute, soll:(function(){ try{ return sollStandGesamt(); }catch(e){ return null; } })(),
     min, planMin, sollMin:istAufgabeKarte(k)?num(k.sollMin):null,
     akkuVor:vor.akku, akkuNach:nach.akku,
-    tempo: min>=1 ? punkte/(min/60) : null, tempoSchnitt:g.tempoSchnitt,
+    tempo: min>=1 ? (anlass==='abhaken' ? zeitPunkte : punkte)/(min/60) : null, tempoSchnitt:g.tempoSchnitt,
     farbe: T ? { name:(tVor && tVor.farbe!=null && ausmalDaten(A.kulisse)) ? ausmalDaten(A.kulisse).namen[tVor.farbe] : 'Tank', hex:(tVor && tVor.farbe!=null && ausmalDaten(A.kulisse)) ? ausmalDaten(A.kulisse).hex[tVor.farbe] : FARBE.GRAU,
-      vor:Math.round(vor.topf/T*100), nach:Math.round(Math.max(vor.topf, topfNach)/T*100), tank:tankAktiv, tankVor:vor.tank, tankNach:nach.tank, w:Math.max(0, punkte) } : null,
+      vor:Math.round(vor.topf/T*100), nach:Math.round(Math.max(vor.topf, topfNach)/T*100), tank:tankAktiv, tankVor:vor.tank, tankNach:nach.tank, w:Math.max(0, delta) } : null,
     kontoVor:vor.konto, kontoNach:nach.konto, muenzen:Math.max(0, Math.round(nach.konto-vor.konto)), kaufbar,
     outfitVor:vor.outfit, outfitNach:nach.outfit, kulisse:A.kulisse,
     faktor:matrixFaktor(k), nk:nach.nk };
@@ -15430,7 +15434,8 @@ function belohnungAnsichtZeigen(d, danach){
   let h='<div class="w"><div class="row sp st" style="animation-delay:.05s"><div><div class="h">'+kopf+' · '+d.dom+' · '+esc(String(d.feld).toUpperCase())+'</div><div class="bt">'+esc(d.titel)+'</div></div></div>';
   // 1 Punkte
   const t1=slot();
-  h+='<div class="k st" style="animation-delay:'+t1+'s"><div class="row sp"><span class="h">PUNKTE DIESER KARTE</span>'+(d.bonus>0?'<span class="m h">+'+fmtP(d.bonus)+' Abhakbonus</span>':'')+'</div>'+
+  h+='<div class="k st" style="animation-delay:'+t1+'s"><div class="row sp"><span class="h">PUNKTE DIESER KARTE'+(d.anlass==='abhaken'?' · HEUTE':'')+'</span>'+(d.bonus>0 && d.anlass!=='abhaken'?'<span class="m h">+'+fmtP(d.bonus)+' Abhakbonus</span>':'')+'</div>'+
+    (d.anlass==='abhaken' && d.gesamt!=null ? '<div class="row h bel-aufteilung"><span>Zeit '+fmtP(Math.round(d.zeitPunkte))+' P</span><span>Abhakbonus '+fmtP(Math.round(d.bonus))+' P</span><span>gesamt '+fmtP(Math.round(d.gesamt))+' P</span></div>' : '')+   // §3b (v3.7.1)
     '<div class="row sp"><span class="big m" data-zaehl="'+Math.round(d.punkte)+'" data-pre="+" style="color:'+d.fam+'">+0</span><span class="m h">'+fmtP(Math.round(d.tagVor))+' → '+fmtP(Math.round(d.tagNach))+' von '+fmtP(Math.round(d.ziel))+'</span></div>'+
     '<div class="bar"><i style="--a:'+pct(d.tagVor,d.ziel)+'%;--b:'+pct(d.tagNach,d.ziel)+'%;background:linear-gradient(90deg,'+d.famHell+','+d.fam+');animation-delay:'+(t1+0.3)+'s"></i>'+(d.soll!=null?'<b style="left:'+pct(d.soll,d.ziel)+'%"></b>':'')+'</div>'+
     '<div class="row h"><span>Tagesziel</span><span>'+(d.soll!=null?'Soll '+fmtP(Math.round(d.soll)):'')+'</span></div></div>';
