@@ -2274,6 +2274,19 @@ img.objimg.laedt{opacity:0}
 .bel-ansicht .kb-gl .gl i{flex:1;border-radius:3px 3px 0 0}
 .bel-ansicht .kb-gl .gls{color:#c9cbd0}
 .bel-ansicht .kb-weiter{background:linear-gradient(180deg,#f3dc8a,#d4af37);color:#2a1f00;font-weight:800}
+/* ══ 3.7.0 §6 · Kartenzeile: Familienton, Umrandung nach Art, Dringlichkeits-Ränder, Zeit statt Tick · §5 Sortierwahl ══ */
+.kl-z{background:linear-gradient(var(--famb,transparent),var(--famb,transparent)),#1a1d22;color:#e8e9ec;border:1px solid var(--rand,#2a2d33);border-left:5px solid var(--prio,#9a9ca2);border-right:5px solid var(--prio,#9a9ca2);box-sizing:border-box}
+.kl-z.laeuft{background:linear-gradient(var(--famb,transparent),var(--famb,transparent)),#1a1d22}
+.kl-z .kl-titel{color:#e8e9ec}
+.kl-z .kl-meta{color:#c9cbd0}
+.kl-z.ueber{opacity:.55}
+.kl-zeit{flex:none;min-width:44px;height:36px;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:#e8e9ec}
+.kl-grk b{white-space:nowrap}
+.kl-grk select.kl-sort{margin-left:6px;height:30px;max-width:40%;flex:0 1 auto;min-width:0;border-radius:8px;border:1px solid #2a2d33;background:#1a1d22;color:#e8e9ec;font:inherit;font-size:11.5px;padding:0 6px}
+/* ══ 3.7.0 §5 · Kettenliste in Suche und hinter dem „+" ══ */
+.su-liste{margin-top:8px}
+#plusOverlay .an-kopf .btn{margin-left:auto;min-height:36px}
+#plusOverlay .an-kopf .sp{display:none}
 </style>
 </head>
 <body>
@@ -2326,8 +2339,9 @@ img.objimg.laedt{opacity:0}
     <div id="tagBanner"></div>
     <!-- §2 (v2.2.0): zwei Filter ueber ALLEN Sichten und dem Freitext —
          eigene Segment-Leisten, keine weiteren Chips in der Sicht-Leiste. -->
-    <div class="su-filter" id="suFilter"></div>
-    <div class="su-sichten" id="suSichten"></div>
+    <!-- §5 (v3.7.0): unter dem Suchfeld die Kettenliste; die Eingabe filtert alle Gruppen (Filter-Knöpfe und Sichten entfallen) -->
+    <div class="su-filter" id="suFilter" hidden></div>
+    <div class="su-sichten" id="suSichten" hidden></div>
     <div class="su-swipe" id="suSwipe"><div id="suBody"></div></div>
   </section>
 
@@ -2385,6 +2399,17 @@ img.objimg.laedt{opacity:0}
   </div>
   <div id="suchFilter" class="su-filter such-filter"></div>
   <div id="suchList" class="such-list"></div>
+</div>
+
+<!-- §5 (v3.7.0): „+" — die Kettenliste als Vollbild-Ansicht mit „+ Neue Karte" oben -->
+<div id="plusOverlay" class="voll-ansicht" hidden>
+  <div class="an-kopf">
+    <button class="an-back" data-pluszu="1" aria-label="Schließen">‹ zurück</button>
+    <h3>Karten</h3>
+    <span class="sp"></span>
+    <button class="btn prim sm" data-plusneu="1">＋ Neue Karte</button>
+  </div>
+  <div class="an-body" id="plusBody"></div>
 </div>
 
 <!-- §3 (v3.5.4): Karten mit Faktor (Vollbild-Ansicht, liegt unter Sheet und Backdrop) -->
@@ -8711,27 +8736,76 @@ function prioFarbe(k){
   let n=0.5; try{ n=num(karteNorm(k), 0.5); }catch(e){}
   return n>=0.8 ? FARBE.ROT : n>=0.6 ? FARBE.ORANGE : n>=0.4 ? FARBE.GELB : n>=0.2 ? FARBE.GELBGRUEN : FARBE.GRUEN;
 }
+/* ══ §6 (v3.7.0) · DIE KARTENZEILE — überall in der Kettenliste dieselbe ════════════════════════
+   Hintergrund = Familienfarbe als dunkler Ton (18 % über KACHEL), Schrift WEISS · Umrandung 1 px: Routinen und Counter
+   BRAUN #a0703c, Aufgaben ORANGE · linker und rechter Rand je 5 px in der Dringlichkeits-Ampel (fünf Stufen) · rechts bei
+   tickbaren Karten der Tick-Knopf mit Zahl, sonst die heute gebuchte Zeit (bei laufender Uhr live) · über Tagesziel blasser.
+   Tipp auf den Titel übernimmt die Karte in die Fokusansicht. (Ausnahme vom Standard: Familienfarbe im Hintergrund.) */
+const KL_RAND_ROUTINE='#a0703c';
 function kartenZeileHtml(k, opt){
   opt=opt||{};
-  const fam=famFarbe(k), laeuft=uhrLaeuftAuf(k), fertig=kartenStatusHeute(k)==='erledigt';
-  const ticks=Math.max(tickAnzahlHeute(k), num(k.ticksHeute)), limit=num(k.tageslimit), art=kartenArt(k);
+  const fam=famFarbe(k), laeuft=uhrLaeuftAuf(k), st=kartenStatusHeute(k), fertig=st==='erledigt', ueber=st==='zielErreicht', art=kartenArt(k), tickbar=istTickbar(k);
+  const ticks=Math.max(tickAnzahlHeute(k), num(k.ticksHeute)), limit=num(k.tageslimit);
   const unter=(k.domain==='privat'?'Privat':'DFM')+' · '+(istPflicht(k) ? 'Pflicht' : art!=='Aufgabe' ? art : (num(k.sollMin)>0 ? Math.round(num(k.sollMin))+' Min' : MX_FELD_NAME[matrixFeldVon(k)]));
-  return '<div class="kl-z'+(laeuft?' laeuft':'')+(fertig?' fertig':'')+(opt.erl?' erl':'')+'" style="--fam:'+fam+';--prio:'+prioFarbe(k)+'" data-klkarte="'+k.id+'">'+
+  const rechts = tickbar
+    ? '<button class="kl-plus" data-kltick="'+k.id+'" aria-label="Tick +1"><b'+(limit>0 && ticks>limit?' style="color:'+FARBE.UEBER+'"':'')+'>'+ticks+'</b><em>+</em></button>'
+    : '<span class="kl-zeit" data-klzeit="'+k.id+'">'+uhrKurz(heuteInvestiertMin(k)*60)+'</span>';
+  const haken = fertig
+    ? '<button class="kl-check ok'+(hakAktiv('kl-'+k.id)?' hak-neu" style="'+hakStil():'')+'" data-klreopen="'+k.id+'" aria-label="Wieder öffnen">✓</button>'+hakFlugHtml('kl-'+k.id)
+    : '<button class="kl-check" data-klcheck="'+k.id+'" aria-label="Erledigt">✓</button>';
+  return '<div class="kl-z'+(laeuft?' laeuft':'')+(fertig?' fertig':'')+(ueber?' ueber':'')+(opt.erl?' erl':'')+'" style="--fam:'+fam+';--famb:'+farbeAlpha(fam, .18)+';--prio:'+prioFarbe(k)+';--rand:'+(art==='Aufgabe' ? FARBE.ORANGE : KL_RAND_ROUTINE)+'" data-klkarte="'+k.id+'">'+
     '<button class="kl-play" data-klplay="'+k.id+'" aria-label="'+(laeuft?'Pause':'Start')+'"'+(laeuft?' style="background:'+verlauf(fam, 180)+';color:#08111f"':'')+'>'+(laeuft?'⏸':'▶')+'</button>'+
-    '<div class="kl-t" data-detail="'+k.id+'"><b class="kl-titel">'+esc(String(k.titel||'?'))+'</b><span class="kl-meta">'+unter+(opt.zusatz ? ' · '+opt.zusatz : '')+'</span></div>'+
-    '<button class="kl-plus" data-kltick="'+k.id+'" aria-label="Tick +1"><b'+(limit>0 && ticks>limit?' style="color:'+FARBE.UEBER+'"':'')+'>'+ticks+'</b><em>+</em></button>'+
-    (fertig ? '<span class="kl-check ok'+(hakAktiv('kl-'+k.id)?' hak-neu" style="'+hakStil():'')+'" aria-label="erledigt">✓</span>'+hakFlugHtml('kl-'+k.id)
-            : '<button class="kl-check" data-klcheck="'+k.id+'" aria-label="Erledigt">✓</button>')+'</div>';
+    '<div class="kl-t" data-klfokus="'+k.id+'"><b class="kl-titel">'+esc(String(k.titel||'?'))+'</b><span class="kl-meta">'+unter+(opt.zusatz ? ' · '+opt.zusatz : '')+'</span></div>'+
+    rechts+haken+'</div>';
 }
-/* ══ §3 (v3.5.2) · KARTENLISTEN — fuenf Gruppen in fester Reihenfolge, jede einzeln auf-/zuklappbar ══
-   Aktuelle Kette · Verlauf · Routinen (nach Tagesblock) · Meistgenutzt · 7 Tage · Erledigt heute.
-   Standard: nur „Aktuelle Kette" offen; der Klappzustand je Gruppe lebt in S.ui.klGruppen (UI-Zustand, kein Export).
-   Leere Gruppen zeigen nur die Kopfzeile mit „0". Eine Karte darf in mehreren Gruppen stehen. */
-const KL_GRUPPEN=[['kette','Aktuelle Kette'],['verlauf','Verlauf'],['routinen','Routinen'],['meist','Meistgenutzt · 7 Tage'],['erledigt','Erledigt heute']];
+/* heute gebuchte Zeit der laufenden Karte in allen Zeilen sekündlich nachziehen (Ticker) */
+function kartenZeilenZeitLive(){
+  if(!(S.fokus && S.fokus.laeuft) || typeof document==='undefined' || !document.querySelectorAll) return;
+  const k=S.karten.find(x=>x.id===S.fokus.karteId); if(!k) return;
+  try{ document.querySelectorAll('[data-klzeit="'+k.id+'"]').forEach(z=>{ z.textContent=uhrKurz(heuteInvestiertMin(k)*60); }); }catch(e){}
+}
+/* ══ §5 (v3.7.0) · EINE KETTENLISTE ÜBERALL ════════════════════════════════════════════════
+   Dieselbe klappbare Liste (kettenListeHtml) unten in der Fokusansicht, in der Suche, hinter dem „+" und in der Ansicht
+   „In Kette". Gruppen in fester Reihenfolge: Aktuelle Kette (mit Tagesketten-Chips) · Verlauf · Routinen nach Tagesblock ·
+   Ticks DFM · Ticks Privat · Meistgenutzt · 7 Tage · Erledigt heute. Sortierung je Gruppe (Auswahl im Gruppenkopf, Zustand
+   in S.ui.klSort): Gruppiert · Termin · Ø Erledigungszeit · Priorität, für „Aktuelle Kette" zusätzlich Kettenreihenfolge.
+   Standard: Aktuelle Kette = Kettenreihenfolge, Routinen und Ticks = Ø Erledigungszeit, sonst Priorität.
+   Klappzustand je Gruppe in S.ui.klGruppen (UI-Zustand, kein Export). Eine Karte darf in mehreren Gruppen stehen. */
+const KL_GRUPPEN=[['kette','Aktuelle Kette'],['verlauf','Verlauf'],['routinen','Routinen'],['ticksDfm','Ticks DFM'],['ticksPrivat','Ticks Privat'],['meist','Meistgenutzt · 7 Tage'],['erledigt','Erledigt heute']];
+const KL_SORT=[['gruppiert','Gruppiert'],['termin','Termin'],['erledigungszeit','Ø Erledigungszeit'],['prio','Priorität']];
 function klGruppeOffen(id){ const z=S.ui.klGruppen; return (z && z[id]!=null) ? !!z[id] : id==='kette'; }
 let _klGedreht=null;
 function klGruppeUmschalten(id){
   S.ui.klGruppen=Object.assign({}, S.ui.klGruppen); S.ui.klGruppen[id]=!klGruppeOffen(id); _klGedreht=id; saveUi();
+}
+function klSortStandard(id){ return id==='kette' ? 'kette' : (id==='routinen' || id==='ticksDfm' || id==='ticksPrivat') ? 'erledigungszeit' : 'prio'; }
+function klSortWahl(id){ const z=S.ui.klSort, w=z && z[id]; const erlaubt=KL_SORT.map(x=>x[0]).concat(id==='kette' ? ['kette'] : []); return erlaubt.indexOf(w)>=0 ? w : klSortStandard(id); }
+function klSortSetzen(id, w){ S.ui.klSort=Object.assign({}, S.ui.klSort); S.ui.klSort[id]=w; saveUi(); }
+/* Ø Uhrzeit der Erledigung (Haken, Tick) über die letzten 7 aktiven Tage, in Stunden; null ohne Beleg */
+function oeErledigungsZeit(k){
+  const tage=aktiveRateTage(7), tg={}; tage.forEach(d=>tg[d]=true); let sum=0, n=0;
+  (S.intraday||[]).forEach(e=>{ if(!e || e.kartenId!==k.id || (e.typ!=='abhaken' && e.typ!=='tick')) return; if(!tg[belFensterDatum(e.ts)]) return;
+    const d=new Date(e.ts); sum+=d.getHours()+d.getMinutes()/60; n++; });
+  return n ? sum/n : null;
+}
+function klSortieren(karten, wahl, gruppe){
+  const l=karten.slice();
+  const prio=(a,b)=>num(karteNorm(b),0.5)-num(karteNorm(a),0.5) || String(a.titel||'').localeCompare(String(b.titel||''));
+  if(wahl==='kette') return l;
+  if(wahl==='termin') return l.sort((a,b)=>{ const fa=a.faelligkeit||'~', fb=b.faelligkeit||'~'; return fa<fb ? -1 : fa>fb ? 1 : prio(a,b); });
+  if(wahl==='erledigungszeit'){ const z={}; l.forEach(k=>{ z[k.id]=oeErledigungsZeit(k); });
+    return l.sort((a,b)=>{ const za=z[a.id], zb=z[b.id]; if(za==null && zb==null) return prio(a,b); if(za==null) return 1; if(zb==null) return -1; return za-zb || prio(a,b); }); }
+  return l.sort(prio);
+}
+/* „Gruppiert": Routinen nach Tagesblock, sonst nach Familie — als Zwischenüberschriften */
+function klGruppiert(karten, gruppe){
+  if(gruppe==='routinen'){ const bl=tagesBloecke()||[], eins=bl.filter(b=>!b.parent).slice().sort((a,b)=>a.von-b.von), je={}, ohne=[];
+    karten.forEach(k=>{ const b=klRoutineBlock(k, bl); if(b) (je[b.id]=je[b.id]||[]).push(k); else ohne.push(k); });
+    const out=eins.filter(b=>je[b.id]).map(b=>({ name:b.name||BLOCK_TYP_NAME[b.typ]||'Block', karten:je[b.id] }));
+    if(ohne.length) out.push({ name:'Ohne Block', karten:ohne }); return out; }
+  const d=karten.filter(k=>k.domain!=='privat'), pv=karten.filter(k=>k.domain==='privat'), out=[];
+  if(d.length) out.push({ name:'DFM', karten:klSortieren(d, 'prio') }); if(pv.length) out.push({ name:'Privat', karten:klSortieren(pv, 'prio') });
+  return out;
 }
 /* Verlauf: heute geoeffnete Karten, neueste oben; Mehrfach-Oeffnungen stehen einmal mit ihrer Anzahl */
 function klVerlauf(){
@@ -8739,55 +8813,91 @@ function klVerlauf(){
   for(let i=l.length-1;i>=0;i--){ const id=l[i]; if(n[id]==null){ n[id]=0; folge.push(id); } n[id]++; }
   return folge.map(id=>({k:by[id], n:n[id]})).filter(q=>q.k && q.k.status!=='archiviert');
 }
-/* Tagesblock (erste Ebene) einer Routine: die Blockzuordnung der Karte (heute) → sonst der Block, in dem ihre Uhrzeit liegt →
-   sonst nach Rolle (Aufstehen = erster Block, Tagesabschluss/Schlafen = letzter Block) → sonst null („Ohne Block") */
+/* §7 (v3.7.0): die festen Ketten „Ticks DFM" und „Ticks Privat" — alle tickbaren Karten der Familie (offen oder heute erledigt) */
+function klTicks(dom){
+  const tid=aktuelleTagId();
+  return S.karten.filter(k=>k && k.status!=='archiviert' && !k.freeze && istTickbar(k) && !istSonderRolle(k) && (k.domain==='privat')===(dom==='privat') &&
+    (k.status==='offen' || (k.status==='erledigt' && k.tagId===tid)));
+}
+/* Tagesblock (erste Ebene) einer Routine: die Blockzuordnung der Karte (heute) → sonst nach Rolle (Aufstehen = erster Block,
+   Tagesabschluss/Schlafen = letzter Block) → sonst null („Ohne Block"). §12 (v3.7.0): keine Einordnung nach Uhrzeit mehr. */
 function klRoutineBlock(k, bl){
   bl=bl||tagesBloecke()||[]; const by={}; bl.forEach(b=>by[b.id]=b);
   const oben=id=>{ let b=by[id], g=0; while(b && b.parent && by[b.parent] && g++<12) b=by[b.parent]; return b||null; };
   const eins=bl.filter(b=>!b.parent).slice().sort((a,b)=>a.von-b.von);
   const zu=karteBlockId(k, bl); if(zu!=null) return oben(zu);
   if(!eins.length) return null;
-  if(k.uhrzeit && /^\d{1,2}:\d{2}/.test(String(k.uhrzeit))){ const t=String(k.uhrzeit).split(':'), h=num(t[0])+num(t[1])/60;
-    const b=eins.find(x=>(x.von<=h && h<x.bis) || (x.von<=h+24 && h+24<x.bis)); if(b) return b; }
   if(k.rolle==='aufstehen') return eins[0];
   if(k.rolle==='tagesabschluss' || k.rolle==='schlafen') return eins[eins.length-1];
   return null;
 }
 /* Routinen und Counter in der Reihenfolge des Tagesablaufs (abhakLeisteKarten), unterteilt nach Tagesblock; ohne Zuordnung am Ende */
-function klRoutinenGruppen(){
-  const bl=tagesBloecke()||[], eins=bl.filter(b=>!b.parent).slice().sort((a,b)=>a.von-b.von), je={}, ohne=[];
-  abhakLeisteKarten().forEach(k=>{ const b=klRoutineBlock(k, bl); if(b) (je[b.id]=je[b.id]||[]).push(k); else ohne.push(k); });
-  const out=eins.filter(b=>je[b.id]).map(b=>({ name:b.name||BLOCK_TYP_NAME[b.typ]||'Block', karten:je[b.id] }));
-  if(ohne.length) out.push({ name:'Ohne Block', karten:ohne });
-  return out;
-}
+function klRoutinenGruppen(){ return klGruppiert(abhakLeisteKarten(), 'routinen'); }
 function klErledigtHeute(){
   const tid=aktuelleTagId();
   return S.karten.filter(k=>k && k.status!=='archiviert' && (istAufgabeKarte(k) ? (k.status==='erledigt' && k.tagId===tid) : kartenStatusHeute(k)==='erledigt'))
     .sort((a,b)=>String(b.letzteBearbeitung||'')<String(a.letzteBearbeitung||'') ? -1 : String(b.letzteBearbeitung||'')>String(a.letzteBearbeitung||'') ? 1 : 0);
 }
-function kartenBlockHtml(k){
-  const offen=x=>x.status==='offen';
+function klFilterPasst(k, q){
+  if(!q) return true; const t=String(k.titel||'').toLowerCase();
+  return String(q).toLowerCase().split(/\s+/).filter(Boolean).every(w=>t.indexOf(w)>=0);
+}
+/* Inhalt aller Gruppen (Karten je Gruppe, bereits gefiltert und sortiert); opt.karte = die gezeigte Karte (bleibt aus der Kette heraus) */
+function kettenListeInhalt(opt){
+  opt=opt||{}; const k=opt.karte||null, q=opt.filter||'', offen=x=>x.status==='offen';
   let kette=ketteKarten(navDomain()).filter(offen); if(!kette.length) kette=ketteKarten().filter(offen);
   // §4 (v3.5.3): eine gewaehlte Tageskette zeigt ihre offenen Karten in ihrer Reihenfolge; „Ganzer Tag" die aktuelle Kette
   const tkW=tageskettenWahl(), tkC=tkW ? tagesketten().find(c=>c.id===tkW) : null;
   if(tkC){ const by={}; S.karten.forEach(x=>by[x.id]=x); kette=(tkC.karten||[]).map(id=>by[id]).filter(x=>x && offen(x)); }
   if(k) kette=kette.filter(x=>x.id!==k.id);
-  const chips=tageskettenChipsHtml();
-  const verlauf=klVerlauf(), rout=klRoutinenGruppen(), meist=kartenMeistgenutzt(), erl=klErledigtHeute();
-  const inhalt={
-    kette:   { n:kette.length,   html:()=>kette.map(x=>kartenZeileHtml(x)).join(''), kopf:chips },
-    verlauf: { n:verlauf.length, html:()=>verlauf.map(q=>kartenZeileHtml(q.k, q.n>1 ? {zusatz:q.n+'×'} : null)).join('') },
-    routinen:{ n:rout.reduce((a,g)=>a+g.karten.length,0), html:()=>rout.map(g=>'<div class="kl-zwh">'+esc(g.name)+'</div>'+g.karten.map(x=>kartenZeileHtml(x)).join('')).join('') },
-    meist:   { n:meist.length,   html:()=>meist.map(q=>kartenZeileHtml(q.k)).join('') },
-    erledigt:{ n:erl.length,     html:()=>erl.map(x=>kartenZeileHtml(x, {erl:true})).join('') } };
-  const dreh=_klGedreht; _klGedreht=null;
-  return '<div class="blk kl-blk"><div class="blk-h">Karten</div>'+KL_GRUPPEN.map(q=>{ const id=q[0], g=inhalt[id], auf=klGruppeOffen(id);
-    return '<div class="kl-grp" data-klgrp="'+id+'"><div class="kl-grk" data-klgruppe="'+id+'" role="button" aria-expanded="'+(auf?'true':'false')+'"><b>'+q[1]+'</b><span class="anz">'+g.n+'</span>'+
-      '<span class="stm-tog'+(auf?' auf':'')+(dreh===id?' dreh':'')+'" aria-hidden="true">'+STM_CHEVRON+'</span></div>'+
-      (auf && g.kopf ? g.kopf : '')+(auf && g.n ? '<div class="kl kl-grinh">'+g.html()+'</div>' : '')+'</div>'; }).join('')+'</div>';
+  const roh={ kette, verlauf:klVerlauf().map(q=>q.k), routinen:abhakLeisteKarten(), ticksDfm:klTicks('dfm'), ticksPrivat:klTicks('privat'), meist:kartenMeistgenutzt().map(q=>q.k), erledigt:klErledigtHeute() };
+  const vlN={}; klVerlauf().forEach(q=>{ vlN[q.k.id]=q.n; });
+  const out={};
+  KL_GRUPPEN.forEach(g=>{ const id=g[0], w=klSortWahl(id), l=roh[id].filter(x=>klFilterPasst(x, q));
+    out[id]={ wahl:w, n:l.length, zusatz: id==='verlauf' ? x=>(vlN[x.id]>1 ? {zusatz:vlN[x.id]+'×'} : null) : id==='erledigt' ? ()=>({erl:true}) : ()=>null,
+      teile: w==='gruppiert' ? klGruppiert(l, id) : [{ name:null, karten:klSortieren(l, w, id) }] }; });
+  return out;
 }
+function kettenListeHtml(opt){
+  opt=opt||{};
+  const inhalt=kettenListeInhalt(opt), chips=tageskettenChipsHtml(), dreh=_klGedreht; _klGedreht=null;
+  const gruppen=opt.gruppen ? KL_GRUPPEN.filter(g=>opt.gruppen.indexOf(g[0])>=0) : KL_GRUPPEN;
+  return '<div class="kl-liste" data-klliste=\''+JSON.stringify({ karte:opt.karte ? opt.karte.id : null, filter:opt.filter||'', gruppen:opt.gruppen||null, kontext:opt.kontext||'' })+'\'>'+gruppen.map(q=>{
+    const id=q[0], g=inhalt[id], auf=klGruppeOffen(id), optionen=(id==='kette' ? [['kette','Kettenreihenfolge']] : []).concat(KL_SORT);
+    const sort='<select class="kl-sort" data-klsort="'+id+'" aria-label="Sortierung">'+optionen.map(o=>'<option value="'+o[0]+'"'+(o[0]===g.wahl?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>';
+    const zeilen=g.teile.map(t=>(t.name ? '<div class="kl-zwh">'+esc(t.name)+'</div>' : '')+t.karten.map(x=>kartenZeileHtml(x, g.zusatz(x))).join('')).join('');
+    return '<div class="kl-grp" data-klgrp="'+id+'"><div class="kl-grk" data-klgruppe="'+id+'" role="button" aria-expanded="'+(auf?'true':'false')+'"><b>'+q[1]+'</b>'+(auf ? sort : '')+'<span class="anz">'+g.n+'</span>'+
+      '<span class="stm-tog'+(auf?' auf':'')+(dreh===id?' dreh':'')+'" aria-hidden="true">'+STM_CHEVRON+'</span></div>'+
+      (auf && id==='kette' && chips ? chips : '')+(auf && g.n ? '<div class="kl kl-grinh">'+zeilen+'</div>' : '')+'</div>'; }).join('')+'</div>';
+}
+/* alle Kettenlisten im Dokument neu zeichnen (nach Tick, Haken, Start, Sortier- oder Klappwechsel) */
+function kettenListenNeu(){
+  if(typeof document==='undefined' || !document.querySelectorAll) return;
+  try{ document.querySelectorAll('[data-klliste]').forEach(el=>{ let o={}; try{ o=JSON.parse(el.getAttribute('data-klliste')||'{}'); }catch(e){}
+    const opt={ karte:o.karte ? S.karten.find(x=>x.id===o.karte) : null, filter:o.filter||'', gruppen:o.gruppen||null, kontext:o.kontext||'' };
+    el.outerHTML=kettenListeHtml(opt); }); }catch(e){}
+}
+function kartenBlockHtml(k){ return '<div class="blk kl-blk"><div class="blk-h">Karten</div>'+kettenListeHtml({ karte:k, kontext:'fokus' })+'</div>'; }
 function kartenMeistgenutztHtml(){ return kartenBlockHtml(null); }
+/* Klicks der Kettenliste — EIN Handler für alle Orte (Fokus, Suche, „+", „In Kette"); liefert true, wenn verarbeitet */
+function kettenListeKlick(e){
+  const t=e.target; if(!t || !t.closest) return false;
+  if(t.closest('select.kl-sort')) return false;
+  const tw=t.closest('[data-tkwahl]'); if(tw){ e.stopPropagation(); haptik(6); S.ui.tkWahl=tw.dataset.tkwahl||null; saveUi(); kettenListenNeu(); return true; }
+  const kt=t.closest('[data-kltick]'); if(kt){ e.stopPropagation(); haptik(10); kartenListeTick(kt.dataset.kltick); return true; }
+  const kg=t.closest('[data-klgruppe]'); if(kg){ e.stopPropagation(); haptik(6); klGruppeUmschalten(kg.dataset.klgruppe); kettenListenNeu(); return true; }
+  const kc=t.closest('[data-klcheck]'); if(kc){ e.stopPropagation(); haptik(12); kartenListeCheck(kc.dataset.klcheck); return true; }
+  const kr=t.closest('[data-klreopen]'); if(kr){ e.stopPropagation(); haptik(8); if(karteWiederOeffnen(kr.dataset.klreopen)){ toast('Wieder offen — Uhr ab null, Ticks bleiben'); renderAlles(); kettenListenNeu(); } return true; }
+  const kp=t.closest('[data-klplay]'); if(kp){ e.stopPropagation(); haptik(10); leistePlay(kp.dataset.klplay); kettenListenNeu(); return true; }
+  const kf=t.closest('[data-klfokus]'); if(kf){ e.stopPropagation(); haptik(6); kettenListeSchliessen(); fokusKarteAnsehen(kf.dataset.klfokus); renderFokus(); return true; }
+  return false;
+}
+function kettenListeSchliessen(){ const o=el('plusOverlay'); if(o && !o.hidden) o.hidden=true; }
+function oeffnePlusListe(){
+  const o=el('plusOverlay'); if(!o) return;
+  el('plusBody').innerHTML=kettenListeHtml({ karte:null, kontext:'plus' });
+  o.hidden=false; try{ el('plusBody').scrollTop=0; }catch(e){}
+}
 /* Tick aus der Kartenliste (F1/F2): Aufgaben nach den Regeln des Modus zeit, Routinen/Counter wie ihre Zaehler-Zeile;
    ueber dem Limit zaehlt und bucht der Tick (0 P) */
 function kartenListeTick(kid){
@@ -8816,14 +8926,8 @@ function kartenListeCheck(kid){
 }
 function fokusKlick350(e){
   const t=e.target; if(!t || !t.closest) return;
-  const tw=t.closest('[data-tkwahl]'); if(tw){ e.stopPropagation(); haptik(6); S.ui.tkWahl=tw.dataset.tkwahl||null; saveUi(); renderFokus(); return; }
+  if(kettenListeKlick(e)) return;   // §5 (v3.7.0): die Kettenliste hat EINEN Handler fuer alle Orte
   const uz=t.closest('[data-uztick]'); if(uz){ e.stopPropagation(); haptik(10); unterZaehlerTick(uz.dataset.uztick); return; }
-  const kt=t.closest('[data-kltick]'); if(kt){ e.stopPropagation(); haptik(10); kartenListeTick(kt.dataset.kltick); return; }
-  const kg=t.closest('[data-klgruppe]'); if(kg){ e.stopPropagation(); haptik(6); klGruppeUmschalten(kg.dataset.klgruppe);
-    const blk=kg.closest('.kl-blk'); try{ if(blk){ _fokusExakt=true; blk.outerHTML=kartenBlockHtml(aktiveFokusKarte()); } else renderFokus(); }catch(err){ renderFokus(); } finally{ _fokusExakt=false; } return; }
-  const kc=t.closest('[data-klcheck]'); if(kc){ e.stopPropagation(); haptik(12); kartenListeCheck(kc.dataset.klcheck); return; }
-  const kr=t.closest('[data-klreopen]'); if(kr){ e.stopPropagation(); haptik(8); if(karteWiederOeffnen(kr.dataset.klreopen)){ toast('Wieder offen — Uhr ab null, Ticks bleiben'); renderAlles(); } return; }   // §7 (v3.7.0)
-  const kp=t.closest('[data-klplay]'); if(kp){ e.stopPropagation(); haptik(10); leistePlay(kp.dataset.klplay); return; }
 }
 function fokusBloeckeExakt(k){
   _fokusExakt=true;
@@ -9126,6 +9230,7 @@ function starteTicker(){
     if(tagOffen()) renderStatusbar();                   // V1.1: Live-Punkte/-Minuten/-Pace in der Statusleiste sekündlich
     // Fokus-Tacho live nachziehen (Ring/Timer/Kennzahlen/Balken der angezeigten Karte)
     fokusTacho(aktiveFokusKarte());   // §6 (v2.0.0): der Layer entscheidet, nicht der Tab
+    kartenZeilenZeitLive();           // §6 (v3.7.0): gebuchte Zeit der laufenden Karte in den Kartenzeilen
     if(S.ui.tab==='belohnung' && _sekTakt%5===0) renderBelohnung();   // Belohnungsseite live (alle 5 s, Perf)
     if(_sekTakt>0 && _sekTakt%60===0) diagrammeLive();   // v3.4.7: Tagesdiagramme live, nur sichtbare
     _sekTakt++;
@@ -16848,34 +16953,14 @@ function fokusLayerPflegen(){
   if(zeigen) renderFokus();
 }
 function renderSuche(){
-  // §3 (v2.0.2): Tagesabschluss ist von der Suche aus erreichbar — in der
-  // JETZIGEN Form, kein Redesign. Ein über Tage ausstehender Abschluss ist
-  // ein Hinweis, nie eine Sperre.
+  // §3 (v2.0.2): Tagesabschluss ist von der Suche aus erreichbar — in der JETZIGEN Form, kein Redesign.
   { const tb=el('tagBanner'); if(tb) tb.innerHTML=tagBannerHtml(); }
-  // Kopf: Sicht-Umschalter
-  const sv=suSicht();
-  const sw=el('suSichten');
-  if(sw) sw.innerHTML = SU_SICHTEN.map(([k,l,ic])=>
-    '<button class="su-s'+(sv===k?' on':'')+'" data-susicht="'+k+'">'+ic+' '+esc(l)+'</button>').join('');
-  const sf=el('suFilter');
-  // §8 (v3.0.0): zwei Filter, je zwei Wahlen — ein zweiter Tipp hebt die Wahl auf (= beides)
-  if(sf) sf.innerHTML=
-    '<div class="su-frow"><div class="su-seg" role="group" aria-label="Art">'+
-      SU_ART.filter(x=>x[0]!=='alle').map(([k,l])=>'<button class="'+(suArtW()===k?'on':'')+'" data-suart="'+k+'" aria-pressed="'+(suArtW()===k)+'">'+l+'</button>').join('')+
-    '</div><div class="su-seg" role="group" aria-label="Domäne">'+
-      SU_DOM.filter(x=>x[0]!=='alle').map(([k,l])=>'<button class="'+(suDom()===k?'on':'')+'" data-sudom="'+k+'" aria-pressed="'+(suDom()===k)+'">'+l+'</button>').join('')+
-    '</div></div>';
-  const q=suFrage();
-  // §4 (v2.1.1): Der Begriff lebt in S.ui.suFrage UND im Eingabefeld. Waren
-  // die beiden auseinander (Feld leer, Zustand gefüllt), lief die Suche
-  // unsichtbar weiter — „4 Treffer · Freitext" bei leerem Feld, die Sichten
-  // wirkten nicht. Deshalb: das Feld zeigt IMMER, wonach gesucht wird.
+  // §4 (v2.1.1): Der Begriff lebt in S.ui.suFrage UND im Eingabefeld — das Feld zeigt IMMER, wonach gesucht wird.
   { const inp=el('suFreitext');
     if(inp && document.activeElement!==inp && inp.value!==(S.ui.suFrage||'')) inp.value=S.ui.suFrage||''; }
-  const body=el('suBody'); if(!body) return;
-  // §6: Der Freitext schlägt JEDE Sicht — und er findet alles, was in der App
-  // liegt, auch Erledigtes.
-  body.innerHTML = q ? suFreitextHtml(q) : suSichtHtml(sv);
+  const q=suFrage(), body=el('suBody'); if(!body) return;
+  // §5 (v3.7.0): dieselbe Kettenliste wie in der Fokusansicht; die Eingabe filtert alle Gruppen
+  body.innerHTML='<div class="blk kl-blk su-liste">'+kettenListeHtml({ karte:null, filter:q, kontext:'suche' })+'</div>';
   const cl=el('suClear'); if(cl) cl.hidden=!q;
 }
 /* Freitext über den gesamten Bestand — inklusive erledigter Karten. */
@@ -19428,7 +19513,10 @@ function zurBelohnung(){
   const m=document.querySelector('main'); if(m) m.scrollTop=0;
 }
 el('btnFigur').addEventListener('click', zurBelohnung);
-el('fokusView').addEventListener('click', fokusKlick350, true);   // §4 (v3.5.0): Tagesketten, Unter-Zaehler, Kartenliste
+el('fokusView').addEventListener('click', fokusKlick350, true);
+// §5 (v3.7.0): Kettenliste ausserhalb der Fokusansicht (Suche, „+", „In Kette") — derselbe Handler; Sortierwahl per change
+document.addEventListener('click', e=>{ const t=e.target; if(!t || !t.closest || t.closest('#fokusView') || !t.closest('[data-klliste]')) return; kettenListeKlick(e); }, true);
+document.addEventListener('change', e=>{ const sel=e.target && e.target.closest ? e.target.closest('select.kl-sort') : null; if(!sel) return; klSortSetzen(sel.dataset.klsort, sel.value); kettenListenNeu(); });   // §4 (v3.5.0): Tagesketten, Unter-Zaehler, Kartenliste
 document.addEventListener('click', e=>{ const t=e.target && e.target.closest ? e.target.closest('[data-uztick],[data-kltick],[data-alcheck],[data-ftick],[data-zzplus],[data-tickplus],[data-alsub],[data-zzsub]') : null; if(t) _letzterTickKnopf={ el:t, ts:Date.now() }; }, true);   // §7.4 (v3.5.0)
 el('sheetBody').addEventListener('click', e=>{ const t=e.target.closest('[data-maltopfunter]'); if(t){ e.stopPropagation(); topfUnterStation(num(t.dataset.maltopfunter)); closeSheet(); renderBelohnung(); return; }
   const m=e.target.closest('[data-mfxset]'); if(m){ e.stopPropagation(); matrixfeldSetzen(m.dataset.kid, m.dataset.mfxset); closeSheet(); renderStatistik(); renderMfAnsicht(); } }, true);   // §6.4/§8.2 (v3.5.0)
@@ -19480,7 +19568,11 @@ el('suSichten').addEventListener('click', e=>{
   if(b){ S.ui.suSicht=b.dataset.susicht; S.ui.suMatrixFeld=null; saveUi(); renderSuche(); nachOben(); haptik(8);   // §9 (v3.0.0): oben
     return; }
 });
-el('neuFab').addEventListener('click', ()=>oeffneDetail(null));
+// §5 (v3.7.0): „+" öffnet die Kettenliste (ticken · starten · in die Fokusansicht), oben „+ Neue Karte" für das bisherige Anlegen
+el('neuFab').addEventListener('click', ()=>oeffnePlusListe());
+el('plusOverlay').addEventListener('click', e=>{ const t=e.target;
+  if(t.closest('[data-plusneu]')){ el('plusOverlay').hidden=true; oeffneDetail(null); return; }
+  if(t.closest('[data-pluszu]')){ el('plusOverlay').hidden=true; return; } });
 /* ══ §1/§2 (v2.1.1) · KARTEN IN DER SUCHE ══════════════════════════════
    BEFUND: Beim Umbau der Suche in v2.0 fehlte der Handler fuer den
    Kartenkoerper. #suBody kannte nur die Matrix-Kacheln; weder der Koerper
@@ -19516,23 +19608,7 @@ el('suBody').addEventListener('click', e=>{
   const row=t.closest('.krow[data-kid]');
   if(row){ haptik(8); fokusKarteAnsehen(row.dataset.kid); return; }
 });
-/* §6: fünf Sichten WISCHBAR. Nur horizontal, mit Winkelschwelle — sonst
-   kapert die Geste das vertikale Scrollen der Liste. */
-(function(){
-  let x0=0,y0=0,id=null,aktiv=false;
-  const sw=el('suSwipe'); if(!sw) return;
-  sw.addEventListener('pointerdown', e=>{ if(e.target.closest('input,textarea,button')) return;
-    id=e.pointerId; x0=e.clientX; y0=e.clientY; aktiv=true; });
-  sw.addEventListener('pointerup', e=>{
-    if(!aktiv || e.pointerId!==id) return; aktiv=false;
-    const dx=e.clientX-x0, dy=e.clientY-y0;
-    if(Math.abs(dx)<60 || Math.abs(dx)<Math.abs(dy)*1.4) return;
-    const i=SU_SICHTEN.findIndex(v=>v[0]===suSicht());
-    const j=Math.max(0, Math.min(SU_SICHTEN.length-1, i+(dx<0?1:-1)));
-    if(j!==i){ S.ui.suSicht=SU_SICHTEN[j][0]; saveUi(); renderSuche(); haptik(10); }
-  });
-  sw.addEventListener('pointercancel', ()=>{ aktiv=false; });
-})();
+/* §5 (v3.7.0): die wischbaren Sichten der Suche sind entfallen — unter dem Suchfeld steht die Kettenliste */
 el('suchClose').addEventListener('click', schliesseSuche);
 el('suchInput').addEventListener('input', ()=>{ if(_suchDeb) clearTimeout(_suchDeb); _suchDeb=setTimeout(renderSuchTreffer, 90); });   // minimaler Debounce
 el('suchInput').addEventListener('keydown', e=>{ if(e.key==='Escape'){ e.preventDefault(); schliesseSuche(); } });
