@@ -2639,6 +2639,7 @@ function logIntraday(k, o){
   // §2.2/§5 (v3.2.0): woher die Buchung kommt — uhr · tick · abhaken · tagesabschluss · schlafen · korrektur
   e.quelle = o.quelle || (abschlussBuchungAktiv() && e.typ!=='schlaf' ? 'tagesabschluss' : logQuelleVonTyp(e.typ));
   if(S.tag && S.tag.endeTs && !S.tag.geschlossenTs && !_abschlussBuchung) e.nachAbschluss=true;   // §2.4 (v3.2.0): Nachtrag
+  if(k && k.id && erholungAktiv(k)) e.erholung=true;   // §9a (v3.7.0): Erholungspunkte
   S.intraday.push(e);
   if(S.intraday.length>20000) S.intraday=S.intraday.slice(-20000);   // Sicherungskappe
   DB.set('intraday', S.intraday);
@@ -4075,9 +4076,12 @@ function basisRate(k){   // A9: Basis-Rate je Domäne
    Werkzeuge sind bewusst billig (0,8) — ihr Lohn ist der Bewegungsbonus, nicht
    der Grundwert; sonst ließen sie sich farmen. Ablenkungen tragen 0: Zeit in
    einer Ablenkung verdient nichts, der negative Tickwert bleibt die Kosten. */
+/* §9a (v3.7.0): Erholungskarte (erholung:true) am Wochenende (Sa/So des App-Tags) — Matrixfeld zählt als Werkzeug, Buchungen
+   tragen erholung:true im Stunden-Log; werktags unverändert */
+function erholungAktiv(k){ return !!(k && k.erholung && istWochenendTag(heuteApp())); }
 function matrixFaktor(k){
   const tab=(S.settings && S.settings.matrixFaktor) || {};
-  const f=matrixFeldVon(k);
+  const f=erholungAktiv(k) ? 'werkzeug' : matrixFeldVon(k);
   const v=tab[f];
   return Number.isFinite(Number(v)) ? Number(v) : (f==='ziel'?1:0);
 }
@@ -8787,7 +8791,7 @@ function acwrHeuteWert(){
 function acwrHeuteWerte(){
   try{ const F=analyseFenster(); if(!F.alle.length) return null;
     const bz=statParam('belastung')||{}, akT=Math.max(1,num(bz.akutTage,7)), chT=Math.max(akT,num(bz.chronischTage,28));
-    const reihe=anKalenderReihe(F.alle, F.alle[0].datum, F.bis), load=reihe.map(x=>x.e ? num(anPunkte(x.e,'alle')) : 0), n=load.length;
+    const reihe=anKalenderReihe(F.alle, F.alle[0].datum, F.bis), load=reihe.map(x=>x.e ? anLast(x.e,'alle') : 0), n=load.length;   // §9a (v3.7.0)
     return { v:acwrHeuteWert(), akut:anSum(load.slice(Math.max(0,n-akT))), chron:num(anMean(load.slice(Math.max(0,n-chT))))*akT, akT, chT };
   }catch(e){ return null; }
 }
@@ -10489,6 +10493,10 @@ function renderDetail(){
         '<div class="hint">leer = erbt den Domänen-Standard ('+standardWert(k.domain)+' P) · gesetzt = dauerhafter Override · negativ zulässig</div>'
       : '<div class="hint">aus = Karte trägt das Erledigt-Häkchen</div>')+
   '</div>';
+  // §9a (v3.7.0): Erholung — am Wochenende zählt das Matrixfeld als Werkzeug, die Punkte sind Erholungspunkte (ACWR −0,5)
+  h+='<div class="field"><label>Erholung</label><div class="chips">'+
+    '<button class="chip '+(k.erholung?'on gruen':'')+'" data-derholung="1">'+(k.erholung?'✓ Erholung':'Erholung aus')+'</button></div>'+
+    '<div class="hint">an = Sa/So zählt die Karte als Werkzeug, ihre Punkte gehen als Erholung mit −0,5 in die Belastung (ACWR); Tagesziele, Münzen und Farbe voll</div></div>';
   h+='<div class="field"><label>Schnellzugriff Timer</label>'+chipGroup('timerFlag',k.timerFlag?'ja':'nein',[['ja','ja'],['nein','nein']])+'</div>';
   h+='<div class="grid2">'+
     '<div class="field"><label>Einfrieren</label><div class="chips">'+
@@ -13758,6 +13766,7 @@ function syncImport(text, opt){
     // §9.5 (1.8.0): neues Tick-Modell im Paket; eine alte tickKurve wird nach
     // derselben Regel wie in der Migration umgesetzt (erster Wert, [0] = aus).
     if(inc.ticksAktiv!==undefined)     lok.ticksAktiv=!!inc.ticksAktiv;
+    if(inc.erholung!==undefined)       lok.erholung=!!inc.erholung;   // §9a (v3.7.0): additiv
     if(inc.tickWert!==undefined)       lok.tickWert = inc.tickWert==null?null:num(inc.tickWert);   // §2 (1.13.0): null = erbt Standard; Zahl = Override (negativ zulässig)
     if(inc.tickKurve!==undefined && inc.ticksAktiv===undefined && inc.tickWert===undefined){
       const tk=Array.isArray(inc.tickKurve)?inc.tickKurve.map(x=>num(x)):[];
@@ -18158,7 +18167,7 @@ function stmAcwr(F,dom){
   if(F.alle.length<8){ haupt=anSammelt(F.alle.length,8); }
   else {
     const P=anAcwrReihe(F.alle, F.bis, 28, dom, 'punkte'), labels=P.labels;
-    const reihe=anKalenderReihe(F.alle, labels[0], F.bis), load=reihe.map(x=>x.e?anPunkte(x.e,dom):0), ch=anMean(load)||1;
+    const reihe=anKalenderReihe(F.alle, labels[0], F.bis), load=reihe.map(x=>x.e?anLast(x.e,dom):0), ch=anMean(load)||1;   // §9a (v3.7.0)
     const wolke=load.map(v=>Math.min(2, v/ch));
     haupt=tagesKurveSvg({ labels, roh:P.vals.map((v,i)=>v!=null?Math.min(2,v):null), glatt:false, einheit:'ACWR', yMin:0, yMax:2, linie:FARBE.WEISS, pR:30,
       baender:[{von:1.5,bis:2,farbe:FARBE.ROT},{von:1.3,bis:1.5,farbe:FARBE.GELB},{von:0.8,bis:1.3,farbe:FARBE.GRUEN},{von:0,bis:0.8,farbe:FARBE.ORANGE}],
@@ -19278,6 +19287,7 @@ el('sheet').addEventListener('click', e=>{
   // weitere Klick fügt einen an; der ＋-Button bleibt immer.
   // §9.2 (v1.8.0): Ticks an/aus je Karte
   if(t.closest('[data-dticks]')){ entwurf.ticksAktiv=!entwurf.ticksAktiv; renderDetail(); return; }
+  if(t.closest('[data-derholung]')){ entwurf.erholung=!entwurf.erholung; renderDetail(); return; }   // §9a (v3.7.0)
 
 
   // Zeitstaffel (§4): erste Anlage seedet 3 Stufen, danach je +1; Button bleibt.
@@ -19967,6 +19977,9 @@ function analyseRohTage(){
   // §3 (v3.5.1): Schiebungen je Tag aus dem Stunden-Log — nur mit Punktabzug oder beim Tagesabschluss (schubZaehlt);
   // der Tages-Log (art 'schub') kennt den Abzug nicht und zaehlt deshalb nicht mehr
   const schubTag={}; (S.intraday||[]).forEach(x=>{ if(x && x.ts && schubZaehlt(x)){ const d=belFensterDatum(x.ts); schubTag[d]=(schubTag[d]||0)+1; } });
+  // §9a (v3.7.0): Erholungspunkte je Tag und Familie aus dem Stunden-Log (erholung:true)
+  const erhTag={}; (S.intraday||[]).forEach(x=>{ if(x && x.ts && x.erholung && num(x.punkte)>0){ const d=belFensterDatum(x.ts), dm=x.domaene==='dfm'?'dfm':'privat';
+    if(!erhTag[d]) erhTag[d]={dfm:0, privat:0}; erhTag[d][dm]+=num(x.punkte); } });
   // §2 (v1.7.0): Domäne einer Routinen-Bilanz-Zeile über die Karte auflösen
   // (die Bilanz trägt nur id+titel); gelöschte Karten fallen auf 'privat'.
   const kById={}; S.karten.forEach(k=>kById[k.id]=k);
@@ -19977,9 +19990,10 @@ function analyseRohTage(){
       routErf:{dfm:0,privat:0}, routVerp:{dfm:0,privat:0}, routEnt:{dfm:0,privat:0}, routGes:{dfm:0,privat:0} }; }   // §3: Routinen-Flow (+geschoben v1.13.0)
     e.punkte+=num(h.punkteBilanz);
     e.schub=schubTag[d]||0;
+    { const er=erhTag[d]||{dfm:0, privat:0}; e.erholungDfm=er.dfm; e.erholungPrivat=er.privat; e.erholung=er.dfm+er.privat; }   // §9a (v3.7.0)
     if(h.zeit){ e.minDfm+=num(h.zeit.dfm)/60; e.minPrivat+=num(h.zeit.privat)/60; }
     (h.log||[]).forEach(l=>{
-      if(l.art==='schub'){ /* §3 (v3.5.1): gezaehlt aus dem Stunden-Log, s. schubTag */ } else if(l.art!=='korrektur'){ e.erledigt++; }   // §3 (v2.7.0): Korrektur ist kein Abschluss
+      if(l.art==='schub'){ /* §3 (v3.5.1): gezaehlt aus dem Stunden-Log, s. schubTag */ } else if(l.art!=='korrektur' && l.art!=='eck'){ e.erledigt++; }   // §3 (v2.7.0): Korrektur ist kein Abschluss · §9 (v3.7.0): Eckpunkte auch nicht
       e[l.domain==='dfm'?'punkteDfm':'punktePrivat']+=num(l.punkte);
       const ak=(l.art||'?')+'|'+(l.domain==='dfm'?'dfm':'privat');
       e.artPkt[ak]=(e.artPkt[ak]||0)+num(l.punkte);                // §2: Punkt-Buchungen tragen ihre Art
@@ -20043,6 +20057,11 @@ function anPunkte(e,dom){
   const a=analyseArt();
   if(a!=='alle') return anArtSumme(e.artPkt, a, dom);
   return dom==='dfm'?e.punkteDfm : dom==='privat'?e.punktePrivat : e.punkte;
+}
+/* §9a (v3.7.0): Tageslast für die Belastung (ACWR) — Erholungspunkte mit Gewicht −0,5 statt +1, nie unter 0 */
+function anLast(e,dom){
+  const p=num(anPunkte(e,dom)), er=dom==='dfm'?num(e.erholungDfm) : dom==='privat'?num(e.erholungPrivat) : num(e.erholung);
+  return Math.max(0, p-1.5*er);
 }
 function anMin(e,dom){
   const a=analyseArt();
@@ -20204,7 +20223,7 @@ function anAcwrReihe(alle, bis, span, dom, metric){
   // ACWR je Tag = Ø(7 Tage) ÷ Ø(28 Tage), lückenlos (fehlende Tage = 0 Last).
   const startAll=alle.length?alle[0].datum:bis;
   const reihe=anKalenderReihe(alle, startAll, bis);
-  const load=reihe.map(x=> x.e ? (metric==='min'?anMin(x.e,dom):anPunkte(x.e,dom)) : 0);
+  const load=reihe.map(x=> x.e ? (metric==='min'?anMin(x.e,dom):anLast(x.e,dom)) : 0);   // §9a (v3.7.0): Last statt Punkte
   const bz=statParam('belastung')||{}, akT=Math.max(1,num(bz.akutTage,7)), chT=Math.max(akT,num(bz.chronischTage,28));   // §3 (v3.1.0)
   const acwr=load.map((_,i)=>{ if(i<akT) return null; const ac=anMean(load.slice(i-akT+1,i+1)); const ch=anMean(load.slice(Math.max(0,i-chT+1),i+1)); return (ch&&ch>0)?ac/ch:null; });
   // nur die letzten `span` Tage anzeigen
