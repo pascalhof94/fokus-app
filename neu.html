@@ -4242,6 +4242,9 @@ function kartenArtLabel(k){
    Eine Routine mit ticksAktiv behält Streak und Tagesabschnitte UND ist
    tickbar — Normalfall, kein Sonderfall. */
 function istTickKarte(k){ return !!k.ticksAktiv; }
+/* §7 (v3.7.0): zum Ticken freigegeben = Staffel- oder Pflicht-Modus, Counter (ticksAktiv, Altbestand tickKurve) oder eine der
+   Sonderrollen (Aufstehen/Tagesabschluss/Schlafen ticken ueber leisteTicken). Jede Karte misst IMMER Zeit; der Tick kommt dazu. */
+function istTickbar(k){ return !!(k && k.status!=='archiviert' && (k.modus==='staffel' || k.modus==='pflicht' || k.ticksAktiv || (Array.isArray(k.tickKurve) && k.tickKurve.length>1) || istSonderRolle(k))); }
 /* §2 (v1.9.1): Zeitmessung ist ein SCHALTER der Karte — kein aus vier Feldern
    abgeleitetes Rätsel (genau diese Ableitung hat in v1.8.0 den Play-Knopf der
    Routinen gekostet). Steuert AUSSCHLIESSLICH, ob die Stoppuhr läuft — nie,
@@ -7002,7 +7005,7 @@ function altTick(k){
     if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
     beruehre(k);
   }
-  if(limitErreicht(k) || (istTickKarte(k) && !leer(k.tageslimit) && num(k.ticksHeute)>=num(k.tageslimit))) routineErledigen(k);
+  // §7 (v3.7.0): das Tageslimit schliesst die Karte nicht mehr — Abschliessen nur per ✓
   return p;
 }
 /* +1 aus der Leiste — je nach Karte ein Tick, ein Haken oder ihre Rolle */
@@ -7292,12 +7295,12 @@ function unterZaehlerZeilenHtml(k){
 /* Tick ueber dem Tageslimit: zaehlt und bucht (0 P, Belegzeit zaehlt), schliesst nichts erneut */
 function tickUeberLimit(x, k){
   const min=istSonderRolle(k) ? 0 : tickMinutenVon(x);
-  tickLogHeute(x).push({ ts:jetztIso(), nr:tickAnzahlHeute(x)+1, basis:0, faktor:1, punkte:0, min, ueberLimit:true });
+  tickLogHeute(x).push({ ts:jetztIso(), nr:tickAnzahlHeute(x)+1, basis:0, faktor:1, punkte:0, min, ueberLimit:true, gebucht:min>0 });
   if(x===k) k.ticksHeute=tickAnzahlHeute(k);
-  if(min>0) akkuBuchen(k, min);
+  if(min>0){ akkuBuchen(k, min); k.istSek=num(k.istSek)+min*60; }   // §7 (v3.7.0): auch der Tick ueber dem Limit bucht seine Minuten auf die Karte
   if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
   beruehre(k);
-  const e=logIntraday(k,{punkte:0, minuten:0, tickMin:min, typ:'tick'}); buchungAbgleich(k, e);
+  const e=logIntraday(k,{punkte:0, minuten:min, tickMin:min, typ:'tick'}); buchungAbgleich(k, e);
 }
 function unterZaehlerTick(uid){
   const u=(S.unteraufgaben||[]).find(x=>x.id===uid), k=u && S.karten.find(x=>x.id===u.parentId);
@@ -8565,7 +8568,7 @@ function ringTeile(punkte, ziel){
 /* heute gebuchte Minuten je Familie: Uhren (laufende Uhr live) + Belegzeit der Ticks (tickMinuten), auch der Unter-Zaehler */
 function familienZeitHeute(){
   const o={ dfm:0, privat:0 };
-  (S.karten||[]).forEach(k=>{ if(!k) return; let m=heuteInvestiertMin(k)+tickMinHeute(k);
+  (S.karten||[]).forEach(k=>{ if(!k) return; let m=heuteInvestiertMin(k)+tickMinHeuteAlt(k);   // §7 (v3.7.0): Ticks seit 3.7.0 stecken in der Ist-Zeit
     unterZaehler(k).forEach(u=>{ m+=tickMinHeute(u); });
     if(m>0) o[k.domain==='dfm' ? 'dfm' : 'privat']+=m; });
   return o;
@@ -8795,6 +8798,15 @@ function kartenListeTick(kid){
   if(istAufgabeKarte(k)){ const t=routineTick(k); saveKarten(); saveTag(); if(t) toast('+'+fmtP(Math.abs(t.punkte))+' P · '+t.min+' Min belegt'); renderAlles(); return; }
   leisteTicken(kid);
 }
+/* §7 (v3.7.0): Wieder öffnen — die Karte startet neu wie jede andere: Uhr ab null (Tagesbasis = jetziger Stand),
+   die Ticks des Tages bleiben gebucht und zaehlen weiter. Aufgaben gehen ueber den bestehenden Weg (karteAbhakenAuto). */
+function karteWiederOeffnen(kid){
+  const k=S.karten.find(x=>x.id===kid); if(!k || k.status!=='erledigt') return false;
+  if(istAufgabeKarte(k)){ karteAbhakenAuto(kid, false); }
+  else { k.status='offen'; k.tagId=null; beruehre(k); const e=logIntraday(k,{punkte:0, typ:'wiederoffen'}); buchungAbgleich(k, e); }
+  if(S.tag){ if(!S.tag.istMinutenStart) S.tag.istMinutenStart={}; S.tag.istMinutenStart[k.id]=num(k.istSek)/60; }
+  saveKarten(); saveTag(); return true;
+}
 function kartenListeCheck(kid){
   const k=S.karten.find(x=>x.id===kid); if(!k) return;
   const vor=tagesPunkteLive();
@@ -8810,6 +8822,7 @@ function fokusKlick350(e){
   const kg=t.closest('[data-klgruppe]'); if(kg){ e.stopPropagation(); haptik(6); klGruppeUmschalten(kg.dataset.klgruppe);
     const blk=kg.closest('.kl-blk'); try{ if(blk){ _fokusExakt=true; blk.outerHTML=kartenBlockHtml(aktiveFokusKarte()); } else renderFokus(); }catch(err){ renderFokus(); } finally{ _fokusExakt=false; } return; }
   const kc=t.closest('[data-klcheck]'); if(kc){ e.stopPropagation(); haptik(12); kartenListeCheck(kc.dataset.klcheck); return; }
+  const kr=t.closest('[data-klreopen]'); if(kr){ e.stopPropagation(); haptik(8); if(karteWiederOeffnen(kr.dataset.klreopen)){ toast('Wieder offen — Uhr ab null, Ticks bleiben'); renderAlles(); } return; }   // §7 (v3.7.0)
   const kp=t.closest('[data-klplay]'); if(kp){ e.stopPropagation(); haptik(10); leistePlay(kp.dataset.klplay); return; }
 }
 function fokusBloeckeExakt(k){
@@ -10945,6 +10958,8 @@ function tickQuelle(x, anlegen){
 function ticksHeuteV3(x){ const q=tickQuelle(x), t=q && q.tickLog; return (t && t.tag===aktuelleTagId() && Array.isArray(t.ticks)) ? t.ticks : []; }
 /* §1.1 (v3.2.0): Belegzeit der Ticks ohne Uhr — getrennt von der gemessenen Ist-Zeit */
 function tickMinHeute(k){ return Math.round(ticksHeuteV3(k).reduce((a,t)=>a+(t.uhr?0:num(t.min)),0)*10)/10; }
+/* §7 (v3.7.0): Belegzeit von Ticks, die NICHT schon in der Ist-Zeit stecken (Ticks vor 3.7.0 am selben Tag) */
+function tickMinHeuteAlt(k){ return Math.round(ticksHeuteV3(k).reduce((a,t)=>a+((t.uhr || t.gebucht) ? 0 : num(t.min)),0)*10)/10; }
 function tickAnzahlHeute(x){ return ticksHeuteV3(x).length; }
 function tickLogHeute(x){ const q=tickQuelle(x, true), tid=aktuelleTagId(); if(!q.tickLog || q.tickLog.tag!==tid || !Array.isArray(q.tickLog.ticks)) q.tickLog={ tag:tid, ticks:[] }; return q.tickLog.ticks; }
 function staffelPunkteHeute(x){ return ticksHeuteV3(x).reduce((a,t)=>a+num(t.punkte),0); }
@@ -10961,7 +10976,8 @@ function kartenStatusHeute(k){
   if(!k) return 'offen';
   if(istAufgabeKarte(k)) return k.status==='erledigt' ? 'erledigt' : 'offen';
   if(k.status==='erledigt' && (!k.tagId || k.tagId===aktuelleTagId())) return 'erledigt';
-  if(limitErreicht(k) || (!istV3(k) && !leer(k.tageslimit) && num(k.tageslimit)>0 && num(k.ticksHeute)>=num(k.tageslimit))) return 'erledigt';
+  // §7 (v3.7.0): Tageslimit erreicht = Ziel erreicht — die Karte bleibt offen und tickbar bis zur Auswertung im Tagesabschluss
+  if(limitErreicht(k) || (!istV3(k) && !leer(k.tageslimit) && num(k.tageslimit)>0 && num(k.ticksHeute)>=num(k.tageslimit))) return 'zielErreicht';
   if(hatTagesZiel(k) && zielErreicht(k)) return 'zielErreicht';
   return 'offen';
 }
@@ -11145,20 +11161,20 @@ function routineTick(k, opt){
   if(m==='staffel'){ basis=staffelWert(k,nr); faktor=k.serienfaktor ? (num(k.serienFaktor,1)||1) : 1; }
   else if(m==='pflicht') basis=pflichtWerte(k).wert;
   else basis=abhakbonusDefault(k);
-  const t={ ts:jetztIso(), nr, basis, faktor, punkte:logRund(basis*faktor), min, uhr:!!opt.uhr };
+  const t={ ts:jetztIso(), nr, basis, faktor, punkte:logRund(basis*faktor), min, uhr:!!opt.uhr, gebucht:min>0 };   // §7 (v3.7.0): gebucht = Minuten liegen in der Ist-Zeit
   if(!leer(opt.eingabe)) t.eingabe=opt.eingabe;
   tickLogHeute(k).push(t);
   k.ticksHeute=nr;
   if(m==='pflicht') pflichtDurchgangNeu(k, !!opt.uhr);   // Ertrag ueber das Pflicht-Ledger (v2.9); t.punkte ist nur Protokoll
   else if(opt.uhr) k.durchgang={ tag:aktuelleTagId(), startTs:jetztIso(), pauseTs:null };
-  // §1.1 (v3.2.0): ein Tick ohne Uhr zaehlt tickMinuten als BELEGZEIT des Ticks (t.min, Export tickMin),
-  // nicht als Ist-Zeit — keine Karte bucht Zeit, die nicht gemessen wurde. Der Akku folgt der Belegzeit.
-  if(min>0) akkuBuchen(k, min);
+  // §7 (v3.7.0): jeder Tick ohne Uhr bucht seine Tick-Minuten (oder den Standard) auf die Karte — als Ist-Zeit UND als
+  // Belegzeit des Ticks (t.min, Export tickMin); der Akku folgt der Belegzeit. Das Tageslimit schliesst die Karte NICHT mehr —
+  // sie bleibt offen bis zur Auswertung im Tagesabschluss (blasser dargestellt).
+  if(min>0){ akkuBuchen(k, min); k.istSek=num(k.istSek)+min*60; }
   if(k.rhythmus) routineErledigtBuchen(k);
   if(S.tag) S.tag.letzteAktivitaetTs=jetztIso();
   beruehre(k);
-  { const e=logIntraday(k,{punkte:0, minuten:0, tickMin:min, typ:'tick'}); const d=buchungAbgleich(k, e); try{ momentBuchung(d); }catch(x){} }
-  if(limitErreicht(k) && k.status==='offen') routineErledigen(k);
+  { const e=logIntraday(k,{punkte:0, minuten:min, tickMin:min, typ:'tick'}); const d=buchungAbgleich(k, e); try{ momentBuchung(d); }catch(x){} }
   return t;
 }
 /* Tageslimit erreicht → fuer heute erledigt (grau ans Ende ihres Blocks) */
@@ -14405,7 +14421,7 @@ function kaufSperre(kat){
 function fokusMinSeit(tsVon, tsBis){
   const a=tsVon ? Date.parse(tsVon) : -Infinity, b=tsBis ? Date.parse(tsBis) : Infinity; let m=0;
   (S.intraday||[]).forEach(e=>{ if(!e || !e.ts) return; const t=Date.parse(e.ts); if(!(t>a && t<=b)) return;
-    m+=Math.max(0, num(e.minuten))+Math.max(0, num(e.tickMin)); });
+    m+=Math.max(Math.max(0, num(e.minuten)), Math.max(0, num(e.tickMin))); });   // §7 (v3.7.0): Tick-Minuten sind gebuchte Minuten (Altbestand: nur tickMin)
   return Math.round(m*10)/10;
 }
 function letzterKaufTs(){
