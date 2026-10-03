@@ -2260,6 +2260,11 @@ img.objimg.laedt{opacity:0}
 .kch.hg .s{overflow-wrap:anywhere}
 .hg-satz{font-size:12.5px;color:#c9cbd0;margin-top:8px;line-height:1.45}
 .bel-ansicht.kauf{background:radial-gradient(circle at 50% 22%,#2a2410,#000 62%)}
+/* §4b (v3.7.0): Schritt „Farbe wählen" in der Kauf-Belohnung */
+.bel-ansicht .kb-farbe .kb-farben{justify-content:center;gap:10px;flex-wrap:wrap;margin:8px 0 6px}
+.bel-ansicht .kb-farbe .mal-farbe{width:34px;gap:4px;color:#e8e9ec;font-size:11.5px;font-weight:650}
+.bel-ansicht .kb-farbe .mal-farbe i{width:24px;height:24px;border:1.5px solid #c9ccd2;box-sizing:border-box}
+.bel-ansicht .kb-farbe .mal-farbe.on i{box-shadow:0 0 0 3px #000,0 0 0 5px #fff}
 .bel-ansicht .kb{text-align:center}
 .bel-ansicht .kb-kopf{font-size:12px;color:#d4af37;font-weight:700;letter-spacing:.3px;margin-top:6px}
 .bel-ansicht .kb-bild{position:relative;width:200px;height:170px;margin:8px auto}
@@ -14731,8 +14736,9 @@ function kaufBelohnungDaten(kat, stufe, preis, fokusMin){
   const sperre=kaufSperre(kat), fs=KAT_KEYS.map(k=>({ kat:k, f:zukunftFortschritt(k), farbton:num(BELOHNUNG[k].farbton) }));
   const tief=gleichgewichtSchwaechste(), hoch=Math.max.apply(null, fs.map(x=>x.f));
   const hinter=(tief && hoch-tief.f>1e-9) ? Math.max(1, Math.round((hoch-tief.f)*zukunftStufen(tief.kat))) : 0;
+  let farben=[]; try{ farben=offeneFarben(); }catch(e){}   // §4b (v3.7.0): Schritt „Farbe wählen"
   return { kat, stufe, name:stufeName(kat, stufe), katName:BELOHNUNG[kat].name, preis, rest:konto(), fokusMin:num(fokusMin), offen:Math.max(0, BELOHNUNG[kat].stufen.length-stufe),
-    frei, sperre, saeulen:fs, schwach: hinter ? { kat:tief.kat, hinter } : null };
+    frei, sperre, saeulen:fs, schwach: hinter ? { kat:tief.kat, hinter } : null, farben };
 }
 function kaufBelohnungHtml(d){
   const slots=[0.15,0.5,1.1,1.7,2.3,2.9,3.6]; let si=0; const slot=()=>slots[Math.min(si++, slots.length-1)];
@@ -14752,14 +14758,26 @@ function kaufBelohnungHtml(d){
       '<div class="t"><b style="color:'+frei.c+'">'+frei.w+'</b><span>'+frei.s+'</span></div></div>'+
     st('t kb-gl')+'<span>Gleichgewicht</span><div class="gl">'+d.saeulen.map(x=>'<i title="'+esc(BELOHNUNG[x.kat].name)+'" style="height:'+Math.round(4+36*x.f)+'px;background:hsl('+x.farbton+',70%,58%)"></i>').join('')+'</div>'+
       '<span class="gls">'+(d.schwach ? esc(BELOHNUNG[d.schwach.kat].name)+' liegt '+d.schwach.hinter+' hinter · zieh sie zuerst nach' : 'Alle sechs Kategorien liegen gleichauf')+'</span></div>'+
-    '<div class="hint">Doppeltipp überspringt</div><button class="skip kb-weiter" data-belweiter="1">Weiter</button></div>';
+    // §4b (v3.7.0): Farbe wählen — jeder Kauf schenkt einen Topf voll Farbe; nur Farben mit offenen Feldern; nicht überspringbar
+    st('t kb-farbe')+'<span>Farbe wählen · ein Topf voll als Geschenk</span>'+
+      ((d.farben||[]).length ? '<div class="mal-farben kb-farben">'+d.farben.map(f=>'<button class="mal-farbe" data-kbfarbe="'+f.i+'" aria-label="'+esc(f.name)+'"><i style="background:'+f.hex+'"></i><span>'+f.n+'</span></button>').join('')+'</div><span class="gls kb-farbname">'+esc(d.farben[0].name)+' · '+d.farben[0].n+' Feld'+(d.farben[0].n===1?'':'er')+' offen (Vorgabe)</span>'
+        : '<span class="gls">Alle Farben dieser Kulisse sind fertig</span>')+'</div>'+
+    '<button class="skip kb-weiter" data-belweiter="1">Weiter</button></div>';
 }
 function kaufBelohnungZeigen(d, danach){
   if(!d || typeof document==='undefined' || !document.body || !document.body.appendChild){ if(danach) danach(); return; }
   const alt=el('belAnsicht'); if(alt && alt.remove) alt.remove();
   const ov=document.createElement('div'); ov.id='belAnsicht'; ov.className='bel-ansicht kauf'; ov.innerHTML=kaufBelohnungHtml(d); document.body.appendChild(ov);
-  const zu=()=>{ if(!ov.parentNode) return; ov.remove(); if(danach){ try{ danach(); }catch(e){} } };
-  ov.addEventListener('dblclick', zu); const w=ov.querySelector('[data-belweiter]'); if(w) w.addEventListener('click', e=>{ e.stopPropagation(); zu(); });
+  // §4b (v3.7.0): nicht überspringbar (kein Doppeltipp); „Weiter" schenkt die gewählte Farbe, ohne Auswahl die nächste offene
+  let wahl=(d.farben||[]).length ? d.farben[0].i : null;
+  ov.addEventListener('click', e=>{ const b=e.target.closest('[data-kbfarbe]'); if(!b) return; e.stopPropagation(); wahl=num(b.dataset.kbfarbe);
+    ov.querySelectorAll('[data-kbfarbe]').forEach(x=>x.classList.toggle('on', num(x.dataset.kbfarbe)===wahl));
+    const f=d.farben.find(x=>x.i===wahl), n=ov.querySelector('.kb-farbname'); if(f && n) n.textContent=f.name+' · '+f.n+' Feld'+(f.n===1?'':'er')+' offen'; });
+  const ersteWahl=ov.querySelector('[data-kbfarbe]'); if(ersteWahl) ersteWahl.classList.add('on');
+  const zu=()=>{ if(!ov.parentNode) return; ov.remove();
+    if(wahl!=null){ try{ const g=farbeSchenken(wahl, topfFassungFarbe(wahl)); if(g){ toast('+'+fmtP(g.menge)+' Farbe geschenkt'); renderBelohnung(); } }catch(e){} }
+    if(danach){ try{ danach(); }catch(e){} } };
+  const w=ov.querySelector('[data-belweiter]'); if(w) w.addEventListener('click', e=>{ e.stopPropagation(); zu(); });
   objBilderLaden();
 }
 /* Vitalität (§6.2): getrieben vom Tages-Akku. */
@@ -16597,6 +16615,30 @@ function farbName(hex){
 }
 function topfFassung(){ const D=ausmalDaten(ausmalState().kulisse); return D ? Math.round(D.maxP*ausmalEinst().topfAufschlag) : null; }
 function feldPunkte(f){ const D=ausmalDaten(ausmalState().kulisse); return D ? (D.punkte[f]||1) : null; }
+/* §4b (v3.7.0): offene Farben der aktuellen Kulisse in der Reihenfolge der Auswahlstation (Index der Kulissenfarben) */
+function offeneFarben(){
+  const A=ausmalState(), D=ausmalDaten(A.kulisse); if(!D) return [];
+  const st=ausmalStand();
+  return D.hex.map((hex,i)=>({ i, hex, name:D.namen[i], n:st.offenJeFarbe[i]||0 })).filter(f=>f.n>0);
+}
+/* §4b (v3.7.0): Fassung je Farbe = größtes offenes Feld dieser Farbe × topfAufschlag (ohne offenes Feld: die Topf-Fassung) */
+function topfFassungFarbe(c){
+  const A=ausmalState(), D=ausmalDaten(A.kulisse); if(!D) return null;
+  let max=0; (D.json.felder||[]).forEach(f=>{ if(f.farbe===c && A.gefaerbt.indexOf(f.feld)<0) max=Math.max(max, D.punkte[f.feld]||1); });
+  return max>0 ? Math.round(max*ausmalEinst().topfAufschlag) : topfFassung();
+}
+/* §4b (v3.7.0): geschenkte Farbe (Spiel-Ebene, nie Buchung) füllt einen Topf dieser Farbe — vorhandener Topf dieser Farbe
+   zuerst, sonst der nächste leere Topf; reicht kein Topf, geht der Rest in den Tank. */
+function farbeSchenken(c, menge){
+  const A=ausmalState(), T=topfFassung(); menge=Math.max(0, Math.round(num(menge))); if(!T || c==null || menge<=0) return null;
+  let idx=A.toepfe.findIndex(t=>t.farbe===c && !topfVoll(t));
+  if(idx<0){ idx=A.toepfe.findIndex(t=>t.farbe==null && num(t.punkte)<=0); if(idx<0) idx=A.toepfe.findIndex(t=>topfLeer(t)); }
+  let inTopf=0;
+  if(idx>=0){ const t=A.toepfe[idx]; if(t.farbe!==c) topfRestInTank(A, t); t.farbe=c; inTopf=Math.min(T-num(t.punkte), menge); t.punkte=num(t.punkte)+inTopf;
+    if(t.punkte>=T && !t.bannerGezeigt){ t.bannerGezeigt=true; try{ ausmalBanner(idx); }catch(e){} } }
+  const inTank=menge-inTopf; if(inTank>0) A.tank=num(A.tank)+inTank;
+  saveMeta(); return { topf:idx, inTopf, inTank, menge };
+}
 /* Stand: Freischaltung, Anteil, offene Felder je Farbe */
 function ausmalStand(){
   const A=ausmalState(), W=ausmalW(), D=ausmalDaten(A.kulisse);
