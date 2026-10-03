@@ -9688,6 +9688,17 @@ function exportAlsDatei(inhalt, name, mime){
   }
   return name;
 }
+/* §1 (v3.7.1): Delta/Vollexport DIREKT als Datei — Teilen-Blatt bzw. Download (exportAlsDatei), Dateiname YYMMDD_HHMM_FokusApp_Delta.json
+   bzw. …_Vollexport.json; synchron im Klick-Handler aufrufen (iOS verlangt die direkte Nutzeraktion) */
+function syncExportDateiname(modus){
+  const d=new Date(), p2=x=>String(x).padStart(2,'0');
+  return String(d.getFullYear()).slice(2)+p2(d.getMonth()+1)+p2(d.getDate())+'_'+p2(d.getHours())+p2(d.getMinutes())+'_FokusApp_'+(modus==='voll' ? 'Vollexport' : 'Delta')+'.json';
+}
+function syncExportDatei(modus){
+  const name=syncExportDateiname(modus);
+  exportAlsDatei(JSON.stringify(syncExport(modus==='voll' ? 'voll' : 'delta'), null, 2), name, 'application/json');
+  return name;
+}
 function abschlussV3Download(){
   const md=abschlussMarkdown(), d=new Date(), p2=x=>String(x).padStart(2,'0');
   const name=String(d.getFullYear()).slice(2)+p2(d.getMonth()+1)+p2(d.getDate())+'_Tagesabschluss.md';
@@ -14227,7 +14238,9 @@ function renderEinst(){
      '<div class="btnrow"><button class="btn prim" id="btnEinstImport" style="flex:1;min-height:44px">Importieren</button></div>'+
      '<div id="einstImportErg"></div></div>';
   h+='<div class="card"><h3>Daten &amp; Sync</h3><p class="d">Sync mit dem Claude-Chat (nur DFM, Copy-Paste) und lokales Backup.</p>'+
-    '<div class="btnrow"><button class="btn sm prim" id="btnSync">⇄ Sync (DFM)</button></div>'+
+    '<div class="btnrow"><button class="btn sm prim" data-exportdatei="delta" style="flex:1;min-height:44px">⬇︎ Delta exportieren</button><button class="btn sm" data-exportdatei="voll" style="flex:1;min-height:44px">⬇︎ Vollexport</button></div>'+   // §1 (v3.7.1): direkt als Datei
+    '<div class="hint">Lädt die Datei direkt herunter bzw. öffnet das Teilen-Menü. Kopierfeld und Import: unter „Sync".</div>'+
+    '<div class="btnrow"><button class="btn sm" id="btnSync">⇄ Sync (DFM) · Kopierfeld</button></div>'+
     '<div class="btnrow"><button class="btn sm" id="btnBackup">⬇︎ Backup</button></div>'+
     '<div class="btnrow"><button class="btn warn sm" id="btnReset">🗑 Alle Karten löschen</button></div>'+
     '<div class="hint">Nullstand vor dem Seed. Lädt vorher ein Voll-Backup herunter. Behält Einstellungen, Farbe, Historie, Stapel, Vorlagen, Gruppen.</div></div>';
@@ -18687,10 +18700,7 @@ el('sheet').addEventListener('click', e=>{
   if(t.closest('[data-synccopy]')){ const ta=el('syncEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){} if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
   // Merge 21.09.: der v1.13.5-Umschalter (data-syncvoll) ist durch den
   // v2.0-Umschalter (data-syncmode, oben) ersetzt. Der Download folgt ihm.
-  if(t.closest('[data-syncdownload]')){   // v3.4.1 §A: dieselbe Dateiausgabe wie der Tagesabschluss (Teilen-Blatt bzw. Download)
-    const d=new Date(), p2=x=>String(x).padStart(2,'0');
-    const name=String(d.getFullYear()).slice(2)+p2(d.getMonth()+1)+p2(d.getDate())+'_'+p2(d.getHours())+p2(d.getMinutes())+'_fokus_'+(syncVoll?'voll':'delta')+'.json';
-    exportAlsDatei(JSON.stringify(syncExport(syncVoll?'voll':'delta'), null, 2), name, 'application/json'); return; }
+  if(t.closest('[data-syncdownload]')){ const nm=syncExportDatei(syncVoll?'voll':'delta'); toast('⬇︎ '+nm); return; }   // §1 (v3.7.1): dieselbe Dateiausgabe wie in den Einstellungen
   // §8.4: Kopieren/Download des Tagesabschluss-Pakets
   if(t.closest('[data-tagcopy]')){ const ta=el('tagEx'); if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){}
     if(navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{}); toast(okc?'Kopiert':'Markiert — ⌘C'); } return; }
@@ -19159,6 +19169,7 @@ el('einstBody').addEventListener('click', e=>{
     // renderAlles() zeichnet die Einstellungen neu — Ergebniskasten ERST DANACH holen
     const box=el('einstImportErg'); if(box) box.innerHTML=importErgebnisHtml(res);
     return; }
+  { const xd=e.target.closest('[data-exportdatei]'); if(xd){ const nm=syncExportDatei(xd.dataset.exportdatei); toast('⬇︎ '+nm); haptik(8); return; } }   // §1 (v3.7.1)
   if(e.target.closest('#btnSync')) oeffneSync();
   else if(e.target.closest('#btnBackup')) backupHtml();
   else if(e.target.closest('#btnReset')){ resetKarten(); return; }
