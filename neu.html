@@ -2388,30 +2388,6 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
        FABs sind entfallen. Was bleibt, sind zwei Orte — und der Shop hängt
        hinter der Figur, nicht in der Leiste. -->
 
-  <!-- Suche: Freitext oben, darunter fünf wischbare Sichten -->
-  <section class="view on" id="v-suche">
-    <div class="su-kopf">
-      <span class="su-ic">🔍</span>
-      <input id="suFreitext" type="search" inputmode="search" enterkeyhint="search"
-             autocomplete="off" autocapitalize="off" spellcheck="false"
-             placeholder="Offene Karten finden …">
-      <button id="suClear" class="su-x" hidden>✕</button>
-      <!-- §6: Neuanlage sitzt in der Kopfzeile — in der Sichtleiste haette sie
-           die fuenfte Sicht bei 375 px aus dem Bild gedraengt. -->
-
-    </div>
-    <!-- §3 (v2.0.2): Der Tag-Banner (Abschließen / Tag starten) hing bis
-         v2.0.1 ausschliesslich an renderStapel() und damit an #stapelListe —
-         einem Element, das es seit dem Navigationsumbau nicht mehr gibt.
-         Der Knopf war damit seit v2.0.0 unerreichbar. -->
-    <div id="tagBanner"></div>
-    <!-- §2 (v2.2.0): zwei Filter ueber ALLEN Sichten und dem Freitext —
-         eigene Segment-Leisten, keine weiteren Chips in der Sicht-Leiste. -->
-    <!-- §5 (v3.7.0): unter dem Suchfeld die Kettenliste; die Eingabe filtert alle Gruppen (Filter-Knöpfe und Sichten entfallen) -->
-    <div class="su-filter" id="suFilter" hidden></div>
-    <div class="su-sichten" id="suSichten" hidden></div>
-    <div class="su-swipe" id="suSwipe"><div id="suBody"></div></div>
-  </section>
 
   <!-- Statistik -->
   <section class="view" id="v-statistik">
@@ -2441,6 +2417,31 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
      global ueber allem — ueber dem Fokus-Layer (200) und unter den Sheets
      (201), damit ein offener Dialog es sauber verdeckt. -->
 <button id="neuFab" aria-label="Neue Karte">＋</button>
+<!-- §1 (v3.7.6): die Suche ist eine Vollbild-Ebene AUSSERHALB von <main> — über jeder Ansicht und über der Statusleiste -->
+  <section id="v-suche">
+    <div class="su-kopf">
+      <span class="su-ic">🔍</span>
+      <input id="suFreitext" type="search" inputmode="search" enterkeyhint="search"
+             autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="Offene Karten finden …">
+      <button id="suClear" class="su-x" hidden>✕</button>
+      <!-- §6: Neuanlage sitzt in der Kopfzeile — in der Sichtleiste haette sie
+           die fuenfte Sicht bei 375 px aus dem Bild gedraengt. -->
+
+    </div>
+    <!-- §3 (v2.0.2): Der Tag-Banner (Abschließen / Tag starten) hing bis
+         v2.0.1 ausschliesslich an renderStapel() und damit an #stapelListe —
+         einem Element, das es seit dem Navigationsumbau nicht mehr gibt.
+         Der Knopf war damit seit v2.0.0 unerreichbar. -->
+    <div id="tagBanner"></div>
+    <!-- §2 (v2.2.0): zwei Filter ueber ALLEN Sichten und dem Freitext —
+         eigene Segment-Leisten, keine weiteren Chips in der Sicht-Leiste. -->
+    <!-- §5 (v3.7.0): unter dem Suchfeld die Kettenliste; die Eingabe filtert alle Gruppen (Filter-Knöpfe und Sichten entfallen) -->
+    <div class="su-filter" id="suFilter" hidden></div>
+    <div class="su-sichten" id="suSichten" hidden></div>
+    <div class="su-swipe" id="suSwipe"><div id="suBody"></div></div>
+  </section>
+
 <!-- §3 (v2.4.0): der Suchknopf — gegenueber dem Plus -->
 <button id="suchFab" aria-label="Volltextsuche">🔍</button>
 
