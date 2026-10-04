@@ -17,7 +17,7 @@ function aufgabe(id, dom, soll){ return neueKarte({ id:id, domain:dom, titel:'Ka
 function buchung(ts, punkte, dom){ S.intraday.push({ ts:ts, kartenId:'x', domaene:dom||'dfm', punkte:punkte, minuten:0, typ:'abhaken' }); }
 
 kopf('Version');
-ok('APP_VERSION 3.5.2 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.3' && UI_VERSION==='v3.7.3' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-2');
+ok('APP_VERSION 3.5.2 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.4' && UI_VERSION==='v3.7.4' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-3');
 
 /* ══ (a) Pace-Farbe ═══════════════════════════════════════════════════ */
 kopf('(a) Pace-Leiste: diskrete Ampel nach Ø ÷ nötig');

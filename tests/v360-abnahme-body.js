@@ -22,7 +22,7 @@ function muenzen(v){ S.meta.muenzenGesamt=num(S.meta.muenzenGesamt)+v-konto(); }
 var KATS=['fahrzeuge','wohnen','reisen','mobilitaet','beziehung','soziales'];
 
 kopf('Version und Stufendaten');
-ok('APP_VERSION 3.6.0 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.3' && UI_VERSION==='v3.7.3' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-2');
+ok('APP_VERSION 3.6.0 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.4' && UI_VERSION==='v3.7.4' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-3');
 ok('§2 sechs Kategorien in der Reihenfolge Fahrzeuge · Wohnen · Reisen · Mobilität · Beziehung · Soziales, je 12 Stufen', KAT_KEYS.join(',')===KATS.join(',') &&
    KAT_KEYS.map(function(k){ return BELOHNUNG[k].name; }).join(' · ')==='Fahrzeuge · Wohnen · Reisen · Mobilität · Beziehung · Soziales' && KAT_KEYS.every(function(k){ return BELOHNUNG[k].stufen.length===12; }));
 ok('§2 jede Stufe: Name, Status vergangen/zukunft (erst Rückblick, dann Ziele); Farbton je Kategorie (0 · 25 · 180 · 205 · 340 · 36)', KAT_KEYS.every(function(k){ return BELOHNUNG[k].stufen.every(function(s){ return s.name && (s.status==='vergangen' || s.status==='zukunft'); }) &&

@@ -26,7 +26,7 @@ function kulisseWeg(){ delete _kul[1]; delete _kul[2]; }
 function toepfe(l){ var A=ausmalState(); A.toepfe=[0,1,2,3,4].map(function(i){ return { farbe:(l[i]&&l[i][0]!=null)?l[i][0]:null, punkte:(l[i]&&l[i][1])||0 }; }); return A; }
 
 kopf('Version');
-ok('APP_VERSION 3.7.2 · Datenvertrag bleibt 2.1.0 · Build 2026-10-04-1', APP_VERSION==='3.7.3' && UI_VERSION==='v3.7.3' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-2');
+ok('APP_VERSION 3.7.4 · Datenvertrag bleibt 2.1.0 · Build 2026-10-04-3', APP_VERSION==='3.7.4' && UI_VERSION==='v3.7.4' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-3');
 
 /* ══ §1 Kulissen schalten sich beim Ankommen frei ════════════════════ */
 kopf('§1 Kulissen schalten sich beim Ankommen frei');
@@ -108,13 +108,11 @@ ok('§6 die Statusleiste bleibt nach dem Abschluss sichtbar und zeigt den abgesc
 uhr('2026-10-04T08:00:00+02:00'); aufstehenBestaetigen(70, { tapTs:jetztIso() });
 ok('§6 „Aufstehen" beginnt den neuen Tag (Sonntag) und schließt den Vortag endgültig — Nachträge im Snapshot', tagOffen() && S.tag.datum===SO && (S.historie.filter(function(h){ return h.datum===SA; })[0]||{}).nachtrag && S.meta.nachtraegeOffen && S.meta.nachtraegeOffen.some(function(x){ return x.datum===SA && x.anzahl>=2; }));
 
-/* ══ §7 Suche ════════════════════════════════════════════════════════ */
-kopf('§7 Suche: sichtbar, vollflächig');
-ok('§7 Ebene über allem: body.sucheOffen · #v-suche fixed, z-index 300, volle Höhe mit Safe-Area', /body\.sucheOffen #v-suche\{position:fixed;inset:0;z-index:300;[^}]*padding-top:var\(--sat\);padding-bottom:var\(--sab\)\}/.test(src) && /classList\.toggle\('sucheOffen', tab==='suche'\)/.test(rumpf('setTab')));
-ok('§7 „Der Tag läuft" ganz unten, darunter 50 vh Platzhalter', /<div class="su-swipe" id="suSwipe"><div id="suBody"><\/div><\/div>\s*<!--[^>]*-->\s*<div id="tagBanner"><\/div>\s*<div class="su-platz" aria-hidden="true"><\/div>/.test(src) && /\.su-platz\{height:50vh\}/.test(src));
-S.ui.suFrage='mail'; setTab('suche'); S.ui.suFrage='mail'; sucheSchliessen();
-ok('§7 Schließen leert das Feld und kehrt zur vorigen Ansicht zurück; das nächste Öffnen startet leer', S.ui.suFrage==='' && S.ui.tab!=='suche' && /el\('suZu'\)\.addEventListener\('click'/.test(src) && (setTab('suche'), suFrage()==='' ) && (sucheSchliessen(), true));
-ok('§7 der Start öffnet nie mit offener Such-Ebene', /setTab\(\(S\.ui\.tab && S\.ui\.tab!=='suche'\) \? S\.ui\.tab : 'belohnung'/.test(src));
+/* ══ §7 Suche — 3.7.2 §7 ist mit 3.7.4 zurückgenommen (Revert 7a7ecb6) ═════════ */
+kopf('§7 Suche: Stand vor 3.7.2 (Revert in 3.7.4)');
+ok('§7 (v3.7.4) kein Such-Overlay mehr: keine body.sucheOffen-Regel, kein sucheSchliessen, kein „Schließen"-Knopf, kein 50-vh-Platzhalter', !/body\.sucheOffen/.test(src) && typeof sucheSchliessen==='undefined' && src.indexOf('id="suZu"')<0 && src.indexOf('su-platz')<0);
+ok('§7 (v3.7.4) der Tag-Banner steht wieder oben, vor der Kettenliste', src.indexOf('<div id="tagBanner"></div>')<src.indexOf('<div class="su-swipe" id="suSwipe">'));
+ok('§7 (v3.7.4) 🔍 öffnet die Suche wie in 3.7.0 §11; der Start kehrt zum gemerkten Tab zurück', /el\('suchFab'\)\.addEventListener\('click', \(\)=>\{ haptik\(8\); if\(S\.ui\.tab!=='suche'\) setTab\('suche'\); const f=el\('suFreitext'\);/.test(src) && /setTab\(S\.ui\.tab\|\|'stapel', \{fokusLassen:true\}\);/.test(src));
 
 /* ══ §8 Pace-Leiste ══════════════════════════════════════════════════ */
 kopf('§8 Pace-Leiste (P/h) neu beschriftet');

@@ -29,7 +29,7 @@ function kulisseWeg(){ delete _kul[1]; delete _kul[2]; }
 function toepfe(l){ var A=ausmalState(); A.toepfe=[0,1,2,3,4].map(function(i){ return { farbe:(l[i]&&l[i][0]!=null)?l[i][0]:null, punkte:(l[i]&&l[i][1])||0 }; }); return A; }
 
 kopf('Version');
-ok('APP_VERSION 3.7.0 · Datenvertrag bleibt 2.1.0 · Build 2026-10-03-1', APP_VERSION==='3.7.3' && UI_VERSION==='v3.7.3' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-2');
+ok('APP_VERSION 3.7.0 · Datenvertrag bleibt 2.1.0 · Build 2026-10-03-1', APP_VERSION==='3.7.4' && UI_VERSION==='v3.7.4' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-3');
 
 /* ══ §1 Fokus oben: „Nach vorn" ═══════════════════════════════════════ */
 kopf('§1 Fokus oben: „⤒ Nach vorn"');
