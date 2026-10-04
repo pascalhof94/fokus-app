@@ -18638,6 +18638,18 @@ function fokusImmerZeigen(){
   toast('Keine Karte in der Kette'); return false;
 }
 { const z1=document.querySelector('#topbar .sl-z1'); (z1||el('fkMid')).addEventListener('click', e=>{ if(e.target.closest('#btnFigur')) return; fokusImmerZeigen(); }); }
+/* §10 (v3.7.2): langer Druck (500 ms) auf die Statusleiste öffnet das Status-Sheet; der kurze Tipp bleibt (Fokusansicht) */
+let _slLangTimer=null, _slLangWar=false;
+function statusLangDruckBinden(elm){
+  if(!elm) return;
+  const start=e=>{ if(e.target.closest('#btnFigur') || e.target.closest('#btnKurve')) return; _slLangWar=false; clearTimeout(_slLangTimer);
+    _slLangTimer=setTimeout(()=>{ _slLangWar=true; haptik(12); try{ oeffneStatusSheet(); }catch(x){} }, 500); };
+  const ende=()=>{ clearTimeout(_slLangTimer); _slLangTimer=null; };
+  elm.addEventListener('pointerdown', start); elm.addEventListener('pointerup', ende); elm.addEventListener('pointercancel', ende); elm.addEventListener('pointerleave', ende);
+  elm.addEventListener('pointermove', e=>{ if(_slLangTimer && (Math.abs(e.movementX||0)+Math.abs(e.movementY||0))>12) ende(); });
+  elm.addEventListener('click', e=>{ if(_slLangWar){ _slLangWar=false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+}
+statusLangDruckBinden(el('statusbar')); statusLangDruckBinden(document.querySelector('#topbar .sl-z1'));
 el('statusbar').addEventListener('click', e=>{
   if(e.target.closest('#sZMatrix')){ oeffneTagebuch(); return; }   // §2 (v3.7.1): Tipp auf die Matrix = Tagebuch
   if(e.target.closest('#btnKurve')) return;   // §2 (v3.5.1): der Punkte-Block fuehrt zur Statistik (eigener Handler)
