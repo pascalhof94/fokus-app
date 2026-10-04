@@ -748,7 +748,7 @@ ok('§2 Das Plus liegt GLOBAL im Markup, nicht in der Suchkopfzeile',
 ok('§2 Es liegt unter Backdrop/Sheet (199) — ein Dialog muss es verdecken',
    /#neuFab\{[^}]*z-index:199/.test(src));
 ok('§2 In der Fokusansicht wandert es ueber den Layer',
-   /body\.fokusOffen #neuFab\{z-index:201\}/.test(src));
+   /body\.fokusOffen #neuFab\{z-index:261\}/.test(src));
 ok('§2 44-px-Norm uebererfuellt (56 px)', /#neuFab\{[^}]*width:56px;height:56px/.test(src));
 
 

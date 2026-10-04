@@ -59,7 +59,7 @@ ok('§2 die Karte oben (ziehbar), Gruppen klappbar, Teile als Drop-Ziele, feste 
 ok('§2 Einfügen in die aktuelle Kette an Position 1 (vor der ersten sichtbaren Karte)', ikEinfuegen('kette', {}, 'b', 0)===true && tagesKette()[0]==='b');
 ok('§2 Einfügen in eine Tageskette ans Ende; die Karte darf in mehreren Ketten stehen', ikEinfuegen('tk', { tk:'tk1' }, 'b', 1)===true && S.tagesketten[0].karten.join(',')==='a,b' && tagesKette().indexOf('b')===0);
 ok('§2 Ziehen per langem Druck (300 ms), Einfügelinie, Loslassen fügt ein', /, 300\) \}; \}\);/.test(rumpf('ikDragBinden')) && /ik-linie/.test(rumpf('ikDragBinden')) && /ikEinfuegen\(/.test(rumpf('ikDragBinden')) && /toast\('Eingefügt'\)/.test(rumpf('ikDragBinden')));
-ok('§2 „Fertig" schließt und zeichnet die Fokusansicht neu; die Vollbild-Ansicht liegt über dem Fokus-Layer (z-index 200)', /function schliesseInKette\(\)\{ el\('inKetteOverlay'\)\.hidden=true; _ik=null; renderFokus\(\); \}/.test(src) && /\.voll-ansicht\{position:fixed;inset:0;z-index:200;/.test(src));
+ok('§2 „Fertig" schließt und zeichnet die Fokusansicht neu; die Vollbild-Ansicht liegt über dem Fokus-Layer (z-index 200)', /function schliesseInKette\(\)\{ el\('inKetteOverlay'\)\.hidden=true; _ik=null; renderFokus\(\); \}/.test(src) && /\.voll-ansicht\{position:fixed;inset:0;z-index:260;/.test(src));   // §2 (v3.7.6): 260
 
 /* ══ §3 Matrixverlauf live ════════════════════════════════════════════ */
 kopf('§3 Matrixverlauf live');

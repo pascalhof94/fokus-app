@@ -224,7 +224,7 @@ var mfM=mod('matrixfaktor', true), mfA=mfAnsichtHtml();
 ok('§3 Matrixfaktor: im Modul der Knopf „Karten mit Faktor (1) ›", die Liste selbst steht nicht mehr im Modul; Balken und KPIs bleiben', mfM.indexOf('data-mfansicht="1">Karten mit Faktor (1) ›</button>')>=0 && mfM.indexOf('class="mf-k"')<0 && mfM.indexOf('data-mfedit')<0 &&
    mfM.indexOf('class="mf-liste"')>=0 && mfM.indexOf('effektiver Ø-Faktor')>=0);
 ok('§3 Ansicht „Karten mit Faktor": dieselben Zeilen mit Bearbeiten (✎), Vollbild mit Zurück-Knopf oben links', mfA.indexOf('Karten mit Faktor ≠ 1,0 · 1')>=0 && mfA.indexOf('data-mfedit="m1">✎</button>')>=0 && mfA.indexOf('m2')<0 &&
-   /<div id="mfOverlay" class="voll-ansicht" hidden>\s*<div class="an-kopf">\s*<button id="mfBack" class="an-back"/.test(src) && /\.voll-ansicht\{position:fixed;inset:0;z-index:200;/.test(src));   // §2 (v3.7.0): 200, ueber dem Fokus-Layer
+   /<div id="mfOverlay" class="voll-ansicht" hidden>\s*<div class="an-kopf">\s*<button id="mfBack" class="an-back"/.test(src) && /\.voll-ansicht\{position:fixed;inset:0;z-index:260;/.test(src));   // §2 (v3.7.0) · §2 (v3.7.6): 260, ueber Fokus-Layer und Such-Ebene
 
 kopf('§6 Einstellungen: klappbare Abschnitte');
 tagDonnerstag();
