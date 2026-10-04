@@ -200,7 +200,7 @@ function bestandSchreiben(){
      die Leiste geschaltet, nicht ueber den Zustand. Das ist ohnehin naeher
      an dem, was Pascal tut. */
   function sicht(fw, key){
-    fw.setTab('suche');
+    fw.sucheOeffnen();
     var b=fw.document.querySelector('[data-susicht="'+key+'"]');
     if(b) b.click(); else throw new Error('Sicht-Knopf fehlt: '+key);
   }
@@ -211,22 +211,22 @@ function bestandSchreiben(){
     faellig:  function(fw){ sicht(fw,'faellig'); },
     neueste:  function(fw){ sicht(fw,'neueste'); },
     erledigte:function(fw){ sicht(fw,'erledigte'); },
-    freitext: function(fw){ fw.setTab('suche');
+    freitext: function(fw){ fw.sucheOeffnen();
                             var i=fw.document.getElementById('suFreitext');
                             i.value='a'; i.dispatchEvent(new fw.Event('input',{bubbles:true})); },
     /* Die laufende Karte liegt UEBER der Suche (§6) */
-    fokus:    function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet(); fw.fokusLayerPflegen(); },
-    leiste:   function(fw){ fw.setTab('suche'); fw.renderAlles(); fw.closeSheet(); },
-    sheet:    function(fw){ fw.setTab('suche'); fw.renderAlles(); fw.oeffneStatusSheet(); },
+    fokus:    function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.fokusStarten('k-lang', null); fw.closeSheet(); fw.fokusLayerPflegen(); },
+    leiste:   function(fw){ fw.sucheOeffnen(); fw.renderAlles(); fw.closeSheet(); },
+    sheet:    function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.renderAlles(); fw.oeffneStatusSheet(); },
     /* §1.2 · der EINE Dialog fuer Matrix und Akku */
-    mxdialog: function(fw){ fw.setTab('suche'); fw.oeffneMatrixDialog('k-lang','abhaken'); },
+    mxdialog: function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.oeffneMatrixDialog('k-lang','abhaken'); },
     /* §9 · der Vorschlag direkt nach dem Matrix-Tap */
-    vorschlag:function(fw){ fw.setTab('suche'); fw.matrixPosSetzen(-0.7,0.1,null,'test'); fw.zeigeVorschlag(); },
+    vorschlag:function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.matrixPosSetzen(-0.7,0.1,null,'test'); fw.zeigeVorschlag(); },
     /* §6 · Kettensortierung aus der Suche heraus */
-    kpos:     function(fw){ fw.setTab('suche'); fw.oeffneKettePosition('k-lang'); },
-    abschluss:function(fw){ fw.setTab('suche'); fw.abhakDialog('k-lang', false); },
-    tagab:    function(fw){ fw.setTab('suche'); fw.oeffneTagAbschluss(); },
-    routinen: function(fw){ fw.setTab('suche'); fw.renderAlles(); fw.oeffneRoutinen(); },
+    kpos:     function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.oeffneKettePosition('k-lang'); },
+    abschluss:function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.abhakDialog('k-lang', false); },
+    tagab:    function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.oeffneTagAbschluss(); },
+    routinen: function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.renderAlles(); fw.oeffneRoutinen(); },
     /* §13 · Shop haengt hinter der FIGUR, kein Tab */
     belohnung:function(fw){ var b=fw.document.getElementById('btnFigur'); if(b) b.click(); fw.closeSheet(); },
     albumR:   function(fw){ fw.setTab('belohnung'); fw.renderAlles(); fw.oeffneAlbum(); },
@@ -234,13 +234,13 @@ function bestandSchreiben(){
                             var b=fw.document.querySelector('[data-albtab="kulissen"]'); if(b) b.click(); },
     albumB:   function(fw){ fw.setTab('belohnung'); fw.renderAlles(); fw.oeffneAlbum();
                             var b=fw.document.querySelector('[data-albtab="besitz"]'); if(b) b.click(); },
-    detail:   function(fw){ fw.setTab('suche'); fw.oeffneDetail('k-ticks'); },
+    detail:   function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.oeffneDetail('k-ticks'); },
     /* §12 · Statistik ist ein eigenes Navigationsziel */
     statistik:function(fw){ fw.setTab('statistik'); },
     /* §11 · Delta-Export */
-    sync:     function(fw){ fw.setTab('suche'); fw.oeffneSync(); },
+    sync:     function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.oeffneSync(); },
     /* §0 · das Export-Gate (die Fixture gilt als migriert — hier gezielt an) */
-    gate:     function(fw){ fw.setTab('suche'); fw.zeigeV200Gate2Test ? fw.zeigeV200Gate2Test() : fw.zeigeV200Gate(); },
+    gate:     function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.zeigeV200Gate2Test ? fw.zeigeV200Gate2Test() : fw.zeigeV200Gate(); },
     einst:    function(fw){ var b=fw.document.getElementById('btnEinst'); if(b) b.click(); },
     /* §1 (v2.0.2): dieselbe Suche, aber am GELEBTEN Bestand — mit offenem
        Tag vom 10.09. und ausstehender Migration. Screenshot zum Ansehen. */
@@ -249,7 +249,7 @@ function bestandSchreiben(){
       var d=fw.document;
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
       var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
-      fw.closeSheet(); fw.setTab('suche');
+      fw.closeSheet(); fw.setTab('suche',{fokusLassen:true});
       fw.oeffneTagAbschluss();
     },
     /* §1.3: der Durchgang im Anlege-Dialog */
@@ -257,14 +257,14 @@ function bestandSchreiben(){
       var d=fw.document;
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
       var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
-      fw.closeSheet(); fw.setTab('suche');
+      fw.closeSheet(); fw.setTab('suche',{fokusLassen:true});
       fw.abschlussDurchgangStarten();
     },
     /* v2.1.2 §2: die Belohnungsbloecke der Fokusansicht, mit LAUFENDER Karte
        (Fenster hoch, damit alle drei Bloecke plus Zeitstrahl im Bild sind) */
     fokusBloecke:function(fw){
       var d=fw.document;
-      fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.setTab('suche',{fokusLassen:true}); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.fokusLayerPflegen();
       var lay=d.getElementById('fokusLayer'), fb=d.querySelector('#fokusView .blk:not(.kern)');
       if(lay && fb) lay.scrollTop=Math.max(0, fb.offsetTop-12);
@@ -273,7 +273,7 @@ function bestandSchreiben(){
        damit Mini-Matrix, Schub-Achse und Bonus-Balken im Bild sind */
     fokusBloeckeMx:function(fw){
       var d=fw.document;
-      fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.setTab('suche',{fokusLassen:true}); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.matrixPosSetzen(-0.55, 0.45, null, 'harness');
       fw.matrixPosSetzen(-0.15, -0.2, null, 'harness');
       fw.fokusLayerPflegen();
@@ -284,7 +284,7 @@ function bestandSchreiben(){
     echtZaehler32:function(fw){ var d=fw.document; v30Vorbereiten(fw);
       ['v3-m1','v3-m2'].forEach(function(u){ fw.unterTick(u); }); fw.routineTick && 0;
       fw.fokusKarteAnsehen('v3-mails'); var lay=d.getElementById('fokusLayer'); if(lay) lay.scrollTop=0; },
-    echtSucheZaehler32:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.fokusAnsichtSchliessen(); fw.setTab('suche');
+    echtSucheZaehler32:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.fokusAnsichtSchliessen(); fw.sucheOeffnen();
       ['v3-mails','v3-mails'].forEach(function(id){ fw.leisteTicken(id); }); fw.unterTick('v3-m2');
       var inp=d.getElementById('suFreitext'); inp.value='Mails'; inp.dispatchEvent(new fw.Event('input',{bubbles:true})); fw.renderSuche(); },
     echtNachtrag32:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.oeffneAbschlussV3(4); fw.abschlussV3Kopieren(); fw.abschlussV3SchliessenUI();
@@ -324,7 +324,7 @@ function bestandSchreiben(){
       var p=d.querySelector('#fokusView [data-fktoggle="v3-schlaf"]'); if(p) p.click();
       var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(110%)'; }
       var lay=d.getElementById('fokusLayer'); if(lay) lay.scrollTop=0; },
-    echtSuche30:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.fokusAnsichtSchliessen(); fw.setTab('suche');
+    echtSuche30:function(fw){ var d=fw.document; v30Vorbereiten(fw); fw.fokusAnsichtSchliessen(); fw.sucheOeffnen();
       var a=d.querySelector('[data-suart="routinen"]'); if(a) a.click();
       var n=d.querySelector('[data-susicht="neueste"]'); if(n) n.click(); },
     /* ══ v2.9 · Screenshots: Punktekurve im Detail, Liste in den Einstellungen ══ */
@@ -350,13 +350,15 @@ function bestandSchreiben(){
     stat354Zu:function(fw){ fw.eval('S.ui.statOffen={matrixfaktor:true}; S.ui.analyseZeitraum="14";'); fw.setTab('statistik');
       var d=fw.document, m=d.querySelector('main'), b=d.querySelector('[data-stmzu="matrixfaktor"]'); if(m && b){ m.scrollTop+=b.getBoundingClientRect().top-500; b.click(); } },
     /* ══ v3.7.0 · „In Kette", Kettenliste hinter dem „+" ══ */
-    inkette370:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+    inkette370:function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.eval('S.tagesketten=[{id:"tk1", name:"DFM-Fokus 1", karten:[]}]; S.ui.klGruppen={ikKette:true, "ikTk:tk1":true, ikRoutinen:true};'); fw.oeffneInKette('k-lang'); },
-    plus370:function(fw){ fw.setTab('suche'); fw.eval('S.ui.klGruppen={kette:true, routinen:true};'); fw.oeffnePlusListe(); },
+    plus370:function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.eval('S.ui.klGruppen={kette:true, routinen:true};'); fw.oeffnePlusListe(); },
     /* §4c (v3.7.0): Kulissen-Belohnungsansicht — Kulisse 1 vor 3 Tagen begonnen, alle Felder gemalt */
     kulisse370:function(fw){ fw.setTab('belohnung'); fw.eval('ausmalDaten(1); (function(){ var A=ausmalState(); A.kulissenStart[1]=new Date(Date.now()-(3*24+5)*3600000).toISOString(); A.malTage=["2026-09-29","2026-09-30","2026-10-01"]; })();');
       var d=fw.document, st=d.createElement('style'); st.textContent='.bel-ansicht .st{animation:none !important;opacity:1 !important;transform:none !important}'; d.head.appendChild(st);
       setTimeout(function(){ fw.eval('(function(){ var A=ausmalState(), D=ausmalDaten(1); if(D) A.gefaerbt=(D.json.felder||[]).map(function(f){ return f.feld; }); kulisseBelohnungZeigen(kulisseKennzahlen(1)); })();'); }, 500); },
+    /* 3.7.6: die Suche ist eine Vollbild-Ebene — Fixtures, die die Suche zeigen, rufen fw.sucheOeffnen(); Fixtures, die nur einen Kartenstart/Dialog
+       vorbereiten, fw.setTab('suche',{fokusLassen:true}) (= Grundansicht bleibt, keine Suche) */
     /* ══ v3.6.0 · Shop neu: Übersicht (vor dem ersten Kauf), Einfärbung Stufe 1/6/12 je Kategorie ══ */
     shop360:function(fw){ fw.eval('S.ui.malmodus=false;'); var b=fw.document.getElementById('btnFigur'); if(b) b.click(); fw.closeSheet(); namenWeg(fw); },
     /* nach dem ersten Kauf (Soziales Stufe 1): Shop-Feld mit zuletzt gekaufter Stufe · die Kauf-Belohnung */
@@ -389,10 +391,10 @@ function bestandSchreiben(){
     tag354:function(fw){ status354(fw, 53, 5600, 500);
       var lay=fw.document.getElementById('fokusLayer'), b=fw.document.querySelector('#fokusView .dt-ringe'); if(lay && b) lay.scrollTop=Math.max(0, b.offsetTop-8); },
     /* ══ v3.5.3 · Ansichten: Fokus ab „Tempo und Blöcke" (darunter „Der Tag"), „Aktuelle Kette" mit Tagesketten-Chips, Statistik „Der Tag" ══ */
-    fokus353:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+    fokus353:function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.eval('S.fokus.startMs-=22*60000;'); fw.fokusLayerPflegen(); fw.renderFokusleiste(); fw.renderStatusbar(); fw.renderFokus();
       var lay=fw.document.getElementById('fokusLayer'), b=fw.document.querySelector('#fokusView .dt-zeilen'); if(lay && b && b.previousElementSibling) lay.scrollTop=Math.max(0, b.previousElementSibling.offsetTop-8); },
-    kette353:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+    kette353:function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.eval('(function(){ var of=S.karten.filter(function(k){ return k.status==="offen" && istAufgabeKarte(k) && k.id!=="k-lang"; }).map(function(k){ return k.id; });'+
         ' S.tagesketten=[{id:"tk1", name:"DFM-Fokus 1", karten:of.slice(0,3)}, {id:"tk2", name:"Senke", karten:of.slice(2,4)}, {id:"tk3", name:"Abend", karten:of.slice(3,6)}, {id:"tk4", name:"Wochenabschluss", karten:of.slice(0,1)}];'+
         ' S.ui.tkWahl='+(/[?&]tk=1/.test(location.search) ? '"tk1"' : 'null')+'; S.ui.klGruppen={kette:true}; S.fokus.startMs-=22*60000; })()');
@@ -400,9 +402,9 @@ function bestandSchreiben(){
       var lay=fw.document.getElementById('fokusLayer'), b=fw.document.querySelector('#fokusView .kl-blk'); if(lay && b) lay.scrollTop=Math.max(0, b.offsetTop-12); },
     stat353:function(fw){ fw.eval('S.ui.statOffen={tag:true}; S.ui.analyseZeitraum="14";'); fw.setTab('statistik'); },
     /* ══ v3.5.2 · Ansichten des Hotfix: Statusleiste mit laufender Karte (Live-Segment), Kartenlisten mit offenen Gruppen ══ */
-    status352:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+    status352:function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.eval('S.fokus.startMs-=22*60000;'); fw.fokusLayerPflegen(); fw.renderFokusleiste(); fw.renderStatusbar(); fw.renderFokus(); },
-    karten352:function(fw){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+    karten352:function(fw){ fw.setTab('suche',{fokusLassen:true}); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.eval('(function(){ var ids=S.karten.filter(function(k){ return k.status==="offen" && istAufgabeKarte(k) && k.id!=="k-lang"; }).slice(0,2).map(function(k){ return k.id; });'+
         ' [ids[0], "k-lang", ids[1], "k-lang"].forEach(function(id){ if(id){ fokusKarteAnsehen(id); renderFokus(); } });'+
         ' S.ui.klGruppen={kette:true, verlauf:true, routinen:true, meist:false, erledigt:true}; S.fokus.startMs-=22*60000; })()');
@@ -473,7 +475,7 @@ function bestandSchreiben(){
       var d=fw.document;
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
       var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
-      fw.closeSheet(); fw.setTab('suche');
+      fw.closeSheet(); fw.setTab('suche',{fokusLassen:true});
       fw.wiederOeffnenMitAbfrage('e-1', function(){});
       var b=d.querySelector('#sheetBody [data-rowahl="u-e1-2"][data-v="entfernen"]'); if(b) b.click();
       var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; }
@@ -483,7 +485,7 @@ function bestandSchreiben(){
       var d=fw.document;
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
       var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
-      fw.closeSheet(); fw.setTab('suche');
+      fw.closeSheet(); fw.sucheOeffnen();
       var b=d.querySelector('[data-susicht="heute"]'); if(b) b.click();
       var g=d.querySelector('#suBody .kal-b.gruppe'); if(g){ g.click(); g=d.querySelector('#suBody .kal-b.gruppe'); }
       var m=d.querySelector('main'); if(m && g){ m.scrollTop += g.getBoundingClientRect().top - 260; }
@@ -499,7 +501,7 @@ function bestandSchreiben(){
       var d=fw.document;
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
       var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
-      fw.closeSheet(); fw.setTab('suche');
+      fw.closeSheet(); fw.setTab('suche',{fokusLassen:true});
       d.getElementById('suchFab').click();
       var i=d.getElementById('suchInput'); i.value='zaehne'; fw.renderSuchTreffer();
     },
@@ -521,7 +523,7 @@ function bestandSchreiben(){
     farbStat:function(fw){ farbVorschlag(fw); fw.setTab('statistik'); },
     farbFokus:function(fw){
       farbVorschlag(fw);
-      fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.setTab('suche',{fokusLassen:true}); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.matrixPosSetzen(-0.55, 0.45, null, 'harness');
       fw.matrixPosSetzen(0.35, -0.3, null, 'harness');
       fw.closeSheet(); fw.fokusLayerPflegen();
@@ -533,7 +535,7 @@ function bestandSchreiben(){
     /* v2.4 §9: Fokusansicht komplett (hoch) */
     fokusLang:function(fw){
       var d=fw.document;
-      fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+      fw.setTab('suche',{fokusLassen:true}); fw.fokusStarten('k-lang', null); fw.closeSheet();
       fw.matrixPosSetzen(-0.55, 0.45, null, 'harness');
       fw.matrixPosSetzen(-0.15, -0.2, null, 'harness');
       fw.closeSheet(); fw.fokusLayerPflegen();
@@ -545,7 +547,7 @@ function bestandSchreiben(){
       var d=fw.document;
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
       var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
-      fw.closeSheet(); fw.setTab('suche');
+      fw.closeSheet(); fw.sucheOeffnen();
       var i=d.getElementById('suFreitext');
       i.value='a'; i.dispatchEvent(new fw.Event('input',{bubbles:true})); fw.renderSuche();
     },
@@ -554,14 +556,14 @@ function bestandSchreiben(){
       var d=fw.document;
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
       var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
-      fw.closeSheet(); fw.setTab('suche');
+      fw.closeSheet(); fw.setTab('suche',{fokusLassen:true});
       fw.zeigeVorschlag(null);
       fw.closeSheet();
     },
     /* v2.3 §5: Anlege-Dialog mit dem Matrix-Pad */
     neuDialogMx:function(fw){
       var d=fw.document;
-      fw.setTab('suche'); fw.closeSheet();
+      fw.setTab('suche',{fokusLassen:true}); fw.closeSheet();
       d.getElementById('neuFab').click();
       var sh=d.getElementById('sheet'); if(sh){ sh.style.transition='none'; sh.style.transform='translateY(0)'; }
       var pad=d.getElementById('dmxPad'), sb=d.getElementById('sheetBody');
@@ -573,7 +575,7 @@ function bestandSchreiben(){
       var d=fw.document;
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
       var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
-      fw.closeSheet(); fw.setTab('suche');
+      fw.closeSheet(); fw.sucheOeffnen();
       var b=d.querySelector('[data-sudom="privat"]'); if(b) b.click();
       b=d.querySelector('[data-suart="routinen"]'); if(b) b.click();
     },
@@ -582,7 +584,7 @@ function bestandSchreiben(){
       var d=fw.document;
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
       var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
-      fw.closeSheet(); fw.setTab('suche');
+      fw.closeSheet(); fw.sucheOeffnen();
       /* v3.0.0 §8: kein „Alle"-Knopf mehr — ein zweiter Tipp auf die aktive Wahl hebt sie auf */
       (function(){ for(var i=0;i<4;i++){ var o=d.querySelector('#suFilter button.on'); if(!o) break; o.click(); } })();
       var b;
@@ -624,7 +626,7 @@ function bestandSchreiben(){
       var d=fw.document;
       d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
       var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
-      fw.setTab('suche');
+      fw.sucheOeffnen();
     }
   };
 
@@ -723,7 +725,7 @@ function bestandSchreiben(){
       function klick(sel){ var e=d.querySelector(sel); if(e) e.click(); return e; }
       try{
         /* ── §6 · Sichtwechsel: jede der fuenf Sichten ist per Tap erreichbar ── */
-        fw.setTab('suche');
+        fw.sucheOeffnen();
         ['heute','faellig','neueste','erledigte'] /* v3.0.0 §8 */.forEach(function(v){
           var b=d.querySelector('[data-susicht="'+v+'"]');
           pruef(!!b, '§6: Sicht-Knopf „'+v+'" fehlt');
@@ -872,7 +874,7 @@ function bestandSchreiben(){
           var vz=d.querySelector('#suBody .su-vorschlag span');
           pruef(vz && vz.textContent.length>0, '§9 (v2.3): Vorschlag ohne Begruendung');
           /* genau EINMAL je Karte: derselbe Aufruf aendert nichts mehr */
-          fw.setTab('suche'); klick('[data-susicht="heute"]');
+          fw.sucheOeffnen(); klick('[data-susicht="heute"]');
           fw.zeigeVorschlag(kid2);
           pruef(!d.querySelector('#suBody .su-vorschlag'), '§9: Vorschlag erscheint fuer dieselbe Karte mehrfach');
           /* ... eine ANDERE Karte aber schon */
@@ -894,7 +896,7 @@ function bestandSchreiben(){
               '§6 (v2.4): Navigationsleiste traegt nicht Suche · Statistik · Einstellungen');
 
         /* ── §10 · Tagesabschluss: nur abraeumen und exportieren ── */
-        fw.setTab('suche');
+        fw.setTab('suche',{fokusLassen:true});
         fw.oeffneTagAbschluss();
         // v3.0.0 §6: der Tagesabschluss ist die Ansicht mit vier Schritten — v3.2.0 §2.3: „Schließen" erst in Schritt 4, Schritt 1 hat „Weiter"
         pruef(!!d.querySelector('#sheetFoot [data-abv3schritt="2"]') && !d.querySelector('#sheetFoot [data-abv3zu]'), '§10: Abschluss öffnet nicht mit „Weiter" (v3.2: kein „Schließen" vor Schritt 4)');
@@ -955,7 +957,7 @@ function bestandSchreiben(){
           finding('diag · v3.0.1 Version: Export '+exV+' · Fuß „'+fuss+'" · Info „'+info+'" · Sync „'+syncT+'" · Titel „'+d.title+'"');
           pruef(exV && fuss.indexOf('v'+exV)>=0 && info.indexOf('v'+exV)>=0 && syncT.indexOf('v'+exV)>=0 && d.title==='Fokus v'+exV,
                 'v3.0.1: Versionsangaben weichen voneinander ab');
-          fw.setTab('suche'); fw.oeffneSync(); exFeld=d.getElementById('syncEx');
+          fw.setTab('suche',{fokusLassen:true}); fw.oeffneSync(); exFeld=d.getElementById('syncEx');
         })();
         pruef(((lsGetMeta()||{}).letzterSyncBestaetigtTs||null)===tsVor,
               '§11: der Zeitstempel wurde schon VOR der Bestaetigung fortgeschrieben');
@@ -1154,7 +1156,7 @@ function bestandSchreiben(){
           });
           fw.setTab('statistik');
           pruef(plusTrifft('statistik')==='ok', '§2: Plus in der Statistik — '+plusTrifft('statistik'));
-          fw.setTab('suche');
+          fw.sucheOeffnen();
           var kid0=(fw.tagesKette()||[])[0];
           if(kid0){
             fw.fokusStarten(kid0, null); fw.closeSheet();
@@ -1299,7 +1301,7 @@ function bestandSchreiben(){
         /* ══ v2.1.2 §1 · NAV-TAB AUS DER FOKUSANSICHT — MESSUNG ══════════ */
         freiMachen();
         ['suche','statistik'].forEach(function(ziel){
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var kid=(fw.tagesKette()||[])[0]; if(!kid) return;
           fw.fokusStarten(kid, null); freiMachen();
           var startMs=fw.fokusKarte() ? fw.fokusKarte().id : null;
@@ -1328,7 +1330,7 @@ function bestandSchreiben(){
               pruef(hit && hit.closest && hit.closest('.krow'), 'v2.1.2 §1: Kartenzeile verdeckt von '+beschreib(hit)); }
           }
           var zu=fokusZuKnopf(d); if(zu && !lay.hidden) zu.click();
-          fw.setTab('suche');
+          fw.sucheOeffnen();
         });
         /* ══ v2.2 §1 · WEG IN DEN SHOP — MESSUNG (Figur, Rang) ══════════ */
         (function(){
@@ -1352,12 +1354,12 @@ function bestandSchreiben(){
               ' · Seite '+an+' · „Zum Shop" bei y='+(zr?Math.round(zr.top):'-')+' · danach Shop-Kategorie bei y='+(kr?Math.round(kr.top):'-')+
               ' · fokusOffen='+fw.fokusAnsichtOffen());
           }
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           tapAuf('#btnFigur','Figur (Suche)');
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var kid=(fw.tagesKette()||[])[0]; if(kid){ fw.fokusStarten(kid,null); freiMachen(); }
           tapAuf('#btnFigur','Figur (Fokusansicht offen)');
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           tapAuf('#btnFigur','Figur (v2.6: die Rang-Zelle ist entfallen)');
           /* §4/7: Kaufen von der neuen Seite — Konto sinkt, Stufe steigt */
           var kb=d.querySelector('#belohnungBody [data-kauf]');
@@ -1372,11 +1374,11 @@ function bestandSchreiben(){
             finding('echt · v2.2 §4 Kauf '+kat+': Konto '+Math.round(konto0)+' → '+Math.round(fw.konto())+' · Stufe '+n0+' → '+n1);
             pruef(fw.konto()<konto0 && n1!==n0, 'v2.2 §4: Kauf ohne Wirkung (Konto/Stufe)');
           } else finding('echt · v2.2 §4 Kauf: kein Kaufen-Knopf (Konto reicht nirgends)');
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
         })();
         /* ══ v2.2 §2 · FILTER — Messung, Lesbarkeit, Speicher ═══════════ */
         (function(){
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var abgeschnitten=[];
           d.querySelectorAll('#suFilter button, #suSichten button').forEach(function(b){
             if(b.scrollWidth>b.clientWidth+1) abgeschnitten.push(b.textContent.trim()); });
@@ -1412,7 +1414,7 @@ function bestandSchreiben(){
           var k=a.filter(function(x){ return x.id===id; })[0]; return k?Number(k.istSek||0):0; }catch(e){ return 0; } }
         /* ══ v2.3 §1–§3 · SUCHE: kompakt, nur Faelliges, Ungeplantes ans Ende ══ */
         (function(){
-          freiMachen(); fw.setTab('suche'); (function(){ for(var i=0;i<4;i++){ var o=d.querySelector('#suFilter button.on'); if(!o) break; o.click(); } })();   // v3.0.0 §8
+          freiMachen(); fw.sucheOeffnen(); (function(){ for(var i=0;i<4;i++){ var o=d.querySelector('#suFilter button.on'); if(!o) break; o.click(); } })();   // v3.0.0 §8
           klick('[data-susicht="heute"]');
           var reihen=[].slice.call(d.querySelectorAll('#suBody .krow[data-kid]'));
           var gedimmt=reihen.map(function(r){ return r.className.indexOf('eingefroren')>=0; });
@@ -1452,7 +1454,7 @@ function bestandSchreiben(){
         })();
         /* ══ v2.3 §4 · VORSCHLAG = WERKZEUG, SPRUNG IN DIE MATRIX ══════ */
         (function(){
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var wz=fw.werkzeugReihenfolge();
           if(!wz.length){ finding('echt · v2.3 §4: kein Werkzeug im Bestand'); return; }
           fw.zeigeVorschlag(null);
@@ -1474,7 +1476,7 @@ function bestandSchreiben(){
         })();
         /* ══ v2.3 §5/§6 · MATRIX-PAD IM DIALOG, NEUE KARTE PAUSIERT ════ */
         (function(){
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var kid=(fw.tagesKette()||[])[0];
           if(kid){ fw.fokusStarten(kid,null); freiMachen(); }
           var istVor=kid?lsIstSek(kid):null;
@@ -1536,7 +1538,7 @@ function bestandSchreiben(){
         })();
         /* ══ v2.3 §7/§8 · ZEITSTRAHL-TIPP UND GROSSE MATRIX ════════════ */
         (function(){
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var kid=(fw.tagesKette()||[])[0]; if(!kid) return;
           fw.fokusStarten(kid, null); freiMachen();
           var zs=d.querySelectorAll('#fokusView [data-zskarte]');
@@ -1591,12 +1593,12 @@ function bestandSchreiben(){
             return hit;
           }
           /* §3 · die zwei schwebenden Knoepfe — Suche und Fokusansicht */
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           trifft('#neuFab','Plus (Suche)'); var sf=trifft('#suchFab','Suchknopf (Suche)');
           var nr=d.getElementById('neuFab').getBoundingClientRect(), sr=d.getElementById('suchFab').getBoundingClientRect();
           pruef(sr.right<nr.left && Math.abs(sr.top-nr.top)<2, 'v2.4 §3: Suchknopf steht nicht gegenueber dem Plus');
           fw.setTab('statistik'); trifft('#suchFab','Suchknopf (Statistik)'); trifft('#neuFab','Plus (Statistik)');
-          fw.setTab('suche');
+          fw.sucheOeffnen();
           if(sf) sf.click();
           var ov=d.getElementById('suchOverlay'), inp=d.getElementById('suchInput');
           pruef(ov && !ov.hidden, 'v2.4 §3: Suchknopf oeffnet die Suche nicht');
@@ -1638,7 +1640,7 @@ function bestandSchreiben(){
             finding('echt · v2.4 §1.2 Import-Ergebnis: '+erg.slice(0,60));
             pruef(erg.indexOf('1')>=0 && erg.indexOf('angelegt')>=0, 'v2.4 §1.2: Import aus den Einstellungen wirkt nicht'); }
           /* §2 · Kalender: Block antippen oeffnet die Karte */
-          fw.setTab('suche'); klick('[data-susicht="heute"]');
+          fw.sucheOeffnen(); klick('[data-susicht="heute"]');
           var kb=d.querySelector('#suBody .kal-b.plan') || d.querySelector('#suBody .kal-b');
           var kj=d.querySelector('#suBody .kal-jetzt');
           finding('echt · v2.4 §2 Kalender: '+d.querySelectorAll('#suBody .kal-b').length+' Bloecke ('+
@@ -1654,7 +1656,7 @@ function bestandSchreiben(){
             var zu=fokusZuKnopf(d); if(zu) zu.click(); }
           /* §6 · Tagebuch aus der Suche (Knopf) und aus der Statistik (Feld) */
           /* v3.0.0 §8: der Tagebuch-Knopf stand in der entfallenen Matrix-Sicht; das Tagebuch bleibt ueber die Fokus- und die Statistik-Matrix erreichbar */
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var ht=null; finding('echt · v2.4 §6 Tagebuch-Knopf der Suche: mit der Matrix-Sicht entfallen (v3.0 §8)');
           if(ht){ ht.click(); sheetRuhe();
             pruef(!!d.querySelector('#sheetBody #tbGedanke'), 'v2.4 §6: Knopf oeffnet kein Tagebuch');
@@ -1690,7 +1692,7 @@ function bestandSchreiben(){
             pruef(!!d.querySelector('#statistikBody [data-statdom="dfm"].on'), 'v2.4: Domaenen-Umschalter der Statistik wirkt nicht');
             var da=d.querySelector('#statistikBody [data-statdom="alle"]'); if(da) da.click(); }
           /* §4 · Counter bleibt nach „+" sichtbar */
-          fw.setTab('suche'); klick('[data-susicht="neueste"]');   // v3.0.0 §8
+          fw.sucheOeffnen(); klick('[data-susicht="neueste"]');   // v3.0.0 §8
           var tp=d.querySelector('#suBody [data-tickplus]');
           if(tp){ var ck=tp.dataset.tickplus;
             for(var i=0;i<3;i++){ var t2=d.querySelector('#suBody [data-tickplus="'+ck+'"]'); if(!t2) break;
@@ -1699,7 +1701,7 @@ function bestandSchreiben(){
             finding('echt · v2.4 §4 Counter '+ck+' nach 3× „+": sichtbar='+da2);
             pruef(da2, 'v2.4 §4: Counter nach „+" verschwunden');
           } else finding('echt · v2.4 §4: kein Counter im Bestand');
-          freiMachen(); fw.setTab('suche'); klick('[data-susicht="heute"]');
+          freiMachen(); fw.sucheOeffnen(); klick('[data-susicht="heute"]');
         })();
         /* ══ v2.5 · WIEDEROEFFNEN, VERSCHOBENE MODULE, KALENDER ══════════ */
         (function(){
@@ -1714,7 +1716,7 @@ function bestandSchreiben(){
           }
           function lsSubs(pid){ try{ return JSON.parse(localStorage.getItem('fokus2_unteraufgaben')||'[]').filter(function(u){ return u.parentId===pid; }); }catch(e){ return []; } }
           /* §2 · erledigte Karte wieder oeffnen → Abfrage */
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           fw.oeffneWiederholen('e-1'); sheetRuhe();
           tippe('#sheetBody [data-woeffnen="e-1"]','„Wieder öffnen"');
           sheetRuhe();
@@ -1764,7 +1766,7 @@ function bestandSchreiben(){
           finding('echt · v2.5 §3 Statistik: '+(d.getElementById('statistikBody').innerHTML.match(/class="anmod"/g)||[]).length+
                   ' Module · Wochentag heute in drei Schichten: '+(!!d.querySelector('#statistikBody .an-bar.heute')));
           /* §5 · Kalender: Gruppe kurzer Routinen */
-          fw.setTab('suche'); klick('[data-susicht="heute"]');
+          fw.sucheOeffnen(); klick('[data-susicht="heute"]');
           var gr=d.querySelector('#suBody .kal-b.gruppe');
           finding('echt · v2.5 §5 Kalender: '+d.querySelectorAll('#suBody .kal-b.gruppe').length+' Gruppen · erste „'+(gr?gr.textContent.slice(0,60):'—')+'"');
           if(gr){
@@ -1777,7 +1779,7 @@ function bestandSchreiben(){
               pruef(fw.fokusAngezeigtId()===kidZ, 'v2.5 §5: Tipp auf die Zeile öffnet die Karte nicht');
               zu=fokusZuKnopf(d); if(zu) zu.click(); }
           } else pruef(false, 'v2.5 §5: keine Gruppe im gelebten Bestand');
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
         })();
         /* ══ v2.6 · STATUSLEISTE, TEMPO-LEISTE, MATRIX-SPUR, GELD-REGLER ══ */
         (function(){
@@ -1791,7 +1793,7 @@ function bestandSchreiben(){
           }
           /* Positionen mit echter Zeitspreizung in die Spur (die App schreibt
              sonst alles auf „jetzt") — Karte, freie Position, Tagebuch */
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var sp=fw.matrixSpur(), t0=Date.now()-6*3600000, vorher=fw.spurPunkte(sp).length;
           [[-0.7,0.2,null,null],[-0.3,-0.1,'a-3',null],[0.15,0.3,'r-zaehne',null],[0.45,0.1,null,'tagebuch'],[0.8,-0.2,'a-notiz',null]].forEach(function(p,i){
             var e={ ts:new Date(t0+i*80*60000).toISOString(), x:p[0], y:p[1], kid:p[2], anlass:p[3]||'verlassen' };
@@ -1864,7 +1866,7 @@ function bestandSchreiben(){
           pruef(!kFund, 'v2.6 §6: „k" in der Fokusansicht');
           var zu=fokusZuKnopf(d); if(zu) zu.click();
           /* §5 · Geld-Regler im Detail einer DFM-Karte */
-          freiMachen(); fw.setTab('suche'); fw.oeffneDetail('a-1'); sheetRuhe();
+          freiMachen(); fw.setTab('suche',{fokusLassen:true}); fw.oeffneDetail('a-1'); sheetRuhe();
           var rg=d.querySelector('#sheetBody [data-geldregler]'), zf=d.querySelector('#sheetBody [data-geldzahl]');
           finding('echt · v2.6 §5 Geld-Impact a-1 (Altbestand geldScore 60): Regler '+(rg?rg.value:'—')+' · Feld '+(zf?zf.value:'—')+' · „'+((d.querySelector('#sheetBody [data-geldhint]')||{}).textContent||'')+'"');
           if(rg && zf){
@@ -1886,7 +1888,7 @@ function bestandSchreiben(){
           finding('echt · v2.6 §5 Migration: '+gl.umgestellt+' DFM-Karten umgestellt · Stufen '+JSON.stringify(gl.stufen)+' · begrenzt '+gl.gekappt+' · Score >200 '+gl.ueberDeckel+' · Deckel '+gl.deckel);
           finding('echt · v2.6 §7 Urlaub: '+(ul.tage||[]).length+' Tage nachgetragen · geprüft '+ul.geprueft);
           pruef(ls.geld260===true && ls.urlaub260===true, 'v2.6: Migrationen nicht gelaufen');
-          fw.setTab('suche');
+          fw.sucheOeffnen();
         })();
         /* ══ v2.7 · KALENDER-BLOECKE UND BLOCK-AUSWAHL — elementFromPoint ══ */
         (function(){
@@ -1899,7 +1901,7 @@ function bestandSchreiben(){
             if(hit){ if(typeof hit.click==='function') hit.click(); else hit.dispatchEvent(new fw.MouseEvent('click',{bubbles:true})); }
             return hit;
           }
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var r=fw.syncImport(JSON.stringify(v27Paket(fw)));
           klick('[data-susicht="heute"]');
           var e1=[].slice.call(d.querySelectorAll('#suBody .kal-block')).filter(function(b){ return ['morgen','fokus1','senke','fokus2','erholung','abschluss'].indexOf(b.dataset.kalblock)>=0; });
@@ -1925,7 +1927,7 @@ function bestandSchreiben(){
           pruef(fw.fokusAngezeigtId()==='a-1', 'v2.7 §1: Tipp auf die Karte öffnet sie nicht ('+fw.fokusAngezeigtId()+')');
           var zu=fokusZuKnopf(d); if(zu) zu.click();
           /* Block-Auswahl im Anlege-Dialog */
-          freiMachen(); fw.setTab('suche'); fw.oeffneDetail(null); sheetRuhe();
+          freiMachen(); fw.setTab('suche',{fokusLassen:true}); fw.oeffneDetail(null); sheetRuhe();
           var on=d.querySelector('#sheetBody [data-chip="block"].on');
           finding('echt · v2.7 §1.5 Anlege-Dialog: '+d.querySelectorAll('#sheetBody [data-chip="block"]').length+' Block-Chips · vorausgewählt „'+(on?on.textContent:'—')+'"');
           pruef(on && on.dataset.val==='f1c', 'v2.7 §1.5: laufender Block (Kalkulation) nicht vorausgewählt');
@@ -1937,11 +1939,11 @@ function bestandSchreiben(){
           finding('echt · v2.7 §1.5 gespeichert: block='+(neu?neu.block:'—'));
           pruef(neu && neu.block==='f1a', 'v2.7 §1.5: neue Karte liegt nicht im gewählten Block');
           zu=fokusZuKnopf(d); if(zu) zu.click();
-          freiMachen(); fw.setTab('suche'); klick('[data-susicht="heute"]');
+          freiMachen(); fw.sucheOeffnen(); klick('[data-susicht="heute"]');
           var f1=d.querySelector('#suBody [data-kalblock="fokus1"]'); if(f1 && f1.getAttribute('aria-expanded')!=='true') f1.click();
           var a=d.querySelector('#suBody [data-kalblock="f1a"]'); if(a && !a.classList.contains('offen')) a.click();
           pruef(/Harness-Block v2\.7/.test((d.querySelector('#suBody .kb-auf')||{}).textContent||''), 'v2.7 §1.5: neue Karte erscheint nicht im Block');
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
         })();
         /* ══ v2.8 · ABHAK-LEISTE, TAGESABLAUF-PLAY, DETAIL-KNOPF — elementFromPoint ══ */
         (function(){
@@ -1955,7 +1957,7 @@ function bestandSchreiben(){
             return hit;
           }
           function lsK(id){ try{ return JSON.parse(localStorage.getItem('fokus2_karten')||'[]').filter(function(k){ return k.id===id; })[0]||null; }catch(e){ return null; } }
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           fw.syncImport(JSON.stringify(v27Paket(fw))); fw.syncImport(JSON.stringify(v28Paket()));
           fw.fokusKarteAnsehen('a-3');
           var zeilen=[].slice.call(d.querySelectorAll('#fokusView .al .al-z'));
@@ -1991,7 +1993,7 @@ function bestandSchreiben(){
           fo=lsFokus(); pruef(fo && fo.karteId===zid && fo.laeuft, 'v2.8 §1.3: Play im Tagesablauf startet nicht');
           var zu=fokusZuKnopf(d); if(zu) zu.click();
           /* §1.1 Schalter + §4 Knopf im Detail */
-          freiMachen(); fw.fokusZeitEinbuchen && fw.fokusZeitEinbuchen(); fw.setTab('suche'); fw.oeffneDetail('a-9'); sheetRuhe();
+          freiMachen(); fw.fokusZeitEinbuchen && fw.fokusZeitEinbuchen(); fw.setTab('suche',{fokusLassen:true}); fw.oeffneDetail('a-9'); sheetRuhe();
           tippe(d.querySelector('#sheetBody [data-chip="nurAbhaken"][data-val="ja"]'),'Schalter „nur abhaken: immer"'); sheetRuhe();
           pruef(!!d.querySelector('#sheetBody [data-chip="nurAbhaken"][data-val="ja"].on'), 'v2.8 §1.1: Schalter wirkt nicht');
           tippe(d.querySelector('#sheetBody [data-vomgeraet]'),'„Vom Gerät nehmen"'); sheetRuhe();
@@ -2001,7 +2003,7 @@ function bestandSchreiben(){
           var weg=!lsK('a-9'), ls=JSON.parse(localStorage.getItem('fokus2_meta')||'{}');
           finding('echt · v2.8 §4 a-9 vom Gerät: '+(weg?'weg':'NOCH DA')+' · gemeldet '+JSON.stringify((ls.vomGeraetGenommen||[]).map(function(x){ return x.id; })));
           pruef(weg && (ls.vomGeraetGenommen||[]).some(function(x){ return x.id==='a-9'; }), 'v2.8 §4: vom Gerät nehmen wirkt nicht');
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
         })();
         /* ══ v2.8.1 · ANLEGE-DIALOG MIT VORLAGE UND UNTERAUFGABEN-AUSWAHL ══ */
         (function(){
@@ -2016,7 +2018,7 @@ function bestandSchreiben(){
           }
           function lsKarten(){ try{ return JSON.parse(localStorage.getItem('fokus2_karten')||'[]'); }catch(e){ return []; } }
           function lsSubs(pid){ try{ return JSON.parse(localStorage.getItem('fokus2_unteraufgaben')||'[]').filter(function(u){ return u.parentId===pid; }); }catch(e){ return []; } }
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var altSubs=lsSubs('e-1'), altVor=JSON.stringify(lsKarten().filter(function(k){ return k.id==='e-1'; })[0]);
           fw.oeffneDetail(null); sheetRuhe();
           var ti=d.querySelector('#sheetBody [data-bind="titel"]');
@@ -2041,14 +2043,14 @@ function bestandSchreiben(){
           pruef(JSON.stringify(lsKarten().filter(function(k){ return k.id==='e-1'; })[0])===altVor && lsSubs('e-1').length===altSubs.length, 'v2.8.1 §1: die alte Karte wurde verändert');
           var zu=fokusZuKnopf(d); if(zu) zu.click();
           /* v2.8.2 §2: die Vorlage „Zähne putzen" traegt „Nur abhaken: immer" (aus dem v2.8-Paket) */
-          freiMachen(); fw.setTab('suche'); fw.oeffneDetail(null); sheetRuhe();
+          freiMachen(); fw.setTab('suche',{fokusLassen:true}); fw.oeffneDetail(null); sheetRuhe();
           var ti2=d.querySelector('#sheetBody [data-bind="titel"]'); ti2.value='Zähne putzen'; ti2.dispatchEvent(new fw.Event('input',{bubbles:true}));
           tippe(d.querySelector('#sheetBody [data-wdhvon="r-zaehne"]'),'„Von Zähne putzen übernehmen"');
           var nurOn=d.querySelector('#sheetBody [data-chip="nurAbhaken"].on');
           finding('echt · v2.8.2 §2 Vorlage „Zähne putzen": Nur abhaken → „'+(nurOn?nurOn.textContent:'—')+'"');
           pruef(nurOn && nurOn.dataset.val==='ja', 'v2.8.2 §2: „Nur abhaken" wird nicht übernommen');
           fw.closeSheet();
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
         })();
         /* ══ v2.9 · PFLICHT: SCHALTER, GRIFFE, PLUS/MINUS, VORSCHLAG — elementFromPoint ══ */
         (function(){
@@ -2078,7 +2080,7 @@ function bestandSchreiben(){
             d.body.dispatchEvent(new fw.PointerEvent('pointerup', Object.assign({clientX:x+dx, clientY:y+dy}, o)));
             sheetRuhe();
           }
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           fw.oeffneDetail('r-13'); sheetRuhe();
           tippe(d.querySelector('#sheetBody [data-chip="pflicht"][data-val="ja"]'),'Schalter „Pflicht an"');
           var svg=d.querySelector('#pflichtBlock .pf-svg');
@@ -2109,7 +2111,7 @@ function bestandSchreiben(){
           pruef(k13 && k13.pflicht===true && k13.pflichtWert===nach1.wert, 'v2.9 §1: gespeicherte Pflicht-Werte stimmen nicht');
           var zu=fokusZuKnopf(d); if(zu) zu.click();
           /* §4 Vorschlag übernehmen */
-          freiMachen(); fw.syncImport(JSON.stringify(v29Paket(fw))); fw.setTab('suche'); fw.oeffneDetail('r-zaehne'); sheetRuhe();
+          freiMachen(); fw.syncImport(JSON.stringify(v29Paket(fw))); fw.setTab('suche',{fokusLassen:true}); fw.oeffneDetail('r-zaehne'); sheetRuhe();
           pruef(!!d.querySelector('#pflichtBlock .pf-vorschlag'), 'v2.9 §4: Vorschlag nicht gestrichelt in der Kurve');
           tippe(d.querySelector('#pflichtBlock [data-pfvorschlag="uebernehmen"]'),'„Übernehmen"');
           finding('echt · v2.9 §4 nach „Übernehmen": '+['wert','deckel','abzug','min'].map(wert).join('/')+' · Vorschlag in der Kurve: '+(d.querySelector('#pflichtBlock .pf-vorschlag')?'noch da':'weg'));
@@ -2125,7 +2127,7 @@ function bestandSchreiben(){
           tippe(z,'Pflicht-Karte in der Liste'); sheetRuhe();
           var pb=d.getElementById('pflichtBlock'), sb=d.getElementById('sheetBody');
           pruef(pb && sb && pb.getBoundingClientRect().top < sb.getBoundingClientRect().top+200, 'v2.9 §5: öffnet nicht beim Abschnitt Punkte');
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
         })();
         /* ══ v2.9.1 · HAKEN IN DER ABHAK-LEISTE BUCHT KEINE PROGNOSE — elementFromPoint ══
            Im gelebten Bestand tragen die Routinen 5 Soll-Minuten: vor dem Fix buchte
@@ -2143,7 +2145,7 @@ function bestandSchreiben(){
           }
           function lsK(id){ try{ return JSON.parse(localStorage.getItem('fokus2_karten')||'[]').filter(function(k){ return k.id===id; })[0]||null; }catch(e){ return null; } }
           function lsLog(){ try{ return JSON.parse(localStorage.getItem('fokus2_intraday')||'[]'); }catch(e){ return []; } }
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var fo=lsFokus(); if(fo && fo.laeuft) fw.fokusZeitEinbuchen();
           fw.fokusKarteAnsehen('a-3');
           var offen=[].slice.call(d.querySelectorAll('#fokusView .al .al-z:not(.fertig) [data-alcheck]')).map(function(b){ return b.dataset.alcheck; })
@@ -2153,7 +2155,7 @@ function bestandSchreiben(){
           var idP=offen[0], idB=offen[1];
           var progP=Math.round(fw.kartePunktePrognose(lsK(idP))), progB=Math.round(fw.kartePunktePrognose(lsK(idB)));
           fw.syncImport(JSON.stringify({appVersion:'2.9.1', karten:[{id:idP, pflicht:true, pflichtWert:25, pflichtDeckel:30, pflichtAbzug:10, pflichtMin:0}]}));
-          fw.setTab('suche'); fw.fokusKarteAnsehen('a-3');
+          fw.setTab('suche',{fokusLassen:true}); fw.fokusKarteAnsehen('a-3');
           var bonusB=fw.abhakbonusDefault(lsK(idB));
           tippe(d.querySelector('#fokusView [data-alcheck="'+idP+'"]'),'Häkchen „'+(lsK(idP)||{}).titel+'" (Pflicht 25)');
           tippe(d.querySelector('#fokusView [data-alcheck="'+idB+'"]'),'Häkchen „'+(lsK(idB)||{}).titel+'" (Bonus)');
@@ -2170,7 +2172,7 @@ function bestandSchreiben(){
           finding('echt · v2.9.1 §4 Tagesbilanz '+bil+' · Summe Stunden-Log '+sum+' · Export-Differenz '+(ex&&ex.differenz)+' · Statusleiste Pv '+d.getElementById('sBarZP').textContent+' = '+Math.round(Math.max(0,fw.tagesPunkteDomain('privat'))));
           pruef(Math.abs(bil-sum)<0.05 && ex && ex.differenz===0, 'v2.9.1 §4: Tagesbilanz ≠ Stunden-Log ('+bil+' / '+sum+')');
           pruef(String(d.getElementById('sBarZP').textContent)===fw.fmtP(Math.round(Math.max(0,fw.tagesPunkteDomain('privat')))), 'v2.9.1 §3: Statusleiste zeigt nicht den Tagesstand');
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
         })();
         /* ══ v3.0 · ROUTINEN-LEISTE, UNTER-ZAEHLER, TAGESABSCHLUSS, SUCHE — elementFromPoint ══ */
         (function(){
@@ -2193,7 +2195,7 @@ function bestandSchreiben(){
           function nTicks(x){ var l=tLog(x); return l && Array.isArray(l.ticks) ? l.ticks.length : 0; }
           function q(sel){ return d.querySelector(sel); }
           freiMachen(); var fo0=lsFokus(); if(fo0 && fo0.laeuft) fw.fokusZeitEinbuchen();
-          fw.syncImport(JSON.stringify(v30Paket())); fw.setTab('suche'); fw.fokusKarteAnsehen('a-3');
+          fw.syncImport(JSON.stringify(v30Paket())); fw.setTab('suche',{fokusLassen:true}); fw.fokusKarteAnsehen('a-3');
           var zeilen=[].slice.call(d.querySelectorAll('#fokusView .zs.al > .zs-spalte > .al-z:not(.al-sub)')).map(function(z){ return z.dataset.alkarte; });
           var aufg=zeilen.filter(function(id){ var k=lsK(id); return k && !k.rhythmus && !k.ticksAktiv && !k.modus; });
           finding('echt · v3.0 §4 Routinen-Leiste: '+zeilen.length+' Zeilen · erste '+zeilen[0]+' · letzte '+zeilen.slice(-2).join(', ')+' · Aufgaben darin '+aufg.length);
@@ -2299,7 +2301,7 @@ function bestandSchreiben(){
           finding('echt · v3.0 §5 nach „Aufstehen": neuer Tag '+(tg2&&tg2.tagId)+' offen '+!!(tg2&&!tg2.endeTs)+' · Aufstehzeit '+(tg2&&tg2.morgen&&tg2.morgen.aufstehTs?'gesetzt':'—')+' · Schlafen gestoppt '+!(sl2&&sl2.laeuft));
           pruef(tg2 && !tg2.endeTs && tg2.morgen && tg2.morgen.aufstehTs && !(sl2&&sl2.laeuft), 'v3.0 §5: Aufstehen startet den Tag nicht / stoppt Schlafen nicht');
           /* ══ Suche: zwei Filter, vier Sortierungen, jede Ansicht oben ══ */
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
           var main=d.querySelector('main');
           (function(){ for(var i=0;i<4;i++){ var o=d.querySelector('#suFilter button.on'); if(!o) break; o.click(); } })();   // Ausgangslage: keine Wahl = beides
           tippe(q('#suFilter [data-suart="aufgaben"]'),'Filter „Aufgaben"');
@@ -2316,7 +2318,7 @@ function bestandSchreiben(){
           main.scrollTop=300; fw.fokusKarteAnsehen('a-3'); var lay=d.getElementById('fokusLayer');
           pruef(!lay || lay.scrollTop===0, 'v3.0 §9: Fokus öffnet nicht oben');
           fw.fokusAnsichtSchliessen(); pruef(main.scrollTop===0, 'v3.0 §9: nach dem Schließen des Fokus nicht oben');
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
         })();
         /* ══ v3.2 · ZAEHLER-ZEILE in Suche und Fokus, ✓ nur auf Aufgaben, ▶ am Unter-Zaehler — elementFromPoint ══ */
         (function(){
@@ -2336,7 +2338,7 @@ function bestandSchreiben(){
             return (l && tg && l.tag===tg.tagId && Array.isArray(l.ticks)) ? l.ticks.length : 0; }   // nur die Ticks des laufenden Tages
           freiMachen(); var fo=lsFokus(); if(fo && fo.laeuft) fw.fokusZeitEinbuchen();
           if(!lsK('v3-kaffee')){ fw.syncImport(JSON.stringify(v30Paket())); }
-          fw.fokusAnsichtSchliessen(); fw.setTab('suche');
+          fw.fokusAnsichtSchliessen(); fw.sucheOeffnen();
           /* Suche: +1 der Zaehler-Zeile tickt und oeffnet die Karte NICHT */
           var inp=d.getElementById('suFreitext'); inp.value='Kaffee'; inp.dispatchEvent(new fw.Event('input',{bubbles:true})); fw.renderSuche();   // die Eingabe rendert entprellt
           var k0=nT('v3-kaffee');
@@ -2361,7 +2363,7 @@ function bestandSchreiben(){
           var m1=nT('v3-m3', true), f1=lsFokus();
           finding('echt · v3.2 §1.1 ▶ am Unter-Zähler: '+m0+' → '+m1+' Ticks · Uhr läuft auf '+(f1&&f1.laeuft?f1.karteId:'—')+' · Karten-Ticks „Mails" '+nT('v3-mails'));
           pruef(m1===m0+1 && f1 && f1.laeuft && f1.karteId==='v3-mails', 'v3.2 §1.1: ▶ am Unter-Zähler startet die Karte nicht oder bucht keinen Tick');
-          fw.fokusZeitEinbuchen(); freiMachen(); fw.setTab('suche');
+          fw.fokusZeitEinbuchen(); freiMachen(); fw.sucheOeffnen();
         })();
         /* ══ v3.1 · SYNC-TÜR: Zusammenfassung, „Übernehmen", Protokoll — elementFromPoint ══ */
         (function(){
@@ -2390,7 +2392,7 @@ function bestandSchreiben(){
           var sum=d.querySelector('#einstBody .tuer-det summary'); tippe(sum,'„Einstellungen und Statistik bearbeiten"');
           var feld=d.querySelector('#einstBody [data-tuer="einstellungen|punkte|zeitGewicht"]');
           pruef(!!feld && feld.getBoundingClientRect().height>0, 'v3.1 §2: Eingabe Zeit-Gewicht fehlt');
-          freiMachen(); fw.setTab('suche');
+          freiMachen(); fw.sucheOeffnen();
         })();
         /* ── §4 · Leerungs-Vorschau am gelebten Stand ── */
         var behalten={}, weg=0, bleibt=0, routinen=0;
@@ -2459,8 +2461,8 @@ function bestandSchreiben(){
       {id:'v3-ab', domain:'privat', titel:'Tagesabschluss', rolle:'tagesabschluss', modus:'pflicht', pflichtWert:50, tageslimit:1, rhythmus:T, matrixFeld:'werkzeug'},
       {id:'v3-schlaf', domain:'privat', titel:'Schlafen', rolle:'schlafen', modus:'staffel', rhythmus:T, matrixFeld:'zustand'} ] };
   }
-  function v30Vorbereiten(fw){ v28Vorbereiten(fw); fw.syncImport(JSON.stringify(v30Paket())); fw.setTab('suche'); fw.fokusKarteAnsehen('a-3'); }
-  function v29Vorbereiten(fw){ v28Vorbereiten(fw); fw.syncImport(JSON.stringify(v29Paket(fw))); fw.setTab('suche'); }
+  function v30Vorbereiten(fw){ v28Vorbereiten(fw); fw.syncImport(JSON.stringify(v30Paket())); fw.setTab('suche',{fokusLassen:true}); fw.fokusKarteAnsehen('a-3'); }
+  function v29Vorbereiten(fw){ v28Vorbereiten(fw); fw.syncImport(JSON.stringify(v29Paket(fw))); fw.sucheOeffnen(); }
   /* v3.5.4: „Zur Suche" ist entfallen — der Rückweg aus der Fokusansicht ist der Such-Tab unten. Wie der alte Knopf gibt es
      das Ziel nur, solange die Fokusansicht offen ist (sonst würde ein Tipp die Seite wechseln, wo früher nichts geschah). */
   function fokusZuKnopf(d){ var l=d.getElementById('fokusLayer'); return (l && !l.hidden) ? d.querySelector('#nav [data-tab="suche"]') : null; }
@@ -2482,20 +2484,20 @@ function bestandSchreiben(){
   function status354(fw, min, dfm, privat){ fw.setTab('belohnung'); fw.fokusStarten('k-lang', null); fw.closeSheet();
     fw.eval('(function(){ var k=S.karten.find(function(x){ return x.id==="k-lang"; }); S.fokus.startMs=Date.now()-Math.max(0, '+Math.round(min*60)+'-Number(k.istSek||0))*1000; })();'+(dfm!=null ? ' belIstDfm=function(){ return '+dfm+'; }; tagesPunkteDomain=function(d){ return d==="dfm" ? '+dfm+' : '+privat+'; };' : ''));
     fw.fokusLayerPflegen(); fw.renderFokusleiste(); fw.renderStatusbar(); fw.renderFokus(); }
-  function v28Vorbereiten(fw){ v27Vorbereiten(fw); fw.syncImport(JSON.stringify(v28Paket())); fw.setTab('suche'); }
+  function v28Vorbereiten(fw){ v27Vorbereiten(fw); fw.syncImport(JSON.stringify(v28Paket())); fw.sucheOeffnen(); }
   function v27Vorbereiten(fw){
     var d=fw.document;
     d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
     var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
     fw.closeSheet(); fw.syncImport(JSON.stringify(v27Paket(fw)));
-    fw.setTab('suche'); var b=d.querySelector('[data-susicht="heute"]'); if(b) b.click();
+    fw.sucheOeffnen(); var b=d.querySelector('[data-susicht="heute"]'); if(b) b.click();
   }
   /* v2.6: gelebter Bestand + gespreizte Positionen fuer die Screenshots */
   function v26Vorbereiten(fw){
     var d=fw.document;
     d.querySelectorAll('.mom-voll').forEach(function(m){ m.click(); });
     var sp=d.querySelector('[data-v200spaeter]'); if(sp) sp.click();
-    fw.closeSheet(); fw.setTab('suche');
+    fw.closeSheet(); fw.sucheOeffnen();
     var s=fw.matrixSpur(), t0=Date.now()-6*3600000;
     [[-0.7,0.2,null,null],[-0.35,-0.1,'a-3',null],[0.1,0.3,'r-zaehne',null],[-0.1,0.1,null,'tagebuch'],[0.45,0.2,'a-2',null],[0.8,-0.2,'a-notiz',null]].forEach(function(p,i){
       var e={ ts:new Date(t0+i*65*60000).toISOString(), x:p[0], y:p[1], kid:p[2], anlass:p[3]||'verlassen' };
