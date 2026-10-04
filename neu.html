@@ -19836,7 +19836,8 @@ el('suchFilter').addEventListener('click', e=>{
   suchF[b.dataset.sf]=b.dataset.v; haptik(6); renderSuchTreffer();
 });
 // §11 (v3.7.0): der 🔍-Knopf öffnet die Suche (Suchfeld + Kettenliste, §5); liegt sie schon vor, bekommt das Suchfeld den Fokus
-el('suchFab').addEventListener('click', ()=>{ haptik(8); if(S.ui.tab!=='suche') setTab('suche'); const f=el('suFreitext'); if(f){ try{ f.focus(); }catch(e){} } });
+el('suchFab').addEventListener('click', ()=>{ haptik(8); if(S.ui.tab!=='suche') setTab('suche'); const f=el('suFreitext'); if(f){ try{ f.focus({preventScroll:true}); }catch(e){} }
+  try{ const m=document.querySelector('main'); if(m) m.scrollTop=0; }catch(e){} });   // §3 (v3.7.5): Fokus ohne Seitensprung, Suchkopf ganz oben
 el('suchOverlay').addEventListener('click', e=>{ if(e.target.id==='suchOverlay') schliesseSuche(); });   // Tap-außen
 /* Pull-down bei scrollTop 0 (Fokus/Stapel) öffnet die Suche — ohne pan-y zu
    stören (kein preventDefault; am oberen Rand scrollt ohnehin nichts). */
