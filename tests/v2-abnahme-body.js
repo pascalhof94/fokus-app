@@ -542,8 +542,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.7.0 · Build gesetzt', VERSION==='3.7.5' && UI_VERSION==='v3.7.5' &&
-   APP_BUILD==='2026-10-05-1');
+ok('31 APP_VERSION 3.7.0 · Build gesetzt', VERSION==='3.7.6' && UI_VERSION==='v3.7.6' &&
+   APP_BUILD==='2026-10-05-2');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -871,15 +871,15 @@ S.karten=[ neueKarte({id:'T1', domain:'dfm', titel:'Tab-Test', sollMin:60, matri
 fokusStarten('T1');
 var t0=S.fokus.startMs;
 ok('§1 Karte laeuft, Fokusansicht offen', S.fokus.laeuft===true && S.ui.fokusOffen===true);
-setTab('suche');
-ok('§1 Tab „Suche" schliesst die Fokusansicht (fokusOffen=false, fokusZeigt=null)',
+setTab('belohnung');   // §4 (v3.7.6): 'suche' ist kein Tab mehr (Such-Ebene) — ein echter Tabwechsel schliesst die Fokusansicht
+ok('§1 Tabwechsel (Shop) schliesst die Fokusansicht (fokusOffen=false, fokusZeigt=null)',
    S.ui.fokusOffen===false && S.ui.fokusZeigt==null);
 ok('§1 ... die Karte laeuft weiter, Uhr unangetastet',
    S.fokus.laeuft===true && S.fokus.karteId==='T1' && S.fokus.startMs===t0);
 S.ui.fokusOffen=true; setTab('statistik');
 ok('§1 Tab „Statistik" ebenso', S.ui.fokusOffen===false && S.fokus.laeuft===true && S.fokus.startMs===t0);
 S.ui.fokusOffen=true; setTab('suche',{fokusLassen:true});
-ok('§1 interner Startpfad (fokusLassen) laesst die Ansicht offen', S.ui.fokusOffen===true);
+ok('§1 interner Startpfad (fokusLassen) laesst die Ansicht offen und oeffnet KEINE Such-Ebene (§4 v3.7.6)', S.ui.fokusOffen===true && !sucheOffen());
 var kk=S.karten[0];
 var b1=fbWasDieseKarte(kk), b2=fbWoIchStehe(), b3=fbWasIchBewege(kk);
 function kacheln(h){ return (h.match(/class="fbk[ "]/g)||[]).length; }
@@ -927,9 +927,10 @@ ok('§2 (v3.7.0) Familie Privat + Suchfeld „Privat": Kette pA, pC, pR · Routi
 S.ui.navDomain='dfm';
 var inhR=kettenListeInhalt({karte:null, filter:'dfm routine'});
 ok('§2 (v3.7.0) Suchfeld mit zwei Woertern: beide muessen passen', idsInGruppe(inhR,'kette')==='dR');
-renderSuche();
-ok('§2 (v3.7.0) Filterleiste und Sichten sind im Markup versteckt, Suche = tagBanner + Kettenliste', /id="suFilter"[^>]*hidden/.test(src) && /id="suSichten"[^>]*hidden/.test(src) &&
-   el('suBody').innerHTML.indexOf('data-klliste')>=0 && typeof suMatrixHtml==='undefined' && typeof suSichtHtml==='undefined');
+sucheOeffnen();   // §4 (v3.7.6): die Suche ist eine Ebene ueber der Ansicht
+ok('§2 (v3.7.0 · v3.7.6) Filterleiste und Sichten sind im Markup versteckt, Such-Ebene = tagBanner + Kettenliste (ausserhalb von <main>)', /id="suFilter"[^>]*hidden/.test(src) && /id="suSichten"[^>]*hidden/.test(src) &&
+   el('suBody').innerHTML.indexOf('data-klliste')>=0 && typeof suMatrixHtml==='undefined' && typeof suSichtHtml==='undefined' && sucheOffen() && src.indexOf('</main>')<src.indexOf('<section id="v-suche">'));
+sucheSchliessen();
 S.ui.suDom='alle'; S.ui.suArt='alle';
 
 kopf('v2.2.0 §4 · Belohnungsseite');

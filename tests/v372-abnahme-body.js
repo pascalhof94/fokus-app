@@ -26,7 +26,7 @@ function kulisseWeg(){ delete _kul[1]; delete _kul[2]; }
 function toepfe(l){ var A=ausmalState(); A.toepfe=[0,1,2,3,4].map(function(i){ return { farbe:(l[i]&&l[i][0]!=null)?l[i][0]:null, punkte:(l[i]&&l[i][1])||0 }; }); return A; }
 
 kopf('Version');
-ok('APP_VERSION 3.7.4 · Datenvertrag bleibt 2.1.0 · Build 2026-10-04-3', APP_VERSION==='3.7.5' && UI_VERSION==='v3.7.5' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-05-1');
+ok('APP_VERSION 3.7.4 · Datenvertrag bleibt 2.1.0 · Build 2026-10-04-3', APP_VERSION==='3.7.6' && UI_VERSION==='v3.7.6' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-05-2');
 
 /* ══ §1 Kulissen schalten sich beim Ankommen frei ════════════════════ */
 kopf('§1 Kulissen schalten sich beim Ankommen frei');
@@ -108,11 +108,25 @@ ok('§6 die Statusleiste bleibt nach dem Abschluss sichtbar und zeigt den abgesc
 uhr('2026-10-04T08:00:00+02:00'); aufstehenBestaetigen(70, { tapTs:jetztIso() });
 ok('§6 „Aufstehen" beginnt den neuen Tag (Sonntag) und schließt den Vortag endgültig — Nachträge im Snapshot', tagOffen() && S.tag.datum===SO && (S.historie.filter(function(h){ return h.datum===SA; })[0]||{}).nachtrag && S.meta.nachtraegeOffen && S.meta.nachtraegeOffen.some(function(x){ return x.datum===SA && x.anzahl>=2; }));
 
-/* ══ §7 Suche — 3.7.2 §7 ist mit 3.7.4 zurückgenommen (Revert 7a7ecb6) ═════════ */
-kopf('§7 Suche: Stand vor 3.7.2 (Revert in 3.7.4)');
-ok('§7 (v3.7.4) kein Such-Overlay mehr: keine body.sucheOffen-Regel, kein sucheSchliessen, kein „Schließen"-Knopf, kein 50-vh-Platzhalter', !/body\.sucheOffen/.test(src) && typeof sucheSchliessen==='undefined' && src.indexOf('id="suZu"')<0 && src.indexOf('su-platz')<0);
-ok('§7 (v3.7.4) der Tag-Banner steht wieder oben, vor der Kettenliste', src.indexOf('<div id="tagBanner"></div>')<src.indexOf('<div class="su-swipe" id="suSwipe">'));
-ok('§7 (v3.7.4) 🔍 öffnet die Suche wie in 3.7.0 §11; der Start kehrt zum gemerkten Tab zurück', /el\('suchFab'\)\.addEventListener\('click', \(\)=>\{ haptik\(8\); if\(S\.ui\.tab!=='suche'\) setTab\('suche'\); const f=el\('suFreitext'\);/.test(src) && /setTab\(S\.ui\.tab\|\|'stapel', \{fokusLassen:true\}\);/.test(src));
+/* ══ §7 Suche — seit 3.7.6 eine Vollbild-Ebene AUSSERHALB von <main> ═══════════════════ */
+kopf('§7 Suche als Vollbild-Ebene (v3.7.6)');
+ok('§7 (v3.7.6) #v-suche liegt nach </main> und vor #suchFab, ohne die Klassen view/on', src.indexOf('</main>')<src.indexOf('<section id="v-suche">') && src.indexOf('<section id="v-suche">')<src.indexOf('<button id="suchFab"') && src.indexOf('class="view on" id="v-suche"')<0);
+ok('§7 (v3.7.6) CSS: fixed, top var(--vvTop), height var(--vvH), z-index 250, eigener Scroller, display:none bis body.suOffen; main ohne Scroll, 🔍 und Leiste aus', /#v-suche\{position:fixed;left:0;right:0;top:var\(--vvTop,0px\);height:var\(--vvH,100%\);z-index:250;[^}]*overflow-y:auto;[^}]*display:none;padding-bottom:calc\(var\(--sab\) \+ 16px\)\}/.test(src) &&
+   /body\.suOffen #v-suche\{display:block\}/.test(src) && /body\.suOffen main\{overflow:hidden\}/.test(src) && /body\.suOffen #suchFab,body\.suOffen #nav\{display:none\}/.test(src));
+ok('§7 (v3.7.6) Suchkopf: top:0 mit Safe-Area-Padding; Suchfeld 16 px; #topbar wieder top:0', /\.su-kopf\{[^}]*padding-top:calc\(var\(--sat\) \+ 8px\);position:sticky;top:0;z-index:5;background:var\(--bg\)\}/.test(src) && /#suFreitext\{[^}]*font-size:16px/.test(src) && /#topbar\{\s*position:fixed;top:0;/.test(src));
+ok('§7 (v3.7.6) über der Ebene (≥ 260): Fokus-Layer, Backdrop, Sheet, Vollbild-Ansichten, Momente', /#fokusLayer\{[^}]*z-index:260/.test(src) && /#backdrop\{[^}]*z-index:260/.test(src) && /\.sheet\{\s*position:fixed;left:0;right:0;bottom:0;z-index:260;/.test(src) && /\.voll-ansicht\{[^}]*z-index:260/.test(src) && /\.mom-fly\{[^}]*z-index:260/.test(src) && /\.mom-stern\{[^}]*z-index:260/.test(src));
+ok('§7 (v3.7.6) vvSync setzt --vvTop und --vvH', /--vvH/.test(rumpf('vvSync')) && /--vvTop/.test(rumpf('vvSync')));
+tagSamstag(); S.ui.tab='statistik'; S.ui.suFrage='x';
+sucheOeffnen();
+ok('§7 (v3.7.6) sucheOeffnen: Ebene offen, Kettenliste gerendert, S.ui.tab bleibt (Statistik)', sucheOffen() && el('suBody').innerHTML.indexOf('data-klliste')>=0 && S.ui.tab==='statistik');
+sucheSchliessen();
+ok('§7 (v3.7.6) sucheSchliessen: Feld geleert, Ebene zu, Ansicht darunter unverändert', !sucheOffen() && S.ui.suFrage==='' && S.ui.tab==='statistik');
+setTab('suche'); ok('§7 (v3.7.6) setTab(„suche") öffnet die Ebene und ändert S.ui.tab nicht', sucheOffen() && S.ui.tab==='statistik'); sucheSchliessen();
+setTab('suche', {fokusLassen:true}); ok('§7 (v3.7.6) interner Startpfad (fokusLassen) öffnet die Ebene nicht', !sucheOffen() && S.ui.tab==='statistik');
+ok('§7 (v3.7.6) Knopf „Schliessen" (#suZu) neben ✕, 🔍 ruft nur sucheOeffnen, Enter schliesst nur die Tastatur, Start nie mit offener Ebene', /<button id="suZu" class="su-x su-zu"/.test(src) && /\.su-zu\{[^}]*min-width:44px;min-height:44px\}/.test(src) &&
+   /el\('suchFab'\)\.addEventListener\('click', \(\)=>\{ haptik\(8\); sucheOeffnen\(\); \}\);/.test(src) && /el\('suFreitext'\)\.addEventListener\('keydown', e=>\{ if\(e\.key==='Enter'\)\{ e\.preventDefault\(\); try\{ e\.target\.blur\(\); \}catch\(x\)\{\} \} \}\);/.test(src) &&
+   /setTab\(\(S\.ui\.tab && S\.ui\.tab!=='suche'\) \? S\.ui\.tab : 'belohnung', \{fokusLassen:true\}\);/.test(src));
+ok('§7 (v3.7.6) Karte aus der Suche in den Fokus schliesst die Ebene vorher', /if\(sucheOffen\(\)\) sucheSchliessen\(\);/.test(rumpf('kettenListeSchliessen')));
 
 /* ══ §8 Pace-Leiste ══════════════════════════════════════════════════ */
 kopf('§8 Pace-Leiste (P/h) neu beschriftet');

@@ -29,7 +29,7 @@ function kulisseWeg(){ delete _kul[1]; delete _kul[2]; }
 function toepfe(l){ var A=ausmalState(); A.toepfe=[0,1,2,3,4].map(function(i){ return { farbe:(l[i]&&l[i][0]!=null)?l[i][0]:null, punkte:(l[i]&&l[i][1])||0 }; }); return A; }
 
 kopf('Version');
-ok('APP_VERSION 3.7.0 · Datenvertrag bleibt 2.1.0 · Build 2026-10-03-1', APP_VERSION==='3.7.5' && UI_VERSION==='v3.7.5' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-05-1');
+ok('APP_VERSION 3.7.0 · Datenvertrag bleibt 2.1.0 · Build 2026-10-03-1', APP_VERSION==='3.7.6' && UI_VERSION==='v3.7.6' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-05-2');
 
 /* ══ §1 Fokus oben: „Nach vorn" ═══════════════════════════════════════ */
 kopf('§1 Fokus oben: „⤒ Nach vorn"');
@@ -185,9 +185,9 @@ ok('§5 Gruppiert: Zwischenüberschriften — Routinen nach Tagesblock, andere G
 klSortSetzen('kette','kette');
 var fh=(fokusKarteAnsehen('a'), renderFokus(), el('fokusView').innerHTML);
 ok('§5 unten in der Fokusansicht: dieselbe Kettenliste (ohne die gezeigte Karte in der Kette)', fh.indexOf('data-klliste')>=0 && /"kontext":"fokus"/.test(fh) && (function(){ var i2=kettenListeInhalt({ karte:kid('a'), filter:'' }); return gruppe(i2,'kette')==='b,td'; })());
-renderSuche();
+sucheOeffnen();   // §4 (v3.7.6)
 ok('§5 Suche: Suchfeld bleibt, darunter die Kettenliste; die Eingabe filtert alle Gruppen', el('suBody').innerHTML.indexOf('data-klliste')>=0 && /"kontext":"suche"/.test(el('suBody').innerHTML) && gruppe(kettenListeInhalt({ karte:null, filter:'angebot' }),'kette')==='a,b' && kettenListeInhalt({ karte:null, filter:'angebot' }).routinen.n===0);
-oeffnePlusListe();
+sucheSchliessen(); oeffnePlusListe();
 ok('§5 hinter dem „+": Vollbild mit „+ Neue Karte" oben und der Kettenliste', /<div id="plusOverlay" class="voll-ansicht" hidden>/.test(src) && /data-plusneu="1">＋ Neue Karte</.test(src) && el('plusBody').innerHTML.indexOf('data-klliste')>=0 && /el\('neuFab'\)\.addEventListener\('click', \(\)=>oeffnePlusListe\(\)\)/.test(src));
 ok('§5 Klapp- und Sortierzustand stehen nicht im Datenvertrag', JSON.stringify(syncExport('delta')).indexOf('klSort')<0 && JSON.stringify(syncExport('delta')).indexOf('klGruppen')<0);
 
@@ -302,7 +302,7 @@ ok('§10 keine weiteren Scroll-Resets (Shop, Mini-Kurve, Malmodus, Suche)', rump
 kopf('§11 Leiste unten');
 var nav=(src.match(/<nav id="nav">[\s\S]*?<\/nav>/)||[''])[0];
 ok('§11 Tab „Suche" → „Shop" (🛍): Shop · Statistik · Einstellungen', /data-tab="belohnung"><span class="ic">🛍<\/span>Shop<\/button>[\s\S]*data-tab="statistik"[\s\S]*data-tab="einst"/.test(nav) && nav.indexOf('data-tab="suche"')<0);
-ok('§11 die Suche über den runden 🔍-Knopf unten links (Suchfeld bekommt den Fokus; §7 v3.7.2: der Knopf schließt auch)', /el\('suchFab'\)\.addEventListener\('click', \(\)=>\{ haptik\(8\); if\(S\.ui\.tab==='suche'\)\{ sucheSchliessen\(\); return; \} setTab\('suche'\); const f=el\('suFreitext'\);/.test(src) && /#suchFab\{position:fixed;left:16px/.test(src));
+ok('§11 die Suche über den runden 🔍-Knopf unten links (§4 v3.7.6: öffnet die Such-Ebene, Suchfeld bekommt den Fokus)', /el\('suchFab'\)\.addEventListener\('click', \(\)=>\{ haptik\(8\); sucheOeffnen\(\); \}\);/.test(src) && /f\.focus\(\{preventScroll:true\}\)/.test(rumpf('sucheOeffnen')) && /#suchFab\{position:fixed;left:16px/.test(src));
 tagDonnerstag(); S.karten=[ neueKarte({ id:'k1', domain:D, titel:'Eins', sollMin:30, faelligkeit:DO }) ]; ketteSetzen(['k1']);
 ok('§11 Tipp auf die Statusleiste öffnet immer die Fokusansicht — ohne angezeigte Karte die erste der Kette', fokusImmerZeigen()===true && S.ui.fokusOffen===true && fokusAngezeigtId()==='k1' &&
    /el\('statusbar'\)\.addEventListener\('click', e=>\{[\s\S]{0,260}fokusImmerZeigen\(\);/.test(src) && /\(z1\|\|el\('fkMid'\)\)\.addEventListener\('click', e=>\{ if\(e\.target\.closest\('#btnFigur'\)\) return; fokusImmerZeigen\(\); \}\)/.test(src));
