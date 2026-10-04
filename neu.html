@@ -8214,6 +8214,7 @@ let _tbH=0;
 function vvSync(){
   const vv=window.visualViewport; if(!vv) return;
   document.documentElement.style.setProperty('--vvTop', Math.max(0, Math.round(vv.offsetTop))+'px');
+  document.documentElement.style.setProperty('--vvH', Math.round(vv.height)+'px');   // §3 (v3.7.6): Höhe der Such-Ebene = sichtbarer Viewport (über der Tastatur)
 }
 function layoutTopbar(){
   const tb=el('topbar'); if(!tb) return;
