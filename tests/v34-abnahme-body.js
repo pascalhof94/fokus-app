@@ -145,7 +145,7 @@ if(S.fokus && S.fokus.karteId==='k3-schlafen') fokusToggle(); else fokusStarten(
 renderFokus(); var fs=el('fokusView').innerHTML;
 ok('2.2 ▶ startet die Schlaf-Uhr mit Zeitstempel (23:00)', schlafLaeuft() && schlafZustand().laeuft.startTs===new Date(_RD.parse('2026-09-28T23:00:00+02:00')).toISOString() && schlafZustand().laeuft.tagId===S.tag.tagId);
 ok('2 Ursache (e) behoben: die Fokusansicht zeigt jetzt ⏸ (vorher ▶ — der zweite Tipp stoppte die Uhr als Fehltipp)', /data-fktoggle="k3-schlafen"[^>]*>⏸</.test(fs) && /data-alplay="k3-schlafen"[^>]*>⏸</.test(abhakLeisteHtml()));
-ok('2 Nachtrag-Export: danach bleibt „Schlafen" hervorgehoben und läuft', / hervor/.test(leisteZeile('k3-schlafen')) && schlafLaeuft() && !!S.tag.geschlossenTs);
+ok('2 (§2 v3.7.3) kein Nachtrag-Export beim Schlafen: „Schlafen" bleibt hervorgehoben und läuft, der Tag bleibt der Anker (kein geschlossenTs)', / hervor/.test(leisteZeile('k3-schlafen')) && schlafLaeuft() && !S.tag.geschlossenTs);
 // (a) gesperrt? (b) Mitternacht/Neuladen? (d) Dauer?
 ok('2 (a) trifft nicht zu: Schlafen war nach dem Abschluss nie gesperrt oder grau', leisteAktiv(sk));
 
@@ -238,7 +238,7 @@ ok('1.2 der lange Druck wirkt nur noch auf „Schließen" im Tagesabschluss', /c
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION 3.4.0, Build 2026-10-02-6', APP_VERSION==='3.7.0' && UI_VERSION==='v3.7.0' && APP_BUILD==='2026-10-03-1');
+ok('APP_VERSION 3.4.0, Build 2026-10-02-6', APP_VERSION==='3.7.3' && UI_VERSION==='v3.7.3' && APP_BUILD==='2026-10-04-2');
 
 print('');
 if(fails){ print(fails+' von '+n+' FEHLGESCHLAGEN'); throw new Error('Abnahme rot'); }

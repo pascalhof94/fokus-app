@@ -50,7 +50,7 @@ ok('2 tempoSchnitt 700 → GRUEN', a3===DIA_FARBE.gruen);
 ok('0.3 r = 0,90 → genau GELB; soll 0 → GRUEN', diaAmpel(90,100)===DIA_FARBE.gelb && diaAmpel(5,0)===DIA_FARBE.gruen);
 frisch(); tagMit(6, 9); punkte(1000, 500);
 var sk=paceLeisteHtml(diaGroessen());
-ok('1.1 Pace-Leiste (v3.5.3 §1): waagerecht, fünf Ampelzonen relativ zu „nötig", weißer Strich = Ø heute', /class="pbahn zonen">(<i style="left:[\d.]+%;width:[\d.]+%;background:#[0-9a-f]{6}"><\/i>){5}<u style="left:[\d.]+%"><\/u>/i.test(sk) && /class="ppf"/.test(sk));
+ok('1.1 Pace-Leiste (v3.5.3 §1 · §8 v3.7.2): waagerecht, fünf Ampelzonen relativ zu „nötig", weißer Strich = nötig', /class="pbahn zonen">(<i style="left:[\d.]+%;width:[\d.]+%;background:#[0-9a-fA-F]{6}"><\/i>){5}/.test(sk) && (num(diaGroessen().tempoZiel)<=0 || /<u class="noetig" style="left:[\d.]+%"><\/u>/.test(sk)) && /class="plbl"/.test(sk));
 
 /* ══ 3 · Tagesprognose ═══════════════════════════════════════════════ */
 kopf('3 · Tagesprognose (§2.2)');
@@ -130,7 +130,7 @@ ok('0.1 UEBER #FF2D95 war vorher nirgends benutzt', (src.match(/#FF2D95/gi)||[])
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION aktuell (3.4.0), Build 2026-10-02-6', APP_VERSION==='3.7.0' && UI_VERSION==='v3.7.0' && APP_BUILD==='2026-10-03-1');
+ok('APP_VERSION aktuell (3.4.0), Build 2026-10-02-6', APP_VERSION==='3.7.3' && UI_VERSION==='v3.7.3' && APP_BUILD==='2026-10-04-2');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

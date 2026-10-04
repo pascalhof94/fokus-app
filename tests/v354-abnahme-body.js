@@ -22,7 +22,7 @@ function punkte(dfm, privat){ belIstDfm=function(){ return dfm; }; tagesPunkteDo
 function punkteEcht(){ belIstDfm=_belIstDfm; tagesPunkteDomain=_tagesPunkteDomain; }
 
 kopf('Version');
-ok('APP_VERSION 3.5.4 · Datenvertrag bleibt 2.1.0 · Build 2026-10-02-6', APP_VERSION==='3.7.0' && UI_VERSION==='v3.7.0' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-03-1');
+ok('APP_VERSION 3.5.4 · Datenvertrag bleibt 2.1.0 · Build 2026-10-02-6', APP_VERSION==='3.7.3' && UI_VERSION==='v3.7.3' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-2');
 
 /* ══ (a) Restzeit ═════════════════════════════════════════════════════ */
 kopf('(a) Uhr der Statusleiste: Restzeit mit Vorzeichen und Ampelfarbe');
@@ -146,29 +146,31 @@ ok('(e) Vorbereitung: Fassung = größtes Feld × Aufschlag (1.000 × 1,2 = 1.20
 var _ausmalW=ausmalW, wTest=0; ausmalW=function(){ return wTest; };
 S.meta.ausmalen={ kulisse:1, gefaerbt:[], toepfe:[{farbe:0, punkte:500},{farbe:null, punkte:0},{farbe:null, punkte:0},{farbe:null, punkte:0},{farbe:null, punkte:0}], aktiverTopf:0, stationFarbe:0, tank:0, wohlstandSeitReset:0, freigeschaltetBis:1, fertig:[], verteilt:0 };
 var A=ausmalState(), t0=A.toepfe[0];
-ok('(e) Topf mit 500 P (42 %) ist nicht leer: Farbwechsel abgewiesen („erst leeren oder Topf wechseln")', !topfLeer(t0) && stationFarbeWaehlen(1)===false && t0.farbe===0 && t0.punkte===500 && A.stationFarbe===0);
+/* §3 (v3.7.2) · §1 (v3.7.3): Farbwahl wird nie abgewiesen — die Station zeigt die Farbe, die Ausgabe fährt zum passenden Topf
+   (sonst zum nächsten leeren); Fassung je Farbe (Ocker 1.200, Schwarz 960); aus dem Tank fließt nichts zurück */
+ok('(e) Topf mit 500 P (42 %) ist nicht leer; Farbwahl Schwarz: Station Schwarz, Ausgabe fährt zum nächsten leeren Topf, der Ocker-Topf bleibt', !topfLeer(t0) && stationFarbeWaehlen(1)===true && A.stationFarbe===1 && A.aktiverTopf===1 && t0.farbe===0 && t0.punkte===500);
 topfAuskippen(0);
 ok('(e) geleert: Topf 0 % ohne Farbe — der Inhalt (500 P) geht in den Tank (§4c v3.7.0)', t0.punkte===0 && t0.farbe===null && topfLeer(t0) && A.tank===500);
+stationFarbeWaehlen(0);
 wTest=10; ausmalVerteilen();   // der Tick zwischen Leeren und Wechseln
 print('   nach dem Tick: Topf '+t0.punkte+' P = '+(t0.punkte/T*100).toFixed(1)+' % · Farbe '+t0.farbe+' · Tank '+A.tank);
-ok('(e) ein Tick dazwischen füllt den Topf minimal: 10 P = 0,8 % in der Stationsfarbe', t0.punkte===10 && t0.farbe===0 && nah(t0.punkte/T*100, 0.8, 0.05) && A.tank===500);
+ok('(e) ein Tick dazwischen füllt den Topf unter der Ausgabe minimal: 10 P = 0,8 % in der Stationsfarbe (Ocker, Fassung 1.200)', A.aktiverTopf===0 && t0.punkte===10 && t0.farbe===0 && nah(t0.punkte/topfFassungVon(t0)*100, 0.8, 0.05) && A.tank===500);
 ok('(e) 0,8 % gilt als leer (unter 2 %)', topfLeer(t0) && !topfVoll(t0));
 var mm=belMalmodusHtml(), bu2=belUebersichtHtml();
 ok('(e) Anzeige „leer" statt Prozent; der Topf zählt nicht als „füllt" (0 voll · 0 füllt · 5 leer); nicht unter „Töpfe mit Farbe"', mm.indexOf('<span>aktiv leer</span>')>=0 && mm.indexOf('aktiv 1 %')<0 && mm.indexOf('data-malwahl=')<0 && bu2.indexOf('0 voll · 0 füllt · 5 leer')>=0);
 var gewechselt=stationFarbeWaehlen(1);
-ok('(e) Wechsel ohne Auskippen möglich: die Station nimmt Schwarz, der Topf übernimmt die neue Farbe', gewechselt===true && A.stationFarbe===1 && t0.farbe===1 && t0.punkte===0);
-ok('(e) die 0,8 % (10 P) landen im Tank — nichts geht verloren (500 + 10)', A.tank===510);
+ok('(e) Farbwahl Schwarz: die Station nimmt Schwarz, die Ausgabe fährt zum nächsten leeren Topf — der 0,8-%-Topf behält Ocker (§3 v3.7.2: kein Umfärben, kein Tank-Umweg)', gewechselt===true && A.stationFarbe===1 && A.aktiverTopf===1 && t0.farbe===0 && t0.punkte===10 && A.tank===500);
 // Grenze: genau 2 % ist nicht mehr leer
-S.meta.ausmalen.toepfe[0]={farbe:0, punkte:24}; S.meta.ausmalen.stationFarbe=0; S.meta.ausmalen.tank=0; A=ausmalState(); t0=A.toepfe[0];
-ok('(e) genau 2 % (24 P) ist nicht leer: „aktiv 2 %", zählt als „füllt", Wechsel abgewiesen; 23 P (1,9 %) ist leer', !topfLeer(t0) && belMalmodusHtml().indexOf('<span>aktiv 2 %</span>')>=0 && belUebersichtHtml().indexOf('0 voll · 1 füllt · 4 leer')>=0 && stationFarbeWaehlen(1)===false &&
+S.meta.ausmalen.toepfe[0]={farbe:0, punkte:24}; S.meta.ausmalen.stationFarbe=0; S.meta.ausmalen.aktiverTopf=0; S.meta.ausmalen.tank=0; A=ausmalState(); t0=A.toepfe[0];
+ok('(e) genau 2 % (24 P) ist nicht leer: „aktiv 2 %", zählt als „füllt"; 23 P (1,9 %) ist leer', !topfLeer(t0) && belMalmodusHtml().indexOf('<span>aktiv 2 %</span>')>=0 && belUebersichtHtml().indexOf('0 voll · 1 füllt · 4 leer')>=0 &&
    (t0.punkte=23, topfLeer(t0)));
-// „Topf wechseln": ein Topf mit Rest unter 2 % kommt unter die Station einer anderen Farbe
+// „Topf wechseln": Topf antippen fährt die Ausgabe dorthin; ein Topf mit Rest behält Farbe und Inhalt
 S.meta.ausmalen.toepfe=[{farbe:0, punkte:600},{farbe:2, punkte:15},{farbe:null, punkte:0},{farbe:null, punkte:0},{farbe:null, punkte:0}]; S.meta.ausmalen.aktiverTopf=0; S.meta.ausmalen.stationFarbe=0; S.meta.ausmalen.tank=0;
 A=ausmalState(); topfUnterStation(1);
-ok('(e) Topf wechseln: der Topf mit 15 P Blau (1,3 %) gilt als leer — er übernimmt die Stationsfarbe, sein Rest geht über den Tank in ihn zurück (15 P Ocker), die Station bleibt Ocker', A.aktiverTopf===1 && A.stationFarbe===0 && A.toepfe[1].farbe===0 && A.toepfe[1].punkte===15 && A.tank===0);
+ok('(e) Topf wechseln (§3 v3.7.2): der Topf mit 15 P Blau behält Farbe und Inhalt, die Ausgabe steht über ihm, kein Tank-Umweg', A.aktiverTopf===1 && A.toepfe[1].farbe===2 && A.toepfe[1].punkte===15 && A.tank===0);
 S.meta.ausmalen.toepfe[2]={farbe:2, punkte:300}; A=ausmalState(); topfUnterStation(2);
-ok('(e) … ein Topf mit 300 P Blau (25 %) behält seine Farbe: die Station wechselt auf Blau (wie bisher)', A.aktiverTopf===2 && A.stationFarbe===2 && A.toepfe[2].farbe===2 && A.toepfe[2].punkte===300);
-ok('(e) Auswahl-Sheet „Topf unter die Station": Töpfe unter 2 % heißen „leer"', (function(){ S.meta.ausmalen.toepfe[3]={farbe:1, punkte:5}; topfWechselSheet(); var h=el('sheetBody').innerHTML; return /Topf 4 · leer/.test(h) && /Topf 3 · Blau · /.test(h); })());
+ok('(e) … ein Topf mit 300 P Blau (25 %) behält seine Farbe: die Station zeigt Blau', A.aktiverTopf===2 && A.stationFarbe===2 && A.toepfe[2].farbe===2 && A.toepfe[2].punkte===300);
+ok('(e) Auswahl-Sheet „Topf unter die Station": Töpfe unter 2 % heißen „leer" (Schwarz 5 von 960)', (function(){ S.meta.ausmalen.toepfe[3]={farbe:1, punkte:5}; topfWechselSheet(); var h=el('sheetBody').innerHTML; return /Topf 4 · leer/.test(h) && /Topf 3 · Blau · /.test(h); })());
 ausmalW=_ausmalW; delete _kul[1];
 
 /* ══ (f) obere Fokus-Navigation ═══════════════════════════════════════ */

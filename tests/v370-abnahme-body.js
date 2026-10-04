@@ -29,7 +29,7 @@ function kulisseWeg(){ delete _kul[1]; delete _kul[2]; }
 function toepfe(l){ var A=ausmalState(); A.toepfe=[0,1,2,3,4].map(function(i){ return { farbe:(l[i]&&l[i][0]!=null)?l[i][0]:null, punkte:(l[i]&&l[i][1])||0 }; }); return A; }
 
 kopf('Version');
-ok('APP_VERSION 3.7.0 · Datenvertrag bleibt 2.1.0 · Build 2026-10-03-1', APP_VERSION==='3.7.0' && UI_VERSION==='v3.7.0' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-03-1');
+ok('APP_VERSION 3.7.0 · Datenvertrag bleibt 2.1.0 · Build 2026-10-03-1', APP_VERSION==='3.7.3' && UI_VERSION==='v3.7.3' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-2');
 
 /* ══ §1 Fokus oben: „Nach vorn" ═══════════════════════════════════════ */
 kopf('§1 Fokus oben: „⤒ Nach vorn"');
@@ -89,16 +89,16 @@ ok('§4 die Töpfe-Zeile zeigt den Countdown (statt „0/5"), Farbkreis davor', 
 /* ══ §4a Pace-Leiste und Live-Beschriftungen ═════════════════════════ */
 kopf('§4a Pace-Leiste direkt unter dem Mini-Diagramm, Live-Beschriftungen');
 ok('§4a Abstand 5 px, Beschriftungen 10 px tabular-nums', /#statusbar \.sl-mitte\{[^}]*gap:5px/.test(src) && /#statusbar \.sl-pace \.plbl\{[^}]*font-size:10px;[^}]*font-variant-numeric:tabular-nums/.test(src));
-var h1=paceLeisteHtml({ tempoSchnitt:512, tempoZiel:500 }, { wert:400, karte:{ domain:'dfm' } });
-ok('§4a unter dem weißen Strich „Ø 512" (WEISS)', h1.indexOf('<b class="schnitt" data-px="87.0" style="color:'+FARBE.WEISS+';left:87.0%">Ø 512</b>')>=0);
-ok('§4a unter der Raute die Abweichung der Karte zum Schnitt mit Vorzeichen (−112) in der Farbe des Pfeils', (function(){ var m=/<b class="karte" data-px="[\d.]+" style="color:(#[0-9a-fA-F]{6});left:[\d.]+%">−112<\/b>/.exec(h1); var st=tempopfeilStufe(400/512); return !!m && m[1]===st.c; })());
-ok('§4a unter dem Pfeil die Abweichung Schnitt zu „nötig" mit Vorzeichen: +12 GRUEN', h1.indexOf('<b class="pfeil" data-px="" style="color:'+FARBE.GRUEN+'">+12</b>')>=0);
+/* §8 (v3.7.2): die Marken sind jetzt lila Raute = Ø Karte, grüner Strich = live mit Pfeil, weißer Strich = nötig — die
+   Beschriftungen beziehen sich auf diese Marken (Kollisionsregel 4 px bleibt) */
+var h1=paceLeisteHtml({ tempoSchnitt:512, tempoZiel:500 }, { wert:400, karte:{ domain:'dfm' }, oe:380 });
+ok('§4a (v3.7.2) unter der Raute „◆ Ø 380" (LILA), unter dem grünen Strich „live 400" (GRUEN), unter dem weißen Strich „nötig 500" (WEISS)', /<b class="karte" data-px="[\d.]+" style="color:#a855f7;left:[\d.]+%">◆ Ø 380<\/b>/i.test(h1) && /<b class="live" data-px="[\d.]+" style="color:#3ecf8e;left:[\d.]+%">live 400<\/b>/i.test(h1) && h1.indexOf('style="color:'+FARBE.WEISS+';left:')>=0 && h1.indexOf('>nötig 500</b>')>=0);
+ok('§4a (v3.7.2) live unter dem Tagesschnitt (400 < 512): Pfeil ← ROT am grünen Strich', h1.indexOf('class="ppfeil senkt"')>=0 && h1.indexOf(';color:'+FARBE.ROT+'">←</b>')>=0);
 var h2=paceLeisteHtml({ tempoSchnitt:452, tempoZiel:500 }, null);
-ok('§4a … „−48" ROT; ohne laufende Karte keine Karten-Beschriftung', h2.indexOf('<b class="pfeil" data-px="" style="color:'+FARBE.ROT+'">−48</b>')>=0 && h2.indexOf('class="karte"')<0);
-ok('§4a ohne „nötig" (Tagesziel erreicht) keine Pfeil-Beschriftung', paceLeisteHtml({ tempoSchnitt:600, tempoZiel:0 }, null).indexOf('class="pfeil"')<0);
-ok('§4a Vorzeichen-Format: +0, +12, −48', vorzP(0)==='+0' && vorzP(12.4)==='+12' && vorzP(-48)==='−48');
+ok('§4a ohne laufende Karte: nur die nötig-Beschriftung, kein Pfeil', h2.indexOf('>nötig 500</b>')>=0 && h2.indexOf('class="karte"')<0 && h2.indexOf('class="live"')<0 && h2.indexOf('ppfeil')<0);
+ok('§4a ohne „nötig" (Tagesziel erreicht) keine nötig-Beschriftung', paceLeisteHtml({ tempoSchnitt:600, tempoZiel:0 }, null).indexOf('class="noetig"')<0);
 ok('§4a überlappende Beschriftungen werden seitlich verschoben, bis 4 px frei sind (nach jedem Zeichnen der Leiste)', /LUECKE=4/.test(rumpf('paceBeschriftungenEntzerren')) && /paceBeschriftungenEntzerren\(el\('sZTempo'\)\)/.test(rumpf('renderStatusbar')));
-ok('§4a die Leiste selbst ist unverändert (fünf Zonen, weißer Strich, Raute, Pfeil)', /class="pzeile"><span class="pbahn zonen">(<i style="left:[\d.]+%;width:[\d.]+%;background:#[0-9a-fA-F]{6}"><\/i>){5}<u style="left:[\d.]+%"><\/u><b class="raute"/.test(h1) && /class="ppf"><svg/.test(h1));
+ok('§4a die Leiste selbst: fünf Zonen, weißer Strich, Raute, grüner Strich', /class="pzeile"><span class="pbahn zonen">(<i style="left:[\d.]+%;width:[\d.]+%;background:#[0-9a-fA-F]{6}"><\/i>){5}<u class="noetig" style="left:[\d.]+%"><\/u><b class="raute"/.test(h1) && /<u class="live"/.test(h1));
 
 /* ══ §4b Kauf füllt einen Farbtopf ═══════════════════════════════════ */
 kopf('§4b Kauf füllt einen Farbtopf');
@@ -112,7 +112,7 @@ gs=farbeSchenken(1, topfFassungFarbe(1));
 ok('§4b ohne Topf dieser Farbe: der nächste leere Topf übernimmt die Farbe (Schwarz 960)', gs.topf===1 && A.toepfe[1].farbe===1 && A.toepfe[1].punkte===960 && gs.inTank===0);
 A=toepfe([[0,1200],[1,960],[2,1200],[2,1200],[2,1200]]); A.tank=0;
 gs=farbeSchenken(1, 300);
-ok('§4b reicht kein Topf (alle voll bzw. belegt): der Rest geht in den Tank', gs.topf===1 && gs.inTopf===240 && gs.inTank===60 && A.tank===60);
+ok('§4b reicht kein Topf (alle voll bzw. belegt; §1 v3.7.3: Schwarz-Topf 960 ist nach seiner Fassung voll): alles geht in den Tank', gs.topf===-1 && gs.inTopf===0 && gs.inTank===300 && A.tank===300);
 belohnungInit(); S.meta.muenzenGesamt=100000; S.meta.ausgegebenGesamt=0;
 var dk=kaufBelohnungDaten('soziales', 1, 500, 30), kb=kaufBelohnungHtml(dk);
 ok('§4b die Kaufdaten tragen die offenen Farben; die Ansicht hat den Schritt „Farbe wählen" (Farbpunkt · Name · Anzahl)', dk.farben.length===2 && kb.indexOf('Farbe wählen')>=0 && /<button class="mal-farbe" data-kbfarbe="0" aria-label="Ocker"><i style="background:#111111"><\/i><span>2<\/span><\/button>/.test(kb) && /data-kbfarbe="1"/.test(kb) && !/data-kbfarbe="2"/.test(kb));
@@ -146,15 +146,15 @@ var kz=kulisseKennzahlen(1), kh=kulisseBelohnungHtml(kz);
 ok('§4c Kennzahlen: Dauer 2 Tg 6 Std · Farbe seit Start (3.000 + 1.500 + heute) · Fokuszeit 90 Min · 3 Felder · 3 Tage mit Ausmalen · Punkte gesamt', kz.tage===2 && kz.std===6 && kz.farbe===4500+Math.round(Math.max(0, tagesPunkteLive())) && kz.fokusMin===90 && kz.felder===3 && kz.malTage===3 && kz.punkte===4500+Math.round(Math.max(0, tagesPunkteLive())));
 ok('§4c die Ansicht: großes Bild der farbigen Kulisse mit Avatar im aktuellen Outfit (Tipp blendet ein/aus), sechs Kennzahlen, „Weiter"', /class="st kul-bild"/.test(kh) && /img class="bild" src="img\/kulissen\/bg01_farbig\.jpg"/.test(kh) && /img class="av" src="[^"]+"/.test(kh) && kh.indexOf('Tippen blendet den Avatar ein und aus')>=0 &&
    (kh.match(/<div class="t"><b>/g)||[]).length===6 && /data-belweiter="1">Weiter</.test(kh) && /classList\.toggle\('ohne-av'\)/.test(rumpf('kulisseBelohnungZeigen')) && !/dblclick/.test(rumpf('kulisseBelohnungZeigen')));
-ok('§4c Hinweis: nächste Kulisse frei ab x Farbe (nicht frei) bzw. „Kulisse 2 frei"', kh.indexOf('Kulisse 2 frei ab '+fmtP(ausmalStand().naechsteFrei)+' Farbe')>=0 && (function(){ A.freigeschaltetBis=2; var h=kulisseBelohnungHtml(kulisseKennzahlen(1)); A.freigeschaltetBis=1; return h.indexOf('<b style="color:'+FARBE.GRUEN+'">Kulisse 2 frei</b>')>=0; })());
-ok('§4c der Wechsel wartet, bis die nächste Kulisse frei ist', A.kulisse===1 && (kulissenWechselPruefen(), A.kulisse===1));
+ok('§4c Hinweis (§1 v3.7.2: fertig = nächste sofort frei): „Kulisse 2 frei" GRUEN', A.freigeschaltetBis===2 && kh.indexOf('<b style="color:'+FARBE.GRUEN+'">Kulisse 2 frei</b>')>=0);
+ok('§4c der Wechsel folgt entkoppelt (kulissenWechselPruefen per setTimeout)', A.kulisse===1 && /setTimeout/.test(rumpf('kulissenWechselPruefen')));
 // Kulissenwechsel mit Geschenk
 A.tank=100; A.toepfe[1]={ farbe:0, punkte:300 }; A.freigeschaltetBis=2; ausmalKulisseWechsel();
 ok('§4c Kulissenwechsel: Start der neuen Kulisse gemerkt, vorheriger Topf- und Tankinhalt im Tank (Tank 100 + Topf 200 + Topf 300)', A.kulisse===2 && typeof A.kulissenStart[2]==='string' && A.tank===600 && A.gefaerbt.length===0);
-ok('§4c die 5 Töpfe sind mit 5 verschiedenen Farben der neuen Kulisse voll (Fassung 500 × 1,2 = 600) — Geschenk, nicht abgezogen', A.toepfe.every(function(t){ return t.punkte===600; }) && A.toepfe.map(function(t){ return t.farbe; }).join(',')==='0,1,2,3,4' && A.geschenkOffen===undefined && A.aktiverTopf===0 && A.stationFarbe===0);
+ok('§4c (§2 v3.7.2 · §1 v3.7.3) das Geschenk ist EIN Topf voll in der Farbe mit dem größten Bedarf (A: 500 × 1,2 = 600), die anderen leer', A.toepfe[0].farbe===0 && A.toepfe[0].punkte===600 && A.toepfe.slice(1).every(function(t){ return t.farbe===null && t.punkte===0; }) && A.geschenkOffen===undefined && A.aktiverTopf===0 && A.stationFarbe===0);
 A.kulisse=2; A.geschenkOffen=2; A.toepfe=[0,1,2,3,4].map(function(){ return { farbe:null, punkte:0 }; }); delete _kul[2];
 ok('§4c sind die Kulissendaten noch nicht geladen, merkt ausmalen.geschenkOffen die Kulisse — nachgeholt beim Laden (ausmalDaten → kulissenGeschenkNachholen)', kulissenGeschenkNachholen()===false && A.geschenkOffen===2 && /kulissenGeschenkNachholen\(\);/.test(rumpf('ausmalDaten')));
-kulisse(); ok('§4c … und holt es dann nach', kulissenGeschenkNachholen()===true && A.toepfe[4].punkte===600 && A.geschenkOffen===undefined);
+kulisse(); ok('§4c … und holt es dann nach', kulissenGeschenkNachholen()===true && A.toepfe[0].punkte===600 && A.geschenkOffen===undefined);
 var ex=ausmalExport();
 ok('§4c Datenvertrag additiv: ausmalen.kulissenStart, ausmalen.kulissenFertig[], ausmalen.malTage im Export; der Import nimmt sie an', ex.kulissenStart[2]===A.kulissenStart[2] && ex.kulissenFertig.length===1 && Array.isArray(ex.malTage) &&
    (ausmalKorrektur({ kulissenStart:{1:'2026-09-01T00:00:00', 2:'2026-10-01T00:00:00'}, kulissenFertig:[{kulisse:1, ts:'x', tage:1, farbe:1, fokusMin:1, felder:1}], malTage:['2026-09-01','falsch'] }), A.kulissenStart[1]==='2026-09-01T00:00:00' && A.kulissenFertig.length===1 && A.malTage.join(',')==='2026-09-01'));
@@ -288,7 +288,7 @@ ok('§9a ACWR: Erholungspunkte mit Gewicht −0,5 in der Tageslast (Punkte − 1
    anLast({ punkte:100, erholung:200 }, 'alle')===0 && /anLast\(x\.e,dom\)/.test(rumpf('anAcwrReihe')) && /anLast\(x\.e,'alle'\)/.test(rumpf('acwrHeuteWerte')));
 ok('§9a Tagesziele, Münzen, Farbe und Statusleiste zählen die Punkte voll (keine Erholungs-Gewichtung außerhalb der Belastung)', Math.abs(num(heute.punkte)-tagesPunkteLive())<0.01 && rumpf('renderStatusbar').indexOf('anLast')<0 && rumpf('tagesPunkteDomain').indexOf('erholung')<0 && rumpf('ausmalW').indexOf('erholung')<0);
 uhr('2026-10-01T10:00:00+02:00');
-ok('§9a werktags unverändert: eigenes Matrixfeld, keine Markierung', (function(){ S.tag.datum=DO; var w=erholungAktiv(kid('sp')); var f=matrixFaktor(kid('sp')); S.tag.datum=SA; return !w && f===num(S.settings.matrixFaktor.zustand); })());
+ok('§9a (§5 v3.7.2) Erholung gilt auch werktags: Werkzeug-Faktor', (function(){ S.tag.datum=DO; var w=erholungAktiv(kid('sp')); var f=matrixFaktor(kid('sp')); S.tag.datum=SA; return w && f===num(S.settings.matrixFaktor.werkzeug); })());
 ok('§9a der Akku bleibt unverändert (keine Erholungs-Logik in akkuBuchen)', rumpf('akkuBuchen').indexOf('erholung')<0);
 
 /* ══ §10 Kein Auto-Hochscrollen ══════════════════════════════════════ */
@@ -302,11 +302,11 @@ ok('§10 keine weiteren Scroll-Resets (Shop, Mini-Kurve, Malmodus, Suche)', rump
 kopf('§11 Leiste unten');
 var nav=(src.match(/<nav id="nav">[\s\S]*?<\/nav>/)||[''])[0];
 ok('§11 Tab „Suche" → „Shop" (🛍): Shop · Statistik · Einstellungen', /data-tab="belohnung"><span class="ic">🛍<\/span>Shop<\/button>[\s\S]*data-tab="statistik"[\s\S]*data-tab="einst"/.test(nav) && nav.indexOf('data-tab="suche"')<0);
-ok('§11 die Suche über den runden 🔍-Knopf unten links (Suchfeld bekommt den Fokus)', /el\('suchFab'\)\.addEventListener\('click', \(\)=>\{ haptik\(8\); if\(S\.ui\.tab!=='suche'\) setTab\('suche'\); const f=el\('suFreitext'\);/.test(src) && /#suchFab\{position:fixed;left:16px/.test(src));
+ok('§11 die Suche über den runden 🔍-Knopf unten links (Suchfeld bekommt den Fokus; §7 v3.7.2: der Knopf schließt auch)', /el\('suchFab'\)\.addEventListener\('click', \(\)=>\{ haptik\(8\); if\(S\.ui\.tab==='suche'\)\{ sucheSchliessen\(\); return; \} setTab\('suche'\); const f=el\('suFreitext'\);/.test(src) && /#suchFab\{position:fixed;left:16px/.test(src));
 tagDonnerstag(); S.karten=[ neueKarte({ id:'k1', domain:D, titel:'Eins', sollMin:30, faelligkeit:DO }) ]; ketteSetzen(['k1']);
 ok('§11 Tipp auf die Statusleiste öffnet immer die Fokusansicht — ohne angezeigte Karte die erste der Kette', fokusImmerZeigen()===true && S.ui.fokusOffen===true && fokusAngezeigtId()==='k1' &&
    /el\('statusbar'\)\.addEventListener\('click', e=>\{[\s\S]{0,260}fokusImmerZeigen\(\);/.test(src) && /\(z1\|\|el\('fkMid'\)\)\.addEventListener\('click', e=>\{ if\(e\.target\.closest\('#btnFigur'\)\) return; fokusImmerZeigen\(\); \}\)/.test(src));
-ok('§11 Matrix-Verlauf und Punkte-Block behalten ihre Ziele', /if\(e\.target\.closest\('#sZMatrix'\)\)\{ zurMatrixSpur\(\); return; \}/.test(src) && /if\(e\.target\.closest\('#btnKurve'\)\) return;/.test(src));
+ok('§11 Matrix (→ Tagebuch, §2 v3.7.1) und Punkte-Block (→ Statistik) behalten eigene Ziele', /if\(e\.target\.closest\('#sZMatrix'\)\)\{ oeffneTagebuch\(\); return; \}/.test(src) && /if\(e\.target\.closest\('#btnKurve'\)\) return;/.test(src));
 ok('§11 setTab ohne gültigen Tab landet im Shop', (function(){ setTab('gibtsnicht'); return S.ui.tab==='belohnung'; })());
 
 /* ══ §12 Kalender raus ═══════════════════════════════════════════════ */

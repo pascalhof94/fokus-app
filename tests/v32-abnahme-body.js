@@ -212,21 +212,22 @@ var b7=num(S.tag.punkteBilanz), h7=S.historie[S.historie.length-1];
 leisteTicken('wecker');
 ok('7 nach dem Abschluss ist eine Routine weiter tickbar (Buchung auf denselben Tag)', tickAnzahlHeute(kid('wecker'))===1 && logKarte('wecker')===10 && nachAbschluss());
 fokusStarten('pa');
-ok('7 Aufgaben sind nach dem Abschluss nicht startbar (grau)', !(S.fokus && S.fokus.karteId==='pa' && S.fokus.laeuft));
+ok('7 (§6 v3.7.2) Aufgaben sind nach dem Abschluss startbar — Anker, keine Sperre (Nachtrag)', S.fokus && S.fokus.karteId==='pa' && S.fokus.laeuft);
+fokusZeitEinbuchen();
 var lh7=abhakLeisteHtml();
 ok('7 die Leiste zeigt die Routine aktiv, den Tagesabschluss grau', !/class="zs-k al-z[^"]* aus"[^>]*data-alkarte="wecker"/.test(lh7) && /class="zs-k al-z[^"]* aus"[^>]*data-alkarte="ab"/.test(lh7));
 var ex7=syncExport('delta').tagesabschluss.nachtrag;
 ok('7 der Export zeigt den Nachtrag schon vor „Schlafen"', ex7 && ex7.anzahl>=1 && ex7.eintraege.some(function(e){ return e.kartenId==='wecker'; }));
 schlafUmschalten();
-var nt=S.tag.nachtrag;
-print('   Nachtrag: '+nt.anzahl+' Buchung(en) · +'+nt.punkte+' P · Bilanz '+nt.bilanzVorher+' → '+nt.bilanzNachher+' · Sheet „'+el('sheetTitel').textContent+'"');
-print('   Nachtrag-Einträge: '+nt.eintraege.map(function(e){ return (e.titel||e.typ)+' '+e.typ+'/'+e.quelle+' '+e.punkte; }).join(' | '));
-ok('7 „Schlafen" schließt den Tag endgültig und zeigt den Nachtrag-Export (Kopieren/Download)', !!S.tag.geschlossenTs && /Nachtrag/.test(el('sheetTitel').textContent) &&
-   /data-ntcopy="1"/.test(el('sheetBody').innerHTML) && /data-ntdl="1"/.test(el('sheetBody').innerHTML) && /Seit dem Tagesabschluss/.test(el('ntMd') ? _nachtragMd : _nachtragMd));
-ok('7 die Bilanz des Tages (Historie) ist nachgezogen: +10', nt.bilanzNachher===b7+10 && h7.punkteBilanz===b7+10 && h7.nachtrag.anzahl===nt.anzahl);
-ok('7 der Nachtrag reist im Export bis zum bestätigten Sync', syncExport('delta').nachtraege.length===1 && (syncBestaetigen(), syncExport('delta').nachtraege.length===0));
+// §2 (v3.7.3): „Schlafen" schliesst den Tag NICHT mehr endgueltig und oeffnet keinen Nachtrag-Export; alles bis „Aufstehen" ist Nachtrag
+ok('7 (§2 v3.7.3) „Schlafen" läuft, der Tag bleibt der Anker: kein geschlossenTs, kein Nachtrag-Sheet', schlafLaeuft() && !S.tag.geschlossenTs && !/Nachtrag/.test(el('sheetTitel').textContent) && nachAbschluss());
 leisteTicken('musik');
-ok('7 nach „Schlafen" ist der Tag zu', tickAnzahlHeute(kid('musik'))===0);
+ok('7 nach „Schlafen" ist weiter buchbar — der Tick ist ein Nachtrag', tickAnzahlHeute(kid('musik'))===1 && S.intraday.filter(function(e){ return e.kartenId==='musik'; }).pop().nachAbschluss===true);
+aufstehenBestaetigen(70, { tapTs:jetztIso() });   // (ohne verstellbare Uhr: der neue Tag ist der Geraetetag)
+var nt=h7.nachtrag;
+print('   Nachtrag (beim Aufstehen): '+(nt?nt.anzahl:'—')+' Buchung(en) · +'+(nt?nt.punkte:'—')+' P · Bilanz '+(nt?nt.bilanzVorher:'—')+' → '+(nt?nt.bilanzNachher:'—'));
+ok('7 (§6 v3.7.2) erst „Aufstehen" schließt den Vortag endgültig — Nachtrag (Wecker 10 + Musik 5 + Aufgabe) in der Historie, neuer Tag läuft', !!nt && nt.anzahl>=2 && h7.punkteBilanz>=b7+15 && !!h7.geschlossenTs && tagOffen() && S.tag.datum!==MO);
+ok('7 der Nachtrag reist im Export bis zum bestätigten Sync', syncExport('delta').nachtraege.length===1 && (syncBestaetigen(), syncExport('delta').nachtraege.length===0));
 schlafZustand().laeuft=null;
 
 /* ══ Testfall 8 · Schlafen robust ═══════════════════════════════════ */
@@ -286,7 +287,7 @@ ok('§5 ein zurückgeschickter Delta-Export meldet keine unbekannten Felder', rt
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION aktuell (3.7.0), alle Anzeigen aus APP_VERSION, Build 2026-10-03-1', APP_VERSION==='3.7.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && APP_BUILD==='2026-10-03-1' && DATENVERTRAG==='2.1.0');
+ok('APP_VERSION aktuell (3.7.0), alle Anzeigen aus APP_VERSION, Build 2026-10-03-1', APP_VERSION==='3.7.3' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && APP_BUILD==='2026-10-04-2' && DATENVERTRAG==='2.1.0');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));

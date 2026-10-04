@@ -17,7 +17,7 @@ function aufgabe(id, dom, soll){ return neueKarte({ id:id, domain:dom, titel:'Ka
 function buchung(ts, punkte, dom){ S.intraday.push({ ts:ts, kartenId:'x', domaene:dom||'dfm', punkte:punkte, minuten:0, typ:'abhaken' }); }
 
 kopf('Version');
-ok('APP_VERSION 3.5.2 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.0' && UI_VERSION==='v3.7.0' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-03-1');
+ok('APP_VERSION 3.5.2 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.3' && UI_VERSION==='v3.7.3' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-2');
 
 /* ══ (a) Pace-Farbe ═══════════════════════════════════════════════════ */
 kopf('(a) Pace-Leiste: diskrete Ampel nach Ø ÷ nötig');
@@ -27,7 +27,7 @@ ok('(a) Schwellen: ≥ 1,00 GRUEN · ≥ 0,90 GELBGRUEN · ≥ 0,80 GELB · ≥ 
 ok('(a) v3.5.3 §1: Tagesziel erreicht (nötig = 0) → GRUEN (die Zone „erreicht"/UEBER ist entfallen)', paceFarbe(300, 0)===FARBE.GRUEN);
 tagDonnerstag();
 var pl=paceLeisteHtml({ tempoSchnitt:460, tempoZiel:500 }, null);
-ok('(a) v3.5.3 §1: die Leiste trägt fünf Ampelzonen und den weißen Strich für Ø heute (460 von Skala 575 → 80,0 %; Zonengrenzen in v353-abnahme)', (pl.match(/<i style="left:/g)||[]).length===5 && pl.indexOf('<u style="left:80.0%"></u>')>=0);
+ok('(a) v3.5.3 §1 · §8 (v3.7.2): die Leiste trägt fünf Ampelzonen und den weißen Strich für „nötig" (500 von Skala 575 → 87,0 %; Zonengrenzen in v353-abnahme)', (pl.match(/<i style="left:/g)||[]).length===5 && pl.indexOf('<u class="noetig" style="left:87.0%"></u>')>=0);
 
 /* ══ (b) Trendpfeil — in v3.5.3 §1 entfallen ═══════════════════════════ */
 kopf('(b) Trendpfeil (Ø jetzt ÷ Ø vor 30 Min) — in v3.5.3 §1 entfallen');

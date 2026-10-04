@@ -20,20 +20,22 @@ function lauf(id, min){ fokusStarten(id, null); minuten(min); fokusBeenden(); } 
 function rumpf(name){ var a=src.indexOf('function '+name+'('), b=src.indexOf('\nfunction ', a+10); return a<0 ? '' : src.slice(a, b<0 ? src.length : b); }
 
 kopf('Version');
-ok('APP_VERSION 3.5.3 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.0' && UI_VERSION==='v3.7.0' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-03-1');
+ok('APP_VERSION 3.5.3 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.3' && UI_VERSION==='v3.7.3' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-2');
 
 /* ══ (a) Pfeil: laufende Karte ÷ Ø heute ══════════════════════════════ */
 kopf('(a) Pfeil der Statusleiste: live P/h der laufenden Karte ÷ Ø heute');
+/* §8 (v3.7.2): die Marken sind lila Raute = Ø-P/h der Karte, grüner Strich = live mit Pfeil (→ hebt / ← senkt den Tagesschnitt),
+   weißer Strich = nötig; paceLeisteTeile(oeKarte, noetig, live) */
 var ta=paceLeisteTeile(500, 600, 550);
-ok('(a) Karte 550 ÷ Ø 500 = 1,10 → ↗ (GELBGRUEN)', nah(ta.r, 1.1, 1e-9) && tempopfeilStufe(ta.r).sym==='↗' && tempopfeilStufe(ta.r).c===FARBE.GELBGRUEN);
-ok('(a) Schwellen: ≥ 1,25 ⇈ · ≥ 1,05 ↗ · > 0,95 → · > 0,75 ↘ · darunter ⇊', tempopfeilStufe(1.25).sym==='⇈' && tempopfeilStufe(1.249).sym==='↗' && tempopfeilStufe(1.05).sym==='↗' && tempopfeilStufe(1.049).sym==='→' &&
+ok('(a) Geometrie: Ø Karte 500, nötig 600, live 550 → Skala 690, Lagen 72,5 % · 87,0 % · 79,7 %', nah(ta.max, 690, 1e-6) && nah(ta.karte, 500/690*100, 1e-9) && nah(ta.noetig, 600/690*100, 1e-9) && nah(ta.live, 550/690*100, 1e-9));
+ok('(a) Pfeil-Schwellen der Tempo-Pfeile bleiben für die Fokusansicht: ≥ 1,25 ⇈ · ≥ 1,05 ↗ · > 0,95 → · > 0,75 ↘ · darunter ⇊', tempopfeilStufe(1.25).sym==='⇈' && tempopfeilStufe(1.249).sym==='↗' && tempopfeilStufe(1.05).sym==='↗' && tempopfeilStufe(1.049).sym==='→' &&
    tempopfeilStufe(0.951).sym==='→' && tempopfeilStufe(0.95).sym==='↘' && tempopfeilStufe(0.751).sym==='↘' && tempopfeilStufe(0.75).sym==='⇊');
-var pa=paceLeisteHtml({ tempoSchnitt:500, tempoZiel:600 }, { wert:550, karte:{ domain:'dfm' } });
-ok('(a) mit laufender Karte: Raute in der Familienfarbe an der Stelle der Karte (550 von Skala 690 → 79,7 %), Pfeil rechts', pa.indexOf('<b class="raute" style="left:79.7%;background:'+famFarbe({domain:'dfm'})+'"></b>')>=0 && /class="ppf"><svg/.test(pa));
-var pp=paceLeisteHtml({ tempoSchnitt:500, tempoZiel:600 }, { wert:550, karte:{ domain:'privat' } });
-ok('(a) Privat-Karte: Raute in LILA', pp.indexOf('background:'+FARBE.LILA+'"></b>')>=0);
+var pa=paceLeisteHtml({ tempoSchnitt:500, tempoZiel:600 }, { wert:550, karte:{ domain:'dfm' }, oe:500 });
+ok('(a) mit laufender Karte: lila Raute an der Stelle des Ø der Karte (500 von Skala 690 → 72,5 %), grüner Strich live (79,7 %) mit Pfeil → (hebt den Schnitt 500)', pa.indexOf('<b class="raute" style="left:72.5%;background:'+FARBE.LILA+'"></b>')>=0 && pa.indexOf('<u class="live" style="left:79.7%;background:'+FARBE.GRUEN+'"></u>')>=0 && /class="ppfeil hebt"/.test(pa));
+var pp=paceLeisteHtml({ tempoSchnitt:600, tempoZiel:600 }, { wert:550, karte:{ domain:'privat' }, oe:500 });
+ok('(a) live unter dem Tagesschnitt: Pfeil ← ROT', pp.indexOf('class="ppfeil senkt"')>=0 && pp.indexOf(';color:'+FARBE.ROT+'">←</b>')>=0);
 var po=paceLeisteHtml({ tempoSchnitt:500, tempoZiel:600 }, null);
-ok('(a) ohne laufende Karte: keine Raute, kein Pfeil', po.indexOf('raute')<0 && /class="ppf"><\/span>/.test(po) && paceLeisteTeile(500, 600, null).r===null);
+ok('(a) ohne laufende Karte: keine Raute, kein grüner Strich, kein Pfeil', po.indexOf('raute')<0 && po.indexOf('class="live"')<0 && po.indexOf('ppfeil')<0 && paceLeisteTeile(null, 600, null).live===null);
 ok('(a) der Trendpfeil aus 3.5.2 (Ø jetzt ÷ Ø vor 30 Min) ist entfallen', typeof paceTrend==='undefined' && typeof paceTrendStufe==='undefined');
 tagDonnerstag();
 S.karten=[ aufgabe('a1','dfm',60) ]; buchung('2026-10-01T09:05:00+02:00', 100);
@@ -41,7 +43,7 @@ fokusStarten('a1', null); minuten(30);
 var pk=paceKarte(), tw=tempoWerte(kid('a1')).karte;
 ok('(a) die Raute nimmt die live P/h der laufenden Karte (wie die Tempo-Leiste der Fokusansicht: '+Math.round(pk.wert)+' P/h)', pk && pk.karte.id==='a1' && tw.live!=null && pk.wert===tw.live);
 renderStatusbar();
-ok('(a) die Statusleiste zeichnet Zonen, Strich, Raute und Pfeil', (function(){ var h=el('sZTempo').innerHTML; return (h.match(/<i style="left:/g)||[]).length===5 && /<u style="left:/.test(h) && /class="raute"/.test(h) && /class="ppf"><svg/.test(h); })());
+ok('(a) die Statusleiste zeichnet Zonen, nötig-Strich, Raute, Live-Strich und Pfeil', (function(){ var h=el('sZTempo').innerHTML; return (h.match(/<i style="left:/g)||[]).length===5 && /<u class="noetig" style="left:/.test(h) && /class="raute"/.test(h) && /<u class="live"/.test(h) && /class="ppfeil/.test(h); })());
 fokusBeenden();
 ok('(a) pausiert: keine laufende Karte → keine Raute', paceKarte()===null);
 
@@ -52,8 +54,8 @@ print('   nötig 500 · Skala bis '+tb5.max.toFixed(0)+' · Zonen ab '+gr.join('
 ok('(b) nötig = 500: ROT unter 375 · ORANGE 375–400 · GELB 400–450 · GELBGRUEN 450–500 · GRUEN ab 500', gr.join(',')==='0,375,400,450,500' &&
    tb5.zonen.map(function(z){ return z.farbe; }).join(',')===[FARBE.ROT, FARBE.ORANGE, FARBE.GELB, FARBE.GELBGRUEN, FARBE.GRUEN].join(','));
 ok('(b) die Zonen schließen lückenlos an und füllen die Leiste (letzte Zone bis 100 %)', tb5.zonen.every(function(z,i){ return i===0 ? z.von===0 : nah(z.von, tb5.zonen[i-1].bis, 1e-9); }) && tb5.zonen[4].bis===100);
-ok('(b) Skala: max(Ø, Karte, nötig) × 1,15 — nötig 500 → 575; Karte 800 → 920', nah(tb5.max, 575, 1e-6) && nah(paceLeisteTeile(400, 500, 800).max, 920, 1e-6) && nah(paceLeisteTeile(700, 500, null).max, 805, 1e-6));
-ok('(b) weißer Strich = Ø heute (400 von 575 → 69,6 %)', nah(tb5.schnitt, 400/575*100, 1e-9) && paceLeisteHtml({tempoSchnitt:400, tempoZiel:500}, null).indexOf('<u style="left:69.6%"></u>')>=0);
+ok('(b) Skala: max(Ø Karte, live, nötig) × 1,15 — nötig 500 → 575; live 800 → 920; Ø Karte 700 → 805', nah(tb5.max, 575, 1e-6) && nah(paceLeisteTeile(400, 500, 800).max, 920, 1e-6) && nah(paceLeisteTeile(700, 500, null).max, 805, 1e-6));
+ok('(b) weißer Strich = nötig (500 von 575 → 87,0 %)', nah(tb5.noetig, 500/575*100, 1e-9) && paceLeisteHtml({tempoSchnitt:400, tempoZiel:500}, null).indexOf('<u class="noetig" style="left:87.0%"></u>')>=0);
 ok('(b) die Zahl im Diagramm trägt die Farbe ihrer Zone: 374 ROT · 375 ORANGE · 400 GELB · 450 GELBGRUEN · 500 GRUEN', paceFarbe(374,500)===FARBE.ROT && paceFarbe(375,500)===FARBE.ORANGE && paceFarbe(400,500)===FARBE.GELB &&
    paceFarbe(450,500)===FARBE.GELBGRUEN && paceFarbe(500,500)===FARBE.GRUEN);
 ok('(b) Leiste 12 px, Zonen ohne Verlauf, Farben aus den Konstanten', /\.pbahn\.zonen/.test(src) && paceLeisteHtml({tempoSchnitt:400, tempoZiel:500}, null).indexOf('linear-gradient')<0);

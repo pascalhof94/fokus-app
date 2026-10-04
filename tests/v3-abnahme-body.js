@@ -352,7 +352,7 @@ ok('9 (§10 v3.7.0) kein automatisches Hochscrollen: nachOben entfallen, Sheet n
 
 /* ══ 12 · Version ═════════════════════════════════════════════════════ */
 kopf('12 · Version');
-ok('12 APP_VERSION 3.7.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.7.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'x', titel:'x'}]})).fehler);
+ok('12 APP_VERSION 3.7.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.7.3' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'x', titel:'x'}]})).fehler);
 
 kopf('Nachtrag v3.0.1 · eine Versionskonstante');
 frisch(); S.tag=neuerTag(MO,1);
@@ -388,7 +388,7 @@ S.tag=neuerTag(GE,1); S.tag.startTs=GE+'T05:00:00.000Z';
 var alteWerte={duschen:203, rasieren:140, haare:39, fruehstueck:113, vitamine:143, essenM:95, kaffee:82, toilette:135};
 S.karten.forEach(function(k){ k.punkteOverride=alteWerte[k.id]; k.status=(k.id==='fruehstueck'||k.id==='vitamine')?'offen':'erledigt'; k.tagId=(k.status==='erledigt')?S.tag.tagId:null;
   k.zuletztRoutine=GE; k.abschluesse=[{ts:GE+'T08:00:00.000Z', tagId:S.tag.tagId, punkteIstVorher:alteWerte[k.id], istMinVorher:0, bonusPunkte:15, echt:true}]; });
-S.tag.endeTs=GE+'T22:00:00.000Z'; S.tag.geschlossenTs=S.tag.endeTs;   // v3.2.0 §2.4: der Vortag ist endgueltig zu (sonst schliesst ihn der Tagesstart erst, mit Abgleich)
+S.tag.endeTs=GE+'T22:00:00.000Z'; S.tag.geschlossenTs=S.tag.endeTs;   // v3.2.0 §2.4 · §6 (v3.7.2): „Aufstehen"/Tagesstart schliesst den Vortag trotzdem endgueltig (Abgleich des Vortags mit seinen Override-Werten — Zeilen mit dem ALTEN tagId)
 tagStarten(70, MO);
 ok('1.1 der Tagesstart setzt JEDE Routine zurück — auch die heute nicht fälligen (Duschen, Rasieren alle 2 Tage)', S.karten.every(function(k){ return k.status==='offen' && k.punkteOverride===null; }) && !routineFaellig(kid('duschen'), MO));
 /* ein Alt-Override, der trotzdem an einer offenen Karte haengt, zaehlt nicht mehr */
@@ -410,7 +410,7 @@ ok('1.1 Duschen 17 Min → 40 (Pflicht, vorher 243) · Rasieren 1 Min → 20 (16
 ok('1.1 Frühstücken 0 (113) · Vitamine 15 (143) · Essen machen 40 (95) · Kaffee trinken 25 (82) · Toilette 2 Durchgänge 100 (135)',
    werte.fruehstueck===0 && werte.vitamine===15 && werte.essenM===40 && werte.kaffee===25 && werte.toilette===100);
 renderAlles();
-ok('1.1 keine Ausgleich-Zeile trägt eine Prognose — Tagesbilanz = Summe des Logs', S.intraday.filter(function(e){ return e.typ==='ausgleich'; }).length===0 && bilanzGleichLog() &&
+ok('1.1 keine Ausgleich-Zeile des HEUTIGEN Tages trägt eine Prognose — Tagesbilanz = Summe des Logs (§6 v3.7.2: der Vortag wurde beim Start mit seinen Override-Werten abgeglichen)', S.intraday.filter(function(e){ return e.typ==='ausgleich' && e.tagId===S.tag.tagId; }).length===0 && bilanzGleichLog() &&
    Math.round(ohneLaufendeUhr(function(){ return tagesPunkteLive(); }))===40+20+20+0+15+40+25+100);
 /* Wieder oeffnen: ein Abschluss vom Vortag bringt seinen Wert nicht zurueck */
 var k7=kid('kaffee'); k7.status='erledigt'; k7.tagId=aktuelleTagId(); k7.abschluesse.push({ts:GE+'T09:00:00.000Z', tagId:GE+'-1', punkteIstVorher:82, istMinVorher:0, echt:true});

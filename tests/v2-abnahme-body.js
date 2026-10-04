@@ -542,8 +542,8 @@ ok('30 Speicher-Karte und Quota-Schutz aus v1.13.4', typeof speicherBelegung==='
    typeof speicherAufraeumen==='function' && typeof speicherBaks==='function');
 ok('30 Timer und Sitzungszeiten', typeof kartenSitzungenHeute==='function' &&
    typeof fokusZeitEinbuchen==='function');
-ok('31 APP_VERSION 3.7.0 · Build gesetzt', VERSION==='3.7.0' && UI_VERSION==='v3.7.0' &&
-   APP_BUILD==='2026-10-03-1');
+ok('31 APP_VERSION 3.7.0 · Build gesetzt', VERSION==='3.7.3' && UI_VERSION==='v3.7.3' &&
+   APP_BUILD==='2026-10-04-2');
 
 
 /* ══ v2.0.1 · §1 ZWEI UNABHAENGIGE EBENEN ═══════════════════════════ */
@@ -1262,7 +1262,7 @@ ok('Nebenbefund: Statistik-Umschalter haben jetzt einen Handler', /el\('statisti
 kopf('v2.4.0 §11 · Tagebuch-Felder im Export');
 var ex=syncExport('delta'), sp=ex.matrixSpur;
 var tbx=sp.filter(function(e){ return e.quelle==='tagebuch'; });
-ok('§11 Delta trägt die Tagebuch-Einträge ('+tbx.length+'; v3.7.1: Dialog + bestehender Eintrag)', tbx.length===2);
+ok('§11 Delta trägt die Tagebuch-Einträge ('+tbx.length+'; v3.7.1: aus dem Dialog)', tbx.length===1);
 ok('§11 jeder Eintrag hat quelle/gedanke/wirkung/mittel/istGut/akku', sp.every(function(e){
   return typeof e.quelle==='string' && typeof e.gedanke==='string' && typeof e.wirkung==='string' &&
          typeof e.mittel==='string' && typeof e.istGut==='boolean' && ('akku' in e); }));
@@ -1273,7 +1273,7 @@ S.meta.letzterSyncBestaetigtTs=new Date(Date.now()-24*3600000).toISOString();
 tagAbschlussFinalisieren(); S.tag=null; tagStarten(70);
 var sp2=syncExport('delta').matrixSpur;
 ok('§11 nach Tageswechsel: unbestätigte Tagebuch-Einträge von gestern gehen im Delta mit',
-   sp2.filter(function(e){ return e.quelle==='tagebuch'; }).length===2);
+   sp2.filter(function(e){ return e.quelle==='tagebuch'; }).length===1);
 S.meta.letzterSyncBestaetigtTs=jetztIso();
 ok('§11 nach bestätigtem Sync nicht mehr', syncExport('delta').matrixSpur.filter(function(e){ return e.quelle==='tagebuch'; }).length===0);
 
@@ -1440,7 +1440,7 @@ kopf('v2.6.0 §1 · Statusleiste Zeile 2: Akku · Tempo · Konto · Matrix-Verla
   fokusStarten('sb1');
   renderStatusbar();
   var tz=el('sZTempo').innerHTML;
-  ok('§2.2 (v3.5.3 §1) Pace-Leiste waagerecht: fünf Ampelzonen, weißer Strich = Ø heute, Raute = laufende Karte', (tz.match(/<i style="left:[\d.]+%;width:[\d.]+%;background:#/g)||[]).length===5 && /<u style="left:[\d.]+%"><\/u>/.test(tz) && /class="raute"/.test(tz) && /class="ppf"/.test(tz));
+  ok('§2.2 (v3.5.3 §1 · §8 v3.7.2) Pace-Leiste waagerecht: fünf Ampelzonen, lila Raute = Ø Karte, grüner Strich = live mit Pfeil', (tz.match(/<i style="left:[\d.]+%;width:[\d.]+%;background:#/g)||[]).length===5 && /class="raute"/.test(tz) && /<u class="live"/.test(tz) && /class="ppfeil/.test(tz));
   ok('§3.1 Matrix-Zelle trägt die kleine Linie (v3.5.1 §2: 72×72)', el('sMv').innerHTML.indexOf('viewBox="0 0 72 72"')>=0 && el('sMv').innerHTML.indexOf('<path d="M')>=0);
 })();
 

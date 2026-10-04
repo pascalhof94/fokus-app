@@ -15470,7 +15470,7 @@ function belohnungDaten(k, vor, anlass){
     akkuVor:vor.akku, akkuNach:nach.akku,
     tempo: min>=1 ? (anlass==='abhaken' ? zeitPunkte : punkte)/(min/60) : null, tempoSchnitt:g.tempoSchnitt,
     farbe: T ? { name:(tVor && tVor.farbe!=null && ausmalDaten(A.kulisse)) ? ausmalDaten(A.kulisse).namen[tVor.farbe] : 'Tank', hex:(tVor && tVor.farbe!=null && ausmalDaten(A.kulisse)) ? ausmalDaten(A.kulisse).hex[tVor.farbe] : FARBE.GRAU,
-      vor:Math.round(vor.topf/T*100), nach:Math.round(Math.max(vor.topf, topfNach)/T*100), tank:tankAktiv, tankVor:vor.tank, tankNach:nach.tank, w:Math.max(0, delta-(anlass==='abhaken' ? bonus : 0)) } : null,   // §4 (v3.7.2): Farbe nur aus dem Zeitanteil
+      vor:Math.round(vor.topf/T*100), nach:Math.round(Math.max(vor.topf, topfNach)/T*100), tank:tankAktiv, tankVor:vor.tank, tankNach:nach.tank, w:Math.max(0, delta-(anlass==='abhaken' ? bonus : 0)) } : null,   // §4 (v3.7.2): Farbe nur aus dem Zeitanteil (ohne den Abhakbonus)
     kontoVor:vor.konto, kontoNach:nach.konto, muenzen:Math.max(0, Math.round(nach.konto-vor.konto)), kaufbar,
     outfitVor:vor.outfit, outfitNach:nach.outfit, kulisse:A.kulisse,
     faktor:matrixFaktor(k), nk:nach.nk };
@@ -16658,10 +16658,15 @@ function ausmalState(){
 function ausmalEinst(){ const e=(S.settings && S.settings.ausmalen)||{}; return { topfLeerAnteil:num(e.topfLeerAnteil,0.02)||0.02, topfAufschlag:num(e.topfAufschlag,1.2)||1.2, zoomDoppeltipp:num(e.zoomDoppeltipp,2.5)||2.5, bannerSek:num(e.bannerSek,8)||8 }; }
 /* W = Summe der nicht-negativen Tagesbilanzen seit dem Reset (heute live) */
 /* §4 (v3.7.2): der Abhakbonus einer AUFGABE erzeugt keine Farbe — nur der Zeitanteil (Münzen und Tagespunkte unverändert).
-   Heute: Summe der Boni aller heute abgehakten Aufgaben; abgeschlossene Tage tragen sie als h.aufgabenBonus (additiv). */
+   Der Bonus kommt beim ✓ über den Abhak-Dialog in die Karte (Override = Zeit + Bonus); der Abschluss-Snapshot der Karte trägt
+   ihn als bonusPunkte (inkl. Unteraufgaben-Boni, die hier abgezogen werden). Heute = Summe über die heute abgehakten Aufgaben;
+   abgeschlossene Tage tragen sie als h.aufgabenBonus (additiv). Abhak-Karten (Bonus beim Start) zählen über startBonus. */
 function aufgabenBonusHeute(){
   const tid=aktuelleTagId(); let b=0;
-  S.karten.forEach(k=>{ if(k && k.status==='erledigt' && k.tagId===tid && istAufgabeKarte(k)) b+=Math.max(0, num(abhakbonusDefault(k))); });
+  S.karten.forEach(k=>{ if(!k || !istAufgabeKarte(k)) return;
+    b+=Math.max(0, startBonusHeute(k));
+    if(k.status==='erledigt' && k.tagId===tid){ const a=(k.abschluesse||[]).filter(x=>x && x.tagId===tid).pop();
+      b+=Math.max(0, a ? num(a.bonusPunkte)-subBonusErreicht(k) : num(abhakbonusDefault(k))); } });
   return b;
 }
 function ausmalW(){

@@ -26,7 +26,7 @@ function kulisseWeg(){ delete _kul[1]; delete _kul[2]; }
 function toepfe(l){ var A=ausmalState(); A.toepfe=[0,1,2,3,4].map(function(i){ return { farbe:(l[i]&&l[i][0]!=null)?l[i][0]:null, punkte:(l[i]&&l[i][1])||0 }; }); return A; }
 
 kopf('Version');
-ok('APP_VERSION 3.7.2 · Datenvertrag bleibt 2.1.0 · Build 2026-10-04-1', APP_VERSION==='3.7.2' && UI_VERSION==='v3.7.2' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-1');
+ok('APP_VERSION 3.7.2 · Datenvertrag bleibt 2.1.0 · Build 2026-10-04-1', APP_VERSION==='3.7.3' && UI_VERSION==='v3.7.3' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-2');
 
 /* ══ §1 Kulissen schalten sich beim Ankommen frei ════════════════════ */
 kopf('§1 Kulissen schalten sich beim Ankommen frei');
@@ -75,8 +75,8 @@ tagSamstag();
 S.karten=[ neueKarte({ id:'a', domain:D, titel:'Aufgabe', matrixFeld:'ziel', sollMin:60, faelligkeit:SA }) ];
 fokusStarten('a'); minuten(30); fokusZeitEinbuchen();
 var wVor=ausmalW(), pVor=tagesPunkteLive(), bonus=abhakbonusDefault(kid('a'));
-karteAbhaken('a', true);
-ok('§4 der Abhakbonus ('+bonus+' P) zählt in Tagespunkten, erzeugt aber keine Farbe', bonus>0 && Math.round(tagesPunkteLive()-pVor)===Math.round(bonus) && Math.round(ausmalW()-wVor)===0 && aufgabenBonusHeute()===bonus);
+abhakDialog('a', false); el('abBonus').value=String(bonus); el('abPktN').value=''; el('abIst').value=String(Math.round(istSekLive(kid('a'))/60)); abhakDialogConfirm();   // ✓ über den Abhak-Dialog (Override = Zeit + Bonus; DOM-Stub: Felder wie vorbelegt)
+ok('§4 der Abhakbonus ('+bonus+' P) zählt in den Tagespunkten, erzeugt aber keine Farbe', bonus>0 && kid('a').status==='erledigt' && Math.round(tagesPunkteLive()-pVor)===Math.round(bonus) && Math.round(ausmalW()-wVor)===0 && aufgabenBonusHeute()===bonus);
 ok('§4 abgeschlossene Tage tragen h.aufgabenBonus (additiv), ausmalW zieht ihn ab', /h\.aufgabenBonus=aufgabenBonusHeute\(\)/.test(src) && /num\(h\.punkteBilanz\)-num\(h\.aufgabenBonus\)/.test(rumpf('ausmalW')));
 ok('§4 Routinen/Counter unverändert (kein Bonus-Abzug)', (function(){ S.karten.push(neueKarte({ id:'r', domain:P, titel:'Routine', rhythmus:{typ:'taeglich'}, modus:'staffel', staffel:[50], faelligkeit:SA })); var w0=ausmalW(); routineTick(kid('r')); return ausmalW()>w0 && aufgabenBonusHeute()===bonus; })());
 ok('§4 Belohnungsansicht nach dem Abhaken: „Farbe" nur aus dem Zeitanteil', /w:Math\.max\(0, delta-\(anlass==='abhaken' \? bonus : 0\)\)/.test(rumpf('belohnungDaten')));
@@ -102,7 +102,7 @@ ok('§6 Ursache: das Wochenend-Kontingent prüft den Wochentag des APP-Tags, nic
 abschlussV3Stand(); abschlussV3Schliessen();
 ok('§6 nach dem Abschluss: Anker, keine Sperre — Tick und Aufgabe buchen als Nachtrag auf den abgeschlossenen Tag', nachAbschluss() && tagBuchbar() && routineBuchbar(kid('a')) && (routineTick(kid('r')), S.intraday.filter(function(e){ return e.kartenId==='r' && e.typ==='tick'; }).pop().nachAbschluss===true) && S.tag.datum===SA);
 uhr('2026-10-04T02:00:00+02:00'); schlafUmschalten();
-ok('§6 auch nach „Schlafen" bleibt der Tag der Anker (Nachtrag bis „Aufstehen"); kein Wechsel über Mitternacht', !!S.tag.geschlossenTs && nachAbschluss() && tagBuchbar() && heuteApp()===SA && (routineTick(kid('r')), S.intraday.filter(function(e){ return e.kartenId==='r'; }).pop().nachAbschluss===true));
+ok('§6 auch nach „Schlafen" bleibt der Tag der Anker (§2 v3.7.3: kein geschlossenTs, kein Nachtrag-Export); kein Wechsel über Mitternacht', !S.tag.geschlossenTs && schlafLaeuft() && nachAbschluss() && tagBuchbar() && heuteApp()===SA && (routineTick(kid('r')), S.intraday.filter(function(e){ return e.kartenId==='r'; }).pop().nachAbschluss===true));
 renderStatusbar();
 ok('§6 die Statusleiste bleibt nach dem Abschluss sichtbar und zeigt den abgeschlossenen Tag inkl. Nachträge', el('statusbar').hidden===false && /if\(!S\.tag\)\{ bar\.hidden=true; return; \}/.test(rumpf('renderStatusbar')) && Math.round(punkteHeuteAnzeige())===Math.round(tagesPunkteLive()));
 uhr('2026-10-04T08:00:00+02:00'); aufstehenBestaetigen(70, { tapTs:jetztIso() });
