@@ -18,6 +18,7 @@
    DFM-CI-Dark wie die alte App (Spez. §12 / §8-Farben der alten App).
    ══════════════════════════════════════════════════════════════════════ */
 :root{
+  --vvTop:0px;   /* §2 (v3.7.5): Versatz des Visual Viewport (iOS-Tastatur), gesetzt von vvSync() */
   --bg:#0d1420; --card:#141e2e; --card2:#182438; --line:#243349;
   --ok:#3ecf8e; --warn:#f2b84b; --bad:#f66d6d; --orange:#FF9F0A;   /* §0.1 (v3.3.0): ORANGE — es gab keine Orange-Variable */
   --blue:#4f8ef7; --purple:#b98af7; --pink:#f78ad0; --cyan:#6dd3e0;
@@ -53,7 +54,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 
 /* ── Fokus-Leiste (fixer Layer über allen Tabs, §7 D1 / Nav-Mockup) ── */
 #topbar{
-  position:fixed;top:0;left:0;right:0;z-index:60;
+  position:fixed;top:var(--vvTop,0px);left:0;right:0;z-index:60;   /* §2 (v3.7.5): folgt dem Visual Viewport, bleibt unter der Systemuhr */
   padding-top:var(--sat);
   background:linear-gradient(180deg,var(--card2),var(--card));
   border-bottom:1px solid var(--line);
@@ -8202,6 +8203,12 @@ function renderStatusbar(){
 /* Der fixe Topbar wächst/schrumpft mit Statusleiste + Live-Kurve; main-Abstand
    dynamisch nachziehen (statt fixer 44px), damit nichts verdeckt wird. */
 let _tbH=0;
+/* §2 (v3.7.5): iOS verschiebt beim Öffnen der Tastatur den Visual Viewport (offsetTop > 0) — die feste Statusleiste und der
+   klebende Suchkopf folgen über --vvTop */
+function vvSync(){
+  const vv=window.visualViewport; if(!vv) return;
+  document.documentElement.style.setProperty('--vvTop', Math.max(0, Math.round(vv.offsetTop))+'px');
+}
 function layoutTopbar(){
   const tb=el('topbar'); if(!tb) return;
   const h=tb.offsetHeight; if(h===_tbH) return; _tbH=h;
@@ -20867,6 +20874,7 @@ function init(){
   if(S.fokus && S.fokus.laeuft) starteTicker();
   if(S.ui.debugTap) document.body.classList.add('debugtap');   // V3: Tap-Debug-Zustand wiederherstellen
   setTab(S.ui.tab||'stapel', {fokusLassen:true});   // Start: Zustand aus der letzten Sitzung
+  try{ if(window.visualViewport){ window.visualViewport.addEventListener('resize', vvSync); window.visualViewport.addEventListener('scroll', vvSync); } vvSync(); }catch(e){}   // §2 (v3.7.5)
   renderFokusleiste();
   layoutTopbar();
   // Statusleiste driftet mit der Zeit (Pace/Akku/Kauf-Hinweis) — auch ohne
