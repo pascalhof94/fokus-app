@@ -256,6 +256,12 @@ body.fokusOffen #neuFab{z-index:201}
   width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:#fff;
   font-size:22px;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
 body.fokusOffen #suchFab{z-index:201}
+/* §7 (v3.7.2): die Suche als Ebene über allem (Fokusansicht, Statusleiste, Leiste), volle Höhe mit Safe-Area */
+body.sucheOffen #v-suche{position:fixed;inset:0;z-index:300;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:var(--sat);padding-bottom:var(--sab)}
+body.sucheOffen #suchFab{z-index:301}
+body.sucheOffen #neuFab{display:none}
+.su-zu{opacity:.9;font-size:14px;font-weight:600;padding:0 10px}
+.su-platz{height:50vh}
 .such-filter{padding:10px 0 0}
 .mx-tag{font-size:10px;opacity:.7}
 /* §1 (v2.0.1): Weg-Knopf der Fokusansicht — 44px, oben links in der Karte */
@@ -2388,21 +2394,20 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
              autocomplete="off" autocapitalize="off" spellcheck="false"
              placeholder="Offene Karten finden …">
       <button id="suClear" class="su-x" hidden>✕</button>
-      <!-- §6: Neuanlage sitzt in der Kopfzeile — in der Sichtleiste haette sie
-           die fuenfte Sicht bei 375 px aus dem Bild gedraengt. -->
-
+      <!-- §7 (v3.7.2): die Suche ist eine Ebene über allem — „Schließen" leert das Feld und kehrt zur vorigen Ansicht zurück -->
+      <button id="suZu" class="su-x su-zu" data-suzu="1" aria-label="Suche schließen">Schließen</button>
     </div>
     <!-- §3 (v2.0.2): Der Tag-Banner (Abschließen / Tag starten) hing bis
          v2.0.1 ausschliesslich an renderStapel() und damit an #stapelListe —
          einem Element, das es seit dem Navigationsumbau nicht mehr gibt.
          Der Knopf war damit seit v2.0.0 unerreichbar. -->
-    <div id="tagBanner"></div>
-    <!-- §2 (v2.2.0): zwei Filter ueber ALLEN Sichten und dem Freitext —
-         eigene Segment-Leisten, keine weiteren Chips in der Sicht-Leiste. -->
     <!-- §5 (v3.7.0): unter dem Suchfeld die Kettenliste; die Eingabe filtert alle Gruppen (Filter-Knöpfe und Sichten entfallen) -->
     <div class="su-filter" id="suFilter" hidden></div>
     <div class="su-sichten" id="suSichten" hidden></div>
     <div class="su-swipe" id="suSwipe"><div id="suBody"></div></div>
+    <!-- §7 (v3.7.2): „Der Tag läuft" ganz unten, darunter 50 vh Platz für die Tastatur -->
+    <div id="tagBanner"></div>
+    <div class="su-platz" aria-hidden="true"></div>
   </section>
 
   <!-- Statistik -->
@@ -8992,7 +8997,7 @@ function kettenListeKlick(e){
   const kf=t.closest('[data-klfokus]'); if(kf){ e.stopPropagation(); haptik(6); kettenListeSchliessen(); fokusKarteAnsehen(kf.dataset.klfokus); renderFokus(); return true; }
   return false;
 }
-function kettenListeSchliessen(){ ['plusOverlay','inKetteOverlay'].forEach(id=>{ const o=el(id); if(o && !o.hidden) o.hidden=true; }); }
+function kettenListeSchliessen(){ ['plusOverlay','inKetteOverlay'].forEach(id=>{ const o=el(id); if(o && !o.hidden) o.hidden=true; }); if(S.ui.tab==='suche') sucheSchliessen(); }   // §7 (v3.7.2): auch die Such-Ebene
 /* ══ §2 (v3.7.0) · „IN KETTE" ═══════════════════════════════════════════════════════════
    Vollbild-Ansicht: oben die Karte (Kartenzeile), darunter alle Ketten als klappbare Gruppen (ohne Verlauf, Meistgenutzt,
    Erledigt heute): die aktuelle Kette, jede Tageskette, die Routinen nach Tagesblock, dazu die festen Ketten Ticks DFM/Privat
@@ -17393,6 +17398,10 @@ function suFrage(){ return String(S.ui.suFrage||'').trim(); }
 function setTab(tab, opt){
   if(tab!=='suche' && tab!=='statistik' && tab!=='einst' && tab!=='belohnung') tab='belohnung';   // §11 (v3.7.0): Leiste = Shop · Statistik · Einstellungen; die Suche über den 🔍-Knopf
   if(!(opt && opt.fokusLassen)){ S.ui.fokusOffen=false; S.ui.fokusZeigt=null; }
+  // §7 (v3.7.2): die Suche liegt als Ebene über allem; beim Verlassen wird das Suchfeld geleert
+  if(tab==='suche' && S.ui.tab!=='suche') S.ui.sucheVorTab=S.ui.tab||'belohnung';
+  if(tab!=='suche' && S.ui.tab==='suche'){ S.ui.suFrage=''; const i=el('suFreitext'); if(i) i.value=''; }
+  try{ document.body.classList.toggle('sucheOffen', tab==='suche'); }catch(e){}
   // v2.2.0: <main> ist EIN Scroller fuer alle Seiten — ein Seitenwechsel
   // beginnt oben (sonst oeffnete die Suche nach dem Shop mitten in der Liste,
   // Filter und Sichten ausserhalb des Bildes).
@@ -19788,7 +19797,9 @@ el('suchFilter').addEventListener('click', e=>{
   suchF[b.dataset.sf]=b.dataset.v; haptik(6); renderSuchTreffer();
 });
 // §11 (v3.7.0): der 🔍-Knopf öffnet die Suche (Suchfeld + Kettenliste, §5); liegt sie schon vor, bekommt das Suchfeld den Fokus
-el('suchFab').addEventListener('click', ()=>{ haptik(8); if(S.ui.tab!=='suche') setTab('suche'); const f=el('suFreitext'); if(f){ try{ f.focus(); }catch(e){} } });
+el('suchFab').addEventListener('click', ()=>{ haptik(8); if(S.ui.tab==='suche'){ sucheSchliessen(); return; } setTab('suche'); const f=el('suFreitext'); if(f){ try{ f.focus(); }catch(e){} } });   // §7 (v3.7.2): 🔍 schließt auch
+function sucheSchliessen(){ S.ui.suFrage=''; const i=el('suFreitext'); if(i) i.value=''; setTab(S.ui.sucheVorTab||'belohnung'); }
+el('suZu').addEventListener('click', ()=>{ haptik(6); sucheSchliessen(); });
 el('suchOverlay').addEventListener('click', e=>{ if(e.target.id==='suchOverlay') schliesseSuche(); });   // Tap-außen
 /* Pull-down bei scrollTop 0 (Fokus/Stapel) öffnet die Suche — ohne pan-y zu
    stören (kein preventDefault; am oberen Rand scrollt ohnehin nichts). */
