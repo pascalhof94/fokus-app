@@ -2479,7 +2479,7 @@ function bestandSchreiben(){
   /* Stufen-Namen in Bildern für den Bericht unkenntlich (die Inhalte bleiben Überraschung) */
   function namenWeg(fw){ fw.document.querySelectorAll('#belohnungBody .objakt, #belohnungBody .bw-st .tx, .stufen-name').forEach(function(e){ e.textContent='· · ·'; }); }
   function kauf354(fw){ fw.eval('belohnungInit(); (function(){ var p=preisFuer("soziales"); S.meta.muenzenGesamt=Number(S.meta.muenzenGesamt||0)+Math.round(p*1.03)-konto(); })();'); }
-  function status354(fw, min, dfm, privat){ fw.setTab('suche'); fw.fokusStarten('k-lang', null); fw.closeSheet();
+  function status354(fw, min, dfm, privat){ fw.setTab('belohnung'); fw.fokusStarten('k-lang', null); fw.closeSheet();
     fw.eval('(function(){ var k=S.karten.find(function(x){ return x.id==="k-lang"; }); S.fokus.startMs=Date.now()-Math.max(0, '+Math.round(min*60)+'-Number(k.istSek||0))*1000; })();'+(dfm!=null ? ' belIstDfm=function(){ return '+dfm+'; }; tagesPunkteDomain=function(d){ return d==="dfm" ? '+dfm+' : '+privat+'; };' : ''));
     fw.fokusLayerPflegen(); fw.renderFokusleiste(); fw.renderStatusbar(); fw.renderFokus(); }
   function v28Vorbereiten(fw){ v27Vorbereiten(fw); fw.syncImport(JSON.stringify(v28Paket())); fw.setTab('suche'); }

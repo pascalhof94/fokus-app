@@ -2173,7 +2173,7 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 #statusbar .punkte .gesamt{position:absolute;left:5px;top:2px;font-size:13px;font-weight:800;line-height:1.1;color:#e8e9ec;text-shadow:0 0 3px #000}
 #statusbar .punkte .tempo{position:absolute;right:5px;bottom:2px;display:block;font-size:13px;font-weight:800;line-height:1.1;white-space:nowrap;text-shadow:0 0 3px #000,0 0 2px #000}
 #statusbar .sl-pace{display:block;min-width:0}
-#statusbar .sl-pace .pzeile{display:flex;align-items:center;gap:6px;height:16px;min-width:0}
+#statusbar .sl-pace .pzeile{display:flex;align-items:center;gap:0;height:16px;min-width:0;padding:0 6px}
 #statusbar .sl-pace .pbahn{position:relative;flex:1;height:12px;border-radius:6px;background:#1c1f25}
 #statusbar .sl-pace .pbahn i{position:absolute;left:0;top:0;bottom:0;border-radius:6px}
 #statusbar .sl-pace .pbahn u{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:#fff;border-radius:1px}
@@ -2197,6 +2197,13 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 #statusbar .sl-pace .pbahn.zonen i:nth-child(5){border-radius:0 6px 6px 0}
 #statusbar .sl-pace .pbahn .raute{position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;transform:rotate(45deg);border:1.5px solid #000;box-sizing:border-box;z-index:3}
 #statusbar .sl-pace .pbahn u{z-index:2}
+/* §8 (v3.7.2): weißer Strich = nötig · grüner Strich = live mit Pfeil (→ hebt GRUEN, ← senkt ROT) */
+#statusbar .sl-pace .pbahn u.live{width:3px;margin-left:-1.5px;top:-6px;bottom:-6px;z-index:4}
+#statusbar .sl-pace .pbahn .ppfeil{position:absolute;top:-13px;font-size:11px;font-weight:800;line-height:1;z-index:5;transform:translateX(-50%)}
+#statusbar .sl-pace .pbahn .ppfeil.hebt{transform:translateX(4px)}
+#statusbar .sl-pace .pbahn .ppfeil.senkt{transform:translateX(calc(-100% - 4px))}
+#statusbar .sl-pace .pzeile{height:18px}
+#statusbar .sl-pace .plbl b.pfeil{left:auto;right:auto}
 /* ══ 3.5.3 §3 · DER TAG — drei Zeilen (Draft Nr. 3) ══ */
 .dt-zeilen .dk{padding:4px 0 12px;border-top:1px solid #23262d;min-width:0}
 .dt-zeilen .dk:first-child{border-top:0;padding-top:0}
@@ -5951,48 +5958,59 @@ const PACE_ZONEN=[[0, 'ROT'], [0.75, 'ORANGE'], [0.8, 'GELB'], [0.9, 'GELBGRUEN'
 function paceFarbe(wert, noetig){
   return num(noetig)>0 ? bewertungDiskret(num(wert)/num(noetig)) : FARBE.GRUEN;
 }
-/* Geometrie der Leiste: Skalenende, Zonen (von/bis in %), Lage von Ø und Karte, r des Pfeils */
-function paceLeisteTeile(schnitt, noetig, karte){
-  schnitt=Math.max(0, num(schnitt)); noetig=Math.max(0, num(noetig)); const hat=karte!=null && Number.isFinite(num(karte, NaN)); if(hat) karte=Math.max(0, num(karte));
-  const max=Math.max(1e-9, Math.max(schnitt, hat ? karte : 0, noetig)*1.15), P=v=>Math.max(0, Math.min(100, v/max*100));
+/* ══ §8 (v3.7.2) · PACE-LEISTE (P/h) — vier Marken ═══════════════════════════════════════════
+   Lila Raute = Ø-P/h der laufenden Karte über ihre bisherigen Sitzungen inkl. heute · grüner senkrechter Strich = Live-P/h der
+   laufenden Sitzung, daran ein kleiner Pfeil (grün → wenn Live den Tagesschnitt anhebt, rot ← wenn sie ihn senkt; kein Pfeil
+   ohne Uhr) · weißer Strich = nötiger Schnitt für das Tagessoll. Zonen (Ampel) wie bisher relativ zu „nötig". */
+function paceLeisteTeile(oeKarte, noetig, live){
+  noetig=Math.max(0, num(noetig)); const hatK=oeKarte!=null && Number.isFinite(num(oeKarte, NaN)), hatL=live!=null && Number.isFinite(num(live, NaN));
+  if(hatK) oeKarte=Math.max(0, num(oeKarte)); if(hatL) live=Math.max(0, num(live));
+  const max=Math.max(1e-9, Math.max(hatK ? oeKarte : 0, hatL ? live : 0, noetig)*1.15), P=v=>Math.max(0, Math.min(100, v/max*100));
   const zonen=PACE_ZONEN.map((z,i)=>{ const bis=i+1<PACE_ZONEN.length ? PACE_ZONEN[i+1][0]*noetig : Infinity;
     return { farbe:FARBE[z[1]], name:z[1], von:P(z[0]*noetig), bis:P(bis) }; });
-  return { max, zonen, schnitt:P(schnitt), karte:hat ? P(karte) : null,
-    r: hat ? (schnitt>0 ? karte/schnitt : (karte>0 ? 99 : null)) : null };
+  return { max, zonen, noetig:P(noetig), karte:hatK ? P(oeKarte) : null, live:hatL ? P(live) : null };
+}
+/* Ø-P/h der Karte über alle ihre Sitzungen (Stunden-Log, typ timer) inkl. der laufenden; ohne Minuten die Prognose-Rate */
+function karteOePh(k){
+  if(!k) return null; let p=0, m=0;
+  (S.intraday||[]).forEach(e=>{ if(e && e.kartenId===k.id && (e.typ==='timer' || e.typ==='autopause' || e.typ==='nachtrag') && num(e.minuten)>0){ p+=num(e.punkte); m+=num(e.minuten); } });
+  if(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id && num(S.fokus.startMs)){ const sek=(Date.now()-num(S.fokus.startMs))/1000; let lp=0; try{ const o=statusLivePunkte(diaGroessen()); lp=num(o.dfm)+num(o.privat); }catch(e){ lp=0; } m+=sek/60; p+=Math.max(0, lp); }
+  if(m>=1) return Math.max(0, p/(m/60));
+  try{ const kt=tempoWerte(k).karte; return kt ? (kt.prognose!=null ? kt.prognose : null) : null; }catch(e){ return null; }
 }
 /* live P/h der laufenden Karte (wie die Tempo-Leiste der Fokusansicht: live ab 1 Min Ist, davor die Prognose-Rate) */
 function paceKarte(){
   const lk=(S.fokus && S.fokus.laeuft && S.fokus.karteId) ? S.karten.find(x=>x.id===S.fokus.karteId) : null; if(!lk) return null;
   let kt=null; try{ kt=tempoWerte(lk).karte; }catch(e){ kt=null; }
   const v=kt ? (kt.live!=null ? kt.live : kt.prognose) : null;
-  return v!=null ? { wert:v, karte:lk } : null;
+  const o=karteOePh(lk);
+  return v!=null ? { wert:v, karte:lk, oe:(o!=null && o>0) ? o : v } : null;   // ohne belegte Sitzungen = die Live-Rate
 }
-/* §4a (v3.7.0): Vorzeichen-Zahl für die Live-Beschriftungen („+12" / „−48") */
-function vorzP(v){ v=Math.round(num(v)); return (v<0 ? '−' : '+')+fmtP(Math.abs(v)); }
-/* §4a (v3.7.0): die drei Live-Beschriftungen unter der Pace-Leiste — unter dem weißen Strich „Ø 512" (WEISS), unter der Raute
-   die Abweichung der Karte zum Schnitt (Farbe wie der Pfeil), unter dem Pfeil die Abweichung des Schnitts zu „nötig"
-   (GRUEN bei +, ROT bei −; ohne „nötig" keine). Lage in % der Bahn; der Pfeil steht rechts neben der Bahn. */
-function paceBeschriftungen(g, pk, T, st){
-  const L=[{ an:'schnitt', x:T.schnitt, text:'Ø '+fmtP(Math.round(Math.max(0, num(g.tempoSchnitt)))), farbe:FARBE.WEISS }];
-  if(pk && T.karte!=null) L.push({ an:'karte', x:T.karte, text:vorzP(num(pk.wert)-num(g.tempoSchnitt)), farbe:st ? st.c : FARBE.WEISS });
-  if(num(g.tempoZiel)>0){ const d=num(g.tempoSchnitt)-num(g.tempoZiel); L.push({ an:'pfeil', x:null, text:vorzP(d), farbe:d<0 ? FARBE.ROT : FARBE.GRUEN }); }
+/* §4a (v3.7.0) · §8 (v3.7.2): Live-Beschriftungen — unter der Raute „◆ Ø 164" (LILA), unter dem grünen Strich „live 212" (GRUEN),
+   unter dem weißen Strich „nötig 190" (WEISS). Lage in % der Bahn. */
+function paceBeschriftungen(g, pk, T){
+  const L=[];
+  if(pk && T.karte!=null) L.push({ an:'karte', x:T.karte, text:'◆ Ø '+fmtP(Math.round(num(pk.oe))), farbe:FARBE.LILA });
+  if(pk && T.live!=null) L.push({ an:'live', x:T.live, text:'live '+fmtP(Math.round(num(pk.wert))), farbe:FARBE.GRUEN });
+  if(num(g.tempoZiel)>0) L.push({ an:'noetig', x:T.noetig, text:'nötig '+fmtP(Math.round(num(g.tempoZiel))), farbe:FARBE.WEISS });
   return L;
 }
 function paceLeisteHtml(g, pk){
   if(pk===undefined) pk=paceKarte();
-  const T=paceLeisteTeile(g.tempoSchnitt, g.tempoZiel, pk ? pk.wert : null), st=pk ? tempopfeilStufe(T.r) : null;
-  const B=paceBeschriftungen(g, pk, T, st);
+  const T=paceLeisteTeile(pk ? pk.oe : null, g.tempoZiel, pk ? pk.wert : null);
+  const hebt=pk ? num(pk.wert)>=num(g.tempoSchnitt) : null, pfeilFarbe=hebt ? FARBE.GRUEN : FARBE.ROT;
+  const B=paceBeschriftungen(g, pk, T);
   return '<span class="pzeile"><span class="pbahn zonen">'+T.zonen.map(z=>'<i style="left:'+z.von.toFixed(1)+'%;width:'+Math.max(0, z.bis-z.von).toFixed(1)+'%;background:'+z.farbe+'"></i>').join('')+
-    '<u style="left:'+T.schnitt.toFixed(1)+'%"></u>'+
-    (T.karte!=null ? '<b class="raute" style="left:'+T.karte.toFixed(1)+'%;background:'+famFarbe(pk.karte)+'"></b>' : '')+'</span>'+
-    '<span class="ppf">'+(st ? pfeilSvg(st, 16) : '')+'</span></span>'+
-    '<span class="plbl">'+B.map(b=>'<b class="'+b.an+'" data-px="'+(b.x==null ? '' : b.x.toFixed(1))+'" style="color:'+b.farbe+(b.x==null ? '' : ';left:'+b.x.toFixed(1)+'%')+'">'+b.text+'</b>').join('')+'</span>';
+    (num(g.tempoZiel)>0 ? '<u class="noetig" style="left:'+T.noetig.toFixed(1)+'%"></u>' : '')+
+    (T.karte!=null ? '<b class="raute" style="left:'+T.karte.toFixed(1)+'%;background:'+FARBE.LILA+'"></b>' : '')+
+    (T.live!=null ? '<u class="live" style="left:'+T.live.toFixed(1)+'%;background:'+FARBE.GRUEN+'"></u><b class="ppfeil'+(hebt?' hebt':' senkt')+'" style="left:'+T.live.toFixed(1)+'%;color:'+pfeilFarbe+'">'+(hebt?'→':'←')+'</b>' : '')+'</span></span>'+
+    '<span class="plbl">'+B.map(b=>'<b class="'+b.an+'" data-px="'+b.x.toFixed(1)+'" style="color:'+b.farbe+';left:'+b.x.toFixed(1)+'%">'+b.text+'</b>').join('')+'</span>';
 }
 /* §4a (v3.7.0): überlappende Beschriftungen seitlich verschieben, bis 4 px frei sind (Reihenfolge nach Lage, Ränder der Zeile halten) */
 function paceBeschriftungenEntzerren(wrap){
   const z=wrap && wrap.querySelector('.plbl'); if(!z || !z.offsetWidth) return;
-  const W=z.offsetWidth, LUECKE=4, bahnW=Math.max(1, W-22);   // Bahn = Zeile minus Lücke 6 px und Pfeil 16 px
-  const L=Array.from(z.querySelectorAll('b')).map(b=>{ const w=b.offsetWidth, x=b.classList.contains('pfeil') ? W-8 : num(b.dataset.px)/100*bahnW;
+  const W=z.offsetWidth, LUECKE=4;
+  const L=Array.from(z.querySelectorAll('b')).map(b=>{ const w=b.offsetWidth, x=num(b.dataset.px)/100*W;
     return { b, w, l:Math.max(0, Math.min(W-w, x-w/2)) }; }).sort((a,c)=>a.l-c.l);
   for(let i=1;i<L.length;i++){ const vor=L[i-1]; if(L[i].l<vor.l+vor.w+LUECKE) L[i].l=vor.l+vor.w+LUECKE; }
   for(let i=L.length-1;i>=0;i--){ const max=(i+1<L.length ? L[i+1].l-LUECKE : W)-L[i].w; if(L[i].l>max) L[i].l=Math.max(0, max); }
@@ -20836,7 +20854,7 @@ function init(){
   // rechnet startMs die verstrichene Zeit korrekt nach.
   if(S.fokus && S.fokus.laeuft) starteTicker();
   if(S.ui.debugTap) document.body.classList.add('debugtap');   // V3: Tap-Debug-Zustand wiederherstellen
-  setTab(S.ui.tab||'stapel', {fokusLassen:true});   // Start: Zustand aus der letzten Sitzung
+  setTab((S.ui.tab && S.ui.tab!=='suche') ? S.ui.tab : 'belohnung', {fokusLassen:true});   // Start: Zustand aus der letzten Sitzung · §7 (v3.7.2): die Such-Ebene startet nie offen
   renderFokusleiste();
   layoutTopbar();
   // Statusleiste driftet mit der Zeit (Pace/Akku/Kauf-Hinweis) — auch ohne
