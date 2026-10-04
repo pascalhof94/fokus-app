@@ -7185,11 +7185,10 @@ function schlafUmschalten(){
       : n.verworfen ? (n.fehltipp ? 'Fehltipp verworfen — kein Schlaf, keine Buchung, keine Schlafschuld' : 'Zu kurz für eine Nacht (unter 60 Min) — verworfen')
       : ('Aufgewacht · '+hMin(n.dauerMin)+' Std · '+n.punkte+' P'+(n.gebucht?'':' (zählen zum neuen Tag)')));
   } else {
-    // §2.4 (v3.2.0): „Schlafen" schliesst den Tag endgueltig — was seit dem Abschluss kam, geht als Nachtrag-Export raus
-    const n=nachAbschluss() ? tagEndgueltigSchliessen() : null;
-    schlafStarten(); const z=schlafZustand(); if(z.laeuft) z.laeuft.schlossTag=!!n;
+    // §2 (v3.7.3): „Schlafen" schliesst den Tag NICHT mehr endgueltig und oeffnet keinen Nachtrag-Export — alle Nachträge nach dem
+    // Abschluss (auch nach dem Schlafen-Start) gehen mit der Schlafdauer ins nächste Delta; endgültig schliesst nur „Aufstehen" (§6 v3.7.2)
+    schlafStarten(); const z=schlafZustand(); if(z.laeuft) z.laeuft.schlossTag=false;
     toast('🌙 Gute Nacht — Schlafen läuft');
-    if(n && n.anzahl){ saveKarten(); saveMeta(); renderAlles(); oeffneNachtragExport(n); return; }
   }
   saveKarten(); saveMeta(); renderAlles();
 }
