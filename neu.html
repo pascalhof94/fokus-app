@@ -54,7 +54,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 
 /* ── Fokus-Leiste (fixer Layer über allen Tabs, §7 D1 / Nav-Mockup) ── */
 #topbar{
-  position:fixed;top:var(--vvTop,0px);left:0;right:0;z-index:60;   /* §2 (v3.7.5): folgt dem Visual Viewport, bleibt unter der Systemuhr */
+  position:fixed;top:0;left:0;right:0;z-index:60;   /* §2 (v3.7.6): wieder fest (3.7.5 §2 zurück) — die Such-Ebene folgt dem Visual Viewport */
   padding-top:var(--sat);
   background:linear-gradient(180deg,var(--card2),var(--card));
   border-bottom:1px solid var(--line);
@@ -129,11 +129,16 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #statusbar #sZKonto .w{color:#d4af37}   /* §3.1 (v3.5.0): Konto GOLD */
 
 /* ══ §6 (v2.0.0) · Suchseite — Freitext oben, fünf wischbare Sichten ══ */
-.su-kopf{display:flex;align-items:center;gap:8px;padding:8px 12px 6px;position:sticky;top:calc(var(--tbH,0px) + var(--vvTop,0px));z-index:5;background:var(--bg)}   /* §1 (v3.7.5): klebt UNTER der festen Statusleiste, nicht dahinter */
+.su-kopf{display:flex;align-items:center;gap:8px;padding:8px 12px 6px;padding-top:calc(var(--sat) + 8px);position:sticky;top:0;z-index:5;background:var(--bg)}   /* §2 (v3.7.6): Kopf der Such-Ebene, unter der Systemuhr */
 .su-kopf .su-ic{opacity:.5;font-size:15px}
 #suFreitext{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--li);border-radius:10px;
-  color:var(--fg);font:inherit;font-size:15px;padding:10px 12px;-webkit-appearance:none}
+  color:var(--fg);font:inherit;font-size:16px;padding:10px 12px;-webkit-appearance:none}   /* §2 (v3.7.6): 16 px — iOS zoomt sonst beim Fokus */
 #suFreitext::-webkit-search-cancel-button{display:none}
+/* §2 (v3.7.6): die Such-Ebene — fixed, über jeder Ansicht und der Statusleiste, folgt dem Visual Viewport (iOS-Tastatur) */
+#v-suche{position:fixed;left:0;right:0;top:var(--vvTop,0px);height:var(--vvH,100%);z-index:250;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;display:none;padding-bottom:calc(var(--sab) + 16px)}
+body.suOffen #v-suche{display:block}
+body.suOffen main{overflow:hidden}
+body.suOffen #suchFab,body.suOffen #nav{display:none}
 .su-x{background:none;border:0;color:var(--fg);opacity:.6;font-size:15px;min-width:44px;min-height:44px}
 .su-sichten{display:flex;gap:4px;padding:0 12px 8px}
 .su-sichten::-webkit-scrollbar{display:none}
@@ -233,7 +238,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 /* Der Layer liegt ueber der SUCHE, nicht ueber dem Kopf: Timer, Figur und
    Zahnrad bleiben erreichbar, solange eine Karte laeuft. */
 #fokusLayer{position:fixed;left:0;right:0;top:var(--tbH,96px);bottom:calc(56px + var(--sab));
-  z-index:200;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+  z-index:260;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}   /* §2 (v3.7.6): über der Such-Ebene (250) */
 #fokusLayer[hidden]{display:none}
 /* §4 (v3.0.0): die Routinen-Leiste endet ganz unten — Luft unter der letzten Zeile, damit Plus und Suchknopf nie ein Feld verdecken */
 #fokusView{padding-bottom:96px}
@@ -251,12 +256,12 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
   align-items:center;justify-content:center}
 #neuFab[hidden]{display:none}
 /* In der Fokusansicht wandert das Plus ueber den Layer (der bei 200 liegt). */
-body.fokusOffen #neuFab{z-index:201}
+body.fokusOffen #neuFab{z-index:261}   /* §2 (v3.7.6): über dem Fokus-Layer (260) */
 /* §3 (v2.4.0): Suchknopf spiegelbildlich zum Plus, gleiche Hoehe, gleiche Ebene */
 #suchFab{position:fixed;left:16px;bottom:calc(56px + var(--sab) + 14px);z-index:199;
   width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:#fff;
   font-size:22px;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
-body.fokusOffen #suchFab{z-index:201}
+body.fokusOffen #suchFab{z-index:261}
 .such-filter{padding:10px 0 0}
 .mx-tag{font-size:10px;opacity:.7}
 /* §1 (v2.0.1): Weg-Knopf der Fokusansicht — 44px, oben links in der Karte */
@@ -455,12 +460,12 @@ html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scrol
 .albdetail img{max-width:92vw;max-height:70vh;border-radius:14px;border:1px solid var(--line)}
 .albdetail .nm{font-size:15px;font-weight:800;color:var(--txt)}
 /* ══ §6 (v1.9.0) · Momente — reine CSS-Keyframes, keine Bibliothek ══ */
-.mom-fly{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:200;pointer-events:none;
+.mom-fly{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:260;pointer-events:none;
   font-size:17px;font-weight:800;color:var(--ok);text-shadow:0 2px 8px rgba(0,0,0,.6);
   animation:momfly 1.25s ease-out forwards}
 @keyframes momfly{0%{opacity:0;transform:translate(-50%,0) scale(.8)}15%{opacity:1;transform:translate(-50%,-14px) scale(1.15)}
   100%{opacity:0;transform:translate(-50%,-120px) scale(.9)}}
-.mom-stern{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:200;pointer-events:none;
+.mom-stern{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:260;pointer-events:none;
   font-size:15px;font-weight:800;color:var(--warn);background:var(--card2);border:1px solid var(--warn);
   border-radius:12px;padding:8px 14px;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:momstern 1.8s ease forwards}
 @keyframes momstern{0%{opacity:0;transform:translate(-50%,8px)}12%{opacity:1;transform:translate(-50%,0)}
@@ -1346,10 +1351,10 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
   background:rgba(246,109,109,.92); color:#0a0f1a; font-size:11px; font-weight:800; padding:3px 10px; border-radius:9px; z-index:400; pointer-events:none }
 
 /* ── Sheet (Detail D3 / Stapel-Editor D4) ────────────────────────── */
-#backdrop{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+#backdrop{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:260;opacity:0;pointer-events:none;transition:opacity .25s}
 #backdrop.on{opacity:1;pointer-events:auto}
 .sheet{
-  position:fixed;left:0;right:0;bottom:0;z-index:201;
+  position:fixed;left:0;right:0;bottom:0;z-index:260;   /* §2 (v3.7.6) */
   background:var(--card);border-top:1px solid var(--line);
   border-radius:20px 20px 0 0;
   max-height:92vh;display:flex;flex-direction:column;
@@ -2240,7 +2245,7 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .stm-zu{display:flex;align-items:center;justify-content:center;width:100%;height:44px;margin-top:12px;border-radius:12px;background:#1a1d22;border:1px solid #2a2d33;color:#e8e9ec;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .stm-zu.mf-auf{margin-top:0;justify-content:space-between;padding:0 14px}
 .stm[data-stmodul]{scroll-margin-top:calc(var(--tbH,160px) + 8px)}
-.voll-ansicht{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column}
+.voll-ansicht{position:fixed;inset:0;z-index:260;background:var(--bg);display:flex;flex-direction:column}   /* §2 (v3.7.6): über der Such-Ebene */
 .voll-ansicht[hidden]{display:none}
 .voll-ansicht .mf-k{font-size:13px;padding:8px 0}
 .voll-ansicht .mf-k button{min-width:44px;min-height:44px}
