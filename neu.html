@@ -2265,6 +2265,18 @@ img.objimg.laedt{opacity:0}
 .bel-ansicht .kb-farbe .mal-farbe{width:34px;gap:4px;color:#e8e9ec;font-size:11.5px;font-weight:650}
 .bel-ansicht .kb-farbe .mal-farbe i{width:24px;height:24px;border:1.5px solid #c9ccd2;box-sizing:border-box}
 .bel-ansicht .kb-farbe .mal-farbe.on i{box-shadow:0 0 0 3px #000,0 0 0 5px #fff}
+/* §5 (v3.7.2): Erholung — Blatt in der Kartenzeile, Zeile in der Belohnungsansicht, Statistik-Modul */
+.kl-erh{margin-right:4px;font-size:12px}
+.bel-ansicht .erh-zeile{color:#3ecf8e;font-weight:650;text-align:center}
+.erh-kopf{display:flex;gap:14px;align-items:center}
+.erh-ring{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;flex:none}
+.erh-ring b{background:#1a1d22;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-variant-numeric:tabular-nums}
+.erh-bars{display:flex;align-items:flex-end;gap:4px;height:90px;position:relative;margin-top:12px}
+.erh-bars .z{position:absolute;left:0;right:0;border-top:1px dashed #9a9ca2}
+.erh-bars .col{flex:1;display:flex;flex-direction:column-reverse;min-width:0}
+.erh-bars .col i{display:block;border-radius:2px 2px 0 0}
+.erh-tab{display:flex;flex-direction:column;gap:4px;font-size:12px;font-variant-numeric:tabular-nums}
+.erh-tz{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:6px}
 /* §3 (v3.7.2): Ausgabe (Schlitten über dem aktiven Topf, 400 ms ease) und Tank-Zeile im Malmodus */
 .mal-ausgabe{position:relative;height:46px;margin:2px 0 4px}
 .mal-schlitten{position:absolute;top:4px;width:56px;height:16px;border-radius:6px;background:#3a4050;transition:left .4s ease}
@@ -2751,7 +2763,7 @@ const DEFAULT_SETTINGS = {
   reflexionsFragen: ['Wie war der Tag in einem Wort?','Was hat Energie gegeben?','Was hat Energie gekostet?'],
   tagesStruktur: [],           // Standardbloecke [{name, minMin, maxMin, typ}] — Claude plant damit, die App zeigt sie
   statistik: {
-    reihenfolge: ['tag','matrixHeute','heuteKurz','leistung','konsistenz','matrixfaktor','readiness','flow','routinen','acwr','heuteGeht','spielShop'],   // §5 (v3.5.0) · §6 (v3.6.0): „Was heute noch geht"
+    reihenfolge: ['tag','matrixHeute','heuteKurz','leistung','konsistenz','matrixfaktor','readiness','flow','routinen','acwr','erholung','heuteGeht','spielShop'],   // §5 (v3.5.0) · §6 (v3.6.0): „Was heute noch geht"
     ausgeblendet: [],
     zeitfenster: 7,            // Detailanalyse: 7 · 14 · 30 Tage
     typischerTag: { tage:28, ampelTage:14, methode:'mittel', weGetrennt:true },
@@ -2817,9 +2829,9 @@ const FELDER4=['werkzeug','ziel','zustand','ablenkung'];
 /* §5 (v3.5.0): 13 Module in fuenf Gruppen — Heute · Leistung & Rhythmus · Aufgaben & Routinen · Belastung · Spiel & Shop */
 const STAT_MODULE=[['tag','Der Tag'],['matrixHeute','Matrix heute'],['heuteKurz','Flow und Belastung heute'],
   ['leistung','Leistung'],['konsistenz','Konsistenz'],['matrixfaktor','Matrixfaktor'],['readiness','Readiness'],
-  ['flow','Aufgaben-Flow'],['routinen','Routinen-Flow'],['acwr','Belastungssteuerung'],['heuteGeht','Was heute noch geht'],['spielShop','Spiel & Shop']];
+  ['flow','Aufgaben-Flow'],['routinen','Routinen-Flow'],['acwr','Belastungssteuerung'],['erholung','Erholung'],['heuteGeht','Was heute noch geht'],['spielShop','Spiel & Shop']];   // §5 (v3.7.2): erholung
 const STAT_DETAIL=[];   // §5.5: die Detailanalyse ist in den Modulen aufgegangen
-const STAT_GRUPPE={ tag:1, matrixHeute:1, heuteKurz:1, leistung:2, konsistenz:2, matrixfaktor:2, readiness:2, flow:3, routinen:3, acwr:4, heuteGeht:5, spielShop:5 };
+const STAT_GRUPPE={ tag:1, matrixHeute:1, heuteKurz:1, leistung:2, konsistenz:2, matrixfaktor:2, readiness:2, flow:3, routinen:3, acwr:4, erholung:4, heuteGeht:5, spielShop:5 };
 const STAT_GRUPPE_NAME={ 1:'Heute', 2:'Leistung & Rhythmus', 3:'Aufgaben & Routinen', 4:'Belastung', 5:'Spiel & Shop' };
 const Z=(p,o)=>Object.assign({p, t:'zahl'}, o||{});
 const EINST_SCHEMA={
@@ -4089,9 +4101,9 @@ function basisRate(k){   // A9: Basis-Rate je Domäne
    Werkzeuge sind bewusst billig (0,8) — ihr Lohn ist der Bewegungsbonus, nicht
    der Grundwert; sonst ließen sie sich farmen. Ablenkungen tragen 0: Zeit in
    einer Ablenkung verdient nichts, der negative Tickwert bleibt die Kosten. */
-/* §9a (v3.7.0): Erholungskarte (erholung:true) am Wochenende (Sa/So des App-Tags) — Matrixfeld zählt als Werkzeug, Buchungen
-   tragen erholung:true im Stunden-Log; werktags unverändert */
-function erholungAktiv(k){ return !!(k && k.erholung && istWochenendTag(heuteApp())); }
+/* §9a (v3.7.0) · §5 (v3.7.2): Erholungskarte (erholung:true) — an jedem Tag: Matrixfeld zählt als Werkzeug, Buchungen tragen
+   erholung:true im Stunden-Log, ACWR-Gewicht −0,5; Ziele, Münzen und Farbe zählen voll */
+function erholungAktiv(k){ return !!(k && k.erholung); }   // §5 (v3.7.2, Entscheidung Pascal): Erholung gilt an JEDEM Tag
 function matrixFaktor(k){
   const tab=(S.settings && S.settings.matrixFaktor) || {};
   const f=erholungAktiv(k) ? 'werkzeug' : matrixFeldVon(k);
@@ -8837,7 +8849,7 @@ function kartenZeileHtml(k, opt){
     : '<button class="kl-check" data-klcheck="'+k.id+'" aria-label="Erledigt">✓</button>';
   return '<div class="kl-z'+(laeuft?' laeuft':'')+(fertig?' fertig':'')+(ueber?' ueber':'')+(opt.erl?' erl':'')+'" style="--fam:'+fam+';--famb:'+farbeAlpha(fam, .18)+';--prio:'+prioFarbe(k)+';--rand:'+(art==='Aufgabe' ? FARBE.ORANGE : KL_RAND_ROUTINE)+'" data-klkarte="'+k.id+'">'+
     '<button class="kl-play" data-klplay="'+k.id+'" aria-label="'+(laeuft?'Pause':'Start')+'"'+(laeuft?' style="background:'+verlauf(fam, 180)+';color:#08111f"':'')+'>'+(laeuft?'⏸':'▶')+'</button>'+
-    '<div class="kl-t" data-klfokus="'+k.id+'"><b class="kl-titel">'+esc(String(k.titel||'?'))+'</b><span class="kl-meta">'+unter+(opt.zusatz ? ' · '+opt.zusatz : '')+'</span></div>'+
+    '<div class="kl-t" data-klfokus="'+k.id+'"><b class="kl-titel">'+(k.erholung ? '<span class="kl-erh" title="Erholung">🌿</span>' : '')+esc(String(k.titel||'?'))+'</b><span class="kl-meta">'+unter+(opt.zusatz ? ' · '+opt.zusatz : '')+'</span></div>'+
     rechts+haken+'</div>';
 }
 /* heute gebuchte Zeit der laufenden Karte in allen Zeilen sekündlich nachziehen (Ticker) */
@@ -15450,6 +15462,8 @@ function belohnungAnsichtZeigen(d, danach){
     '<div class="row sp"><span class="big m" data-zaehl="'+Math.round(d.punkte)+'" data-pre="+" style="color:'+d.fam+'">+0</span><span class="m h">'+fmtP(Math.round(d.tagVor))+' → '+fmtP(Math.round(d.tagNach))+' von '+fmtP(Math.round(d.ziel))+'</span></div>'+
     '<div class="bar"><i style="--a:'+pct(d.tagVor,d.ziel)+'%;--b:'+pct(d.tagNach,d.ziel)+'%;background:linear-gradient(90deg,'+d.famHell+','+d.fam+');animation-delay:'+(t1+0.3)+'s"></i>'+(d.soll!=null?'<b style="left:'+pct(d.soll,d.ziel)+'%"></b>':'')+'</div>'+
     '<div class="row h"><span>Tagesziel</span><span>'+(d.soll!=null?'Soll '+fmtP(Math.round(d.soll)):'')+'</span></div></div>';
+  // §5 (v3.7.2): Erholungskarte — Zeile mit Minuten und Punkten
+  if(d.k && d.k.erholung) h+='<div class="k st erh-zeile" style="animation-delay:'+slot()+'s"><span>🌿 Erholung · '+Math.round(d.min)+' Min · '+fmtP(Math.round(d.punkte))+' P</span></div>';
   // 2 Zeit + 3 Akku
   let g2='';
   if(d.min>=0.5){ const t2=slot(); g2+='<div class="k st" style="animation-delay:'+t2+'s"><div class="h">ZEIT</div><div class="m z">'+Math.round(d.min)+' Min</div><div class="bar"><i style="--a:0%;--b:'+pct(d.min,d.planMin)+'%;background:linear-gradient(90deg,#6b6e74,'+FARBE.WEISS+');animation-delay:'+(t2+0.2)+'s"></i></div><div class="h">'+Math.round(d.min/Math.max(1,d.planMin)*100)+' % vom Tagesplan'+(d.sollMin?' · Soll '+d.sollMin:'')+'</div></div>'; }
@@ -17653,7 +17667,7 @@ function renderStatistikBody(){
   const F=analyseFenster(), dom=S.ui.analyseDomain||'alle';
   const BAU={ tag:()=>stmTag(F,dom), matrixHeute:()=>stmMatrixHeute(F,dom), heuteKurz:()=>stmHeuteKurz(F,dom),
     leistung:()=>stmLeistung(F,dom), konsistenz:()=>stmKonsistenz(F,dom), matrixfaktor:()=>stmMatrixfaktor(F,dom), readiness:()=>stmReadiness(F,dom),
-    flow:()=>stmFlow(F,dom), routinen:()=>stmRoutinen(F,dom), acwr:()=>stmAcwr(F,dom), heuteGeht:()=>stmHeuteGeht(F,dom), spielShop:()=>stmSpielShop(F,dom) };
+    flow:()=>stmFlow(F,dom), routinen:()=>stmRoutinen(F,dom), acwr:()=>stmAcwr(F,dom), erholung:()=>stmErholung(F,dom), heuteGeht:()=>stmHeuteGeht(F,dom), spielShop:()=>stmSpielShop(F,dom) };
   let h='';
   for(let g=1; g<=5; g++){
     const ids=folge.filter(id=>STAT_GRUPPE[id]===g && aus.indexOf(id)<0); if(!ids.length) continue;
@@ -18005,6 +18019,40 @@ function stmAcwr(F,dom){
     const l=[]; for(let i=27;i>=0;i--) l.push(anVorTage(heuteApp(), i)); const by={}; F.alle.forEach(e=>by[e.datum]=e);
     let h='<div class="stm-dh">Last je Tag · Ampel gegen Tagesziel</div>'+tagesAmpelSaeulen(l, l.map(d=>by[d]?anPunkte(by[d],dom):0), l.map(d=>anZiel(dom,d)));
     try{ h+=anModACWR(F,dom); }catch(e){} return h; });
+}
+/* ══ §5 (v3.7.2) · Modul „Erholung" ══
+   Kopf: Erholungsminuten heute / Ziel (erholungZeitzielMin) als Ring · 14-Tage-Balken je Tag gestapelt nach Karte (Schlafen zählt
+   nicht mit) mit Linie beim Ziel · darunter je Tag Erholungspunkte (DFM/Privat) und die ACWR-Entlastung (Punkte × 0,5). */
+const ERH_FARBEN=[FARBE.GRUEN, '#ec4899', '#38bdf8', FARBE.GELB, FARBE.LILA, FARBE.ORANGE];
+function erholungTage(n){
+  const heute=heuteApp(), tage=[]; for(let i=n-1;i>=0;i--) tage.push(anVorTage(heute, i));
+  const je={}; tage.forEach(d=>{ je[d]={ min:{}, dfm:0, privat:0 }; });
+  const by={}; S.karten.forEach(k=>by[k.id]=k);
+  (S.intraday||[]).forEach(e=>{ if(!e || !e.ts || !e.erholung) return; const d=belFensterDatum(e.ts); if(!je[d]) return;
+    const k=e.kartenId ? by[e.kartenId] : null; if(k && k.rolle==='schlafen') return;
+    const m=Math.max(num(e.minuten), num(e.tickMin)); if(m>0){ const id=e.kartenId||'?'; je[d].min[id]=(je[d].min[id]||0)+m; }
+    if(num(e.punkte)>0) je[d][e.domaene==='dfm'?'dfm':'privat']+=num(e.punkte); });
+  return { tage, je };
+}
+function stmErholung(F,dom){
+  const ziel=Math.max(1, num(S.settings.erholungZeitzielMin,120)), E=erholungTage(14), heute=heuteApp(), h0=E.je[heute]||{min:{}, dfm:0, privat:0};
+  const minHeute=Object.keys(h0.min).reduce((a,k)=>a+h0.min[k],0), pHeute=h0.dfm+h0.privat;
+  const karten={}; E.tage.forEach(d=>{ Object.keys(E.je[d].min).forEach(id=>{ karten[id]=(karten[id]||0)+E.je[d].min[id]; }); });
+  const ids=Object.keys(karten).sort((a,b)=>karten[b]-karten[a]).slice(0,6), by={}; S.karten.forEach(k=>by[k.id]=k);
+  const farbe=id=>ERH_FARBEN[Math.max(0, ids.indexOf(id))%ERH_FARBEN.length], name=id=>by[id] ? String(by[id].titel||'?').slice(0,22) : 'andere';
+  const pct=Math.max(0, Math.min(100, minHeute/ziel*100));
+  const maxMin=Math.max(ziel, ...E.tage.map(d=>Object.keys(E.je[d].min).reduce((a,k)=>a+E.je[d].min[k],0)));
+  let haupt='<div class="erh-kopf"><div class="erh-ring" style="background:conic-gradient('+FARBE.GRUEN+' 0 '+pct.toFixed(1)+'%,#23262d '+pct.toFixed(1)+'% 100%)"><b>'+Math.round(minHeute)+'/'+ziel+'</b></div>'+
+    '<div><b>🌿 Erholung heute</b><div class="dia-zeile" style="margin:2px 0 0">'+Math.round(minHeute)+' Min · '+fmtP(Math.round(pHeute))+' P · entlastet ACWR um '+fmtP(Math.round(pHeute*0.5))+'</div></div></div>';
+  haupt+='<div class="erh-bars"><i class="z" style="bottom:'+(ziel/maxMin*90).toFixed(1)+'px"></i>'+E.tage.map(d=>{ const m=E.je[d].min;
+    return '<div class="col" title="'+d+'">'+Object.keys(m).map(id=>'<i style="height:'+(m[id]/maxMin*90).toFixed(1)+'px;background:'+farbe(id)+'"></i>').join('')+'</div>'; }).join('')+'</div>';
+  haupt+='<div class="an-legend erh-leg">'+ids.map(id=>'<span><i style="background:'+farbe(id)+'"></i>'+esc(name(id))+'</span>').join('')+'<span>– – '+ziel+' Min</span></div>';
+  const kpis=[ stKpi(Math.round(minHeute)+' Min','Erholung heute', FARBE.GRUEN), stKpi(fmtP(Math.round(pHeute)),'Erholungspunkte heute'), stKpi('−'+fmtP(Math.round(pHeute*0.5)),'ACWR-Entlastung heute') ];
+  return statModul('erholung','🌿 Erholung · 14 Tage', haupt, kpis, ()=>{
+    let h='<div class="stm-dh">Je Tag · Erholungspunkte DFM / Privat · ACWR-Entlastung (× 0,5)</div><div class="erh-tab">';
+    E.tage.slice().reverse().forEach(d=>{ const x=E.je[d], mn=Object.keys(x.min).reduce((a,k)=>a+x.min[k],0); if(!mn && !x.dfm && !x.privat) return;
+      h+='<div class="erh-tz"><span>'+esc(fmtDatum(d))+'</span><span>'+Math.round(mn)+' Min</span><span style="color:'+FARBE.BLAU+'">'+fmtP(Math.round(x.dfm))+'</span><span style="color:'+FARBE.LILA+'">'+fmtP(Math.round(x.privat))+'</span><span>−'+fmtP(Math.round((x.dfm+x.privat)*0.5))+'</span></div>'; });
+    return h+'</div>'; });
 }
 /* ══ Gruppe 5 · Spiel & Shop ══ */
 /* §4 Nr. 9 (v3.5.1): Rang ueber 8 Wochen — Linie WEISS, jeder Wochenpunkt gefuellt nach Wochentrend
