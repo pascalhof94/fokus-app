@@ -2660,7 +2660,7 @@ function logIntraday(k, o){
   if(num(o.tickMin)>0) e.tickMin=Math.round(num(o.tickMin)*10)/10;   // §1.1 (v3.2.0): Belegzeit eines Ticks ohne Uhr (keine Ist-Minuten)
   // §2.2/§5 (v3.2.0): woher die Buchung kommt — uhr · tick · abhaken · tagesabschluss · schlafen · korrektur
   e.quelle = o.quelle || (abschlussBuchungAktiv() && e.typ!=='schlaf' ? 'tagesabschluss' : logQuelleVonTyp(e.typ));
-  if(S.tag && S.tag.endeTs && !S.tag.geschlossenTs && !_abschlussBuchung) e.nachAbschluss=true;   // §2.4 (v3.2.0): Nachtrag
+  if(S.tag && S.tag.endeTs && !_abschlussBuchung) e.nachAbschluss=true;   // §2.4 (v3.2.0) · §6 (v3.7.2): Nachtrag bis „Aufstehen" 
   if(k && k.id && erholungAktiv(k)) e.erholung=true;   // §9a (v3.7.0): Erholungspunkte
   S.intraday.push(e);
   if(S.intraday.length>20000) S.intraday=S.intraday.slice(-20000);   // Sicherungskappe
@@ -8108,7 +8108,7 @@ function punkteleisteTeile(e){
 function renderStatusbar(){
   renderAmpelKurve();
   const bar=el('statusbar'); if(!bar) return;
-  if(!tagOffen()){ bar.hidden=true; return; }
+  if(!S.tag){ bar.hidden=true; return; }   // §6 (v3.7.2): nach dem Abschluss bleibt die Leiste — Werte des abgeschlossenen Tages inkl. Nachträge
   bar.hidden=false;
   try{
   const eb=energieBatterie();
@@ -8201,8 +8201,10 @@ function tagOffen(){ return !!(S.tag && !S.tag.endeTs); }
    nichts: Routinen und Counter bleiben tickbar, ihre Uhren startbar, gebucht
    wird auf denselben Tag. „Schlafen" schliesst ihn endgueltig (geschlossenTs)
    und zieht die Bilanz nach (Nachtrag). */
-function nachAbschluss(){ return !!(S.tag && S.tag.endeTs && !S.tag.geschlossenTs); }
-function tagBuchbar(){ return tagOffen() || nachAbschluss(); }
+/* §6 (v3.7.2): Tagesabschluss und Tagesstart sind ANKER, keine Sperren — alles nach dem Abschluss (auch nach „Schlafen") wird als
+   Nachtrag auf den abgeschlossenen Tag gebucht, bis „Aufstehen" den neuen Tag beginnt. Nur „Aufstehen" beginnt einen Tag. */
+function nachAbschluss(){ return !!(S.tag && S.tag.endeTs); }
+function tagBuchbar(){ return !!S.tag; }
 /* Heute erreichte Punkte (live, inkl. laufendem Timer) minus Schiebe-Abzüge. */
 /* A1: heutige Punkte EINER Domäne (erledigt heute + laufender Fokus dieser
    Domäne + Schiebe-Strafen dieser Domäne als negative Log-Einträge, A4). */
@@ -8534,7 +8536,10 @@ function sollStandGesamt(datum, stunde){ return sollStand('dfm',datum,stunde)+so
 function weIstDomain(dom){
   let s=Math.max(0, tagesPunkteDomain(dom));
   if(S.settings.weModus==='getrennt') return s;   // §2 (v3.1.0): getrennt = jeder Wochenendtag fuer sich (Entscheidung Pascal)
-  if(new Date().getDay()===0){ const sn=tagSnapshot(anVorTage(heuteApp(),1)); if(sn) s+=Math.max(0,snapPunkte(sn,dom)); }
+  // §6 (v3.7.2, Ursache des Vortags-Fehlers): der Sonntag wurde an der Geräte-Uhr erkannt — lief der App-Tag (Samstag) über
+  // Mitternacht oder war der neue Tag noch nicht per „Aufstehen" begonnen, zählte der Snapshot des App-Vortags (Freitag) dazu.
+  // Jetzt entscheidet allein der App-Tag: Sonntag (App) → Samstag-Snapshot dazu.
+  if(wochentagNr(heuteApp())===7){ const sn=tagSnapshot(anVorTage(heuteApp(),1)); if(sn) s+=Math.max(0,snapPunkte(sn,dom)); }
   return s;
 }
 /* Ziel und Ist des heutigen Rahmens (Werktag: Tag · WE: gemeinsames Budget). */
@@ -11339,7 +11344,7 @@ function zaehlerZeileHtml(k, opt){
   return h;
 }
 /* §2.4 (v3.2.0): Routinen und Counter bleiben nach dem Tagesabschluss buchbar — bis „Schlafen" */
-function routineBuchbar(k){ return tagOffen() || !!(nachAbschluss() && istRoutineOderCounter(k) && k.rolle!=='tagesabschluss'); }
+function routineBuchbar(k){ return tagOffen() || !!(nachAbschluss() && k && k.rolle!=='tagesabschluss'); }   // §6 (v3.7.2): nach dem Abschluss auch Aufgaben (Nachtrag)
 /* §2.1 (v3.2.0): −1 — den letzten Tick des Tages zuruecknehmen (Korrektur, v. a. im Tagesabschluss) */
 function tickZuruecknehmen(kid){
   const k=S.karten.find(x=>x.id===kid); if(!k || !routineBuchbar(k)) return false;
@@ -11785,7 +11790,7 @@ function aufstehenBestaetigen(akkuGefuehl, opt){
     const v=uhrzeitVorJetzt(opt.einschlafUm), bis=Date.parse(tapTs);
     if(Number.isFinite(v) && (bis-v)/60000>=SCHLAF_NACHT_MIN){ schlafNachtSetzen(v, bis, null, '', {neu:true, quelle:'nachgefragt'}); schlafPunkteBuchen(); nacht=schlafZustand().letzte; }
   }
-  if(nachAbschluss()) tagEndgueltigSchliessen();   // §2.4 (v3.2.0): ohne „Schlafen" schliesst das Aufstehen den Vortag
+  if(nachAbschluss()) tagEndgueltigSchliessen();   // §2.4 (v3.2.0) · §6 (v3.7.2): „Aufstehen" schliesst den Vortag endgueltig — auch Nachträge nach „Schlafen" ziehen nach
   const neu=!tagOffen();
   if(neu) tagStarten(akkuGefuehl==null ? prog : akkuGefuehl);
   else if(akkuGefuehl!=null) S.tag.akku=Math.round(num(akkuGefuehl));
@@ -12146,7 +12151,7 @@ function logGehoertZuTag(e, tag){
   const t=String(e.ts||'');
   // §2.4 (v3.2.0): der laufende Tag reicht nach dem Abschluss bis „Schlafen" (geschlossenTs) — sonst fielen
   // aeltere Eintraege ohne tagId nach dem Abschluss aus dem Tag, und der Abgleich buchte sie als Nachtrag
-  const ende=tag.geschlossenTs || ((tag===S.tag) ? null : tag.endeTs);
+  const ende=(tag===S.tag) ? null : (tag.geschlossenTs || tag.endeTs);   // §6 (v3.7.2): der laufende Tag reicht bis „Aufstehen"
   return !!(tag.startTs && t>=String(tag.startTs) && (!ende || t<=String(ende)));
 }
 /* Was eine Karte heute zur Bilanz beitraegt — inkl. ihrer Korrektur-Zeilen
@@ -20826,7 +20831,7 @@ function init(){
   // Statusleiste driftet mit der Zeit (Pace/Akku/Kauf-Hinweis) — auch ohne
   // laufenden Timer alle 20 s auffrischen, solange ein Tag offen ist.
   let _ruheTakt=0;
-  setInterval(()=>{ if(tagOffen() && !(S.fokus&&S.fokus.laeuft)){ renderStatusbar(); if(++_ruheTakt%3===0) diagrammeLive(); } }, 20000);   // §3 (v3.7.0): auch bei stehender Uhr jede Minute live (Matrixverlauf, Tagesdiagramme)
+  setInterval(()=>{ if(S.tag && !(S.fokus&&S.fokus.laeuft)){ renderStatusbar(); if(++_ruheTakt%3===0) diagrammeLive(); } }, 20000);   // §3 (v3.7.0): auch bei stehender Uhr jede Minute live (Matrixverlauf, Tagesdiagramme)
   window.addEventListener('resize', layoutTopbar);
   // §4 (v1.6.1): jede echte Interaktion stempeln — Taps, Ticks, Seitenwechsel
   // und Sichtbarkeitswechsel. Capture-Phase, damit nichts verlorengeht.
