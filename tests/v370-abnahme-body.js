@@ -236,8 +236,9 @@ ok('§8 die Buchung steht im Stunden-Log (Abhak-Punkte ohne Zeit) — Tagesbilan
 ok('§8 die Karte steht in keiner Liste, Kette, Leiste oder als Werkzeug-Vorschlag', karteVerborgen(pk) && !abhakLeisteKarten().some(function(k){ return k.id===pk.id; }) && !ketteKarten().some(function(k){ return k.id===pk.id; }) && !werkzeugKarten().some(function(k){ return k.id===pk.id; }) &&
    (function(){ var i2=kettenListeInhalt({ karte:null, filter:'' }); return Object.keys(i2).every(function(g2){ return gruppe(i2,g2).indexOf('k3-position')<0; }); })());
 ok('§8 per Paket setzbar (rolle position) — dann nutzt die App diese Karte', (imp([{ id:'pos-airtable', domain:P, titel:'Position gesetzt', rolle:'position', matrixFeld:'werkzeug' }]), kid('pos-airtable') && kid('pos-airtable').rolle==='position') && (S.karten=S.karten.filter(function(k){ return k.id!=='pos-airtable'; }), true));
-ok('§8 Tagebuch vollständig entfernt: Karte (rolle tagebuch verborgen), Knopf, Belohnung, Eintragsdialog, Matrix-Tipp', karteVerborgen({ rolle:'tagebuch' }) && typeof oeffneTagebuch==='undefined' && typeof renderTagebuch==='undefined' && typeof tagebuchSpeichern==='undefined' &&
-   typeof tagebuchAusMatrixKlick==='undefined' && src.indexOf('data-tagebuch=')<0 && src.indexOf('data-tbgo')<0 && !/data-tagebuch="1"/.test(src) && !/closest\('svg\.fb-mx\.klick'\)/.test(src));
+// §2 (v3.7.1): das Tagebuch ist zurueck — Dialog ueber die Matrix, Karte sichtbar (Ticks Privat), eigene Punkte 0; der alte Such-Knopf bleibt weg
+ok('§8 (v3.7.1) Tagebuch über die Matrix: Dialog, Matrix-Tipp und Karte k3-tagebuch (0 P, 0 Min); kein Such-Knopf', !karteVerborgen({ rolle:'tagebuch' }) && typeof oeffneTagebuch==='function' && typeof tagebuchSpeichern==='function' &&
+   typeof tagebuchAusMatrixKlick==='function' && /closest\('svg\.fb-mx\.klick'\)/.test(src) && !/data-tagebuch="1"/.test(src) && (function(){ var k=tagebuchKarte(true); return k.rolle==='tagebuch' && k.ticksAktiv===true && num(k.tickWert)===0 && num(k.tickMinuten)===0; })());
 S.tag.matrixSpur.push({ ts:jetztIso(), x:0.2, y:0.2, quelle:'tagebuch', anlass:'tagebuch', gedanke:'alt' });
 ok('§8 bestehende Tagebuch-Einträge bleiben in Historie und Export', syncExport('delta').matrixSpur.some(function(e){ return e.quelle==='tagebuch' && e.gedanke==='alt'; }));
 

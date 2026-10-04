@@ -1227,18 +1227,26 @@ S.tag.startTs=new Date(Date.now()-180*60000).toISOString();
 S.tag.matrixSpur=[ { ts:new Date(Date.now()-150*60000).toISOString(), x:0.6, y:-0.5 },      // Ziel
                    { ts:new Date(Date.now()-90*60000).toISOString(), x:0.5, y:0.5 } ];     // Werkzeug (bis jetzt: unbekannt)
 var z0=matrixZeitFelder();
-/* §8 (v3.7.0): das Tagebuch ist entfallen (Karte, Knopf, Dialog, Matrix-Tipp); bestehende Eintraege (quelle 'tagebuch')
-   bleiben in der Spur und zaehlen weiter in die Zeit je Feld. Jede beantwortete Positionsabfrage gibt jetzt Punkte (Staffel). */
-ok('§6 (v3.7.0) Tagebuch-Dialog, -Knopf und Matrix-Einstieg sind entfallen', typeof oeffneTagebuch==='undefined' && typeof tagebuchSpeichern==='undefined' &&
-   typeof renderTagebuch==='undefined' && src.indexOf('data-tagebuch=')<0 && src.indexOf('data-tbgo')<0 && stMatrixTag().indexOf('fb-mx klick')<0 && fbWasIchBewege(S.karten[0]).indexOf('fb-mx klick')<0);
-S.tag.matrixSpur.push({ ts:jetztIso(), x:-0.6, y:-0.6, kid:null, anlass:'tagebuch', quelle:'tagebuch', gedanke:'', wirkung:'', mittel:'', istGut:false, akku:70 });
+/* §2 (v3.7.1) · §9 (v3.7.2): das Tagebuch ist zurueck — Matrix-Tipp (Statusleiste, Fokus, Statistik) oeffnet den Dialog; Speichern
+   legt die Position in die Spur (quelle tagebuch), zaehlt in der Positionsstaffel und tickt die Karte „Tagebuch" (k3-tagebuch). */
+oeffneTagebuch(-0.6,-0.6);
+ok('§6 (v3.7.1) Tagebuch-Dialog mit Pad, drei Fragen und Akku; Matrix-Einstiege in Fokus und Statistik',
+   (function(){ var h=el('sheetBody').innerHTML; return h.indexOf('mxPad')>=0 && h.indexOf('tbGedanke')>=0 && h.indexOf('tbWirkung')>=0 && h.indexOf('data-tbgut="1"')>=0 && h.indexOf('mxAkku')>=0; })() &&
+   matrixTmp && matrixTmp.x===-0.6 && matrixTmp.y===-0.6 && stMatrixTag().indexOf('fb-mx klick')>=0 && fbWasIchBewege(S.karten[0]).indexOf('fb-mx klick')>=0);
+var pkVor=positionKarte(false) ? kartePunkteHeute(positionKarte(false)) : 0;
+tagebuchSpeichern();
+var tbE=S.tag.matrixSpur[S.tag.matrixSpur.length-1], tbK=tagebuchKarte(false);
+ok('§6 (v3.7.1) Eintrag mit Position, quelle „tagebuch"; Positionsstaffel gebucht; Karte „Tagebuch" tickt um 1 (0 P, 0 Min)', tbE.quelle==='tagebuch' && tbE.x===-0.6 &&
+   kartePunkteHeute(positionKarte(false))===pkVor+positionStaffel(S.tag.matrixSpur.filter(function(e){ return e.ts && !e.uebersprungen; }).length) &&
+   !!tbK && tbK.rolle==='tagebuch' && num(tbK.ticksHeute)===1 && kartePunkteHeute(tbK)===0 && num(tbK.istSek)===0);
 var z1=matrixZeitFelder();
 ok('§6 (v3.7.0) ein bestehender Tagebuch-Eintrag zaehlt weiter in die Zeit je Feld: Werkzeug '+Math.round(z0.felder.werkzeug)+' → '+Math.round(z1.felder.werkzeug)+' Min',
    Math.round(z0.felder.werkzeug)===0 && Math.round(z1.felder.werkzeug)===90 && Math.round(z1.unbekannt)===Math.round(z0.unbekannt)-90);
 ok('§6 (v3.7.0) Tagebuch-Punkte bleiben als Raute in der grossen Matrix', fbGrosseMatrix({klick:false}).svg.indexOf('tb-pt')>=0);
-ok('§6 (v3.7.0) Karten mit rolle tagebuch/position stehen in keiner Liste', (function(){ S.karten.push(neueKarte({id:'k3-tagebuch', domain:'privat', titel:'Tagebuch', rolle:'tagebuch', ticksAktiv:true, faelligkeit:H()}));
-   var i=kettenListeInhalt({karte:null, filter:''}); var drin=Object.keys(i).some(function(g){ return i[g].teile.some(function(t){ return t.karten.some(function(k){ return k.id==='k3-tagebuch'; }); }); });
-   var ab=abhakLeisteKarten().some(function(k){ return k.id==='k3-tagebuch'; }); S.karten.pop(); return !drin && !ab && karteVerborgen({rolle:'tagebuch'}) && karteVerborgen({rolle:'position'}); })());
+ok('§6 (v3.7.1) die Tagebuch-Karte steht in „Ticks Privat", „Position gesetzt" in keiner Liste', (function(){
+   var i=kettenListeInhalt({karte:null, filter:''}); var drin=i.ticksPrivat.teile.some(function(t){ return t.karten.some(function(k){ return k.id===tbK.id; }); });
+   var pos=Object.keys(i).some(function(g){ return i[g].teile.some(function(t){ return t.karten.some(function(k){ return k.rolle==='position'; }); }); });
+   return drin && !pos && !karteVerborgen({rolle:'tagebuch'}) && karteVerborgen({rolle:'position'}); })());
 renderStatistik();
 var sb=el('statistikBody').innerHTML;
 ok('§7 (v3.5.0 §5.1) Statistik beginnt mit Gruppe 1 · Heute: Der Tag vor Matrix heute', sb.indexOf('1 · Heute')>=0 && sb.indexOf('data-stmodul="tag"')<sb.indexOf('data-stmodul="matrixHeute"'));
@@ -1254,7 +1262,7 @@ ok('Nebenbefund: Statistik-Umschalter haben jetzt einen Handler', /el\('statisti
 kopf('v2.4.0 §11 · Tagebuch-Felder im Export');
 var ex=syncExport('delta'), sp=ex.matrixSpur;
 var tbx=sp.filter(function(e){ return e.quelle==='tagebuch'; });
-ok('§11 Delta trägt die bestehenden Tagebuch-Einträge weiter ('+tbx.length+'; §8 v3.7.0: Eintraege bleiben)', tbx.length===1);
+ok('§11 Delta trägt die Tagebuch-Einträge ('+tbx.length+'; v3.7.1: Dialog + bestehender Eintrag)', tbx.length===2);
 ok('§11 jeder Eintrag hat quelle/gedanke/wirkung/mittel/istGut/akku', sp.every(function(e){
   return typeof e.quelle==='string' && typeof e.gedanke==='string' && typeof e.wirkung==='string' &&
          typeof e.mittel==='string' && typeof e.istGut==='boolean' && ('akku' in e); }));
@@ -1265,7 +1273,7 @@ S.meta.letzterSyncBestaetigtTs=new Date(Date.now()-24*3600000).toISOString();
 tagAbschlussFinalisieren(); S.tag=null; tagStarten(70);
 var sp2=syncExport('delta').matrixSpur;
 ok('§11 nach Tageswechsel: unbestätigte Tagebuch-Einträge von gestern gehen im Delta mit',
-   sp2.filter(function(e){ return e.quelle==='tagebuch'; }).length===1);
+   sp2.filter(function(e){ return e.quelle==='tagebuch'; }).length===2);
 S.meta.letzterSyncBestaetigtTs=jetztIso();
 ok('§11 nach bestätigtem Sync nicht mehr', syncExport('delta').matrixSpur.filter(function(e){ return e.quelle==='tagebuch'; }).length===0);
 
