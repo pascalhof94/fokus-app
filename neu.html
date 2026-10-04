@@ -11978,7 +11978,7 @@ function tagEndgueltigSchliessen(){
   n.bilanzVorher=alt; n.bilanzNachher=neu;
   S.tag.nachtrag=n; S.tag.geschlossenTs=jetztIso();
   const h=(S.historie||[]).find(x=>x.tagId===S.tag.tagId);
-  if(h){ h.punkteBilanz=S.tag.punkteBilanz; h.spielZufluss=num(S.tag.spielZufluss); h.log=(S.tag.log||[]).slice();
+  if(h){ h.punkteBilanz=S.tag.punkteBilanz; h.spielZufluss=num(S.tag.spielZufluss); h.log=(S.tag.log||[]).slice(); h.aufgabenBonus=aufgabenBonusHeute();   // §4 (v3.7.2)
     h.nachtrag=n; h.geschlossenTs=S.tag.geschlossenTs; h.routinenAuswertung=S.tag.routinenAuswertung||h.routinenAuswertung; }
   if(n.anzahl){ if(!Array.isArray(S.meta.nachtraegeOffen)) S.meta.nachtraegeOffen=[];
     S.meta.nachtraegeOffen=S.meta.nachtraegeOffen.filter(x=>x.tagId!==S.tag.tagId).concat([Object.assign({ tagId:S.tag.tagId, datum:S.tag.datum }, n)]); }
@@ -15431,7 +15431,7 @@ function belohnungDaten(k, vor, anlass){
     akkuVor:vor.akku, akkuNach:nach.akku,
     tempo: min>=1 ? (anlass==='abhaken' ? zeitPunkte : punkte)/(min/60) : null, tempoSchnitt:g.tempoSchnitt,
     farbe: T ? { name:(tVor && tVor.farbe!=null && ausmalDaten(A.kulisse)) ? ausmalDaten(A.kulisse).namen[tVor.farbe] : 'Tank', hex:(tVor && tVor.farbe!=null && ausmalDaten(A.kulisse)) ? ausmalDaten(A.kulisse).hex[tVor.farbe] : FARBE.GRAU,
-      vor:Math.round(vor.topf/T*100), nach:Math.round(Math.max(vor.topf, topfNach)/T*100), tank:tankAktiv, tankVor:vor.tank, tankNach:nach.tank, w:Math.max(0, delta) } : null,
+      vor:Math.round(vor.topf/T*100), nach:Math.round(Math.max(vor.topf, topfNach)/T*100), tank:tankAktiv, tankVor:vor.tank, tankNach:nach.tank, w:Math.max(0, delta-(anlass==='abhaken' ? bonus : 0)) } : null,   // §4 (v3.7.2): Farbe nur aus dem Zeitanteil
     kontoVor:vor.konto, kontoNach:nach.konto, muenzen:Math.max(0, Math.round(nach.konto-vor.konto)), kaufbar,
     outfitVor:vor.outfit, outfitNach:nach.outfit, kulisse:A.kulisse,
     faktor:matrixFaktor(k), nk:nach.nk };
@@ -16616,10 +16616,17 @@ function ausmalState(){
 }
 function ausmalEinst(){ const e=(S.settings && S.settings.ausmalen)||{}; return { topfLeerAnteil:num(e.topfLeerAnteil,0.02)||0.02, topfAufschlag:num(e.topfAufschlag,1.2)||1.2, zoomDoppeltipp:num(e.zoomDoppeltipp,2.5)||2.5, bannerSek:num(e.bannerSek,8)||8 }; }
 /* W = Summe der nicht-negativen Tagesbilanzen seit dem Reset (heute live) */
+/* §4 (v3.7.2): der Abhakbonus einer AUFGABE erzeugt keine Farbe — nur der Zeitanteil (Münzen und Tagespunkte unverändert).
+   Heute: Summe der Boni aller heute abgehakten Aufgaben; abgeschlossene Tage tragen sie als h.aufgabenBonus (additiv). */
+function aufgabenBonusHeute(){
+  const tid=aktuelleTagId(); let b=0;
+  S.karten.forEach(k=>{ if(k && k.status==='erledigt' && k.tagId===tid && istAufgabeKarte(k)) b+=Math.max(0, num(abhakbonusDefault(k))); });
+  return b;
+}
 function ausmalW(){
   const ab=(S.meta && S.meta.reset35 && S.meta.reset35.ts) ? String(S.meta.reset35.ts).slice(0,10) : '';
-  let w=0; (S.historie||[]).forEach(h=>{ if(h && !h.luecke && h.datum && h.datum>=ab) w+=Math.max(0, num(h.punkteBilanz)); });
-  if(tagOffen() && S.tag.datum>=ab){ const r=S.meta.reset35, lo=(r && r.tagId===aktuelleTagId()) ? num(r.liveOffset) : 0; w+=Math.max(0, Math.max(0, tagesPunkteLive())-lo); }
+  let w=0; (S.historie||[]).forEach(h=>{ if(h && !h.luecke && h.datum && h.datum>=ab) w+=Math.max(0, num(h.punkteBilanz)-num(h.aufgabenBonus)); });
+  if(tagOffen() && S.tag.datum>=ab){ const r=S.meta.reset35, lo=(r && r.tagId===aktuelleTagId()) ? num(r.liveOffset) : 0; w+=Math.max(0, Math.max(0, tagesPunkteLive())-lo-aufgabenBonusHeute()); }
   return w;
 }
 /* §2 (v3.6.1): die EINE Zahl für „Farbe" in der Oberfläche — gesamte Farbe seit dem Reset inkl. heute live (= wohlstandSeitReset
