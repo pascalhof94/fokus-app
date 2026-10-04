@@ -16731,6 +16731,21 @@ function offeneFarben(){
   const st=ausmalStand();
   return D.hex.map((hex,i)=>({ i, hex, name:D.namen[i], n:st.offenJeFarbe[i]||0 })).filter(f=>f.n>0);
 }
+/* §2/§3 (v3.7.2): offener Bedarf einer Farbe = Summe feldPunkte aller ungemalten Felder dieser Farbe − Summe punkte aller Töpfe
+   mit dieser Farbe; „gedeckt" = Bedarf ≤ 0. Der Tank zählt nie dagegen. */
+function farbBedarf(c){
+  const A=ausmalState(), D=ausmalDaten(A.kulisse); if(!D || c==null) return 0;
+  let b=0; (D.json.felder||[]).forEach(f=>{ if(f.farbe===c && A.gefaerbt.indexOf(f.feld)<0) b+=num(D.punkte[f.feld])||1; });
+  A.toepfe.forEach(t=>{ if(t.farbe===c) b-=num(t.punkte); });
+  return b;
+}
+function farbeGedeckt(c){ return farbBedarf(c)<=0; }
+/* die Farbe mit dem größten offenen Bedarf (bei Gleichstand die erste in Stationsreihenfolge); null, wenn keine offen */
+function farbeGroessterBedarf(){
+  const A=ausmalState(), D=ausmalDaten(A.kulisse); if(!D) return null;
+  let best=null, bw=0; D.hex.forEach((h,i)=>{ const b=farbBedarf(i); if(b>bw){ bw=b; best=i; } });
+  return best;
+}
 /* §4b (v3.7.0): Fassung je Farbe = größtes offenes Feld dieser Farbe × topfAufschlag (ohne offenes Feld: die Topf-Fassung) */
 function topfFassungFarbe(c){
   const A=ausmalState(), D=ausmalDaten(A.kulisse); if(!D) return null;
@@ -16938,16 +16953,35 @@ function ausmalKulisseWechsel(){
   try{ const sc=document.querySelector('.mal-scene'); if(sc){ sc.classList.add('wechsel'); setTimeout(()=>{ renderBelohnung(); }, 600); } else renderBelohnung(); }catch(e){ renderBelohnung(); }
   try{ momentKulisse(von, von+1); }catch(e){}
 }
-/* §4c (v3.7.0): beim Wechsel werden die 5 Töpfe mit 5 verschiedenen Farben der neuen Kulisse voll befüllt (Fassung nach
-   Topf-Regel) — ein Geschenk der Spiel-Ebene, nicht von der Farbe abgezogen. Braucht die Kulissendaten; bis sie geladen sind,
-   merkt ausmalen.geschenkOffen die Kulisse. */
+/* §2 (v3.7.2): beim Wechsel wird EIN Topf voll befüllt (Fassung nach Topf-Regel) — ein Geschenk der Spiel-Ebene, nicht von der
+   Farbe abgezogen. Farbe = die mit dem größten offenen Bedarf der neuen Kulisse; Pascal kann sie im Farbwahl-Dialog ändern
+   (nicht überspringbar). Braucht die Kulissendaten; bis sie geladen sind, merkt ausmalen.geschenkOffen die Kulisse. */
 function kulissenGeschenkNachholen(){
   const A=ausmalState(); if(A.geschenkOffen==null || num(A.geschenkOffen)!==A.kulisse){ if(A.geschenkOffen!=null && num(A.geschenkOffen)!==A.kulisse){ delete A.geschenkOffen; saveMeta(); } return false; }
   const D=ausmalDaten(A.kulisse), T=topfFassung(); if(!D || !T) return false;
-  const farben=offeneFarben().slice(0,5);
-  A.toepfe.forEach((t,i)=>{ if(t.punkte>0) topfRestInTank(A, t); const f=farben[i]; if(f){ t.farbe=f.i; t.punkte=T; t.bannerGezeigt=true; } });
-  A.aktiverTopf=0; A.stationFarbe=farben.length ? farben[0].i : null; delete A.geschenkOffen;
-  _ausmalKompositKey=''; saveMeta(); return true;
+  A.toepfe.forEach(t=>{ if(t.punkte>0) topfRestInTank(A, t); t.farbe=null; t.punkte=0; t.bannerGezeigt=false; });
+  const c=farbeGroessterBedarf(); const c0=c!=null ? c : 0;
+  A.toepfe[0]={ farbe:c0, punkte:T, bannerGezeigt:true };
+  A.aktiverTopf=0; A.stationFarbe=c0; delete A.geschenkOffen;
+  _ausmalKompositKey=''; saveMeta();
+  farbwahlZeigen('Geschenk: ein Topf voll Farbe — Farbe wählen', c0, w=>{ if(w!=null && w!==A.toepfe[0].farbe){ A.toepfe[0].farbe=w; A.stationFarbe=w; _ausmalKompositKey=''; saveMeta(); renderBelohnung(); } });
+  return true;
+}
+/* §2 (v3.7.2): Farbwahl-Dialog — dieselbe Auswahl wie beim Kauf (Farbpunkt · Name · offene Felder), nicht überspringbar, „Weiter" */
+function farbwahlZeigen(titel, vorgabe, danach){
+  if(typeof document==='undefined' || !document.body || !document.body.appendChild){ if(danach) danach(vorgabe); return; }
+  const farben=offeneFarben(); if(!farben.length){ if(danach) danach(vorgabe); return; }
+  let wahl=farben.some(f=>f.i===vorgabe) ? vorgabe : farben[0].i;
+  const alt=el('belAnsicht'); if(alt && alt.remove) alt.remove();
+  const ov=document.createElement('div'); ov.id='belAnsicht'; ov.className='bel-ansicht kauf farbwahl';
+  const name=i=>{ const f=farben.find(x=>x.i===i); return f ? f.name+' · '+f.n+' Feld'+(f.n===1?'':'er')+' offen' : ''; };
+  ov.innerHTML='<div class="w kb"><div class="st kb-kopf" style="animation-delay:0.1s">'+esc(titel)+'</div>'+
+    '<div class="st t kb-farbe" style="animation-delay:0.3s"><span>Farbe wählen</span><div class="mal-farben kb-farben">'+farben.map(f=>'<button class="mal-farbe'+(f.i===wahl?' on':'')+'" data-kbfarbe="'+f.i+'" aria-label="'+esc(f.name)+'"><i style="background:'+f.hex+'"></i><span>'+f.n+'</span></button>').join('')+'</div>'+
+    '<span class="gls kb-farbname">'+esc(name(wahl))+'</span></div><button class="skip kb-weiter" data-belweiter="1">Weiter</button></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e=>{ const b=e.target.closest('[data-kbfarbe]'); if(!b) return; e.stopPropagation(); wahl=num(b.dataset.kbfarbe);
+    ov.querySelectorAll('[data-kbfarbe]').forEach(x=>x.classList.toggle('on', num(x.dataset.kbfarbe)===wahl)); const n=ov.querySelector('.kb-farbname'); if(n) n.textContent=name(wahl); });
+  const w=ov.querySelector('[data-belweiter]'); if(w) w.addEventListener('click', e=>{ e.stopPropagation(); if(!ov.parentNode) return; ov.remove(); if(danach){ try{ danach(wahl); }catch(x){} } });
 }
 /* ── §6.5 · Banner „Topf voll" ── */
 function ausmalBanner(idx){
