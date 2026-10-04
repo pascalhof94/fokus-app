@@ -3945,6 +3945,7 @@ function ladeAlles(){
   // §2 (v3.6.0): Shop neu — einmalige Übernahme (Stufen 0, Münzen-Gutschrift, Sicherung shop360_bak)
   if(!S.meta.shop360){ try{ shop360Durchfuehren(); }catch(e){ S.meta.shop360={ ts:jetztIso(), fehler:String(e&&e.message||e) }; saveMeta(); } }
   try{ feldkarten353Start(); }catch(e){}   // §5 (v3.5.3): Ausmal-Stand auf neue Feldkarten uebernehmen (ruht, solange FELDKARTEN_353 = false)
+  try{ kulissenReparaturPruefen(); }catch(e){}   // §1 (v3.7.2): fertige Kulisse mit gesperrter nächster → sofort frei und Wechsel
   // v1.1: additive Tag-/Fokus-Felder auf Altdaten nachziehen (Migrationspfad)
   if(S.tag){ if(!S.tag.log) S.tag.log=[]; if(!S.tag.akkuVerlauf) S.tag.akkuVerlauf=[];
              if(!S.tag.istMinutenStart) S.tag.istMinutenStart={};
@@ -16700,6 +16701,7 @@ function ausmalDaten(n){
         K.topFarben=Object.keys(fl).sort((x,y)=>fl[y]-fl[x]).slice(0,2).map(i=>K.hex[num(i)]||FARBE.GOLD);
         while(K.topFarben.length<2) K.topFarben.push(K.topFarben[0]||FARBE.GOLD);
         try{ kulissenGeschenkNachholen(); }catch(e){}   // §4c (v3.7.0)
+        try{ kulissenReparaturPruefen(); }catch(e){}   // §1 (v3.7.2)
         try{ if(S.ui.tab==='belohnung') renderBelohnung(); }catch(e){}
       }).catch(()=>{ _kul[n].laedt=false; }); } }
   return null;
@@ -16750,9 +16752,10 @@ function farbeSchenken(c, menge){
 /* Stand: Freischaltung, Anteil, offene Felder je Farbe */
 function ausmalStand(){
   const A=ausmalState(), W=ausmalW(), D=ausmalDaten(A.kulisse);
-  let frei=1; for(let k=2;k<=10;k++){ if(W>=bgSchwelle(k)-bgSchwelle(1)) frei=k; }
-  A.freigeschaltetBis=Math.max(num(A.freigeschaltetBis,1), frei);
   const felder=D ? (D.json.felder||[]).length : 0, gef=A.gefaerbt.length;
+  // §1 (v3.7.2): die Farb-Schwelle (bgSchwelle) entscheidet NICHTS mehr über die Freischaltung — eine fertig gemalte Kulisse
+  // schaltet die nächste sofort frei (Kulisse 10 bleibt die letzte); bgSchwelle bleibt nur für Anzeigen
+  A.freigeschaltetBis=Math.max(num(A.freigeschaltetBis,1), (felder>0 && gef>=felder) ? Math.min(10, A.kulisse+1) : 1);
   const offenJeFarbe={}; if(D) (D.json.felder||[]).forEach(f=>{ if(A.gefaerbt.indexOf(f.feld)<0) offenJeFarbe[f.farbe]=(offenJeFarbe[f.farbe]||0)+1; });
   return { kulisse:A.kulisse, W, freigeschaltetBis:A.freigeschaltetBis, naechsteFrei: A.freigeschaltetBis<10 ? bgSchwelle(A.freigeschaltetBis+1)-bgSchwelle(1) : null,
     aktFrei: A.freigeschaltetBis>1 ? bgSchwelle(A.freigeschaltetBis)-bgSchwelle(1) : 0,
@@ -16879,9 +16882,23 @@ function kulisseAbschliessen(){
   const d=kulisseKennzahlen(n);
   A.kulissenFertig.push({ kulisse:n, ts:jetztIso(), tage:d.tage, farbe:d.farbe, fokusMin:d.fokusMin, felder:d.felder });
   if(A.fertig.indexOf(n)<0) A.fertig.push(n);
+  A.freigeschaltetBis=Math.max(num(A.freigeschaltetBis,1), Math.min(10, n+1));   // §1 (v3.7.2): sofort frei
   saveMeta();
   kulisseBelohnungZeigen(d, ()=>{ kulissenWechselPruefen(); });
   return true;
+}
+/* §1 (v3.7.2): Bestand reparieren — ist die aktuelle Kulisse fertig gemalt und die nächste noch gesperrt, wird sie einmalig
+   freigeschaltet und gewechselt (ohne Rückfrage, Toast). Läuft beim Start und sobald die Kulissendaten geladen sind. */
+let _kulRepariert={};
+function kulissenReparaturPruefen(){
+  const A=ausmalState(); if(A.kulisse>=10 || _kulRepariert[A.kulisse]) return false;
+  const st=ausmalStand(); if(!st.fertig) return false;
+  _kulRepariert[A.kulisse]=true;
+  if(A.fertig.indexOf(A.kulisse)<0) A.fertig.push(A.kulisse);
+  if(!A.kulissenFertig.some(e=>e && num(e.kulisse)===A.kulisse)){ const d=kulisseKennzahlen(A.kulisse); A.kulissenFertig.push({ kulisse:A.kulisse, ts:jetztIso(), tage:d.tage, farbe:d.farbe, fokusMin:d.fokusMin, felder:d.felder }); }
+  A.freigeschaltetBis=Math.max(num(A.freigeschaltetBis,1), A.kulisse+1); saveMeta();
+  const neu=A.kulisse+1; ausmalKulisseWechsel();
+  toast('Kulisse '+neu+' freigeschaltet'); return true;
 }
 function kulisseBelohnungHtml(d){
   const slots=[0.15,0.5,1.1,1.7,2.3,2.9]; let si=0; const slot=()=>slots[Math.min(si++, slots.length-1)];
