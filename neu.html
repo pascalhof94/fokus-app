@@ -17435,8 +17435,9 @@ function suFrage(){ return String(S.ui.suFrage||'').trim(); }
 /* ══ §4 (v3.7.6) · SUCH-EBENE ÖFFNEN / SCHLIESSEN ═══════════════════════════════════════
    Die Suche ist keine Ansicht (kein Tab) mehr: sucheOeffnen() legt die Ebene über die aktuelle Ansicht, sucheSchliessen()
    leert das Feld und nimmt sie weg. Tastatur „Fertig" schliesst nur die Tastatur. */
+let _suOffen=false;   // Zustand der Such-Ebene (Quelle fuer sucheOffen(); die body-Klasse ist nur die Darstellung)
 function sucheOeffnen(){
-  document.body.classList.add('suOffen');
+  _suOffen=true; document.body.classList.add('suOffen');
   const v=el('v-suche'); if(v){ try{ v.scrollTop=0; }catch(e){} }
   renderSuche();
   const f=el('suFreitext'); if(f){ try{ f.focus({preventScroll:true}); }catch(e){} }
@@ -17445,9 +17446,9 @@ function sucheSchliessen(){
   S.ui.suFrage=''; const f=el('suFreitext'); if(f) f.value=''; saveUi();
   renderSuche();
   if(f){ try{ f.blur(); }catch(e){} }
-  document.body.classList.remove('suOffen');
+  _suOffen=false; document.body.classList.remove('suOffen');
 }
-function sucheOffen(){ return !!(document.body && document.body.classList && document.body.classList.contains('suOffen')); }
+function sucheOffen(){ return _suOffen; }
 function setTab(tab, opt){
   // §4 (v3.7.6): 'suche' ist keine Ansicht — explizite Navigation öffnet die Such-Ebene über der aktuellen Ansicht, S.ui.tab bleibt;
   // die internen Start-Wege („Karte gestartet, Grundseite bleibt", opt.fokusLassen) öffnen sie NICHT (die Karte liegt im Fokus-Layer)
