@@ -2265,6 +2265,16 @@ img.objimg.laedt{opacity:0}
 .bel-ansicht .kb-farbe .mal-farbe{width:34px;gap:4px;color:#e8e9ec;font-size:11.5px;font-weight:650}
 .bel-ansicht .kb-farbe .mal-farbe i{width:24px;height:24px;border:1.5px solid #c9ccd2;box-sizing:border-box}
 .bel-ansicht .kb-farbe .mal-farbe.on i{box-shadow:0 0 0 3px #000,0 0 0 5px #fff}
+/* §3 (v3.7.2): Ausgabe (Schlitten über dem aktiven Topf, 400 ms ease) und Tank-Zeile im Malmodus */
+.mal-ausgabe{position:relative;height:46px;margin:2px 0 4px}
+.mal-schlitten{position:absolute;top:4px;width:56px;height:16px;border-radius:6px;background:#3a4050;transition:left .4s ease}
+.mal-strahl{position:absolute;top:16px;left:25px;width:6px;height:0;border-radius:3px;transition:height .25s ease}
+.mal-strahl.an{height:26px}
+.mal-tankzeile{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:12px}
+.mal-tankzeile .t{color:#9a9ca2}
+.mal-tankzeile .w{font-weight:700;font-variant-numeric:tabular-nums;color:#e8e9ec}
+.mal-tankbar{flex:1;height:14px;border-radius:7px;background:#23262d;overflow:hidden}
+.mal-tankbar i{display:block;height:100%;background:linear-gradient(90deg,#7c6f9b,#8a7a5b,#5b7a8a)}
 /* §4c (v3.7.0): Kulissen-Belohnungsansicht — fertige Kulisse mit Avatar, Tipp blendet den Avatar ein/aus */
 .bel-ansicht.kulisse{background:radial-gradient(circle at 50% 22%,#102a1a,#000 62%)}
 .bel-ansicht .kul-bild{position:relative;margin:8px 0 10px;border-radius:14px;overflow:hidden;aspect-ratio:1200/669;background:#111;cursor:pointer}
@@ -16616,7 +16626,8 @@ function ausmalW(){
    des Exports); der alte Lebenswerk-Wert wird nirgends mehr angezeigt */
 function farbeGesamt(){ return Math.round(ausmalW()); }
 function ausmalExport(){ const A=ausmalState(); return { kulisse:A.kulisse, gefaerbt:A.gefaerbt.slice(), toepfe:A.toepfe.map(t=>({farbe:t.farbe, punkte:Math.round(num(t.punkte))})), aktiverTopf:A.aktiverTopf, stationFarbe:A.stationFarbe, tank:Math.round(num(A.tank)), wohlstandSeitReset:Math.round(ausmalW()), freigeschaltetBis:A.freigeschaltetBis, fertig:A.fertig.slice(),
-  kulissenStart:Object.assign({}, A.kulissenStart), kulissenFertig:A.kulissenFertig.map(e=>Object.assign({}, e)), malTage:A.malTage.slice() }; }   // §4c (v3.7.0): additiv
+  kulissenStart:Object.assign({}, A.kulissenStart), kulissenFertig:A.kulissenFertig.map(e=>Object.assign({}, e)), malTage:A.malTage.slice(),
+  tankVerkauf:(A.tankVerkauf||[]).map(e=>Object.assign({}, e)) }; }   // §4c (v3.7.0) · §3 (v3.7.2): additiv
 function ausmalKorrektur(o){
   const A=ausmalState();
   if(o.kulisse!=null) A.kulisse=Math.max(1, Math.min(10, num(o.kulisse,1)));
@@ -16632,6 +16643,7 @@ function ausmalKorrektur(o){
   if(o.kulissenStart && typeof o.kulissenStart==='object') A.kulissenStart=Object.assign({}, o.kulissenStart);
   if(Array.isArray(o.kulissenFertig)) A.kulissenFertig=o.kulissenFertig.filter(e=>e && typeof e==='object').map(e=>Object.assign({}, e));
   if(Array.isArray(o.malTage)) A.malTage=o.malTage.map(String).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d));
+  if(Array.isArray(o.tankVerkauf)) A.tankVerkauf=o.tankVerkauf.filter(e=>e && typeof e==='object').map(e=>Object.assign({}, e));   // §3 (v3.7.2)
   _ausmalKompositKey=''; saveMeta();
 }
 /* §9.4 (v3.5.0): der einmalige Reset — mit Sicherung in der Datenbank (reset35_bak) */
@@ -16793,31 +16805,44 @@ function topfCountdown(){
 function topfLeer(t){ const T=topfFassung(); return !t || (T ? num(t.punkte)<ausmalEinst().topfLeerAnteil*T : num(t.punkte)<=0); }
 function topfRestInTank(A, t){ if(num(t.punkte)>0) A.tank=num(A.tank)+num(t.punkte); t.punkte=0; t.farbe=null; t.bannerGezeigt=false; }
 function ausmalAlleVoll(){ const A=ausmalState(); return !!topfFassung() && A.toepfe.every(topfVoll); }
-/* §6.4 · Zufluss: jeder Wohlstand-Zufluss fuellt den aktiven Topf; voll → Banner, naechster leerer Topf rueckt nach; keiner leer → Tank */
-let _ausmalSaveTs=0;
+/* ══ §3 (v3.7.2) · FARBAUSGABE: STATION · AUSGABE · TÖPFE · TANK ══════════════════════════════════
+   Station = immer genau eine Farbe (stationFarbe nie null; beim Start/Wechsel die Farbe mit dem größten offenen Bedarf).
+   Ausgabe = der Schlitten über dem aktiven Topf. Zufluss: in den Topf unter der Ausgabe, solange er nicht voll und die
+   Stationsfarbe nicht gedeckt ist (ein leerer Topf übernimmt die Stationsfarbe) · Topf voll → nächster leerer Topf von links ·
+   Stationsfarbe gedeckt → Station springt zur nächsten offenen Farbe (größter Bedarf), Ausgabe zum Topf dieser Farbe, sonst
+   zum nächsten leeren · kein Topf verfügbar → Tank (verringert keinen Bedarf) · keine Farbe offen → Tank. Aus dem Tank fließt
+   nichts zurück. */
+let _ausmalSaveTs=0, _ausmalZuflussTs=0;
+function stationSichern(){
+  const A=ausmalState(), D=ausmalDaten(A.kulisse); if(!D) return A.stationFarbe;
+  if(A.stationFarbe==null || farbeGedeckt(A.stationFarbe)){ const n=farbeGroessterBedarf(); if(n!=null) A.stationFarbe=n; else if(A.stationFarbe==null) A.stationFarbe=0; }
+  return A.stationFarbe;
+}
+/* Ausgabe zum passenden Topf fahren: Topf mit der Farbe c (nicht voll), sonst nächster leerer von links; -1 = keiner */
+function ausgabeZielTopf(c){
+  const A=ausmalState();
+  let i=A.toepfe.findIndex(t=>t.farbe===c && !topfVoll(t)); if(i<0) i=A.toepfe.findIndex(t=>t.farbe==null && num(t.punkte)<=0);
+  return i;
+}
 function ausmalVerteilen(){
   const A=ausmalState(), T=topfFassung(); if(!T) return;
   const W=Math.floor(ausmalW()); let delta=W-num(A.verteilt); if(delta<=0) return;
-  let geaendert=false, vollEreignis=false, autoFarbe=false;
-  // §4c (v3.7.0): ein Topf, dessen Farbe keine offenen Felder mehr hat, nimmt nichts auf — die Farbe geht in einen leeren Topf
-  // mit einer offenen Farbe (Stationsfarbe, wenn offen, sonst die erste offene in Stationsreihenfolge); keiner frei → Tank
-  const offenJe=ausmalStand().offenJeFarbe, farbeOffen=c=>c!=null && (offenJe[c]||0)>0, ersteOffene=()=>{ const f=offeneFarben(); return f.length ? f[0].i : null; };
-  for(let guard=0; delta>0 && guard<12; guard++){
+  let geaendert=false, vollEreignis=false;
+  stationSichern();
+  for(let guard=0; delta>0 && guard<16; guard++){
+    const c=A.stationFarbe;
+    if(c==null || farbeGedeckt(c)){
+      const n=farbeGroessterBedarf();
+      if(n==null){ A.tank=num(A.tank)+delta; delta=0; geaendert=true; break; }   // keine Farbe offen → Tank
+      A.stationFarbe=n; const z=ausgabeZielTopf(n); if(z<0){ A.tank=num(A.tank)+delta; delta=0; geaendert=true; break; }
+      A.aktiverTopf=z; continue;
+    }
     const t=A.toepfe[A.aktiverTopf];
-    if(t.farbe==null && !topfVoll(t)){
-      if(A.stationFarbe==null && !autoFarbe){ A.tank=num(A.tank)+delta; delta=0; geaendert=true; break; }   // keine Farbe gewaehlt → Tank
-      t.farbe=farbeOffen(A.stationFarbe) ? A.stationFarbe : ersteOffene(); autoFarbe=false;
-      if(t.farbe==null){ A.tank=num(A.tank)+delta; delta=0; geaendert=true; break; }   // keine offene Farbe mehr → Tank
-    }
-    if(topfVoll(t) || !farbeOffen(t.farbe)){
-      const leerIdx=A.toepfe.findIndex((x,i)=>i!==A.aktiverTopf && x.farbe==null && x.punkte<=0 && !topfVoll(x));
-      if(leerIdx>=0){ A.aktiverTopf=leerIdx; autoFarbe=!farbeOffen(t.farbe); continue; }
-      A.tank=num(A.tank)+delta; delta=0; geaendert=true; break;
-    }
-    const frei=T-t.punkte, add=Math.min(frei, delta); t.punkte+=add; delta-=add; geaendert=true;
-    if(t.punkte>=T){ t.punkte=T; vollEreignis=true; if(!t.bannerGezeigt){ t.bannerGezeigt=true; try{ ausmalBanner(A.aktiverTopf); }catch(e){} }
-      const leerIdx=A.toepfe.findIndex((x,i)=>i!==A.aktiverTopf && x.farbe==null && x.punkte<=0);
-      if(leerIdx>=0) A.aktiverTopf=leerIdx; else if(delta>0){ A.tank=num(A.tank)+delta; delta=0; } }
+    if(t.farbe==null && num(t.punkte)<=0) t.farbe=c;   // leerer Topf übernimmt die Stationsfarbe
+    if(t.farbe!==c || topfVoll(t)){ const z=ausgabeZielTopf(c); if(z<0){ A.tank=num(A.tank)+delta; delta=0; geaendert=true; break; } A.aktiverTopf=z; continue; }
+    const add=Math.min(T-num(t.punkte), delta, Math.max(0, farbBedarf(c))); if(add<=0){ A.tank=num(A.tank)+delta; delta=0; geaendert=true; break; }
+    t.punkte=num(t.punkte)+add; delta-=add; geaendert=true; _ausmalZuflussTs=Date.now();
+    if(t.punkte>=T-1e-9){ t.punkte=T; vollEreignis=true; if(!t.bannerGezeigt){ t.bannerGezeigt=true; try{ ausmalBanner(A.aktiverTopf); }catch(e){} } }
   }
   A.verteilt=W; A.wohlstandSeitReset=W;
   if(geaendert && (vollEreignis || Date.now()-_ausmalSaveTs>15000)){ _ausmalSaveTs=Date.now(); saveMeta(); }
@@ -16830,22 +16855,30 @@ function kulissenWechselPruefen(){
   if(typeof setTimeout!=='function'){ ausmalKulisseWechsel(); return; }
   _kwTimer=setTimeout(()=>{ _kwTimer=null; try{ const B=ausmalState(); if(B.fertig.indexOf(B.kulisse)>=0 && B.freigeschaltetBis>B.kulisse) ausmalKulisseWechsel(); }catch(e){} }, 0);
 }
-/* Topf unter die Station stellen (Tank fliesst zuerst hinein) */
+/* §3 (v3.7.2): Topf antippen = die Ausgabe fährt dorthin; trägt der Topf eine Farbe, zeigt die Station sie; ein leerer Topf
+   behält seine Leere (übernimmt die Stationsfarbe erst beim Zufluss). Aus dem Tank fließt nichts mehr in Töpfe. */
 function topfUnterStation(idx){
   const A=ausmalState(), t=A.toepfe[idx]; if(!t) return false;
-  if(t.farbe!=null && A.stationFarbe!=null && t.farbe!==A.stationFarbe && topfLeer(t)) topfRestInTank(A, t);   // §5 (v3.5.4): gilt als leer → uebernimmt die Stationsfarbe
-  if(t.farbe!=null && A.stationFarbe!=null && t.farbe!==A.stationFarbe){ A.stationFarbe=t.farbe; }
-  if(t.farbe==null && A.stationFarbe!=null) t.farbe=A.stationFarbe;
   A.aktiverTopf=idx;
-  const T=topfFassung(); if(T && num(A.tank)>0 && t.farbe!=null){ const add=Math.min(T-t.punkte, num(A.tank)); if(add>0){ t.punkte+=add; A.tank=num(A.tank)-add; } }
+  if(t.farbe!=null && num(t.punkte)>0) A.stationFarbe=t.farbe;
   saveMeta(); return true;
 }
+/* §3 (v3.7.2): Farbe oben wählen = die Station zeigt sie, die Ausgabe fährt zum Topf dieser Farbe (nicht voll), sonst zum
+   nächsten leeren; gibt es keinen, bleibt die Ausgabe stehen (Zufluss ginge in den Tank) */
 function stationFarbeWaehlen(c){
-  const A=ausmalState(), t=A.toepfe[A.aktiverTopf], D=ausmalDaten(A.kulisse);
-  if(t.farbe!=null && t.farbe!==c && t.punkte>0){
-    if(topfLeer(t)) topfRestInTank(A, t);   // §5 (v3.5.4): unter 2 % wechselt der Topf ohne Auskippen, der Rest geht in den Tank
-    else { toast('Topf ist '+(D?D.namen[t.farbe]:'belegt')+' — erst leeren oder Topf wechseln'); return false; } }
-  A.stationFarbe=c; if(t.farbe!=null && t.punkte<=0) t.farbe=c; if(t.farbe==null) t.farbe=c; saveMeta(); return true;
+  const A=ausmalState(); if(c==null) return false;
+  A.stationFarbe=c; const z=ausgabeZielTopf(c); if(z>=0) A.aktiverTopf=z;
+  saveMeta(); return true;
+}
+/* §3 (v3.7.2): Tank verkaufen — 0,5 Münzen je Farbpunkt (abgerundet), Tank danach 0; Export additiv ausmalen.tankVerkauf[] */
+function tankVerkaufen(){
+  const A=ausmalState(), farbe=Math.floor(num(A.tank)), muenzen=Math.floor(farbe*0.5);
+  if(farbe<=0){ toast('Der Tank ist leer'); return false; }
+  if(!confirm('Tank verkaufen: '+fmtP(farbe)+' Farbe → '+fmtP(muenzen)+' Münzen?')) return false;
+  S.meta.muenzenGesamt=num(S.meta.muenzenGesamt)+muenzen;
+  if(!Array.isArray(A.tankVerkauf)) A.tankVerkauf=[];
+  A.tankVerkauf.push({ ts:jetztIso(), farbe, muenzen });
+  A.tank=0; saveMeta(); haptik(15); toast('+'+fmtP(muenzen)+' Münzen'); renderBelohnung(); return true;
 }
 function topfAuskippen(idx){
   const A=ausmalState(), t=A.toepfe[idx]; if(!t) return;
@@ -17158,12 +17191,17 @@ function belMalmodusHtml(){
   const stName=A.stationFarbe!=null ? D.namen[A.stationFarbe] : '—';
   // §5 Nr. 5 (v3.5.1): Farbwahl-Knoepfe — Farbpunkt 22 px mit heller Kante 1,5 px, Zahl darunter WEISS; Toepfe im neuen Stil,
   // Fuellstand als Zahl darunter („64 %", „voll", „leer"), WEISS
-  let h='<div class="blk mal-station"><div class="blk-h">Auswahlstation · Topf unter '+esc(stName)+'<span class="r">Zahl = offene Felder</span></div>'+
+  // §3 (v3.7.2): Station (immer eine Farbe) · Ausgabe (Schlitten über dem aktiven Topf, Strahl nur bei Zufluss) · Töpfe · Tank (eigene Zeile, Verkaufen)
+  stationSichern();
+  const stHex=A.stationFarbe!=null ? D.hex[A.stationFarbe] : FARBE.GRAU, fliesst=Date.now()-_ausmalZuflussTs<3000, tankW=Math.floor(num(A.tank)), tankM=Math.floor(tankW*0.5);
+  let h='<div class="blk mal-station"><div class="blk-h">Station · '+esc(A.stationFarbe!=null ? D.namen[A.stationFarbe] : '—')+'<span class="r">Zahl = offene Felder</span></div>'+
     '<div class="mal-farben">'+D.hex.map((hex,i)=>{ const n=st.offenJeFarbe[i]||0;
       return '<button class="mal-farbe'+(A.stationFarbe===i?' on':'')+(n?'':' aus')+'" data-malfarbe="'+i+'" '+(n?'':'disabled')+'><i style="background:'+hex+'"></i><span>'+(n?n:'✓')+'</span></button>'; }).join('')+'</div>'+
+    '<div class="mal-ausgabe" aria-hidden="true"><div class="mal-schlitten" style="left:calc('+((A.aktiverTopf+0.5)/A.toepfe.length*100).toFixed(1)+'% - 28px)"><i class="mal-strahl'+(fliesst?' an':'')+'" style="background:'+stHex+'"></i></div></div>'+
     '<div class="mal-toepfe">'+A.toepfe.map((t,i)=>{ const istAkt=i===A.aktiverTopf, stand=topfVoll(t) ? 'voll' : ((t.farbe!=null && !topfLeer(t)) ? Math.round(t.punkte/T*100)+' %' : 'leer');   // §5 (v3.5.4): unter 2 % „leer"
-      return '<div class="mal-topf'+(istAkt?' akt':'')+'" data-maltopf="'+i+'">'+topfSvg(t, istAkt?56:38, {weiss:istAkt})+'<span>'+(istAkt?'aktiv ':'')+stand+'</span></div>'; }).join('')+
-      '<div class="mal-topf">'+tankSvg(T ? num(A.tank)/T : 0, 22, 48)+'<span>Tank '+fmtKurzP(Math.round(num(A.tank)))+'</span></div></div>'+
+      return '<div class="mal-topf'+(istAkt?' akt':'')+'" data-maltopf="'+i+'">'+topfSvg(t, istAkt?56:38, {weiss:istAkt})+'<span>'+(istAkt?'aktiv ':'')+stand+'</span></div>'; }).join('')+'</div>'+
+    '<div class="mal-tankzeile"><span class="t">Tank</span><div class="mal-tankbar"><i style="width:'+(T ? Math.max(0, Math.min(100, num(A.tank)/(5*T)*100)).toFixed(1) : 0)+'%"></i></div><span class="w">'+fmtP(tankW)+'</span>'+
+      '<button class="btn sm" data-tankverkauf="1"'+(tankW>0?'':' disabled')+'>Verkaufen · '+fmtP(tankM)+' 🪙</button></div>'+
     '<div class="row" style="gap:8px;margin-top:12px"><button class="btn" style="flex:2" data-maltopfwechsel="1">Topf wechseln</button><button class="btn" style="flex:1" data-malauskippen="'+A.aktiverTopf+'">Auskippen</button></div></div>';
   // §5 Nr. 6 (v3.5.1): Feldkarte — bei gewaehlter Farbe alle anderen Flaechen 45 % abgedunkelt, die OFFENEN Felder dieser Farbe
   // mit weissem Umriss und Puls (eigene Ebene ueber der Kulisse)
@@ -19283,6 +19321,7 @@ function statKlick(e){
   const mt=e.target.closest('#belohnungBody .mal-station [data-maltopf]'); if(mt){ topfUnterStation(num(mt.dataset.maltopf)); renderBelohnung(); return; }
   if(e.target.closest('#belohnungBody [data-maltopfwechsel]')){ topfWechselSheet(); return; }
   const ma=e.target.closest('#belohnungBody [data-malauskippen]'); if(ma){ topfAuskippen(num(ma.dataset.malauskippen)); return; }
+  if(e.target.closest('#belohnungBody [data-tankverkauf]')){ tankVerkaufen(); return; }   // §3 (v3.7.2)
   // §5.1 (v3.5.0): Tipp auf Kopf oder Hauptdiagramm klappt das Detail auf; Kacheln „heuteKurz" springen zum Modul
   const szu=e.target.closest('#statistikBody [data-stmzu]'); if(szu){ haptik(6); statModulEinklappen(szu.dataset.stmzu); return; }
   const mfa=e.target.closest('#statistikBody [data-mfansicht]'); if(mfa){ oeffneMfAnsicht(); return; }
