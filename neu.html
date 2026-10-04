@@ -17672,7 +17672,7 @@ function tagebuchAusMatrixKlick(e, svg){
 }
 /* ══ §7 (v2.4.0) · STATISTIK — die Matrix ganz oben ══════════════════ */
 function stMatrixTag(){
-  const gm=fbGrosseMatrix({klick:false});   // §8 (v3.7.0): kein Tagebuch-Einstieg mehr
+  const gm=fbGrosseMatrix({klick:true});   // §9 (v3.7.2): Tipp in die Matrix (Modul matrixHeute) → Tagebuch
   const z=gm.zeit, tb=matrixSpur().filter(e=>e.quelle==='tagebuch').length;
   const inner='<div class="st-mx">'+gm.svg+'</div>'+
     '<div class="an-legend"><span><i style="background:var(--txt)"></i>Position</span>'+
@@ -19412,6 +19412,7 @@ function statKlick(e){
   // §5.1 (v3.5.0): Tipp auf Kopf oder Hauptdiagramm klappt das Detail auf; Kacheln „heuteKurz" springen zum Modul
   const szu=e.target.closest('#statistikBody [data-stmzu]'); if(szu){ haptik(6); statModulEinklappen(szu.dataset.stmzu); return; }
   const mfa=e.target.closest('#statistikBody [data-mfansicht]'); if(mfa){ oeffneMfAnsicht(); return; }
+  { const tbm=e.target.closest('#statistikBody [data-stmodul="matrixHeute"] svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; } }   // §9 (v3.7.2): Matrix im Modul matrixHeute → Tagebuch
   const smt=e.target.closest('#statistikBody [data-stmtoggle]');
   if(smt && !e.target.closest('.dia-tv-scroll,[data-tbmatrix],[data-statdom],[data-statstep],[data-statheute],input,button')){
     const id=smt.dataset.stmtoggle; S.ui.statOffen=Object.assign({}, S.ui.statOffen); S.ui.statOffen[id]=!S.ui.statOffen[id]; _stmGedreht=id; saveUi(); renderStatistik(); return; }
