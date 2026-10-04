@@ -17,7 +17,7 @@ function preise(){ return KAT_KEYS.map(function(k){ return [1,5,9,12].map(functi
 function einstOffen(){ var a=einstAbschnittOffen; einstAbschnittOffen=function(){ return true; }; renderEinst(); einstAbschnittOffen=a; return el('einstBody').innerHTML; }
 
 kopf('Version');
-ok('APP_VERSION 3.6.1 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.4' && UI_VERSION==='v3.7.4' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-04-3');
+ok('APP_VERSION 3.6.1 · Datenvertrag bleibt 2.1.0 · Build neu', APP_VERSION==='3.7.5' && UI_VERSION==='v3.7.5' && DATENVERTRAG==='2.1.0' && APP_BUILD==='2026-10-05-1');
 
 /* ══ §1 Shop-Preis-Faktor und Kalibrierung ═════════════════════════════ */
 kopf('§1 Shop-Preis-Faktor und Kalibrierung entfernt');

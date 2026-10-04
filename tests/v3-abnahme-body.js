@@ -352,7 +352,7 @@ ok('9 (§10 v3.7.0) kein automatisches Hochscrollen: nachOben entfallen, Sheet n
 
 /* ══ 12 · Version ═════════════════════════════════════════════════════ */
 kopf('12 · Version');
-ok('12 APP_VERSION 3.7.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.7.4' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'x', titel:'x'}]})).fehler);
+ok('12 APP_VERSION 3.7.0 · Datenvertrag 2.0 additiv (Gate ab 2.0)', APP_VERSION==='3.7.5' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && !syncImport(JSON.stringify({appVersion:'2.1.0', karten:[{id:'x', titel:'x'}]})).fehler);
 
 kopf('Nachtrag v3.0.1 · eine Versionskonstante');
 frisch(); S.tag=neuerTag(MO,1);
