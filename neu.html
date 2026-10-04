@@ -134,6 +134,7 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #suFreitext{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--li);border-radius:10px;
   color:var(--fg);font:inherit;font-size:16px;padding:10px 12px;-webkit-appearance:none}   /* §2 (v3.7.6): 16 px — iOS zoomt sonst beim Fokus */
 #suFreitext::-webkit-search-cancel-button{display:none}
+.su-zu{opacity:.9;font-size:14px;font-weight:600;padding:0 10px;min-width:44px;min-height:44px}
 /* §2 (v3.7.6): die Such-Ebene — fixed, über jeder Ansicht und der Statusleiste, folgt dem Visual Viewport (iOS-Tastatur) */
 #v-suche{position:fixed;left:0;right:0;top:var(--vvTop,0px);height:var(--vvH,100%);z-index:250;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;display:none;padding-bottom:calc(var(--sab) + 16px)}
 body.suOffen #v-suche{display:block}
@@ -2430,9 +2431,8 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
              autocomplete="off" autocapitalize="off" spellcheck="false"
              placeholder="Offene Karten finden …">
       <button id="suClear" class="su-x" hidden>✕</button>
-      <!-- §6: Neuanlage sitzt in der Kopfzeile — in der Sichtleiste haette sie
-           die fuenfte Sicht bei 375 px aus dem Bild gedraengt. -->
-
+      <!-- §4 (v3.7.6): „Schliessen" schliesst die Such-Ebene (Feld leeren, zurück zur Ansicht darunter) -->
+      <button id="suZu" class="su-x su-zu" aria-label="Suche schliessen">Schliessen</button>
     </div>
     <!-- §3 (v2.0.2): Der Tag-Banner (Abschließen / Tag starten) hing bis
          v2.0.1 ausschliesslich an renderStapel() und damit an #stapelListe —
@@ -9023,7 +9023,7 @@ function kettenListeKlick(e){
   const kf=t.closest('[data-klfokus]'); if(kf){ e.stopPropagation(); haptik(6); kettenListeSchliessen(); fokusKarteAnsehen(kf.dataset.klfokus); renderFokus(); return true; }
   return false;
 }
-function kettenListeSchliessen(){ ['plusOverlay','inKetteOverlay'].forEach(id=>{ const o=el(id); if(o && !o.hidden) o.hidden=true; }); }
+function kettenListeSchliessen(){ ['plusOverlay','inKetteOverlay'].forEach(id=>{ const o=el(id); if(o && !o.hidden) o.hidden=true; }); if(sucheOffen()) sucheSchliessen(); }   // §4 (v3.7.6): auch die Such-Ebene
 /* ══ §2 (v3.7.0) · „IN KETTE" ═══════════════════════════════════════════════════════════
    Vollbild-Ansicht: oben die Karte (Kartenzeile), darunter alle Ketten als klappbare Gruppen (ohne Verlauf, Meistgenutzt,
    Erledigt heute): die aktuelle Kette, jede Tageskette, die Routinen nach Tagesblock, dazu die festen Ketten Ticks DFM/Privat
@@ -9382,8 +9382,8 @@ function renderAlles(){
   renderFokusleiste();
   if(S.ui.tab==='statistik') renderStatistik();
   else if(S.ui.tab==='einst') renderEinst();
-  else if(S.ui.tab==='belohnung') renderBelohnung();
-  else renderSuche();
+  else renderBelohnung();
+  if(sucheOffen()) renderSuche();   // §4 (v3.7.6): die Such-Ebene liegt über der Ansicht und wird mitgezeichnet
   fokusLayerPflegen();
 }
 /* 1-Sekunden-Ticker nur solange der Timer läuft — aktualisiert Text in-place. */
@@ -17432,8 +17432,27 @@ function suFrage(){ return String(S.ui.suFrage||'').trim(); }
    internen Start-Wege („Karte starten, Grundseite ist die Suche") sagen
    ausdruecklich {fokusLassen:true}. Die laufende Karte laeuft als Leiste
    weiter; die Uhr wird nicht beruehrt. */
+/* ══ §4 (v3.7.6) · SUCH-EBENE ÖFFNEN / SCHLIESSEN ═══════════════════════════════════════
+   Die Suche ist keine Ansicht (kein Tab) mehr: sucheOeffnen() legt die Ebene über die aktuelle Ansicht, sucheSchliessen()
+   leert das Feld und nimmt sie weg. Tastatur „Fertig" schliesst nur die Tastatur. */
+function sucheOeffnen(){
+  document.body.classList.add('suOffen');
+  const v=el('v-suche'); if(v){ try{ v.scrollTop=0; }catch(e){} }
+  renderSuche();
+  const f=el('suFreitext'); if(f){ try{ f.focus({preventScroll:true}); }catch(e){} }
+}
+function sucheSchliessen(){
+  S.ui.suFrage=''; const f=el('suFreitext'); if(f) f.value=''; saveUi();
+  renderSuche();
+  if(f){ try{ f.blur(); }catch(e){} }
+  document.body.classList.remove('suOffen');
+}
+function sucheOffen(){ return !!(document.body && document.body.classList && document.body.classList.contains('suOffen')); }
 function setTab(tab, opt){
-  if(tab!=='suche' && tab!=='statistik' && tab!=='einst' && tab!=='belohnung') tab='belohnung';   // §11 (v3.7.0): Leiste = Shop · Statistik · Einstellungen; die Suche über den 🔍-Knopf
+  // §4 (v3.7.6): 'suche' ist keine Ansicht — explizite Navigation öffnet die Such-Ebene über der aktuellen Ansicht, S.ui.tab bleibt;
+  // die internen Start-Wege („Karte gestartet, Grundseite bleibt", opt.fokusLassen) öffnen sie NICHT (die Karte liegt im Fokus-Layer)
+  if(tab==='suche'){ if(!(opt && opt.fokusLassen)) sucheOeffnen(); return; }
+  if(tab!=='statistik' && tab!=='einst' && tab!=='belohnung') tab='belohnung';   // §11 (v3.7.0): Leiste = Shop · Statistik · Einstellungen; die Suche über den 🔍-Knopf
   if(!(opt && opt.fokusLassen)){ S.ui.fokusOffen=false; S.ui.fokusZeigt=null; }
   // v2.2.0: <main> ist EIN Scroller fuer alle Seiten — ein Seitenwechsel
   // beginnt oben (sonst oeffnete die Suche nach dem Shop mitten in der Liste,
@@ -17447,8 +17466,7 @@ function setTab(tab, opt){
   renderFokusleiste();
   if(tab==='einst') renderEinst();
   else if(tab==='statistik') renderStatistik();
-  else if(tab==='belohnung') renderBelohnung();
-  else renderSuche();
+  else renderBelohnung();
   fokusLayerPflegen();
 }
 /* ══════════════════════════════════════════════════════════════════════
@@ -19843,8 +19861,9 @@ el('suchFilter').addEventListener('click', e=>{
   suchF[b.dataset.sf]=b.dataset.v; haptik(6); renderSuchTreffer();
 });
 // §11 (v3.7.0): der 🔍-Knopf öffnet die Suche (Suchfeld + Kettenliste, §5); liegt sie schon vor, bekommt das Suchfeld den Fokus
-el('suchFab').addEventListener('click', ()=>{ haptik(8); if(S.ui.tab!=='suche') setTab('suche'); const f=el('suFreitext'); if(f){ try{ f.focus({preventScroll:true}); }catch(e){} }
-  try{ const m=document.querySelector('main'); if(m) m.scrollTop=0; }catch(e){} });   // §3 (v3.7.5): Fokus ohne Seitensprung, Suchkopf ganz oben
+el('suchFab').addEventListener('click', ()=>{ haptik(8); sucheOeffnen(); });   // §4 (v3.7.6)
+el('suZu').addEventListener('click', ()=>{ haptik(6); sucheSchliessen(); });
+el('suFreitext').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); try{ e.target.blur(); }catch(x){} } });   // §4 (v3.7.6): „Fertig" schliesst nur die Tastatur
 el('suchOverlay').addEventListener('click', e=>{ if(e.target.id==='suchOverlay') schliesseSuche(); });   // Tap-außen
 /* Pull-down bei scrollTop 0 (Fokus/Stapel) öffnet die Suche — ohne pan-y zu
    stören (kein preventDefault; am oberen Rand scrollt ohnehin nichts). */
@@ -20881,7 +20900,7 @@ function init(){
   // rechnet startMs die verstrichene Zeit korrekt nach.
   if(S.fokus && S.fokus.laeuft) starteTicker();
   if(S.ui.debugTap) document.body.classList.add('debugtap');   // V3: Tap-Debug-Zustand wiederherstellen
-  setTab(S.ui.tab||'stapel', {fokusLassen:true});   // Start: Zustand aus der letzten Sitzung
+  setTab((S.ui.tab && S.ui.tab!=='suche') ? S.ui.tab : 'belohnung', {fokusLassen:true});   // Start: Zustand aus der letzten Sitzung · §4 (v3.7.6): die Such-Ebene ist beim Start immer zu
   try{ if(window.visualViewport){ window.visualViewport.addEventListener('resize', vvSync); window.visualViewport.addEventListener('scroll', vvSync); } vvSync(); }catch(e){}   // §2 (v3.7.5)
   renderFokusleiste();
   layoutTopbar();
