@@ -84,15 +84,15 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #statusbar{display:contents;font-variant-numeric:tabular-nums;cursor:pointer;-webkit-tap-highlight-color:transparent}   /* §3.1 (v3.5.0): Kinder liegen im Raster */
 #statusbar[hidden]{display:none}
 #statusbar .sb-r1{grid-column:1;grid-row:2;display:flex;align-items:center;gap:6px;min-width:0}
-#statusbar .sb-bar{position:relative;flex:1;min-width:0;height:12px;border-radius:6px;background:#0a0f1a;overflow:hidden}
+:is(#statusbar,#e1Kopf) .sb-bar{position:relative;flex:1;min-width:0;height:12px;border-radius:6px;background:#0a0f1a;overflow:hidden}
 /* S1 (v1.3.2): Ist zweifarbig gestapelt (DFM blau · Privat gelb), Soll-Layer
    8:30–22:00-Fenster in Rot — Fläche bei Rückstand, schmaler Marker bei Vorsprung */
-#statusbar .sb-bar .ist{position:absolute;top:0;bottom:0}
-#statusbar .sb-bar .ist.dfm{left:0;background:#3b82f6}        /* §1.5 (v3.5.0): flaechig BLAU */
-#statusbar .sb-bar .ist.privat{background:#a855f7}            /* §1.5 (v3.5.0): flaechig LILA */
-#statusbar .sb-bar .prog{position:absolute;top:0;bottom:0;opacity:.3}   /* §3.2 (v3.5.0): Prognose bis Tagesende je Familie */
-#statusbar .sb-bar .soll{position:absolute;top:0;bottom:0;background:rgba(246,109,109,.55)}
-#statusbar .sb-bar .sollmark{position:absolute;top:-1px;bottom:-1px;width:2px;background:repeating-linear-gradient(180deg,#e8e9ec 0 2px,transparent 2px 4px);z-index:3}   /* §1.5 (v3.5.0): WEISS gepunktet */
+:is(#statusbar,#e1Kopf) .sb-bar .ist{position:absolute;top:0;bottom:0}
+:is(#statusbar,#e1Kopf) .sb-bar .ist.dfm{left:0;background:#3b82f6}        /* §1.5 (v3.5.0): flaechig BLAU */
+:is(#statusbar,#e1Kopf) .sb-bar .ist.privat{background:#a855f7}            /* §1.5 (v3.5.0): flaechig LILA */
+:is(#statusbar,#e1Kopf) .sb-bar .prog{position:absolute;top:0;bottom:0;opacity:.3}   /* §3.2 (v3.5.0): Prognose bis Tagesende je Familie */
+:is(#statusbar,#e1Kopf) .sb-bar .soll{position:absolute;top:0;bottom:0;background:rgba(246,109,109,.55)}
+:is(#statusbar,#e1Kopf) .sb-bar .sollmark{position:absolute;top:-1px;bottom:-1px;width:2px;background:repeating-linear-gradient(180deg,#e8e9ec 0 2px,transparent 2px 4px);z-index:3}   /* §1.5 (v3.5.0): WEISS gepunktet */
 #statusbar .sb-kleiste{display:block;height:6px;border-radius:3px;background:#1a1c20;margin:2px 3px 1px;overflow:hidden}   /* §1.2 (v3.3.0) */
 #statusbar .sb-kleiste i{display:block;height:100%;width:0}
 .ts-skala{display:block;position:relative;height:5px;border-radius:3px;background:#1a1c20;margin:4px 3px 1px}   /* §1.1 (v3.3.0) */
@@ -102,8 +102,8 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 .ts-skala .ts-ziel{position:absolute;top:-3px;bottom:-3px;width:0;border-left:2px dotted #e8e9ec}
 .ts-skala .ts-jetzt{position:absolute;top:50%;width:7.6px;height:7.6px;margin:-3.8px 0 0 -3.8px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.2)}
 .ts-skala .ts-karte{position:absolute;top:50%;width:6.4px;height:6.4px;margin:-3.2px 0 0 -3.2px;border-radius:50%}
-#statusbar .sb-bar .mark{position:absolute;top:-1px;bottom:-1px;width:1.5px;background:#d4af37;opacity:.9}   /* §3.2 (v3.5.0): Kauf-Schwellen GOLD */
-#statusbar .sb-bar .qmark{background:rgba(154,156,162,.4)!important;width:1px!important}   /* §3.2: Viertel-Striche GRAU 40 % */
+:is(#statusbar,#e1Kopf) .sb-bar .mark{position:absolute;top:-1px;bottom:-1px;width:1.5px;background:#d4af37;opacity:.9}   /* §3.2 (v3.5.0): Kauf-Schwellen GOLD */
+:is(#statusbar,#e1Kopf) .sb-bar .qmark{background:rgba(154,156,162,.4)!important;width:1px!important}   /* §3.2: Viertel-Striche GRAU 40 % */
 #statusbar .sbph{flex:none;font-size:9.5px;color:var(--mut2);white-space:nowrap}
 #statusbar .sbph b{margin-left:2px;font-weight:800}
 #statusbar .sbph.d b{color:#3b82f6}
@@ -129,17 +129,29 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 #statusbar #sZKonto .w{color:#d4af37}   /* §3.1 (v3.5.0): Konto GOLD */
 
 /* ══ §6 (v2.0.0) · Suchseite — Freitext oben, fünf wischbare Sichten ══ */
-.su-kopf{display:flex;align-items:center;gap:8px;padding:8px 12px 6px;padding-top:calc(var(--sat) + 8px);position:sticky;top:0;z-index:5;background:var(--bg)}   /* §2 (v3.7.6): Kopf der Such-Ebene, unter der Systemuhr */
+.su-kopf{display:flex;align-items:center;gap:8px;padding:8px 12px 6px;position:sticky;top:0;z-index:5;background:var(--bg)}   /* C3 (v3.8.0): Kopf der Suche in Ebene 1 — die Safe-Area trägt #e1Kopf */
 .su-kopf .su-ic{opacity:.5;font-size:15px}
 #suFreitext{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--li);border-radius:10px;
   color:var(--fg);font:inherit;font-size:16px;padding:10px 12px;-webkit-appearance:none}   /* §2 (v3.7.6): 16 px — iOS zoomt sonst beim Fokus */
 #suFreitext::-webkit-search-cancel-button{display:none}
 .su-zu{opacity:.9;font-size:14px;font-weight:600;padding:0 10px;min-width:44px;min-height:44px}
-/* §2 (v3.7.6): die Such-Ebene — fixed, über jeder Ansicht und der Statusleiste, folgt dem Visual Viewport (iOS-Tastatur) */
-#v-suche{position:fixed;left:0;right:0;top:var(--vvTop,0px);height:var(--vvH,100%);z-index:250;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;display:none;padding-bottom:calc(var(--sab) + 16px)}
-body.suOffen #v-suche{display:block}
-body.suOffen main{overflow:hidden}
-body.suOffen #suchFab,body.suOffen #nav{display:none}
+/* ══ C3 (v3.8.0) · EBENE 1 — Suche · Plus · Kettenauswahl · In Kette · Tagebuch ══════════════════════════
+   Direktes Kind von <body>, deckt den GANZEN Bildschirm (über #topbar und #nav), folgt dem Visual Viewport (--vvTop/--vvH,
+   iOS-Tastatur). #topbar wird nie bewegt. Oben der eigene Kopf #e1Kopf mit der zweiten Darstellung NUR der Punkteleiste
+   (Zeile 1 der Statusleiste); darunter die Ansicht im eigenen Scroller. Sichtbarkeit allein über body[data-e1].
+   z-index-Tabelle: Ebene 0 auto · #topbar/#nav 60 · Knöpfe 70 · Ebene 1 200 · Vollbild-Unteransichten 300 · Backdrop 310 ·
+   Sheet 320 · Album-Detail/Ausmal-Banner 330 · Belohnungsansicht/Vollbild-Moment 400 · Zieh-Geist 500 · Toast 800 · Ebene 3 900 */
+#ebene1{position:fixed;left:0;right:0;top:var(--vvTop,0px);height:var(--vvH,100%);z-index:200;background:var(--bg);display:none;flex-direction:column}
+body[data-e1] #ebene1{display:flex}
+body[data-e1] main{overflow:hidden}
+body[data-e1] #nav,body[data-e1] #suchFab,body[data-e1] #neuFab{display:none}
+#e1Kopf{position:sticky;top:0;z-index:6;flex:none;padding:calc(var(--sat) + 4px) 8px 6px;background:linear-gradient(180deg,var(--card2),var(--card));border-bottom:1px solid var(--line)}
+#e1Kopf .sb-bar[hidden]{display:none}
+#ebene1 .e1{display:none;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(var(--sab) + 16px)}
+body[data-e1="suche"] #e1-suche,body[data-e1="plus"] #e1-plus,body[data-e1="kettenwahl"] #e1-kettenwahl,body[data-e1="inkette"] #e1-inkette,body[data-e1="tagebuch"] #e1-tagebuch{display:block}
+#ebene1 .an-kopf{padding-top:8px;position:sticky;top:0;z-index:5;background:var(--bg)}
+#ebene1 .an-body{flex:none;overflow:visible;padding-bottom:12px}
+#ebene1 input,#ebene1 textarea,#ebene1 select{font-size:16px}   /* iOS zoomt sonst beim Fokus */
 .su-x{background:none;border:0;color:var(--fg);opacity:.6;font-size:15px;min-width:44px;min-height:44px}
 .su-sichten{display:flex;gap:4px;padding:0 12px 8px}
 .su-sichten::-webkit-scrollbar{display:none}
@@ -245,13 +257,13 @@ body.suOffen #suchFab,body.suOffen #nav{display:none}
    waere es genau der Fehler, den v2.0.2 behoben hat, nur andersherum.
    Der Fokus-Layer (200) liegt darueber; deshalb wird das Plus dort
    ausgeblendet, wenn die Fokusansicht offen ist (fokusLayerPflegen). */
-#neuFab{position:fixed;right:16px;bottom:calc(56px + var(--sab) + 14px);z-index:199;
+#neuFab{position:fixed;right:16px;bottom:calc(56px + var(--sab) + 14px);z-index:70;
   width:56px;height:56px;border-radius:50%;border:0;background:var(--ac);color:#fff;
   font-size:26px;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;
   align-items:center;justify-content:center}
 #neuFab[hidden]{display:none}
 /* §3 (v2.4.0): Suchknopf spiegelbildlich zum Plus, gleiche Hoehe, gleiche Ebene */
-#suchFab{position:fixed;left:16px;bottom:calc(56px + var(--sab) + 14px);z-index:199;
+#suchFab{position:fixed;left:16px;bottom:calc(56px + var(--sab) + 14px);z-index:70;
   width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:#fff;
   font-size:22px;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
 .such-filter{padding:10px 0 0}
@@ -449,21 +461,21 @@ body[data-seite="fokus"] #v-fokus,body[data-seite="belohnung"] #v-belohnung,body
 .albitem .albn{font-size:10.5px;font-weight:700;color:var(--txt);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .albitem.zu .albn{color:var(--mut2)}
 .albitem .albs{font-size:9.5px;color:var(--mut2);font-variant-numeric:tabular-nums}
-.albdetail{position:fixed;inset:0;z-index:300;background:rgba(6,10,18,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:12px}
+.albdetail{position:fixed;inset:0;z-index:330;background:rgba(6,10,18,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:12px}
 .albdetail img{max-width:92vw;max-height:70vh;border-radius:14px;border:1px solid var(--line)}
 .albdetail .nm{font-size:15px;font-weight:800;color:var(--txt)}
 /* ══ §6 (v1.9.0) · Momente — reine CSS-Keyframes, keine Bibliothek ══ */
-.mom-fly{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:260;pointer-events:none;
+.mom-fly{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:900;pointer-events:none;
   font-size:17px;font-weight:800;color:var(--ok);text-shadow:0 2px 8px rgba(0,0,0,.6);
   animation:momfly 1.25s ease-out forwards}
 @keyframes momfly{0%{opacity:0;transform:translate(-50%,0) scale(.8)}15%{opacity:1;transform:translate(-50%,-14px) scale(1.15)}
   100%{opacity:0;transform:translate(-50%,-120px) scale(.9)}}
-.mom-stern{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:260;pointer-events:none;
+.mom-stern{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:900;pointer-events:none;
   font-size:15px;font-weight:800;color:var(--warn);background:var(--card2);border:1px solid var(--warn);
   border-radius:12px;padding:8px 14px;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:momstern 1.8s ease forwards}
 @keyframes momstern{0%{opacity:0;transform:translate(-50%,8px)}12%{opacity:1;transform:translate(-50%,0)}
   80%{opacity:1}100%{opacity:0;transform:translate(-50%,-10px)}}
-.mom-voll{position:fixed;inset:0;z-index:300;background:rgba(6,10,18,.92);display:flex;align-items:center;
+.mom-voll{position:fixed;inset:0;z-index:400;background:rgba(6,10,18,.92);display:flex;align-items:center;
   justify-content:center;padding:24px;animation:momvoll .35s ease}
 .mom-voll.still{animation:none}
 @keyframes momvoll{from{opacity:0}to{opacity:1}}
@@ -693,13 +705,13 @@ body[data-seite="fokus"] #v-fokus,body[data-seite="belohnung"] #v-belohnung,body
 .mal-volle{display:flex;justify-content:space-around;align-items:flex-end;gap:8px;margin:6px 0}
 .mal-wsheet{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin-bottom:6px}
 .mal-wsheet.on{border-color:#e8e9ec}
-.ausmal-banner{position:fixed;left:8px;right:8px;top:calc(var(--sat) + 8px);z-index:900;display:flex;align-items:center;gap:10px;background:#1a1d22;border:1px solid #2a2d33;border-radius:14px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:13px;color:#e8e9ec}
+.ausmal-banner{position:fixed;left:8px;right:8px;top:calc(var(--sat) + 8px);z-index:330;display:flex;align-items:center;gap:10px;background:#1a1d22;border:1px solid #2a2d33;border-radius:14px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:13px;color:#e8e9ec}
 .ausmal-banner .ab-topf{width:18px;height:22px;border-radius:3px 3px 6px 6px;flex:none}
 .ausmal-banner .ab-t{flex:1;min-width:0}
 .ausmal-banner .ab-go{border:0;border-radius:10px;background:#e8e9ec;color:#0f1115;font-weight:600;padding:8px 12px}
 .ausmal-banner .ab-x{border:0;background:none;color:#9a9ca2;font-size:16px;padding:6px}
 /* §7 (v3.5.0): Belohnungsansicht — Vollbild, dunkel, Schritt fuer Schritt */
-.bel-ansicht{position:fixed;inset:0;z-index:950;background:#000;color:#e8e9ec;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:var(--sat)}
+.bel-ansicht{position:fixed;inset:0;z-index:400;background:#000;color:#e8e9ec;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:var(--sat)}
 .bel-ansicht .w{max-width:430px;margin:0 auto;padding:12px 12px calc(var(--sab) + 12px)}
 .bel-ansicht .m{font-variant-numeric:tabular-nums}
 .bel-ansicht .k{background:#121418;border-radius:16px;padding:12px;margin-bottom:10px}
@@ -737,10 +749,10 @@ body[data-seite="fokus"] #v-fokus,body[data-seite="belohnung"] #v-belohnung,body
 .bel-ansicht .skip{position:sticky;bottom:calc(var(--sab) + 8px);display:block;width:100%;padding:16px;border:0;border-radius:14px;background:#e8e9ec;color:#0f1115;font-size:16px;font-weight:600;margin-top:6px}
 .bel-ansicht .hint{text-align:center;color:#9a9ca2;font-size:11px;margin:6px 0 4px}
 /* §7.4: Kurzform */
-.tk-plus{position:fixed;z-index:940;transform:translate(-50%,-100%);font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;color:#e8e9ec;pointer-events:none;animation:tkPlus 1s ease-out forwards}
+.tk-plus{position:fixed;z-index:900;transform:translate(-50%,-100%);font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;color:#e8e9ec;pointer-events:none;animation:tkPlus 1s ease-out forwards}
 @keyframes tkPlus{0%{opacity:0;transform:translate(-50%,-60%)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-220%)}}
-.tk-tropfen{position:fixed;z-index:940;width:10px;height:10px;border-radius:50% 50% 50% 0;transform:translate(-50%,-50%) rotate(-45deg);pointer-events:none;transition:left .9s cubic-bezier(.2,.8,.2,1),top .9s cubic-bezier(.2,.8,.2,1),opacity .9s}
-.tk-muenze{position:fixed;z-index:940;font-size:14px;transform:translate(-50%,-50%);pointer-events:none;transition:left .9s cubic-bezier(.2,.8,.2,1),top .9s cubic-bezier(.2,.8,.2,1),opacity .9s}
+.tk-tropfen{position:fixed;z-index:900;width:10px;height:10px;border-radius:50% 50% 50% 0;transform:translate(-50%,-50%) rotate(-45deg);pointer-events:none;transition:left .9s cubic-bezier(.2,.8,.2,1),top .9s cubic-bezier(.2,.8,.2,1),opacity .9s}
+.tk-muenze{position:fixed;z-index:900;font-size:14px;transform:translate(-50%,-50%);pointer-events:none;transition:left .9s cubic-bezier(.2,.8,.2,1),top .9s cubic-bezier(.2,.8,.2,1),opacity .9s}
 /* UI-A (v1.5.2): Kopf/Oberkörper-Zoom — der Kreis ist jetzt ein Clip-Wrapper
    (.avclip), das Bild hängt mit ~320 % Höhe oben zentriert darin (alpha-
    gecroppte PNGs, Kopf beginnt oben → sichtbar bleibt das obere Drittel).
@@ -1061,7 +1073,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .such-b:active{background:var(--bg)}
 
 /* ── B1/B2/B3 Detailanalyse ───────────────────────────────────────── */
-#analyseOverlay{position:fixed;inset:0;z-index:315;background:var(--bg);display:flex;flex-direction:column}
+#analyseOverlay{position:fixed;inset:0;z-index:300;background:var(--bg);display:flex;flex-direction:column}
 #analyseOverlay[hidden]{display:none}
 .an-kopf{display:flex;align-items:center;gap:8px;padding:max(10px,env(safe-area-inset-top)) 12px 8px;border-bottom:1px solid var(--line)}
 .an-kopf h3{font-size:16px;font-weight:800}
@@ -1344,10 +1356,10 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
   background:rgba(246,109,109,.92); color:#0a0f1a; font-size:11px; font-weight:800; padding:3px 10px; border-radius:9px; z-index:400; pointer-events:none }
 
 /* ── Sheet (Detail D3 / Stapel-Editor D4) ────────────────────────── */
-#backdrop{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:260;opacity:0;pointer-events:none;transition:opacity .25s}
+#backdrop{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:310;opacity:0;pointer-events:none;transition:opacity .25s}
 #backdrop.on{opacity:1;pointer-events:auto}
 .sheet{
-  position:fixed;left:0;right:0;bottom:0;z-index:260;   /* §2 (v3.7.6) */
+  position:fixed;left:0;right:0;bottom:0;z-index:320;   /* C3 (v3.8.0): Dialoge liegen über Ebene 1 */
   background:var(--card);border-top:1px solid var(--line);
   border-radius:20px 20px 0 0;
   max-height:92vh;display:flex;flex-direction:column;
@@ -1548,9 +1560,9 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 .grpcard .gm b{color:var(--txt)}
 
 /* Toast */
-#toast{position:fixed;left:50%;bottom:calc(84px + var(--sab));transform:translateX(-50%) translateY(20px);z-index:320;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:all .25s;max-width:88vw;text-align:center}
+#toast{position:fixed;left:50%;bottom:calc(84px + var(--sab));transform:translateX(-50%) translateY(20px);z-index:800;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:all .25s;max-width:88vw;text-align:center}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-#konfetti{position:fixed;inset:0;z-index:310;pointer-events:none}
+#konfetti{position:fixed;inset:0;z-index:900;pointer-events:none}
 
 /* ══ §9 (v2.4.0) · FORMENSPRACHE NACH SLEEP CYCLE ═════════════════════
    Schwarzer Grund, neutrale Grautoene fuer Flaechen, grosse Radien, ruhige
@@ -1608,7 +1620,7 @@ body{background:var(--bg)}
 /* §9 (v2.4.0) · Kopfleiste und Umschalter neutral; aktiv = weisse Pille */
 #topbar{background:#000}
 #statusbar{background:#000}
-#statusbar .sb-bar{background:#1c1d20}
+:is(#statusbar,#e1Kopf) .sb-bar{background:#1c1d20}
 #nav{background:rgba(10,10,11,.96);border-top:1px solid #1d1e21}
 #nav button.on{color:var(--txt)}
 .segmini button,.su-seg button{border-color:#2a2c30}
@@ -1905,19 +1917,19 @@ main{padding-left:8px;padding-right:8px}                       /* §1.3: Seitenr
 #topbar .sl-kr[hidden]{display:none}
 #topbar .sl-kr .uhr{font-size:19px;font-weight:700;color:#e8e9ec}
 #topbar .sl-kr .kp{font-size:12px;font-weight:700;color:#93c5fd}
-#statusbar .sb-bar{grid-column:1;position:relative;flex:none;height:20px;border-radius:10px;background:#1c1f25;overflow:hidden}
-#statusbar .sb-bar .ist.dfm{left:0;background:linear-gradient(90deg,#93c5fd,#3b82f6)}
-#statusbar .sb-bar .ist.privat{background:linear-gradient(270deg,#d8b4fe,#a855f7)}
-#statusbar .sb-bar .prog{opacity:.28}
-#statusbar .sb-bar .ist.dfm.prog{background:#3b82f6}
-#statusbar .sb-bar .ist.privat.prog{background:#a855f7}
-#statusbar .sb-bar .mark{width:2px;background:#d4af37;opacity:1}
-#statusbar .sb-bar .sollmark{top:-1px;bottom:-1px;width:2px;background:repeating-linear-gradient(180deg,#e8e9ec 0 2px,transparent 2px 5px)}
-#statusbar .sb-bar .zahl{position:absolute;top:0;bottom:0;display:flex;align-items:center;z-index:4;font-size:11.5px;font-weight:750;padding:0 7px;white-space:nowrap;color:#fff;text-shadow:0 0 3px rgba(0,0,0,.85),0 1px 1px rgba(0,0,0,.9)}
-#statusbar .sb-bar .zahl.d{left:0}
-#statusbar .sb-bar .zahl.p{right:0}
-#statusbar .sb-bar .zahl.s{transform:translateX(-50%);padding:0}
-#statusbar .sb-bar .zahl.s b{background:rgba(0,0,0,.72);border:1px solid rgba(232,233,236,.55);border-radius:6px;padding:0 5px;line-height:15px;font-weight:750;text-shadow:none}
+:is(#statusbar,#e1Kopf) .sb-bar{grid-column:1;position:relative;flex:none;height:20px;border-radius:10px;background:#1c1f25;overflow:hidden}
+:is(#statusbar,#e1Kopf) .sb-bar .ist.dfm{left:0;background:linear-gradient(90deg,#93c5fd,#3b82f6)}
+:is(#statusbar,#e1Kopf) .sb-bar .ist.privat{background:linear-gradient(270deg,#d8b4fe,#a855f7)}
+:is(#statusbar,#e1Kopf) .sb-bar .prog{opacity:.28}
+:is(#statusbar,#e1Kopf) .sb-bar .ist.dfm.prog{background:#3b82f6}
+:is(#statusbar,#e1Kopf) .sb-bar .ist.privat.prog{background:#a855f7}
+:is(#statusbar,#e1Kopf) .sb-bar .mark{width:2px;background:#d4af37;opacity:1}
+:is(#statusbar,#e1Kopf) .sb-bar .sollmark{top:-1px;bottom:-1px;width:2px;background:repeating-linear-gradient(180deg,#e8e9ec 0 2px,transparent 2px 5px)}
+:is(#statusbar,#e1Kopf) .sb-bar .zahl{position:absolute;top:0;bottom:0;display:flex;align-items:center;z-index:4;font-size:11.5px;font-weight:750;padding:0 7px;white-space:nowrap;color:#fff;text-shadow:0 0 3px rgba(0,0,0,.85),0 1px 1px rgba(0,0,0,.9)}
+:is(#statusbar,#e1Kopf) .sb-bar .zahl.d{left:0}
+:is(#statusbar,#e1Kopf) .sb-bar .zahl.p{right:0}
+:is(#statusbar,#e1Kopf) .sb-bar .zahl.s{transform:translateX(-50%);padding:0}
+:is(#statusbar,#e1Kopf) .sb-bar .zahl.s b{background:rgba(0,0,0,.72);border:1px solid rgba(232,233,236,.55);border-radius:6px;padding:0 5px;line-height:15px;font-weight:750;text-shadow:none}
 #statusbar .sl-z3{grid-column:1;display:grid;grid-template-columns:44px 64px 1fr 8px 72px;column-gap:8px;align-items:stretch;height:72px;min-width:0}
 #statusbar .sb-cell{display:flex;flex-direction:column;justify-content:center;min-width:0;min-height:0;text-align:left;overflow:hidden}
 #statusbar .akku .w{font-size:17px;font-weight:750;white-space:nowrap}
@@ -2149,9 +2161,9 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 @media (prefers-reduced-motion: reduce){ .mal-puls{animation:none} }
 .badge.zb{left:auto;top:auto;right:8px;bottom:8px;font-size:11px;font-weight:500}
 /* ══ HOTFIX 3.5.2 §1 · STATUSLEISTE (Draft Nr. 1) ══ */
-#statusbar .sb-bar .live{position:absolute;top:0;bottom:0;display:none;z-index:1;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.12) 0 2px,transparent 2px 5px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
-#statusbar .sb-bar .live.dfm{background-color:#93c5fd}
-#statusbar .sb-bar .live.privat{background-color:#d8b4fe}
+:is(#statusbar,#e1Kopf) .sb-bar .live{position:absolute;top:0;bottom:0;display:none;z-index:1;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.12) 0 2px,transparent 2px 5px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+:is(#statusbar,#e1Kopf) .sb-bar .live.dfm{background-color:#93c5fd}
+:is(#statusbar,#e1Kopf) .sb-bar .live.privat{background-color:#d8b4fe}
 #statusbar .sl-z3{grid-template-columns:64px 1fr 72px;column-gap:8px;height:72px}
 #statusbar .konto{justify-content:space-between;gap:0;padding:1px 0}
 #statusbar .konto div{font-size:12.5px;font-weight:700;line-height:1}
@@ -2223,11 +2235,11 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .kl-chip span{display:block;height:32px;line-height:30px;padding:0 12px;border-radius:16px;background:#23262d;border:1px solid #2a2d33;color:#e8e9ec;font-size:12.5px;font-weight:650;white-space:nowrap;box-sizing:border-box}
 .kl-chip.on span{border-color:#fff}
 /* ══ 3.5.4 §1 · Statusleiste: Grenze GRUEN auf der erreichten Seite, rote Ueberschuss-Strecke (Draft Nr. 1) ══ */
-#statusbar .sb-bar .sollmark.okL{width:3px;margin-left:-.5px;background:linear-gradient(90deg,#3ecf8e 0 50%,transparent 50%)}
-#statusbar .sb-bar .sollmark.okR{width:3px;margin-left:-.5px;background:linear-gradient(90deg,transparent 50%,#3ecf8e 50%)}
-#statusbar .sb-bar .sollmark.okL.okR{background:#3ecf8e}
-#statusbar .sb-bar .rot{position:absolute;top:0;bottom:0;display:none;z-index:2}
-#statusbar .sb-bar .zahl.s b.rp{border:0;background:none;padding:0;text-shadow:0 0 3px #000,0 1px 1px #000}
+:is(#statusbar,#e1Kopf) .sb-bar .sollmark.okL{width:3px;margin-left:-.5px;background:linear-gradient(90deg,#3ecf8e 0 50%,transparent 50%)}
+:is(#statusbar,#e1Kopf) .sb-bar .sollmark.okR{width:3px;margin-left:-.5px;background:linear-gradient(90deg,transparent 50%,#3ecf8e 50%)}
+:is(#statusbar,#e1Kopf) .sb-bar .sollmark.okL.okR{background:#3ecf8e}
+:is(#statusbar,#e1Kopf) .sb-bar .rot{position:absolute;top:0;bottom:0;display:none;z-index:2}
+:is(#statusbar,#e1Kopf) .sb-bar .zahl.s b.rp{border:0;background:none;padding:0;text-shadow:0 0 3px #000,0 1px 1px #000}
 /* ══ 3.5.4 §2 · Fokus: Navigation oben · Der Tag: Ringe DFM / Privat (Draft Nr. 2) ══ */
 #fokusAktiv .knav.fk-swipe.fk-oben{margin:0 0 10px;grid-template-columns:auto 1fr auto}
 #fokusAktiv .knav.fk-swipe.fk-oben button.sw.vorn{justify-self:center;padding:0 10px}
@@ -2238,7 +2250,7 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 .stm-zu{display:flex;align-items:center;justify-content:center;width:100%;height:44px;margin-top:12px;border-radius:12px;background:#1a1d22;border:1px solid #2a2d33;color:#e8e9ec;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .stm-zu.mf-auf{margin-top:0;justify-content:space-between;padding:0 14px}
 .stm[data-stmodul]{scroll-margin-top:calc(var(--tbH,160px) + 8px)}
-.voll-ansicht{position:fixed;inset:0;z-index:260;background:var(--bg);display:flex;flex-direction:column}   /* §2 (v3.7.6): über der Such-Ebene */
+.voll-ansicht{position:fixed;inset:0;z-index:300;background:var(--bg);display:flex;flex-direction:column}
 .voll-ansicht[hidden]{display:none}
 .voll-ansicht .mf-k{font-size:13px;padding:8px 0}
 .voll-ansicht .mf-k button{min-width:44px;min-height:44px}
@@ -2327,8 +2339,8 @@ img.objimg.laedt{opacity:0}
 .kl-grk select.kl-sort{margin-left:6px;height:30px;max-width:40%;flex:0 1 auto;min-width:0;border-radius:8px;border:1px solid #2a2d33;background:#1a1d22;color:#e8e9ec;font:inherit;font-size:11.5px;padding:0 6px}
 /* ══ 3.7.0 §5 · Kettenliste in Suche und hinter dem „+" ══ */
 .su-liste{margin-top:8px}
-#plusOverlay .an-kopf .btn{margin-left:auto;min-height:36px}
-#plusOverlay .an-kopf .sp{display:none}
+#e1-plus .an-kopf .btn{margin-left:auto;min-height:36px}
+#e1-plus .an-kopf .sp{display:none}
 /* ══ 3.7.0 §2 · „In Kette": Karte oben, Ketten darunter, Einfügelinie beim Ziehen ══ */
 #inKetteOverlay .an-kopf .btn{margin-left:auto;min-height:36px}
 #inKetteOverlay .an-kopf .sp{display:none}
@@ -2338,7 +2350,7 @@ img.objimg.laedt{opacity:0}
 .ik-karte .kl-z{box-shadow:0 0 0 2px #e8e9ec inset}
 .ik-hint{margin:0 0 10px;text-align:left}
 .ik-zieht{opacity:.4}
-.ik-ghost{position:fixed;left:0;top:0;z-index:960;pointer-events:none;opacity:.92;box-shadow:0 12px 30px rgba(0,0,0,.6);transform-origin:0 0}
+.ik-ghost{position:fixed;left:0;top:0;z-index:500;pointer-events:none;opacity:.92;box-shadow:0 12px 30px rgba(0,0,0,.6);transform-origin:0 0}
 .ik-linie{height:3px;border-radius:2px;background:#e8e9ec;margin:3px 0;box-shadow:0 0 8px rgba(232,233,236,.8)}
 .ik-teil{min-height:12px}
 .ik-leer{font-size:11.5px;color:#9a9ca2;border:1px dashed #2a2d33;border-radius:10px;padding:10px;text-align:center;margin-bottom:6px}
@@ -2346,7 +2358,7 @@ img.objimg.laedt{opacity:0}
 body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden])) #suchFab{display:none}
 /* ══ 3.7.0 §4 · Statusleiste: Punkteleiste oben, darunter Ring · Titel · Restzeit · Kartenpunkte; Töpfe-Zeile = Countdown ══ */
 #topbar .sl-z1{order:2}
-#statusbar .sb-bar{order:1}
+:is(#statusbar,#e1Kopf) .sb-bar{order:1}
 #statusbar .sl-z3{order:3}
 #statusbar .konto .kf span{color:#e8e9ec;font-variant-numeric:tabular-nums}
 /* §4a · Pace-Leiste direkt unter dem Mini-Diagramm (5 px), darunter die Live-Beschriftungen 10 px tabular-nums */
@@ -2365,7 +2377,7 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
     <div class="sl-kr" id="fkSub" hidden><div class="uhr timer" id="fkTimer">0:00</div><div class="kp ppm" id="fkPts"></div></div>
   </div>
   <div id="statusbar" hidden>
-    <div class="sb-bar" id="sBar"><span class="ist dfm prog" id="sBarProgD"></span><span class="ist privat prog" id="sBarProgP"></span><span class="ist dfm" id="sBarIstD"></span><span class="ist privat" id="sBarIstP"></span><span class="live dfm" id="sBarLiveD"></span><span class="live privat" id="sBarLiveP"></span><span class="rot" id="sBarRot"></span><span id="sBarMarks"></span><span class="sollmark" id="sBarSollMark"></span><span class="zahl d" id="sBarZD"></span><span class="zahl p" id="sBarZP"></span><span class="zahl s" id="sBarZS"><b id="sPhSoll"></b></span></div>
+    <div class="sb-bar" id="sBar"></div><!-- C3 (v3.8.0): Inhalt aus punkteleisteGeruest('sBar') — dieselbe Funktion füllt #e1Bar -->
     <!-- §1 (v3.5.2): Zeile 3 — Akku · Wohlstand · Münzen · Töpfe untereinander | Mini-Kurve mit Gesamtpunkten und P/h, darunter Pace-Leiste + Trendpfeil | Matrix 72×72 -->
     <div class="sl-z3">
       <div class="sb-cell konto" id="sZKonto"><div class="ka" id="sZAkku"><i><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M6.2 0 L1.4 5.7 H4.5 L3.6 10 L8.6 4.1 H5.4 Z" fill="currentColor"/></svg></i><b class="w">– %</b></div><div class="kw" title="Farbe" aria-label="Farbe"><i></i><span id="sKW">0</span></div><div class="km" title="Münzen" aria-label="Münzen"><i></i><span id="sKM">0</span></div><div class="kf" title="Bis zum nächsten malbaren Feld" aria-label="Bis zum nächsten malbaren Feld"><i></i><span id="sKF">—</span></div></div>
@@ -2410,8 +2422,20 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
      global ueber allem — ueber dem Fokus-Layer (200) und unter den Sheets
      (201), damit ein offener Dialog es sauber verdeckt. -->
 <button id="neuFab" aria-label="Neue Karte">＋</button>
-<!-- §1 (v3.7.6): die Suche ist eine Vollbild-Ebene AUSSERHALB von <main> — über jeder Ansicht und über der Statusleiste -->
-  <section id="v-suche">
+<!-- §3 (v2.4.0): der Suchknopf — gegenueber dem Plus -->
+<button id="suchFab" aria-label="Volltextsuche">🔍</button>
+
+<nav id="nav">
+  <button data-seite="fokus"><span class="ic">🎯</span>Fokus</button>
+  <button data-seite="belohnung"><span class="ic">🛍</span>Shop</button>
+  <button data-seite="statistik"><span class="ic">📊</span>Statistik</button>
+  <button data-seite="einst"><span class="ic">⚙︎</span>Einstellungen</button>
+</nav>
+
+<!-- ══ C3 (v3.8.0) · EBENE 1 — direktes Kind von <body>, deckt alles; oben NUR die Punkteleiste (#e1Kopf), darunter die Ansicht ══ -->
+<div id="ebene1">
+  <div id="e1Kopf"><div class="sb-bar" id="e1Bar"></div></div>
+  <section class="e1" id="e1-suche" data-e1="suche">
     <div class="su-kopf">
       <span class="su-ic">🔍</span>
       <input id="suFreitext" type="search" inputmode="search" enterkeyhint="search"
@@ -2433,16 +2457,16 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
     <div class="su-sichten" id="suSichten" hidden></div>
     <div class="su-swipe" id="suSwipe"><div id="suBody"></div></div>
   </section>
-
-<!-- §3 (v2.4.0): der Suchknopf — gegenueber dem Plus -->
-<button id="suchFab" aria-label="Volltextsuche">🔍</button>
-
-<nav id="nav">
-  <button data-seite="fokus"><span class="ic">🎯</span>Fokus</button>
-  <button data-seite="belohnung"><span class="ic">🛍</span>Shop</button>
-  <button data-seite="statistik"><span class="ic">📊</span>Statistik</button>
-  <button data-seite="einst"><span class="ic">⚙︎</span>Einstellungen</button>
-</nav>
+  <section class="e1" id="e1-plus" data-e1="plus">
+    <div class="an-kopf">
+      <button class="an-back" data-e1zu="1" aria-label="Schließen">‹ zurück</button>
+      <h3>Karten</h3>
+      <span class="sp"></span>
+      <button class="btn prim sm" data-plusneu="1">＋ Neue Karte</button>
+    </div>
+    <div class="an-body" id="plusBody"></div>
+  </section>
+</div>
 
 <div id="backdrop"></div>
 <div class="sheet" id="sheet">
@@ -2471,17 +2495,6 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
     <button class="btn prim sm" data-ikfertig="1">Fertig</button>
   </div>
   <div class="an-body" id="inKetteBody"></div>
-</div>
-
-<!-- §5 (v3.7.0): „+" — die Kettenliste als Vollbild-Ansicht mit „+ Neue Karte" oben -->
-<div id="plusOverlay" class="voll-ansicht" hidden>
-  <div class="an-kopf">
-    <button class="an-back" data-pluszu="1" aria-label="Schließen">‹ zurück</button>
-    <h3>Karten</h3>
-    <span class="sp"></span>
-    <button class="btn prim sm" data-plusneu="1">＋ Neue Karte</button>
-  </div>
-  <div class="an-body" id="plusBody"></div>
 </div>
 
 <!-- §3 (v3.5.4): Karten mit Faktor (Vollbild-Ansicht, liegt unter Sheet und Backdrop) -->
@@ -8118,18 +8131,21 @@ function punkteleisteTeile(e){
     ueber, rotVon:ueber>0 ? rotVon : null, rotBis:ueber>0 ? rotBis : null,
     mitte: ueber>0 ? (rotVon+rotBis)/2 : (Math.min(d, Z)+(Z-Math.min(p, Z)))/2 };
 }
-function renderStatusbar(){
-  renderAmpelKurve();
-  const bar=el('statusbar'); if(!bar) return;
-  if(!S.tag){ bar.hidden=true; return; }   // §6 (v3.7.2): nach dem Abschluss bleibt die Leiste — Werte des abgeschlossenen Tages inkl. Nachträge
-  bar.hidden=false;
-  try{
-  const eb=energieBatterie();
-  const istHeute=punkteHeuteAnzeige();
-  const k=(S.belohnung?konto():0);
+/* ══ C3 (v3.8.0) · DIE PUNKTELEISTE (Zeile 1 der Statusleiste) — EINE Render-Funktion, das Ziel ist ein Parameter ══
+   pfx 'sBar' = Statusleiste (Ebene 0) · 'e1Bar' = Kopf der Ebene 1. Das Gerüst kommt aus punkteleisteGeruest (kein kopiertes
+   Markup), gezeichnet wird in beiden Zielen mit denselben Werten; der Live-Ticker läuft über renderStatusbar in beide. */
+function punkteleisteGeruest(pfx){
+  const sollId = pfx==='sBar' ? 'sPhSoll' : pfx+'Soll';
+  return '<span class="ist dfm prog" id="'+pfx+'ProgD"></span><span class="ist privat prog" id="'+pfx+'ProgP"></span><span class="ist dfm" id="'+pfx+'IstD"></span><span class="ist privat" id="'+pfx+'IstP"></span>'+
+    '<span class="live dfm" id="'+pfx+'LiveD"></span><span class="live privat" id="'+pfx+'LiveP"></span><span class="rot" id="'+pfx+'Rot"></span><span id="'+pfx+'Marks"></span><span class="sollmark" id="'+pfx+'SollMark"></span>'+
+    '<span class="zahl d" id="'+pfx+'ZD"></span><span class="zahl p" id="'+pfx+'ZP"></span><span class="zahl s" id="'+pfx+'ZS"><b id="'+sollId+'"></b></span>';
+}
+try{ ['sBar','e1Bar'].forEach(pfx=>{ const b=el(pfx); if(b) b.innerHTML=punkteleisteGeruest(pfx); }); }catch(e){}
+function punkteleisteZeichnen(pfx, g, k, istHeute){
+  const sollId = pfx==='sBar' ? 'sPhSoll' : pfx+'Soll';
+  if(!el(pfx)) return;
   // Punkteleiste: Breite = Tagesziel. DFM von links, Privat von rechts (Verlauf hell → voll), Prognose je Familie 28 %,
   // Ziel-Grenze WEISS gepunktet (erreichte Seite GRUEN), Viertel GRAU 40 %, Kauf-Schwellen GOLD 2 px, Ueberschuss-Strecke ROT.
-  const g=diaGroessen();
   const istWe=istWochenendTag(heuteApp());
   const zielGes=g.zielHeute, pDfm=g.dfm, pPriv=g.privat;
   const pz=v=>Math.max(0, Math.min(100, num(v)/zielGes*100)), pctZ=v=>pz(v).toFixed(1)+'%';
@@ -8137,18 +8153,18 @@ function renderStatusbar(){
   // Karte in der hellen Familienfarbe mit feinen Streifen. Die Zahl je Familie ist die Summe (inklusive laufender Karte);
   // beim Pausieren/Abhaken wird Live zu gebucht.
   const live=statusLivePunkte(g), bD=Math.max(0, pDfm-live.dfm), bP=Math.max(0, pPriv-live.privat);
-  el('sBarIstD').style.width=pctZ(bD);
-  { const bp=el('sBarIstP'); bp.style.left='auto'; bp.style.right='0'; bp.style.width=pctZ(bP); }
-  { const ld=el('sBarLiveD'), lp=el('sBarLiveP');
+  el(pfx+'IstD').style.width=pctZ(bD);
+  { const bp=el(pfx+'IstP'); bp.style.left='auto'; bp.style.right='0'; bp.style.width=pctZ(bP); }
+  { const ld=el(pfx+'LiveD'), lp=el(pfx+'LiveP');
     if(ld){ ld.style.left=pctZ(bD); ld.style.width=(Math.max(0, pz(pDfm)-pz(bD))).toFixed(1)+'%'; ld.style.display=live.dfm>0 ? 'block' : 'none'; }
     if(lp){ lp.style.left='auto'; lp.style.right=pctZ(bP); lp.style.width=(Math.max(0, pz(pPriv)-pz(bP))).toFixed(1)+'%'; lp.style.display=live.privat>0 ? 'block' : 'none'; } }
   { const ges=Math.max(1e-9, pDfm+pPriv), frei=Math.max(0, zielGes-pDfm-pPriv), progD=Math.min(g.tempoSchnitt*(pDfm/ges)*g.stundenRest, frei), progP=Math.min(g.tempoSchnitt*(pPriv/ges)*g.stundenRest, Math.max(0, frei-progD));
-    const pd=el('sBarProgD'), pp=el('sBarProgP');
+    const pd=el(pfx+'ProgD'), pp=el(pfx+'ProgP');
     if(pd){ pd.style.left=pctZ(pDfm); pd.style.width=pctZ(progD); }
     if(pp){ pp.style.left='auto'; pp.style.right=pctZ(pPriv); pp.style.width=pctZ(progP); } }
   const PL=punkteleisteTeile({ ziel:zielGes, dfm:pDfm, privat:pPriv, zielDfm:g.zielDfm, zielPrivat:g.zielPrivat });
-  { const mk=el('sBarSollMark'); mk.style.left=pctZ(PL.grenze); mk.style.display='block'; mk.className='sollmark'+(PL.dOk?' okL':'')+(PL.pOk?' okR':''); }
-  { const r=el('sBarRot'); if(r){ r.style.display=PL.ueber>0 ? 'block' : 'none'; r.style.background=FARBE.ROT;
+  { const mk=el(pfx+'SollMark'); mk.style.left=pctZ(PL.grenze); mk.style.display='block'; mk.className='sollmark'+(PL.dOk?' okL':'')+(PL.pOk?' okR':''); }
+  { const r=el(pfx+'Rot'); if(r){ r.style.display=PL.ueber>0 ? 'block' : 'none'; r.style.background=FARBE.ROT;
       if(PL.ueber>0){ r.style.left=pctZ(PL.rotVon); r.style.width=Math.max(0, pz(PL.rotBis)-pz(PL.rotVon)).toFixed(1)+'%'; } } }
   let marks='<span class="qmark" style="left:25%"></span><span class="qmark" style="left:50%"></span><span class="qmark" style="left:75%"></span>';
   if(S.belohnung){
@@ -8158,21 +8174,35 @@ function renderStatusbar(){
       if(need>0 && need<=zielGes) marks+='<span class="mark" style="left:'+(need/zielGes*100).toFixed(1)+'%"></span>';
     });
   }
-  el('sBarMarks').innerHTML=marks;
+  el(pfx+'Marks').innerHTML=marks;
   // Zahlen IN der Leiste: DFM links, Privat rechts, Soll jetzt als Pille mittig auf der freien Strecke
   // §1 (v3.5.4): „✓" vor der Zahl der Familie, die ihr Ziel erreicht hat; ueber dem Gesamtziel steht statt der Soll-Pille „+Ueberschuss" auf der roten Strecke
   { const sollTxt=PL.ueber>0 ? '+'+fmtP(Math.round(PL.ueber)) : (urlaubHeute() ? '🏖' : (istWe ? 'WE' : fmtP(Math.round(sollStandGesamt())))), dTxt=(PL.dOk?'✓ ':'')+fmtP(Math.round(pDfm)), pTxt=(PL.pOk?'✓ ':'')+fmtP(Math.round(pPriv));
-    const zd=el('sBarZD'), zp=el('sBarZP'), zs=el('sBarZS');
-    el('sPhSoll').textContent=sollTxt; el('sPhSoll').className=PL.ueber>0 ? 'rp' : ''; zd.textContent=dTxt; zp.textContent=pTxt;
+    const zd=el(pfx+'ZD'), zp=el(pfx+'ZP'), zs=el(pfx+'ZS');
+    el(sollId).textContent=sollTxt; el(sollId).className=PL.ueber>0 ? 'rp' : ''; zd.textContent=dTxt; zp.textContent=pTxt;
     const mitte=pz(PL.mitte); zs.style.left=mitte.toFixed(1)+'%';
     // Kollisionsregel: reicht der Platz nicht, entfaellt zuerst die Privatzahl, dann die DFM-Zahl — die Soll-Zahl bleibt immer
-    const W=num(el('sBar') && el('sBar').offsetWidth), brt=t=>String(t).length*7+14;
+    const W=num(el(pfx) && el(pfx).offsetWidth), brt=t=>String(t).length*7+14;
     let zeigD=true, zeigP=true;
     if(W>0){ const wS=brt(sollTxt)+4, pl=mitte/100*W-wS/2, pr=mitte/100*W+wS/2, wD=brt(dTxt), wP=brt(pTxt);
       const kollP=pr>W-wP, kollD=pl<wD;
       if(kollP || kollD) zeigP=false;
       if(kollD) zeigD=false; }
     zd.style.display=zeigD?'':'none'; zp.style.display=zeigP?'':'none'; }
+}
+function renderStatusbar(){
+  renderAmpelKurve();
+  { const b1=el('e1Bar'); if(b1) b1.hidden=!S.tag; }
+  const bar=el('statusbar'); if(!bar) return;
+  if(!S.tag){ bar.hidden=true; return; }   // §6 (v3.7.2): nach dem Abschluss bleibt die Leiste — Werte des abgeschlossenen Tages inkl. Nachträge
+  bar.hidden=false;
+  try{
+  const eb=energieBatterie();
+  const istHeute=punkteHeuteAnzeige();
+  const k=(S.belohnung?konto():0);
+  const g=diaGroessen();
+  punkteleisteZeichnen('sBar', g, k, istHeute);
+  if(_e1) punkteleisteZeichnen('e1Bar', g, k, istHeute);   // C3 (v3.8.0): zweite Darstellung im Kopf der Ebene 1 — dieselbe Funktion
   // Zeile 3 · Spalte 1: Akku (Blitz und Zahl in der Akku-Ampel) · Wohlstand · Muenzen · Toepfe
   { const c=el('sZAkku'); if(c){ const w=c.querySelector('.w'), f=eb.akku!=null ? akkuFarbe(eb.akku) : FARBE.GRAU; w.textContent=(eb.akku!=null ? Math.round(eb.akku)+' %' : '– %'); w.style.color=f; c.style.color=f; } }
   // Konto: ◆ Wohlstand WEISS · ● Muenzen GOLD · Farbkreis volle Toepfe/5
@@ -9012,7 +9042,7 @@ function kettenListeKlick(e){
   const kf=t.closest('[data-klfokus]'); if(kf){ e.stopPropagation(); haptik(6); kettenListeSchliessen(); fokusKarteAnsehen(kf.dataset.klfokus); renderFokus(); return true; }
   return false;
 }
-function kettenListeSchliessen(){ ['plusOverlay','inKetteOverlay'].forEach(id=>{ const o=el(id); if(o && !o.hidden) o.hidden=true; }); if(sucheOffen()) sucheSchliessen(); }   // §4 (v3.7.6): auch die Such-Ebene
+function kettenListeSchliessen(){ const o=el('inKetteOverlay'); if(o && !o.hidden) o.hidden=true; e1Schliessen(); }   // §4 (v3.7.6): auch die Such-Ebene
 /* ══ §2 (v3.7.0) · „IN KETTE" ═══════════════════════════════════════════════════════════
    Vollbild-Ansicht: oben die Karte (Kartenzeile), darunter alle Ketten als klappbare Gruppen (ohne Verlauf, Meistgenutzt,
    Erledigt heute): die aktuelle Kette, jede Tageskette, die Routinen nach Tagesblock, dazu die festen Ketten Ticks DFM/Privat
@@ -9108,11 +9138,6 @@ function ikDragBinden(){
   ov.addEventListener('pointercancel', e=>{ if(press){ clearTimeout(press.t); press=null; } ende(e, true); });
   ov.addEventListener('click', e=>{ if(e.target.closest('[data-ikfertig]')){ schliesseInKette(); return; }
     const kg=e.target.closest('[data-klgruppe]'); if(kg && kg.closest('.ik-liste')){ e.stopPropagation(); haptik(6); klGruppeUmschalten(kg.dataset.klgruppe); renderInKette(); } }, true);
-}
-function oeffnePlusListe(){
-  const o=el('plusOverlay'); if(!o) return;
-  el('plusBody').innerHTML=kettenListeHtml({ karte:null, kontext:'plus' });
-  o.hidden=false; try{ el('plusBody').scrollTop=0; }catch(e){}
 }
 /* Tick aus der Kartenliste (F1/F2): Aufgaben nach den Regeln des Modus zeit, Routinen/Counter wie ihre Zaehler-Zeile;
    ueber dem Limit zaehlt und bucht der Tick (0 P) */
@@ -9369,7 +9394,6 @@ function renderAlles(){
   _phCache=null;   // §5 (1.8.0): P/h-Schnitte je Render frisch
   rangCacheBauen();
   ebeneRendern();   // C2 (v3.8.0): Statusleiste → Seite der Ebene 0 → offene Ebene-1-Ansicht
-  if(sucheOffen()) renderSuche();
 }
 /* 1-Sekunden-Ticker nur solange der Timer läuft — aktualisiert Text in-place. */
 /* ══════════════════════════════════════════════════════════════════════
@@ -17457,6 +17481,7 @@ function ebeneRendern(){
 function e1Rendern(){
   const a=e1Art(); if(!a) return;
   if(a==='suche') renderSuche();
+  else if(a==='plus'){ const b=el('plusBody'); if(b) b.innerHTML=kettenListeHtml({ karte:null, kontext:'plus' }); }
 }
 /* p: { seite?, e1?, anzeige?, oben? } — nur genannte Teile ändern sich. e1: null | art | {art, arg} */
 function ebeneSetzen(p){
@@ -17466,6 +17491,7 @@ function ebeneSetzen(p){
   if(p.anzeige!==undefined){ const a=p.anzeige||{}; S.ui.fokusAnzeige={ pos:Math.round(num(a.pos))||0, frei:a.frei||null }; fokusAnzeige(); }
   if(p.e1!==undefined){ const e=(typeof p.e1==='string') ? { art:p.e1 } : p.e1;
     _e1 = (e && E1_ARTEN.indexOf(e.art)>=0) ? { art:e.art, arg:e.arg||{} } : null; }
+  if(vorE1==='suche' && e1Art()!=='suche'){ S.ui.suFrage=''; const f=el('suFreitext'); if(f) f.value=''; }   // die Suche schliesst mit leerem Feld
   saveUi();
   ebeneDarstellen();
   if(seiteAktuell()!==vorSeite || p.oben){ try{ const m=document.querySelector('main'); if(m) m.scrollTop=0; }catch(e){} }
@@ -17483,23 +17509,6 @@ function e1Schliessen(){ if(_e1) ebeneSetzen({ e1:null }); }
 function fokusZeigen(kid){ ebeneSetzen({ seite:'fokus', e1:null, anzeige:{ pos:0, frei:kid||null } }); }
 /* EIN Weg für jeden Kartenstart von aussen (Sheet, Vorschlag, Wiederholen, Liste): Uhr starten, dann zeigt die Fokusseite die Mitte */
 function kartenStart(kid, quelle, opt){ fokusStarten(kid, quelle, opt); ebeneSetzen({ seite:'fokus', e1:null }); }
-/* ══ §4 (v3.7.6) · SUCH-EBENE ÖFFNEN / SCHLIESSEN ═══════════════════════════════════════
-   Die Suche ist keine Ansicht (kein Tab) mehr: sucheOeffnen() legt die Ebene über die aktuelle Ansicht, sucheSchliessen()
-   leert das Feld und nimmt sie weg. Tastatur „Fertig" schliesst nur die Tastatur. */
-let _suOffen=false;   // Zustand der Such-Ebene (Quelle fuer sucheOffen(); die body-Klasse ist nur die Darstellung)
-function sucheOeffnen(){
-  _suOffen=true; document.body.classList.add('suOffen');
-  const v=el('v-suche'); if(v){ try{ v.scrollTop=0; }catch(e){} }
-  renderSuche();
-  const f=el('suFreitext'); if(f){ try{ f.focus({preventScroll:true}); }catch(e){} }
-}
-function sucheSchliessen(){
-  S.ui.suFrage=''; const f=el('suFreitext'); if(f) f.value=''; saveUi();
-  renderSuche();
-  if(f){ try{ f.blur(); }catch(e){} }
-  _suOffen=false; document.body.classList.remove('suOffen');
-}
-function sucheOffen(){ return _suOffen; }
 /* ══════════════════════════════════════════════════════════════════════
    §1 (v2.0.1) · ZWEI UNABHÄNGIGE EBENEN
    v2.0.0 hatte die Sichtbarkeit der Fokusansicht an S.fokus.laeuft gekoppelt:
@@ -19822,11 +19831,12 @@ el('suSichten').addEventListener('click', e=>{
     toast(erledigteZeigen()?'✓ Erledigte werden gezeigt':'Erledigte ausgeblendet'); return; }
 });   // §12 (v3.7.0): die Sichten-Knöpfe sind entfallen
 // §5 (v3.7.0): „+" öffnet die Kettenliste (ticken · starten · in die Fokusansicht), oben „+ Neue Karte" für das bisherige Anlegen
-el('neuFab').addEventListener('click', ()=>oeffnePlusListe());
+el('neuFab').addEventListener('click', ()=>{ haptik(8); e1Oeffnen('plus'); });
+// C3 (v3.8.0): „‹ zurück" jeder Ebene-1-Ansicht schliesst die Ebene; „+ Neue Karte" öffnet den Anlege-Dialog ÜBER der Ebene
+el('ebene1').addEventListener('click', e=>{ const t=e.target; if(!t || !t.closest) return;
+  if(t.closest('[data-e1zu]')){ haptik(6); e1Schliessen(); return; }
+  if(t.closest('[data-plusneu]')){ oeffneDetail(null); return; } });
 ikDragBinden();   // §2 (v3.7.0)
-el('plusOverlay').addEventListener('click', e=>{ const t=e.target;
-  if(t.closest('[data-plusneu]')){ el('plusOverlay').hidden=true; oeffneDetail(null); return; }
-  if(t.closest('[data-pluszu]')){ el('plusOverlay').hidden=true; return; } });
 /* ══ §1/§2 (v2.1.1) · KARTEN IN DER SUCHE ══════════════════════════════
    BEFUND: Beim Umbau der Suche in v2.0 fehlte der Handler fuer den
    Kartenkoerper. #suBody kannte nur die Matrix-Kacheln; weder der Koerper
@@ -19867,8 +19877,8 @@ el('suchFilter').addEventListener('click', e=>{
   suchF[b.dataset.sf]=b.dataset.v; haptik(6); renderSuchTreffer();
 });
 // §11 (v3.7.0): der 🔍-Knopf öffnet die Suche (Suchfeld + Kettenliste, §5); liegt sie schon vor, bekommt das Suchfeld den Fokus
-el('suchFab').addEventListener('click', ()=>{ haptik(8); sucheOeffnen(); });   // §4 (v3.7.6)
-el('suZu').addEventListener('click', ()=>{ haptik(6); sucheSchliessen(); });
+el('suchFab').addEventListener('click', ()=>{ haptik(8); e1Oeffnen('suche'); });
+el('suZu').addEventListener('click', ()=>{ haptik(6); e1Schliessen(); });   // leert das Feld (ebeneSetzen) und schliesst Ebene 1
 el('suFreitext').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); try{ e.target.blur(); }catch(x){} } });   // §4 (v3.7.6): „Fertig" schliesst nur die Tastatur
 el('suchOverlay').addEventListener('click', e=>{ if(e.target.id==='suchOverlay') schliesseSuche(); });   // Tap-außen
 /* Pull-down bei scrollTop 0 (Fokus/Stapel) öffnet die Suche — ohne pan-y zu
