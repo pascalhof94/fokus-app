@@ -4746,9 +4746,9 @@ function matrixLesart(x,y){
 }
 function matrixDialogSpeichern(){
   const t=matrixTmp; if(!t){ closeSheet(); return; }
-  const kom=((el('mxKom')||{}).value||'').trim();
+  const kom=((el('sheetBody').querySelector('#mxKom')||{}).value||'').trim();   // §2 (v3.8.1): nur im Sheet suchen
   // Akku getrennt buchen (orthogonal) — derselbe Weg wie der alte Schnellzugriff.
-  const inp=el('mxAkku');
+  const inp=el('sheetBody').querySelector('#mxAkku');
   if(inp && t.akku!=null && S.tag && S.tag.akku!=null){
     const vorher=akkuLive();
     const neuA=Math.max(0, Math.min(AKKU_MAX, num(inp.value,vorher)));
@@ -17582,7 +17582,7 @@ function adhsAufgabeNachlegen(k){
 }
 /* Akku aus einem Dialog buchen — derselbe Weg wie der Matrix-Dialog. */
 function akkuAusDialogBuchen(t, kommentar){
-  const inp=el('mxAkku');
+  const inp=el('e1-tagebuch').querySelector('#mxAkku');   // §2 (v3.8.1): nur in der Tagebuch-Ansicht suchen
   if(!(inp && t.akku!=null && S.tag && S.tag.akku!=null)) return null;
   if(String(inp.value).trim()==='') return Math.round(akkuLive());   // kein Wert = nicht angefasst
   const vorher=akkuLive();
@@ -19233,18 +19233,20 @@ el('sheet').addEventListener('click', e=>{
    darf NICHT auf deren Mitte springen (die Kacheln sind pointer-events:none).
    Die Umrechnung steht an EINER Stelle, damit Lesen und Schreiben nicht
    auseinanderlaufen können. */
-function mxPadSetzenAusEvent(e, tmp){
-  const matrixTmp=tmp||window_matrixTmp(); const pad=el('mxPad'); if(!pad || !matrixTmp) return;
+/* §2 (v3.8.1): wurzel = der Container des Dialogs (#sheetBody bzw. #e1-tagebuch) — Pad, Punkt und Lesart werden NUR darin
+   gesucht, nie über globale IDs (ein zweites Pad im DOM würde sonst das falsche Element liefern) */
+function mxPadSetzenAusEvent(e, tmp, wurzel){
+  const matrixTmp=tmp||window_matrixTmp(); const pad=wurzel ? wurzel.querySelector('#mxPad') : null; if(!pad || !matrixTmp) return;
   const r=pad.getBoundingClientRect();
   if(!(r.width>0 && r.height>0)) return;
   const x=((e.clientX-r.left)/r.width)*2-1;
   const y=1-((e.clientY-r.top)/r.height)*2;      // oben = außen = y:+1
   matrixTmp.x=Math.max(-1,Math.min(1,x));
   matrixTmp.y=Math.max(-1,Math.min(1,y));
-  const dot=el('mxDot');
+  const dot=wurzel.querySelector('#mxDot');
   if(dot){ dot.style.left=(((matrixTmp.x+1)/2)*100).toFixed(1)+'%';
            dot.style.top=(((1-matrixTmp.y)/2)*100).toFixed(1)+'%'; }
-  const rd=el('mxRead'); if(rd) rd.innerHTML=matrixLesart(matrixTmp.x, matrixTmp.y);
+  const rd=wurzel.querySelector('#mxRead'); if(rd) rd.innerHTML=matrixLesart(matrixTmp.x, matrixTmp.y);
 }
 function window_matrixTmp(){ return matrixTmp; }   // der Sheet-Dialog arbeitet auf matrixTmp, das Tagebuch (Ebene 1) auf _tb
 let _mxZieht=false;
@@ -19254,20 +19256,20 @@ let _mxZieht=false;
     if(t.closest('[data-tbgo]')){ tagebuchSpeichern(); return; }
     if(t.closest('[data-tbzu]')){ haptik(6); tagebuchAbbrechen(); return; }
     const tbg=t.closest('[data-tbgut]'); if(tbg && _tb){ tagebuchFelderLesen(); const v=tbg.dataset.tbgut==='1'; _tb.istGut=(_tb.istGut===v) ? null : v; renderTagebuch(); return; } });
-  tbv.addEventListener('input', e=>{ if(e.target.id==='mxAkku'){ const v=el('mxAkkuV'); if(v) v.textContent=Math.round(num(e.target.value))+'%'; if(_tb) _tb.akku=num(e.target.value); } });
+  tbv.addEventListener('input', e=>{ if(e.target.id==='mxAkku'){ const v=e.currentTarget.querySelector('#mxAkkuV'); if(v) v.textContent=Math.round(num(e.target.value))+'%'; if(_tb) _tb.akku=num(e.target.value); } });
   tbv.addEventListener('pointerdown', e=>{ if(!e.target.closest || !e.target.closest('#mxPad') || !_tb) return;
-    zieht=true; mxPadSetzenAusEvent(e, _tb); haptik(8);
+    zieht=true; mxPadSetzenAusEvent(e, _tb, tbv); haptik(8);
     try{ e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }catch(_){}
     e.preventDefault(); });
-  tbv.addEventListener('pointermove', e=>{ if(zieht && _tb) mxPadSetzenAusEvent(e, _tb); });
+  tbv.addEventListener('pointermove', e=>{ if(zieht && _tb) mxPadSetzenAusEvent(e, _tb, tbv); });
   ['pointerup','pointercancel'].forEach(ev=>tbv.addEventListener(ev, ()=>{ zieht=false; })); }
 el('sheetBody').addEventListener('pointerdown', e=>{
   if(!e.target.closest || !e.target.closest('#mxPad')) return;
-  _mxZieht=true; mxPadSetzenAusEvent(e); haptik(8);
+  _mxZieht=true; mxPadSetzenAusEvent(e, matrixTmp, el('sheetBody')); haptik(8);
   try{ e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }catch(_){}
   e.preventDefault();
 });
-el('sheetBody').addEventListener('pointermove', e=>{ if(_mxZieht) mxPadSetzenAusEvent(e); });
+el('sheetBody').addEventListener('pointermove', e=>{ if(_mxZieht) mxPadSetzenAusEvent(e, matrixTmp, el('sheetBody')); });
 /* §5 (v2.3.0): dasselbe Muster fuer das Feld-Pad im Detail/Anlege-Dialog.
    Gesetzt wird nur, wenn sich das FELD aendert — sonst zeichnete jeder
    Pixel den Dialog neu. */
@@ -19294,7 +19296,7 @@ window.addEventListener('pointermove', pflichtDragMove, {passive:false});
 window.addEventListener('pointerup', pflichtDragEnde);
 window.addEventListener('pointercancel', pflichtDragEnde);
 el('sheetBody').addEventListener('input', e=>{
-  if(e.target.id==='mxAkku'){ const v=el('mxAkkuV'); if(v) v.textContent=Math.round(num(e.target.value))+'%'; if(matrixTmp) matrixTmp.akku=num(e.target.value); }
+  if(e.target.id==='mxAkku'){ const v=e.currentTarget.querySelector('#mxAkkuV'); if(v) v.textContent=Math.round(num(e.target.value))+'%'; if(matrixTmp) matrixTmp.akku=num(e.target.value); }
   const t=e.target;
   if(t.id==='akkuQ'){ const v=el('akkuQv'); if(v) v.textContent=Math.round(num(t.value))+'%'; return; }   // §6.1 (v1.13.0)
   // Tag-Start-Slider: live in tagStartTmp, Akku folgt dem Vorschlag bis manuell angefasst
