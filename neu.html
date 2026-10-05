@@ -465,12 +465,12 @@ body[data-seite="fokus"] #v-fokus,body[data-seite="belohnung"] #v-belohnung,body
 .albdetail img{max-width:92vw;max-height:70vh;border-radius:14px;border:1px solid var(--line)}
 .albdetail .nm{font-size:15px;font-weight:800;color:var(--txt)}
 /* ══ §6 (v1.9.0) · Momente — reine CSS-Keyframes, keine Bibliothek ══ */
-.mom-fly{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:900;pointer-events:none;
+.mom-fly{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);pointer-events:none;
   font-size:17px;font-weight:800;color:var(--ok);text-shadow:0 2px 8px rgba(0,0,0,.6);
   animation:momfly 1.25s ease-out forwards}
 @keyframes momfly{0%{opacity:0;transform:translate(-50%,0) scale(.8)}15%{opacity:1;transform:translate(-50%,-14px) scale(1.15)}
   100%{opacity:0;transform:translate(-50%,-120px) scale(.9)}}
-.mom-stern{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:900;pointer-events:none;
+.mom-stern{position:fixed;left:50%;top:30%;transform:translateX(-50%);pointer-events:none;
   font-size:15px;font-weight:800;color:var(--warn);background:var(--card2);border:1px solid var(--warn);
   border-radius:12px;padding:8px 14px;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:momstern 1.8s ease forwards}
 @keyframes momstern{0%{opacity:0;transform:translate(-50%,8px)}12%{opacity:1;transform:translate(-50%,0)}
@@ -749,10 +749,10 @@ body[data-seite="fokus"] #v-fokus,body[data-seite="belohnung"] #v-belohnung,body
 .bel-ansicht .skip{position:sticky;bottom:calc(var(--sab) + 8px);display:block;width:100%;padding:16px;border:0;border-radius:14px;background:#e8e9ec;color:#0f1115;font-size:16px;font-weight:600;margin-top:6px}
 .bel-ansicht .hint{text-align:center;color:#9a9ca2;font-size:11px;margin:6px 0 4px}
 /* §7.4: Kurzform */
-.tk-plus{position:fixed;z-index:900;transform:translate(-50%,-100%);font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;color:#e8e9ec;pointer-events:none;animation:tkPlus 1s ease-out forwards}
+.tk-plus{position:fixed;transform:translate(-50%,-100%);font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;color:#e8e9ec;pointer-events:none;animation:tkPlus 1s ease-out forwards}
 @keyframes tkPlus{0%{opacity:0;transform:translate(-50%,-60%)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-220%)}}
-.tk-tropfen{position:fixed;z-index:900;width:10px;height:10px;border-radius:50% 50% 50% 0;transform:translate(-50%,-50%) rotate(-45deg);pointer-events:none;transition:left .9s cubic-bezier(.2,.8,.2,1),top .9s cubic-bezier(.2,.8,.2,1),opacity .9s}
-.tk-muenze{position:fixed;z-index:900;font-size:14px;transform:translate(-50%,-50%);pointer-events:none;transition:left .9s cubic-bezier(.2,.8,.2,1),top .9s cubic-bezier(.2,.8,.2,1),opacity .9s}
+.tk-tropfen{position:fixed;width:10px;height:10px;border-radius:50% 50% 50% 0;transform:translate(-50%,-50%) rotate(-45deg);pointer-events:none;transition:left .9s cubic-bezier(.2,.8,.2,1),top .9s cubic-bezier(.2,.8,.2,1),opacity .9s}
+.tk-muenze{position:fixed;font-size:14px;transform:translate(-50%,-50%);pointer-events:none;transition:left .9s cubic-bezier(.2,.8,.2,1),top .9s cubic-bezier(.2,.8,.2,1),opacity .9s}
 /* UI-A (v1.5.2): Kopf/Oberkörper-Zoom — der Kreis ist jetzt ein Clip-Wrapper
    (.avclip), das Bild hängt mit ~320 % Höhe oben zentriert darin (alpha-
    gecroppte PNGs, Kopf beginnt oben → sichtbar bleibt das obere Drittel).
@@ -1562,7 +1562,17 @@ body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74
 /* Toast */
 #toast{position:fixed;left:50%;bottom:calc(84px + var(--sab));transform:translateX(-50%) translateY(20px);z-index:800;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:all .25s;max-width:88vw;text-align:center}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-#konfetti{position:fixed;inset:0;z-index:900;pointer-events:none}
+/* ══ C8 (v3.8.0) · EBENE 3 — Animationen ═══════════════════════════════════════════════════════════════
+   Ein Behälter über ALLEM (Ebene 0, Ebene 1 samt #e1Kopf, #topbar, #nav, Dialoge), rein visuell: pointer-events none.
+   Konfetti, Funkeln, Punkte-/Stern-Momente und die Tick-Kurzform liegen darin (e3Spielen). */
+#ebene3{position:fixed;inset:0;z-index:900;pointer-events:none;overflow:hidden}
+#ebene3 *{pointer-events:none}
+#konfetti{position:absolute;inset:0}
+.e3-funkeln{position:absolute;inset:0}
+.e3-funkeln i{position:absolute;left:var(--x);top:var(--y);width:var(--g);height:var(--g);margin:calc(var(--g) / -2) 0 0 calc(var(--g) / -2);opacity:0;background:var(--c,#e8e9ec);
+  clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);filter:drop-shadow(0 0 6px var(--c,#e8e9ec));
+  animation:e3Funkeln var(--d,.5s) ease-in-out var(--v,0s) 1 both}
+@keyframes e3Funkeln{0%{opacity:0;transform:scale(.2) rotate(0deg)}45%{opacity:1;transform:scale(1) rotate(45deg)}100%{opacity:0;transform:scale(.3) rotate(90deg)}}
 
 /* ══ §9 (v2.4.0) · FORMENSPRACHE NACH SLEEP CYCLE ═════════════════════
    Schwarzer Grund, neutrale Grautoene fuer Flaechen, grosse Radien, ruhige
@@ -2532,7 +2542,8 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
 </div>
 
 <div id="toast"></div>
-<canvas id="konfetti"></canvas>
+<!-- C8 (v3.8.0) · EBENE 3: Animationen über allem, nicht bedienbar -->
+<div id="ebene3"><canvas id="konfetti"></canvas></div>
 
 <script>
 'use strict';
@@ -12746,7 +12757,7 @@ function gruppeBonusPruefen(g){
     if(S.meta) S.meta.gruppenBonus=Object.assign({}, S.meta.gruppenBonus, {[g.id]:{tag:tid, punkte:p}});
     logIntraday({id:'grp-'+g.id, domain:g.domain||'privat'}, {punkte:p, typ:'gruppenbonus'});   // §4 (v2.9.1)
     saveMeta();
-    toast('🎉 '+g.name+' komplett · +'+p+' P'); konfetti(); haptik(25);
+    toast('🎉 '+g.name+' komplett · +'+p+' P'); e3Spielen('konfetti'); haptik(25);
   } else if(!komplett && g.bonusTag===tid){
     g.bonusTag=null; saveRoutGruppen();
     if(S.tag && Array.isArray(S.tag.log)){
@@ -14855,7 +14866,7 @@ function kaufen(kat){
 
 
   saveMeta();
-  saveBelohnung(); konfetti(); haptik(25);
+  saveBelohnung(); e3Spielen('konfetti'); haptik(25);
   // §6.1 (v3.5.0): die Kulisse haengt nicht mehr an ausgegebenen Muenzen (Wohlstand → Farbe und Kulisse)
   renderBelohnung();
   momentRangCheck();
@@ -15532,21 +15543,17 @@ function tickKurzform(btn, punkte){
   if(!btn || !btn.getBoundingClientRect || !document.body) return;
   const r=btn.getBoundingClientRect(), A=ausmalState(), D=ausmalDaten(A.kulisse), t=A.toepfe[A.aktiverTopf];
   const hex=(t && t.farbe!=null && D) ? D.hex[t.farbe] : FARBE.GRAU;
-  const sp=document.createElement('span'); sp.className='tk-plus'; sp.textContent='+'+Math.round(punkte)+' P'; sp.style.left=(r.left+r.width/2)+'px'; sp.style.top=(r.top)+'px'; document.body.appendChild(sp); setTimeout(()=>sp.remove(), 1000);
+  const sp=document.createElement('span'); sp.className='tk-plus'; sp.textContent='+'+Math.round(punkte)+' P'; sp.style.left=(r.left+r.width/2)+'px'; sp.style.top=(r.top)+'px'; e3Host().appendChild(sp); setTimeout(()=>sp.remove(), 1000);
   const flieg=(cls, zielId, inhalt, bg)=>{ const z=el(zielId); if(!z) return; const zr=z.getBoundingClientRect(), e=document.createElement('span'); e.className=cls; if(inhalt) e.textContent=inhalt; if(bg) e.style.background=bg;
-    e.style.left=(r.left+r.width/2)+'px'; e.style.top=(r.top+r.height/2)+'px'; document.body.appendChild(e); e.getBoundingClientRect();
+    e.style.left=(r.left+r.width/2)+'px'; e.style.top=(r.top+r.height/2)+'px'; e3Host().appendChild(e); e.getBoundingClientRect();
     e.style.left=(zr.left+zr.width/2)+'px'; e.style.top=(zr.top+zr.height/2)+'px'; e.style.opacity='0'; setTimeout(()=>e.remove(), 1000); };
   flieg('tk-tropfen', 'tbRing', '', hex); flieg('tk-muenze', 'sZKonto', '🪙');
 }
 function momentBuchung(punkte){
   if(!momenteAn() || !motionErlaubt() || !(punkte>0)) return;
   const f=streakFaktor();
-  const d=document.createElement('div');
-  d.className='mom-fly';
-  d.textContent='+'+Math.round(punkte)+(f>1?' ×'+f.toFixed(2).replace('.',','):'');
-  document.body.appendChild(d);
-  setTimeout(()=>d.remove(), 1300);
-  try{ if(_letzterTickKnopf && Date.now()-_letzterTickKnopf.ts<1500) tickKurzform(_letzterTickKnopf.el, punkte); }catch(e){}   // §7.4 (v3.5.0)
+  e3Spielen('flug', { text:'+'+Math.round(punkte)+(f>1?' ×'+f.toFixed(2).replace('.',','):'') });
+  try{ if(_letzterTickKnopf && Date.now()-_letzterTickKnopf.ts<1500) e3Spielen('tick', { knopf:_letzterTickKnopf.el, punkte }); }catch(e){}   // §7.4 (v3.5.0)
 }
 /* Vollbild-Moment — Tap irgendwo schließt; bei laufendem Timer in die Queue. */
 /* ══ §2 (v2.0.2) · DER MOMENT DARF DIE APP NIE FESTHALTEN ═════════════
@@ -15616,9 +15623,7 @@ function momentOutfit(von, zu){
     return;
   }
   if(!momenteAn() || !motionErlaubt()) return;
-  const d=document.createElement('div'); d.className='mom-stern';
-  d.textContent='👔 Outfit '+zu;
-  document.body.appendChild(d); setTimeout(()=>d.remove(), 1800);
+  e3Spielen('stern', { text:'👔 Outfit '+zu });
 }
 /* §4/§6.3: Kulissenwechsel nach einem Kauf — der Kauf ist ein Ortswechsel. */
 function momentKulisse(von, zu){
@@ -18523,12 +18528,37 @@ function toast(msg){
   const t=el('toast'); t.textContent=msg; t.classList.add('on');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'), 1900);
 }
-function konfetti(){
+/* ══ C8 (v3.8.0) · EBENE 3 — e3Spielen ═══════════════════════════════════════════════════════════════════
+   art: 'funkeln' {dauerMs} · 'konfetti' {von: Rechteck des gedrückten Knopfs} · 'flug' {text} · 'stern' {text} ·
+        'tick' {knopf, punkte} (Kurzform: „+n P", Tropfen zum Avatar, Münze zum Konto)
+   Alles ist flüchtig und rein visuell — kein Zustand, keine Bedienung. */
+function e3Host(){ return el('ebene3') || document.body; }
+function e3Spielen(art, opt){
+  opt=opt||{};
+  if(typeof document==='undefined' || !document.body || !document.createElement) return;
+  const host=e3Host(); if(!host || !host.appendChild) return;
+  if(art==='konfetti'){ konfettiVon(opt.von||null); return; }
+  if(art==='tick'){ tickKurzform(opt.knopf, opt.punkte); return; }
+  if(art==='funkeln'){
+    const dauer=Math.max(200, num(opt.dauerMs, 1000)), d=document.createElement('div'); d.className='e3-funkeln';
+    let h=''; for(let i=0;i<40;i++){ const v=Math.random()*dauer*0.5, g=10+Math.random()*22;
+      h+='<i style="--x:'+(Math.random()*100).toFixed(1)+'%;--y:'+(Math.random()*100).toFixed(1)+'%;--g:'+g.toFixed(0)+'px;--v:'+(v/1000).toFixed(2)+'s;--d:'+((dauer*0.5)/1000).toFixed(2)+'s;--c:'+(i%3===0 ? FARBE.GOLD : FARBE.WEISS)+'"></i>'; }
+    d.innerHTML=h; host.appendChild(d); setTimeout(()=>{ try{ d.remove(); }catch(e){} }, dauer);
+    return;
+  }
+  if(art==='flug' || art==='stern'){
+    const d=document.createElement('div'); d.className = art==='flug' ? 'mom-fly' : 'mom-stern';
+    d.textContent=String(opt.text||''); host.appendChild(d); setTimeout(()=>{ try{ d.remove(); }catch(e){} }, art==='flug' ? 1300 : 1800);
+  }
+}
+/* Konfetti fliegt vom gedrückten Knopf aus (von = dessen Rechteck); ohne Angabe aus der Bildschirmmitte */
+function konfettiVon(von){
   const cv=el('konfetti'), ctx=cv.getContext('2d');
   cv.width=innerWidth; cv.height=innerHeight;
+  const x0 = von ? num(von.left)+num(von.width)/2 : innerWidth/2, y0 = von ? num(von.top)+num(von.height)/2 : innerHeight*0.5;
   const farben=['#4f8ef7','#3ecf8e','#f2b84b','#f66d6d','#b98af7','#6dd3e0'];
   const parts=Array.from({length:70},()=>({
-    x:innerWidth/2+(Math.random()-.5)*120, y:innerHeight*0.5,
+    x:x0+(Math.random()-.5)*(von ? 24 : 120), y:y0,
     vx:(Math.random()-.5)*9, vy:-(Math.random()*10+5),
     g:.32+Math.random()*.15, s:5+Math.random()*5,
     c:farben[(Math.random()*farben.length)|0], r:Math.random()*6, vr:(Math.random()-.5)*.4
@@ -19745,7 +19775,8 @@ function tickFeier(rect, ausE1){
   if(Date.now()-_feierTs<300) return;
   _feierTs=Date.now();
   if(!motionErlaubt()) return;   // „Bewegung reduzieren": keine Animation
-  konfetti();
+  e3Spielen('funkeln', { dauerMs:1000 });   // 1 Sekunde Funkeln über den ganzen Bildschirm
+  e3Spielen('konfetti', { von:rect });      // Konfetti vom gedrückten Knopf aus
 }
 /* nach dem Klick prüfen: hat er gebucht? (eigene Funktion, damit sie ohne Zeitgeber prüfbar ist) */
 function tickFeierPruefen(vor){ if(!vor || tickSignatur()===vor.sig) return false; tickFeier(vor.rect, vor.e1); return true; }
