@@ -249,14 +249,7 @@ body[data-e1="suche"] #e1-suche,body[data-e1="plus"] #e1-plus,body[data-e1="kett
 .tb-kurve:not(.grau) svg{filter:drop-shadow(0 0 4px var(--amp))}
 /* §4 (v3.0.0): die Routinen-Leiste endet ganz unten — Luft unter der letzten Zeile, damit Plus und Suchknopf nie ein Feld verdecken */
 #fokusView{padding-bottom:96px}
-/* §2 (v2.1.0): Das Plus liegt ueber jeder Ansicht — Suche, alle fuenf
-   Sichten, Fokus und Statistik. 56 px Flaeche (ueber der 44-px-Norm), im
-   Daumenbogen, mit safe-area-Abstand ueber der Navigationsleiste.
-   z-index 199 ist bewusst gewaehlt: ueber dem Inhalt, aber UNTER Backdrop
-   (200) und Sheet (201) — ein offener Dialog muss es verdecken, sonst
-   waere es genau der Fehler, den v2.0.2 behoben hat, nur andersherum.
-   Der Fokus-Layer (200) liegt darueber; deshalb wird das Plus dort
-   ausgeblendet, wenn die Fokusansicht offen ist (fokusLayerPflegen). */
+/* Plus und Suchknopf: runde Knöpfe der Ebene 0 (z-index 70) — sie öffnen Ebene 1 und sind dort ausgeblendet */
 #neuFab{position:fixed;right:16px;bottom:calc(56px + var(--sab) + 14px);z-index:70;
   width:56px;height:56px;border-radius:50%;border:0;background:var(--ac);color:#fff;
   font-size:26px;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;
@@ -583,8 +576,6 @@ body[data-seite="fokus"] #v-fokus,body[data-seite="belohnung"] #v-belohnung,body
 #fokusAktiv .fk-play{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:12px;font-size:15px;font-weight:800;background:var(--blue);color:#0a0f1a}
 #fokusAktiv.laeuft .fk-play{background:var(--warn)}
 #fokusAktiv .fk-edit{flex:none;padding:12px 16px;border-radius:12px;border:1px solid var(--line);font-weight:700;color:var(--mut)}
-#fokusLeer{margin-top:16vh;text-align:center;color:var(--mut2);font-size:13px}
-#fokusLeer .big{font-size:44px;display:block;margin-bottom:var(--s1)}
 /* Fokus-Tacho (v1.1, v0.38-Port): Avatar im Ring + Zeit + umrandete Kennzahlen */
 /* U2 (v1.4.0): Fokuskarte trägt horizontale Swipe-Gesten selbst, vertikal darf
    die Seite weiterscrollen. Die Zeitleiste unten zeigt die Navigationsposition. */
@@ -844,8 +835,6 @@ body[data-seite="fokus"] #v-fokus,body[data-seite="belohnung"] #v-belohnung,body
 
 /* Karussell begonnene+Muss */
 /* Fokus-Karussell — jetzt im sticky Topbar (Bug 2: darf nie überlappt werden) */
-#fkNav{border-top:1px solid var(--line);padding:5px var(--s2);background:linear-gradient(180deg,var(--card2),var(--card))}
-#fkNav[hidden]{display:none}
 .fk-carousel{display:flex;align-items:center;gap:8px}
 .fk-carousel .arw{flex:none;width:44px;height:40px;border:1px solid var(--line);border-radius:10px;color:var(--txt);display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--bg)}
 .fk-carousel .arw:active{background:var(--card2)}
@@ -1055,8 +1044,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .gzrow .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── A10 Spotlight-Suche ──────────────────────────────────────────── */
-#suchOverlay{position:fixed;inset:0;z-index:320;background:rgba(6,10,16,.94);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;flex-direction:column;padding:max(12px,env(safe-area-inset-top)) 12px 12px}
-#suchOverlay[hidden]{display:none}
 .such-bar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:6px 8px 6px 12px}
 .such-bar .such-ic{font-size:15px;flex:none;opacity:.7}
 .such-bar input{flex:1;min-width:0;background:transparent;border:none;color:var(--txt);font-size:17px;padding:8px 2px}
@@ -1496,23 +1483,6 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 #nav button .ic{font-size:19px;display:block;margin-bottom:2px;line-height:1}
 #nav button.on{color:#e8e9ec;background:#262a32}   /* C2 (v3.8.0): aktiv WEISS auf LEER, Radius wie Kacheln */
 
-/* FAB */
-#fab{position:fixed;left:16px;bottom:calc(64px + var(--sab) + 10px);z-index:70;width:54px;height:54px;border-radius:50%;background:var(--blue);color:#0a0f1a;font-size:28px;font-weight:400;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.45)}
-/* §3 (v1.6.0): Routinen-Schublade — Auslöser rechts, ≥56px, Farbe der aktiven Domäne */
-#routFab{position:fixed;right:16px;bottom:calc(64px + var(--sab) + 10px);z-index:70;width:56px;height:56px;border-radius:50%;
-  background:var(--blue);color:#0a0f1a;font-size:26px;font-weight:700;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 8px 22px rgba(0,0,0,.45);border:none}
-#routFab[hidden]{display:none}
-/* §10 (v1.8.0): zweiter Schnellzugriff — 📌 links neben ↻, beide ≥56px im Daumenbogen */
-#ketteFab{position:fixed;right:calc(16px + 56px + 12px);bottom:calc(64px + var(--sab) + 10px);z-index:70;width:56px;height:56px;border-radius:50%;
-  background:var(--card2);color:var(--txt);font-size:22px;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 8px 22px rgba(0,0,0,.45);border:1px solid var(--line)}
-#ketteFab[hidden]{display:none}
-#routFab.privat{background:var(--warn)}
-/* §9.4 (v1.12.0): FABs ziehen beim Herunterscrollen ein (nicht ausgeblendet) */
-#fab,#routFab,#ketteFab{transition:transform .22s ease}
-body.fabsEin #fab{transform:translateY(calc(100% + 74px + var(--sab)))}
-body.fabsEin #routFab,body.fabsEin #ketteFab{transform:translateY(calc(100% + 74px + var(--sab)))}
 /* Halbhohes Sheet — die Fokuskarte bleibt dahinter sichtbar */
 /* §1.1 (v1.13.0): .rs-kopf auch außerhalb der .routsheet (Status-Sheet §2) */
 .rs-kopf{display:flex;gap:8px;margin-bottom:10px}
@@ -1643,7 +1613,6 @@ body{background:var(--bg)}
 .anmod .card{background:none;border:0;padding:0;margin:4px 0 0;border-radius:0}
 .anmod .card>h3{font-size:13px;font-weight:500;color:var(--mut)}
 .an-leer{border-radius:16px}
-#suchOverlay{background:rgba(0,0,0,.95)}
 
 /* ══ v2.4.1 · Farbe nur in den Visualisierungen ══════════════════════
    1 · Karten-Grafiken: --fc/--fc2 = Matrixfeld (Grundfarbe), --dom = Domaene
@@ -2377,7 +2346,6 @@ img.objimg.laedt{opacity:0}
 .ik-teil{min-height:12px}
 .ik-leer{font-size:11.5px;color:#9a9ca2;border:1px dashed #2a2d33;border-radius:10px;padding:10px;text-align:center;margin-bottom:6px}
 .ik-fest{font-size:10.5px;color:#9a9ca2;margin-left:6px}
-body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden])) #suchFab{display:none}
 /* ══ 3.7.0 §4 · Statusleiste: Punkteleiste oben, darunter Ring · Titel · Restzeit · Kartenpunkte; Töpfe-Zeile = Countdown ══ */
 #topbar .sl-z1{order:2}
 :is(#statusbar,#e1Kopf) .sb-bar{order:1}
@@ -2411,7 +2379,6 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
     </div>
   </div>
 </div>
-<div id="fkNav" hidden></div>
 </div>
 
 <main>
@@ -2470,8 +2437,6 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
     <!-- §2 (v2.2.0): zwei Filter ueber ALLEN Sichten und dem Freitext —
          eigene Segment-Leisten, keine weiteren Chips in der Sicht-Leiste. -->
     <!-- §5 (v3.7.0): unter dem Suchfeld die Kettenliste; die Eingabe filtert alle Gruppen (Filter-Knöpfe und Sichten entfallen) -->
-    <div class="su-filter" id="suFilter" hidden></div>
-    <div class="su-sichten" id="suSichten" hidden></div>
     <div class="su-swipe" id="suSwipe"><div id="suBody"></div></div>
   </section>
   <section class="e1" id="e1-plus" data-e1="plus">
@@ -2519,17 +2484,6 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
   <div class="sheetkopf"><h3 id="sheetTitel">Detail</h3><button class="x" id="sheetX">✕</button></div>
   <div class="sheetbody" id="sheetBody"></div>
   <div class="sheetfoot" id="sheetFoot"></div>
-</div>
-
-<!-- A10: Spotlight-Suche (Pull-down / 🔍) -->
-<div id="suchOverlay" hidden>
-  <div class="such-bar">
-    <span class="such-ic">🔍</span>
-    <input id="suchInput" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Karten suchen …">
-    <button id="suchClose" class="such-x">Abbrechen</button>
-  </div>
-  <div id="suchFilter" class="su-filter such-filter"></div>
-  <div id="suchList" class="such-list"></div>
 </div>
 
 <!-- §3 (v3.5.4): Karten mit Faktor (Vollbild-Ansicht, liegt unter Sheet und Backdrop) -->
@@ -3310,7 +3264,7 @@ function ladeAlles(){
   S.ui       = Object.assign({ stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', analyseArt:'alle', debugTap:false }, DB.get('ui', {}));
   // C1 (v3.8.0): Migration tab → seite — die Ebene-0-Seite; unbekannt oder die frühere Suche → Fokus
   if(SEITEN.indexOf(S.ui.seite)<0) S.ui.seite = (S.ui.tab==='belohnung' || S.ui.tab==='statistik' || S.ui.tab==='einst') ? S.ui.tab : 'fokus';
-  delete S.ui.tab; delete S.ui.fokusOffen; delete S.ui.fokusZeigt; delete S.ui.fokusNav;
+  delete S.ui.tab; delete S.ui.fokusOffen; delete S.ui.fokusZeigt; delete S.ui.fokusNav; delete S.ui.fokusOeff;
   // U6-B: Erstell-Zeitstempel für Altkarten guarded nachrüsten (VOR der Härtung,
   // damit der Fallback greift statt der neueKarte-Default-Jetztzeit). Idempotent.
   S.karten.forEach(k=>{ if(k && !k.erstelltTs) k.erstelltTs = k.letzteBearbeitung || jetztIso(); });
@@ -4489,34 +4443,6 @@ function fokusStarten(kid, quelle, opt){
   S.ui.fokusAnzeige={ pos:0, frei:null };   // C4 (v3.8.0): die getrackte Karte ist die Mitte der Fokusseite
   saveFokus(); saveUi(); if(S.fokus.laeuft) starteTicker(); renderAlles();
   adhsTagebuchPruefen(zk);   // B7 (v3.8.0): Karte mit „ADHS" im Titel → Tagebuch (Ebene 1)
-}
-/* §3.1 (v1.10.0): Nach dem Abschluss der aktiven Fokus-Karte rückt die
-   nächste OFFENE Karte aus derselben Quelle nach (gewählt, Uhr aus —
-   gestartet wird bewusst per ▶). Quelle leer/unbekannt → altes Verhalten. */
-function fokusNachruecken(kid){
-  if(!(S.fokus && S.fokus.karteId===kid)) return false;
-  const q=S.fokus.quelle;
-  if(!q) return false;
-  // v1.13.2 (Diagnose-Nebenfund): die v1.12-Stapel (sys-dfm/sys-privat)
-  // kannten keinen Nachrück-Weg — Starts aus dem Stapel-Tab gingen leer aus.
-  let liste = (q==='sys-heute'||q==='kette') ? ketteKarten()
-    : (q==='sys-dfm'||q==='sys-privat') ? stapelKarten(S.stapel.find(s=>s.id===q)||{id:q, filter:[]})
-    : ansichtsListe(q);
-  const next=(liste||[]).find(x=>x.id!==kid && x.status==='offen' && !x.freeze);
-  if(!next) return false;
-  S.fokus={ karteId:next.id, laeuft:false, startMs:0, sessionSek:0, quelle:q };
-  saveFokus();
-  toast('Nächste: '+(next.titel||'(ohne Titel)'));
-  return true;
-}
-/* U1: die Fokus-Karte an Position 1 des aktiven Stapels (echte Umsortierung —
-   manueller Modus, aktuelle Reihenfolge festschreiben, Ziel-Karte sortIndex 0). */
-function fokusKarteNachOben(kid){
-  const st=S.stapel.find(s=>s.id===S.ui.aktivStapel); if(!st) return;
-  const ks=stapelKarten(st); if(!ks.length) return;
-  st.sortierung={feld:'manuell', richtung:'asc'};
-  let n=1; ks.forEach(k=>{ k.sortIndex=Object.assign({}, k.sortIndex); k.sortIndex[st.id]=(k.id===kid?0:n++); });
-  saveKarten(); saveStapel();
 }
 /* Langer Druck auf „Schließen" im Tagesabschluss = den Export bewusst ueberspringen (v3.2.0 §2.3).
    §1.2 (v3.4.0): der lange Druck auf ▶ hat keine Sonderfunktion mehr. */
@@ -7696,15 +7622,8 @@ function renderFokusleiste(){
     if(fi){ const of=(typeof outfitHeute==='function')?outfitHeute():1;
       const src=AVATAR_BILDER[Math.max(0,Math.min(AVATAR_BILDER.length-1,(of||1)-1))];
       if(src && fi.src!==src) fi.src=src; } }
-  renderFkNav();      // Bug 2: Karussell im sticky Topbar (vor layoutTopbar-Messung)
   renderStatusbar();
   layoutTopbar();     // Topbar-Höhe (inkl. fkNav) immer nachziehen, auch bei geschlossenem Tag
-}
-/* Bug 2: Karten-Navigation (‹ n/N ›) lebt im fixen Topbar, damit sie nie von
-   der Fokus-Karte/FAB überlappt wird. Nur im Fokus-Tab bei >1 Kandidat. */
-function renderFkNav(){
-  // U1: Karussell entfernt — Kartenwahl läuft über die Fokus-Liste. Nav bleibt aus.
-  const nav=el('fkNav'); if(nav && !nav.hidden){ nav.hidden=true; nav.innerHTML=''; }
 }
 /* Statusleiste (v1.3.2, S1–S3): 3-teilige Energie-Batterie · Tagesziel-
    Fortschrittsbalken (Ist DFM blau + Privat gelb gestapelt / Soll-Layer 8:30–22:00
@@ -17427,18 +17346,6 @@ function suSichtbar(ks){
 }
 function suFrage(){ return String(S.ui.suFrage||'').trim(); }
 
-/* ══ §1 (v2.1.2) · JEDE NAVIGATION SCHLIESST DIE FOKUSANSICHT ══════════
-   BEFUND, gemessen: Nach einem Tipp auf den Tab „Suche" oder „Statistik"
-   blieb fokusLayer.hidden=false und S.ui.fokusOffen=true. setTab wechselte
-   die Seite UNTER dem Layer und zeichnete ihn danach wieder, weil
-   fokusLayerPflegen() den unveraenderten Zustand las. elementFromPoint in
-   der Bildmitte traf span#tPktSub < div.tstats < div#fokusAktiv — die
-   Kacheln der Fokuskarte —, und die Kartenzeile der Suche lag unter
-   b#tZeitW. v2.0.1 hatte nur den Knopf „▾ Zur Suche" angeschlossen.
-   An der Wurzel: setTab IST Navigation und schliesst die Ansicht. Nur die
-   internen Start-Wege („Karte starten, Grundseite ist die Suche") sagen
-   ausdruecklich {fokusLassen:true}. Die laufende Karte laeuft als Leiste
-   weiter; die Uhr wird nicht beruehrt. */
 /* ══ C1 (v3.8.0) · DIE EBENEN-STEUERUNG ═══════════════════════════════════════════════════
    EIN Zustand, EINE Funktion, die ihn setzt und zeichnet. Keine Ansicht öffnet oder schliesst sich selbst.
      S.ui.seite         Ebene 0: 'fokus' | 'belohnung' | 'statistik' | 'einst'
@@ -19752,60 +19659,7 @@ function sucheTreffer(q){
    der Hauptseite (v2.3 §2) gilt hier bewusst NICHT. Treffer kompakt wie
    v2.3 §1. Unter den Treffern — auch bei null — steht immer „Neu anlegen"
    mit dem Suchbegriff als Titel. Umlaute in beiden Schreibweisen (sucheTreffer). */
-const SF_STATUS=[['offen','Offen'],['erledigt','Erledigt'],['alle','Alle']];
-let suchF={ dom:'alle', art:'alle', status:'offen' };
-function oeffneSuche(){
-  baueSuchIndex();
-  suchF={ dom:'alle', art:'alle', status:'offen' };   // jede Suche beginnt mit den Defaults
-  const o=el('suchOverlay'); o.hidden=false;
-  const inp=el('suchInput'); inp.value='';
-  renderSuchTreffer();
-  try{ inp.focus(); }catch(e){}
-  setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 40);   // iOS: Tastatur zuverlässig öffnen
-}
-function schliesseSuche(){ const o=el('suchOverlay'); if(o) o.hidden=true; if(_suchDeb){ clearTimeout(_suchDeb); _suchDeb=null; } }
-function suchFilterPasst(k){
-  if(suchF.dom!=='alle' && k.domain!==suchF.dom) return false;
-  const art=kartenArt(k);
-  if(suchF.art==='aufgaben' && art!=='Aufgabe') return false;
-  if(suchF.art==='routinen' && art!=='Routine' && art!=='Counter') return false;
-  if(suchF.status==='offen' && k.status!=='offen') return false;
-  if(suchF.status==='erledigt' && k.status!=='erledigt') return false;
-  if(suchF.status==='alle' && k.status==='archiviert') return false;
-  return true;
-}
-function renderSuchTreffer(){
-  const q=el('suchInput').value, box=el('suchList'), fb=el('suchFilter');
-  const seg=(feld, werte)=>'<div class="su-seg" role="group">'+werte.map(([k,l])=>
-    '<button class="'+(suchF[feld]===k?'on':'')+'" data-sf="'+feld+'" data-v="'+k+'" aria-pressed="'+(suchF[feld]===k)+'">'+l+'</button>').join('')+'</div>';
-  if(fb) fb.innerHTML=
-    '<div class="su-frow"><span class="l">Domäne</span>'+seg('dom',SU_DOM)+'</div>'+
-    '<div class="su-frow"><span class="l">Art</span>'+seg('art',SU_ART)+'</div>'+
-    '<div class="su-frow"><span class="l">Status</span>'+seg('status',SF_STATUS)+'</div>';
-  const qq=String(q||'').trim();
-  const tr=qq ? sucheTreffer(qq).filter(o=>suchFilterPasst(o.k)) : [];
-  let h='';
-  if(qq) h+='<div class="su-kopfzeile">'+tr.length+' Treffer</div>';
-  h+=tr.map(o=>kartenreiheHtml(o.k, 'such', {kompakt:true})).join('');
-  if(qq && !tr.length) h+='<div class="such-leer">Kein Treffer für „'+esc(qq)+'".</div>';
-  h+='<button class="btn prim such-neu" data-suchneu="1">＋ Neu anlegen'+(qq?(' „'+esc(qq.slice(0,40))+'"'):'')+'</button>';
-  box.innerHTML=h;
-}
-function suchNeuAnlegen(){
-  const q=String((el('suchInput')||{}).value||'').trim();
-  schliesseSuche();
-  oeffneDetail(null);
-  if(q){ entwurf.titel=q; renderDetail(); }
-}
 function stapelFuerKarte(kid){ for(const st of S.stapel){ try{ if(stapelKarten(st).some(k=>k.id===kid)) return st; }catch(e){} } return null; }
-function suchFokusStarten(kid){
-  const k=(S.karten||[]).find(x=>x.id===kid); if(!k) return;
-  if(k.freeze){ k.freeze=false; saveKarten(); }
-  const st=stapelFuerKarte(kid); if(st){ S.ui.aktivStapel=st.id; saveUi(); }
-  schliesseSuche();
-  if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid);
-  ebeneSetzen({ seite:'fokus', e1:null });
-}
 /* §13: Tap auf die Figur öffnet Belohnung + Shop — kein Tab. */
 /* §1 (v2.2.0) · WEG ZUR BELOHNUNGSSEITE — Figur UND Rang.
    BEFUND, gemessen am gelebten Bestand: Der Tipp auf die Figur kam an
@@ -19877,22 +19731,6 @@ el('suClear').addEventListener('click', ()=>{
   renderSuche();
 });
 let _suDeb=null;
-/* Sichtwechsel — Tap auf die Leiste oder horizontales Wischen. */
-el('suFilter').addEventListener('click', e=>{
-  // §2 (v2.2.0): Domäne, Art und Erledigte — Wahl bleibt bis zur Änderung.
-  if(e.target.closest('[data-suerl]')){ S.ui.suErledigt=!erledigteZeigen(); saveUi();
-    renderSuche(); haptik(8);
-    toast(erledigteZeigen()?'✓ Erledigte werden gezeigt':'Erledigte ausgeblendet'); return; }
-  // §8 (v3.0.0): ein zweiter Tipp auf die aktive Wahl hebt sie auf; jede Aenderung beginnt oben (§9)
-  const d=e.target.closest('[data-sudom]'); if(d){ S.ui.suDom=(suDom()===d.dataset.sudom)?'alle':d.dataset.sudom; saveUi(); renderSuche(); haptik(8); return; }
-  const a=e.target.closest('[data-suart]'); if(a){ S.ui.suArt=(suArtW()===a.dataset.suart)?'alle':a.dataset.suart; saveUi(); renderSuche(); haptik(8); return; }
-});
-el('suSichten').addEventListener('click', e=>{
-  // §3 (v2.1.0): Filter „Erledigte zeigen" — sitzt in der Sicht-Leiste.
-  if(e.target.closest('[data-suerl]')){ S.ui.suErledigt=!erledigteZeigen(); saveUi();
-    renderSuche(); haptik(8);
-    toast(erledigteZeigen()?'✓ Erledigte werden gezeigt':'Erledigte ausgeblendet'); return; }
-});   // §12 (v3.7.0): die Sichten-Knöpfe sind entfallen
 // §5 (v3.7.0): „+" öffnet die Kettenliste (ticken · starten · in die Fokusansicht), oben „+ Neue Karte" für das bisherige Anlegen
 el('neuFab').addEventListener('click', ()=>{ haptik(8); e1Oeffnen('plus'); });
 // C3 (v3.8.0): „‹ zurück" jeder Ebene-1-Ansicht schliesst die Ebene; „+ Neue Karte" öffnet den Anlege-Dialog ÜBER der Ebene
@@ -19901,66 +19739,11 @@ el('ebene1').addEventListener('click', e=>{ const t=e.target; if(!t || !t.closes
   if(t.closest('[data-plusneu]')){ oeffneDetail(null); return; }
   const kw=t.closest('[data-kwwahl]'); if(kw){ kettenwahlWaehlen(kw.dataset.kwwahl||null); return; } });
 ikDragBinden();   // §2 (v3.7.0)
-/* ══ §1/§2 (v2.1.1) · KARTEN IN DER SUCHE ══════════════════════════════
-   BEFUND: Beim Umbau der Suche in v2.0 fehlte der Handler fuer den
-   Kartenkoerper. #suBody kannte nur die Matrix-Kacheln; weder der Koerper
-   noch die Schnellknoepfe waren an karteRowClick angeschlossen.
-   Reihenfolge ist Absicht: erst die Bedienelemente (§2 — jedes loest NUR
-   seine Aktion aus), dann der Koerper (§1 — ansehen, nicht starten). */
-const SU_BEDIENELEMENT = 'button,[data-check],[data-tickplus],[data-fokusstart],[data-schieb],[data-zzplus],[data-zzsub],[data-zzsubplay],[data-zzminus],'+
-  '[data-kette],[data-freeze],[data-archiv],[data-pqstart],[data-pqtick],[data-pqcheck],input,select,textarea,a';
-el('suBody').addEventListener('click', e=>{
-  const t=e.target;
-  // §12 (v3.7.0): Kalender (Blöcke, Gruppen, Kalenderkarten) entfallen
-  const mx=t.closest('[data-sumx]');
-  if(mx){ S.ui.suMatrixFeld=(S.ui.suMatrixFeld===mx.dataset.sumx)?null:mx.dataset.sumx; saveUi(); renderSuche(); return; }
-  // §2: Ein Schnellknopf loest seine Aktion aus — und NICHTS sonst. Das
-  // Ereignis endet hier; der Koerper-Zweig unten wird nie erreicht.
-  if(t.closest(SU_BEDIENELEMENT)){
-    e.stopPropagation();
-    if(karteRowClick(t, e)){ renderSuche(); }
-    return;
-  }
-  // §1: Tipp auf den Kartenkoerper (Titel, Metazeile, freie Flaeche) —
-  // die Karte in der Fokusansicht ANSEHEN, ohne die Uhr zu starten.
-  const row=t.closest('.krow[data-kid]');
-  if(row){ haptik(8); fokusZeigen(row.dataset.kid); return; }
-});
 /* §5 (v3.7.0): die wischbaren Sichten der Suche sind entfallen — unter dem Suchfeld steht die Kettenliste */
-el('suchClose').addEventListener('click', schliesseSuche);
-el('suchInput').addEventListener('input', ()=>{ if(_suchDeb) clearTimeout(_suchDeb); _suchDeb=setTimeout(renderSuchTreffer, 90); });   // minimaler Debounce
-el('suchInput').addEventListener('keydown', e=>{ if(e.key==='Escape'){ e.preventDefault(); schliesseSuche(); } });
-el('suchList').addEventListener('click', e=>{
-  if(e.target.closest('[data-suchneu]')){ suchNeuAnlegen(); return; }
-  // Tipp auf einen Treffer oeffnet die Karte (Fokusansicht, Uhr steht)
-  const row=e.target.closest('.krow[data-kid]');
-  if(row){ schliesseSuche(); haptik(8); fokusZeigen(row.dataset.kid); }
-});
-el('suchFilter').addEventListener('click', e=>{
-  const b=e.target.closest('[data-sf]'); if(!b) return;
-  suchF[b.dataset.sf]=b.dataset.v; haptik(6); renderSuchTreffer();
-});
 // §11 (v3.7.0): der 🔍-Knopf öffnet die Suche (Suchfeld + Kettenliste, §5); liegt sie schon vor, bekommt das Suchfeld den Fokus
 el('suchFab').addEventListener('click', ()=>{ haptik(8); e1Oeffnen('suche'); });
 el('suZu').addEventListener('click', ()=>{ haptik(6); e1Schliessen(); });   // leert das Feld (ebeneSetzen) und schliesst Ebene 1
 el('suFreitext').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); try{ e.target.blur(); }catch(x){} } });   // §4 (v3.7.6): „Fertig" schliesst nur die Tastatur
-el('suchOverlay').addEventListener('click', e=>{ if(e.target.id==='suchOverlay') schliesseSuche(); });   // Tap-außen
-/* Pull-down bei scrollTop 0 (Fokus/Stapel) öffnet die Suche — ohne pan-y zu
-   stören (kein preventDefault; am oberen Rand scrollt ohnehin nichts). */
-(function(){
-  const m=document.querySelector('main'); if(!m) return;
-  let y0=null, active=false;
-  m.addEventListener('touchstart', e=>{
-    if(e.touches.length!==1){ y0=null; active=false; return; }
-    const tab=S.ui.tab; active=(tab==='fokus'||tab==='stapel') && m.scrollTop<=0;
-    y0=active?e.touches[0].clientY:null;
-  }, {passive:true});
-  m.addEventListener('touchmove', e=>{
-    if(y0==null || !active) return;
-    if((e.touches[0].clientY-y0)>78 && m.scrollTop<=0 && el('suchOverlay').hidden){ y0=null; active=false; oeffneSuche(); }
-  }, {passive:true});
-  m.addEventListener('touchend', ()=>{ y0=null; active=false; }, {passive:true});
-})();
 
 /* ══════════════════════════════════════════════════════════════════════
    17c · B1–B3 Detailanalyse (Profisport-Adaption)
