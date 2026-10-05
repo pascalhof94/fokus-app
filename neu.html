@@ -235,12 +235,6 @@ body.suOffen #suchFab,body.suOffen #nav{display:none}
 .tb-kurve{--amp:var(--mut2)}
 .tb-kurve.gruen{--amp:#3ecf8e} .tb-kurve.gelb{--amp:#f2b84b} .tb-kurve.orange{--amp:#FF9F0A} .tb-kurve.rot{--amp:#f66d6d}
 .tb-kurve:not(.grau) svg{filter:drop-shadow(0 0 4px var(--amp))}
-/* §6: Die laufende Karte liegt ÜBER der Suche */
-/* Der Layer liegt ueber der SUCHE, nicht ueber dem Kopf: Timer, Figur und
-   Zahnrad bleiben erreichbar, solange eine Karte laeuft. */
-#fokusLayer{position:fixed;left:0;right:0;top:var(--tbH,96px);bottom:calc(56px + var(--sab));
-  z-index:260;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}   /* §2 (v3.7.6): über der Such-Ebene (250) */
-#fokusLayer[hidden]{display:none}
 /* §4 (v3.0.0): die Routinen-Leiste endet ganz unten — Luft unter der letzten Zeile, damit Plus und Suchknopf nie ein Feld verdecken */
 #fokusView{padding-bottom:96px}
 /* §2 (v2.1.0): Das Plus liegt ueber jeder Ansicht — Suche, alle fuenf
@@ -256,13 +250,10 @@ body.suOffen #suchFab,body.suOffen #nav{display:none}
   font-size:26px;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;
   align-items:center;justify-content:center}
 #neuFab[hidden]{display:none}
-/* In der Fokusansicht wandert das Plus ueber den Layer (der bei 200 liegt). */
-body.fokusOffen #neuFab{z-index:261}   /* §2 (v3.7.6): über dem Fokus-Layer (260) */
 /* §3 (v2.4.0): Suchknopf spiegelbildlich zum Plus, gleiche Hoehe, gleiche Ebene */
 #suchFab{position:fixed;left:16px;bottom:calc(56px + var(--sab) + 14px);z-index:199;
   width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:#fff;
   font-size:22px;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
-body.fokusOffen #suchFab{z-index:261}
 .such-filter{padding:10px 0 0}
 .mx-tag{font-size:10px;opacity:.7}
 /* §1 (v2.0.1): Weg-Knopf der Fokusansicht — 44px, oben links in der Karte */
@@ -292,7 +283,8 @@ main{
 }
 html,body{overflow-x:hidden}                 /* U3: kein horizontaler Body-Scroll */
 .view{display:none}
-.view.on{display:block}
+/* C2 (v3.8.0): Ebene 0 — genau eine Seite, geschaltet allein über body[data-seite] */
+body[data-seite="fokus"] #v-fokus,body[data-seite="belohnung"] #v-belohnung,body[data-seite="statistik"] #v-statistik,body[data-seite="einst"] #v-einst{display:block}
 .view{overflow-x:hidden}
 .placeholder{margin-top:22vh;text-align:center;color:var(--mut2);font-size:13px}
 .placeholder .big{font-size:44px;display:block;margin-bottom:var(--s1)}
@@ -1488,9 +1480,9 @@ body.debugtap::after{ content:"🐞 Tap-Debug an"; position:fixed; left:50%; bot
 
 /* Nav */
 #nav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:var(--sab)}
-#nav button{flex:1;padding:8px 4px 7px;font-size:10px;color:var(--mut2);font-weight:700}
+#nav button{flex:1;padding:6px 4px 5px;margin:3px 3px 2px;font-size:10px;color:#9a9ca2;font-weight:700;border-radius:12px}   /* C2 (v3.8.0): inaktiv GRAU ohne Fläche */
 #nav button .ic{font-size:19px;display:block;margin-bottom:2px;line-height:1}
-#nav button.on{color:var(--blue)}
+#nav button.on{color:#e8e9ec;background:#262a32}   /* C2 (v3.8.0): aktiv WEISS auf LEER, Radius wie Kacheln */
 
 /* FAB */
 #fab{position:fixed;left:16px;bottom:calc(64px + var(--sab) + 10px);z-index:70;width:54px;height:54px;border-radius:50%;background:var(--blue);color:#0a0f1a;font-size:28px;font-weight:400;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.45)}
@@ -1868,7 +1860,7 @@ body{background:var(--bg)}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
 main{padding-left:8px;padding-right:8px}                       /* §1.3: Seitenrand 8 px */
 #statistikBody{padding:0 0 20px}
-#fokusLayer{padding-left:8px;padding-right:8px}
+
 .blk{background:#121418;border-radius:14px;padding:12px 10px;margin-bottom:8px;min-width:0}   /* Blockabstand 8, innen 12/10 */
 .blk-h{display:flex;align-items:center;font-size:13px;font-weight:700;margin-bottom:8px;gap:6px}
 .blk-h .r{margin-left:auto;font-size:11px;color:#9a9ca2;font-weight:500}
@@ -2389,11 +2381,10 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
 </div>
 
 <main>
-  <!-- ══ §6 (v2.0.0) · ZWEI ZIELE: Suche und Statistik ══════════════════
-       Vier Tabs, drei Stapel, zwei Schubladen, vier Filterebenen und beide
-       FABs sind entfallen. Was bleibt, sind zwei Orte — und der Shop hängt
-       hinter der Figur, nicht in der Leiste. -->
-
+  <!-- C2 (v3.8.0) · EBENE 0: vier Seiten — Fokus · Shop · Statistik · Einstellungen -->
+  <section class="view" id="v-fokus">
+    <div id="fokusView"></div>
+  </section>
 
   <!-- Statistik -->
   <section class="view" id="v-statistik">
@@ -2413,10 +2404,6 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
     <div id="belohnungBody"></div>
   </section>
 </main>
-
-<!-- §6: „Läuft eine Karte, liegt sie ÜBER der Suche" — bis sie geschlossen
-     wird (erledigt, pausiert oder geschoben). -->
-<div id="fokusLayer" hidden><div id="fokusView"></div></div>
 
 <!-- §2 (v2.1.0): EIN Plus fuer die ganze App. Es haengt nicht mehr in der
      Suchkopfzeile (dort war es auf Statistik und im Fokus nicht da), sondern
@@ -2451,9 +2438,10 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
 <button id="suchFab" aria-label="Volltextsuche">🔍</button>
 
 <nav id="nav">
-  <button data-tab="belohnung"><span class="ic">🛍</span>Shop</button>
-  <button data-tab="statistik"><span class="ic">📊</span>Statistik</button>
-  <button data-tab="einst"><span class="ic">⚙︎</span>Einstellungen</button>
+  <button data-seite="fokus"><span class="ic">🎯</span>Fokus</button>
+  <button data-seite="belohnung"><span class="ic">🛍</span>Shop</button>
+  <button data-seite="statistik"><span class="ic">📊</span>Statistik</button>
+  <button data-seite="einst"><span class="ic">⚙︎</span>Einstellungen</button>
 </nav>
 
 <div id="backdrop"></div>
@@ -3270,9 +3258,10 @@ function ladeAlles(){
     const pv=(kt.privat && Array.isArray(kt.privat.ids)) ? kt.privat.ids : [];
     return d.concat(pv);
   })();
-  S.ui       = Object.assign({ tab:'suche', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', analyseArt:'alle', debugTap:false }, DB.get('ui', {}));
+  S.ui       = Object.assign({ stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', analyseArt:'alle', debugTap:false }, DB.get('ui', {}));
   // C1 (v3.8.0): Migration tab → seite — die Ebene-0-Seite; unbekannt oder die frühere Suche → Fokus
   if(SEITEN.indexOf(S.ui.seite)<0) S.ui.seite = (S.ui.tab==='belohnung' || S.ui.tab==='statistik' || S.ui.tab==='einst') ? S.ui.tab : 'fokus';
+  delete S.ui.tab; delete S.ui.fokusOffen;
   // U6-B: Erstell-Zeitstempel für Altkarten guarded nachrüsten (VOR der Härtung,
   // damit der Fallback greift statt der neueKarte-Default-Jetztzeit). Idempotent.
   S.karten.forEach(k=>{ if(k && !k.erstelltTs) k.erstelltTs = k.letzteBearbeitung || jetztIso(); });
@@ -4450,7 +4439,6 @@ function fokusStarten(kid, quelle, opt){
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
   fokusNavReset();           // U2: aktive Auswahl beendet die Swipe-Navigation
   fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
-  S.ui.fokusOffen=true;      // §1 (v2.0.1): Starten heisst „zeig sie mir"
   S.ui.fokusZeigt=null;      // §1 (v2.1.1): die laufende IST jetzt die angezeigte
   saveFokus(); saveUi(); if(S.fokus.laeuft) starteTicker(); renderAlles();
 }
@@ -4522,7 +4510,7 @@ function fokusToggle(){
   else { S.fokus.laeuft=true; S.fokus.startMs=Date.now(); if(fk) S.fokus.nurZeit=nurZeitLauf(fk); saveFokus(); starteTicker(); }
   renderAlles();
 }
-function fokusBeenden(){ fokusZeitEinbuchen(); S.fokus=null; S.ui.fokusOffen=false;
+function fokusBeenden(){ fokusZeitEinbuchen(); S.fokus=null;
   saveFokus(); saveUi(); }
 function saveFokus(){ DB.set('fokus', S.fokus); }
 /* ── Energie/Akku live (v1.1, v0.38-Port) ────────────────────────────
@@ -7180,7 +7168,7 @@ function leistePlay(kid){
   // §1.1/§1.7 (v3.4.0): Aufstehen und Tagesabschluss entscheidet fokusStarten (dieselbe Start-Logik)
   if(k.rolle==='aufstehen' || k.rolle==='tagesabschluss'){ fokusStarten(kid); renderAlles(); return; }
   if(!routineBuchbar(k) && !uhrFrei(k)){ toast('Der Tag ist geschlossen — morgen geht es mit „Aufstehen" weiter'); return; }   // §2.4 (v3.2.0)
-  fokusStarten(kid); S.ui.fokusOffen=true; S.ui.fokusZeigt=null; saveUi(); renderAlles();
+  fokusStarten(kid); S.ui.fokusZeigt=null; saveUi(); renderAlles();
 }
 function schlafUmschalten(){
   if(schlafLaeuft()){
@@ -7299,8 +7287,7 @@ function restzeitAnzeige(sollMin, istSek){
   return -rest<=0.2*soll ? { art:'ueber', text:'+'+uhrZwei(-rest), farbe:FARBE.GELB } : { art:'weitUeber', text:'+'+uhrZwei(-rest), farbe:FARBE.ROT };
 }
 function fokusTacho(k){
-  // §6 (v2.0.0): Es gibt keinen Fokus-TAB mehr — die laufende Karte ist ein Layer ueber der Suche.
-  const lay=el('fokusLayer'); if(lay && lay.hidden) return;
+  if(seiteAktuell()!=='fokus') return;   // C2 (v3.8.0): die Fokusansicht ist eine Seite der Ebene 0
   if(!k) k=aktiveFokusKarte();
   const zeitArc=el('tZeitArc'); if(!zeitArc || !k) return;
   const rotArc=el('tRotArc'), progArc=el('tProgArc'), dot=el('tKopfDot'), halo=el('tKopfHalo'), rest=el('tRest'), sub=el('tRestSub');
@@ -9381,12 +9368,8 @@ function renderAlles(){
   try{ tagesAbgleich(); }catch(e){}   // §4 (v2.9.1): Stunden-Log = Tagesbilanz
   _phCache=null;   // §5 (1.8.0): P/h-Schnitte je Render frisch
   rangCacheBauen();
-  renderFokusleiste();
-  if(S.ui.tab==='statistik') renderStatistik();
-  else if(S.ui.tab==='einst') renderEinst();
-  else renderBelohnung();
-  if(sucheOffen()) renderSuche();   // §4 (v3.7.6): die Such-Ebene liegt über der Ansicht und wird mitgezeichnet
-  fokusLayerPflegen();
+  ebeneRendern();   // C2 (v3.8.0): Statusleiste → Seite der Ebene 0 → offene Ebene-1-Ansicht
+  if(sucheOffen()) renderSuche();
 }
 /* 1-Sekunden-Ticker nur solange der Timer läuft — aktualisiert Text in-place. */
 /* ══════════════════════════════════════════════════════════════════════
@@ -9459,9 +9442,9 @@ function starteTicker(){
     renderFokusleiste();
     if(tagOffen()) renderStatusbar();                   // V1.1: Live-Punkte/-Minuten/-Pace in der Statusleiste sekündlich
     // Fokus-Tacho live nachziehen (Ring/Timer/Kennzahlen/Balken der angezeigten Karte)
-    fokusTacho(aktiveFokusKarte());   // §6 (v2.0.0): der Layer entscheidet, nicht der Tab
+    if(seiteAktuell()==='fokus') fokusTacho(aktiveFokusKarte());
     kartenZeilenZeitLive();           // §6 (v3.7.0): gebuchte Zeit der laufenden Karte in den Kartenzeilen
-    if(S.ui.tab==='belohnung' && _sekTakt%5===0) renderBelohnung();   // Belohnungsseite live (alle 5 s, Perf)
+    if(seiteAktuell()==='belohnung' && _sekTakt%5===0) renderBelohnung();   // Belohnungsseite live (alle 5 s, Perf)
     if(_sekTakt>0 && _sekTakt%60===0) diagrammeLive();   // v3.4.7: Tagesdiagramme live, nur sichtbare
     _sekTakt++;
   }, 1000);
@@ -9791,7 +9774,7 @@ function abschlussV3SchliessenUI(){
   closeSheet();
   if(ok){
     const sk=schlafKarte();
-    if(sk){ S.ui.fokusZeigt=sk.id; S.ui.fokusOffen=true; saveUi(); }
+    if(sk){ S.ui.fokusZeigt=sk.id; ebeneSetzen({ seite:'fokus', e1:null }); }
     renderAlles();   // §10 (v3.7.0): kein Hochscrollen
     toast('🌙 Tag abgeschlossen · '+fmtP(num(S.tag.punkteBilanz))+' P — Routinen und Counter bis „Schlafen" buchbar');
   } else renderAlles();
@@ -10649,10 +10632,9 @@ function detailSpeichern(){
       fokusZeitEinbuchen();
     }
     S.fokus={ karteId:neuId, laeuft:false, startMs:0, sessionSek:0, quelle:null };
-    S.ui.fokusOffen=true; S.ui.fokusZeigt=null;
-    saveFokus(); saveUi();
-    setTab('suche',{fokusLassen:true});
-    renderAlles();
+    S.ui.fokusZeigt=null;
+    saveFokus();
+    ebeneSetzen({ seite:'fokus', e1:null });
   }
   toast(entwurfNeu?('Karte angelegt — pausiert im Fokus'+(warLaufend?' · „'+String(warLaufend).slice(0,22)+'" pausiert':'')):'Gespeichert'); haptik(12);
 }
@@ -10961,7 +10943,7 @@ function karteNeuStarten(kid, opts){
   S.karten.push(kopie);
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   closeSheet();
-  if(opts.starten){ fokusStarten(kopie.id); setTab('suche',{fokusLassen:true}); toast('Als neue Karte geöffnet — Timer läuft'); }
+  if(opts.starten){ kartenStart(kopie.id); toast('Als neue Karte geöffnet — Timer läuft'); }
   else { renderAlles(); toast('🔄 Als neue Karte geöffnet'); }
   haptik(15);
 }
@@ -11013,7 +10995,7 @@ function karteVomGeraet(kid, quelle){
   S.unteraufgaben=S.unteraufgaben.filter(u=>u.parentId!==kid);
   try{ const st=ketteState(); st.ids=(st.ids||[]).filter(x=>x!==kid); }catch(e){}
   if(S.fokus && S.fokus.karteId===kid){ S.fokus=null; saveFokus(); }
-  if(S.ui.fokusZeigt===kid){ S.ui.fokusZeigt=null; S.ui.fokusOffen=false; saveUi(); }
+  if(S.ui.fokusZeigt===kid){ S.ui.fokusZeigt=null; saveUi(); }
   if(!Array.isArray(S.meta.vomGeraetGenommen)) S.meta.vomGeraetGenommen=[];
   S.meta.vomGeraetGenommen=S.meta.vomGeraetGenommen.filter(x=>x.id!==k.id)
     .concat([{ id:k.id, airtableId:k.airtableId||null, titel:k.titel||'', ts:jetztIso(), quelle:quelle||'detail' }]);
@@ -14151,7 +14133,7 @@ function syncFreigabeAnwenden(){
   if(!res.fehler){ try{ syncPunkteBuchen('import'); }catch(e){} }   // §3a (v3.7.1): „Übernehmen"
   closeSheet(); renderAlles();
   if(!res.fehler){ toast('Übernommen · '+num(res.tuer&&res.tuer.geaendert)+' Einstellung(en)'+(res.upd||res.neu?' · '+(num(res.upd)+num(res.neu))+' Karte(n)':'')); haptik(15); }
-  if(f.quelle==='einst'){ setTab('einst'); const box=el('einstImportErg'); if(box) box.innerHTML=importErgebnisHtml(res); }
+  if(f.quelle==='einst'){ seiteZeigen('einst'); const box=el('einstImportErg'); if(box) box.innerHTML=importErgebnisHtml(res); }
   return res;
 }
 function oeffneSync(){ syncVoll=false; renderSyncSheet(); }
@@ -16757,7 +16739,7 @@ function feldkarten353Start(){
   if(!A.gefaerbt.length){ S.meta.feldkarten353={ ts:jetztIso(), kulisse:A.kulisse, vorher:0, uebernommen:0, tankPlus:0 }; saveMeta(); return; }
   fetch('img/kulissen/bg'+String(A.kulisse).padStart(2,'0')+'_uebernahme353.json').then(r=>r.ok ? r.json() : null).then(U=>{
     if(!U || S.meta.feldkarten353) return;
-    feldkarten353Anwenden(U); try{ if(S.ui.tab==='belohnung') renderBelohnung(); }catch(e){}
+    feldkarten353Anwenden(U); try{ if(seiteAktuell()==='belohnung') renderBelohnung(); }catch(e){}
   }).catch(()=>{});   // offline: beim naechsten Start
 }
 function kulissenWert(n){ n=Math.max(1, Math.min(10, num(n,1))); return n<10 ? bgSchwelle(n+1)-bgSchwelle(n) : bgSchwelle(10)-bgSchwelle(9); }
@@ -16778,7 +16760,7 @@ function ausmalDaten(n){
         while(K.topFarben.length<2) K.topFarben.push(K.topFarben[0]||FARBE.GOLD);
         try{ kulissenGeschenkNachholen(); }catch(e){}   // §4c (v3.7.0)
         try{ kulissenReparaturPruefen(); }catch(e){}   // §1 (v3.7.2)
-        try{ if(S.ui.tab==='belohnung') renderBelohnung(); }catch(e){}
+        try{ if(seiteAktuell()==='belohnung') renderBelohnung(); }catch(e){}
       }).catch(()=>{ _kul[n].laedt=false; }); } }
   return null;
 }
@@ -17104,7 +17086,7 @@ function ausmalBanner(idx){
 }
 function malmodusOeffnen(topfIdx){
   S.ui.malmodus=true; if(topfIdx!=null) S.ui.malTopf=topfIdx; saveUi();
-  if(S.ui.tab!=='belohnung') setTab('belohnung'); else renderBelohnung();
+  if(seiteAktuell()!=='belohnung') seiteZeigen('belohnung'); else renderBelohnung();
 }
 /* ── §6.8 · Rendering der Kulisse (Canvas): Original + farbige Felder + Kanten nur an ungefaerbten Feldern ── */
 let _ausmalBilder={}, _ausmalKomposit=null, _ausmalKompositKey='', _malFade=null;
@@ -17498,7 +17480,9 @@ function seiteZeigen(s){ ebeneSetzen({ seite:s, e1:null, oben:true }); }
 function e1Oeffnen(art, arg){ ebeneSetzen({ e1:{ art, arg:arg||{} } }); }
 function e1Schliessen(){ if(_e1) ebeneSetzen({ e1:null }); }
 /* die Fokusseite zeigt die Karte kid (ohne Zeitmessung); kid leer = die Mitte (getrackte Karte bzw. Kettenliste) */
-function fokusZeigen(kid){ ebeneSetzen({ seite:'fokus', e1:null, anzeige:{ pos:0, frei:kid||null }, oben:true }); }
+function fokusZeigen(kid){ ebeneSetzen({ seite:'fokus', e1:null, anzeige:{ pos:0, frei:kid||null } }); }
+/* EIN Weg für jeden Kartenstart von aussen (Sheet, Vorschlag, Wiederholen, Liste): Uhr starten, dann zeigt die Fokusseite die Mitte */
+function kartenStart(kid, quelle, opt){ fokusStarten(kid, quelle, opt); ebeneSetzen({ seite:'fokus', e1:null }); }
 /* ══ §4 (v3.7.6) · SUCH-EBENE ÖFFNEN / SCHLIESSEN ═══════════════════════════════════════
    Die Suche ist keine Ansicht (kein Tab) mehr: sucheOeffnen() legt die Ebene über die aktuelle Ansicht, sucheSchliessen()
    leert das Feld und nimmt sie weg. Tastatur „Fertig" schliesst nur die Tastatur. */
@@ -17516,27 +17500,6 @@ function sucheSchliessen(){
   _suOffen=false; document.body.classList.remove('suOffen');
 }
 function sucheOffen(){ return _suOffen; }
-function setTab(tab, opt){
-  // §4 (v3.7.6): 'suche' ist keine Ansicht — explizite Navigation öffnet die Such-Ebene über der aktuellen Ansicht, S.ui.tab bleibt;
-  // die internen Start-Wege („Karte gestartet, Grundseite bleibt", opt.fokusLassen) öffnen sie NICHT (die Karte liegt im Fokus-Layer)
-  if(tab==='suche'){ if(!(opt && opt.fokusLassen)) sucheOeffnen(); return; }
-  if(tab!=='statistik' && tab!=='einst' && tab!=='belohnung') tab='belohnung';   // §11 (v3.7.0): Leiste = Shop · Statistik · Einstellungen; die Suche über den 🔍-Knopf
-  if(!(opt && opt.fokusLassen)){ S.ui.fokusOffen=false; S.ui.fokusZeigt=null; }
-  // v2.2.0: <main> ist EIN Scroller fuer alle Seiten — ein Seitenwechsel
-  // beginnt oben (sonst oeffnete die Suche nach dem Shop mitten in der Liste,
-  // Filter und Sichten ausserhalb des Bildes).
-  { const m=document.querySelector('main'); if(m) m.scrollTop=0; }   // §9 (v3.0.0): JEDER Wechsel beginnt oben
-  S.ui.tab=tab; saveUi();
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
-  const v=el('v-'+tab); if(v) v.classList.add('on');
-  // Nur die zwei echten Ziele markieren; ⚙︎ und Figur sind keine Tabs.
-  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
-  renderFokusleiste();
-  if(tab==='einst') renderEinst();
-  else if(tab==='statistik') renderStatistik();
-  else renderBelohnung();
-  fokusLayerPflegen();
-}
 /* ══════════════════════════════════════════════════════════════════════
    §1 (v2.0.1) · ZWEI UNABHÄNGIGE EBENEN
    v2.0.0 hatte die Sichtbarkeit der Fokusansicht an S.fokus.laeuft gekoppelt:
@@ -17551,7 +17514,6 @@ function setTab(tab, opt){
    weiter und bleibt als Leiste oben sichtbar. Tippen auf die Leiste holt
    die Ansicht zurück.
    ══════════════════════════════════════════════════════════════════════ */
-function fokusAnsichtOffen(){ return !!(S.ui && S.ui.fokusOffen); }
 /* ══ §1 (v2.1.1) · DIE ANGEZEIGTE KARTE ════════════════════════════════
    Drei Zustaende, die einander nie bedingen:
      S.fokus          — WELCHE KARTE LAEUFT (Uhr, Buchung)
@@ -17568,32 +17530,9 @@ function fokusAngezeigtId(){
 function fokusKarteAnsehen(kid){
   if(!S.karten.some(k=>k.id===kid)) return;
   S.ui.fokusZeigt = (S.fokus && S.fokus.karteId===kid) ? null : kid;
-  S.ui.fokusOffen=true; saveUi(); fokusLayerPflegen();   // §10 (v3.7.0): kein Hochscrollen
+  ebeneSetzen({ seite:'fokus', e1:null });   // §10 (v3.7.0): kein Hochscrollen innerhalb der Seite
 }
-function fokusAnsichtZeigen(){
-  if(!fokusAngezeigtId()) return;            // ohne Karte gibt es nichts zu zeigen
-  S.ui.fokusOffen=true; saveUi(); fokusLayerPflegen();
-}
-function fokusAnsichtSchliessen(){
-  // §3 (v2.1.1): Eine nur ANGESEHENE, nie gestartete Karte zu schliessen
-  // ist kein Verlassen — kein Dialog, keine Buchung. Nichts wird gerufen.
-  S.ui.fokusOffen=false; S.ui.fokusZeigt=null; saveUi(); fokusLayerPflegen();   // §10 (v3.7.0): kein Hochscrollen
-  // Die Uhr bleibt unangetastet — bewusst KEIN fokusZeitEinbuchen hier.
-  renderFokusleiste();
-}
-function fokusLayerPflegen(){
-  const lay=el('fokusLayer'); if(!lay) return;
-  // Sichtbar nur, wenn eine Karte GEWÄHLT ist UND die Ansicht offen sein soll.
-  // „laeuft" spielt hier bewusst keine Rolle: eine pausierte Karte darf man
-  // ansehen, eine laufende darf man wegschieben.
-  const zeigen = fokusAnsichtOffen() && !!fokusAngezeigtId();
-  lay.hidden = !zeigen;
-  document.body.classList.toggle('fokusOffen', zeigen);
-  // §2 (v2.1.0): Das Plus liegt unter dem Fokus-Layer — in der Fokusansicht
-  // bekommt es deshalb einen eigenen Platz (siehe .fokusOffen-Regel), statt
-  // unsichtbar darunter zu verschwinden.
-  if(zeigen) renderFokus();
-}
+function fokusAnsichtZeigen(){ ebeneSetzen({ seite:'fokus', e1:null }); }
 function renderSuche(){
   // §3 (v2.0.2): Tagesabschluss ist von der Suche aus erreichbar — in der JETZIGEN Form, kein Redesign.
   { const tb=el('tagBanner'); if(tb) tb.innerHTML=tagBannerHtml(); }
@@ -18653,8 +18592,8 @@ function konfetti(){
    17 · Event-Delegation
    ══════════════════════════════════════════════════════════════════════ */
 // Nav
-el('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-tab]');
-  if(!b) return; setTab(b.dataset.tab); });   // §12 (v3.7.0): kein Kalender-Sprung mehr
+el('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-seite]');
+  if(!b) return; seiteZeigen(b.dataset.seite); });   // §12 (v3.7.0): kein Kalender-Sprung mehr
 /* §6 (v2.0.0): Neuanlage sitzt jetzt im ＋ der Sicht-Leiste. */
 // §3 (v1.6.0): Routinen-Schublade öffnen (Farbe folgt der aktiven Domäne)
 
@@ -18683,7 +18622,7 @@ el('sheetBody').addEventListener('click', e=>{
   // Der Speichern-Knopf liegt im Sheet-FUSS und läuft über den el('sheet')-
   // Handler — Harness-Diagnosefund aus Lauf 1.
   if(t.closest('[data-akkuquick]')){ oeffneAkkuQuick(); return; }
-  const sst=t.closest('[data-sheetstart]'); if(sst){ const kid=sst.dataset.sheetstart; closeSheet(); fokusStarten(kid); setTab('suche',{fokusLassen:true}); return; }
+  const sst=t.closest('[data-sheetstart]'); if(sst){ const kid=sst.dataset.sheetstart; closeSheet(); kartenStart(kid); return; }
   // §8 (1.9.0): Album-Tabs + Detailansicht
   const at=t.closest('[data-albtab]'); if(at){ albumTab=at.dataset.albtab; renderAlbum(); return; }
   const ab=t.closest('[data-albbild]'); if(ab){
@@ -18797,7 +18736,7 @@ el('fokusView').addEventListener('click', e=>{
   const alp=t.closest('[data-zsplay]'); if(alp){ const id=alp.dataset.zsplay;
     haptik(10);
     if(S.fokus && S.fokus.laeuft && S.fokus.karteId===id){ fokusZeitEinbuchen(); renderAlles(); return; }   // laeuft schon → Pause (ein Toggle)
-    fokusStarten(id); S.ui.fokusOffen=true; S.ui.fokusZeigt=null; saveUi(); renderAlles(); return; }
+    fokusStarten(id); S.ui.fokusZeigt=null; saveUi(); renderAlles(); return; }
   const alk=t.closest('[data-alkarte]'); if(alk){ haptik(8); fokusKarteAnsehen(alk.dataset.alkarte); return; }
   const zsk=t.closest('[data-zskarte]'); if(zsk){ haptik(8); fokusKarteAnsehen(zsk.dataset.zskarte); return; }
   { const tbm=t.closest('svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; } }   // §2 (v3.7.1): Fokus „Matrix heute" → Tagebuch
@@ -18968,7 +18907,7 @@ function karteRowClick(t, e){
     const sid=fst.dataset.stapel, kid=fst.dataset.fokusstart;
     if(sid){ S.ui.aktivStapel=sid; saveUi(); }
     if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid, sid||null);   // §3.1 (1.10.0): Quelle mitgeben
-    setTab('suche',{fokusLassen:true}); return true; }
+    ebeneSetzen({ seite:'fokus', e1:null }); return true; }
   const su=t.closest('[data-sortup]'); if(su){ if(e) e.stopPropagation(); karteSortieren(su.dataset.sortup, -1, su.dataset.stapel); return true; }
   const sd=t.closest('[data-sortdown]'); if(sd){ if(e) e.stopPropagation(); karteSortieren(sd.dataset.sortdown, +1, sd.dataset.stapel); return true; }
   const tp=t.closest('[data-tickplus]'); if(tp){ if(e) e.stopPropagation(); karteTick(tp.dataset.tickplus, false); return true; }
@@ -19025,8 +18964,8 @@ el('sheet').addEventListener('click', e=>{
   // §9.2 (v1.12.0): Ketten-Aktions-Sheet — Uhr folgt der Handlung (§6):
   // „ganz nach oben" startet die Fokuszeit sofort, alles andere nicht.
   const kaT=t.closest('[data-kaTop]'); if(kaT){ const kid=kaT.dataset.katop;
-    ketteBewegen(kid,'top'); closeSheet(); fokusNavReset(); fokusStarten(kid); setTab('suche',{fokusLassen:true}); return; }
-  const kaS=t.closest('[data-kaStart]'); if(kaS){ closeSheet(); fokusStarten(kaS.dataset.kastart); setTab('suche',{fokusLassen:true}); return; }
+    ketteBewegen(kid,'top'); closeSheet(); kartenStart(kid); return; }
+  const kaS=t.closest('[data-kaStart]'); if(kaS){ closeSheet(); kartenStart(kaS.dataset.kastart); return; }
   const kaC=t.closest('[data-kaCheck]'); if(kaC){ karteAbhakenAuto(kaC.dataset.kacheck, false); return; }
   const kaH=t.closest('[data-kaHoch]'); if(kaH){ ketteBewegen(kaH.dataset.kahoch,'hoch'); oeffneKetteAktion(kaH.dataset.kahoch); renderAlles(); return; }
   const kaR=t.closest('[data-kaRunter]'); if(kaR){ ketteBewegen(kaR.dataset.karunter,'runter'); oeffneKetteAktion(kaR.dataset.karunter); renderAlles(); return; }
@@ -19168,12 +19107,11 @@ el('sheet').addEventListener('click', e=>{
   const kre=t.closest('[data-krein]'); if(kre){ ketteToggle(kre.dataset.krein); closeSheet(); renderSuche();
     toast('In die Kette gelegt'); return; }
   const kst=t.closest('[data-kstart]'); if(kst){ const kid=kst.dataset.kstart; closeSheet();
-    fokusNavReset(); fokusStarten(kid); setTab('suche',{fokusLassen:true}); return; }
+    kartenStart(kid); return; }
   if(t.closest('[data-mxskip]')){ matrixDialogSkip(); return; }
   // §9: Vorschlag übernehmen — Vorschlag, nie Automatik.
   const vsg=t.closest('[data-vsgo]'); if(vsg){
-    const kid=vsg.dataset.vsgo; closeSheet(); fokusNavReset(); fokusStarten(kid, 'vorschlag');
-    setTab('suche',{fokusLassen:true}); renderAlles(); return; }
+    const kid=vsg.dataset.vsgo; closeSheet(); kartenStart(kid, 'vorschlag'); return; }
   // ══ §0 (v2.0.0) · Export-Gate ══
   if(t.closest('[data-v200copy]')){ const ta=el('v200Ex');
     if(ta){ ta.select(); let okc=false; try{ okc=document.execCommand('copy'); }catch(e){}
@@ -19191,7 +19129,7 @@ el('sheet').addEventListener('click', e=>{
   // §1 (v1.13.3): Shop-Reset bestätigen (der Knopf liegt im Sheet-FUSS → dieser Handler); §1 (v3.6.1): ohne Kalibrierungs-Dialog
   if(t.closest('[data-shopresetgo]')){
     shopResetJetzt();
-    closeSheet(); renderEinst(); if(S.ui.tab==='belohnung') renderBelohnung();
+    closeSheet(); renderEinst(); if(seiteAktuell()==='belohnung') renderBelohnung();
     toast('🛍 Besitz auf 0 — Konto, Kulisse, Rang und Serie unverändert');
     return; }
   // §6.4 (v1.13.0): Blockade-Vorschlag — Übernahme nur per Freigabe-Knopf
@@ -19512,7 +19450,7 @@ function stapelLiesEditor(){
    heute) hingen NUR an #belohnungBody — seit v2.2 stehen die Diagramme aber in
    der Statistik. Dort waren es tote Knoepfe. Ein Handler fuer beide Seiten;
    gezeichnet wird die Seite, die gerade offen ist. */
-function statNeuZeichnen(){ if(S.ui.tab==='statistik') renderStatistik(); else renderBelohnung(); }
+function statNeuZeichnen(){ if(seiteAktuell()==='statistik') renderStatistik(); else if(seiteAktuell()==='belohnung') renderBelohnung(); }
 function statKlick(e){
   // §6.6/§6.7 (v3.5.0): Malmodus, Station, Toepfe
   const mm=e.target.closest('#belohnungBody [data-malmodus]'); if(mm){ S.ui.malmodus=mm.dataset.malmodus==='1'; saveUi(); renderBelohnung(); return; }   // §10 (v3.7.0): kein Hochscrollen beim Malmodus
@@ -19530,7 +19468,7 @@ function statKlick(e){
   if(smt && !e.target.closest('.dia-tv-scroll,[data-tbmatrix],[data-statdom],[data-statstep],[data-statheute],input,button')){
     const id=smt.dataset.stmtoggle; S.ui.statOffen=Object.assign({}, S.ui.statOffen); S.ui.statOffen[id]=!S.ui.statOffen[id]; _stmGedreht=id; saveUi(); renderStatistik(); return; }
   const mfe=e.target.closest('#statistikBody [data-mfedit]'); if(mfe){ matrixfeldSheet(mfe.dataset.mfedit); return; }
-  if(e.target.closest('#statistikBody [data-mfeinst]')){ e.preventDefault(); setTab('einst'); return; }
+  if(e.target.closest('#statistikBody [data-mfeinst]')){ e.preventDefault(); seiteZeigen('einst'); return; }
   const smg=e.target.closest('#statistikBody [data-stmgo]'); if(smg){ const id=smg.dataset.stmgo; S.ui.statOffen=Object.assign({}, S.ui.statOffen); S.ui.statOffen[id]=true; saveUi(); renderStatistik();
     const z=document.querySelector('#statistikBody [data-stmodul="'+id+'"]'); if(z && z.scrollIntoView) z.scrollIntoView({behavior:'smooth', block:'start'}); return; }
   // §3 (v2.5.0): Filter der Detailanalyse in der Statistik
@@ -19565,14 +19503,14 @@ function statKlick(e){
   if(e.target.closest('[data-statheute]')){ S.ui.statDatum=null; saveUi(); statNeuZeichnen(); return; }
   const kf=e.target.closest('[data-kauf]'); if(kf){ kaufen(kf.dataset.kauf); return; }
   // §3.1 (v2.5.0): Die Detailanalyse steht in der Statistik — der Knopf ist nur noch ein Verweis
-  if(e.target.closest('[data-analyse]')){ setTab('statistik'); const m=document.querySelector('main'), z=el('stDetailAnker'), tb=el('topbar');
+  if(e.target.closest('[data-analyse]')){ seiteZeigen('statistik'); const m=document.querySelector('main'), z=el('stDetailAnker'), tb=el('topbar');
     if(m && z){ const oben=tb?tb.getBoundingClientRect().bottom:0; m.scrollTop += z.getBoundingClientRect().top - oben - 8; } return; }
   const at=e.target.closest('[data-aufltoggle]'); if(at){ const k=at.dataset.aufltoggle; S.ui.auflAuf=S.ui.auflAuf||{}; S.ui.auflAuf[k]=!S.ui.auflAuf[k]; saveUi(); statNeuZeichnen(); return; }   // V2.3
 }
 el('belohnungBody').addEventListener('click', statKlick);
 el('statistikBody').addEventListener('click', statKlick);
 function statAenderung(e){
-  if(S.ui.tab==='statistik' && (e.target.id==='anVon' || e.target.id==='anBis')){
+  if(seiteAktuell()==='statistik' && (e.target.id==='anVon' || e.target.id==='anBis')){
     if(e.target.id==='anVon') S.ui.analyseVon=e.target.value||null; else S.ui.analyseBis=e.target.value||null;
     saveUi(); renderStatistik(); return; }
   if(e.target.id==='statDatum'||e.target.id==='statDatum2'){ const v=e.target.value||null; S.ui.statDatum=(v===heuteApp())?null:v; saveUi(); statNeuZeichnen(); }   // F1 + §5 (1.7.0): beide Picker teilen den Zustand · „heute" bleibt live
@@ -19816,7 +19754,7 @@ function suchFokusStarten(kid){
   const st=stapelFuerKarte(kid); if(st){ S.ui.aktivStapel=st.id; saveUi(); }
   schliesseSuche();
   if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid);
-  setTab('suche',{fokusLassen:true});
+  ebeneSetzen({ seite:'fokus', e1:null });
 }
 /* §13: Tap auf die Figur öffnet Belohnung + Shop — kein Tab. */
 /* §1 (v2.2.0) · WEG ZUR BELOHNUNGSSEITE — Figur UND Rang.
@@ -19830,7 +19768,7 @@ function suchFokusStarten(kid){
    die Statistik. Dazu blieb die Scrollposition der letzten Seite stehen.
    Jetzt: die Seite IST Belohnung und Shop (§4), beide Wege landen oben. */
 function zurBelohnung(){
-  setTab('belohnung');   // §10 (v3.7.0): der Wechsel der Hauptansicht beginnt oben (setTab), sonst kein Hochscrollen
+  seiteZeigen('belohnung');   // §10 (v3.7.0): der Wechsel der Hauptansicht beginnt oben, sonst kein Hochscrollen
 }
 el('btnFigur').addEventListener('click', zurBelohnung);
 el('fokusView').addEventListener('click', fokusKlick350, true);
@@ -19843,12 +19781,12 @@ el('sheetBody').addEventListener('click', e=>{ const t=e.target.closest('[data-m
 el('btnKurve').addEventListener('click', ()=>{
   // §1 (v2.6.0): Tipp auf die Mini-Kurve oeffnet die Statistik, OBEN
   // (dort stehen jetzt Matrix und direkt darunter der Tagesverlauf).
-  setTab('statistik');   // §10 (v3.7.0): oben durch setTab
+  seiteZeigen('statistik');   // §10 (v3.7.0): der Seitenwechsel beginnt oben
 });
 function zurMatrixSpur(){
   // §2 (v3.5.1): die Matrix-Spur liegt im Detail von „Matrix heute" — aufklappen und dorthin
   S.ui.statOffen=Object.assign({}, S.ui.statOffen, {matrixHeute:true}); saveUi();
-  setTab('statistik');
+  seiteZeigen('statistik');
   const m=document.querySelector('main'), z=document.querySelector('#statistikBody [data-stmodul="matrixHeute"]'), tb=el('topbar');
   if(m && z){ const oben=tb?tb.getBoundingClientRect().bottom:0; m.scrollTop += z.getBoundingClientRect().top - oben - 8; }
 }
@@ -20968,8 +20906,7 @@ function init(){
   // rechnet startMs die verstrichene Zeit korrekt nach.
   if(S.fokus && S.fokus.laeuft) starteTicker();
   if(S.ui.debugTap) document.body.classList.add('debugtap');   // V3: Tap-Debug-Zustand wiederherstellen
-  setTab((S.ui.tab && S.ui.tab!=='suche') ? S.ui.tab : 'belohnung', {fokusLassen:true});   // Start: Zustand aus der letzten Sitzung · §4 (v3.7.6): die Such-Ebene ist beim Start immer zu
-  ebeneDarstellen();   // C1 (v3.8.0): body[data-seite] / body[data-e1]
+  ebeneDarstellen(); ebeneRendern();   // C2 (v3.8.0): Start — Seite aus der letzten Sitzung, Ebene 1 ist immer zu
   try{ if(window.visualViewport){ window.visualViewport.addEventListener('resize', vvSync); window.visualViewport.addEventListener('scroll', vvSync); } vvSync(); }catch(e){}   // §2 (v3.7.5)
   renderFokusleiste();
   layoutTopbar();
