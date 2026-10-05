@@ -2445,11 +2445,6 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
       <!-- §4 (v3.7.6): „Schliessen" schliesst die Such-Ebene (Feld leeren, zurück zur Ansicht darunter) -->
       <button id="suZu" class="su-x su-zu" aria-label="Suche schliessen">Schliessen</button>
     </div>
-    <!-- §3 (v2.0.2): Der Tag-Banner (Abschließen / Tag starten) hing bis
-         v2.0.1 ausschliesslich an renderStapel() und damit an #stapelListe —
-         einem Element, das es seit dem Navigationsumbau nicht mehr gibt.
-         Der Knopf war damit seit v2.0.0 unerreichbar. -->
-    <div id="tagBanner"></div>
     <!-- §2 (v2.2.0): zwei Filter ueber ALLEN Sichten und dem Freitext —
          eigene Segment-Leisten, keine weiteren Chips in der Sicht-Leiste. -->
     <!-- §5 (v3.7.0): unter dem Suchfeld die Kettenliste; die Eingabe filtert alle Gruppen (Filter-Knöpfe und Sichten entfallen) -->
@@ -3274,7 +3269,7 @@ function ladeAlles(){
   S.ui       = Object.assign({ stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', analyseArt:'alle', debugTap:false }, DB.get('ui', {}));
   // C1 (v3.8.0): Migration tab → seite — die Ebene-0-Seite; unbekannt oder die frühere Suche → Fokus
   if(SEITEN.indexOf(S.ui.seite)<0) S.ui.seite = (S.ui.tab==='belohnung' || S.ui.tab==='statistik' || S.ui.tab==='einst') ? S.ui.tab : 'fokus';
-  delete S.ui.tab; delete S.ui.fokusOffen;
+  delete S.ui.tab; delete S.ui.fokusOffen; delete S.ui.fokusZeigt; delete S.ui.fokusNav;
   // U6-B: Erstell-Zeitstempel für Altkarten guarded nachrüsten (VOR der Härtung,
   // damit der Fallback greift statt der neueKarte-Default-Jetztzeit). Idempotent.
   S.karten.forEach(k=>{ if(k && !k.erstelltTs) k.erstelltTs = k.letzteBearbeitung || jetztIso(); });
@@ -4450,9 +4445,7 @@ function fokusStarten(kid, quelle, opt){
     // §1.2 (v3.4.0): die Uhr laeuft, bis Pascal pausiert — der Auto-Stopp nach tickMinuten (v3.2.0 §1.3) ist entfallen
   }
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
-  fokusNavReset();           // U2: aktive Auswahl beendet die Swipe-Navigation
-  fokusKarteNachOben(kid);   // U1: in den Fokus genommene Karte rückt auf Position 1
-  S.ui.fokusZeigt=null;      // §1 (v2.1.1): die laufende IST jetzt die angezeigte
+  S.ui.fokusAnzeige={ pos:0, frei:null };   // C4 (v3.8.0): die getrackte Karte ist die Mitte der Fokusseite
   saveFokus(); saveUi(); if(S.fokus.laeuft) starteTicker(); renderAlles();
 }
 /* §3.1 (v1.10.0): Nach dem Abschluss der aktiven Fokus-Karte rückt die
@@ -4964,7 +4957,7 @@ function zeigeVorschlag(kid){
   const v=ws[0];
   S.ui.suVorschlag={ kid:v.id, grund:werkzeugVorschlagGrund(v), dom:v.domain }; saveUi();
   // §12 (v3.7.0): die Matrix-Sicht der Suche ist weg — das Werkzeug wird direkt in der Fokusansicht gezeigt (pausiert, wie eine neue Karte)
-  fokusKarteAnsehen(v.id);
+  fokusZeigen(v.id);
   toast('Weiter: „'+String(v.titel||'').slice(0,28)+'" · '+werkzeugVorschlagGrund(v));
   haptik(10);
 }
@@ -5638,100 +5631,68 @@ function renderStapel(){
    Swipe-Reihenfolge, unabhängig von den drei Navigationsebenen (die filtern nur
    die Liste darunter). Ist die Kette leer, greift ersatzweise die aktuelle
    Navigationsauswahl, damit die Fokusseite nie leer dasteht. */
-function fokusKandidaten(){
-  // §9.1 (v1.12.0): Das Fliessband folgt der Kette der AKTIVEN Domaene,
-  // ersatzweise beiden Ketten, zuletzt dem Filter.
-  const eigene=ketteKarten(navDomain()).filter(k=>k.status==='offen');
-  if(eigene.length) return eigene;
-  const beide=ketteKarten().filter(k=>k.status==='offen');
-  if(beide.length) return beide;
-  return navSortiere(navFilter(S.karten.filter(k=>k.status==='offen' && !karteVerborgen(k))));
+/* ══ C4 (v3.8.0) · GETRACKT UND ANGEZEIGT ═════════════════════════════════════════════════
+   GETRACKT ist die Karte in S.fokus (Uhr läuft oder ist pausiert) — die Statusleiste zeigt immer sie.
+   ANGEZEIGT ist, was die Fokusseite zeigt (S.ui.fokusAnzeige): pos 0 = Mitte (die getrackte Karte; ohne sie die
+   Kettenliste), −n = n Schritte im Verlauf, +n = n Schritte in der Kette; frei = eine nur geöffnete Karte (ohne
+   Zeitmessung). Blättern und Öffnen ändern nie die Zeitmessung. */
+function getrackteKarte(){ const k=fokusKarte(); return (k && k.status!=='archiviert') ? k : null; }
+/* die aktive Kette: die gewählte Tageskette (S.ui.tkWahl), sonst die aktuelle Kette (der aktiven Domäne, ersatzweise ganz) —
+   EINE Quelle für Kettenliste, „nächste ▶" und Kettenknopf */
+function aktiveKetteKarten(){
+  const w=tageskettenWahl(), c=w ? tagesketten().find(x=>x.id===w) : null;
+  if(c){ const by={}; S.karten.forEach(x=>by[x.id]=x); return (c.karten||[]).map(id=>by[id]).filter(x=>x && x.status!=='archiviert' && !karteVerborgen(x)); }
+  const eigene=ketteKarten(navDomain());
+  return eigene.some(k=>k.status==='offen') ? eigene : ketteKarten();
 }
-/* U2 (v1.4.0): heute bearbeitete Karten, zuletzt bearbeitete zuerst —
-   Datenbasis der Rückwärts-Navigation (stapelunabhängig). */
-/* §3 Nr. 3 (v3.5.1): der Verlauf sind ALLE Oeffnungen des Tages in Reihenfolge (Mehrfach-Oeffnungen einzeln) —
-   nicht mehr „zuletzt bearbeitet je Karte". Die Liste lebt in S.ui (kein Export). */
-function fokusOeffnungen(){
-  const tid=aktuelleTagId(); let o=S.ui.fokusOeff;
-  if(!o || o.tag!==tid || !Array.isArray(o.liste)) o=S.ui.fokusOeff={ tag:tid, liste:[] };
-  return o.liste;
+function aktiveKetteName(){ const w=tageskettenWahl(), c=w ? tagesketten().find(x=>x.id===w) : null; return c ? (c.name||'Kette') : 'Aktuelle Kette'; }
+function karteUnerledigt(k){ return !!k && k.status==='offen' && kartenStatusHeute(k)!=='erledigt'; }
+/* Verlauf (B5): nur GETRACKTE Karten des App-Tags — ihre Uhr lief heute oder sie wurden heute getickt —, die zuletzt
+   getrackte zuerst, ohne die aktuell getrackte. Quelle sind die Sitzungen und Ticks im Tages-Log (S.intraday); blosses
+   Öffnen oder Anzeigen steht nicht darin. */
+function verlaufKarten(){
+  const tid=aktuelleTagId(), l=S.intraday||[], gesehen={}, out=[], by={}; S.karten.forEach(k=>by[k.id]=k);
+  if(!tid) return out;
+  const akt=S.fokus ? S.fokus.karteId : null;
+  for(let i=l.length-1, n=0; i>=0 && n<6000; i--, n++){ const e=l[i];
+    if(!e || !e.kartenId || e.tagId!==tid || gesehen[e.kartenId]) continue;
+    if(!(e.quelle==='uhr' || e.quelle==='tick' || e.typ==='timer' || e.typ==='autopause' || e.typ==='tick')) continue;
+    gesehen[e.kartenId]=1;
+    const k=by[e.kartenId]; if(k && k.id!==akt && k.status!=='archiviert' && !karteVerborgen(k)) out.push(k); }
+  return out;
 }
-function fokusOeffnungMerken(id){
-  if(!id) return; const l=fokusOeffnungen();
-  if(l[l.length-1]!==id){ l.push(id); if(l.length>400) l.splice(0, l.length-400); }
+/* die Kette rechts der Mitte: unerledigte Karten der aktiven Kette ab der getrackten (ohne sie); steht die getrackte
+   nicht in der Kette oder läuft keine, ab dem Kettenanfang */
+function ketteRechts(){
+  const kette=aktiveKetteKarten().filter(karteUnerledigt), t=getrackteKarte();
+  const i=t ? kette.findIndex(k=>k.id===t.id) : -1;
+  return i<0 ? kette : kette.slice(i+1).concat(kette.slice(0, i));
 }
-/* Schritte zurueck: [0] = die zuletzt VOR der aktuellen geoeffnete Karte, bis zum Tagesanfang */
-function fokusVerlaufHeute(){
-  const l=fokusOeffnungen(), by={}; S.karten.forEach(k=>by[k.id]=k);
-  return l.slice(0, -1).reverse().map(id=>by[id]).filter(k=>k && k.status!=='archiviert');
+function angezeigteKarte(){
+  const a=fokusAnzeige();
+  if(a.frei) return S.karten.find(k=>k.id===a.frei)||null;
+  if(a.pos<0){ const k=verlaufKarten()[-a.pos-1]; if(k) return k; a.pos=0; }
+  if(a.pos>0){ const k=ketteRechts()[a.pos-1]; if(k) return k; a.pos=0; }
+  return getrackteKarte();
 }
-/* Immer DASSELBE Objekt zurückgeben — sonst zeigen Aufrufer auf eine Kopie und
-   ihre Änderungen verpuffen. */
-function fokusNav(){
-  if(!S.ui.fokusNav || typeof S.ui.fokusNav!=='object') S.ui.fokusNav={hist:0, stapel:null};
-  if(S.ui.fokusNav.hist==null) S.ui.fokusNav.hist=0;
-  if(S.ui.fokusNav.stapel===undefined) S.ui.fokusNav.stapel=null;
-  return S.ui.fokusNav;
-}
-/* U2: Navigation zurücksetzen, sobald wieder aktiv eine Karte gewählt/gestartet wird. */
-function fokusNavReset(){ S.ui.fokusNav={hist:0, stapel:null}; }
-function aktiveFokusKarte(){
-  // §1 (v2.1.1): Eine bewusst ANGESEHENE Karte hat Vorrang vor allem —
-  // auch vor der laufenden. Sie ist Auswahl, nicht Divergenz.
-  if(S.ui && S.ui.fokusZeigt && !(S.ui.fokusNav && num(S.ui.fokusNav.hist)>0)){
-    const zk=S.karten.find(k=>k.id===S.ui.fokusZeigt);
-    if(zk && zk.status!=='archiviert') return zk;
-    S.ui.fokusZeigt=null;
-  }
-  // U2: eine aktive Swipe-Navigation (Verlauf zurück / Stapel vor) hat Vorrang
-  // (bewusstes Blättern; endet mit jedem Start über fokusNavReset).
-  const nav=fokusNav(), kand=fokusKandidaten();
-  if(num(nav.hist)>0){
-    const vl=fokusVerlaufHeute(), k=vl[nav.hist-1];
-    if(k) return k;
-    nav.hist=0;   // Verlauf ist kürzer geworden → zurück auf den Stapel
-  }
-  if(nav.stapel!=null && kand.length){ const k=kand[Math.min(num(nav.stapel), kand.length-1)]; if(k) return k; }
-  // v1.13.2: Die (laufende) Fokus-Karte gilt AUSNAHMSLOS — auch wenn sie in
-  // keiner Kette und keiner Kandidatenliste steht. Vorher wurde S.fokus nur
-  // INNERHALB von fokusKandidaten() gesucht; eine außerhalb der Kette
-  // gestartete Karte fiel still auf kand[0] zurück → Uhr lief auf A, die
-  // Ansicht zeigte B (Befund 02.09., 09:42).
-  if(S.fokus){
-    const fk=S.karten.find(k=>k.id===S.fokus.karteId);
-    if(fk && fk.status!=='archiviert') return fk;
-  }
-  if(!kand.length) return null;
-  return kand[0];
-}
-/* U2: ein Navigationsschritt. richtung −1 = links (vorwärts im Stapel bzw. aus dem
-   Verlauf heraus), +1 = rechts (weiter zurück im heutigen Bearbeitungsverlauf).
-   Zusammen verhalten sich beide wie eine Zeitleiste: rechts geht Schritt für
-   Schritt zurück, links nimmt die Schritte in gleicher Reihenfolge zurück und
-   springt am vorderen Ende auf die nächste Stapel-Karte. */
-/* §3 Nr. 3 (v3.5.1): richtung > 0 = „◀ Verlauf" (zuletzt geoeffnete Karte) · richtung < 0 = „nächste ▶" (naechste Karte
-   der Kette nach der ANGEZEIGTEN). Ein Tipp bzw. ein Wisch = genau ein Schritt (Doppelausloesung gesperrt). */
+/* ein Schritt auf der Achse: richtung > 0 = „◀ Verlauf", richtung < 0 = „nächste ▶". Ein Tipp bzw. ein Wisch = genau ein
+   Schritt (Doppelauslösung gesperrt); die Zeitmessung bleibt unberührt. */
 let _fokusSchrittTs=0, _fokusEinflug=null;
 function fokusSwipeSchritt(richtung){
   if(Date.now()-_fokusSchrittTs<250) return false;
-  const nav=fokusNav();
+  const a=fokusAnzeige(), pos=a.frei ? 0 : a.pos;
+  let neu;
   if(richtung>0){
-    const vl=fokusVerlaufHeute();
-    if(!vl.length){ toast('Heute noch keine andere Karte geöffnet'); return false; }
-    if(num(nav.hist)>=vl.length){ toast('Anfang des Tagesverlaufs'); return false; }
-    S.ui.fokusZeigt=null; nav.hist=num(nav.hist)+1; _fokusEinflug='links';
+    const vl=verlaufKarten(); neu=pos-1;
+    if(neu<0 && -neu>vl.length){ toast(vl.length ? 'Anfang des Tagesverlaufs' : 'Heute noch keine andere Karte getrackt'); return false; }
+    _fokusEinflug='links';
   } else {
-    const kand=fokusKandidaten();
-    const cur=aktiveFokusKarte();
-    if(!kand.length || (kand.length<2 && cur && kand[0].id===cur.id)){ toast('Keine weitere Karte in der Kette'); return false; }
-    let i=cur ? kand.findIndex(x=>x.id===cur.id) : -1;
-    const ziel=kand[(i+1)%kand.length];
-    nav.hist=0; nav.stapel=(i+1)%kand.length;
-    S.ui.fokusZeigt=(S.fokus && S.fokus.karteId===ziel.id) ? null : ziel.id;
+    const kr=ketteRechts(); neu=pos+1;
+    if(neu>0 && neu>kr.length){ toast('Keine weitere Karte in der Kette'); return false; }
     _fokusEinflug='rechts';
   }
   _fokusSchrittTs=Date.now();
-  saveUi(); haptik(8); renderFokus();
+  haptik(8); ebeneSetzen({ anzeige:{ pos:neu, frei:null } });
   return true;
 }
 /* §9.3 (v1.11.0): Die Tageskurve kommt zurück — unter die Fokus-Karte,
@@ -5745,30 +5706,14 @@ function fokusKurveHtml(){
 }
 function renderFokus(){
   rangCacheBauen();
-  const host=el('fokusView');
-  let k=aktiveFokusKarte();
-  // v1.13.2: Divergenz-Schutz — beim Rendern gilt die LAUFENDE Uhr als
-  // Wahrheit. Zeigt die Ansicht eine andere Karte, obwohl der Nutzer nicht
-  // bewusst blättert, zieht der Fokus nach — und meldet es, damit eine
-  // etwaige neue Ursache nicht wieder unsichtbar bleibt.
-  // §1 (v2.1.1): Eine angesehene Karte (fokusZeigt) ist eine bewusste
-  // Auswahl — der Schutz darf sie NICHT auf die laufende zurueckziehen.
-  if(S.fokus && S.fokus.laeuft && k && k.id!==S.fokus.karteId && !(S.ui && S.ui.fokusZeigt)){
-    const nav0=fokusNav();
-    if(!(num(nav0.hist)>0 || nav0.stapel!=null)){
-      console.warn('Fokus-Divergenz nachgezogen: Uhr läuft auf '+S.fokus.karteId+', Ansicht zeigte '+k.id);
-      fokusNavReset(); saveUi();
-      const fk=S.karten.find(x=>x.id===S.fokus.karteId);
-      if(fk && fk.status!=='archiviert') k=fk;
-    }
-  }
-  const kand=fokusKandidaten();
+  const host=el('fokusView'); if(!host) return;
+  const k=angezeigteKarte();
+  const tagKnoepfe=tagBannerHtml();   // C4 (v3.8.0): Tag abschließen / Aufstehen ganz oben auf der Fokusseite
   if(!k){
-    host.innerHTML='<div id="fokusLeer"><span class="big">🎯</span>Keine Karte läuft.<br>Such dir in der Suche eine aus.</div>'+zeitstrahlHtml();
-    renderFkNav();
+    // keine Karte im Fokus → die Kettenliste wie in der Ansicht „+"
+    host.innerHTML=tagKnoepfe+kartenBlockHtml(null)+zeitstrahlHtml();
     return;
   }
-  const idx=Math.max(0, kand.findIndex(x=>x.id===k.id));
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
   // §5 (v1.11.0): Die Kleidung zeigt den Tag — Bild-Slot = heutiges Outfit.
   // §3 Nr. 1 (v3.5.1): Ring = 50 % der Blockbreite mit Outfit-Foto innen (wie 3.4.8): Aussenring abgelaufene Zeit im
@@ -5813,31 +5758,24 @@ function renderFokus(){
     '</div></div>';
   // §3 Nr. 3 (v3.5.1): links „◀ Verlauf" (zuletzt geoeffnete Karte), rechts „nächste ▶" (naechste Karte der Kette);
   // die Mitte zeigt die Position, darunter Positionspunkte
-  const nav=fokusNav(), imVerlauf=num(nav.hist)>0;
-  if(!imVerlauf) fokusOeffnungMerken(k.id);
-  const vlLen=fokusVerlaufHeute().length;
-  const verlaufGeht = vlLen>0 && num(nav.hist)<vlLen;
-  const naechsteGeht = kand.length>=2 || (kand.length===1 && kand[0].id!==k.id);
-  const pos=kand.findIndex(x=>x.id===k.id);
-  let punkte='';
-  if(imVerlauf){ const n=Math.min(9, vlLen+1), j=Math.max(0, n-1-num(nav.hist)); for(let i=0;i<n;i++) punkte+='<i class="'+(i===j?'j':(i<j?'v':''))+'"></i>'; }
-  else if(kand.length && pos>=0){ const n=kand.length, fen=Math.min(n, 9), ab=Math.max(0, Math.min(n-fen, pos-Math.floor(fen/2)));
-    for(let i=ab;i<ab+fen;i++) punkte+='<i class="'+(i===pos?'j':(pos>=0 && i<pos?'v':''))+'"></i>'; }
-  const navMitte = imVerlauf ? '<b>'+nav.hist+' / '+vlLen+'</b> im Verlauf' : (pos>=0 ? '<b>'+(pos+1)+' / '+kand.length+'</b> in der Kette' : (kand.length ? 'nicht in der Kette · '+kand.length+' Karten' : 'keine Kette'));
+  const anz=fokusAnzeige(), posA=anz.frei ? 0 : anz.pos, imVerlauf=posA<0, vl=verlaufKarten(), kr=ketteRechts();
+  const verlaufGeht = posA>0 || -posA<vl.length;
+  const naechsteGeht = posA<0 || posA<kr.length;
+  const kette=aktiveKetteKarten().filter(x=>x.status==='offen'), pos=kette.findIndex(x=>x.id===k.id);
+  const navMitte = imVerlauf ? '<b>'+(-posA)+' / '+vl.length+'</b> im Verlauf' : (pos>=0 ? '<b>'+(pos+1)+' / '+kette.length+'</b> in der Kette' : (kette.length ? 'nicht in der Kette · '+kette.length+' Karten' : 'keine Kette'));
   const navKnopf=r=>'<button class="sw '+(r>0 ? 'l'+(verlaufGeht?'':' aus') : 'r'+(naechsteGeht?'':' aus'))+'" data-fkswipe="'+r+'">'+(r>0 ? '◀ Verlauf' : 'nächste ▶')+'</button>';
   const swipeLeiste='<div class="knav fk-swipe">'+navKnopf(1)+
-    '<div class="m sw">'+navMitte+'<div class="punkte5">'+punkte+'</div></div>'+navKnopf(-1)+'</div>';
+    '<div class="m sw">'+navMitte+'</div>'+navKnopf(-1)+'</div>';
   // §2 (v3.5.4): dieselben beiden Knoepfe oben in der Fokusansicht (ersetzen „Zur Suche") — gleiche Regeln, ein Schritt je Tipp
   // §1 (v3.7.0): dazwischen „⤒ Nach vorn" — die Karte an Position 1 der aktuellen Kette
   const navOben='<div class="knav fk-swipe fk-oben">'+navKnopf(1)+'<button class="sw vorn" data-fkvorn="'+k.id+'">⤒ Nach vorn</button>'+navKnopf(-1)+'</div>';
   const einflug=_fokusEinflug ? ' von-'+_fokusEinflug : ''; _fokusEinflug=null;
-  host.innerHTML =
+  host.innerHTML = tagKnoepfe+
     '<div id="fokusAktiv" class="blk kern tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+(imVerlauf?'imverlauf ':'')+einflug+'" style="--famk:'+famK+';--famh:'+famH+'">'+
       navOben+titel+kopf+'<div id="tTempo" class="tl-wrap"></div>'+(k.status==='erledigt' && !uhrFrei(k)?aufgabeErledigt:aufgabe)+swipeLeiste+'</div>'+
     fokusSubsHtml(k)+
     // §3 (v3.5.1): Der Tag · Tempo und Bloecke · Matrix heute · Flow und Belastung · Karten
     fokusBloecke350(k);
-  renderFkNav();
   fokusTacho(k);   // Ring, Restzeit, Kennzahlen, Tempo-Leiste befüllen
 }
 /* Live-Aktualisierung des Fokus-Tachos (v0.38-Port): Ring-Bögen, Restzeit,
@@ -7181,7 +7119,7 @@ function leistePlay(kid){
   // §1.1/§1.7 (v3.4.0): Aufstehen und Tagesabschluss entscheidet fokusStarten (dieselbe Start-Logik)
   if(k.rolle==='aufstehen' || k.rolle==='tagesabschluss'){ fokusStarten(kid); renderAlles(); return; }
   if(!routineBuchbar(k) && !uhrFrei(k)){ toast('Der Tag ist geschlossen — morgen geht es mit „Aufstehen" weiter'); return; }   // §2.4 (v3.2.0)
-  fokusStarten(kid); S.ui.fokusZeigt=null; saveUi(); renderAlles();
+  fokusStarten(kid); renderAlles();
 }
 function schlafUmschalten(){
   if(schlafLaeuft()){
@@ -7301,7 +7239,7 @@ function restzeitAnzeige(sollMin, istSek){
 }
 function fokusTacho(k){
   if(seiteAktuell()!=='fokus') return;   // C2 (v3.8.0): die Fokusansicht ist eine Seite der Ebene 0
-  if(!k) k=aktiveFokusKarte();
+  if(!k) k=angezeigteKarte();
   const zeitArc=el('tZeitArc'); if(!zeitArc || !k) return;
   const rotArc=el('tRotArc'), progArc=el('tProgArc'), dot=el('tKopfDot'), halo=el('tKopfHalo'), rest=el('tRest'), sub=el('tRestSub');
   const geplant=num(k.sollMin), sek=istSekLive(k), min=sek/60;
@@ -7785,7 +7723,7 @@ function renderStatusSheet(){
   let kettenOffen=tagesKetteDom(shDom).map((id,i)=>({k:byId[id], pos:i+1})).filter(x=>x.k && x.k.status==='offen');
   let fallback=false;
   if(!kettenOffen.length && !tagesKetteDom(shDom).length){ fallback=true;
-    kettenOffen=fokusKandidaten().filter(x=>x.status==='offen').map((k,i)=>({k, pos:i+1})); }
+    kettenOffen=aktiveKetteKarten().filter(x=>x.status==='offen').map((k,i)=>({k, pos:i+1})); }
   const drei=kettenOffen.slice(0,3);
   h+='<div class="stsh-teil"><div class="stsh-kopf">Als nächstes · deine Kette</div>';
   h+='<div class="rs-kopf" style="margin-bottom:8px">'+['dfm','privat'].map(d=>
@@ -7896,7 +7834,7 @@ function renderStatusSheet(){
           s+='<div class="d" style="margin-top:6px">Um '+belUhr(nowX)+' hattest du an einem normalen Tag '+Math.round(oJetzt)+' P. Heute sind es <b>'+Math.round(ist)+'</b> — du liegst <b>'+pct+' %</b> über deinem Schnitt.</div>';
         } else {
           const delta=oJetzt-ist;
-          const offene=fokusKandidaten().filter(x=>x.status==='offen');
+          const offene=aktiveKetteKarten().filter(x=>x.status==='offen');
           const oe=offene.length?offene.reduce((a,x)=>a+Math.max(1,kartePunkteGeplant(x)),0)/offene.length:0;
           const n=oe>0?Math.max(1,Math.ceil(delta/oe)):null;
           s+='<div class="d" style="margin-top:6px">Um '+belUhr(nowX)+' hattest du an einem normalen Tag '+Math.round(oJetzt)+' P, heute sind es '+Math.round(ist)+' — du liegst '+Math.abs(pct)+' % darunter'+(n?' — mit den nächsten '+n+' Karte'+(n>1?'n':'')+' bist du wieder da.':'.')+'</div>';
@@ -8957,11 +8895,7 @@ function klGruppiert(karten, gruppe){
   return out;
 }
 /* Verlauf: heute geoeffnete Karten, neueste oben; Mehrfach-Oeffnungen stehen einmal mit ihrer Anzahl */
-function klVerlauf(){
-  const l=fokusOeffnungen(), n={}, folge=[], by={}; S.karten.forEach(k=>by[k.id]=k);
-  for(let i=l.length-1;i>=0;i--){ const id=l[i]; if(n[id]==null){ n[id]=0; folge.push(id); } n[id]++; }
-  return folge.map(id=>({k:by[id], n:n[id]})).filter(q=>q.k && q.k.status!=='archiviert' && !karteVerborgen(q.k));
-}
+function klVerlauf(){ return verlaufKarten().map(k=>({ k, n:1 })); }   // C4 (v3.8.0): heute getrackte Karten (B5)
 /* §7 (v3.7.0): die festen Ketten „Ticks DFM" und „Ticks Privat" — alle tickbaren Karten der Familie (offen oder heute erledigt) */
 function klTicks(dom){
   const tid=aktuelleTagId();
@@ -8994,10 +8928,7 @@ function klFilterPasst(k, q){
 /* Inhalt aller Gruppen (Karten je Gruppe, bereits gefiltert und sortiert); opt.karte = die gezeigte Karte (bleibt aus der Kette heraus) */
 function kettenListeInhalt(opt){
   opt=opt||{}; const k=opt.karte||null, q=opt.filter||'', offen=x=>x.status==='offen';
-  let kette=ketteKarten(navDomain()).filter(offen); if(!kette.length) kette=ketteKarten().filter(offen);
-  // §4 (v3.5.3): eine gewaehlte Tageskette zeigt ihre offenen Karten in ihrer Reihenfolge; „Ganzer Tag" die aktuelle Kette
-  const tkW=tageskettenWahl(), tkC=tkW ? tagesketten().find(c=>c.id===tkW) : null;
-  if(tkC){ const by={}; S.karten.forEach(x=>by[x.id]=x); kette=(tkC.karten||[]).map(id=>by[id]).filter(x=>x && offen(x)); }
+  let kette=aktiveKetteKarten().filter(offen);   // C4 (v3.8.0): dieselbe Quelle wie „nächste ▶"
   if(k) kette=kette.filter(x=>x.id!==k.id);
   const roh={ kette, verlauf:klVerlauf().map(q=>q.k), routinen:abhakLeisteKarten(), ticksDfm:klTicks('dfm'), ticksPrivat:klTicks('privat'), meist:kartenMeistgenutzt().map(q=>q.k), erledigt:klErledigtHeute() };
   const vlN={}; klVerlauf().forEach(q=>{ vlN[q.k.id]=q.n; });
@@ -9039,7 +8970,7 @@ function kettenListeKlick(e){
   const kc=t.closest('[data-klcheck]'); if(kc){ e.stopPropagation(); haptik(12); kartenListeCheck(kc.dataset.klcheck); return true; }
   const kr=t.closest('[data-klreopen]'); if(kr){ e.stopPropagation(); haptik(8); if(karteWiederOeffnen(kr.dataset.klreopen)){ toast('Wieder offen — Uhr ab null, Ticks bleiben'); renderAlles(); kettenListenNeu(); } return true; }
   const kp=t.closest('[data-klplay]'); if(kp){ e.stopPropagation(); haptik(10); leistePlay(kp.dataset.klplay); kettenListenNeu(); return true; }
-  const kf=t.closest('[data-klfokus]'); if(kf){ e.stopPropagation(); haptik(6); kettenListeSchliessen(); fokusKarteAnsehen(kf.dataset.klfokus); renderFokus(); return true; }
+  const kf=t.closest('[data-klfokus]'); if(kf){ e.stopPropagation(); haptik(6); kettenListeSchliessen(); fokusZeigen(kf.dataset.klfokus); return true; }
   return false;
 }
 function kettenListeSchliessen(){ const o=el('inKetteOverlay'); if(o && !o.hidden) o.hidden=true; e1Schliessen(); }   // §4 (v3.7.6): auch die Such-Ebene
@@ -9466,7 +9397,7 @@ function starteTicker(){
     renderFokusleiste();
     if(tagOffen()) renderStatusbar();                   // V1.1: Live-Punkte/-Minuten/-Pace in der Statusleiste sekündlich
     // Fokus-Tacho live nachziehen (Ring/Timer/Kennzahlen/Balken der angezeigten Karte)
-    if(seiteAktuell()==='fokus') fokusTacho(aktiveFokusKarte());
+    if(seiteAktuell()==='fokus') fokusTacho(angezeigteKarte());
     kartenZeilenZeitLive();           // §6 (v3.7.0): gebuchte Zeit der laufenden Karte in den Kartenzeilen
     if(seiteAktuell()==='belohnung' && _sekTakt%5===0) renderBelohnung();   // Belohnungsseite live (alle 5 s, Perf)
     if(_sekTakt>0 && _sekTakt%60===0) diagrammeLive();   // v3.4.7: Tagesdiagramme live, nur sichtbare
@@ -9798,7 +9729,7 @@ function abschlussV3SchliessenUI(){
   closeSheet();
   if(ok){
     const sk=schlafKarte();
-    if(sk){ S.ui.fokusZeigt=sk.id; ebeneSetzen({ seite:'fokus', e1:null }); }
+    if(sk) fokusZeigen(sk.id);
     renderAlles();   // §10 (v3.7.0): kein Hochscrollen
     toast('🌙 Tag abgeschlossen · '+fmtP(num(S.tag.punkteBilanz))+' P — Routinen und Counter bis „Schlafen" buchbar');
   } else renderAlles();
@@ -10656,7 +10587,6 @@ function detailSpeichern(){
       fokusZeitEinbuchen();
     }
     S.fokus={ karteId:neuId, laeuft:false, startMs:0, sessionSek:0, quelle:null };
-    S.ui.fokusZeigt=null;
     saveFokus();
     ebeneSetzen({ seite:'fokus', e1:null });
   }
@@ -10808,7 +10738,7 @@ function karteAbhaken(kid, fromDetail){
     // nächste Karte aus derselben Quelle nach (§3.1 1.10.0), sonst Fokus-Ende.
     if(!fromDetail && S.fokus && S.fokus.karteId===k.id){
       fokusZeitEinbuchen();
-      if(!fokusNachruecken(k.id)){ S.fokus=null; saveFokus(); if(S.fokusQuelleLeerToast!==false) toast('Liste leer — Fokus beendet'); }
+      S.fokus=null; saveFokus();   // B4 (v3.8.0): kein Nachrücken — danach ist keine Karte im Fokus, die Fokusseite zeigt die Kettenliste
     }
     abschlussSnapshot(k);                                // §6.1: Stand VOR dem Abschluss sichern
     k.status='erledigt'; k.tagId=aktuelleTagId();
@@ -11019,7 +10949,7 @@ function karteVomGeraet(kid, quelle){
   S.unteraufgaben=S.unteraufgaben.filter(u=>u.parentId!==kid);
   try{ const st=ketteState(); st.ids=(st.ids||[]).filter(x=>x!==kid); }catch(e){}
   if(S.fokus && S.fokus.karteId===kid){ S.fokus=null; saveFokus(); }
-  if(S.ui.fokusZeigt===kid){ S.ui.fokusZeigt=null; saveUi(); }
+  if(S.ui.fokusAnzeige && S.ui.fokusAnzeige.frei===kid){ S.ui.fokusAnzeige.frei=null; saveUi(); }
   if(!Array.isArray(S.meta.vomGeraetGenommen)) S.meta.vomGeraetGenommen=[];
   S.meta.vomGeraetGenommen=S.meta.vomGeraetGenommen.filter(x=>x.id!==k.id)
     .concat([{ id:k.id, airtableId:k.airtableId||null, titel:k.titel||'', ts:jetztIso(), quelle:quelle||'detail' }]);
@@ -17509,42 +17439,7 @@ function e1Schliessen(){ if(_e1) ebeneSetzen({ e1:null }); }
 function fokusZeigen(kid){ ebeneSetzen({ seite:'fokus', e1:null, anzeige:{ pos:0, frei:kid||null } }); }
 /* EIN Weg für jeden Kartenstart von aussen (Sheet, Vorschlag, Wiederholen, Liste): Uhr starten, dann zeigt die Fokusseite die Mitte */
 function kartenStart(kid, quelle, opt){ fokusStarten(kid, quelle, opt); ebeneSetzen({ seite:'fokus', e1:null }); }
-/* ══════════════════════════════════════════════════════════════════════
-   §1 (v2.0.1) · ZWEI UNABHÄNGIGE EBENEN
-   v2.0.0 hatte die Sichtbarkeit der Fokusansicht an S.fokus.laeuft gekoppelt:
-   sobald eine Karte lief, lag der Layer über der Suche — ohne Weg zurück.
-   Suchfeld und Sicht-Chips waren unerreichbar, die Karten darunter wirkten
-   wie hinter einem Schleier (der Layer fing alle Klicks ab).
-
-   Ab 2.0.1 sind es ZWEI Zustände, die einander nie bedingen:
-     S.fokus            — WELCHE KARTE LÄUFT (Uhr, Buchung, Punkte)
-     S.ui.fokusOffen    — WELCHE ANSICHT IST SICHTBAR (reine Darstellung)
-   Wegschieben ändert nichts an der Uhr; die Karte läuft im Hintergrund
-   weiter und bleibt als Leiste oben sichtbar. Tippen auf die Leiste holt
-   die Ansicht zurück.
-   ══════════════════════════════════════════════════════════════════════ */
-/* ══ §1 (v2.1.1) · DIE ANGEZEIGTE KARTE ════════════════════════════════
-   Drei Zustaende, die einander nie bedingen:
-     S.fokus          — WELCHE KARTE LAEUFT (Uhr, Buchung)
-     S.ui.fokusOffen  — IST DIE FOKUSANSICHT SICHTBAR
-     S.ui.fokusZeigt  — WELCHE KARTE SIE ZEIGT, wenn sie ANGESEHEN statt
-                        gestartet wurde (null = die laufende)
-   Antippen einer Karte setzt nur die letzten beiden. Laeuft gerade eine
-   andere Karte, laeuft sie weiter. */
-function fokusAngezeigtId(){
-  const z=S.ui && S.ui.fokusZeigt;
-  if(z && S.karten.some(k=>k.id===z)) return z;
-  return (S.fokus && S.fokus.karteId) || null;
-}
-function fokusKarteAnsehen(kid){
-  if(!S.karten.some(k=>k.id===kid)) return;
-  S.ui.fokusZeigt = (S.fokus && S.fokus.karteId===kid) ? null : kid;
-  ebeneSetzen({ seite:'fokus', e1:null });   // §10 (v3.7.0): kein Hochscrollen innerhalb der Seite
-}
-function fokusAnsichtZeigen(){ ebeneSetzen({ seite:'fokus', e1:null }); }
 function renderSuche(){
-  // §3 (v2.0.2): Tagesabschluss ist von der Suche aus erreichbar — in der JETZIGEN Form, kein Redesign.
-  { const tb=el('tagBanner'); if(tb) tb.innerHTML=tagBannerHtml(); }
   // §4 (v2.1.1): Der Begriff lebt in S.ui.suFrage UND im Eingabefeld — das Feld zeigt IMMER, wonach gesucht wird.
   { const inp=el('suFreitext');
     if(inp && document.activeElement!==inp && inp.value!==(S.ui.suFrage||'')) inp.value=S.ui.suFrage||''; }
@@ -17903,7 +17798,7 @@ function heatmapHtml(wert, wochen){
 function stmTag(F,dom){
   // §3 (v3.5.3): dieselben drei Zeilen wie in der Fokusansicht (derTagHtml) — hier mit Familien-Filter und Tagesauswahl am
   // Tagesverlauf; aufgeklappt „Tempo und Blöcke" und die Verhaltens-Kennzahlen
-  const k=aktiveFokusKarte();
+  const k=angezeigteKarte();
   let haupt=''; try{ haupt=derTagHtml(k, {roh:true, bedienung:true, ringe:true}); }catch(e){ haupt='<div class="an-leer">nicht verfügbar</div>'; }
   return statModul('tag','Der Tag', haupt, null, ()=>tempoBlockHtml('tts', true)+anModVerhalten(F,dom,{nurKpis:true}), {tipp:false});
 }
@@ -18677,16 +18572,9 @@ el('sheetBody').addEventListener('click', e=>{
 
 // Fokus-Leiste: Play/Pause-Toggle + Mitte tippen → Fokus-Tab
 // §2 (v3.5.1): der Play/Pause-Knopf der Statusleiste ist entfallen (Bedienung in der Fokusansicht)
-/* §1 (v2.0.1): Tippen auf die Leiste holt die Fokusansicht zurueck.
-   Laeuft keine Karte, ist die Leiste nur Anzeige. */
-/* §11 (v3.7.0): ein Tipp auf die Statusleiste öffnet IMMER die Fokusansicht — die angezeigte bzw. laufende Karte, sonst die
-   erste Karte der Kette; Matrix-Verlauf (→ Matrix-Spur) und Punkte-Block (→ Statistik) behalten ihre eigenen Ziele */
-function fokusImmerZeigen(){
-  if(fokusAngezeigtId()){ fokusAnsichtZeigen(); return true; }
-  const k=fokusKandidaten()[0]; if(k){ fokusKarteAnsehen(k.id); return true; }
-  toast('Keine Karte in der Kette'); return false;
-}
-{ const z1=document.querySelector('#topbar .sl-z1'); (z1||el('fkMid')).addEventListener('click', e=>{ if(e.target.closest('#btnFigur')) return; fokusImmerZeigen(); }); }
+/* C4 (v3.8.0): Tipp auf Zeile 2 der Statusleiste (Ring · Titel · Uhr) → die Fokusseite zeigt die GETRACKTE Karte (ohne sie die
+   Kettenliste); die Figur führt weiter zum Shop */
+{ const z1=document.querySelector('#topbar .sl-z1'); (z1||el('fkMid')).addEventListener('click', e=>{ if(e.target.closest('#btnFigur')) return; fokusZeigen(null); }); }
 /* §10 (v3.7.2): langer Druck (500 ms) auf die Statusleiste öffnet das Status-Sheet; der kurze Tipp bleibt (Fokusansicht) */
 let _slLangTimer=null, _slLangWar=false;
 function statusLangDruckBinden(elm){
@@ -18702,7 +18590,7 @@ statusLangDruckBinden(el('statusbar')); statusLangDruckBinden(document.querySele
 el('statusbar').addEventListener('click', e=>{
   if(e.target.closest('#sZMatrix')){ oeffneTagebuch(); return; }   // §2 (v3.7.1): Tipp auf die Matrix = Tagebuch
   if(e.target.closest('#btnKurve')) return;   // §2 (v3.5.1): der Punkte-Block fuehrt zur Statistik (eigener Handler)
-  fokusImmerZeigen();
+  ebeneSetzen({ seite:'fokus', e1:null });
 });
 
 // Fokus-View: Toggle / Häkchen / Karussell / Farbstreifen / Unteraufgaben / Stapelwahl
@@ -18718,6 +18606,8 @@ el('fokusView').addEventListener('click', e=>{
   const ns=t.closest('[data-navsort]'); if(ns){ S.ui.navSort=ns.dataset.navsort; saveUi(); renderFokus(); return; }
   // (data-kette läuft über karteRowClick weiter unten — ein Codepfad für beide Views)
   const aqf=t.closest('[data-akkuquick]'); if(aqf){ oeffneAkkuQuick(); return; }   // §6.1 (v1.13.0)
+  if(t.closest('[data-tagstart]')){ oeffneTagStart(); return; }     // C4 (v3.8.0): die Tag-Knöpfe stehen oben auf der Fokusseite
+  if(t.closest('[data-tagclose]')){ oeffneTagAbschluss(); return; }
   if(zaehlerKlick(t)) return;   // §1.2 (v3.2.0): Zaehler-Zeile
   const tg=t.closest('[data-fktoggle]'); if(tg){ const kid=tg.dataset.fktoggle;
     if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid); return; }
@@ -18745,9 +18635,9 @@ el('fokusView').addEventListener('click', e=>{
   const alp=t.closest('[data-zsplay]'); if(alp){ const id=alp.dataset.zsplay;
     haptik(10);
     if(S.fokus && S.fokus.laeuft && S.fokus.karteId===id){ fokusZeitEinbuchen(); renderAlles(); return; }   // laeuft schon → Pause (ein Toggle)
-    fokusStarten(id); S.ui.fokusZeigt=null; saveUi(); renderAlles(); return; }
-  const alk=t.closest('[data-alkarte]'); if(alk){ haptik(8); fokusKarteAnsehen(alk.dataset.alkarte); return; }
-  const zsk=t.closest('[data-zskarte]'); if(zsk){ haptik(8); fokusKarteAnsehen(zsk.dataset.zskarte); return; }
+    fokusStarten(id); renderAlles(); return; }
+  const alk=t.closest('[data-alkarte]'); if(alk){ haptik(8); fokusZeigen(alk.dataset.alkarte); return; }
+  const zsk=t.closest('[data-zskarte]'); if(zsk){ haptik(8); fokusZeigen(zsk.dataset.zskarte); return; }
   { const tbm=t.closest('svg.fb-mx.klick'); if(tbm){ haptik(8); tagebuchAusMatrixKlick(e, tbm); return; } }   // §2 (v3.7.1): Fokus „Matrix heute" → Tagebuch
   const de=t.closest('[data-detail]'); if(de){ oeffneDetail(de.dataset.detail); return; }
   if(karteRowClick(t, e)) return;   // U1: Fokus-Liste = gleiche Karten-Zeilen-Aktionen wie der Stapel
@@ -18782,7 +18672,7 @@ el('fokusView').addEventListener('change', e=>{
 });
 el('fokusView').addEventListener('keydown', e=>{
   if((e.target.id==='fkUaNeu'||e.target.id==='fkUaMin') && e.key==='Enter'){   // §4
-    e.preventDefault(); const k=aktiveFokusKarte(); if(k) fokusSubAnlegen(k.id); }
+    e.preventDefault(); const k=angezeigteKarte(); if(k) fokusSubAnlegen(k.id); }
 });
 
 /* ── U2 (v1.4.0) · Swipe-Navigation auf der Fokuskarte ─────────────────
@@ -18989,7 +18879,7 @@ el('sheet').addEventListener('click', e=>{
         karteAbhaken(k.id, false);                       // in-place: Bonus+Abschlusspunkte zurück, Zeit/Ticks/Sub-Boni bleiben
         k.wiederOffenTag=heuteApp(); saveKarten();       // §8: die v1.9.2-Sonderregel entfällt — offen ist offen
         renderAlles(); toast('↩︎ Wieder geöffnet — Zeit, Ticks und Sub-Boni bleiben');
-        fokusKarteAnsehen(k.id);                         // dann oeffnet die Karte (Uhr steht)
+        fokusZeigen(k.id);                         // dann oeffnet die Karte (Uhr steht)
       });
     } return; }
   // §2 (v2.5.0): Abfrage der Unteraufgaben
@@ -19811,10 +19701,6 @@ el('suClear').addEventListener('click', ()=>{
 });
 let _suDeb=null;
 /* Sichtwechsel — Tap auf die Leiste oder horizontales Wischen. */
-el('tagBanner').addEventListener('click', e=>{
-  if(e.target.closest('[data-tagstart]')){ oeffneTagStart(); return; }
-  if(e.target.closest('[data-tagclose]')){ oeffneTagAbschluss(); return; }
-});
 el('suFilter').addEventListener('click', e=>{
   // §2 (v2.2.0): Domäne, Art und Erledigte — Wahl bleibt bis zur Änderung.
   if(e.target.closest('[data-suerl]')){ S.ui.suErledigt=!erledigteZeigen(); saveUi();
@@ -19860,7 +19746,7 @@ el('suBody').addEventListener('click', e=>{
   // §1: Tipp auf den Kartenkoerper (Titel, Metazeile, freie Flaeche) —
   // die Karte in der Fokusansicht ANSEHEN, ohne die Uhr zu starten.
   const row=t.closest('.krow[data-kid]');
-  if(row){ haptik(8); fokusKarteAnsehen(row.dataset.kid); return; }
+  if(row){ haptik(8); fokusZeigen(row.dataset.kid); return; }
 });
 /* §5 (v3.7.0): die wischbaren Sichten der Suche sind entfallen — unter dem Suchfeld steht die Kettenliste */
 el('suchClose').addEventListener('click', schliesseSuche);
@@ -19870,7 +19756,7 @@ el('suchList').addEventListener('click', e=>{
   if(e.target.closest('[data-suchneu]')){ suchNeuAnlegen(); return; }
   // Tipp auf einen Treffer oeffnet die Karte (Fokusansicht, Uhr steht)
   const row=e.target.closest('.krow[data-kid]');
-  if(row){ schliesseSuche(); haptik(8); fokusKarteAnsehen(row.dataset.kid); }
+  if(row){ schliesseSuche(); haptik(8); fokusZeigen(row.dataset.kid); }
 });
 el('suchFilter').addEventListener('click', e=>{
   const b=e.target.closest('[data-sf]'); if(!b) return;
