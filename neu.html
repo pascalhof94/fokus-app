@@ -2345,10 +2345,17 @@ img.objimg.laedt{opacity:0}
 #e1-plus .an-kopf .btn{margin-left:auto;min-height:36px}
 #e1-plus .an-kopf .sp{display:none}
 /* ══ 3.7.0 §2 · „In Kette": Karte oben, Ketten darunter, Einfügelinie beim Ziehen ══ */
-#inKetteOverlay .an-kopf .btn{margin-left:auto;min-height:36px}
-#inKetteOverlay .an-kopf .sp{display:none}
-#inKetteOverlay.ik-aktiv{touch-action:none}
-#inKetteOverlay.ik-aktiv .an-body{overflow:hidden}
+#e1-inkette .an-kopf .btn{margin-left:auto;min-height:36px}
+#e1-inkette .an-kopf .sp{display:none}
+#e1-inkette.ik-aktiv{touch-action:none;overflow:hidden}
+/* C6 (v3.8.0): Kettenknopf unter dem Kartentitel · Kettenauswahl (Ebene 1) */
+#fokusAktiv .fk-kette{margin:0}
+#fokusAktiv .fk-kette span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.kw-z{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;margin-bottom:8px;padding:8px 12px;border-radius:12px;background:#1a1d22;border:1px solid #2a2d33;color:#e8e9ec;font:inherit;text-align:left;cursor:pointer}
+.kw-z b{flex:1;min-width:0;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kw-z span{flex:none;font-size:12px;color:#9a9ca2}
+.kw-z em{flex:none;font-style:normal;font-size:11px;font-weight:700;color:#e8e9ec;border:1px solid #e8e9ec;border-radius:9px;padding:1px 8px}
+.kw-z.on{border-color:#e8e9ec}
 .ik-karte{margin-bottom:6px}
 .ik-karte .kl-z{box-shadow:0 0 0 2px #e8e9ec inset}
 .ik-hint{margin:0 0 10px;text-align:left}
@@ -2464,6 +2471,24 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
     </div>
     <div class="an-body" id="plusBody"></div>
   </section>
+  <!-- C6 (v3.8.0): Kettenauswahl — vom Kettenknopf (aktive Kette wechseln) und von „Nach vorn" (Karte an Position 1 der gewählten Kette) -->
+  <section class="e1" id="e1-kettenwahl" data-e1="kettenwahl">
+    <div class="an-kopf">
+      <button class="an-back" data-e1zu="1" aria-label="Schließen">‹ zurück</button>
+      <h3 id="kwTitel">Kette wählen</h3>
+      <span class="sp"></span>
+    </div>
+    <div class="an-body" id="kwBody"></div>
+  </section>
+  <!-- §2 (v3.7.0) / C6 (v3.8.0): „In Kette" — die Karte oben (falls eine gezeigt wird), darunter alle Ketten; per langem Druck ziehen -->
+  <section class="e1" id="e1-inkette" data-e1="inkette">
+    <div class="an-kopf">
+      <h3>In Kette</h3>
+      <span class="sp"></span>
+      <button class="btn prim sm" data-e1zu="1">Fertig</button>
+    </div>
+    <div class="an-body" id="inKetteBody"></div>
+  </section>
 </div>
 
 <div id="backdrop"></div>
@@ -2483,16 +2508,6 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
   </div>
   <div id="suchFilter" class="su-filter such-filter"></div>
   <div id="suchList" class="such-list"></div>
-</div>
-
-<!-- §2 (v3.7.0): „In Kette" — die Karte oben, darunter alle Ketten als klappbare Gruppen; per langem Druck in eine Kette ziehen -->
-<div id="inKetteOverlay" class="voll-ansicht" hidden>
-  <div class="an-kopf">
-    <h3>In Kette</h3>
-    <span class="sp"></span>
-    <button class="btn prim sm" data-ikfertig="1">Fertig</button>
-  </div>
-  <div class="an-body" id="inKetteBody"></div>
 </div>
 
 <!-- §3 (v3.5.4): Karten mit Faktor (Vollbild-Ansicht, liegt unter Sheet und Backdrop) -->
@@ -5645,10 +5660,42 @@ function getrackteKarte(){ const k=fokusKarte(); return (k && k.status!=='archiv
 function aktiveKetteKarten(){
   const w=tageskettenWahl(), c=w ? tagesketten().find(x=>x.id===w) : null;
   if(c){ const by={}; S.karten.forEach(x=>by[x.id]=x); return (c.karten||[]).map(id=>by[id]).filter(x=>x && x.status!=='archiviert' && !karteVerborgen(x)); }
-  const eigene=ketteKarten(navDomain());
-  return eigene.some(k=>k.status==='offen') ? eigene : ketteKarten();
+  return hauptKetteKarten();
 }
 function aktiveKetteName(){ const w=tageskettenWahl(), c=w ? tagesketten().find(x=>x.id===w) : null; return c ? (c.name||'Kette') : 'Aktuelle Kette'; }
+function hauptKetteKarten(){ const eigene=ketteKarten(navDomain()); return eigene.some(k=>k.status==='offen') ? eigene : ketteKarten(); }
+/* C6 (v3.8.0): die Karte an Position 1 der gewählten Kette — tkId leer = die aktuelle Kette (S.meta.ketten.alle), sonst die
+   Tageskette (S.tagesketten). Beide Schreibwege bestehen seit 3.7.0 („In Kette"); der Datenvertrag bleibt unberührt. */
+function ketteVornIn(kid, tkId){
+  if(!S.karten.some(x=>x.id===kid)) return false;
+  if(!tkId) return ketteNachVorn(kid);
+  const c=tagesketten().find(x=>x.id===tkId); if(!c) return false;
+  c.karten=(c.karten||[]).filter(x=>x!==kid); c.karten.unshift(kid);
+  DB.set('tagesketten', S.tagesketten); return true;
+}
+/* Kettenauswahl (Ebene 1): aktuelle Kette + alle Tagesketten (keine Tagesblöcke). zweck 'wahl' = aktive Kette wechseln
+   (S.ui.tkWahl — Kettenliste und „nächste ▶" folgen ihr, die Karte wird nicht verschoben) · 'vorn' = Karte an Position 1 */
+function kettenwahlHtml(){
+  const a=e1Arg(), k=a.kid ? S.karten.find(x=>x.id===a.kid) : null, wahl=tageskettenWahl(), by={}; S.karten.forEach(x=>by[x.id]=x);
+  const zeile=(id, name, karten)=>{ const offen=karten.filter(x=>x && x.status==='offen'), pos=k ? offen.findIndex(x=>x.id===k.id) : -1, an=(id||null)===wahl;
+    return '<button type="button" class="kw-z'+(an?' on':'')+'" data-kwwahl="'+esc(id)+'"><b>'+esc(name)+'</b><span>'+offen.length+(offen.length===1?' Karte':' Karten')+(k ? ' · '+(pos>=0 ? 'Platz '+(pos+1) : 'nicht enthalten') : '')+'</span>'+(an ? '<em>aktiv</em>' : '')+'</button>'; };
+  const hinweis = a.zweck==='vorn'
+    ? '„'+esc(String(k ? k.titel||'' : '').slice(0, 40))+'" kommt an Position 1 der gewählten Kette.'
+    : 'Die Kettenliste und „nächste ▶" folgen der gewählten Kette. Die Karte wird nicht verschoben.';
+  return '<div class="hint ik-hint">'+hinweis+'</div>'+zeile('', 'Aktuelle Kette', hauptKetteKarten())+
+    tagesketten().map(c=>zeile(c.id, c.name||'Kette', (c.karten||[]).map(id=>by[id]))).join('');
+}
+function kettenwahlWaehlen(id){
+  const a=e1Arg(), c=id ? tagesketten().find(x=>x.id===id) : null; if(id && !c) return;
+  if(a.zweck==='vorn'){
+    const ok=ketteVornIn(a.kid, id||null);
+    if(ok){ haptik(8); toast('An erster Stelle · '+(c ? (c.name||'Kette') : 'Aktuelle Kette')); }
+    e1Schliessen(); return;
+  }
+  const cur=angezeigteKarte();   // die gezeigte Karte bleibt stehen, auch wenn die neue Kette eine andere Reihenfolge hat
+  S.ui.tkWahl=id||null; haptik(6);
+  ebeneSetzen({ e1:null, anzeige:{ pos:0, frei:cur ? cur.id : null } });
+}
 function karteUnerledigt(k){ return !!k && k.status==='offen' && kartenStatusHeute(k)!=='erledigt'; }
 /* Verlauf (B5): nur GETRACKTE Karten des App-Tags — ihre Uhr lief heute oder sie wurden heute getickt —, die zuletzt
    getrackte zuerst, ohne die aktuell getrackte. Quelle sind die Sitzungen und Ticks im Tages-Log (S.intraday); blosses
@@ -5758,7 +5805,10 @@ function renderFokus(){
       '<div class="kkpi"><div class="w" id="tKpiPunkte" style="color:'+FARBE.GOLD+'">–</div><div class="s">Punkte heute · Münzen und Farbe</div></div>'+
       '<div class="kkpi"><div class="w" id="tKpiSchritte">–</div><div class="s">Schritte abgehakt</div><div class="kschritte" id="tKpiSeg"></div></div>'+
     '</div></div>';
-  const titel='<div class="ktitel fk-haupttitel" data-detail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</div>'+
+  // C6 (v3.8.0): Zeile unter dem Titel — die aktive Kette mit der Position der Karte; Tipp öffnet die Kettenauswahl (Ebene 1)
+  const kOffen=aktiveKetteKarten().filter(x=>x.status==='offen'), kPos=kOffen.findIndex(x=>x.id===k.id);
+  const ketteKnopf='<button type="button" class="kl-chip fk-kette" data-fkkette="'+k.id+'" aria-label="Kette wählen"><span>'+esc(aktiveKetteName())+' · '+(kPos>=0 ? (kPos+1)+' / '+kOffen.length : 'nicht enthalten')+'</span></button>';
+  const titel='<div class="ktitel fk-haupttitel" data-detail="'+k.id+'">'+esc(k.titel||'(ohne Titel)')+'</div>'+ketteKnopf+
     '<div class="kmeta"><b style="color:'+famH+'">'+(k.domain==='dfm'?'DFM':'Privat')+'</b> · '+MX_FELD_NAME[matrixFeldVon(k)]+' · <span id="tGesamtP">'+fmtP(kartePunkteGeplant(k))+'</span> P gesamt</div>';
   // §7 (v1.12.0): ERLEDIGTE Karte im Verlauf — gebuchte Zeit und Punkte, zwei Aktionen: Punkte anpassen · Wiederholen.
   const aufgabeErledigt='<div class="taufgabe"><div class="tsub">✓ erledigt'+(k.tagId?' am '+esc(String(k.tagId).slice(0,10)):'')+
@@ -8978,17 +9028,16 @@ function kettenListeKlick(e){
   const kc=t.closest('[data-klcheck]'); if(kc){ e.stopPropagation(); haptik(12); kartenListeCheck(kc.dataset.klcheck); return true; }
   const kr=t.closest('[data-klreopen]'); if(kr){ e.stopPropagation(); haptik(8); if(karteWiederOeffnen(kr.dataset.klreopen)){ toast('Wieder offen — Uhr ab null, Ticks bleiben'); renderAlles(); kettenListenNeu(); } return true; }
   const kp=t.closest('[data-klplay]'); if(kp){ e.stopPropagation(); haptik(10); leistePlay(kp.dataset.klplay); kettenListenNeu(); return true; }
-  const kf=t.closest('[data-klfokus]'); if(kf){ e.stopPropagation(); haptik(6); kettenListeSchliessen(); fokusZeigen(kf.dataset.klfokus); return true; }
+  const kf=t.closest('[data-klfokus]'); if(kf){ e.stopPropagation(); if(Date.now()-_ikZogTs<400) return true; haptik(6); fokusZeigen(kf.dataset.klfokus); return true; }
   return false;
 }
-function kettenListeSchliessen(){ const o=el('inKetteOverlay'); if(o && !o.hidden) o.hidden=true; e1Schliessen(); }   // §4 (v3.7.6): auch die Such-Ebene
+let _ikZogTs=0;   // Ende des letzten Ziehens in der Ansicht In Kette: ein nachlaufender Klick öffnet keine Karte
 /* ══ §2 (v3.7.0) · „IN KETTE" ═══════════════════════════════════════════════════════════
    Vollbild-Ansicht: oben die Karte (Kartenzeile), darunter alle Ketten als klappbare Gruppen (ohne Verlauf, Meistgenutzt,
    Erledigt heute): die aktuelle Kette, jede Tageskette, die Routinen nach Tagesblock, dazu die festen Ketten Ticks DFM/Privat
    (sie ergeben sich aus der Tick-Freigabe und sind kein Ziel). Per langem Druck (300 ms, damit Scrollen weitergeht) zieht
    Pascal die Karte an eine beliebige Stelle; zwischen den Zeilen erscheint eine Einfügelinie, Loslassen fügt ein.
    Eine Karte darf in mehreren Ketten stehen. „Fertig" oben rechts schließt. */
-let _ik=null;
 function ikGruppen(k){
   const offen=x=>x.status==='offen', by={}; S.karten.forEach(x=>by[x.id]=x);
   const g=[];
@@ -9005,8 +9054,8 @@ function ikGruppen(k){
 }
 function inKetteHtml(k){
   const dreh=_klGedreht; _klGedreht=null;
-  return '<div class="ik-karte" data-ikdrag="'+k.id+'">'+kartenZeileHtml(k)+'</div>'+
-    '<div class="hint ik-hint">Lang drücken und in eine aufgeklappte Kette ziehen — an jede Stelle.</div>'+
+  return (k ? '<div class="ik-karte" data-ikdrag="'+k.id+'">'+kartenZeileHtml(k)+'</div>' : '')+
+    '<div class="hint ik-hint">'+(k ? 'Lang drücken und in eine aufgeklappte Kette ziehen — an jede Stelle.' : 'Lang drücken und eine Karte in eine aufgeklappte Kette ziehen oder in ihrer Kette umsortieren.')+'</div>'+
     '<div class="kl-liste ik-liste">'+ikGruppen(k).map(g=>{ const auf=klGruppeOffen(g.id), n=g.teile.reduce((a,t)=>a+t.karten.length, 0);
       const zeilen=g.teile.map(t=>'<div class="ik-teil" data-ikziel="'+(g.ziel||'')+'" data-iktk="'+(g.tk||'')+'" data-ikblock="'+(t.block||'')+'"'+(g.ziel?'':' data-ikfest="1"')+'>'+
         (t.name ? '<div class="kl-zwh">'+esc(t.name)+'</div>' : '')+t.karten.map(x=>kartenZeileHtml(x)).join('')+
@@ -9015,9 +9064,7 @@ function inKetteHtml(k){
         '<span class="stm-tog'+(auf?' auf':'')+(dreh===g.id?' dreh':'')+'" aria-hidden="true">'+STM_CHEVRON+'</span></div>'+
         (auf ? '<div class="kl kl-grinh">'+zeilen+'</div>' : '')+'</div>'; }).join('')+'</div>';
 }
-function renderInKette(){ const k=_ik && S.karten.find(x=>x.id===_ik.kid); const b=el('inKetteBody'); if(!b) return; b.innerHTML=k ? inKetteHtml(k) : '<div class="an-leer">Karte nicht gefunden</div>'; }
-function oeffneInKette(kid){ if(!S.karten.some(x=>x.id===kid)) return; _ik={ kid }; renderInKette(); el('inKetteOverlay').hidden=false; try{ el('inKetteBody').scrollTop=0; }catch(e){} }
-function schliesseInKette(){ el('inKetteOverlay').hidden=true; _ik=null; renderFokus(); }
+function renderInKette(){ const kid=e1Arg().kid, k=kid ? S.karten.find(x=>x.id===kid) : null; const b=el('inKetteBody'); if(!b) return; b.innerHTML=inKetteHtml(k||null); }
 /* Einfügen an Position index (vor der index-ten sichtbaren Karte des Ziels; index = Anzahl → ans Ende) */
 function ikEinfuegen(ziel, info, kid, index){
   const k=S.karten.find(x=>x.id===kid); if(!k) return false;
@@ -9051,22 +9098,23 @@ function ikEinfuegen(ziel, info, kid, index){
 }
 /* Ziehen per langem Druck: Geist folgt dem Finger, Einfügelinie zwischen den Zeilen des Ziels */
 function ikDragBinden(){
-  const ov=el('inKetteOverlay'); if(!ov) return;
+  const ov=el('e1-inkette'); if(!ov) return;
   let press=null, drag=null;
   const linie=()=>{ let l=ov.querySelector('.ik-linie'); if(!l){ l=document.createElement('div'); l.className='ik-linie'; } return l; };
   const zielBei=(x, y)=>{ const g=linie(); g.style.display='none'; const e=document.elementFromPoint(x, y); g.style.display='';
     const teil=e && e.closest ? e.closest('.ik-teil') : null; if(!teil || teil.dataset.ikfest) return null;
-    const rows=[].slice.call(teil.querySelectorAll('.kl-z')); let index=0; rows.forEach(r=>{ const rc=r.getBoundingClientRect(); if(y>rc.top+rc.height/2) index++; });
+    const rows=[].slice.call(teil.querySelectorAll('.kl-z')).filter(r=>!r.classList.contains('ik-zieht')); let index=0;   // C6: die gezogene Zeile zählt nicht mit (Umsortieren in derselben Kette) rows.forEach(r=>{ const rc=r.getBoundingClientRect(); if(y>rc.top+rc.height/2) index++; });
     return { teil, rows, index }; };
   const zeige=z=>{ const l=linie(); if(!z){ l.remove(); return; } const ref=z.rows[z.index]; if(ref) z.teil.insertBefore(l, ref); else z.teil.appendChild(l); };
-  const ende=(e, abbruch)=>{ if(!drag) return; const d=drag; drag=null; d.ghost.remove(); linie().remove(); d.row.classList.remove('ik-zieht'); ov.classList.remove('ik-aktiv');
+  const ende=(e, abbruch)=>{ if(!drag) return; const d=drag; drag=null; _ikZogTs=Date.now(); d.ghost.remove(); linie().remove(); d.row.classList.remove('ik-zieht'); ov.classList.remove('ik-aktiv');
     if(abbruch) return; const z=zielBei(e.clientX, e.clientY); if(!z) return;
     const ok=ikEinfuegen(z.teil.dataset.ikziel, { tk:z.teil.dataset.iktk, block:z.teil.dataset.ikblock }, d.kid, z.index);
-    if(ok){ haptik(12); toast('Eingefügt'); renderInKette(); } };
-  ov.addEventListener('pointerdown', e=>{ const d=e.target.closest('[data-ikdrag]'); if(!d || e.target.closest('button')) return;
-    const row=d.querySelector('.kl-z')||d; press={ x:e.clientX, y:e.clientY, t:setTimeout(()=>{ press=null; haptik(20);
+    // C6 (v3.8.0): mit einer gezeigten Karte schliesst Ebene 1 nach dem Einsortieren; ohne Karte (Sortieren, B10) bleibt sie bis „Fertig"
+    if(ok){ haptik(12); toast('Eingefügt'); if(e1Art()==='inkette' && e1Arg().kid) e1Schliessen(); else renderInKette(); } };
+  ov.addEventListener('pointerdown', e=>{ const d=e.target.closest('[data-ikdrag]') || e.target.closest('.ik-liste .kl-z[data-klkarte]'); if(!d || e.target.closest('button')) return;   // C6: jede Zeile lässt sich ziehen
+    const row=(d.classList.contains('kl-z') ? d : d.querySelector('.kl-z'))||d; press={ x:e.clientX, y:e.clientY, t:setTimeout(()=>{ press=null; haptik(20);
       const ghost=row.cloneNode(true); ghost.className+=' ik-ghost'; ghost.style.width=row.getBoundingClientRect().width+'px'; document.body.appendChild(ghost);
-      drag={ kid:d.dataset.ikdrag, row, ghost, dx:row.getBoundingClientRect().left-e.clientX, dy:row.getBoundingClientRect().top-e.clientY };
+      drag={ kid:d.dataset.ikdrag||d.dataset.klkarte, row, ghost, dx:row.getBoundingClientRect().left-e.clientX, dy:row.getBoundingClientRect().top-e.clientY };
       row.classList.add('ik-zieht'); ov.classList.add('ik-aktiv'); try{ ov.setPointerCapture(e.pointerId); }catch(x){}
       ghost.style.transform='translate('+(e.clientX+drag.dx)+'px,'+(e.clientY+drag.dy)+'px)'; }, 300) }; });
   ov.addEventListener('pointermove', e=>{
@@ -9075,7 +9123,7 @@ function ikDragBinden(){
     drag.ghost.style.transform='translate('+(e.clientX+drag.dx)+'px,'+(e.clientY+drag.dy)+'px)'; zeige(zielBei(e.clientX, e.clientY)); }, { passive:false });
   ov.addEventListener('pointerup', e=>{ if(press){ clearTimeout(press.t); press=null; } ende(e, false); });
   ov.addEventListener('pointercancel', e=>{ if(press){ clearTimeout(press.t); press=null; } ende(e, true); });
-  ov.addEventListener('click', e=>{ if(e.target.closest('[data-ikfertig]')){ schliesseInKette(); return; }
+  ov.addEventListener('click', e=>{
     const kg=e.target.closest('[data-klgruppe]'); if(kg && kg.closest('.ik-liste')){ e.stopPropagation(); haptik(6); klGruppeUmschalten(kg.dataset.klgruppe); renderInKette(); } }, true);
 }
 /* Tick aus der Kartenliste (F1/F2): Aufgaben nach den Regeln des Modus zeit, Routinen/Counter wie ihre Zaehler-Zeile;
@@ -17420,6 +17468,8 @@ function e1Rendern(){
   const a=e1Art(); if(!a) return;
   if(a==='suche') renderSuche();
   else if(a==='plus'){ const b=el('plusBody'); if(b) b.innerHTML=kettenListeHtml({ karte:null, kontext:'plus' }); }
+  else if(a==='kettenwahl'){ const b=el('kwBody'), h=el('kwTitel'); if(h) h.textContent=e1Arg().zweck==='vorn' ? 'Nach vorn — in welche Kette?' : 'Kette wählen'; if(b) b.innerHTML=kettenwahlHtml(); }
+  else if(a==='inkette') renderInKette();
 }
 /* p: { seite?, e1?, anzeige?, oben? } — nur genannte Teile ändern sich. e1: null | art | {art, arg} */
 function ebeneSetzen(p){
@@ -18622,9 +18672,10 @@ el('fokusView').addEventListener('click', e=>{
   const ck=t.closest('[data-fkcheck]'); if(ck){ karteAbhakenAuto(ck.dataset.fkcheck, false); return; }
   const tpf=t.closest('[data-tickplus]'); if(tpf){ karteTick(tpf.dataset.tickplus, false); return; }   // A3
   const sch=t.closest('[data-fkschieben]'); if(sch){ oeffneSchieben(sch.dataset.fkschieben); return; }  // A4
-  const ik=t.closest('[data-fkinkette]'); if(ik){ oeffneInKette(ik.dataset.fkinkette); return; }   // §2 (v3.7.0)
+  const ik=t.closest('[data-fkinkette]'); if(ik){ haptik(6); e1Oeffnen('inkette', { kid:ik.dataset.fkinkette||null }); return; }   // C6 (v3.8.0): Ebene 1 — auch ohne Karte (B10)
+  const fkk=t.closest('[data-fkkette]'); if(fkk){ haptik(6); e1Oeffnen('kettenwahl', { kid:fkk.dataset.fkkette, zweck:'wahl' }); return; }
   // §9.2 (v1.11.0): tappbare Swipe-Zeile — nicht mögliche Richtung reagiert nicht
-  const fkv=t.closest('[data-fkvorn]'); if(fkv){ if(fkv.classList.contains('aus')) return; if(ketteNachVorn(fkv.dataset.fkvorn)){ haptik(8); toast('An erster Stelle'); renderFokus(); } return; }   // §1 (v3.7.0)
+  const fkv=t.closest('[data-fkvorn]'); if(fkv){ if(fkv.classList.contains('aus') || !fkv.dataset.fkvorn) return; haptik(6); e1Oeffnen('kettenwahl', { kid:fkv.dataset.fkvorn, zweck:'vorn' }); return; }   // C6 (v3.8.0): Kettenauswahl → Position 1
   const fsw=t.closest('[data-fkswipe]'); if(fsw){ if(!fsw.classList.contains('aus')) fokusSwipeSchritt(parseInt(fsw.dataset.fkswipe,10)); return; }
   // §9.3 (v1.11.0): Tageskurve ein-/ausklappen (persistiert)
   const fku=t.closest('[data-fkurve]'); if(fku){ S.ui.fokusKurveZu=!S.ui.fokusKurveZu; saveUi(); renderFokus(); return; }
@@ -19735,7 +19786,8 @@ el('neuFab').addEventListener('click', ()=>{ haptik(8); e1Oeffnen('plus'); });
 // C3 (v3.8.0): „‹ zurück" jeder Ebene-1-Ansicht schliesst die Ebene; „+ Neue Karte" öffnet den Anlege-Dialog ÜBER der Ebene
 el('ebene1').addEventListener('click', e=>{ const t=e.target; if(!t || !t.closest) return;
   if(t.closest('[data-e1zu]')){ haptik(6); e1Schliessen(); return; }
-  if(t.closest('[data-plusneu]')){ oeffneDetail(null); return; } });
+  if(t.closest('[data-plusneu]')){ oeffneDetail(null); return; }
+  const kw=t.closest('[data-kwwahl]'); if(kw){ kettenwahlWaehlen(kw.dataset.kwwahl||null); return; } });
 ikDragBinden();   // §2 (v3.7.0)
 /* ══ §1/§2 (v2.1.1) · KARTEN IN DER SUCHE ══════════════════════════════
    BEFUND: Beim Umbau der Suche in v2.0 fehlte der Handler fuer den
