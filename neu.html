@@ -2355,8 +2355,10 @@ img.objimg.laedt{opacity:0}
 #e1-plus .an-kopf .btn{margin-left:auto;min-height:36px}
 #e1-plus .an-kopf .sp{display:none}
 /* ══ 3.7.0 §2 · „In Kette": Karte oben, Ketten darunter, Einfügelinie beim Ziehen ══ */
-#e1-inkette .an-kopf .btn{margin-left:auto;min-height:36px}
-#e1-inkette .an-kopf .sp{display:none}
+#e1-inkette .an-kopf .btn,#e1-tagebuch .an-kopf .btn{margin-left:auto;min-height:36px}
+#e1-inkette .an-kopf .sp,#e1-tagebuch .an-kopf .sp{display:none}
+/* C9 (v3.8.0): Tagebuch als Ebene-1-Ansicht — Matrixverlauf des Tages zur Einordnung */
+.tb-verlauf svg{display:block;width:100%;height:auto}
 #e1-inkette.ik-aktiv{touch-action:none;overflow:hidden}
 /* C6 (v3.8.0): Kettenknopf unter dem Kartentitel · Kettenauswahl (Ebene 1) */
 #fokusAktiv .fk-kette{margin:0}
@@ -2498,6 +2500,16 @@ body:has(.voll-ansicht:not([hidden])) #neuFab,body:has(.voll-ansicht:not([hidden
       <button class="btn prim sm" data-e1zu="1">Fertig</button>
     </div>
     <div class="an-body" id="inKetteBody"></div>
+  </section>
+  <!-- C9 (v3.8.0): Tagebuch — Position in der Matrix, Notizen, Matrixverlauf des Tages; Speichern / Abbrechen im Kopf (über der Tastatur erreichbar) -->
+  <section class="e1" id="e1-tagebuch" data-e1="tagebuch">
+    <div class="an-kopf">
+      <button class="an-back" data-tbzu="1">Abbrechen</button>
+      <h3>Tagebuch</h3>
+      <span class="sp"></span>
+      <button class="btn prim sm" data-tbgo="1">Speichern</button>
+    </div>
+    <div class="an-body" id="tbBody"></div>
   </section>
 </div>
 
@@ -4476,6 +4488,7 @@ function fokusStarten(kid, quelle, opt){
   beruehre(zk);              // A7: Timer-Start zählt als Interaktion
   S.ui.fokusAnzeige={ pos:0, frei:null };   // C4 (v3.8.0): die getrackte Karte ist die Mitte der Fokusseite
   saveFokus(); saveUi(); if(S.fokus.laeuft) starteTicker(); renderAlles();
+  adhsTagebuchPruefen(zk);   // B7 (v3.8.0): Karte mit „ADHS" im Titel → Tagebuch (Ebene 1)
 }
 /* §3.1 (v1.10.0): Nach dem Abschluss der aktiven Fokus-Karte rückt die
    nächste OFFENE Karte aus derselben Quelle nach (gewählt, Uhr aus —
@@ -4542,7 +4555,8 @@ function fokusToggle(){
   // §3 (v2.1.1): PAUSIEREN — kein Dialog. Uhr stoppt, Zeit bleibt gezaehlt.
   if(S.fokus.laeuft){ const _bv=belohnungPauseSnapshot(fk); fokusZeitEinbuchen(); belohnungNachPause(fk, _bv); }   // §7.1 (v3.5.0): Routine mit Uhr ≥ 1 Min
   else if(fk && fk.rolle==='schlafen'){ fokusStarten(fk.id); return; }   // §2 (v3.4.0): Schlafen hat ihre eigene Uhr
-  else { S.fokus.laeuft=true; S.fokus.startMs=Date.now(); if(fk) S.fokus.nurZeit=nurZeitLauf(fk); saveFokus(); starteTicker(); }
+  else { S.fokus.laeuft=true; S.fokus.startMs=Date.now(); if(fk) S.fokus.nurZeit=nurZeitLauf(fk); saveFokus(); starteTicker();
+    renderAlles(); adhsTagebuchPruefen(fk); return; }   // B7 (v3.8.0): auch das Fortsetzen nach einer Pause ist ein Start
   renderAlles();
 }
 function fokusBeenden(){ fokusZeitEinbuchen(); S.fokus=null;
@@ -9039,7 +9053,7 @@ function kettenListeKlick(e){
   const kc=t.closest('[data-klcheck]'); if(kc){ e.stopPropagation(); haptik(12); kartenListeCheck(kc.dataset.klcheck); return true; }
   const kr=t.closest('[data-klreopen]'); if(kr){ e.stopPropagation(); haptik(8); if(karteWiederOeffnen(kr.dataset.klreopen)){ toast('Wieder offen — Uhr ab null, Ticks bleiben'); renderAlles(); kettenListenNeu(); } return true; }
   const kp=t.closest('[data-klplay]'); if(kp){ e.stopPropagation(); haptik(10); const id=kp.dataset.klplay; leistePlay(id);
-    if(S.fokus && S.fokus.laeuft && S.fokus.karteId===id) ebeneSetzen({ seite:'fokus', e1:null, anzeige:{ pos:0, frei:null } });   // C7 (v3.8.0): direkt gestartet
+    if(S.fokus && S.fokus.laeuft && S.fokus.karteId===id) fokusseiteNachStart();   // C7 (v3.8.0): direkt gestartet
     else kettenListenNeu();
     return true; }
   const kf=t.closest('[data-klfokus]'); if(kf){ e.stopPropagation(); if(Date.now()-_ikZogTs<400) return true; haptik(6); fokusZeigen(kf.dataset.klfokus); return true; }
@@ -10817,6 +10831,7 @@ function karteAbhaken(kid, fromDetail){
     { const lh=(_letzterHaken && Date.now()-_letzterHaken.ts<1500) ? _letzterHaken : null;   // B8 (v3.8.0): ✓ — Ebene 1 schliesst, Animation vom Knopf
       tickFeier(lh ? lh.rect : null, (e1Art()==='suche' || e1Art()==='plus') ? e1Art() : null); }
     haptik(20);
+    try{ adhsAufgabeNachlegen(k); }catch(e){}   // B7 (v3.8.0): ADHS-Aufgabe → neue Karte für den nächsten Start
   }
   beruehre(k);                                             // A7: jede Interaktion zählt
   gruppeNachAenderung(k.id);                               // §3 (1.6.1): Komplett-Bonus nachziehen
@@ -17468,6 +17483,7 @@ function e1Rendern(){
   else if(a==='plus'){ const b=el('plusBody'); if(b) b.innerHTML=kettenListeHtml({ karte:null, kontext:'plus' }); }
   else if(a==='kettenwahl'){ const b=el('kwBody'), h=el('kwTitel'); if(h) h.textContent=e1Arg().zweck==='vorn' ? 'Nach vorn — in welche Kette?' : 'Kette wählen'; if(b) b.innerHTML=kettenwahlHtml(); }
   else if(a==='inkette') renderInKette();
+  else if(a==='tagebuch'){ if(_tb && !_tb.gezeichnet) renderTagebuch(); }   // nur beim Öffnen — ein Neuzeichnen würde die Eingabe unterbrechen
 }
 /* p: { seite?, e1?, anzeige?, oben? } — nur genannte Teile ändern sich. e1: null | art | {art, arg} */
 function ebeneSetzen(p){
@@ -17477,6 +17493,7 @@ function ebeneSetzen(p){
   if(p.anzeige!==undefined){ const a=p.anzeige||{}; S.ui.fokusAnzeige={ pos:Math.round(num(a.pos))||0, frei:a.frei||null }; fokusAnzeige(); }
   if(p.e1!==undefined){ const e=(typeof p.e1==='string') ? { art:p.e1 } : p.e1;
     _e1 = (e && E1_ARTEN.indexOf(e.art)>=0) ? { art:e.art, arg:e.arg||{} } : null; }
+  if(vorE1==='tagebuch' && e1Art()!=='tagebuch') _tb=null;
   if(vorE1==='suche' && e1Art()!=='suche'){ S.ui.suFrage=''; const f=el('suFreitext'); if(f) f.value=''; }   // die Suche schliesst mit leerem Feld
   saveUi();
   ebeneDarstellen();
@@ -17494,7 +17511,8 @@ function e1Schliessen(){ if(_e1) ebeneSetzen({ e1:null }); }
 /* die Fokusseite zeigt die Karte kid (ohne Zeitmessung); kid leer = die Mitte (getrackte Karte bzw. Kettenliste) */
 function fokusZeigen(kid){ ebeneSetzen({ seite:'fokus', e1:null, anzeige:{ pos:0, frei:kid||null } }); }
 /* EIN Weg für jeden Kartenstart von aussen (Sheet, Vorschlag, Wiederholen, Liste): Uhr starten, dann zeigt die Fokusseite die Mitte */
-function kartenStart(kid, quelle, opt){ fokusStarten(kid, quelle, opt); ebeneSetzen({ seite:'fokus', e1:null }); }
+function fokusseiteNachStart(){ const p={ seite:'fokus', anzeige:{ pos:0, frei:null } }; if(e1Art()!=='tagebuch') p.e1=null; ebeneSetzen(p); }
+function kartenStart(kid, quelle, opt){ fokusStarten(kid, quelle, opt); fokusseiteNachStart(); }
 function renderSuche(){
   // §4 (v2.1.1): Der Begriff lebt in S.ui.suFrage UND im Eingabefeld — das Feld zeigt IMMER, wonach gesucht wird.
   { const inp=el('suFreitext');
@@ -17587,26 +17605,36 @@ function tagebuchKarte(anlegen){
   if(S.karten.some(x=>x.id===k.id)) k.id='k3-tagebuch-'+uuid().slice(0,8);
   S.karten.push(k); saveKarten(); return k;
 }
-function oeffneTagebuch(x, y){
+/* ══ C9 (v3.8.0) · TAGEBUCH ALS EBENE-1-ANSICHT ═══════════════════════════════════════════════════════════
+   Der Dialog liegt nicht mehr im Sheet, sondern als Vollbild-Ansicht auf Ebene 1 (eigener Zustand _tb — ein anderer Dialog
+   räumt ihn nicht weg). Er zeigt zusätzlich den Matrixverlauf des ganzen Tages (dieselbe Render-Funktion wie die
+   Statusleiste: matrixVerlaufSvg). Speichern wirkt wie bisher: Position (quelle tagebuch) → Positionsstaffel auf k3-position
+   → Tick auf k3-tagebuch über den bestehenden Tick-/Staffel-Weg (B9: die Punkte des Eintrags sind der Staffelwert der Karte
+   im Katalog — im Code steht dafür kein Wert). Abbrechen bucht nichts. */
+let _tb=null;
+function oeffneTagebuch(x, y, opt){
   if(!tagOffen()){ toast('Kein Tag gestartet — das Tagebuch schreibt in den laufenden Tag.'); return; }
   const p = (x!=null && y!=null) ? {x:num(x), y:num(y)} : matrixPosOderMitte();
   const a=akkuLive();
-  closeSheet();
-  matrixTmp={ kid:null, anlass:'tagebuch', tagebuch:true,
+  if(!(opt && opt.ohneSheetZu)) closeSheet();
+  _tb={ kid:null, anlass:'tagebuch', tagebuch:true, gezeichnet:false,
     x:Math.max(-1,Math.min(1,p.x)), y:Math.max(-1,Math.min(1,p.y)),
     akku:(a==null?null:Math.round(a)), akkuStart:(a==null?null:Math.round(a)),
     gedanke:'', wirkung:'', mittel:'', istGut:null };
-  renderTagebuch();
+  e1Oeffnen('tagebuch');
 }
 function tagebuchFelderLesen(){
-  const t=matrixTmp; if(!t) return;
+  const t=_tb; if(!t) return;
   const g=el('tbGedanke'), w=el('tbWirkung'), m=el('tbMittel');
   if(g) t.gedanke=g.value; if(w) t.wirkung=w.value; if(m) t.mittel=m.value;
 }
 function renderTagebuch(){
-  const t=matrixTmp; if(!t || !t.tagebuch) return;
+  const t=_tb, b=el('tbBody'); if(!t || !b) return;
   let h='<p class="d"><b>Wo stehst du gerade?</b> Nur der Punkt ist Pflicht — alles andere darf leer bleiben.</p>';
   h+=matrixPadHtml(t.x, t.y);
+  // der Tagesverlauf in der Matrix — zur Einordnung des Eintrags
+  { let v=''; try{ v=matrixVerlaufSvg(matrixSpur(), {}); }catch(e){ v=''; }
+    if(v) h+='<div class="field"><label>Matrixverlauf heute</label><div class="tb-verlauf" data-wischfrei="1">'+v+'</div></div>'; }
   h+='<div class="field"><label>Welcher Gedanke?</label><input id="tbGedanke" maxlength="160" value="'+esc(t.gedanke)+'" placeholder="optional"></div>';
   h+='<div class="field"><label>Was macht das mit mir?</label><input id="tbWirkung" maxlength="160" value="'+esc(t.wirkung)+'" placeholder="optional"></div>';
   h+='<div class="field"><label>Mittel dagegen — oder ist es gut so?</label><div class="chips">'+
@@ -17618,8 +17646,31 @@ function renderTagebuch(){
     h+='<div class="field mx-akku"><label>🔋 Akku jetzt <b id="mxAkkuV">'+Math.round(t.akku)+'%</b></label>'+
        '<input type="range" min="0" max="'+AKKU_MAX+'" step="5" id="mxAkku" value="'+Math.round(t.akku)+'"></div>';
   }
-  openSheet('Tagebuch', h, '<button class="btn ghost sm" data-close="1">Abbrechen</button>'+
-    '<button class="btn prim" data-tbgo="1">Speichern</button>');
+  b.innerHTML=h; t.gezeichnet=true;
+}
+function tagebuchAbbrechen(){ _tb=null; e1Schliessen(); }
+/* B7 (v3.8.0): bei JEDEM Start einer Karte mit „ADHS" im Titel öffnet das Tagebuch (Erststart, Fortsetzen nach Pause,
+   Wiederöffnen, Start aus Suche/Plus/Kette/Sheet/Vorschlag) — nur bei offenem Tag, nie beim Abhaken. Die Uhr der Karte läuft
+   dabei weiter. */
+function adhsTitel(k){ return !!k && /adhs/i.test(String(k.titel||'')); }
+function adhsTagebuchPruefen(k){
+  if(!adhsTitel(k) || k.rolle==='tagebuch' || !tagOffen()) return false;
+  if(!(S.fokus && S.fokus.laeuft && S.fokus.karteId===k.id)) return false;
+  oeffneTagebuch(null, null, { ohneSheetZu:true }); return true;
+}
+/* B7: ist die ADHS-Karte eine AUFGABE, entsteht beim ✓ eine neue Aufgabenkarte (gleicher Titel, Matrixfeld, Domäne,
+   Soll-Minuten; neue App-ID, ohne Airtable-ID) am Ende der aktuellen Kette — sie wird beim nächsten Start verwendet.
+   Routinen und Counter bleiben die Katalog-Karte (keine Kopie). */
+function adhsAufgabeNachlegen(k){
+  if(!adhsTitel(k) || !istAufgabeKarte(k)) return null;
+  if(S.karten.some(x=>x.id!==k.id && x.status==='offen' && istAufgabeKarte(x) && String(x.titel||'')===String(k.titel||''))) return null;   // es liegt schon eine bereit
+  const n=neueKarte({ domain:k.domain, titel:k.titel, matrixFeld:matrixFeldVon(k), sollMin:num(k.sollMin) });
+  S.karten.push(n);
+  const st=ketteState(); tagesKette();
+  if(st.ids.indexOf(n.id)<0) st.ids.push(n.id);
+  st.entfernt=(st.entfernt||[]).filter(x=>x!==n.id);
+  saveKarten(); saveMeta(); ketteHistLog();
+  return n;
 }
 /* Akku aus einem Dialog buchen — derselbe Weg wie der Matrix-Dialog. */
 function akkuAusDialogBuchen(t, kommentar){
@@ -17640,7 +17691,7 @@ function akkuAusDialogBuchen(t, kommentar){
   return Math.round(neuA);
 }
 function tagebuchSpeichern(){
-  const t=matrixTmp; if(!t || !t.tagebuch){ closeSheet(); return; }
+  const t=_tb; if(!t || !t.tagebuch){ _tb=null; e1Schliessen(); return; }
   tagebuchFelderLesen();
   const akku=akkuAusDialogBuchen(t, (t.gedanke||'').slice(0,80));
   const eintrag={ ts:jetztIso(), x:Math.round(t.x*100)/100, y:Math.round(t.y*100)/100,
@@ -17651,8 +17702,8 @@ function tagebuchSpeichern(){
   matrixSpur().push(eintrag);
   if(matrixSpur().length>400) S.tag.matrixSpur=matrixSpur().slice(-400);
   saveTag();
-  matrixTmp=null;
-  closeSheet();
+  _tb=null;
+  e1Schliessen();
   // §2 (v3.7.1): (a) die Position zählt in der Positionsstaffel wie jede beantwortete Abfrage · (b) die Karte „Tagebuch" tickt um 1
   // (eigene Punkte 0, Tick-Minuten 0 — die Punkte kommen allein über die Staffel)
   let pp=0; try{ pp=positionPunkteBuchen(); }catch(e){}
@@ -18894,7 +18945,7 @@ function karteRowClick(t, e){
     const sid=fst.dataset.stapel, kid=fst.dataset.fokusstart;
     if(sid){ S.ui.aktivStapel=sid; saveUi(); }
     if(S.fokus && S.fokus.karteId===kid) fokusToggle(); else fokusStarten(kid, sid||null);   // §3.1 (1.10.0): Quelle mitgeben
-    ebeneSetzen({ seite:'fokus', e1:null }); return true; }
+    fokusseiteNachStart(); return true; }
   const su=t.closest('[data-sortup]'); if(su){ if(e) e.stopPropagation(); karteSortieren(su.dataset.sortup, -1, su.dataset.stapel); return true; }
   const sd=t.closest('[data-sortdown]'); if(sd){ if(e) e.stopPropagation(); karteSortieren(sd.dataset.sortdown, +1, sd.dataset.stapel); return true; }
   const tp=t.closest('[data-tickplus]'); if(tp){ if(e) e.stopPropagation(); karteTick(tp.dataset.tickplus, false); return true; }
@@ -19083,8 +19134,6 @@ el('sheet').addEventListener('click', e=>{
     if(entwurf){ detailLies(); entwurf.faelligkeit=abZiel.dataset.abziel; renderDetail(); } return; }
   // ══ §1.2 (v2.0.0) · Der EINE Dialog für Matrix und Akku ══
   if(t.closest('[data-mxgo]')){ matrixDialogSpeichern(); return; }
-  if(t.closest('[data-tbgo]')){ tagebuchSpeichern(); return; }   // §2 (v3.7.1)
-  { const tbg=t.closest('[data-tbgut]'); if(tbg && matrixTmp && matrixTmp.tagebuch){ tagebuchFelderLesen(); const v=tbg.dataset.tbgut==='1'; matrixTmp.istGut=(matrixTmp.istGut===v) ? null : v; renderTagebuch(); return; } }
   // ══ §6 (v2.0.0) · Kette aus der SUCHE heraus sortieren ══
   const kp=t.closest('[data-kpos]'); if(kp){
     if(ketteBewegen(kp.dataset.kpos, num(kp.dataset.n))){ haptik(10); toast('Position '+num(kp.dataset.n)); }
@@ -19275,8 +19324,8 @@ el('sheet').addEventListener('click', e=>{
    darf NICHT auf deren Mitte springen (die Kacheln sind pointer-events:none).
    Die Umrechnung steht an EINER Stelle, damit Lesen und Schreiben nicht
    auseinanderlaufen können. */
-function mxPadSetzenAusEvent(e){
-  const pad=el('mxPad'); if(!pad || !matrixTmp) return;
+function mxPadSetzenAusEvent(e, tmp){
+  const matrixTmp=tmp||window_matrixTmp(); const pad=el('mxPad'); if(!pad || !matrixTmp) return;
   const r=pad.getBoundingClientRect();
   if(!(r.width>0 && r.height>0)) return;
   const x=((e.clientX-r.left)/r.width)*2-1;
@@ -19288,7 +19337,21 @@ function mxPadSetzenAusEvent(e){
            dot.style.top=(((1-matrixTmp.y)/2)*100).toFixed(1)+'%'; }
   const rd=el('mxRead'); if(rd) rd.innerHTML=matrixLesart(matrixTmp.x, matrixTmp.y);
 }
+function window_matrixTmp(){ return matrixTmp; }   // der Sheet-Dialog arbeitet auf matrixTmp, das Tagebuch (Ebene 1) auf _tb
 let _mxZieht=false;
+/* C9 (v3.8.0): die Tagebuch-Ansicht auf Ebene 1 — Klicks, Akku-Regler und die Zeiger-Handler des Matrix-Pads */
+{ const tbv=el('e1-tagebuch'); let zieht=false;
+  tbv.addEventListener('click', e=>{ const t=e.target; if(!t || !t.closest) return;
+    if(t.closest('[data-tbgo]')){ tagebuchSpeichern(); return; }
+    if(t.closest('[data-tbzu]')){ haptik(6); tagebuchAbbrechen(); return; }
+    const tbg=t.closest('[data-tbgut]'); if(tbg && _tb){ tagebuchFelderLesen(); const v=tbg.dataset.tbgut==='1'; _tb.istGut=(_tb.istGut===v) ? null : v; renderTagebuch(); return; } });
+  tbv.addEventListener('input', e=>{ if(e.target.id==='mxAkku'){ const v=el('mxAkkuV'); if(v) v.textContent=Math.round(num(e.target.value))+'%'; if(_tb) _tb.akku=num(e.target.value); } });
+  tbv.addEventListener('pointerdown', e=>{ if(!e.target.closest || !e.target.closest('#mxPad') || !_tb) return;
+    zieht=true; mxPadSetzenAusEvent(e, _tb); haptik(8);
+    try{ e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }catch(_){}
+    e.preventDefault(); });
+  tbv.addEventListener('pointermove', e=>{ if(zieht && _tb) mxPadSetzenAusEvent(e, _tb); });
+  ['pointerup','pointercancel'].forEach(ev=>tbv.addEventListener(ev, ()=>{ zieht=false; })); }
 el('sheetBody').addEventListener('pointerdown', e=>{
   if(!e.target.closest || !e.target.closest('#mxPad')) return;
   _mxZieht=true; mxPadSetzenAusEvent(e); haptik(8);
