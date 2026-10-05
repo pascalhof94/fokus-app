@@ -9027,7 +9027,10 @@ function kettenListeKlick(e){
   const kg=t.closest('[data-klgruppe]'); if(kg){ e.stopPropagation(); haptik(6); klGruppeUmschalten(kg.dataset.klgruppe); kettenListenNeu(); return true; }
   const kc=t.closest('[data-klcheck]'); if(kc){ e.stopPropagation(); haptik(12); kartenListeCheck(kc.dataset.klcheck); return true; }
   const kr=t.closest('[data-klreopen]'); if(kr){ e.stopPropagation(); haptik(8); if(karteWiederOeffnen(kr.dataset.klreopen)){ toast('Wieder offen — Uhr ab null, Ticks bleiben'); renderAlles(); kettenListenNeu(); } return true; }
-  const kp=t.closest('[data-klplay]'); if(kp){ e.stopPropagation(); haptik(10); leistePlay(kp.dataset.klplay); kettenListenNeu(); return true; }
+  const kp=t.closest('[data-klplay]'); if(kp){ e.stopPropagation(); haptik(10); const id=kp.dataset.klplay; leistePlay(id);
+    if(S.fokus && S.fokus.laeuft && S.fokus.karteId===id) ebeneSetzen({ seite:'fokus', e1:null, anzeige:{ pos:0, frei:null } });   // C7 (v3.8.0): direkt gestartet
+    else kettenListenNeu();
+    return true; }
   const kf=t.closest('[data-klfokus]'); if(kf){ e.stopPropagation(); if(Date.now()-_ikZogTs<400) return true; haptik(6); fokusZeigen(kf.dataset.klfokus); return true; }
   return false;
 }
@@ -10631,22 +10634,10 @@ function detailSpeichern(){
   const neuId=entwurf.id;                                // closeSheet() raeumt entwurf weg
   saveKarten(); DB.set('unteraufgaben', S.unteraufgaben);
   closeSheet(); renderAlles();
-  // §3.1 (v1.10.0): eine neu angelegte Karte wird sofort gestartet und ist der Fokus
-  // §6 (v2.3.0): Die neue Karte oeffnet sich PAUSIERT in der Fokusansicht.
-  // Eine laufende Karte wird dabei automatisch pausiert: Zeit wird gebucht,
-  // kein Buchungsdialog (Regel aus v2.1.1 §3 — Pause/Wechsel fragen nicht).
-  // (closeSheet() hat entwurf bereits geleert — die ID steht in neuId.)
-  let warLaufend=null;
-  if(entwurfNeu && neuId){
-    if(S.fokus && S.fokus.laeuft && S.fokus.karteId!==neuId){
-      warLaufend=(fokusKarte()||{}).titel||'';
-      fokusZeitEinbuchen();
-    }
-    S.fokus={ karteId:neuId, laeuft:false, startMs:0, sessionSek:0, quelle:null };
-    saveFokus();
-    ebeneSetzen({ seite:'fokus', e1:null });
-  }
-  toast(entwurfNeu?('Karte angelegt — pausiert im Fokus'+(warLaufend?' · „'+String(warLaufend).slice(0,22)+'" pausiert':'')):'Gespeichert'); haptik(12);
+  // C7 (v3.8.0): eine neu angelegte Karte öffnet sich in der Fokusseite OHNE Zeitmessung (kein Autostart, die laufende Karte
+  // läuft weiter); Ebene 1 schliesst. (closeSheet() hat entwurf bereits geleert — die ID steht in neuId.)
+  if(entwurfNeu && neuId) fokusZeigen(neuId);
+  toast(entwurfNeu ? 'Karte angelegt' : 'Gespeichert'); haptik(12);
 }
 /* A3: einen Tick buchen (Timer-/Counter-Karten). Erhöht ticksHeute; Punkte
    kommen über die Tick-Kurve (tickSumme) in tickPunkte/kartePunkte. */
@@ -10812,7 +10803,9 @@ function karteAbhaken(kid, fromDetail){
     const _e=logIntraday(k,{punkte:0, typ:'abhaken'});   // B0: Intraday-Buchung
     const _d=buchungAbgleich(k, _e);
     momentBuchung(_d);                                    // §6.1 (1.9.0)
-    konfetti(); haptik(20);
+    { const lh=(_letzterHaken && Date.now()-_letzterHaken.ts<1500) ? _letzterHaken : null;   // B8 (v3.8.0): ✓ — Ebene 1 schliesst, Animation vom Knopf
+      tickFeier(lh ? lh.rect : null, (e1Art()==='suche' || e1Art()==='plus') ? e1Art() : null); }
+    haptik(20);
   }
   beruehre(k);                                             // A7: jede Interaktion zählt
   gruppeNachAenderung(k.id);                               // §3 (1.6.1): Komplett-Bonus nachziehen
@@ -19739,7 +19732,32 @@ el('fokusView').addEventListener('click', fokusKlick350, true);
 // §5 (v3.7.0): Kettenliste ausserhalb der Fokusansicht (Suche, „+", „In Kette") — derselbe Handler; Sortierwahl per change
 document.addEventListener('click', e=>{ const t=e.target; if(!t || !t.closest || t.closest('#fokusView') || !t.closest('[data-klliste]')) return; kettenListeKlick(e); }, true);
 document.addEventListener('change', e=>{ const sel=e.target && e.target.closest ? e.target.closest('select.kl-sort') : null; if(!sel) return; klSortSetzen(sel.dataset.klsort, sel.value); kettenListenNeu(); });   // §4 (v3.5.0): Tagesketten, Unter-Zaehler, Kartenliste
-document.addEventListener('click', e=>{ const t=e.target && e.target.closest ? e.target.closest('[data-uztick],[data-kltick],[data-alcheck],[data-ftick],[data-zzplus],[data-tickplus],[data-alsub],[data-zzsub]') : null; if(t) _letzterTickKnopf={ el:t, ts:Date.now() }; }, true);   // §7.4 (v3.5.0)
+/* ══ C7 (v3.8.0) · TICK UND ✓ — Ebene 1 schliesst, die Animation läuft auf Ebene 3 (B8) ═══════════════════════════
+   Jeder Tick-Knopf und jedes ✓ merkt sich vor der Buchung seine Lage. Hat der Tipp wirklich gebucht (Tick-Zahl bzw. Tages-Log
+   verändert), folgt tickFeier: in Suche und „+" schliesst Ebene 1; die Animation geht vom gedrückten Knopf aus. Öffnet der Tipp
+   nur einen Dialog (Tagebuch, Eingabe-Tick, Aufstehen, Abhak-Dialog), passiert hier nichts — das ✓ feiert beim Erledigen. */
+const TICK_KNOEPFE='[data-uztick],[data-kltick],[data-alcheck],[data-ftick],[data-zzplus],[data-tickplus],[data-alsub],[data-zzsub]';
+const HAKEN_KNOEPFE='[data-klcheck],[data-fkcheck],[data-pqcheck],[data-check],[data-kacheck],[data-abgo]';
+let _letzterHaken=null, _feierTs=0;
+function tickSignatur(){ let n=0; try{ S.karten.forEach(k=>{ n+=num(k.ticksHeute)+tickAnzahlHeute(k); }); }catch(e){} return n+':'+(S.intraday||[]).length; }
+function tickFeier(rect, ausE1){
+  if(ausE1 && (ausE1==='suche' || ausE1==='plus') && e1Art()===ausE1) e1Schliessen();
+  if(Date.now()-_feierTs<300) return;
+  _feierTs=Date.now();
+  if(!motionErlaubt()) return;   // „Bewegung reduzieren": keine Animation
+  konfetti();
+}
+/* nach dem Klick prüfen: hat er gebucht? (eigene Funktion, damit sie ohne Zeitgeber prüfbar ist) */
+function tickFeierPruefen(vor){ if(!vor || tickSignatur()===vor.sig) return false; tickFeier(vor.rect, vor.e1); return true; }
+document.addEventListener('click', e=>{ const z=e.target && e.target.closest ? e.target : null; if(!z) return;
+  const t=z.closest(TICK_KNOEPFE), h=t ? null : z.closest(HAKEN_KNOEPFE), b=t||h; if(!b) return;
+  let rect=null; try{ rect=b.getBoundingClientRect(); }catch(x){}
+  const e1=b.closest('#ebene1') ? e1Art() : null;
+  if(t) _letzterTickKnopf={ el:t, ts:Date.now() };   // §7.4 (v3.5.0)
+  _letzterHaken={ rect, e1, ts:Date.now() };
+  const vor={ sig:tickSignatur(), rect, e1 };
+  setTimeout(()=>tickFeierPruefen(vor), 0);
+}, true);
 el('sheetBody').addEventListener('click', e=>{ const t=e.target.closest('[data-maltopfunter]'); if(t){ e.stopPropagation(); topfUnterStation(num(t.dataset.maltopfunter)); closeSheet(); renderBelohnung(); return; }
   const m=e.target.closest('[data-mfxset]'); if(m){ e.stopPropagation(); matrixfeldSetzen(m.dataset.kid, m.dataset.mfxset); closeSheet(); renderStatistik(); renderMfAnsicht(); } }, true);   // §6.4/§8.2 (v3.5.0)
 el('btnKurve').addEventListener('click', ()=>{
