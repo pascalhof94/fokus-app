@@ -3271,6 +3271,8 @@ function ladeAlles(){
     return d.concat(pv);
   })();
   S.ui       = Object.assign({ tab:'suche', stapelOffen:{}, ordnerZu:{}, gruppeZu:{}, aktivStapel:'sys-dfm', navDomain:'dfm', navArt:'aufgabe', navSort:'deadline', fokusIdx:0, statTage:7, statZeitraum:'tag', statDomain:'alle', statDatum:null, stapelDomain:{}, stapelStatus:{}, bearbeitetStatus:'alle', analyseZeitraum:'7', analyseVon:null, analyseBis:null, analyseDomain:'alle', analyseArt:'alle', debugTap:false }, DB.get('ui', {}));
+  // C1 (v3.8.0): Migration tab → seite — die Ebene-0-Seite; unbekannt oder die frühere Suche → Fokus
+  if(SEITEN.indexOf(S.ui.seite)<0) S.ui.seite = (S.ui.tab==='belohnung' || S.ui.tab==='statistik' || S.ui.tab==='einst') ? S.ui.tab : 'fokus';
   // U6-B: Erstell-Zeitstempel für Altkarten guarded nachrüsten (VOR der Härtung,
   // damit der Fallback greift statt der neueKarte-Default-Jetztzeit). Idempotent.
   S.karten.forEach(k=>{ if(k && !k.erstelltTs) k.erstelltTs = k.letzteBearbeitung || jetztIso(); });
@@ -17432,6 +17434,71 @@ function suFrage(){ return String(S.ui.suFrage||'').trim(); }
    internen Start-Wege („Karte starten, Grundseite ist die Suche") sagen
    ausdruecklich {fokusLassen:true}. Die laufende Karte laeuft als Leiste
    weiter; die Uhr wird nicht beruehrt. */
+/* ══ C1 (v3.8.0) · DIE EBENEN-STEUERUNG ═══════════════════════════════════════════════════
+   EIN Zustand, EINE Funktion, die ihn setzt und zeichnet. Keine Ansicht öffnet oder schliesst sich selbst.
+     S.ui.seite         Ebene 0: 'fokus' | 'belohnung' | 'statistik' | 'einst'
+     _e1                Ebene 1: null | { art:'suche'|'plus'|'kettenwahl'|'inkette'|'tagebuch', arg:{…} }  (nie gespeichert — beim Start zu)
+     S.ui.fokusAnzeige  { pos, frei } — die ANGEZEIGTE Karte der Fokusseite: pos 0 = Mitte (getrackte Karte bzw. Kettenliste),
+                        −n = Verlauf, +n = Kette; frei = eine nur geöffnete Karte (ohne Zeitmessung)
+     S.fokus            unverändert: die GETRACKTE Karte (Uhr, Buchung) — auch pausiert
+   Die Sichtbarkeit hängt per CSS allein an body[data-seite] und body[data-e1]. Ebene 3 (Animationen, e3Spielen) und die
+   Dialoge (openSheet/closeSheet) sind flüchtig bzw. eine eigene Klasse und stehen nicht in diesem Zustand. */
+const SEITEN=['fokus','belohnung','statistik','einst'];
+const E1_ARTEN=['suche','plus','kettenwahl','inkette','tagebuch'];
+let _e1=null;
+function seiteAktuell(){ const s=S.ui && S.ui.seite; return SEITEN.indexOf(s)>=0 ? s : 'fokus'; }
+function e1Art(){ return _e1 ? _e1.art : null; }
+function e1Arg(){ return (_e1 && _e1.arg) || {}; }
+function fokusAnzeige(){
+  let a=S.ui.fokusAnzeige;
+  if(!a || typeof a!=='object') a=S.ui.fokusAnzeige={ pos:0, frei:null };
+  a.pos=Math.round(num(a.pos))||0;
+  if(a.frei && !S.karten.some(k=>k.id===a.frei && k.status!=='archiviert')) a.frei=null;
+  if(a.frei && S.fokus && S.fokus.karteId===a.frei) a.frei=null;   // die getrackte Karte ist die Mitte
+  if(a.frei) a.pos=0;
+  return a;
+}
+/* die body-Attribute — die einzige Stelle, an der die Darstellung der Ebenen geschaltet wird */
+function ebeneDarstellen(){
+  try{ const b=document.body, ds=b.dataset; ds.seite=seiteAktuell();
+    if(e1Art()) ds.e1=e1Art(); else { delete ds.e1; if(b.removeAttribute) b.removeAttribute('data-e1'); }
+    document.querySelectorAll('#nav button[data-seite]').forEach(x=>x.classList.toggle('on', x.dataset.seite===seiteAktuell()));
+  }catch(e){}
+}
+/* Ebene 0 und Ebene 1 neu zeichnen, ohne den Zustand zu ändern */
+function ebeneRendern(){
+  renderFokusleiste();
+  const s=seiteAktuell();
+  if(s==='statistik') renderStatistik(); else if(s==='einst') renderEinst(); else if(s==='belohnung') renderBelohnung(); else renderFokus();
+  if(_e1) e1Rendern();
+}
+function e1Rendern(){
+  const a=e1Art(); if(!a) return;
+  if(a==='suche') renderSuche();
+}
+/* p: { seite?, e1?, anzeige?, oben? } — nur genannte Teile ändern sich. e1: null | art | {art, arg} */
+function ebeneSetzen(p){
+  p=p||{};
+  const vorSeite=seiteAktuell(), vorE1=e1Art();
+  if(p.seite!==undefined) S.ui.seite = SEITEN.indexOf(p.seite)>=0 ? p.seite : 'fokus';
+  if(p.anzeige!==undefined){ const a=p.anzeige||{}; S.ui.fokusAnzeige={ pos:Math.round(num(a.pos))||0, frei:a.frei||null }; fokusAnzeige(); }
+  if(p.e1!==undefined){ const e=(typeof p.e1==='string') ? { art:p.e1 } : p.e1;
+    _e1 = (e && E1_ARTEN.indexOf(e.art)>=0) ? { art:e.art, arg:e.arg||{} } : null; }
+  saveUi();
+  ebeneDarstellen();
+  if(seiteAktuell()!==vorSeite || p.oben){ try{ const m=document.querySelector('main'); if(m) m.scrollTop=0; }catch(e){} }
+  if(p.e1!==undefined && e1Art()){ try{ const sc=el('e1-'+e1Art()); if(sc) sc.scrollTop=0; }catch(e){} }
+  ebeneRendern();
+  { const f=el('suFreitext');
+    if(f && e1Art()==='suche' && vorE1!=='suche'){ try{ f.focus({preventScroll:true}); }catch(e){} }
+    if(f && vorE1==='suche' && e1Art()!=='suche'){ try{ f.blur(); }catch(e){} } }
+  try{ vvSync(); }catch(e){}
+}
+function seiteZeigen(s){ ebeneSetzen({ seite:s, e1:null, oben:true }); }
+function e1Oeffnen(art, arg){ ebeneSetzen({ e1:{ art, arg:arg||{} } }); }
+function e1Schliessen(){ if(_e1) ebeneSetzen({ e1:null }); }
+/* die Fokusseite zeigt die Karte kid (ohne Zeitmessung); kid leer = die Mitte (getrackte Karte bzw. Kettenliste) */
+function fokusZeigen(kid){ ebeneSetzen({ seite:'fokus', e1:null, anzeige:{ pos:0, frei:kid||null }, oben:true }); }
 /* ══ §4 (v3.7.6) · SUCH-EBENE ÖFFNEN / SCHLIESSEN ═══════════════════════════════════════
    Die Suche ist keine Ansicht (kein Tab) mehr: sucheOeffnen() legt die Ebene über die aktuelle Ansicht, sucheSchliessen()
    leert das Feld und nimmt sie weg. Tastatur „Fertig" schliesst nur die Tastatur. */
@@ -20902,6 +20969,7 @@ function init(){
   if(S.fokus && S.fokus.laeuft) starteTicker();
   if(S.ui.debugTap) document.body.classList.add('debugtap');   // V3: Tap-Debug-Zustand wiederherstellen
   setTab((S.ui.tab && S.ui.tab!=='suche') ? S.ui.tab : 'belohnung', {fokusLassen:true});   // Start: Zustand aus der letzten Sitzung · §4 (v3.7.6): die Such-Ebene ist beim Start immer zu
+  ebeneDarstellen();   // C1 (v3.8.0): body[data-seite] / body[data-e1]
   try{ if(window.visualViewport){ window.visualViewport.addEventListener('resize', vvSync); window.visualViewport.addEventListener('scroll', vvSync); } vvSync(); }catch(e){}   // §2 (v3.7.5)
   renderFokusleiste();
   layoutTopbar();
