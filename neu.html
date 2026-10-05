@@ -590,13 +590,13 @@ body[data-seite="fokus"] #v-fokus,body[data-seite="belohnung"] #v-belohnung,body
    die Seite weiterscrollen. Die Zeitleiste unten zeigt die Navigationsposition. */
 #fokusAktiv{touch-action:pan-y;will-change:transform}
 #fokusAktiv.imverlauf{border-left-color:var(--purple) !important;box-shadow:0 0 0 1px var(--purple) inset}
-#fokusAktiv .fk-swipe{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;
+:is(#fokusAktiv,.fk-ohne) .fk-swipe{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;
   padding-top:8px;border-top:1px dashed var(--line);font-size:10px;font-variant-numeric:tabular-nums;color:var(--mut2)}
-#fokusAktiv .fk-swipe .sw{white-space:nowrap}
+:is(#fokusAktiv,.fk-ohne) .fk-swipe .sw{white-space:nowrap}
 /* §9.2 (v1.11.0): die Richtungs-Beschriftungen sind echte Buttons (≥44px) */
-#fokusAktiv .fk-swipe button.sw{background:transparent;border:none;color:var(--blue);font:inherit;font-weight:700;min-height:44px;padding:0 6px}
-#fokusAktiv .fk-swipe .m{color:var(--mut);font-weight:700;overflow:hidden;text-overflow:ellipsis}
-#fokusAktiv .fk-swipe .aus{opacity:.35;color:var(--mut)}
+:is(#fokusAktiv,.fk-ohne) .fk-swipe button.sw{background:transparent;border:none;color:var(--blue);font:inherit;font-weight:700;min-height:44px;padding:0 6px}
+:is(#fokusAktiv,.fk-ohne) .fk-swipe .m{color:var(--mut);font-weight:700;overflow:hidden;text-overflow:ellipsis}
+:is(#fokusAktiv,.fk-ohne) .fk-swipe .aus{opacity:.35;color:var(--mut)}
 /* §9.3 (v1.11.0): Tageskurve unter der Fokus-Karte, einklappbar */
 .fkurve{margin-bottom:var(--s1)}
 .fkurve-kopf{display:flex;align-items:center;gap:6px;min-height:44px;width:100%;background:transparent;border:none;color:var(--mut);font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:0 2px;text-align:left}
@@ -1998,11 +1998,11 @@ main{padding-left:8px;padding-right:8px}                       /* §1.3: Seitenr
 #fokusAktiv .kbtn.pp{border:0;color:#08111f}
 #fokusAktiv .kbtn.ok{margin-left:auto;background:linear-gradient(180deg,#6be3ab,#3ecf8e);border:0;color:#062417;font-weight:800}
 #fokusAktiv .kbtn.breit{width:auto;padding:0 14px;font-size:13px}
-#fokusAktiv .knav.fk-swipe{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;margin-top:10px;padding-top:0;border-top:0;font-size:11.5px;color:#9a9ca2}
-#fokusAktiv .knav.fk-swipe button.sw{height:44px;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid #2a2d33;background:#1a1d22;color:#e8e9ec;font-size:13px;font-weight:600}
-#fokusAktiv .knav.fk-swipe button.sw.aus{opacity:.4;color:#9a9ca2}
-#fokusAktiv .knav.fk-swipe .m{text-align:center;font-size:11.5px;font-weight:500;color:#9a9ca2;white-space:normal}
-#fokusAktiv .knav.fk-swipe .m b{color:#e8e9ec}
+:is(#fokusAktiv,.fk-ohne) .knav.fk-swipe{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;margin-top:10px;padding-top:0;border-top:0;font-size:11.5px;color:#9a9ca2}
+:is(#fokusAktiv,.fk-ohne) .knav.fk-swipe button.sw{height:44px;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid #2a2d33;background:#1a1d22;color:#e8e9ec;font-size:13px;font-weight:600}
+:is(#fokusAktiv,.fk-ohne) .knav.fk-swipe button.sw.aus{opacity:.4;color:#9a9ca2}
+:is(#fokusAktiv,.fk-ohne) .knav.fk-swipe .m{text-align:center;font-size:11.5px;font-weight:500;color:#9a9ca2;white-space:normal}
+:is(#fokusAktiv,.fk-ohne) .knav.fk-swipe .m b{color:#e8e9ec}
 .punkte5{display:flex;justify-content:center;gap:4px;margin-top:4px}
 .punkte5 i{width:6px;height:6px;border-radius:50%;background:#262a32}
 .punkte5 i.v{background:#9a9ca2}
@@ -2241,8 +2241,11 @@ table.zt .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin
 :is(#statusbar,#e1Kopf) .sb-bar .rot{position:absolute;top:0;bottom:0;display:none;z-index:2}
 :is(#statusbar,#e1Kopf) .sb-bar .zahl.s b.rp{border:0;background:none;padding:0;text-shadow:0 0 3px #000,0 1px 1px #000}
 /* ══ 3.5.4 §2 · Fokus: Navigation oben · Der Tag: Ringe DFM / Privat (Draft Nr. 2) ══ */
-#fokusAktiv .knav.fk-swipe.fk-oben{margin:0 0 10px;grid-template-columns:auto 1fr auto}
-#fokusAktiv .knav.fk-swipe.fk-oben button.sw.vorn{justify-self:center;padding:0 10px}
+:is(#fokusAktiv,.fk-ohne) .knav.fk-swipe.fk-oben{margin:0 0 10px;grid-template-columns:auto 1fr auto}
+:is(#fokusAktiv,.fk-ohne) .knav.fk-swipe button.sw.vorn{justify-self:center;padding:0 10px}
+/* C5 (v3.8.0): ohne Karte stehen dieselben Knöpfe über und unter der Kettenliste */
+.fk-ohne{padding:8px 10px}
+.fk-ohne .knav.fk-swipe,.fk-ohne .knav.fk-swipe.fk-oben{margin:0}
 .ringe{display:grid;grid-template-columns:1fr 1fr;gap:8px;justify-items:center}
 .rg-svg{display:block;width:120px;height:120px}
 .dt-zeilen .dk-ringe{padding:0 0 12px}
@@ -5678,6 +5681,19 @@ function angezeigteKarte(){
 /* ein Schritt auf der Achse: richtung > 0 = „◀ Verlauf", richtung < 0 = „nächste ▶". Ein Tipp bzw. ein Wisch = genau ein
    Schritt (Doppelauslösung gesperrt); die Zeitmessung bleibt unberührt. */
 let _fokusSchrittTs=0, _fokusEinflug=null;
+/* C5 (v3.8.0): die Knöpfe der Achse — oben ◀ Verlauf · ⤒ Nach vorn · nächste ▶, unten ◀ Verlauf · In Kette · nächste ▶.
+   Sie stehen immer da, auch ohne Karte (dann ist die Kettenliste die Mitte; „Nach vorn" ist ausgegraut, „In Kette" bleibt aktiv). */
+function fokusNavHtml(k){
+  const anz=fokusAnzeige(), posA=anz.frei ? 0 : anz.pos, vl=verlaufKarten(), kr=ketteRechts();
+  const verlaufGeht = posA>0 || -posA<vl.length;
+  const naechsteGeht = posA<0 || (kr.length>0 && !(kr.length===1 && posA===1));
+  const kn=(r, geht)=>'<button class="sw '+(r>0 ? 'l' : 'r')+(geht?'':' aus')+'" data-fkswipe="'+r+'">'+(r>0 ? '◀ Verlauf' : 'nächste ▶')+'</button>';
+  const vorn='<button class="sw vorn'+(k?'':' aus')+'" data-fkvorn="'+(k?k.id:'')+'"'+(k?'':' aria-disabled="true"')+'>⤒ Nach vorn</button>';
+  const inKette='<button class="sw vorn" data-fkinkette="'+(k?k.id:'')+'">In Kette</button>';
+  return { imVerlauf:posA<0,
+    oben:'<div class="knav fk-swipe fk-oben">'+kn(1, verlaufGeht)+vorn+kn(-1, naechsteGeht)+'</div>',
+    unten:'<div class="knav fk-swipe fk-unten">'+kn(1, verlaufGeht)+inKette+kn(-1, naechsteGeht)+'</div>' };
+}
 function fokusSwipeSchritt(richtung){
   if(Date.now()-_fokusSchrittTs<250) return false;
   const a=fokusAnzeige(), pos=a.frei ? 0 : a.pos;
@@ -5687,8 +5703,11 @@ function fokusSwipeSchritt(richtung){
     if(neu<0 && -neu>vl.length){ toast(vl.length ? 'Anfang des Tagesverlaufs' : 'Heute noch keine andere Karte getrackt'); return false; }
     _fokusEinflug='links';
   } else {
+    // B6: am Ende der Kette geht es am Anfang der aktiven Kette weiter (ketteRechts läuft vom Kettenende zum Anfang durch und
+    // überspringt Erledigtes); ist nichts Unerledigtes mehr da → Hinweis, kein Sprung
     const kr=ketteRechts(); neu=pos+1;
-    if(neu>0 && neu>kr.length){ toast('Keine weitere Karte in der Kette'); return false; }
+    if(neu>0 && !kr.length){ toast('Kette erledigt'); return false; }
+    if(neu>kr.length){ if(kr.length<2){ toast('Keine weitere Karte in der Kette'); return false; } neu=1; }
     _fokusEinflug='rechts';
   }
   _fokusSchrittTs=Date.now();
@@ -5711,7 +5730,8 @@ function renderFokus(){
   const tagKnoepfe=tagBannerHtml();   // C4 (v3.8.0): Tag abschließen / Aufstehen ganz oben auf der Fokusseite
   if(!k){
     // keine Karte im Fokus → die Kettenliste wie in der Ansicht „+"
-    host.innerHTML=tagKnoepfe+kartenBlockHtml(null)+zeitstrahlHtml();
+    const nv=fokusNavHtml(null);
+    host.innerHTML=tagKnoepfe+'<div class="blk fk-ohne">'+nv.oben+'</div>'+kartenBlockHtml(null)+'<div class="blk fk-ohne">'+nv.unten+'</div>'+zeitstrahlHtml();
     return;
   }
   const laeuft = S.fokus && S.fokus.karteId===k.id && S.fokus.laeuft;
@@ -5753,22 +5773,10 @@ function renderFokus(){
     '<button class="kbtn pp tpp" data-fktoggle="'+k.id+'" aria-label="Play/Pause" style="background:linear-gradient(180deg,'+famH+','+famK+')">'+(uhrLaeuftAuf(k)?'⏸':'▶')+'</button>'+
     '<button class="kbtn tedit" data-detail="'+k.id+'" aria-label="Bearbeiten">✎</button>'+
     '<button class="kbtn tedit" data-fkschieben="'+k.id+'" aria-label="Schieben">⏭</button>'+
-    '<button class="kbtn breit" data-fkinkette="'+k.id+'">In Kette</button>'+   // §2 (v3.7.0)
     (istAufgabeKarte(k) ? '<button class="kbtn ok tcheck" data-fkcheck="'+k.id+'" aria-label="Erledigt">✓</button>' : '')+
     '</div></div>';
-  // §3 Nr. 3 (v3.5.1): links „◀ Verlauf" (zuletzt geoeffnete Karte), rechts „nächste ▶" (naechste Karte der Kette);
-  // die Mitte zeigt die Position, darunter Positionspunkte
-  const anz=fokusAnzeige(), posA=anz.frei ? 0 : anz.pos, imVerlauf=posA<0, vl=verlaufKarten(), kr=ketteRechts();
-  const verlaufGeht = posA>0 || -posA<vl.length;
-  const naechsteGeht = posA<0 || posA<kr.length;
-  const kette=aktiveKetteKarten().filter(x=>x.status==='offen'), pos=kette.findIndex(x=>x.id===k.id);
-  const navMitte = imVerlauf ? '<b>'+(-posA)+' / '+vl.length+'</b> im Verlauf' : (pos>=0 ? '<b>'+(pos+1)+' / '+kette.length+'</b> in der Kette' : (kette.length ? 'nicht in der Kette · '+kette.length+' Karten' : 'keine Kette'));
-  const navKnopf=r=>'<button class="sw '+(r>0 ? 'l'+(verlaufGeht?'':' aus') : 'r'+(naechsteGeht?'':' aus'))+'" data-fkswipe="'+r+'">'+(r>0 ? '◀ Verlauf' : 'nächste ▶')+'</button>';
-  const swipeLeiste='<div class="knav fk-swipe">'+navKnopf(1)+
-    '<div class="m sw">'+navMitte+'</div>'+navKnopf(-1)+'</div>';
-  // §2 (v3.5.4): dieselben beiden Knoepfe oben in der Fokusansicht (ersetzen „Zur Suche") — gleiche Regeln, ein Schritt je Tipp
-  // §1 (v3.7.0): dazwischen „⤒ Nach vorn" — die Karte an Position 1 der aktuellen Kette
-  const navOben='<div class="knav fk-swipe fk-oben">'+navKnopf(1)+'<button class="sw vorn" data-fkvorn="'+k.id+'">⤒ Nach vorn</button>'+navKnopf(-1)+'</div>';
+  // C5 (v3.8.0): ◀ Verlauf · nächste ▶ oben UND unten; oben dazwischen „⤒ Nach vorn", unten dazwischen „In Kette"
+  const nv=fokusNavHtml(k), imVerlauf=nv.imVerlauf, navOben=nv.oben, swipeLeiste=nv.unten;
   const einflug=_fokusEinflug ? ' von-'+_fokusEinflug : ''; _fokusEinflug=null;
   host.innerHTML = tagKnoepfe+
     '<div id="fokusAktiv" class="blk kern tkern '+(laeuft?'laeuft ':'')+(k.status==='erledigt'?'erledigt ':'')+(imVerlauf?'imverlauf ':'')+einflug+'" style="--famk:'+famK+';--famh:'+famH+'">'+
@@ -18616,7 +18624,7 @@ el('fokusView').addEventListener('click', e=>{
   const sch=t.closest('[data-fkschieben]'); if(sch){ oeffneSchieben(sch.dataset.fkschieben); return; }  // A4
   const ik=t.closest('[data-fkinkette]'); if(ik){ oeffneInKette(ik.dataset.fkinkette); return; }   // §2 (v3.7.0)
   // §9.2 (v1.11.0): tappbare Swipe-Zeile — nicht mögliche Richtung reagiert nicht
-  const fkv=t.closest('[data-fkvorn]'); if(fkv){ if(ketteNachVorn(fkv.dataset.fkvorn)){ haptik(8); toast('An erster Stelle'); renderFokus(); } return; }   // §1 (v3.7.0)
+  const fkv=t.closest('[data-fkvorn]'); if(fkv){ if(fkv.classList.contains('aus')) return; if(ketteNachVorn(fkv.dataset.fkvorn)){ haptik(8); toast('An erster Stelle'); renderFokus(); } return; }   // §1 (v3.7.0)
   const fsw=t.closest('[data-fkswipe]'); if(fsw){ if(!fsw.classList.contains('aus')) fokusSwipeSchritt(parseInt(fsw.dataset.fkswipe,10)); return; }
   // §9.3 (v1.11.0): Tageskurve ein-/ausklappen (persistiert)
   const fku=t.closest('[data-fkurve]'); if(fku){ S.ui.fokusKurveZu=!S.ui.fokusKurveZu; saveUi(); renderFokus(); return; }
@@ -18684,7 +18692,13 @@ el('fokusView').addEventListener('keydown', e=>{
    einmalig unterdrückt. */
 const SWIPE_START=8, SWIPE_MIN_DX=48, SWIPE_WINKEL=1.2, SWIPE_MAX_ZUG=90;
 let _swId=null, _swX=0, _swY=0, _swAktiv=false, _swKarte=null, _swKlickAus=false, _swDx=0;
-function swipeKarteVon(t){ return t && t.closest ? t.closest('#fokusAktiv') : null; }
+/* C5 (v3.8.0): der Wisch gilt auf der GANZEN Fokusseite (auch ohne Karte) — ausser auf Flächen, die selbst waagerecht
+   arbeiten: [data-wischfrei], wischbare Diagramme, Chip-Reihen, Regler, Matrix-Pad, Eingabefelder */
+const WISCHFREI='[data-wischfrei],.dia-tv-scroll,.fk-cards,.an-hm,.kl-chips,.mxpad,input,select,textarea';
+function swipeKarteVon(t){
+  if(!t || !t.closest || t.closest(WISCHFREI)) return null;
+  return el('fokusAktiv') || el('fokusView');
+}
 function swipeEnde(zug){
   if(_swKarte){ _swKarte.style.transition='transform .18s ease-out'; _swKarte.style.transform='';
     const k=_swKarte; setTimeout(()=>{ if(k) k.style.transition=''; }, 200); }
