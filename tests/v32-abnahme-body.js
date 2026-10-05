@@ -287,7 +287,7 @@ ok('§5 ein zurückgeschickter Delta-Export meldet keine unbekannten Felder', rt
 
 /* ══ Version ════════════════════════════════════════════════════════ */
 kopf('Version');
-ok('APP_VERSION aktuell (3.7.0), alle Anzeigen aus APP_VERSION, Build 2026-10-03-1', APP_VERSION==='3.7.6' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && APP_BUILD==='2026-10-05-2' && DATENVERTRAG==='2.1.0');
+ok('APP_VERSION aktuell (3.7.0), alle Anzeigen aus APP_VERSION, Build 2026-10-03-1', APP_VERSION==='3.8.0' && VERSION===APP_VERSION && UI_VERSION==='v'+APP_VERSION && APP_BUILD==='2026-10-05-3' && DATENVERTRAG==='2.1.0');
 
 print('');
 print(fails? (fails+' von '+n+' FEHLGESCHLAGEN') : ('alle '+n+' Abnahmepunkte gruen'));
