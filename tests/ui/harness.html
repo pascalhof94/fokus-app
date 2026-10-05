@@ -199,10 +199,13 @@ function bestandSchreiben(){
      — fw.S ist undefined. Die Sichten werden deshalb ueber echte Klicks auf
      die Leiste geschaltet, nicht ueber den Zustand. Das ist ohnehin naeher
      an dem, was Pascal tut. */
+  /* 3.7.0 §5/§12: die Sichten sind durch die Sortierung der Kettenliste ersetzt — die alten Ansichten zeigen die Such-Ebene
+     mit der entsprechenden Sortierung (heute = Kettenreihenfolge, faellig = Termin, neueste/erledigte = Prioritaet; erledigte oeffnet die Gruppe) */
   function sicht(fw, key){
+    var map={ heute:'kette', faellig:'termin', neueste:'prio', erledigte:'prio' };
+    fw.klSortSetzen('kette', map[key]||'kette');
+    if(key==='erledigte') fw.eval('S.ui.klGruppen=Object.assign({}, S.ui.klGruppen, {erledigt:true});');
     fw.sucheOeffnen();
-    var b=fw.document.querySelector('[data-susicht="'+key+'"]');
-    if(b) b.click(); else throw new Error('Sicht-Knopf fehlt: '+key);
   }
   var AKTIONEN={
     /* ══ v2.0.0 · zwei Navigationsziele, fuenf Sichten ══ */
@@ -1010,6 +1013,7 @@ function bestandSchreiben(){
           var sp=d.querySelector('[data-v200spaeter]');
           if(sp && d.getElementById('sheet').className.indexOf('on')>=0){ sp.click(); offen=true; }
           if(d.getElementById('sheet').className.indexOf('on')>=0){ fw.closeSheet(); offen=true; }
+          ['plusOverlay','inKetteOverlay','mfOverlay'].forEach(function(id){ var o=d.getElementById(id); if(o && !o.hidden){ o.hidden=true; offen=true; } });   // 3.7.0: Vollbild-Ansichten
           if(!offen) break;
         }
         var _sh=d.getElementById('sheet');
@@ -1067,7 +1071,7 @@ function bestandSchreiben(){
               '§2: das Backdrop bleibt nach dem Schliessen liegen');
         /* ── §2 · Ist eine Kartenzeile anklickbar? ── */
         freiMachen();
-        var reihe=d.querySelector('#suBody [data-detail], #suBody [data-fokusstart], #suBody [data-kalkarte]');
+        var reihe=d.querySelector('#suBody [data-klfokus], #suBody [data-detail], #suBody [data-fokusstart], #suBody [data-kalkarte]');   // 3.7.0 §6: Kartenzeile
         pruef(!!reihe, '§2: keine Kartenzeile in der Suche gerendert');
         if(reihe){
           reihe.scrollIntoView({block:'center'});   // v2.4: der Kalender ist hoch
@@ -1089,8 +1093,9 @@ function bestandSchreiben(){
           var tn=d.elementFromPoint(Math.round(rn.left+rn.width/2), Math.round(rn.top+rn.height/2));
           pruef(tn===neu || (tn&&neu.contains(tn)), '§2: „neue Karte" ist verdeckt von '+beschreib(tn));
           neu.click();
+          var pn=d.querySelector('[data-plusneu]'); if(pn) pn.click();   // 3.7.0 §5: das Plus oeffnet die Kettenliste, „+ Neue Karte" den Dialog
           pruef(!!d.querySelector('#sheetBody [data-bind="titel"]'), '§2: Anlegen-Dialog oeffnet nicht');
-          fw.closeSheet();
+          fw.closeSheet(); var po=d.getElementById('plusOverlay'); if(po) po.hidden=true;
         }
         /* ── §2 · Karte oeffnen, starten, abhaken ── */
         var kid=(fw.tagesKette()||[])[0];
