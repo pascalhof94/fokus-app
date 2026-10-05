@@ -17400,7 +17400,7 @@ function ebeneSetzen(p){
   if(p.anzeige!==undefined){ const a=p.anzeige||{}; S.ui.fokusAnzeige={ pos:Math.round(num(a.pos))||0, frei:a.frei||null }; fokusAnzeige(); }
   if(p.e1!==undefined){ const e=(typeof p.e1==='string') ? { art:p.e1 } : p.e1;
     _e1 = (e && E1_ARTEN.indexOf(e.art)>=0) ? { art:e.art, arg:e.arg||{} } : null; }
-  if(vorE1==='tagebuch' && e1Art()!=='tagebuch') _tb=null;
+  if(vorE1==='tagebuch' && e1Art()!=='tagebuch'){ _tb=null; tagebuchLeeren(); }   // §1 (v3.8.1)
   if(vorE1==='suche' && e1Art()!=='suche'){ S.ui.suFrage=''; const f=el('suFreitext'); if(f) f.value=''; }   // die Suche schliesst mit leerem Feld
   saveUi();
   ebeneDarstellen();
@@ -17555,7 +17555,8 @@ function renderTagebuch(){
   }
   b.innerHTML=h; t.gezeichnet=true;
 }
-function tagebuchAbbrechen(){ _tb=null; e1Schliessen(); }
+function tagebuchLeeren(){ const b=el('tbBody'); if(b) b.innerHTML=''; }   // §1 (v3.8.1): kein verstecktes Pad mit mx-IDs im DOM lassen
+function tagebuchAbbrechen(){ _tb=null; tagebuchLeeren(); e1Schliessen(); }
 /* B7 (v3.8.0): bei JEDEM Start einer Karte mit „ADHS" im Titel öffnet das Tagebuch (Erststart, Fortsetzen nach Pause,
    Wiederöffnen, Start aus Suche/Plus/Kette/Sheet/Vorschlag) — nur bei offenem Tag, nie beim Abhaken. Die Uhr der Karte läuft
    dabei weiter. */
@@ -17598,7 +17599,7 @@ function akkuAusDialogBuchen(t, kommentar){
   return Math.round(neuA);
 }
 function tagebuchSpeichern(){
-  const t=_tb; if(!t || !t.tagebuch){ _tb=null; e1Schliessen(); return; }
+  const t=_tb; if(!t || !t.tagebuch){ _tb=null; tagebuchLeeren(); e1Schliessen(); return; }
   tagebuchFelderLesen();
   const akku=akkuAusDialogBuchen(t, (t.gedanke||'').slice(0,80));
   const eintrag={ ts:jetztIso(), x:Math.round(t.x*100)/100, y:Math.round(t.y*100)/100,
@@ -17610,6 +17611,7 @@ function tagebuchSpeichern(){
   if(matrixSpur().length>400) S.tag.matrixSpur=matrixSpur().slice(-400);
   saveTag();
   _tb=null;
+  tagebuchLeeren();
   e1Schliessen();
   // §2 (v3.7.1): (a) die Position zählt in der Positionsstaffel wie jede beantwortete Abfrage · (b) die Karte „Tagebuch" tickt um 1
   // (eigene Punkte 0, Tick-Minuten 0 — die Punkte kommen allein über die Staffel)
